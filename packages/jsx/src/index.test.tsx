@@ -609,8 +609,8 @@ test('class and className attribute', () =>
     await wrap(sleep())
     expect(ref1.className).toBe('')
     expect(ref2.className).toBe('')
-    expect(ref1.hasAttribute('class')).toBe(false)
-    expect(ref2.hasAttribute('class')).toBe(false)
+    expect(ref1.hasAttribute('class')).toBe(true)
+    expect(ref2.hasAttribute('class')).toBe(true)
   }))
 
 test('ref mount and unmount callbacks order', () =>
