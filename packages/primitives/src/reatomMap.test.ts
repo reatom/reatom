@@ -63,4 +63,14 @@ describe(`reatomMap`, () => {
 
     expect(ctx.get(mapAtom.sizeAtom)).toEqual(0)
   })
+
+  test(`should accept map constructor as initState`, () => {
+    const ctx = createCtx()
+  
+    let mapAtom = reatomMap(defaultMapEntries)
+    expect(ctx.get(mapAtom.sizeAtom)).toBe(3)
+  
+    mapAtom = reatomMap();
+    expect(ctx.get(mapAtom.sizeAtom)).toBe(0)
+  })
 })

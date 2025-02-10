@@ -257,12 +257,9 @@ const toArray = <T extends Rec>(
   return arr.length === prev?.length ? prev : arr
 }
 
-export const reatomLinkedList = <
-  Params extends any[],
-  Node extends Rec,
-  Key extends keyof Node = never,
->(
+export const reatomLinkedList = <Node extends Rec, Params extends any[] = [Node], Key extends keyof Node = never>(
   options:
+    | Array<Node>
     | ((ctx: Ctx, ...params: Params) => Node)
     | {
         create: (ctx: Ctx, ...params: Params) => Node
