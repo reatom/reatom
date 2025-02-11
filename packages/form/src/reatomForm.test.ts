@@ -2,6 +2,7 @@ import { test, expect, describe } from 'vitest'
 import { createCtx } from '@reatom/core'
 import { reatomField, reatomForm, withField } from '.'
 import { reatomBoolean } from '@reatom/primitives';
+import { z } from 'zod';
 
 test(`adding and removing fields`, async () => {
 	const ctx = createCtx();
@@ -361,4 +362,27 @@ describe('init array with reset', () => {
 		expect(ctx.get(secondNestedItem.number)).toEqual('456')
 		expect(ctx.get(secondNestedItem.priority)).toEqual(true)
 	})
+})
+	
+test('validating through form schema and placing errors to corresponding fields', async () => {
+	const ctx = createCtx()
+
+	const form = reatomForm({
+		age: 12,
+		email: 'test',
+		items: ['', 'valid']
+	}, {
+		schema: z.object({
+			age: z.number().min(18),
+			email: z.string().email(),
+			items: z.array(z.string().min(1))
+		})
+	});
+	
+	form.submit(ctx);
+
+	expect(ctx.get(form.fields.age.validation).error).toBeTruthy();
+	expect(ctx.get(form.fields.email.validation).error).toBeTruthy();
+	expect(ctx.get(ctx.get(form.fields.items.array)[0]!.validation).error).toBeTruthy();
+	expect(ctx.get(ctx.get(form.fields.items.array)[1]!.validation).error).toBeFalsy();
 })

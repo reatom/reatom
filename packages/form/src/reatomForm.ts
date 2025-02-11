@@ -50,6 +50,8 @@ import {
   FieldLikeAtom,
 } from './reatomField';
 
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+
 export interface FormFieldOptions<State = any, Value = State>
   extends FieldOptions<State, Value> {
   initState: State;
@@ -164,6 +166,9 @@ export interface FormOptions<T extends FormInitState = any> {
 
   /** The callback to validate form fields. */
   validate?: (ctx: Ctx, state: FormState<T>) => any;
+
+  /** The schema which supports StandardSchemaV1 specification to validate form fields. */
+  schema?: StandardSchemaV1<FormState<T>>;
 
   /** Should reset the state after success submit? @default true */
   resetOnSubmit?: boolean;
@@ -364,6 +369,40 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
 
 const isFieldArray = (value: any): value is FormFieldArray<any> => value?.__fieldArray;
 
+const resolveFieldByPath = <T extends FormInitState>(
+  ctx: Ctx, 
+  path: StandardSchemaV1.Issue['path'], 
+  acc: FormFields<T>
+): FieldAtom | null => {
+  if (!path?.length)
+    return null;
+
+  const shiftedPath = [...path];
+  const pathSegment = shiftedPath.shift()!;
+  if (typeof pathSegment === 'symbol')
+    return null;
+
+  const key = typeof pathSegment === 'object' && 'key' in pathSegment
+    ? pathSegment.key.toString()
+    : pathSegment.toString();
+
+  const field = acc[key];
+  if (!field)
+    return null;
+
+  if (isLinkedListAtom(field)) {
+    // @ts-expect-error bad key inference
+    return resolveFieldByPath(ctx, shiftedPath, ctx.get(field.array))
+  }
+  else if (isAtom(field)) {
+    return field
+  }
+  else {
+    // @ts-expect-error will be Rec in this case
+    return resolveFieldByPath(shiftedPath, field)
+  }
+}
+
 export const reatomForm = <T extends FormInitState>(
   initState: T | ((fieldArray: typeof createFieldArray) => T),
   options: string | FormOptions<T> = {},
@@ -377,6 +416,7 @@ export const reatomForm = <T extends FormInitState>(
     validateOnChange = false,
     keepErrorDuringValidating = false,
     keepErrorOnChange = !validateOnChange,
+    schema,
   } = typeof options === 'string'
       ? ({ name: options } as FormOptions<T>)
       : options;
@@ -488,8 +528,30 @@ export const reatomForm = <T extends FormInitState>(
 
     if (validate) {
       const promise = validate(ctx, state);
-      if (promise instanceof promise) {
+      if (promise instanceof Promise) {
         await ctx.schedule(() => promise);
+      }
+    }
+
+    if (schema) {
+      const validation = schema['~standard'].validate(state);
+      const result = validation instanceof Promise ? await ctx.schedule(() => validation) : validation;
+
+      if (result.issues?.length) {
+        for (const issue of result.issues) {
+          const field = resolveFieldByPath(ctx, issue.path, fields);
+          if (!field)
+            continue;
+
+          field.validation.merge(ctx, {
+            error: issue.message,
+            meta: undefined,
+            triggered: true,
+            validating: false,
+          })
+        }
+
+        throw new Error(result.issues[0]!.message);
       }
     }
 
