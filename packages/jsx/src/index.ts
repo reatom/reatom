@@ -226,18 +226,16 @@ const patchStyleProperty = (
 export const reatomJsx = (
   ctx: Ctx,
   DOM: DomApis = globalThis.window,
-  {
-    stylesheetContainer = DOM.document.head,
-  }: {
+  config: {
     /**
-     * The container to which the styles will be added.
+     * The node to insert styles into.
      * @default DOM.document.head
      */
     stylesheetContainer?: Node
   } = {},
 ) => {
   const styles: Rec<string> = {}
-  let stylesheet = (stylesheetContainer ?? DOM.document.head).appendChild(
+  let stylesheet = (config.stylesheetContainer ?? DOM.document.head).appendChild(
     DOM.document.createElement('style'),
   )
   let name = ''
@@ -447,20 +445,18 @@ export const reatomJsx = (
   return { h, hf, mount }
 }
 
-export const ctx = createCtx({ restrictMultipleContexts: false })
+export const ctx = createCtx()
 export const { h, hf, mount } = reatomJsx(ctx)
 
 /**
  * This simple utility needed only for syntax highlighting and it just concatenates all passed strings.
  * Falsy values are ignored, except for `0`.
  */
-export const css = (strings: TemplateStringsArray, ...values: any[]) => {
-  let result = ''
-  for (let i = 0; i < strings.length; i++) {
-    result += strings[i] + (values[i] || values[i] === 0 ? values[i] : '')
-  }
-  return result
-}
+export const css = (templs: TemplateStringsArray, ...subs: any[]) =>
+  templs.reduce(
+    (res, templ, i) => res + templ + (subs[i] == null ? '' : subs[i]),
+    '',
+  )
 
 export const Bind = <T extends Element>(
   props: { element: T } & AttributesAtomMaybe<
