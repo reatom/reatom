@@ -17,9 +17,8 @@
     "last 4 chrome versions"
   ],
   "scripts": {
-    "sandbox": "vite",
     "prepublishOnly": "npm run build && npm run test",
-    "build": "microbundle",
+    "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },

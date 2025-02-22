@@ -21,7 +21,7 @@
   },
   "scripts": {
     "prepublishOnly": "npm run build && npm run test",
-    "build": "microbundle -f esm,cjs --raw=true",
+    "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
     "bench": "ts-node src/index.bench.test.ts"

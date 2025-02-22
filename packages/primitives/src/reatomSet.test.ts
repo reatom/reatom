@@ -1,4 +1,3 @@
-import 'core-js/proposals/set-methods-v2'
 import { test, expect } from 'vitest'
 import { createCtx } from '@reatom/core'
 import { reatomSet } from './reatomSet'

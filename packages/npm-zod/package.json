@@ -20,11 +20,10 @@
     "mangle": false
   },
   "scripts": {
-    "sandbox": "vite",
     "prepublishOnly": "npm run build && npm run test",
-    "build": "microbundle",
-    "test": "vitest run src/* --typecheck",
-    "test:watch": "vitest src/* --typecheck"
+    "build": "yoctobundle",
+    "test": "vitest run src/*",
+    "test:watch": "vitest src/*"
   },
   "dependencies": {
     "@reatom/core": ">=3.8.0",

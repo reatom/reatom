@@ -15,14 +15,14 @@
     "mangle": false
   },
   "scripts": {
-    "prepublishOnly": "npm run build && npm run build-primitives && npm run test",
-    "build": "microbundle -f esm,cjs",
-    "build-primitives": "microbundle --cwd primitives",
+    "prepublishOnly": "npm run build && npm run test",
+    "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": "^3.1.0"
+    "@reatom/core": "^3.1.0",
+    "@reatom/hooks": "^3.6.0"
   },
   "author": "artalar",
   "license": "MIT",
