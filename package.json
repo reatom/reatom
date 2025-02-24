@@ -2,10 +2,10 @@
   "name": "reatom-workspace",
   "scripts": {
     "release": "npx tsx ./tools/publish.ts",
-    "postinstall": "turbo run build --filter=./packages/{framework,testing}",
-    "build": "turbo run build --filter=./packages/*",
+    "postinstall": "turbo run build --output-logs=errors-only --filter=./packages/{framework,testing}",
+    "build": "turbo run build --output-logs=errors-only --filter=./packages/*",
     "reset": "sh ./tools/reset.sh",
-    "test": "turbo run build --filter=./packages/testing && turbo run test",
+    "test": "turbo run build --output-logs=errors-only --filter=./packages/testing",
     "prettify": "prettier --write */**/**/*.{js,ts,md}",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
     "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
