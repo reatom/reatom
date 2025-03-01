@@ -1,31 +1,32 @@
 import { createTestCtx } from '@reatom/testing'
-import { test, describe, expect } from 'vitest'
-import { atom, AtomMut } from '@reatom/core'
+import { describe, test } from 'vitest'
+import { expect } from 'vitest'
+import { atom } from '@reatom/core'
 import { select } from './select'
 
-describe('select', () => {
-  // test('should not recompute the end atom if the source atom changed', () => {
-  //   let track = 0;
-  //   const a = atom(0);
-  //   const b = atom((ctx) => {
-  //     track++;
-  //     return select(ctx, (ctx) => ctx.spy(a) % 3);
-  //   });
-  //   const ctx = createTestCtx();
+// test('should not recompute the end atom if the source atom changed', () => {
+//   let track = 0
+//   const a = atom(0)
+//   const b = atom((ctx) => {
+//     track++
+//     return select(ctx, (ctx) => ctx.spy(a) % 3)
+//   })
+//   const ctx = createTestCtx()
 
-  //   ctx.subscribeTrack(b);
-  //   expect(ctx.get(b)).toBe(0);
-  //   expect(track).toBe(1);
+//   ctx.subscribeTrack(b)
+//   assert.is(ctx.get(b), 0)
+//   assert.is(track, 1)
 
-  //   a(ctx, 3);
-  //   a(ctx, 6);
-  //   expect(ctx.get(b)).toBe(0);
-  //   expect(track).toBe(1);
+//   a(ctx, 3)
+//   a(ctx, 6)
+//   assert.is(ctx.get(b), 0)
+//   assert.is(track, 1)
 
-  //   a(ctx, 10);
-  //   expect(ctx.get(b)).toBe(1);
-  //   expect(track).toBe(2);
-  // });
+//   a(ctx, 10)
+//   assert.is(ctx.get(b), 1)
+//   assert.is(track, 2)
+//   ;`👍` //?
+// })
 
   // test('many selects should work', () => {
   //   const list = atom(new Array<{ value: AtomMut<number> >());
@@ -70,6 +71,7 @@ describe('select', () => {
   //   // expect(ctx.get(sum)).toBe(3);
   // });
 
+describe('select', () => {
   test('should filter equals', () => {
     const n = atom(1)
     const odd = atom((ctx) =>
@@ -79,21 +81,30 @@ describe('select', () => {
         (prev, next) => next % 2 === 0,
       ),
     )
-
     const ctx = createTestCtx()
     const track = ctx.subscribeTrack(odd)
     track.calls.length = 0
 
     n(ctx, 2)
     expect(track.calls.length).toBe(0)
+    n(ctx, 2)
+    expect(track.calls.length).toBe(0)
 
+    n(ctx, 4)
+    expect(track.calls.length).toBe(0)
     n(ctx, 4)
     expect(track.calls.length).toBe(0)
 
     n(ctx, 5)
     expect(track.calls.length).toBe(1)
     expect(track.lastInput()).toBe(5)
+    n(ctx, 5)
+    expect(track.calls.length).toBe(1)
+    expect(track.lastInput()).toBe(5)
 
+    n(ctx, 6)
+    expect(track.calls.length).toBe(1)
+  })
     n(ctx, 6)
     expect(track.calls.length).toBe(1)
   })
