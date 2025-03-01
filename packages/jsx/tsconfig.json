@@ -3,7 +3,6 @@
   "compilerOptions": {
     "declarationMap": true,
     "jsx": "preserve",
-    "jsxImportSource": "@reatom/jsx",
     "jsxFactory": "h",
     "jsxFragmentFactory": "hf",
     "jsxImportSource": "@reatom/jsx",
