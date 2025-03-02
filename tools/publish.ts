@@ -6,11 +6,9 @@ import { createInterface } from 'readline'
 
 const updateFramework = async () => {
   const packageJson: { version: string; dependencies: Record<string, string> } =
-    JSON.parse(
-      await fs.readFile(
+    JSON.parse(await fs.readFile(
         path.join(process.cwd(), 'packages', 'framework', 'package.json'),
-        'utf8',
-      ),
+        'utf8', ),
     )
   const { dependencies } = packageJson
   let isChanged = false
