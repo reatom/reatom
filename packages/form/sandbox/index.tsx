@@ -2,10 +2,11 @@ import { AtomState, createCtx } from "@reatom/core";
 import { connectLogger } from "@reatom/logger"
 import { reatomContext, useAction, useAtom } from "@reatom/npm-react"
 import { FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
-import { LinkedListAtom, LinkedListLikeAtom, reatomBoolean } from "@reatom/primitives";
+import { LinkedListLikeAtom, reatomBoolean } from "@reatom/primitives";
 import { PropsWithChildren } from 'react';
 import { createRoot } from "react-dom/client";
 import { useFormField } from "./use-form-field";
+import { z } from "zod";
 
 const ctx = createCtx();
 connectLogger(ctx);
@@ -38,7 +39,26 @@ const form = reatomForm(fieldArray => ({
 			})
 		}
 	],
-}));
+}), {
+	validateOnChange: true,
+	schema: z.object({
+		username: z.string().min(3, 'min length 3'),
+		addresses: z.array(
+			z.object({
+				country: z.string().min(3, 'min length 3'),
+				street: z.string(),
+				city: z.string(),
+				tags: z.array(z.string().min(3, 'min length 3')),
+				phoneNumbers: z.array(
+					z.object({
+						number: z.string(),
+						priority: z.boolean()
+					})
+				)
+			})
+		)
+	})
+});
 
 const vStack = { display: 'flex', flexDirection: 'column', gap: '1rem' } as const;
 
@@ -60,6 +80,7 @@ function Form() {
 				style={{ ...vStack, gap: '0.5rem', width: '100%', maxWidth: '20rem' }}
 			>
 				<input {...usernameField.getInputProps()} />
+				<FieldError error={usernameField.error} />
 
 				<AddressesField />
 			</form>
@@ -118,14 +139,17 @@ function AddressField({ model }: { model: AddressFieldType }) {
 		<div style={{ ...vStack, gap: '0.5rem', border: '1px solid black', padding: '0.5rem' }}>
 			<label>
 				Country <input {...countryField.getInputProps()} />
+				<FieldError error={countryField.error} />
 			</label>
 
 			<label>
 				Street <input {...streetField.getInputProps()} />
+				<FieldError error={streetField.error} />
 			</label>
 
 			<label>
 				City <input {...cityField.getInputProps()} />
+				<FieldError error={cityField.error} />
 			</label>
 
 			<TagsField model={model.tags} />
@@ -163,9 +187,13 @@ function TagField({ model, children }: PropsWithChildren<{ model: FieldAtom<stri
 
 	return (
 		<div
-			style={{ display: 'flex', gap: '0.25rem' }}
+			style={{ display: 'flex', alignItems: 'start', gap: '0.25rem' }}
 		>
-			<input {...field.getInputProps()} style={{ maxWidth: '4rem' }} />
+			<div>
+				<input {...field.getInputProps()} style={{ maxWidth: '4rem' }} />
+				<FieldError error={field.error} />
+			</div>
+
 			{children}
 		</div>
 	)
@@ -207,6 +235,7 @@ function PhoneNumberField({ model, children }: PropsWithChildren<{ model: PhoneN
 			style={{ display: 'flex', gap: '0.25rem' }}
 		>
 			<input {...numberField.getInputProps()} />
+			<FieldError error={numberField.error} />
 
 			<label>
 				priority
@@ -215,6 +244,10 @@ function PhoneNumberField({ model, children }: PropsWithChildren<{ model: PhoneN
 			{children}
 		</div>
 	)
+}
+
+function FieldError({ error }: { error: string | undefined }) {
+	return error ? <div style={{ color: 'red' }}>{error}</div> : null;
 }
 
 function FieldsState() {

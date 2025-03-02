@@ -81,11 +81,11 @@ type ExtractFieldArray<T> = {
   [K in keyof T]: T[K] extends FormFieldArray<infer Param, infer Node> ? Param[] : ExtractFieldArray<T[K]>
 }
 
-export type FormFieldArrayAtom<Param, Node extends FormInitStateElement = FormInitStateElement> 
+export type FormFieldArrayAtom<Param, Node extends FormInitStateElement = FormInitStateElement>
   = LinkedListAtom<[ExtractFieldArray<Param>], FormFieldElement<Node>> & {
-  reset: Action<[], AtomState<FormFieldArrayAtom<Param, Node>>>
-  initState: AtomMut<LinkedList<LLNode<FormFieldElement<Node>>>>
-}
+    reset: Action<[], AtomState<FormFieldArrayAtom<Param, Node>>>
+    initState: AtomMut<LinkedList<LLNode<FormFieldElement<Node>>>>
+  }
 
 type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> =
   T extends FieldLikeAtom
@@ -94,7 +94,7 @@ type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> =
   ? FieldAtom<T>
   : T extends Array<infer Item>
   ? Item extends FormInitStateElement
-  ? FormFieldElement<FormFieldArray<Item, Item>>
+  ? FormFieldArrayAtom<Item, Item>
   : never
   : T extends FormFieldArray<infer Param, infer Node>
   ? FormFieldArrayAtom<Param, Node>
@@ -121,9 +121,9 @@ export type DeepPartial<T, Skip = never> = {
 };
 
 type DeepExtractLLNode<T> = {
-  [K in keyof T]: T[K] extends Array<infer LLNode> 
-    ? Array<DeepExtractLLNode<Omit<LLNode, typeof LL_NEXT | typeof LL_PREV>>> 
-    : T[K]
+  [K in keyof T]: T[K] extends Array<infer LLNode>
+  ? Array<DeepExtractLLNode<Omit<LLNode, typeof LL_NEXT | typeof LL_PREV>>>
+  : T[K]
 }
 
 export type FormPartialState<T extends FormInitState = FormInitState> =
@@ -134,7 +134,7 @@ export interface SubmitAction extends AsyncAction<[], void> {
   statusesAtom: AsyncStatusesAtom;
 }
 
-export interface Form<T extends FormInitState = any> {
+export interface Form<T extends FormInitState> {
   /** Fields from the init state */
   fields: FormFields<T>;
 
@@ -158,7 +158,7 @@ export interface Form<T extends FormInitState = any> {
   validation: Atom<FieldValidation>;
 }
 
-export interface FormOptions<T extends FormInitState = any> {
+export interface FormOptions<T extends FormInitState, State> {
   name?: string;
 
   /** The callback to process valid form data */
@@ -168,7 +168,7 @@ export interface FormOptions<T extends FormInitState = any> {
   validate?: (ctx: Ctx, state: FormState<T>) => any;
 
   /** The schema which supports StandardSchemaV1 specification to validate form fields. */
-  schema?: StandardSchemaV1<FormState<T>>;
+  schema?: StandardSchemaV1<State>;
 
   /** Should reset the state after success submit? @default true */
   resetOnSubmit?: boolean;
@@ -274,12 +274,12 @@ const computeFieldsList = <T extends FormInitState>(
   acc: Array<FieldAtom> = []
 ): Array<FieldAtom> => {
   const computeElement = (
-    element: FormFieldElement, 
+    element: FormFieldElement,
     acc: Array<FieldAtom> = [],
   ) => {
     if (isLinkedListAtom(element)) {
       const elements = ctx.spy(element.array);
-      acc.push(...elements.flatMap(e => computeElement(e, acc)));
+      elements.forEach(e => computeElement(e, acc))
     }
     else if (isAtom(element)) acc.push(element);
     else computeFieldsList(ctx, element, acc);
@@ -293,27 +293,28 @@ const computeFieldsList = <T extends FormInitState>(
   return acc;
 };
 
-const getFieldArraysList = <T extends FormInitState>(
-  ctx: Ctx,
+const computeFieldArraysList = <T extends FormInitState>(
+  ctx: CtxSpy,
   fields: FormFields<T>,
   acc: Array<FormFieldArrayAtom<unknown>> = []
 ) => {
   const computeElement = (
-    element: FormFieldElement, 
+    element: FormFieldElement,
     acc: Array<FormFieldArrayAtom<unknown>> = [],
   ) => {
     if (isLinkedListAtom(element)) {
       acc.push(element as FormFieldArrayAtom<unknown>);
-      acc.push(...ctx.get(element.array).flatMap(e => computeElement(e, acc)));
+      ctx.spy(element.array).forEach(e => computeElement(e, acc));
     }
     else if (!isAtom(element))
-      getFieldArraysList(ctx, element)
+      computeFieldArraysList(ctx, element, acc)
 
     return acc;
   }
 
-  for (const [_, field] of entries(fields))
+  for (const [_, field] of entries(fields)) {
     acc.push(...computeElement(field));
+  }
 
   return acc;
 };
@@ -354,7 +355,7 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
   } = typeof options === 'function'
       ? { create: options }
       : Array.isArray(options)
-        ? { 
+        ? {
           create: (ctx: Ctx, param: Param) => param as unknown as Node,
           initState: options
         }
@@ -370,8 +371,8 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
 const isFieldArray = (value: any): value is FormFieldArray<any> => value?.__fieldArray;
 
 const resolveFieldByPath = <T extends FormInitState>(
-  ctx: Ctx, 
-  path: StandardSchemaV1.Issue['path'], 
+  ctx: Ctx,
+  path: StandardSchemaV1.Issue['path'],
   acc: FormFields<T>
 ): FieldAtom | null => {
   if (!path?.length)
@@ -398,14 +399,16 @@ const resolveFieldByPath = <T extends FormInitState>(
     return field
   }
   else {
-    // @ts-expect-error will be Rec in this case
-    return resolveFieldByPath(shiftedPath, field)
+    return resolveFieldByPath(ctx, shiftedPath, field)
   }
 }
 
-export const reatomForm = <T extends FormInitState>(
+export const reatomForm = <
+  T extends FormInitState,
+  SchemaState extends DeepExtractLLNode<FormState<T>>
+>(
   initState: T | ((fieldArray: typeof createFieldArray) => T),
-  options: string | FormOptions<T> = {},
+  options: string | FormOptions<T, SchemaState> = {},
 ): Form<T> => {
   const {
     name = __count('form'),
@@ -418,7 +421,7 @@ export const reatomForm = <T extends FormInitState>(
     keepErrorOnChange = !validateOnChange,
     schema,
   } = typeof options === 'string'
-      ? ({ name: options } as FormOptions<T>)
+      ? ({ name: options } as FormOptions<T, SchemaState>)
       : options;
 
   const fields = reatomFormFields(initState instanceof Function ? initState(createFieldArray) : initState, {
@@ -437,7 +440,7 @@ export const reatomForm = <T extends FormInitState>(
   );
 
   const fieldsList = atom(ctx => computeFieldsList(ctx, fields), `${name}.fieldsList`);
-  const fieldArraysList = atom(ctx => getFieldArraysList(ctx, fields), `${name}.fieldArraysList`);
+  const fieldArraysList = atom(ctx => computeFieldArraysList(ctx, fields), `${name}.fieldArraysList`);
 
   const focus = atom((ctx, state = fieldInitFocus) => {
     const formFocus = { ...fieldInitFocus };
@@ -470,7 +473,7 @@ export const reatomForm = <T extends FormInitState>(
   const submitted = atom(false, `${name}.submitted`);
 
   const reset = action((ctx, initState?: FormPartialState<T>) => {
-    if(initState)
+    if (initState)
       reinitState(ctx, initState, fields);
 
     ctx.get(fieldArraysList).forEach((fieldArray) => fieldArray.reset(ctx));
@@ -505,6 +508,31 @@ export const reatomForm = <T extends FormInitState>(
     reinitState(ctx, initState, fields);
   }, `${name}.init`);
 
+  const checkSchemaValidation = async (ctx: Ctx, state: FormState<T>) => {
+    if (!schema)
+      return null;
+
+    const validation = schema['~standard'].validate(state);
+    const result = validation instanceof Promise ? await ctx.schedule(() => validation) : validation;
+
+    if (result.issues?.length) {
+      for (const issue of result.issues) {
+        const field = resolveFieldByPath(ctx, issue.path, fields);
+        if (!field)
+          continue;
+
+        field.validation.merge(ctx, {
+          error: issue.message,
+          meta: undefined,
+          triggered: true,
+          validating: false,
+        })
+      }
+    }
+
+    return result;
+  }
+
   const submit = reatomAsync(async (ctx) => {
     ctx.get(() => {
       for (const field of ctx.get(fieldsList)) {
@@ -533,27 +561,9 @@ export const reatomForm = <T extends FormInitState>(
       }
     }
 
-    if (schema) {
-      const validation = schema['~standard'].validate(state);
-      const result = validation instanceof Promise ? await ctx.schedule(() => validation) : validation;
-
-      if (result.issues?.length) {
-        for (const issue of result.issues) {
-          const field = resolveFieldByPath(ctx, issue.path, fields);
-          if (!field)
-            continue;
-
-          field.validation.merge(ctx, {
-            error: issue.message,
-            meta: undefined,
-            triggered: true,
-            validating: false,
-          })
-        }
-
-        throw new Error(result.issues[0]!.message);
-      }
-    }
+    const schemaValidationResult = await checkSchemaValidation(ctx, state);
+    if (schemaValidationResult && schemaValidationResult.issues?.length)
+      throw new Error(schemaValidationResult.issues[0]!.message);
 
     if (onSubmit) await ctx.schedule(() => onSubmit(ctx, state));
 
@@ -572,6 +582,16 @@ export const reatomForm = <T extends FormInitState>(
     withErrorAtom(undefined, { resetTrigger: 'onFulfill' }),
     (submit) => Object.assign(submit, { error: submit.errorAtom }),
   );
+
+  if(validateOnChange) {
+    fieldsState.onChange((ctx, state) => {
+      const changeCause = ctx.cause?.cause;
+      const fieldArrayProtos = new Set(ctx.get(fieldArraysList).map(fieldArray => fieldArray.array.__reatom));
+
+      if(changeCause && !fieldArrayProtos.has(changeCause.proto))
+        checkSchemaValidation(ctx, state);
+    })
+  }
 
   return {
     fields,
