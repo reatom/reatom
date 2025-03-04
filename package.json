@@ -11,15 +11,15 @@
     "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
     "package-generator": "tsx tools/new-package.ts",
     "update": "npx npm-check-updates -u",
-    "prepare": "husky",
+    "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "actualize-issue-templates": "npx tsx ./tools/actualize-issue-templates.ts"
   },
   "workspaces": [
     "./packages/*"
   ],
-  "packageManager": "npm@8.0.0",
+  "packageManager": "npm@11.1.0",
   "engines": {
-    "npm": ">=8.0.0"
+    "npm": ">=11.1.0"
   },
   "dependencies": {
     "@commitlint/cli": "^19.2.1",
@@ -35,5 +35,15 @@
     "uvu": "^0.5.6",
     "vitest": "^3.0.6",
     "zx": "^8.3.2"
-  }
+  },
+  "author": "artalar",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/artalar/reatom.git"
+  },
+  "bugs": {
+    "url": "https://github.com/artalar/reatom/issues"
+  },
+  "homepage": "https://www.reatom.dev"
 }
