@@ -17,14 +17,14 @@
   "workspaces": [
     "./packages/*"
   ],
-  "packageManager": "npm@11.1.0",
+  "packageManager": "npm@10.0.0",
   "engines": {
-    "npm": ">=11.1.0"
+    "npm": ">=10"
   },
   "dependencies": {
     "@commitlint/cli": "^19.2.1",
     "@commitlint/config-conventional": "^19.1.0",
-    "yoctobundle": "latest",
+    "yoctobundle": "0.1.0",
     "@types/node": "latest",
     "bun": "^1.1.13",
     "husky": "^9.1.7",

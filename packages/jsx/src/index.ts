@@ -237,8 +237,8 @@ export const reatomJsx = (
   } = {},
 ) => {
   const styles: Rec<string> = {}
-  const stylesheet = (
-    config.stylesheetContainer ?? DOM.document.head
+  let stylesheet = (
+    stylesheetContainer ?? DOM.document.head
   ).appendChild(DOM.document.createElement('style'))
   let name = ''
 
@@ -253,13 +253,6 @@ export const reatomJsx = (
       if (val == null) element.style.removeProperty(key)
       else element.style.setProperty(key, String(val))
     } else if (key === 'css') {
-      stylesheet ??= DOM.document.getElementById(StylesheetId) as any
-      if (!stylesheet) {
-        stylesheet = DOM.document.createElement('style')
-        stylesheet.id = StylesheetId
-        stylesheetContainer.appendChild(stylesheet)
-      }
-
       const prefix = name ? name + '_' : ''
       const styleKey = prefix + val
       let styleId = styles[styleKey]
