@@ -28,48 +28,48 @@ import { select } from './select'
 //   ;`👍` //?
 // })
 
-  // test('many selects should work', () => {
-  //   const list = atom(new Array<{ value: AtomMut<number> >());
-  //   const target = atom((ctx) => {
-  //     const length = select(ctx, (ctx) => ctx.spy(list).length);
-  //     const sum = select(ctx, (ctx) => ctx.spy(list).reduce((acc, el) => acc + ctx.spy(el.value), 0));
+// test('many selects should work', () => {
+//   const list = atom(new Array<{ value: AtomMut<number> >());
+//   const target = atom((ctx) => {
+//     const length = select(ctx, (ctx) => ctx.spy(list).length);
+//     const sum = select(ctx, (ctx) => ctx.spy(list).reduce((acc, el) => acc + ctx.spy(el.value), 0));
 
-  //     return { length, sum };
-  //   });
-  //   const ctx = createTestCtx();
-  //   const track = ctx.subscribeTrack(target);
+//     return { length, sum };
+//   });
+//   const ctx = createTestCtx();
+//   const track = ctx.subscribeTrack(target);
 
-  //   expect(ctx.get(target)).toEqual({ length: 0, sum: 0 });
+//   expect(ctx.get(target)).toEqual({ length: 0, sum: 0 });
 
-  //   const value = atom(1);
-  //   list(ctx, [{ value }]);
-  //   expect(ctx.get(target)).toEqual({ length: 1, sum: 1 });
-  //   expect(track.calls.length).toBe(2);
+//   const value = atom(1);
+//   list(ctx, [{ value }]);
+//   expect(ctx.get(target)).toEqual({ length: 1, sum: 1 });
+//   expect(track.calls.length).toBe(2);
 
-  //   value(ctx, 2);
-  //   expect(ctx.get(target)).toEqual({ length: 1, sum: 2 });
-  //   expect(track.calls.length).toBe(3);
+//   value(ctx, 2);
+//   expect(ctx.get(target)).toEqual({ length: 1, sum: 2 });
+//   expect(track.calls.length).toBe(3);
 
-  //   list(ctx, [{ value }]);
-  //   expect(ctx.get(target)).toEqual({ length: 1, sum: 2 });
-  //   expect(track.calls.length).toBe(3);
-  // });
+//   list(ctx, [{ value }]);
+//   expect(ctx.get(target)).toEqual({ length: 1, sum: 2 });
+//   expect(track.calls.length).toBe(3);
+// });
 
-  // test('prevent select memoization errors', () => {
-  //   const list = atom(new Array<AtomMut<{ name: string; value: number }>>());
-  //   const sum = atom((ctx) => ctx.spy(list).reduce((acc, el) => acc + select(ctx, (ctx) => ctx.spy(el).value), 0));
-  //   const ctx = createTestCtx();
-  //   const track = ctx.subscribeTrack(sum);
+// test('prevent select memoization errors', () => {
+//   const list = atom(new Array<AtomMut<{ name: string; value: number }>>());
+//   const sum = atom((ctx) => ctx.spy(list).reduce((acc, el) => acc + select(ctx, (ctx) => ctx.spy(el).value), 0));
+//   const ctx = createTestCtx();
+//   const track = ctx.subscribeTrack(sum);
 
-  //   expect(track.calls.length).toBe(1);
-  //   expect(ctx.get(sum)).toBe(0);
+//   expect(track.calls.length).toBe(1);
+//   expect(ctx.get(sum)).toBe(0);
 
-  //   expect(() =>
-  //     list(ctx, [atom({ name: 'a', value: 1 }), atom({ name: 'b', value: 2 })])
-  //   ).toThrow('Reatom error: multiple select with the same "toString" representation is not allowed');
-  //   // expect(track.calls.length).toBe(2);
-  //   // expect(ctx.get(sum)).toBe(3);
-  // });
+//   expect(() =>
+//     list(ctx, [atom({ name: 'a', value: 1 }), atom({ name: 'b', value: 2 })])
+//   ).toThrow('Reatom error: multiple select with the same "toString" representation is not allowed');
+//   // expect(track.calls.length).toBe(2);
+//   // expect(ctx.get(sum)).toBe(3);
+// });
 
 describe('select', () => {
   test('should filter equals', () => {
