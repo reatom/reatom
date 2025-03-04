@@ -52,9 +52,13 @@ export interface LinkedListAtom<
 > extends ZodAtom<Array<Model>>,
     ReatomLinkedListAtom<Params, Model> {}
 
-type DistributeIntersection<U, T> = U extends any ? U & T : never;
+type DistributeIntersection<U, T> = U extends any ? U & T : never
 
-export type ZodAtomization<T extends z.ZodFirstPartySchemaTypes, Union = never, Intersection = unknown> = T extends z.ZodAny
+export type ZodAtomization<
+  T extends z.ZodFirstPartySchemaTypes,
+  Union = never,
+  Intersection = unknown,
+> = T extends z.ZodAny
   ? AtomMut<(any & Intersection) | Union>
   : T extends z.ZodUnknown
     ? AtomMut<unknown | Union>
@@ -401,12 +405,11 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
     case z.ZodFirstPartyTypeKind.ZodCatch: {
       try {
         def.innerType.parse(state)
-      } 
-      catch (error) {
-        if(error instanceof z.ZodError)
+      } catch (error) {
+        if (error instanceof z.ZodError)
           state = def.catchValue({ error, input: state })
       }
-            
+
       return reatomZod(def.innerType, { sync, initState: state, name })
     }
     case z.ZodFirstPartyTypeKind.ZodEffects: {
@@ -422,7 +425,9 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       return reatomZod(def.getter(), { sync, initState, name })
     }
     case z.ZodFirstPartyTypeKind.ZodIntersection: {
-      throw new TypeError(`Unsupported Zod type: ${def.typeName}. Please use .merge instead`)
+      throw new TypeError(
+        `Unsupported Zod type: ${def.typeName}. Please use .merge instead`,
+      )
     }
 
     default: {

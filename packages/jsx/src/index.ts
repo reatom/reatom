@@ -237,9 +237,9 @@ export const reatomJsx = (
   } = {},
 ) => {
   const styles: Rec<string> = {}
-  let stylesheet = (
-    stylesheetContainer ?? DOM.document.head
-  ).appendChild(DOM.document.createElement('style'))
+  let stylesheet = (stylesheetContainer ?? DOM.document.head).appendChild(
+    DOM.document.createElement('style'),
+  )
   let name = ''
 
   let set = (element: JSX.Element, key: string, val: any) => {

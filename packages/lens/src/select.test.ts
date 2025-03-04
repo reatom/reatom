@@ -105,7 +105,4 @@ describe('select', () => {
     n(ctx, 6)
     expect(track.calls.length).toBe(1)
   })
-    n(ctx, 6)
-    expect(track.calls.length).toBe(1)
-  })
 })

@@ -377,7 +377,9 @@ export const withAbort =
               strategy === 'first-in-win' &&
               ctx.get(anAsync.pendingAtom) > 1
             ) {
-              const error = toAbortError('abort (first-in-win)' + ctx.cause.proto.name)
+              const error = toAbortError(
+                'abort (first-in-win)' + ctx.cause.proto.name,
+              )
               promise.controller.abort(error)
               anAsync.onAbort!(ctx, error)
               return

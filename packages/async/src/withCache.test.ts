@@ -328,7 +328,10 @@ test('shared cache', async () => {
       return value
     }).pipe(
       withDataAtom(0),
-      withCache({ swr: false, withPersist: () => withMyModelPersist('myModel') }),
+      withCache({
+        swr: false,
+        withPersist: () => withMyModelPersist('myModel'),
+      }),
     )
 
     return {
