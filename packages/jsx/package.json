@@ -12,10 +12,10 @@
       "default": "./build/index.mjs"
     },
     "./jsx-runtime": {
-      "types": "./build/index.d.ts"
+      "types": "./build/jsx.d.ts"
     },
     "./jsx-dev-runtime": {
-      "types": "./build/index.d.ts"
+      "types": "./build/jsx.d.ts"
     }
   },
   "main": "build/index.js",
