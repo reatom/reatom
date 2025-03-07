@@ -4,10 +4,8 @@
     "declarationMap": true,
     "jsx": "preserve",
     "jsxImportSource": "@reatom/jsx",
-    "noEmit": false,
-    "emitDeclarationOnly": true,
-    "sourceMap": false,
-    "outDir": "build"
+    "module": "Preserve",
+    "moduleResolution": "bundler"
   },
   "exclude": ["**/*.test.ts"]
 }

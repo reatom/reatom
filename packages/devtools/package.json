@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "prepublishOnly": "npm run build && npm run test",
-    "build": "rm -rf build && tsc && bun build src/index.tsx --outdir ./build --sourcemap=external  --loader .css:text --target browser",
+    "build": "tsc",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
@@ -49,7 +49,15 @@
     "/devtools1.png",
     "/devtools2.png"
   ],
-  "devDependencies": {
+  "bundleDependencies": [
+    "@observablehq/inspecting",
+    "@reatom/framework",
+    "@reatom/jsx",
+    "@reatom/npm-zod",
+    "jsondiffpatch",
+    "zod"
+  ],
+  "optionalDependencies": {
     "@observablehq/inspector": "^5.0.0",
     "@reatom/framework": "latest",
     "@reatom/jsx": "latest",
