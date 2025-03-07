@@ -29,14 +29,6 @@ const setup = (fn: SetupFn) => async () => {
   }
 }
 
-/** Only for highlight */
-const html = (arr: TemplateStringsArray, ...args: any[]) => {
-  const html = arr.reduce((acc, str, i) => {
-    return acc + str + (args[i] || '')
-  }, '')
-  return html
-}
-
 test(
   'static props & children',
   setup((ctx, h, hf, mount, parent) => {
@@ -61,7 +53,7 @@ test(
     mount(parent, element)
 
     expect(element.id).toBe('val')
-    expect(element.prp).toBe('prp')
+    expect((element as any).prp).toBe('prp')
     expect(element.getAttribute('atr')).toBe('atr')
 
     val(ctx, 'val1')
@@ -69,7 +61,7 @@ test(
     atr(ctx, 'atr1')
 
     expect(element.id).toBe('val1')
-    expect(element.prp).toBe('prp1')
+    expect((element as any).prp).toBe('prp1')
     expect(element.getAttribute('atr')).toBe('atr1')
   }),
 )
@@ -150,7 +142,7 @@ test(
       'on:click': clickTrack as Fn,
     })
 
-    const element = <div $spread={props} />
+    const element = <div $spread={props} /> as HTMLDivElement
 
     mount(parent, element)
 

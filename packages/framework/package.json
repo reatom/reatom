@@ -5,7 +5,6 @@
   "sideEffects": false,
   "description": "Reatom for framework",
   "source": "src/index.ts",
-  "exports": { "types": "./build/index.d.ts", "require": "./build/index.js", "default": "./build/index.mjs" },
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -17,12 +16,8 @@
   "browserslist": [
     "last 1 year"
   ],
-  "browserslist": [
-    "last 1 year"
-  ],
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "yoctobundle",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
