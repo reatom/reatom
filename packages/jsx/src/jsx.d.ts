@@ -20,17 +20,9 @@ export namespace JSX {
   type Element = HTMLElement | SVGElement
 
   /** @todo Try replacing `Node | Element` with `ChildNode`. */
-  type Child =
-    | ChildNode
-    | string
-    | number
-    | boolean
-    | null
-    | undefined
+  type Child = ChildNode | string | number | boolean | null | undefined
 
-  type Children =
-    | Array<Children>
-    | AtomMaybe<Child>
+  type Children = Array<Children> | AtomMaybe<Child>
 
   interface ElementClass {
     // empty, libs can define requirements downstream
