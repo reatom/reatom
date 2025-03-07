@@ -115,5 +115,6 @@ try {
 export const withCookie: (options?: CookieAttributes) => WithPersistWebStorage =
   isCookieAvailable
     ? /*#__PURE__*/ reatomPersistCookie('withCookie', globalThis.document)
-    : /*#__PURE__*/ () =>
+    : () =>
+        /*#__PURE__*/
         reatomPersist(createMemStorage({ name: 'withCookie' }))
