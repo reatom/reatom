@@ -24,9 +24,7 @@
   "dependencies": {
     "@commitlint/cli": "^19.2.1",
     "@commitlint/config-conventional": "^19.1.0",
-    "yoctobundle": "0.1.0",
     "@types/node": "latest",
-    "bun": "^1.1.13",
     "husky": "^9.1.7",
     "prettier": "^3.5.2",
     "tsx": "^4.19.3",
@@ -34,6 +32,7 @@
     "typescript": "^5.7.3",
     "uvu": "^0.5.6",
     "vitest": "^3.0.6",
+    "yoctobundle": "latest",
     "zx": "^8.3.2"
   },
   "author": "artalar",

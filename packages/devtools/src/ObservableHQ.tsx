@@ -3,13 +3,11 @@ import { ctx, FC, h, mount, JSX, css, ROOT } from './jsx'
 
 // @ts-expect-error TODO write types
 import { Inspector } from '@observablehq/inspector'
-// @ts-expect-error
-import observablehqStyles from '../../../node_modules/@observablehq/inspector/dist/inspector.css'
+import observablehqStyles from '../../../node_modules/@observablehq/inspector/dist/inspector.css?raw'
 
-import { create, type DiffContext } from 'jsondiffpatch'
+import { create } from 'jsondiffpatch'
 import * as htmlFormatter from 'jsondiffpatch/formatters/html'
-// @ts-expect-error
-import jsondiffpatchStyles from '../../../node_modules/jsondiffpatch/lib/formatters/styles/html.css'
+import jsondiffpatchStyles from '../../../node_modules/jsondiffpatch/lib/formatters/styles/html.css?raw'
 
 import {
   BooleanAtom,
