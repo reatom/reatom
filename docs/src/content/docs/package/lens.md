@@ -11,6 +11,8 @@ A set of operators to transform actions payload or an atoms state in a FRP style
 
 > included in [@reatom/framework](/package/framework)
 
+**THIS PACKAGE WILL BE DEPRECATED IN THE NEXT MAJOR RELEASE, please try to use[@reatom/effects](/package/effects) instead.**
+
 ## `mapState`
 
 Simple map utility, which allow you to receive previous dependency state by a second optional argument.
