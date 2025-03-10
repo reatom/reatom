@@ -38,7 +38,6 @@ export interface DevtoolsState<T = any> {
 export interface Devtools {
   log(name: string, payload?: any): void
   state<T>(name: string, initState: T): DevtoolsState<T>
-
   show(): void
   hide(): void
 }
@@ -62,11 +61,18 @@ export const _connectDevtools = async (
   let folded: null | { width: string; height: string } = null
   let moved = false
 
-  const viewSwitch = reatomBoolean(true, `${name}.viewSwitch`).pipe(withLocalStorage(`${name}.viewSwitch`))
+  // TODO persist-web-storage types are messed (?)
+  const viewSwitch: BooleanAtom = reatomBoolean(
+    true,
+    `${name}.viewSwitch`,
+  ).pipe(withLocalStorage(`${name}.viewSwitch`))
 
   const snapshot = atom<Rec>({}, `${name}.snapshot`).pipe(
     withAssign((target, name) => ({
-      forceUpdate: action((ctx) => target(ctx, (state) => ({ ...state })), `${name}.forceUpdate`),
+      forceUpdate: action(
+        (ctx) => target(ctx, (state) => ({ ...state })),
+        `${name}.forceUpdate`,
+      ),
     })),
   )
 
@@ -96,8 +102,14 @@ export const _connectDevtools = async (
         if (e.currentTarget.hasPointerCapture(e.pointerId)) {
           moved = true
           folded = null
-          width(ctx, `${Math.min(window.innerWidth * 0.95, window.innerWidth - e.clientX)}px`)
-          height(ctx, `${Math.min(window.innerHeight * 0.95, window.innerHeight - e.clientY)}px`)
+          width(
+            ctx,
+            `${Math.min(window.innerWidth * 0.95, window.innerWidth - e.clientX)}px`,
+          )
+          height(
+            ctx,
+            `${Math.min(window.innerHeight * 0.95, window.innerHeight - e.clientY)}px`,
+          )
         }
       }}
       on:lostpointercapture={() => {
@@ -207,7 +219,13 @@ export const _connectDevtools = async (
         `}
         css:display={atom((ctx) => (ctx.spy(viewSwitch) ? 'block' : 'none'))}
       >
-        <Graph clientCtx={clientCtx} getColor={_getColor} width={width} height={height} initSize={initSize} />
+        <Graph
+          clientCtx={clientCtx}
+          getColor={_getColor}
+          width={width}
+          height={height}
+          initSize={initSize}
+        />
       </div>
     </div>
   )
@@ -226,7 +244,9 @@ export const _connectDevtools = async (
 }
 
 /** @deprecated use `createDevtools` instead */
-export const connectDevtools = (...[ctx, options]: Parameters<typeof _connectDevtools>) => {
+export const connectDevtools = (
+  ...[ctx, options]: Parameters<typeof _connectDevtools>
+) => {
   _connectDevtools(ctx, options)
 
   return <T,>(name: string, payload: T): T => {
@@ -239,7 +259,10 @@ export const createDevtools = ({
   ctx: clientCtx = createCtx(),
   initVisibility = true,
   ...options
-}: Omit<DevtoolsOptions, 'visible'> & { ctx?: Ctx; initVisibility?: boolean } = {}): Devtools => {
+}: Omit<DevtoolsOptions, 'visible'> & {
+  ctx?: Ctx
+  initVisibility?: boolean
+} = {}): Devtools => {
   const visible = reatomBoolean(initVisibility, '_ReatomDevtools.visible')
 
   _connectDevtools(clientCtx, { ...options, visible })
@@ -264,7 +287,9 @@ export const createDevtools = ({
     }
 
     // memoize the reference to the atom
-    const result = bind(clientCtx, (ctx, state) => target(ctx, () => state)) as DevtoolsState
+    const result = bind(clientCtx, (ctx, state) =>
+      target(ctx, () => state),
+    ) as DevtoolsState
 
     const subscribe: DevtoolsState['subscribe'] = (cb) =>
       target.onChange((ctx, state) => {

@@ -3,22 +3,34 @@ import { ctx, FC, h, mount, JSX, css, ROOT } from './jsx'
 
 // @ts-expect-error TODO write types
 import { Inspector } from '@observablehq/inspector'
-// @ts-expect-error
-import observablehqStyles from '../../../node_modules/@observablehq/inspector/dist/inspector.css'
+import observablehqStyles from '../../../node_modules/@observablehq/inspector/dist/inspector.css?raw'
 
-import { create, type DiffContext } from 'jsondiffpatch'
-// @ts-expect-error
+import { create } from 'jsondiffpatch'
 import * as htmlFormatter from 'jsondiffpatch/formatters/html'
-// @ts-expect-error
-import jsondiffpatchStyles from '../../../node_modules/jsondiffpatch/lib/formatters/styles/html.css'
+import jsondiffpatchStyles from '../../../node_modules/jsondiffpatch/lib/formatters/styles/html.css?raw'
 
-import { BooleanAtom, noop, parseAtoms, reatomBoolean, take, withComputed, withInit } from '@reatom/framework'
+import {
+  BooleanAtom,
+  parseAtoms,
+  reatomBoolean,
+  take,
+  withComputed,
+  withInit,
+} from '@reatom/framework'
 
-import { HISTORY_LENGTH, buttonCss as editButtonCss, historyStates, idxMap } from './utils'
+import {
+  HISTORY_LENGTH,
+  buttonCss as editButtonCss,
+  historyStates,
+  idxMap,
+} from './utils'
 
 const differ = create({
   propertyFilter(name, context) {
-    return typeof (context.right as any)?.[name] !== 'function' && typeof (context.left as any)?.[name] !== 'function'
+    return (
+      typeof (context.right as any)?.[name] !== 'function' &&
+      typeof (context.left as any)?.[name] !== 'function'
+    )
   },
 })
 
@@ -121,8 +133,10 @@ const getHTMLDiff = (a: AtomCache, b: AtomCache) => {
             causeEl.scrollIntoView()
             causeEl.focus()
           }}
-          // @ts-expect-error
-          style:color={atom((ctx) => (ctx.spy(causeEl.styleAtom).display === 'none' ? 'black' : undefined))}
+          style:color={atom((ctx) =>
+            // @ts-expect-error
+            ctx.spy(causeEl.styleAtom).display === 'none' ? 'black' : undefined,
+          )}
           css={`
             padding-left: 12px;
           `}
@@ -133,7 +147,7 @@ const getHTMLDiff = (a: AtomCache, b: AtomCache) => {
       <div
         ref={(ctx, el) => {
           el.innerHTML = htmlFormatter
-            .format(delta, aState)
+            .format(delta, aState)!
             .replaceAll(
               `<pre class="jsondiffpatch-error">TypeError: Cannot read properties of undefined (reading 'replace')</pre>`,
               '[Function]',
@@ -155,7 +169,9 @@ export const ObservableHQ: FC<{
   subscribe = false,
   update,
   patch,
-  name = isAtom(snapshot) ? `${snapshot.__reatom.name}.ObservableHQ` : __count('ObservableHQ'),
+  name = isAtom(snapshot)
+    ? `${snapshot.__reatom.name}.ObservableHQ`
+    : __count('ObservableHQ'),
 }) => {
   const state = atom<any>(null, `${name}.state`)
   if (subscribe) state.pipe(withComputed((ctx) => ctx.spy(snapshot as Atom)))
@@ -222,12 +238,13 @@ export const ObservableHQ: FC<{
     return result
   }
 
-  const setup = (target: Atom | {}) => (ctx: Ctx, observableContainer: HTMLDivElement) => {
-    const shadowRoot = observableContainer.attachShadow({ mode: 'open' })
-    shadowRoot.append(
-      <style>
-        {observablehqStyles.replaceAll(':root', '.observablehq')}
-        {`
+  const setup =
+    (target: Atom | {}) => (ctx: Ctx, observableContainer: HTMLDivElement) => {
+      const shadowRoot = observableContainer.attachShadow({ mode: 'open' })
+      shadowRoot.append(
+        <style>
+          {observablehqStyles.replaceAll(':root', '.observablehq')}
+          {`
         .observablehq {
           margin: 0 1rem;
         }
@@ -240,29 +257,35 @@ export const ObservableHQ: FC<{
           display: inline-block;
         }
       `}
-      </style>,
-      <div
-        css={`
-          width: 100%;
-          height: 100%;
-          overflow: auto;
-          z-index: 1;
-        `}
-        ref={(ctx, inspectorEl) => {
-          const inspector = new Inspector(inspectorEl) as { fulfilled(data: any): void }
-          if (isAtom(target)) {
-            return ctx.subscribe(target, (data) => inspector.fulfilled(data instanceof URL ? data.href : data))
-          } else {
-            inspector.fulfilled(target)
-          }
-        }}
-      />,
-    )
-  }
+        </style>,
+        <div
+          css={`
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            z-index: 1;
+          `}
+          ref={(ctx, inspectorEl) => {
+            const inspector = new Inspector(inspectorEl) as {
+              fulfilled(data: any): void
+            }
+            if (isAtom(target)) {
+              return ctx.subscribe(target, (data) =>
+                inspector.fulfilled(data instanceof URL ? data.href : data),
+              )
+            } else {
+              inspector.fulfilled(target)
+            }
+          }}
+        />,
+      )
+    }
 
   return (
     <div
-      css:display={update ? atom((ctx) => (ctx.spy(isEditing) ? 'none' : 'flex')) : 'flex'}
+      css:display={
+        update ? atom((ctx) => (ctx.spy(isEditing) ? 'none' : 'flex')) : 'flex'
+      }
       css={`
         width: 100%;
         overflow: auto;
@@ -281,18 +304,29 @@ export const ObservableHQ: FC<{
           display: var(--display);
 
           opacity: 0.5;
-          &:hover, &:focus-within {
+          &:hover,
+          &:focus-within {
             opacity: 1;
           }
         `}
       >
         {update && (
-          <button on:click={isEditing.toggle} title="Edit" aria-label="Toggle editing" css={buttonCss}>
+          <button
+            on:click={isEditing.toggle}
+            title="Edit"
+            aria-label="Toggle editing"
+            css={buttonCss}
+          >
             ✏️
           </button>
         )}
         {update && (
-          <button on:click={showHistory.toggle} title="History" aria-label="Toggle history" css={buttonCss}>
+          <button
+            on:click={showHistory.toggle}
+            title="History"
+            aria-label="Toggle history"
+            css={buttonCss}
+          >
             🕗
           </button>
         )}
@@ -353,7 +387,13 @@ export const ObservableHQ: FC<{
           ),
         )}
       {update &&
-        atom((ctx) => (ctx.spy(isEditing) ? <EditForm json={json} isEditing={isEditing} update={update} /> : <div />))}
+        atom((ctx) =>
+          ctx.spy(isEditing) ? (
+            <EditForm json={json} isEditing={isEditing} update={update} />
+          ) : (
+            <div />
+          ),
+        )}
     </div>
   )
 }
