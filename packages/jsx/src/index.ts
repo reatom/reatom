@@ -48,7 +48,7 @@ let unlink = (parent: Node, un: Unsubscribe) => {
   // check the connection in the next tick
   // to give the user (programmer) an ability
   // to put the created element in the dom
-  Promise.resolve().then(() => {
+  queueMicrotask(() => {
     if (!parent.isConnected) un()
     else {
       while (
@@ -73,14 +73,14 @@ const walkLinkedList = (
     if (state.version - 1 > lastVersion) {
       el.innerHTML = ''
       for (let { head } = state; head; head = head[LL_NEXT]) {
-        throwNativeFragment(head)
+        assertReatomFragment(DOM, head)
         el.append(head)
       }
     } else {
       let appendBatch: undefined | DocumentFragment
       for (const change of state.changes) {
         if (change.kind === 'create') {
-          throwNativeFragment(change.node)
+          assertReatomFragment(DOM, change.node)
 
           appendBatch ??= DOM.document.createDocumentFragment()
 
@@ -91,7 +91,7 @@ const walkLinkedList = (
         }
 
         if (change.kind === 'remove') {
-          if (isLiveFragment(change.node)) {
+          if (isReatomFragment(change.node)) {
             const fragment = change.node.__reatomFragment
             fragment.update()
             fragment.start.remove()
@@ -144,38 +144,31 @@ const walkLinkedList = (
   })
 }
 
-type LiveDocumentFragment = DocumentFragment & {
+type ReatomFragment = DocumentFragment & {
   __reatomFragment: {
     start: Comment
     end: Comment
-    update: (element?: JSX.ElementPrimitiveChildren) => void
+    update: (element?: JSX.Child) => void
   }
 }
 
-// TODO optimize
-const isLiveFragment = (node: Node): node is LiveDocumentFragment => {
-  return (
-    String(node) === '[object DocumentFragment]' && '__reatomFragment' in node
-  )
+const isReatomFragment = (node: Node): node is ReatomFragment => {
+  return '__reatomFragment' in node
 }
-const throwNativeFragment = (element: JSX.Element) => {
+const assertReatomFragment = (DOM: DomApis, node: Node) => {
   throwReatomError(
-    String(element) === '[object DocumentFragment]' &&
-      '__reatomFragment' in element === false,
+    node instanceof DOM.DocumentFragment && !isReatomFragment(node),
     'native fragment is not supported',
   )
 }
 
-const createLiveFragment = (
-  DOM: DomApis,
-  name: string,
-): LiveDocumentFragment => {
+const reatomFragment = (DOM: DomApis, name: string): ReatomFragment => {
   const fragment = DOM.document.createDocumentFragment()
   const start = DOM.document.createComment(name)
   const end = start.cloneNode() as Comment
   fragment.append(start, end)
 
-  const update = (element?: JSX.ElementPrimitiveChildren) => {
+  const update = (element?: JSX.Child) => {
     while (start.nextSibling && start.nextSibling !== end) {
       start.nextSibling!.remove?.()
     }
@@ -202,9 +195,9 @@ const createLiveFragment = (
 const walkAtom = (
   ctx: Ctx,
   DOM: DomApis,
-  anAtom: Atom<JSX.ElementPrimitiveChildren>,
+  anAtom: Atom<JSX.Child>,
 ): DocumentFragment => {
-  const fragment = createLiveFragment(DOM, anAtom.__reatom.name!)
+  const fragment = reatomFragment(DOM, anAtom.__reatom.name!)
 
   const un = ctx.subscribe(anAtom, fragment.__reatomFragment.update)
 
@@ -226,20 +219,18 @@ const patchStyleProperty = (
 export const reatomJsx = (
   ctx: Ctx,
   DOM: DomApis = globalThis.window,
-  {
-    stylesheetContainer = DOM.document.head,
-  }: {
+  config: {
     /**
-     * The container to which the styles will be added.
+     * The node to insert styles into.
      * @default DOM.document.head
      */
     stylesheetContainer?: Node
   } = {},
 ) => {
   const styles: Rec<string> = {}
-  let stylesheet = (stylesheetContainer ?? DOM.document.head).appendChild(
-    DOM.document.createElement('style'),
-  )
+  const stylesheet = (
+    config.stylesheetContainer ?? DOM.document.head
+  ).appendChild(DOM.document.createElement('style'))
   let name = ''
 
   let set = (element: JSX.Element, key: string, val: any) => {
@@ -296,7 +287,7 @@ export const reatomJsx = (
 
     if (tag === hf) {
       // needed for `walkLinkedList`
-      const fragment = createLiveFragment(DOM, '')
+      const fragment = reatomFragment(DOM, '')
       for (let i = 0; i < children.length; i++) {
         const child = children[i]
         fragment.append(isAtom(child) ? walkAtom(ctx, DOM, child) : child)
@@ -309,11 +300,12 @@ export const reatomJsx = (
 
     let element: JSX.Element
 
+    if (props.children) children = props.children
+    if (children != null && !Array.isArray(children)) children = [children]
+    props.children = children
+
     if (typeof tag === 'function') {
-      if (tag === Bind) {
-        element = props.element
-        props.element = undefined
-      } else {
+      if (tag !== Bind) {
         if (children.length) {
           props.children = children
         }
@@ -326,6 +318,8 @@ export const reatomJsx = (
           name = _name
         }
       }
+      element = props.element
+      props.element = undefined
     } else {
       element = tag.startsWith('svg:')
         ? DOM.document.createElementNS(
@@ -334,8 +328,6 @@ export const reatomJsx = (
           )
         : DOM.document.createElement(tag)
     }
-
-    if ('children' in props) children = props.children
 
     for (let k in props) {
       if (k !== 'children' && k !== 'element') {
@@ -454,13 +446,11 @@ export const { h, hf, mount } = reatomJsx(ctx)
  * This simple utility needed only for syntax highlighting and it just concatenates all passed strings.
  * Falsy values are ignored, except for `0`.
  */
-export const css = (strings: TemplateStringsArray, ...values: any[]) => {
-  let result = ''
-  for (let i = 0; i < strings.length; i++) {
-    result += strings[i] + (values[i] || values[i] === 0 ? values[i] : '')
-  }
-  return result
-}
+export const css = (templs: TemplateStringsArray, ...subs: any[]) =>
+  templs.reduce(
+    (res, templ, i) => res + templ + (subs[i] == null ? '' : subs[i]),
+    '',
+  )
 
 export const Bind = <T extends Element>(
   props: { element: T } & AttributesAtomMaybe<

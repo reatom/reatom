@@ -4,6 +4,7 @@
   "private": false,
   "sideEffects": false,
   "description": "Reatom for framework",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",

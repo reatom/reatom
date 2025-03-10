@@ -20,19 +20,9 @@ export namespace JSX {
   type Element = HTMLElement | SVGElement
 
   /** @todo Try replacing `Node | Element` with `ChildNode`. */
-  type ElementPrimitiveChildren =
-    | Node
-    | Element
-    | (string & {})
-    | number
-    | boolean
-    | null
-    | undefined
+  type Child = ChildNode | string | number | boolean | null | undefined
 
-  type ElementChildren =
-    | Array<ElementChildren | AtomMaybe<ElementPrimitiveChildren>>
-    | AtomMaybe<ElementPrimitiveChildren>
-    | ElementPrimitiveChildren
+  type Children = Array<Children> | AtomMaybe<Child>
 
   interface ElementClass {
     // empty, libs can define requirements downstream
@@ -149,32 +139,9 @@ export namespace JSX {
     //   [k: string]: boolean | undefined
     // }
   }
-  interface Directives {}
-  interface DirectiveFunctions {
-    [x: string]: (el: Element, accessor: Atom<any>) => void
-  }
   interface ExplicitProperties {}
   interface ExplicitAttributes {}
   interface CustomEvents {}
-  type DirectiveAttributes = {
-    [Key in keyof Directives as `use:${Key}`]?: Directives[Key]
-  }
-  type DirectiveFunctionAttributes<T> = {
-    [K in keyof DirectiveFunctions as string extends K
-      ? never
-      : `use:${K}`]?: DirectiveFunctions[K] extends (
-      el: infer E, // will be unknown if not provided
-      ...rest: infer R // use rest so that we can check whether it's provided or not
-    ) => void
-      ? T extends E // everything extends unknown if E is unknown
-        ? R extends [infer A] // check if has accessor provided
-          ? A extends Atom<infer V>
-            ? V // it's an accessor
-            : never // it isn't, type error
-          : true // no accessor provided
-        : never // T is the wrong element
-      : never // it isn't a function
-  }
   type PropAttributes = {
     [Key in keyof ExplicitProperties as `prop:${Key}`]?: AtomMaybe<
       ExplicitProperties[Key]
@@ -193,13 +160,11 @@ export namespace JSX {
   }
   interface DOMAttributes<T>
     extends CustomAttributes<T>,
-      DirectiveAttributes,
-      DirectiveFunctionAttributes<T>,
       PropAttributes,
       AttrAttributes,
       OnAttributes<T>,
       CustomEventHandlers<T> {
-    children?: ElementChildren | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
+    children?: Children | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
     innerHTML?: AtomMaybe<string>
     innerText?: AtomMaybe<string | number>
     textContent?: AtomMaybe<string | number>
