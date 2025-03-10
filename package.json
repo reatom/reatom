@@ -5,7 +5,7 @@
     "postinstall": "turbo run build --output-logs=errors-only --filter=./packages/{framework,testing}",
     "build": "turbo run build --output-logs=errors-only --filter=./packages/*",
     "reset": "sh ./tools/reset.sh",
-    "test": "turbo run build --output-logs=errors-only --filter=./packages/testing",
+    "test": "turbo run build --output-logs=errors-only --filter=./packages/testing && turbo run test --filter=./packages/eslint-plugin && vitest",
     "prettify": "prettier --write */**/**/*.{js,ts,md}",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
     "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
@@ -30,8 +30,7 @@
     "tsx": "^4.19.3",
     "turbo": "^2.4.2",
     "typescript": "^5.7.3",
-    "uvu": "^0.5.6",
-    "vitest": "^3.0.6",
+    "vitest": "^3.0.8",
     "yoctobundle": "latest",
     "zx": "^8.3.2"
   },

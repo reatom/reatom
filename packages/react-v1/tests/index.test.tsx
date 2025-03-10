@@ -24,10 +24,25 @@ function Provider(props: { store: Store; children?: any }) {
 describe('@reatom/react-v1', () => {
   describe('useAtom', () => {
     test('throw Error if provider is not set', () => {
-      const { result } = renderHook(() => useAtom(countAtom))
-      expect(result.error).toEqual(
-        Error('[reatom] The provider is not defined'),
-      )
+      const originalError = console.error
+      console.error = vi.fn()
+
+      try {
+        const { result } = renderHook(() => {
+          try {
+            return useAtom(countAtom)
+          } catch (e) {
+            return e
+          }
+        })
+
+        expect(result.current instanceof Error).toBe(true)
+        expect((result.current as Error).message).toBe(
+          '[reatom] The provider is not defined',
+        )
+      } finally {
+        console.error = originalError
+      }
     })
 
     test('returns atom state', () => {
@@ -260,12 +275,27 @@ describe('@reatom/react-v1', () => {
 
   describe('useAction', () => {
     test('throw Error if provider is not set', () => {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-      // @ts-ignore
-      const { result } = renderHook(() => useAtom())
-      expect(result.error).toEqual(
-        Error('[reatom] The provider is not defined'),
-      )
+      const originalError = console.error
+      console.error = vi.fn()
+
+      try {
+        const { result } = renderHook(() => {
+          try {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+            // @ts-ignore
+            return useAction()
+          } catch (e) {
+            return e
+          }
+        })
+
+        expect(result.current instanceof Error).toBe(true)
+        expect((result.current as Error).message).toBe(
+          '[reatom] The provider is not defined',
+        )
+      } finally {
+        console.error = originalError
+      }
     })
 
     test('returns binded action to dispatch', () => {

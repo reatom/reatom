@@ -12,20 +12,19 @@ import { select } from './select'
 //     return select(ctx, (ctx) => ctx.spy(a) % 3)
 //   })
 //   const ctx = createTestCtx()
-
+//
 //   ctx.subscribeTrack(b)
-//   assert.is(ctx.get(b), 0)
-//   assert.is(track, 1)
-
+//   expect(ctx.get(b)).toBe(0)
+//   expect(track).toBe(1)
+//
 //   a(ctx, 3)
 //   a(ctx, 6)
-//   assert.is(ctx.get(b), 0)
-//   assert.is(track, 1)
-
+//   expect(ctx.get(b)).toBe(0)
+//   expect(track).toBe(1)
+//
 //   a(ctx, 10)
-//   assert.is(ctx.get(b), 1)
-//   assert.is(track, 2)
-//   ;`👍` //?
+//   expect(ctx.get(b)).toBe(1)
+//   expect(track).toBe(2)
 // })
 
 // test('many selects should work', () => {
