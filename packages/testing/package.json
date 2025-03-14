@@ -1,6 +1,6 @@
 {
   "name": "@reatom/testing",
-  "version": "3.4.8",
+  "version": "3.4.9",
   "private": false,
   "sideEffects": false,
   "description": "Reatom testing package",
@@ -27,5 +27,7 @@
   },
   "author": "artalar",
   "license": "MIT",
-  "files": ["/build"]
+  "files": [
+    "/build"
+  ]
 }
