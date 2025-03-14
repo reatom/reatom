@@ -3,15 +3,12 @@ import {
   Action,
   atom,
   AtomCache,
-  Ctx,
-  type Rec,
   type LinkedListAtom,
-  AtomMut,
   sleep,
   batch,
 } from '@reatom/framework'
 import { h, hf, JSX, ROOT } from '../jsx'
-import { followingsMap, getId, getStartCause, highlighted } from '../utils'
+import { followingsMap, getId, highlighted } from '../utils'
 import { reatomLinkedList } from '@reatom/primitives'
 
 interface Params {

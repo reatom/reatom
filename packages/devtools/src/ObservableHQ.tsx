@@ -351,6 +351,25 @@ export const ObservableHQ: FC<{
           💾
         </button>
         <button
+          title="Download JSON"
+          aria-label="Download JSON file"
+          on:click={(ctx) => {
+            const jsonContent = ctx.get(json);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }}
+          css={buttonCss}
+        >
+          ⬇️
+        </button>
+        <button
           title="Plain JSON"
           aria-label="Convert to plain JSON"
           on:click={(ctx) => {

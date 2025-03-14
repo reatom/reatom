@@ -14,9 +14,10 @@ import {
 } from '@reatom/framework'
 import { withLocalStorage } from '@reatom/persist-web-storage'
 import { h, mount, ctx, Bind, CONTAINER, ROOT } from './jsx'
-import { Graph, update } from './Graph'
+import { Graph } from './Graph'
 import { getColor } from './utils'
 import { States } from './States'
+import { update } from './components'
 
 export { getColor }
 

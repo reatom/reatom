@@ -1,4 +1,10 @@
-import { __root, AtomCache, AtomProto } from '@reatom/framework'
+import {
+  __root,
+  AtomCache,
+  AtomProto,
+  CtxSpy,
+  isShallowEqual,
+} from '@reatom/framework'
 import { css } from './jsx'
 
 export const getColor = ({ proto }: AtomCache): string =>
@@ -12,6 +18,13 @@ export const getColor = ({ proto }: AtomCache): string =>
 
 export const getStartCause = (cause: AtomCache): AtomCache =>
   cause.cause?.cause == null ? cause : getStartCause(cause.cause)
+
+export const memo =
+  <T>(reducer: (ctx: CtxSpy) => T) =>
+  (ctx: CtxSpy, state?: T): T => {
+    const newState = reducer(ctx)
+    return isShallowEqual(state, newState) ? (state as T) : newState
+  }
 
 export const idxMap = new WeakMap<AtomCache, string>()
 let idx = 0
