@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.11.7](https://github.com/artalar/reatom/compare/lens-v3.11.6...lens-v3.11.7) (2025-03-14)
+
+
+### Bug Fixes
+
+* **lens:** migrate to vitest, fix parseAtom type ([#1048](https://github.com/artalar/reatom/issues/1048)) ([b00054a](https://github.com/artalar/reatom/commit/b00054a54906c94c032b70e717f7e572a4b62bb7))
+
 ## [3.11.6](https://github.com/artalar/reatom/compare/lens-v3.11.5...lens-v3.11.6) (2024-12-11)
 
 ### Bug Fixes
