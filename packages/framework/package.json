@@ -1,6 +1,6 @@
 {
   "name": "@reatom/framework",
-  "version": "3.4.61",
+  "version": "3.4.62",
   "private": false,
   "sideEffects": false,
   "description": "Reatom for framework",
@@ -12,9 +12,7 @@
   "main": "build/index.js",
   "module": "build/index.mjs",
   "types": "build/index.d.ts",
-  "browserslist": [
-    "last 1 year"
-  ],
+  "browserslist": ["last 1 year"],
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "yoctobundle",
@@ -26,7 +24,7 @@
     "@reatom/core": "^3.10.1",
     "@reatom/effects": "^3.11.3",
     "@reatom/hooks": "^3.6.1",
-    "@reatom/lens": "^3.11.6",
+    "@reatom/lens": "^3.11.7",
     "@reatom/logger": "^3.8.4",
     "@reatom/primitives": "^3.9.0",
     "@reatom/utils": "^3.11.3"
@@ -37,9 +35,7 @@
     "type": "git",
     "url": "git+ssh://git@github.com/artalar/reatom.git"
   },
-  "bugs": {
-    "url": "https://github.com/artalar/reatom/issues"
-  },
+  "bugs": { "url": "https://github.com/artalar/reatom/issues" },
   "homepage": "https://www.reatom.dev/package/framework",
   "files": ["/build"]
 }
