@@ -1002,7 +1002,6 @@ test('colSpan property', () =>
 test('role property', () =>
   root.start(async () => {
     expectHtmlElementProperty('div', 'role', undefined, null, false, null)
-    // @ts-expect-error TODO fix types
     expectHtmlElementProperty('div', 'role', null, null, false, null)
     expectHtmlElementProperty('div', 'role', 'alert', 'alert', true, 'alert')
   }))
@@ -1015,4 +1014,28 @@ test('popover property', () =>
     expectHtmlElementProperty('div', 'popover', false, null, false, null)
     expectHtmlElementProperty('div', 'popover', true, 'auto', true, '')
     expectHtmlElementProperty('div', 'popover', 'auto', 'auto', true, 'auto')
+  }))
+
+test('aria attributes', () =>
+  root.start(async () => {
+    const expectAttribute = <
+      Attr extends keyof JSX.AriaAttributes,
+      Value extends JSX.AriaAttributes[Attr],
+    >(
+      attr: Attr,
+      value: Value,
+    ) => {
+      const element = h('div', { [attr]: value })
+      expect(element.hasAttribute(attr)).toBe(value != null)
+      expect(element.getAttribute(attr)).toBe(value?.toString() ?? null)
+    }
+
+    expectAttribute('aria-checked', undefined)
+    expectAttribute('aria-checked', null)
+    expectAttribute('aria-checked', false)
+    expectAttribute('aria-checked', true)
+    expectAttribute('aria-checked', 'false')
+    expectAttribute('aria-checked', 'true')
+    expectAttribute('aria-colcount', 1)
+    expectAttribute('aria-colcount', '1')
   }))
