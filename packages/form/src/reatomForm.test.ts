@@ -1,18 +1,18 @@
 import { test, expect, describe } from 'vitest'
 import { createCtx } from '@reatom/core'
-import { reatomField, reatomForm, withField } from '.'
+import { fieldArray, reatomField, reatomForm, withField } from '.'
 import { reatomBoolean } from '@reatom/primitives';
 import { z } from 'zod';
 
 test(`adding and removing fields`, async () => {
 	const ctx = createCtx();
-	const form = reatomForm(fieldArray => ({
+	const form = reatomForm({
 		field: reatomField('initial', 'fieldAtom'),
 		list: fieldArray({
 			initState: ['initial'],
 			create: (ctx, param) => reatomField(param, 'fieldAtom')
 		}),
-	}));
+	});
 
 	expect(ctx.get(form.fields.field)).toBe('initial');
 	expect(ctx.get(form.fields.list).size).toBe(1);
@@ -26,14 +26,14 @@ test(`adding and removing fields`, async () => {
 
 test('focus states', () => {
 	const ctx = createCtx()
-	const form = reatomForm(fieldArray => ({
+	const form = reatomForm({
 		field1: { initState: '', validate: () => { } },
 		field2: { initState: '', validate: () => { } },
 		list: fieldArray({
 			initState: ['initial'],
 			create: (ctx, param) => reatomField(param, 'fieldAtom')
 		}),
-	}));
+	});
 
 	form.fields.field1.change(ctx, 'value')
 	form.fields.field2.change(ctx, 'value')
@@ -79,11 +79,11 @@ test('validation states', async () => {
 			throw new Error('Contract error')
 	}
 
-	const form = reatomForm(fieldArray => ({
+	const form = reatomForm({
 		field1: { initState: '', contract, validateOnChange: true },
 		field2: { initState: '', contract, validateOnChange: true },
 		rest: fieldArray<string>([])
-	}), {
+	}, {
 		name: 'testForm',
 		onSubmit: () => { },
 		validate: () => {
@@ -140,10 +140,10 @@ test('validation states', async () => {
 
 test('default options for fields', async () => {
 	const ctx = createCtx()
-	const form = reatomForm(fieldArray => ({
+	const form = reatomForm({
 		field: { initState: 'initial', validate: () => { } },
 		array: fieldArray(['one', 'two', 'free']),
-	}), {
+	}, {
 		validateOnChange: true
 	});
 
@@ -192,7 +192,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 
 	test('nested array literals and using fieldArray deep inside', () => {
 		const ctx = createCtx()
-		const form = reatomForm(fieldArray => ({
+		const form = reatomForm({
 			nestedArray: [
 				{
 					array: ['hey'],
@@ -200,7 +200,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 					emptyArrayExplicit: fieldArray<string>([])
 				}
 			]
-		}))
+		})
 
 		const nestedArray = ctx.get(form.fields.nestedArray.array);
 		expect(nestedArray.length).toBe(1);
@@ -228,7 +228,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 	test('nested array literals and fieldArray in initState', () => {
 		const ctx = createCtx()
 
-		const form = reatomForm(fieldArray => ({		
+		const form = reatomForm({		
 			addresses: [
 				{
 					country: '',
@@ -244,7 +244,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 					}),
 				}
 			]
-		}));
+		});
 
 		const addresses = ctx.get(form.fields.addresses.array);
 		const phoneNumbers = addresses[0]!.phoneNumbers;

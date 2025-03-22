@@ -370,6 +370,8 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
 
 const isFieldArray = (value: any): value is FormFieldArray<any> => value?.__fieldArray;
 
+export { createFieldArray as fieldArray };
+
 const resolveFieldByPath = <T extends FormInitState>(
   ctx: Ctx,
   path: StandardSchemaV1.Issue['path'],
@@ -407,7 +409,7 @@ export const reatomForm = <
   T extends FormInitState,
   SchemaState extends DeepExtractLLNode<FormState<T>>
 >(
-  initState: T | ((fieldArray: typeof createFieldArray) => T),
+  initState: T,
   options: string | FormOptions<T, SchemaState> = {},
 ): Form<T> => {
   const {

@@ -1,7 +1,7 @@
 import { AtomState, createCtx } from "@reatom/core";
 import { connectLogger } from "@reatom/logger"
 import { reatomContext, useAction, useAtom } from "@reatom/npm-react"
-import { FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
+import { fieldArray, FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
 import { LinkedListLikeAtom, reatomBoolean } from "@reatom/primitives";
 import { PropsWithChildren } from 'react';
 import { createRoot } from "react-dom/client";
@@ -22,7 +22,7 @@ function App() {
 const root = createRoot(document.getElementById('root')!)
 root.render(<App />)
 
-const form = reatomForm(fieldArray => ({
+const form = reatomForm({
 	username: 'vlad',
 	addresses: [
 		{
@@ -39,7 +39,7 @@ const form = reatomForm(fieldArray => ({
 			})
 		}
 	],
-}), {
+}, {
 	validateOnChange: true,
 	schema: z.object({
 		username: z.string().min(3, 'min length 3'),
