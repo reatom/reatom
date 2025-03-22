@@ -189,9 +189,9 @@ describe('reatomLinkedList', () => {
   
     const track = ctx.subscribeTrack(atom((ctx) => [...ctx.spy(list.map).keys()]))
   
-    expect(track.lastInput()).toBe(['1', '2'])
+    expect(track.lastInput()).toStrictEqual(['1', '2'])
   
     ctx.get(list.map).get('1')?.id(ctx, '0')
-    expect(track.lastInput()).toBe(['0', '2'])
+    expect(track.lastInput()).toStrictEqual(['0', '2'])
   })
 })

@@ -286,27 +286,42 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
 ): LinkedListAtom<Params, Node, Key>;
 
 export function reatomLinkedList<Params extends any[], Node extends Rec, Key extends keyof Node = never>(
+  initSnapshot: {
+    create: (ctx: Ctx, ...params: Params) => Node,
+    initSnapshot?: Array<Params>,
+    key?: Key
+  },
+  name?: string
+): LinkedListAtom<Params, Node, Key>;
+
+export function reatomLinkedList<Params extends any[], Node extends Rec, Key extends keyof Node = never>(
   options:
     | Array<Node>
     | ((ctx: Ctx, ...params: Params) => Node)
     | {
-        create: (ctx: Ctx, ...params: Params) => Node
-        initState?: Array<Node>
-        key?: Key
-      }
+      create?: (ctx: Ctx, ...params: Params) => Node
+      initState?: Array<Node>
+      key?: Key
+    }
     | {
-        create: (ctx: Ctx, ...params: Params) => Node
-        initSnapshot?: Array<Params>
-        key?: Key
-      },
+      create: (ctx: Ctx, ...params: Params) => Node
+      initSnapshot?: Array<Params>
+      key?: Key
+    },
   name = __count('reatomLinkedList'),
 ): LinkedListAtom<Params, Node, Key> {
   const {
-    create: userCreate,
+    create: userCreate = (ctx: Ctx, ...params: Params) => params[0],
     key = undefined,
     ...restOptions
-  } = typeof options === 'function' ? { create: options } : options
-  const _name = name
+  } = typeof options === 'function' ? {
+    create: options
+  } : Array.isArray(options) ? {
+    create: (ctx: Ctx, ...params: Params) => params[0],
+    initState: options,
+  } : options;
+
+  const _name = name;
 
   const isLL = (node: Node): node is LLNode<Node> =>
     !!node && LL_NEXT in node && LL_PREV in node
