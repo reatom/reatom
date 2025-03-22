@@ -1,4 +1,4 @@
-import { action, atom } from '@reatom/core'
+import { action, atom, isAtom } from '@reatom/core'
 import { createTestCtx } from '@reatom/testing'
 import { describe, test, expect } from 'vitest'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
@@ -167,5 +167,31 @@ describe('reatomLinkedList', () => {
 
     ctx.get(list.map).get('1')?.id(ctx, '0')
     expect(track.lastInput()).toEqual(['0', '2'])
+  })
+
+  test('should accept array as initState', () => {
+    const ctx = createTestCtx()
+    const list = reatomLinkedList([atom(1), atom(2)]);
+  
+    expect(ctx.get(list.array).every(isAtom)).toBeTruthy();
+  
+    list.create(ctx, atom(3));
+    expect(ctx.get(list.array).every(isAtom)).toBeTruthy();
+    expect(ctx.get(list.array).length).toBe(3);
+  })
+  
+  test('should accept only initState and key optionally', () => {
+    const ctx = createTestCtx()
+    const list = reatomLinkedList({
+      initState: [{ id: atom('1') }, { id: atom('2') }],
+      key: 'id',
+    });
+  
+    const track = ctx.subscribeTrack(atom((ctx) => [...ctx.spy(list.map).keys()]))
+  
+    expect(track.lastInput()).toStrictEqual(['1', '2'])
+  
+    ctx.get(list.map).get('1')?.id(ctx, '0')
+    expect(track.lastInput()).toStrictEqual(['0', '2'])
   })
 })
