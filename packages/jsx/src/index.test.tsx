@@ -23,10 +23,6 @@ const setup = (fn: SetupFn) => async () => {
   window.document.body.appendChild(parent)
 
   await fn(ctx, h, hf, mount, parent)
-
-  if (window.document.body.contains(parent)) {
-    window.document.body.removeChild(parent)
-  }
 }
 
 /** Only for highlight */

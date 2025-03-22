@@ -27,8 +27,8 @@
   "scripts": {
     "prepublishOnly": "npm run build && npm run test",
     "build": "yoctobundle && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
-    "test": "echo vitest run src/*",
-    "test:watch": "vitest src/*"
+    "test": "vitest --watch=false",
+    "test:watch": "vitest --watch=true"
   },
   "dependencies": {
     "@reatom/core": ">=3.6.0",
@@ -37,8 +37,8 @@
     "csstype": "^3.1.2"
   },
   "devDependencies": {
-    "@vitest/browser": "^3.0.5",
-    "playwright": "^1.50.1"
+    "@vitest/browser": "^3.0.9",
+    "playwright": "^1.51.1"
   },
   "author": "artalar",
   "maintainers": [
