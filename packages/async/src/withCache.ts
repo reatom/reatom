@@ -53,7 +53,7 @@ export interface CacheAtom<T = any, Params extends any[] = unknown[]>
   options: WithCacheOptions
 }
 
-type CacheMapRecord<T extends AsyncAction = AsyncAction> =
+export type CacheMapRecord<T extends AsyncAction = AsyncAction> =
   | undefined
   | CacheRecord<AsyncResp<T>, ActionParams<T>>
 
