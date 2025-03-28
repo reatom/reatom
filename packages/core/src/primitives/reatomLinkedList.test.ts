@@ -1,197 +1,187 @@
-import { action, atom, isAtom } from '@reatom/core'
-import { createTestCtx } from '@reatom/testing'
-import { describe, test, expect } from 'vitest'
+import { action, atom, isAtom } from 'src/core'
+import { describe, test, expect, subscribe } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
-import { parseAtoms } from '@reatom/lens'
-import { isCausedBy } from '@reatom/effects'
 
 describe('reatomLinkedList', () => {
-  test('should respect initState, create and remove elements properly', () => {
-    const ctx = createTestCtx()
-    const list = reatomLinkedList({
-      create: (ctx, n: number) => atom(n),
-      initState: [atom(1), atom(2)],
-    })
+  // TODO: implement parseAtoms
+  // test('should respect initState, create and remove elements properly', () => {
+  //   const list = reatomLinkedList({
+  //     create: (n: number) => atom(n),
+  //     initState: [atom(1), atom(2)],
+  //   })
 
-    const last = list.create(ctx, 3)
-    expect(ctx.get(list.array).map((v) => ctx.get(v))).toEqual([1, 2, 3])
+  //   const last = list.create(3)
+  //   expect(list.array().map((v) => v())).toEqual([1, 2, 3])
+  //   list.remove(last)
+  //   expect(parseAtoms(list.array)).toEqual([1, 2])
 
-    list.remove(ctx, last)
-    expect(parseAtoms(ctx, list.array)).toEqual([1, 2])
+  //   list.remove(last)
+  //   expect(parseAtoms(list.array)).toEqual([1, 2])
 
-    list.remove(ctx, last)
-    expect(parseAtoms(ctx, list.array)).toEqual([1, 2])
+  //   list.remove(list.find((n) => n() === 1)!)
+  //   expect(parseAtoms(list.array)).toEqual([2])
 
-    list.remove(ctx, list.find(ctx, (n) => ctx.get(n) === 1)!)
-    expect(parseAtoms(ctx, list.array)).toEqual([2])
+  //   list.remove(list.find((n) => n() === 2)!)
+  //   expect(parseAtoms(list.array)).toEqual([])
 
-    list.remove(ctx, list.find(ctx, (n) => ctx.get(n) === 2)!)
-    expect(parseAtoms(ctx, list.array)).toEqual([])
+  //   expect(() => {
+  //     list.remove(list.find((n) => n() === 2)!)
+  //   }).toThrow('Reatom error: The passed data is not a linked list node.')
+  // })
 
-    expect(() => {
-      list.remove(ctx, list.find(ctx, (n) => ctx.get(n) === 2)!)
-    }).toThrow('Reatom error: The passed data is not a linked list node.')
-  })
+  // TODO: implement parseAtoms
+  // test('should swap elements', () => {
+  //   const list = reatomLinkedList((n: number) => ({ n }))
+  //   const { array } = list.reatomMap(({ n }) => ({ n }))
+  //   const track = subscribe(
+  //     atom(() => array().map(({ n }) => n)),
+  //   )
+  //   const one = list.create(1)
+  //   const two = list.create(2)
+  //   const three = list.create(3)
+  //   const four = list.create(4)
 
-  test('should swap elements', () => {
-    const ctx = createTestCtx()
-    const list = reatomLinkedList((ctx, n: number) => ({ n }))
-    const { array } = list.reatomMap((ctx, { n }) => ({ n }))
-    const track = ctx.subscribeTrack(
-      atom((ctx) => ctx.spy(array).map(({ n }) => n)),
-    )
-    const one = list.create(ctx, 1)
-    const two = list.create(ctx, 2)
-    const three = list.create(ctx, 3)
-    const four = list.create(ctx, 4)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
-    expect(track.lastInput()).toEqual([1, 2, 3, 4])
+  //   list.swap(four, two)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 4, 3, 2])
 
-    list.swap(ctx, four, two)
-    expect(track.lastInput()).toEqual([1, 4, 3, 2])
+  //   list.swap(two, four)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
-    list.swap(ctx, two, four)
-    expect(track.lastInput()).toEqual([1, 2, 3, 4])
+  //   list.swap(three, four)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 4, 3])
 
-    list.swap(ctx, three, four)
-    expect(track.lastInput()).toEqual([1, 2, 4, 3])
+  //   list.swap(four, three)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
-    list.swap(ctx, four, three)
-    expect(track.lastInput()).toEqual([1, 2, 3, 4])
+  //   list.remove(two)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 3, 4])
 
-    list.remove(ctx, two)
-    expect(track.lastInput()).toEqual([1, 3, 4])
+  //   list.remove(three)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 4])
 
-    list.remove(ctx, three)
-    expect(track.lastInput()).toEqual([1, 4])
+  //   list.swap(four, one)
+  //   expect(track.mock.lastCall?.[0]).toEqual([4, 1])
 
-    list.swap(ctx, four, one)
-    expect(track.lastInput()).toEqual([4, 1])
+  //   list.swap(four, one)
+  //   expect(track.mock.lastCall?.[0]).toEqual([1, 4])
 
-    list.swap(ctx, four, one)
-    expect(track.lastInput()).toEqual([1, 4])
+  //   list.remove(one)
+  //   expect(track.mock.lastCall?.[0]).toEqual([4])
 
-    list.remove(ctx, one)
-    expect(track.lastInput()).toEqual([4])
-
-    list.clear(ctx)
-    expect(parseAtoms(ctx, list.array)).toEqual([])
-  })
+  //   list.clear()
+  //   expect(parseAtoms(list.array)).toEqual([])
+  // })
 
   test('should move elements', () => {
-    const ctx = createTestCtx()
-    const list = reatomLinkedList((ctx, n: number) => ({ n }))
-    const one = list.create(ctx, 1)
-    const two = list.create(ctx, 2)
-    const three = list.create(ctx, 3)
-    const four = list.create(ctx, 4)
-    const track = ctx.subscribeTrack(list.array)
+    const list = reatomLinkedList((n: number) => ({ n }))
+    const one = list.create(1)
+    const two = list.create(2)
+    const three = list.create(3)
+    const four = list.create(4)
+    const track = subscribe(list.array)
+    
+    expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
+    
+    list.move(one, four)
+    expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4, 1])
+    expect(track).toBeCalledTimes(2)
 
-    expect(track.lastInput().map(({ n }) => n)).toEqual([1, 2, 3, 4])
+    list.move(one, four)
+    expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4, 1])
+    expect(track).toBeCalledTimes(2)
 
-    list.move(ctx, one, four)
-    expect(track.lastInput().map(({ n }) => n)).toEqual([2, 3, 4, 1])
-    expect(track.calls.length).toBe(2)
-
-    list.move(ctx, one, four)
-    expect(track.lastInput().map(({ n }) => n)).toEqual([2, 3, 4, 1])
-    expect(track.calls.length).toBe(2)
-
-    list.move(ctx, one, null)
-    expect(track.lastInput().map(({ n }) => n)).toEqual([1, 2, 3, 4])
+    list.move(one, null)
+    expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
   })
 
   test('should respect node keys even if it is an atom', () => {
-    const ctx = createTestCtx()
     const list = reatomLinkedList({
-      create: (ctx, id: string) => ({ id: atom(id) }),
+      create: (id: string) => ({ id: atom(id) }),
       key: 'id',
       initState: [{ id: atom('1') }, { id: atom('2') }],
     })
-    const track = ctx.subscribeTrack(
-      atom((ctx) => [...ctx.spy(list.map).keys()]),
+    const track = subscribe(
+      atom(() => [...list.map().keys()]),
     )
 
-    expect(track.lastInput()).toEqual(['1', '2'])
+    expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
-    ctx.get(list.map).get('1')?.id(ctx, '0')
-    expect(track.lastInput()).toEqual(['0', '2'])
+    list.map().get('1')?.id('0')
+    expect(track.mock.lastCall?.[0]).toEqual(['0', '2'])
   })
 
-  test('should correctly handle batching and cause tracking', () => {
-    const ctx = createTestCtx()
-    const list = reatomLinkedList(() => ({}))
-    list.onChange((ctx) => {
-      isCausedBy(ctx, action())
-    })
+  // TODO: implement isCausedBy, atom.onChange (?)
+  // test('should correctly handle batching and cause tracking', () => {
+  //   const list = reatomLinkedList(() => ({}))
+  //   list.onChange(() => {
+  //     isCausedBy(action())
+  //   })
 
-    list.create(ctx)
+  //   list.create()
 
-    list.batch(ctx, () => {
-      list.create(ctx)
-      list.create(ctx)
-    })
-  })
+  //   list.batch(() => {
+  //     list.create()
+  //     list.create()
+  //   })
+  // })
 
   test('should remove a single node', () => {
-    const ctx = createTestCtx()
-    const list = reatomLinkedList((ctx, n: number) => ({ n }))
+    const list = reatomLinkedList((n: number) => ({ n }))
 
-    const node = list.create(ctx, 1)
-    expect(ctx.get(list.array)).toEqual([
+    const node = list.create(1)
+    expect(list.array()).toEqual([
       { n: 1, [LL_PREV]: null, [LL_NEXT]: null },
     ])
-    expect(ctx.get(list).size).toBe(1)
+    expect(list().size).toBe(1)
 
-    list.remove(ctx, node)
-    expect(ctx.get(list.array)).toEqual([])
-    expect(ctx.get(list).size).toBe(0)
+    list.remove(node)
+    expect(list.array()).toEqual([])
+    expect(list().size).toBe(0)
 
-    list.remove(ctx, node)
-    expect(ctx.get(list.array)).toEqual([])
-    expect(ctx.get(list).size).toBe(0)
+    list.remove(node)
+    expect(list.array()).toEqual([])
+    expect(list().size).toBe(0)
   })
 
   test('should respect initSnapshot for initializing', () => {
-    const ctx = createTestCtx()
     const list = reatomLinkedList({
-      create: (ctx, id: string) => ({ id: atom(id) }),
+      create: (id: string) => ({ id: atom(id) }),
       key: 'id',
       initSnapshot: [['1'], ['2']],
     })
-    const track = ctx.subscribeTrack(
-      atom((ctx) => [...ctx.spy(list.map).keys()]),
+    const track = subscribe(
+      atom(() => [...list.map().keys()]),
     )
 
-    expect(track.lastInput()).toEqual(['1', '2'])
+    expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
-    ctx.get(list.map).get('1')?.id(ctx, '0')
-    expect(track.lastInput()).toEqual(['0', '2'])
+    list.map().get('1')?.id('0')
+    expect(track.mock.lastCall?.[0]).toEqual(['0', '2'])
   })
 
   test('should accept array as initState', () => {
-    const ctx = createTestCtx()
     const list = reatomLinkedList([atom(1), atom(2)]);
   
-    expect(ctx.get(list.array).every(isAtom)).toBeTruthy();
+    expect(list.array().every(isAtom)).toBeTruthy();
   
-    list.create(ctx, atom(3));
-    expect(ctx.get(list.array).every(isAtom)).toBeTruthy();
-    expect(ctx.get(list.array).length).toBe(3);
+    list.create(atom(3));
+    expect(list.array().every(isAtom)).toBeTruthy();
+    expect(list.array().length).toBe(3);
   })
   
   test('should accept only initState and key optionally', () => {
-    const ctx = createTestCtx()
     const list = reatomLinkedList({
       initState: [{ id: atom('1') }, { id: atom('2') }],
       key: 'id',
     });
   
-    const track = ctx.subscribeTrack(atom((ctx) => [...ctx.spy(list.map).keys()]))
+    const track = subscribe(atom(() => [...list.map().keys()]))
   
-    expect(track.lastInput()).toStrictEqual(['1', '2'])
+    expect(track.mock.lastCall?.[0]).toStrictEqual(['1', '2'])
   
-    ctx.get(list.map).get('1')?.id(ctx, '0')
-    expect(track.lastInput()).toStrictEqual(['0', '2'])
+    list.map().get('1')?.id('0')
+    expect(track.mock.lastCall?.[0]).toStrictEqual(['0', '2'])
   })
 })

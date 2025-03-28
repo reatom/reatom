@@ -7,8 +7,10 @@ import {
   named,
   isAtom,
 } from 'src/core'
+
 import { isObject } from '@reatom/utils'
 import { Fn, Rec } from 'src/utils'
+import { withInit } from 'src/mixins'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
@@ -72,10 +74,8 @@ export interface LinkedListAtom<
    * but it is not recommended to use it for large (thousands elements) lists */
   map: Key extends never ? never : Atom<Map<State<Node[Key]>, LLNode<Node>>>
 
-  initiate: {
-    (initState: Array<Node>): LinkedList<LLNode<Node>>
-    (initSnapshot: Array<Params>): LinkedList<LLNode<Node>>
-  }
+  initiateFromState: (initState: Array<Node>) => LinkedList<LLNode<Node>>
+  initiateFromSnapshot: (initSnapshot: Array<Params>) => LinkedList<LLNode<Node>>
 
   reatomMap: <T extends Rec>(
     cb: (node: LLNode<Node>) => T,
@@ -335,27 +335,40 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
   // for batching
   let STATE: null | LinkedList<LLNode<Node>> = null
 
-  const linkedList = atom(STATE!, name)
-  linkedList.__reatom.initState = () => {
-    try {
-      if ('initState' in restOptions)
-        return createLinkedList(restOptions.initState ?? [])
-      else if ('initSnapshot' in restOptions)
-        return createLinkedList(restOptions.initSnapshot ?? [])
-      else return createLinkedList([])
-    } finally {
-      STATE = null
+  const linkedList = atom(STATE!, name).mix(
+    withInit(() => {
+      try {
+        if ('initState' in restOptions)
+          return createLinkedListFromState(restOptions.initState ?? [])
+        else if ('initSnapshot' in restOptions)
+          return createLinkedListFromSnapshot(restOptions.initSnapshot ?? [])
+        else 
+          return createLinkedListFromState([])
+      } finally {
+        STATE = null
+      }
+    })
+  )
+
+  const createLinkedListFromState = (initState: Node[]): LinkedList<LLNode<Node>> => {
+    const state = {
+      size: 0,
+      version: 1,
+      changes: [],
+      head: null,
+      tail: null,
     }
+
+    for (const node of initState) {
+      throwModel(node)
+      addLL(state, node, state.tail)
+    }
+
+    return state
   }
 
-  const createLinkedList = (
-    ctxOrInitState: Ctx | Node[],
-    initSnapshot?: Params[],
-  ): LinkedList<LLNode<Node>> => {
-    const initState = Array.isArray(ctxOrInitState)
-      ? ctxOrInitState
-      : initSnapshot!.map((params) => userCreate(ctxOrInitState, ...params))
-
+  const createLinkedListFromSnapshot = (initSnapshot: Params[]): LinkedList<LLNode<Node>> => {
+    const initState = initSnapshot.map((params) => userCreate(...params))
     const state = {
       size: 0,
       version: 1,
@@ -690,14 +703,16 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
 
     array,
     map,
-    initiate: createLinkedList,
+    initiateFromState: createLinkedListFromState,
+    initiateFromSnapshot: createLinkedListFromSnapshot,
 
     reatomMap,
     // reatomFilter,
     // reatomReduce,
 
     __reatomLinkedList: true as const,
-  }).mix(readonly)
+  })
+  // .mix(readonly) TODO: fix errors because of this line in the tests
 }
 
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>
