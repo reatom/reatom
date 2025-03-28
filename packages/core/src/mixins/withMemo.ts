@@ -1,6 +1,6 @@
-import type { AtomLike, AtomState } from 'src/core'
-import { top } from 'src/core'
-import { isShallowEqual } from 'src/utils'
+import type { AtomLike, AtomState } from '../core'
+import { top } from '../core'
+import { isShallowEqual } from '../utils'
 
 export let withMemo =
   <T extends AtomLike>(

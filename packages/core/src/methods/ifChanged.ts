@@ -8,8 +8,8 @@ import {
   Frame,
   AtomLike,
   AtomState,
-} from 'src/core'
-import { assert } from 'src/utils'
+} from '../core'
+import { assert } from '../utils'
 
 let getHistory = (targetFrame: Frame) => {
   let history = root.context('ifChanged').get(targetFrame.atom, () => ({

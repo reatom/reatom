@@ -1,8 +1,8 @@
-import type { AtomLike, AtomState, Computed, Assigner } from 'src/core'
-import { atom, ReatomError, top } from 'src/core'
+import type { AtomLike, AtomState, Computed, Assigner } from '../core'
+import { atom, ReatomError, top } from '../core'
 import { withComputed } from './withComputed'
-import { assert } from 'src/utils'
-import { wrap } from 'src/methods'
+import { assert } from '../utils'
+import { wrap } from '../methods'
 
 let SETTLED = new WeakMap<
   Promise<any>,

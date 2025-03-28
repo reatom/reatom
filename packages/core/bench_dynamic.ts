@@ -1,10 +1,10 @@
-import { printLogs, formatLog, POSITION_KEY } from './bench/utils'
+import { printLogs, formatLog, POSITION_KEY } from './bench_utils'
 
 async function testAggregateGrowing(count: number, method: 'push' | 'unshift') {
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./src')
+  const Reatom = await import('./build')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
@@ -108,7 +108,7 @@ async function testAggregateShrinking(count: number, method: 'pop' | 'shift') {
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./src')
+  const Reatom = await import('./build')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
@@ -216,7 +216,7 @@ async function testParent(count: number) {
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./src')
+  const Reatom = await import('./build')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })

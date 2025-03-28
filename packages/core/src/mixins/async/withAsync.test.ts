@@ -1,8 +1,8 @@
-import { _read, action, atom, root } from 'src/core'
+import { _read, action, atom, root } from '../../core'
 import { expect, test, vi } from 'test'
 import { withAsync, withAsyncData } from './withAsync'
 import { withOnCall } from '../withOnChange'
-import { wrap } from 'src/methods'
+import { wrap } from '../../methods'
 
 test('withAsync for action', async () => {
   const name = 'actionAsync'

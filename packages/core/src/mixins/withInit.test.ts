@@ -1,4 +1,4 @@
-import { atom, clearStack, root } from 'src/core'
+import { atom, clearStack, root } from '../core'
 import { expect, test, vi } from 'test'
 import { withInit } from './withInit'
 

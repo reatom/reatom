@@ -1,7 +1,7 @@
 import { expect, subscribe, test, vi } from 'test'
-import { atom } from 'src/core'
+import { atom } from '../core'
 import { withComputed } from './withComputed'
-import { notify } from 'src/methods'
+import { notify } from '../methods'
 
 test('withComputed', () => {
   const name = 'withComputed'

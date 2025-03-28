@@ -5,8 +5,8 @@ import {
   isAction,
   ReatomError,
   top,
-} from 'src/core'
-import { assert, Fn } from 'src/utils'
+} from '../core'
+import { assert, Fn } from '../utils'
 
 export let withOnChange =
   <T extends AtomLike>(

@@ -1,7 +1,7 @@
 import { expect, getStackTrace, test } from 'test'
 import { action } from './action'
 import { _read, atom, Frame, root } from './atom'
-import { notify } from 'src/methods'
+import { notify } from '../methods'
 
 test('action', () => {
   const name = 'action'

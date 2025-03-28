@@ -1,8 +1,8 @@
 // TODO move to test source
 import type { Source as WSource } from 'wonka'
-import { genChart } from './bench/chart_gen'
+import { genChart } from './bench_utils'
 
-import { Rec, formatLog, printLogs } from './bench/utils'
+import { Rec, formatLog, printLogs } from './bench_utils'
 
 type UpdateLeaf = (value: number) => void
 
@@ -376,7 +376,7 @@ const testComputers = setupComputersTest({
   //   return (i) => store.dispatch(a.entry(i))
   // },
   async reatom({ listener, startCreation, endCreation }) {
-    const { atom, root, wrap, notify, clearStack } = await import('./src')
+    const { atom, root, wrap, notify, clearStack } = await import('./build')
 
     startCreation()
 

@@ -1,8 +1,8 @@
 import { expect, subscribe, test, vi } from 'test'
 import { withMemo } from './withMemo'
-import { atom } from 'src/core'
-import { isDeepEqual } from 'src/utils'
-import { notify } from 'src/methods'
+import { atom } from '../core'
+import { isDeepEqual } from '../utils'
+import { notify } from '../methods'
 
 test('memo', () => {
   const name = 'memo'

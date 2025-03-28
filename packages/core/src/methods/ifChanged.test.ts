@@ -1,7 +1,7 @@
-import { _read, action, atom, root } from 'src/core'
+import { _read, action, atom, root } from '../core'
 import { expect, test, vi } from 'test'
 import { ifChanged, ifCalled } from './ifChanged'
-import { sleep } from 'src/utils'
+import { sleep } from '../utils'
 import { wrap } from './wrap'
 import { notify } from './queues'
 

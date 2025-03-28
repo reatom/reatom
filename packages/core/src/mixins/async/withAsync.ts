@@ -10,9 +10,9 @@ import {
   isAction,
   ReatomError,
   top,
-} from 'src/core'
-import { ifCalled, ifChanged, schedule, wrap } from 'src/methods'
-import { assert, Fn, identity } from 'src/utils'
+} from '../../core'
+import { ifCalled, ifChanged, schedule, wrap } from '../../methods'
+import { assert, Fn, identity } from '../../utils'
 import { withComputed } from '../withComputed'
 
 type AsyncMethods<Params extends any[] = any[], Payload = any, Error = any> = {

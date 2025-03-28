@@ -1,5 +1,5 @@
-import { AtomLike, root, top } from 'src/core'
-import { Fn } from 'src/utils'
+import { AtomLike, root, top } from '../core'
+import { Fn } from '../utils'
 
 export let withInit = <T>(
   init: T | ((state: T) => T),

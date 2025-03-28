@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'test'
-import { action, atom } from 'src/core'
+import { action, atom } from '../core'
 import { withOnChange, withOnCall } from './withOnChange'
 
 test('atomChange', () => {
