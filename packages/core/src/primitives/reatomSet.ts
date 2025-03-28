@@ -1,4 +1,4 @@
-import { Action, action, atom, Atom, Computed } from 'src/core'
+import { Action, atom, Atom, Computed, named } from 'src/core'
 
 export interface SetAtom<T> extends Atom<Set<T>> {
   add: Action<[el: T], Set<T>>
@@ -6,14 +6,14 @@ export interface SetAtom<T> extends Atom<Set<T>> {
   toggle: Action<[el: T], Set<T>>
   clear: Action<[], Set<T>>
   reset: Action<[], Set<T>>
-  intersection: Action<[set: Set<T>], Set<T>>
-  union: Action<[set: Set<T>], Set<T>>
-  difference: Action<[set: Set<T>], Set<T>>
-  symmetricDifference: Action<[set: Set<T>], Set<T>>
-  has: (el: T) => boolean
-  isSubsetOf: (set: Set<T>) => boolean
-  isSupersetOf: (set: Set<T>) => boolean
-  isDisjointFrom: (set: Set<T>) => boolean
+  // intersection: Action<[set: Set<T>], Set<T>>
+  // union: Action<[set: Set<T>], Set<T>>
+  // difference: Action<[set: Set<T>], Set<T>>
+  // symmetricDifference: Action<[set: Set<T>], Set<T>>
+  // has: (el: T) => boolean
+  // isSubsetOf: (set: Set<T>) => boolean
+  // isSupersetOf: (set: Set<T>) => boolean
+  // isDisjointFrom: (set: Set<T>) => boolean
   size: Computed<number>
 }
 
@@ -32,70 +32,56 @@ type FirstSetConstructorParam<T> = ConstructorParameters<typeof Set<T>>[0]
 
 export const reatomSet = <T>(
   initState: Set<T> | FirstSetConstructorParam<T> = new Set<T>(),
-  name?: string,
+  name = named('setAtom'),
 ): SetAtom<T> => {
   const atomInitState = initState instanceof Set ? initState : new Set(initState);
   
   return atom(atomInitState, name).mix(
     (target) => ({
-      add: action(
-        (el) =>
-          target((prev) => (prev.has(el) ? prev : new Set(prev).add(el))),
-        `${target.name}.add`,
+      add: (el: T) => (
+        target((prev) => (prev.has(el) ? prev : new Set(prev).add(el)))
       ),
-      delete: action((el) => {
-        return target((prev) => {
-          if (!prev.has(el)) return prev
-          const next = new Set(prev)
-          next.delete(el)
-          return next
-        })
-      }, `${target.name}.delete`),
-      clear: action(() => {
-        return target((prev) => {
-          if (prev.size === 0) return prev
-          return new Set<T>()
-        })
-      }, `${target.name}.clear`),
-      reset: action(() => target(atomInitState), `${name}.reset`),
-      intersection: action(
-        (set) =>
-          target((prev) => (prev as ProposalSet<T>).intersection(set)),
-        `${target.name}.intersection`,
-      ),
-      union: action(
-        (set) =>
-          target((prev) => (prev as ProposalSet<T>).union(set)),
-        `${target.name}.union`,
-      ),
-      difference: action(
-        (set) =>
-          target((prev) => (prev as ProposalSet<T>).difference(set)),
-        `${target.name}.difference`,
-      ),
-      symmetricDifference: action(
-        (set) =>
-          target((prev) =>
-            (prev as ProposalSet<T>).symmetricDifference(set),
-          ),
-        `${target.name}.symmetricDifference`,
-      ),
-      toggle: action((el) => {
-        return target((prev) => {
+      delete: (el : T) => target((prev) => {
+        if (!prev.has(el)) return prev
+        const next = new Set(prev)
+        next.delete(el)
+        return next
+      }),
+      toggle: (el: T) => (
+        target((prev) => {
           if (!prev.has(el)) return new Set(prev).add(el)
           const next = new Set(prev)
           next.delete(el)
           return next
-        })
-      }, `${target.name}.toggle`),
-      has: (el: T) => target().has(el),
-      isSubsetOf: (set: Set<T>) =>
-        (target() as ProposalSet<T>).isSubsetOf(set),
-      isSupersetOf: (set: Set<T>) =>
-        (target() as ProposalSet<T>).isSupersetOf(set),
-      isDisjointFrom: (set: Set<T>) =>
-        (target() as ProposalSet<T>).isDisjointFrom(set),
-      size: atom(() => target().size, `${name}.size`),
+        }) 
+      ),
+      clear: () => (
+        target((prev) => {
+          if (prev.size === 0) return prev
+          return new Set<T>()
+        }) 
+      ),
+      reset: () => target(atomInitState),
+      // intersection: (set: Set<T>) => (
+      //   target((prev) => (prev as ProposalSet<T>).intersection(set))
+      // ),
+      // union: (set: Set<T>) => (
+      //   target((prev) => (prev as ProposalSet<T>).union(set))
+      // ),
+      // difference: (set: Set<T>) => (
+      //   target((prev) => (prev as ProposalSet<T>).difference(set))
+      // ),
+      // symmetricDifference: (set: Set<T>) => (
+      //   target((prev) => (prev as ProposalSet<T>).symmetricDifference(set))
+      // ),
+      // has: (el: T) => target().has(el),
+      // isSubsetOf: (set: Set<T>) =>
+      //   (target() as ProposalSet<T>).isSubsetOf(set),
+      // isSupersetOf: (set: Set<T>) =>
+      //   (target() as ProposalSet<T>).isSupersetOf(set),
+      // isDisjointFrom: (set: Set<T>) =>
+      //   (target() as ProposalSet<T>).isDisjointFrom(set),
+      size: atom(() => target().size, `${target.name}.size`),
     }),
   )
 }

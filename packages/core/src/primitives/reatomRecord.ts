@@ -1,5 +1,5 @@
-import { Action, action, atom, Atom } from 'src/core'
-import { Rec, omit } from 'src/utils'
+import { Action, atom, Atom, named } from 'src/core'
+import { Fn, Rec, omit } from 'src/utils'
 
 export interface RecordAtom<T extends Rec> extends Atom<T> {
   merge: Action<[slice: Partial<T>], T>
@@ -8,54 +8,46 @@ export interface RecordAtom<T extends Rec> extends Atom<T> {
 }
 
 export const reatomRecord = <T extends Rec>(
-  initState: T,
-  name?: string,
+  initState: Exclude<T, Fn>,
+  name = named('recordAtom'),
 ): RecordAtom<T> =>
   atom(initState, name).mix(
     (target) => ({
-      merge: action(
-        (slice: Partial<T>) =>
-          target((prev) => {
-            for (const key in prev) {
-              if (!Object.is(prev[key], slice[key])) {
-                return { ...prev, ...slice }
-              }
+      merge: (slice: Partial<T>) => (
+        target((prev) => {
+          for (const key in prev) {
+            if (!Object.is(prev[key], slice[key])) {
+              return { ...prev, ...slice }
             }
-            return prev
-          }),
-        `${target.name}.merge`,
+          }
+          return prev
+        })
       ),
-
-      omit: action(
-        (...keys: Array<keyof T>) =>
-          target((prev) => {
-            if (keys.some((key) => key in prev)) return omit(prev, keys) as any
-            return prev
-          }),
-        `${target.name}.omit`,
+      omit: (...keys: Array<keyof T>) => (
+        target((prev) => {
+          if (keys.some((key) => key in prev)) return omit(prev, keys) as any
+          return prev
+        })
       ),
-
-      reset: action(
-        (...keys: (keyof T)[]) =>
-          target((prev) => {
-            if (keys.length === 0) return initState
-            const next = {} as T
-            let changed = false
-            for (const key in prev) {
-              if (keys.includes(key)) {
-                if (key in initState) {
-                  next[key] = initState[key]
-                  changed ||= !Object.is(prev[key], initState[key])
-                } else {
-                  changed ||= key in prev
-                }
+      reset: (...keys: (keyof T)[]) => (
+        target((prev) => {
+          if (keys.length === 0) return initState
+          const next = {} as T
+          let changed = false
+          for (const key in prev) {
+            if (keys.includes(key)) {
+              if (key in initState) {
+                next[key] = initState[key]
+                changed ||= !Object.is(prev[key], initState[key])
               } else {
-                next[key] = prev[key]
+                changed ||= key in prev
               }
+            } else {
+              next[key] = prev[key]
             }
-            return changed ? next : prev
-          }),
-        `${target.name}.reset`,
+          }
+          return changed ? next : prev
+        })
       ),
-    }),
-  )
+    })
+)

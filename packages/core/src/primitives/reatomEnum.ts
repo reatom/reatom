@@ -3,6 +3,7 @@ import {
   Action,
   Atom,
   atom,
+  named,
   ReatomError,
 } from 'src/core'
 
@@ -39,7 +40,7 @@ export const reatomEnum = <
   options: string | EnumAtomOptions<T, Format> = {},
 ) => {
   const {
-    name,
+    name = named('enumAtom'),
     format = 'camelCase' as Format,
     initState = variants[0],
   }: EnumAtomOptions<T, Format> = typeof options === 'string'

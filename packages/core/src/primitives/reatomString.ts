@@ -1,4 +1,4 @@
-import { Action, action, atom, Atom } from 'src/core'
+import { Action, atom, Atom, named } from 'src/core'
 
 export type StringAtom<T extends string = string> = Atom<T> & {
   reset: Action<[], T>
@@ -7,9 +7,9 @@ export type StringAtom<T extends string = string> = Atom<T> & {
 export const reatomString: {
   (init?: string, name?: string): StringAtom
   <T extends string>(init: T, name?: string): StringAtom<T>
-} = (init = '', name?: string) =>
+} = (init = '', name = named('stringAtom')) =>
   atom(init, name).mix(
     (target) => ({
-      reset: action(() => target(init), `${target.name}.reset`),
+      reset: () => target(init),
     }),
   )

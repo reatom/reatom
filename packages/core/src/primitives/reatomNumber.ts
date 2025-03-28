@@ -1,4 +1,5 @@
-import { Action, Atom, action, atom } from '@reatom/core'
+import { Action, Atom, atom } from '@reatom/core'
+import { named } from 'src/core'
 
 export interface NumberAtom extends Atom<number> {
   increment: Action<[by?: number], number>
@@ -7,18 +8,15 @@ export interface NumberAtom extends Atom<number> {
   reset: Action<[], number>
 }
 
-export const reatomNumber = (initState = 0, name?: string): NumberAtom =>
+export const reatomNumber = (
+  initState = 0, 
+  name = named('numberAtom')
+): NumberAtom =>
   atom(initState, name).mix(
     (target) => ({
-      increment: action(
-        (by = 1) => target((prev) => prev + by),
-        `${target.name}.increment`,
-      ),
-      decrement: action(
-        (by = 1) => target((prev) => prev - by),
-        `${target.name}.decrement`,
-      ),
-      random: action(() => target( Math.random()), `${target.name}.decrement`),
-      reset: action(() => target(initState), `${target.name}.reset`),
+      increment: (by = 1) => target((prev) => prev + by),
+      decrement: (by = 1) => target((prev) => prev - by),
+      random: () => target( Math.random()),
+      reset: () => target(initState),
     }),
   )

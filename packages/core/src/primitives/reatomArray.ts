@@ -1,4 +1,4 @@
-import { Action, Atom, action, atom } from 'src/core'
+import { Action, Atom, atom, named } from 'src/core'
 
 export interface ArrayAtom<T> extends Atom<Array<T>> {
   toReversed: Action<[], T[]>
@@ -13,65 +13,56 @@ export interface ArrayAtom<T> extends Atom<Array<T>> {
 
 export const reatomArray = <T>(
   initState = [] as T[],
-  name?: string,
+  name = named('arrayAtom'),
 ): ArrayAtom<T> =>
   atom(initState, name).mix(
     (target) => ({
-      toReversed: action(
-        () => target((prev) => prev.slice().reverse()),
-        `${target.name}.toReversed`,
+      toReversed: () => target((prev) => prev.slice().reverse()),
+      toSorted: (compareFn?: (a: T, b: T) => number) => (
+        target((prev) => prev.slice().sort(compareFn))
       ),
-      toSorted: action(
-        (compareFn?: (a: T, b: T) => number) =>
-          target((prev) => prev.slice().sort(compareFn)),
-        `${target.name}.toSorted`,
+      toSpliced: (start: number, deleteCount: number, ...items: T[]) => (
+        target((state) => {
+          state = state.slice()
+          state.splice(start, deleteCount, ...items)
+          return state
+        })
       ),
-      toSpliced: action(
-        (start: number, deleteCount: number, ...items: T[]) =>
-          target((state) => {
-            state = state.slice()
-            state.splice(start, deleteCount, ...items)
-            return state
-          }),
-        `${target.name}.toSpliced`,
+      with:(i: number, value: T) => (
+        target((state) => {
+          if (Object.is(state.at(i), value)) return state
+          state = state.slice()
+          state[i] = value
+          return state
+        }) 
       ),
-      with: action(
-        (i: number, value: T) =>
-          target((state) => {
-            if (Object.is(state.at(i), value)) return state
-            state = state.slice()
-            state[i] = value
-            return state
-          }),
-        `${target.name}.with`,
-      ),
-      push: action((...items: T[]) => {
+      push: (...items: T[]) => {
         const arrCopy = target().slice()
         const pushed = arrCopy.push(...items)
         target(arrCopy)
 
         return pushed
-      }, `${target.name}.push`),
-      pop: action(() => {
+      },
+      pop: () => {
         const arrCopy = target().slice()
         const popped = arrCopy.pop()
         target(arrCopy)
 
         return popped
-      }, `${target.name}.pop`),
-      shift: action(() => {
+      },
+      shift: () => {
         const arrCopy = target().slice()
         const shifted = arrCopy.shift()
         target(arrCopy)
 
         return shifted
-      }, `${target.name}.shift`),
-      unshift: action((...items: T[]) => {
+      },
+      unshift: (...items: T[]) => {
         const arrCopy = target().slice()
         const unshifted = arrCopy.unshift(...items)
         target(arrCopy)
 
         return unshifted
-      }, `${target.name}.unshift`),
+      },
     })
   )

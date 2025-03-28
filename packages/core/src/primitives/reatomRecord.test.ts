@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'vitest'
+import { describe, test, expect } from 'test'
 import { reatomRecord } from './reatomRecord'
 
 describe('reatomRecord', () => {
