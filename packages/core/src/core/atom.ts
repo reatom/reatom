@@ -385,6 +385,7 @@ function middleware(next: Fn) {
 }
 
 declare global {
+  // @ts-ignore TODO
   var __REATOM: Array<Assigner<AtomLike, Rec>>
 }
 

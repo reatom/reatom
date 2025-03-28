@@ -52,7 +52,7 @@ test('withAsyncData for action', async () => {
     withAsyncData(),
   )
   const onFulfill = vi.fn()
-  fetch.onFulfill.mix(withOnCall(onFulfill))
+  fetch.onFulfill.mix(withOnCall(call => onFulfill(call)))
 
   expect(fetch.data()).toBeUndefined()
   expect(fetch.ready()).toBe(true)
