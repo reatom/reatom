@@ -47,18 +47,20 @@ export const reatomEnum = <
     ? { name: options }
     : options
 
-  const stateAtom = atom(initState, name) as EnumAtom<T, Format>
-  const enumAtom: typeof stateAtom = Object.assign((...args: any[]) => {
-    if(!args.length)
-      return stateAtom()
+  if(!initState)
+    throw new ReatomError(`enum "${name}" must have an at least one variant`)
 
-    const state = stateAtom(args[0])
-    if(!variants.includes(state))
-      throw new ReatomError(`invalid enum value "${state}" for "${name}" enum`)
-    return state
-  }, stateAtom, { 
-    reset : action(() => enumAtom(initState!), `${name}.reset`) 
-  })
+  const enumAtom = atom(initState, name).mix(
+      (target) => ({ reset: () => enumAtom(initState!) }),
+      (target) => (next, ...params) => {
+        const value = next(...params);
+        console.log({ next, params, value })
+        if(!variants.includes(value))
+          throw new ReatomError(`invalid enum value "${value}" for "${target.name}" enum`)
+
+        return value;
+      }
+  ) as EnumAtom<T, Format>
 
   const cases = (enumAtom.enum = {} as { [K in T]: K })
 
