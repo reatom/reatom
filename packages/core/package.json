@@ -20,7 +20,9 @@
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
-    "bench": "ts-node src/index.bench.test.ts"
+    "bench_dynamic": "tsx bench_dynamic.ts",
+    "bench_computed": "tsx bench_computed.ts",
+    "bench_computed:mem": "node --expose-gc --import=tsx bench_computed.ts"
   },
   "author": "artalar",
   "contributors": [
@@ -49,5 +51,31 @@
     "state-manager",
     "reatom"
   ],
-  "files": ["/build"]
+  "files": [
+    "/build"
+  ],
+  "devDependencies": {
+    "@artalar/act": "latest",
+    "@frp-ts/core": "latest",
+    "@ngrx/store": "latest",
+    "@preact/signals-core": "latest",
+    "reatomV3": "@reatom/core@3",
+    "@types/node": "latest",
+    "@webreflection/signal": "latest",
+    "cellx": "latest",
+    "effector": "latest",
+    "jotai": "latest",
+    "mobx": "latest",
+    "mol_wire_lib": "latest",
+    "nanostores": "latest",
+    "react": "latest",
+    "redux": "latest",
+    "reselect": "latest",
+    "s-js": "latest",
+    "solid-js": "latest",
+    "spred": "latest",
+    "usignal": "latest",
+    "whatsup": "latest",
+    "wonka": "latest"
+  }
 }
