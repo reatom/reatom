@@ -1,78 +1,77 @@
-import { action, atom, isAtom } from 'src/core'
+import { atom, isAtom } from 'src/core'
 import { describe, test, expect, subscribe } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
+import { parseAtoms } from './parseAtoms'
 
 describe('reatomLinkedList', () => {
-  // TODO: implement parseAtoms
-  // test('should respect initState, create and remove elements properly', () => {
-  //   const list = reatomLinkedList({
-  //     create: (n: number) => atom(n),
-  //     initState: [atom(1), atom(2)],
-  //   })
+  test('should respect initState, create and remove elements properly', () => {
+    const list = reatomLinkedList({
+      create: (n: number) => atom(n),
+      initState: [atom(1), atom(2)],
+    })
 
-  //   const last = list.create(3)
-  //   expect(list.array().map((v) => v())).toEqual([1, 2, 3])
-  //   list.remove(last)
-  //   expect(parseAtoms(list.array)).toEqual([1, 2])
+    const last = list.create(3)
+    expect(list.array().map((v) => v())).toEqual([1, 2, 3])
+    list.remove(last)
+    expect(parseAtoms(list.array)).toEqual([1, 2])
 
-  //   list.remove(last)
-  //   expect(parseAtoms(list.array)).toEqual([1, 2])
+    list.remove(last)
+    expect(parseAtoms(list.array)).toEqual([1, 2])
 
-  //   list.remove(list.find((n) => n() === 1)!)
-  //   expect(parseAtoms(list.array)).toEqual([2])
+    list.remove(list.find((n) => n() === 1)!)
+    expect(parseAtoms(list.array)).toEqual([2])
 
-  //   list.remove(list.find((n) => n() === 2)!)
-  //   expect(parseAtoms(list.array)).toEqual([])
+    list.remove(list.find((n) => n() === 2)!)
+    expect(parseAtoms(list.array)).toEqual([])
 
-  //   expect(() => {
-  //     list.remove(list.find((n) => n() === 2)!)
-  //   }).toThrow('Reatom error: The passed data is not a linked list node.')
-  // })
+    expect(() => {
+      list.remove(list.find((n) => n() === 2)!)
+    }).toThrow('The passed data is not a linked list node.')
+  })
 
-  // TODO: implement parseAtoms
-  // test('should swap elements', () => {
-  //   const list = reatomLinkedList((n: number) => ({ n }))
-  //   const { array } = list.reatomMap(({ n }) => ({ n }))
-  //   const track = subscribe(
-  //     atom(() => array().map(({ n }) => n)),
-  //   )
-  //   const one = list.create(1)
-  //   const two = list.create(2)
-  //   const three = list.create(3)
-  //   const four = list.create(4)
+  test('should swap elements', () => {
+    const list = reatomLinkedList((n: number) => ({ n }))
+    const { array } = list.reatomMap(({ n }) => ({ n }))
+    const track = subscribe(
+      atom(() => array().map(({ n }) => n)),
+    )
+    const one = list.create(1)
+    const two = list.create(2)
+    const three = list.create(3)
+    const four = list.create(4)
 
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
+    expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
-  //   list.swap(four, two)
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 4, 3, 2])
+    list.swap(four, two)
+    expect(track.mock.lastCall?.[0]).toEqual([1, 4, 3, 2])
 
-  //   list.swap(two, four)
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
+    list.swap(two, four)
+    expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
-  //   list.swap(three, four)
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 4, 3])
+    list.swap(three, four)
+    expect(track.mock.lastCall?.[0]).toEqual([1, 2, 4, 3])
 
-  //   list.swap(four, three)
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
+    list.swap(four, three)
+    expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
-  //   list.remove(two)
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 3, 4])
+    list.remove(two)
+    expect(track.mock.lastCall?.[0]).toEqual([1, 3, 4])
 
-  //   list.remove(three)
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 4])
+    list.remove(three)
+    expect(track.mock.lastCall?.[0]).toEqual([1, 4])
 
-  //   list.swap(four, one)
-  //   expect(track.mock.lastCall?.[0]).toEqual([4, 1])
+    list.swap(four, one)
+    expect(track.mock.lastCall?.[0]).toEqual([4, 1])
 
-  //   list.swap(four, one)
-  //   expect(track.mock.lastCall?.[0]).toEqual([1, 4])
+    list.swap(four, one)
+    expect(track.mock.lastCall?.[0]).toEqual([1, 4])
 
-  //   list.remove(one)
-  //   expect(track.mock.lastCall?.[0]).toEqual([4])
+    list.remove(one)
+    expect(track.mock.lastCall?.[0]).toEqual([4])
 
-  //   list.clear()
-  //   expect(parseAtoms(list.array)).toEqual([])
-  // })
+    list.clear()
+    expect(parseAtoms(list.array)).toEqual([])
+  })
 
   test('should move elements', () => {
     const list = reatomLinkedList((n: number) => ({ n }))
