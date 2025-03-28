@@ -391,12 +391,22 @@ declare global {
 assert(!globalThis.__REATOM, 'root duplication', ReatomError)
 globalThis.__REATOM = []
 
+//Try to reduce mem usage
+let getDefaultComputedPubs = () => {
+  let pubs = Array.from({ length: 4 }) as Frame['pubs']
+  pubs[0] = null
+  pubs.length = 1
+  return pubs
+}
+
 export let atom: {
   <T>(computed: (() => T) | ((state?: T) => T), name?: string): Computed<T>
   <T>(init: T extends Fn ? never : T, name?: string): Atom<T>
 } = <T>(setup: {} | ((state?: T) => T), name = named('atom')): Atom<T> => {
+  let initState = setup as T
   if (typeof setup === 'function') {
     defineName(setup, name + '.computed')
+    initState = undefined as T
   }
 
   let atom = castAtom<Atom<T>>(function (): T {
@@ -408,9 +418,9 @@ export let atom: {
     if (frame === undefined) {
       frame = {
         error: null,
-        state: (typeof setup === 'function' ? undefined : setup) as T,
+        state: initState,
         atom,
-        pubs: [null],
+        pubs: typeof setup === 'function' ? getDefaultComputedPubs() : [null],
         subs: [],
         run,
       }
