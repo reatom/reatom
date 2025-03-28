@@ -4,7 +4,7 @@
     "release": "npx tsx ./tools/publish.ts",
     "postinstall": "cd packages/core && npm run build",
     "reset": "sh ./tools/reset.sh",
-    "test": "vitest",
+    "test": "vitest run packages/core",
     "prettify": "prettier --write */**/**/*.{js,ts,md}",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
     "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
