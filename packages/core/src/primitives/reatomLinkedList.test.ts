@@ -1,7 +1,9 @@
-import { atom, isAtom } from 'src/core'
+import { action, atom, isAtom } from 'src/core'
 import { describe, test, expect, subscribe } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 import { parseAtoms } from './parseAtoms'
+import { withOnChange } from 'src/mixins'
+import { isCausedBy } from 'src/methods'
 
 describe('reatomLinkedList', () => {
   test('should respect initState, create and remove elements properly', () => {
@@ -111,20 +113,20 @@ describe('reatomLinkedList', () => {
     expect(track.mock.lastCall?.[0]).toEqual(['0', '2'])
   })
 
-  // TODO: implement isCausedBy, atom.onChange (?)
-  // test('should correctly handle batching and cause tracking', () => {
-  //   const list = reatomLinkedList(() => ({}))
-  //   list.onChange(() => {
-  //     isCausedBy(action())
-  //   })
+  test('should correctly handle batching and cause tracking', () => {
+    const list = reatomLinkedList(() => ({})).mix(
+      withOnChange(() => {
+        expect(isCausedBy(list.batch)).toBeTruthy()  
+      })
+    )
 
-  //   list.create()
+    list.create()
 
-  //   list.batch(() => {
-  //     list.create()
-  //     list.create()
-  //   })
-  // })
+    list.batch(() => {
+      list.create()
+      list.create()
+    })
+  })
 
   test('should remove a single node', () => {
     const list = reatomLinkedList((n: number) => ({ n }))
