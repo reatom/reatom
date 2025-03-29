@@ -1,6 +1,6 @@
 import { expect, vi, test, subscribe } from 'test'
 
-import { _read, atom, AtomLike, isConnected, root } from './atom'
+import { _read, atom, AtomLike, clearStack, isConnected, root } from './atom'
 import { withComputed } from '../mixins'
 import { notify } from '../methods/queues'
 import { Middleware } from './mix'

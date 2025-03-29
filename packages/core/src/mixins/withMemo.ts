@@ -10,7 +10,7 @@ export let withMemo =
     ) => boolean = isShallowEqual,
   ): ((target: T) => {}) =>
   (target) => {
-    target.__reatom.push((next, ...params) => {
+    target.__reatom.middlewares.push(function memoMiddleware(next, ...params) {
       let prevState = top().state
       let nextState = next(...params)
       return isEqual(prevState, nextState) ? prevState : nextState

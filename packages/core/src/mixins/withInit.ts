@@ -1,13 +1,13 @@
 import { AtomLike, root, top } from '../core'
-import { Fn } from '../utils'
+import { defineName, Fn } from '../utils'
 
 export let withInit = <T>(
   init: T | ((state: T) => T),
 ): ((target: AtomLike<T>) => {}) => {
   let key = {} // Symbol(`${target.name}.init`)
 
-  return () =>
-    (next: Fn, ...params: any[]) => {
+  return (target) =>
+    defineName((next: Fn, ...params: any[]) => {
       let context = root.context('init')
       if (!context.has(key)) {
         context.set(key, null)
@@ -19,5 +19,5 @@ export let withInit = <T>(
       }
 
       return next(...params)
-    }
+    }, `${target.name}.init`)
 }

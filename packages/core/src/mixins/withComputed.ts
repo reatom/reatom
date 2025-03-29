@@ -6,7 +6,7 @@ export let withComputed =
     computed: (state: AtomState<T>) => AtomState<T>,
   ): ((target: T) => {}) =>
   (target) => {
-    target.__reatom.unshift(function withComputedHandler(next, state) {
+    target.__reatom.middlewares.unshift(function withComputedHandler(next, state) {
       return next(computed(state))
     })
     return {}

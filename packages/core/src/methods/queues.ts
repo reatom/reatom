@@ -1,9 +1,10 @@
-import { root } from '../core/atom'
+import { Frame, root } from '../core/atom'
 import { wrap } from './wrap'
 
 export let schedule = async <T>(
   fn: (...params: any[]) => T,
   queue: 'hook' | 'compute' | 'cleanup' | 'effect' = 'effect',
+  frame?: Frame,
 ): Promise<T> =>
   new Promise((res, rej) => {
     let rootFrame = root()
@@ -19,7 +20,7 @@ export let schedule = async <T>(
 
     rootFrame.state[queue].push(() => {
       try {
-        res(fn())
+        res(frame ? frame.run(fn) : fn())
       } catch (e) {
         rej(e)
       }

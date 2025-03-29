@@ -16,7 +16,11 @@ export interface AtomLike<State = any> {
   subscribe: (cb?: (state: State) => any) => Unsubscribe
 
   /** @internal The list of applied mixins (middlewares). */
-  __reatom: Array<Fn>
+  __reatom: {
+    middlewares: Array<Fn>
+    onConnect?: Fn
+    onDisconnect?: Fn
+  }
 }
 
 /** Base changeable state container */
@@ -154,8 +158,12 @@ let link = (frame: Frame) => {
   let { pubs, atom } = frame
 
   for (let i = 1; i < pubs.length; i++) {
-    if (pubs[i]!.subs.push(atom) === 1) {
-      link(pubs[i]!)
+    let pub = pubs[i]!
+    if (pub.subs.push(atom) === 1) {
+      if (pub.atom.__reatom.onConnect !== undefined) {
+        schedule(pub.atom.__reatom.onConnect, 'effect')
+      }
+      link(pub)
     }
   }
 }
@@ -179,6 +187,9 @@ let unlink = (sub: Atom, oldPubs: Frame['pubs']) => {
 
     if (pub.subs.length === 1) {
       pub.subs.length = 0
+      if (pub.atom.__reatom.onDisconnect !== undefined) {
+        schedule(pub.atom.__reatom.onDisconnect, 'effect')
+      }
       unlink(pub.atom, pub.pubs)
     }
     // This should be the most common case
@@ -222,7 +233,7 @@ export let named = (name: string | TemplateStringsArray) => `${name}#${++i}`
 let mix = (target: AtomLike, ext: Extension<AtomLike>): AtomLike => {
   let result = ext(target)
   if (typeof result === 'function') {
-    target.__reatom.push(result)
+    target.__reatom.middlewares.push(result)
   } else {
     for (let key in result) {
       assert(
@@ -254,6 +265,9 @@ function subscribe(this: AtomLike, userCb?: Fn) {
   let frame = rootFrame.state.store.get(this)
 
   if (frame!.subs.push(this) === 1) {
+    if (frame!.atom.__reatom.onConnect !== undefined) {
+      schedule(frame!.atom.__reatom.onConnect, 'effect')
+    }
     relink(frame!, [null])
   }
 
@@ -266,6 +280,9 @@ function subscribe(this: AtomLike, userCb?: Fn) {
     frame.subs.splice(frame.subs.lastIndexOf(this), 1)
 
     if (frame.subs.length === 0) {
+      if (frame.atom.__reatom.onDisconnect !== undefined) {
+        schedule(frame.atom.__reatom.onDisconnect, 'effect')
+      }
       unlink(this, rootFrame.state.store.get(this as Atom)!.pubs)
     }
 
@@ -281,7 +298,11 @@ let castAtom = <T extends AtomLike>(
   Object.assign(defineName(target, name), {
     toString: () => `[Atom ${name}]`,
 
-    __reatom: [],
+    __reatom: {
+      middlewares: [],
+      onConnect: undefined,
+      onDisconnect: undefined,
+    },
 
     mix: (...extensions: Extension<AtomLike>[]) =>
       extensions.reduce(mix, target as AtomLike),
@@ -501,7 +522,7 @@ export let atom: {
     name,
   )
 
-  let middlewares = atom.__reatom
+  let { middlewares } = atom.__reatom
   middlewares.push(middleware)
 
   return atom.mix(...globalThis.__REATOM)

@@ -18,10 +18,10 @@ export let withOnChange =
       let prevState = top().state
       let state = next(...params)
       if (!Object.is(prevState, state)) {
-        schedule(() => cb(state, prevState), 'hook')
+        schedule(() => cb(state, prevState), 'hook', top())
       }
       return state
-    }, `${_target.name}.withOnChange`)
+    }, `${_target.name}.onChange`)
 
 export let withOnCall =
   <Params extends any[], Payload>(
@@ -46,6 +46,6 @@ export let withOnCall =
           }
         },
       )(target),
-      `${target.name}.withOnCall`,
+      `${target.name}.onCall`,
     )
   }
