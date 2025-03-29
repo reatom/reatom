@@ -3,12 +3,12 @@ Respectfully copied from https://github.com/ryansolid/dom-expressions/blob/ae71a
 */
 
 import * as csstype from 'csstype'
-import { Atom, AtomMaybe, AtomMut, Ctx } from '@reatom/core'
-import { LinkedListLikeAtom, LinkedList, LLNode } from '@reatom/primitives'
+import { AtomLike, AtomMaybe, Atom } from '@reatom/core'
+// import { LinkedListLikeAtom, LinkedList, LLNode } from '@reatom/primitives'
 
 // TODO write it manually to improve perf
 type AttributesAtomMaybe<T extends Record<keyof any, any>> = {
-  [K in keyof T]: T[K] | Atom<T[K]>
+  [K in keyof T]: T[K] | AtomLike<T[K]>
 }
 
 // TODO write it manually to improve perf
@@ -61,7 +61,6 @@ export namespace JSX {
 
   interface EventHandler<T extends Element = Element, E extends Event = Event> {
     (
-      ctx: Ctx,
       e: E & {
         currentTarget: T
         target: Element
@@ -74,7 +73,6 @@ export namespace JSX {
     E extends MouseEvent = MouseEvent,
   > {
     (
-      ctx: Ctx,
       e: E & {
         currentTarget: T
         target: Element
@@ -87,7 +85,6 @@ export namespace JSX {
     E extends InputEvent = InputEvent,
   > {
     (
-      ctx: Ctx,
       e: E & {
         currentTarget: T
         target: T extends
@@ -102,7 +99,6 @@ export namespace JSX {
 
   interface ChangeEventHandler<T = HTMLInputElement, E extends Event = Event> {
     (
-      ctx: Ctx,
       e: E & {
         currentTarget: T
         target: T extends
@@ -120,7 +116,6 @@ export namespace JSX {
     E extends FocusEvent = FocusEvent,
   > {
     (
-      ctx: Ctx,
       e: E & {
         currentTarget: T
         target: T extends
@@ -141,17 +136,17 @@ export namespace JSX {
 
   interface IntrinsicAttributes {
     // TODO?
-    // ref?: (ctx: Ctx, e: unknown) => void | (() => any)
+    // ref?: (e: unknown) => void | (() => any)
   }
   interface CustomAttributes<T> {
-    ref?: (ctx: Ctx, el: T) => void | ((ctx: Ctx, el: T) => any)
+    ref?: (el: T) => void | ((el: T) => any)
     // classList?: {
     //   [k: string]: boolean | undefined
     // }
   }
   interface Directives {}
   interface DirectiveFunctions {
-    [x: string]: (el: Element, accessor: Atom<any>) => void
+    [x: string]: (el: Element, accessor: AtomLike<any>) => void
   }
   interface ExplicitProperties {}
   interface ExplicitAttributes {}
@@ -168,7 +163,7 @@ export namespace JSX {
     ) => void
       ? T extends E // everything extends unknown if E is unknown
         ? R extends [infer A] // check if has accessor provided
-          ? A extends Atom<infer V>
+          ? A extends AtomLike<infer V>
             ? V // it's an accessor
             : never // it isn't, type error
           : true // no accessor provided
@@ -199,7 +194,8 @@ export namespace JSX {
       AttrAttributes,
       OnAttributes<T>,
       CustomEventHandlers<T> {
-    children?: ElementChildren | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
+    // TODO Support linked list.
+    children?: ElementChildren // | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
     innerHTML?: AtomMaybe<string>
     innerText?: AtomMaybe<string | number>
     textContent?: AtomMaybe<string | number>
@@ -1013,9 +1009,9 @@ export namespace JSX {
     value?: string | string[] | number
     width?: number | string
 
-    'model:value'?: AtomMut<string>
-    'model:valueAsNumber'?: AtomMut<number>
-    'model:checked'?: AtomMut<boolean>
+    'model:value'?: Atom<string>
+    'model:valueAsNumber'?: Atom<number>
+    'model:checked'?: Atom<boolean>
   }
   interface InsHTMLAttributes<T = HTMLElementTagNameMap['ins']>
     extends HTMLAttributes<T> {

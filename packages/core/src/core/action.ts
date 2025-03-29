@@ -32,11 +32,8 @@ let actionMiddleware = (next: Fn, ...params: any[]) => {
   }
 }
 
-// @ts-expect-error
-export let isAction: {
-  <T extends Action>(target: T): target is T
-  (target: any): target is Action
-} = (target: any) => isAtom(target) && !target.__reatom.reactive
+export let isAction = (target: any): target is Action =>
+  isAtom(target) && !target.__reatom.reactive
 
 // TODO support generics
 export let action = <Params extends any[] = any[], Payload = any>(
