@@ -43,5 +43,8 @@
   "bugs": {
     "url": "https://github.com/artalar/reatom/issues"
   },
-  "homepage": "https://www.reatom.dev"
+  "homepage": "https://www.reatom.dev",
+  "devDependencies": {
+    "eslint-plugin-simple-import-sort": "^12.1.1"
+  }
 }
