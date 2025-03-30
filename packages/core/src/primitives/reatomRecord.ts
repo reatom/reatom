@@ -1,5 +1,5 @@
-import { Action, atom, Atom, named } from 'src/core'
-import { Fn, Rec, omit } from 'src/utils'
+import { Action, atom, Atom, named } from '../core'
+import { Fn, Rec, omit } from '../utils'
 
 export interface RecordAtom<T extends Rec> extends Atom<T> {
   merge: Action<[slice: Partial<T>], T>

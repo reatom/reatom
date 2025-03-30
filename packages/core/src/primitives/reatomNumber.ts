@@ -1,6 +1,6 @@
 import { Action, Atom, atom } from '@reatom/core'
-import { named } from 'src/core'
-import { random } from 'src/utils'
+import { named } from '../core'
+import { random } from '../utils'
 
 export interface NumberAtom extends Atom<number> {
   increment: Action<[by?: number], number>

@@ -6,11 +6,11 @@ import {
   ReatomError,
   named,
   isAtom,
-} from 'src/core'
+} from '../core'
 
 import { isObject } from '@reatom/utils'
-import { Fn, Rec } from 'src/utils'
-import { withInit } from 'src/mixins'
+import { Fn, Rec } from '../utils'
+import { withInit } from '../mixins'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 

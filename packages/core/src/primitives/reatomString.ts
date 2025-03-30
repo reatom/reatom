@@ -1,4 +1,4 @@
-import { Action, atom, Atom, named } from 'src/core'
+import { Action, atom, Atom, named } from '../core'
 
 export type StringAtom<T extends string = string> = Atom<T> & {
   reset: Action<[], T>

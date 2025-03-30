@@ -1,4 +1,4 @@
-import { Action, Atom, atom, named, ReatomError } from 'src/core'
+import { Action, Atom, atom, named, ReatomError } from '../core'
 
 export type EnumFormat = 'camelCase' | 'snake_case'
 

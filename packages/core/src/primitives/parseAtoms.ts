@@ -1,10 +1,10 @@
-import { Action, Atom, isAction, isAtom } from 'src/core'
+import { Action, Atom, isAction, isAtom } from '../core'
 import {
   isLinkedListAtom,
   LinkedList,
   LinkedListLikeAtom,
 } from './reatomLinkedList'
-import { isRec, Rec } from 'src/utils'
+import { isRec, Rec } from '../utils'
 
 type Primitive = string | number | boolean | null | undefined
 type Builtin = Date | RegExp | Function

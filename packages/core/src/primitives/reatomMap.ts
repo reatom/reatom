@@ -1,5 +1,5 @@
-import { type Action, type Atom, atom, named } from 'src/core'
-import { Computed } from 'src/core'
+import { type Action, type Atom, atom, named } from '../core'
+import { Computed } from '../core'
 
 export interface MapAtom<Key, Value> extends Atom<Map<Key, Value>> {
   getOrCreate: (key: Key, creator: () => Value) => Value

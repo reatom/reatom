@@ -1,9 +1,9 @@
-import { action, atom, isAtom } from 'src/core'
+import { atom, isAtom } from '../core'
 import { describe, test, expect, subscribe } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 import { parseAtoms } from './parseAtoms'
-import { withOnChange } from 'src/mixins'
-import { isCausedBy } from 'src/methods'
+import { withOnChange } from '../mixins'
+import { isCausedBy } from '../methods'
 
 describe('reatomLinkedList', () => {
   test('should respect initState, create and remove elements properly', () => {

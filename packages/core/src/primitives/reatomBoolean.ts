@@ -1,4 +1,4 @@
-import { Action, Atom, atom, named } from 'src/core'
+import { Action, Atom, atom, named } from '../core'
 
 export interface BooleanAtom extends Atom<boolean> {
   toggle: Action<[], boolean>

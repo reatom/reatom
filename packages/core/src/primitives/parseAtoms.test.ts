@@ -6,7 +6,7 @@ import {
 } from './reatomLinkedList'
 
 import { test, describe, expect } from 'vitest'
-import { atom } from 'src/core'
+import { atom } from '../core'
 import { parseAtoms } from './parseAtoms'
 import { reatomEnum } from './reatomEnum'
 
