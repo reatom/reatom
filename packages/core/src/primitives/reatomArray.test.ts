@@ -6,28 +6,6 @@ describe('reatomArray', () => {
     expect(reatomArray([1, 2, 3])()).toEqual([1, 2, 3])
   })
 
-  test('toReversed', () => {
-    expect(reatomArray([1, 2, 3]).toReversed()).toEqual([3, 2, 1])
-  })
-
-  test('toSorted', () => {
-    expect(reatomArray([3, 1, 2]).toSorted()).toEqual([1, 2, 3])
-  })
-
-  test('toSorted with compareFn', () => {
-    expect(reatomArray([3, 1, 2]).toSorted((a, b) => b - a)).toEqual([
-      3, 2, 1,
-    ])
-  })
-
-  test('toSpliced', () => {
-    expect(reatomArray([3, 1, 2]).toSpliced(1, 2, 44)).toEqual([3, 44])
-  })
-
-  test('with', () => {
-    expect(reatomArray([3, 1, 2]).with(1, 15)).toEqual([3, 15, 2])
-  })
-
   test(`push`, () => {
     const arrayAtom = reatomArray([3, 1, 2])
 

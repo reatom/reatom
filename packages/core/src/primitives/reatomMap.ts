@@ -2,9 +2,7 @@ import { type Action, type Atom, atom, named } from 'src/core'
 import { Computed } from 'src/core'
 
 export interface MapAtom<Key, Value> extends Atom<Map<Key, Value>> {
-  get: (key: Key) => Value | undefined
   getOrCreate: (key: Key, creator: () => Value) => Value
-  has: (key: Key) => boolean
   set: Action<[key: Key, value: Value], Map<Key, Value>>
   delete: Action<[key: Key], Map<Key, Value>>
   clear: Action<[], Map<Key, Value>>
@@ -12,50 +10,50 @@ export interface MapAtom<Key, Value> extends Atom<Map<Key, Value>> {
   size: Computed<number>
 }
 
-type FirstMapConstructorParam<Key, Value> = ConstructorParameters<typeof Map<Key, Value>>[0]
+type FirstMapConstructorParam<Key, Value> = ConstructorParameters<
+  typeof Map<Key, Value>
+>[0]
 
 export const reatomMap = <Key, Value>(
-  initState: Map<Key, Value> | FirstMapConstructorParam<Key, Value> = new Map<Key, Value>(),
+  initState: Map<Key, Value> | FirstMapConstructorParam<Key, Value> = new Map<
+    Key,
+    Value
+  >(),
   name = named('mapAtom'),
 ): MapAtom<Key, Value> => {
-  const atomInitState = initState instanceof Map ? initState : new Map(initState);
+  const atomInitState =
+    initState instanceof Map ? initState : new Map(initState)
 
-  return atom(atomInitState, name).mix(
-    (target) => {
-      const actions = {
-        get: (key: Key) => target().get(key),
-        getOrCreate: (key: Key, creator: () => Value) => {
-          if(actions.has(key))
-            return actions.get(key)!
+  return atom(atomInitState, name).mix((target) => {
+    const actions = {
+      getOrCreate: (key: Key, creator: () => Value) => {
+        const state = target()
+        if (state.has(key)) return state.get(key)!
 
-          const value = creator();
-          actions.set(key, value);
-          return value;
-        },
-        has: (key: Key) => target().has(key),
-        set: (key: Key, value: Value) => (
-          target((prev) => {
-            const valuePrev = prev.get(key)
-            return Object.is(valuePrev, value) &&
-              (value !== undefined || prev.has(key))
-              ? prev
-              : new Map(prev).set(key, value)
-          })
-        ),
-        delete: (key: Key) => (
-          target((prev) => {
-            if (!prev.has(key)) return prev
-            const next = new Map(prev)
-            next.delete(key)
-            return next
-          })
-        ),
-        clear: () => target(new Map()),
-        reset: () => target(atomInitState),
-        size: atom(() =>  target().size, `${target.name}.size`),
-      }
-
-      return actions
+        const value = creator()
+        actions.set(key, value)
+        return value
+      },
+      set: (key: Key, value: Value) =>
+        target((prev) => {
+          const valuePrev = prev.get(key)
+          return Object.is(valuePrev, value) &&
+            (value !== undefined || prev.has(key))
+            ? prev
+            : new Map(prev).set(key, value)
+        }),
+      delete: (key: Key) =>
+        target((prev) => {
+          if (!prev.has(key)) return prev
+          const next = new Map(prev)
+          next.delete(key)
+          return next
+        }),
+      clear: () => target(new Map()),
+      reset: () => target(atomInitState),
+      size: atom(() => target().size, `${target.name}.size`),
     }
-  )
+
+    return actions
+  })
 }
