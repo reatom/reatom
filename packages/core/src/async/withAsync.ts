@@ -9,11 +9,11 @@ import {
   Frame,
   ReatomError,
   top,
-} from '../../core'
-import { ifCalled, ifChanged, schedule, wrap } from '../../methods'
-import { withOnCall } from '../../mixins'
-import { assert, Fn, identity } from '../../utils'
-import { withComputed } from '../withComputed'
+} from '../core'
+import { ifCalled, ifChanged, schedule, wrap } from '../methods'
+import { withOnCall } from '../mixins'
+import { assert, Fn, identity } from '../utils'
+import { withComputed } from '../mixins/withComputed'
 
 type AsyncMethods<Params extends any[] = any[], Payload = any, Error = any> = {
   ready: Computed<boolean>

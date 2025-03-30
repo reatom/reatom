@@ -1,8 +1,8 @@
-import { _read, action, atom, root } from '../../core'
 import { expect, test, vi } from 'test'
+import { _read, action, atom } from '../core'
+import { withOnCall } from '../mixins'
+import { wrap } from '../methods'
 import { withAsync, withAsyncData } from './withAsync'
-import { withOnCall } from '../withOnChange'
-import { wrap } from '../../methods'
 
 test('withAsync for action', async () => {
   const name = 'actionAsync'
