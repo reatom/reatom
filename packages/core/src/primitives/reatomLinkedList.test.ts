@@ -1,9 +1,9 @@
 import { atom, isAtom } from '../core'
-import { describe, test, expect, subscribe } from 'test'
+import { describe, test, expect, subscribe, vi } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 import { parseAtoms } from './parseAtoms'
 import { withOnChange } from '../mixins'
-import { isCausedBy } from '../methods'
+import { isCausedBy, notify } from '../methods'
 
 describe('reatomLinkedList', () => {
   test('should respect initState, create and remove elements properly', () => {
@@ -41,37 +41,47 @@ describe('reatomLinkedList', () => {
     const two = list.create(2)
     const three = list.create(3)
     const four = list.create(4)
-
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
     list.swap(four, two)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 4, 3, 2])
 
     list.swap(two, four)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
     list.swap(three, four)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 2, 4, 3])
 
     list.swap(four, three)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 2, 3, 4])
 
     list.remove(two)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 3, 4])
 
     list.remove(three)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 4])
 
     list.swap(four, one)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([4, 1])
 
     list.swap(four, one)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([1, 4])
 
     list.remove(one)
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual([4])
 
     list.clear()
+    notify()
     expect(parseAtoms(list.array)).toEqual([])
   })
 
@@ -86,14 +96,17 @@ describe('reatomLinkedList', () => {
     expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
     
     list.move(one, four)
+    notify()
     expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4, 1])
     expect(track).toBeCalledTimes(2)
 
     list.move(one, four)
+    notify()
     expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4, 1])
     expect(track).toBeCalledTimes(2)
 
     list.move(one, null)
+    notify()
     expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
   })
 
@@ -110,38 +123,47 @@ describe('reatomLinkedList', () => {
     expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
     list.map().get('1')?.id('0')
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual(['0', '2'])
   })
 
   test('should correctly handle batching and cause tracking', () => {
+    const callCause = vi.fn(() => isCausedBy(list.create) ? 'create' : isCausedBy(list.batch) ? 'batch' : 'unknown')
+
     const list = reatomLinkedList(() => ({})).mix(
-      withOnChange(() => {
-        expect(isCausedBy(list.batch)).toBeTruthy()  
-      })
+      withOnChange(callCause)
     )
 
     list.create()
+    notify()
+    expect(callCause).toReturnWith('create')
 
     list.batch(() => {
       list.create()
       list.create()
     })
+
+    notify()
+    expect(callCause).toReturnWith('batch')
   })
 
   test('should remove a single node', () => {
     const list = reatomLinkedList((n: number) => ({ n }))
 
     const node = list.create(1)
+    notify()
     expect(list.array()).toEqual([
       { n: 1, [LL_PREV]: null, [LL_NEXT]: null },
     ])
     expect(list().size).toBe(1)
 
     list.remove(node)
+    notify()
     expect(list.array()).toEqual([])
     expect(list().size).toBe(0)
 
     list.remove(node)
+    notify()
     expect(list.array()).toEqual([])
     expect(list().size).toBe(0)
   })
@@ -159,6 +181,7 @@ describe('reatomLinkedList', () => {
     expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
     list.map().get('1')?.id('0')
+    notify()
     expect(track.mock.lastCall?.[0]).toEqual(['0', '2'])
   })
 
@@ -168,6 +191,7 @@ describe('reatomLinkedList', () => {
     expect(list.array().every(isAtom)).toBeTruthy();
   
     list.create(atom(3));
+    notify()
     expect(list.array().every(isAtom)).toBeTruthy();
     expect(list.array().length).toBe(3);
   })
@@ -183,6 +207,7 @@ describe('reatomLinkedList', () => {
     expect(track.mock.lastCall?.[0]).toStrictEqual(['1', '2'])
   
     list.map().get('1')?.id('0')
+    notify()
     expect(track.mock.lastCall?.[0]).toStrictEqual(['0', '2'])
   })
 })
