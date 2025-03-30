@@ -38,7 +38,7 @@ export const withPending =
 The main power of middleware is its ability to handle previous and next states. It can be used for memoization or some reaction logic.
 
 ```ts
-export const withOnChange =
+export const withChangeHook =
   <T extends AtomLike>(
     cb: (state: AtomState<T>, prevState: AtomState<T>) => void,
   ) =>

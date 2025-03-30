@@ -2,7 +2,7 @@ import { atom, isAtom } from '../core'
 import { describe, test, expect, subscribe, vi } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 import { parseAtoms } from './parseAtoms'
-import { withOnChange } from '../mixins'
+import { withChangeHook } from '../mixins'
 import { isCausedBy, notify } from '../methods'
 
 test('should respect initState, create and remove elements properly', () => {
@@ -131,7 +131,7 @@ test('should correctly handle batching and cause tracking', () => {
         : 'unknown',
   )
 
-  const list = reatomLinkedList(() => ({})).mix(withOnChange(callCause))
+  const list = reatomLinkedList(() => ({})).mix(withChangeHook(callCause))
 
   list.create()
   notify()

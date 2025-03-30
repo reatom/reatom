@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'test'
 import { _read, action, atom } from '../core'
-import { withOnCall } from '../mixins'
+import { withCallHook } from '../mixins'
 import { wrap } from '../methods'
 import { withAsync, withAsyncData } from './withAsync'
 
@@ -11,10 +11,10 @@ test('withAsync for action', async () => {
   let settleTrack = vi.fn()
   const fetch = action(async (param: number) => param, `${name}.fetch`).mix(
     withAsync(),
-    withOnCall((payload, params) => fetchTrack({ payload, params })),
+    withCallHook((payload, params) => fetchTrack({ payload, params })),
   )
-  fetch.onFulfill.mix(withOnCall((call) => fulfilLTrack(call)))
-  fetch.onSettle.mix(withOnCall((call) => settleTrack(call)))
+  fetch.onFulfill.mix(withCallHook((call) => fulfilLTrack(call)))
+  fetch.onSettle.mix(withCallHook((call) => settleTrack(call)))
 
   const promise = fetch(1)
   await wrap(promise)
@@ -50,7 +50,7 @@ test('withAsyncData for action', async () => {
     withAsyncData(),
   )
   const onFulfill = vi.fn()
-  fetch.onFulfill.mix(withOnCall((call) => onFulfill(call)))
+  fetch.onFulfill.mix(withCallHook((call) => onFulfill(call)))
 
   expect(fetch.data()).toBeUndefined()
   expect(fetch.ready()).toBe(true)

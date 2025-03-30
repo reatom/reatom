@@ -8,7 +8,7 @@ import {
 } from '../core'
 import { assert, defineName, Fn } from '../utils'
 
-export let withOnChange =
+export let withChangeHook =
   <T extends AtomLike>(
     cb: (state: AtomState<T>, prevState?: AtomState<T>) => void,
   ) =>
@@ -22,19 +22,19 @@ export let withOnChange =
       return state
     }, `${_target.name}.onChange`)
 
-export let withOnCall =
+export let withCallHook =
   <Params extends any[], Payload>(
     cb: (payload: Payload, params: Params) => void,
   ) =>
   (target: Action<Params, Payload>) => {
     assert(
       !target.__reatom.reactive,
-      'withOnCall can be used only with actions',
+      'withCallHook can be used only with actions',
       ReatomError,
     )
 
     return defineName(
-      withOnChange(
+      withChangeHook(
         (
           state: Array<{ params: Params; payload: Payload }>,
           prevState?: Array<{ params: Params; payload: Payload }>,

@@ -1,14 +1,14 @@
 import { expect, test, vi } from 'test'
 import { action, atom } from '../core'
-import { withOnChange, withOnCall } from './withOnChange'
+import { withChangeHook, withCallHook } from './withChangeHook'
 import { notify } from '../methods'
 
 test('atomChange', () => {
   const name = 'atomChange'
   const cb = vi.fn()
-  const a1 = atom(0, `${name}.a1`).mix(withOnChange(cb))
-  const a2 = atom(0, `${name}.a2`).mix(withOnChange(cb))
-  const a3 = atom(() => a2(), `${name}.a2`).mix(withOnChange(cb))
+  const a1 = atom(0, `${name}.a1`).mix(withChangeHook(cb))
+  const a2 = atom(0, `${name}.a2`).mix(withChangeHook(cb))
+  const a3 = atom(() => a2(), `${name}.a2`).mix(withChangeHook(cb))
 
   a1()
   notify()
@@ -39,7 +39,7 @@ test('actionCall', () => {
   const name = 'actionCall'
   const cb = vi.fn()
   const sum = action((a: number, b: number) => a + b, `${name}.sum`).mix(
-    withOnCall(cb),
+    withCallHook(cb),
   )
 
   sum(1, 2)
