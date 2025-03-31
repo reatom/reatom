@@ -11,7 +11,6 @@ export default [
         project: 'tsconfig.json',
         tsconfigRootDir: process.cwd(),
         sourceType: 'module',
-        ecmaVersion: 2022,
       },
     },
     plugins: {
@@ -38,15 +37,15 @@ export default [
   },
   {
     ignores: [
-        'node_modules', 
-        'dist', 
-        'README.md', 
-        'CHANGELOG.md', 
-        '*.mjs', 
         '*.config.js',
-        'build',
-        'node_modules',
         '*.d.ts',
+        '*.mjs',
+        'CHANGELOG.md',
+        'README.md',
+        'build',
+        'dist',
+        'node_modules',
+        'node_modules'
       ],
   },
 ];
