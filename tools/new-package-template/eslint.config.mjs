@@ -19,14 +19,14 @@ export default [
     },
     rules: {
       // Import sorting
-      "simple-import-sort/imports": "error",
       "simple-import-sort/exports": "error",
+      "simple-import-sort/imports": "error",
 
-      '@typescript-eslint/interface-name-prefix': 'off',
+      'no-console': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/interface-name-prefix': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
-      'no-console': 'off',
       '@typescript-eslint/no-unused-vars': ['error'],
     },
     settings: {
@@ -45,7 +45,6 @@ export default [
         'build',
         'dist',
         'node_modules',
-        'node_modules'
       ],
   },
 ];
