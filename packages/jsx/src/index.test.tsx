@@ -1,18 +1,16 @@
-import { test, expect } from 'vitest'
-// import { createTestCtx, mockFn, type TestCtx } from '@reatom/testing'
+import { test, expect, vi } from 'vitest'
 import {
   type Fn,
   type Rec,
   atom,
   clearStack,
+  isConnected,
   notify,
+  reatomLinkedList,
   root,
   sleep,
   wrap,
 } from '@reatom/core'
-// import { reatomLinkedList } from '@reatom/primitives'
-// import { isConnected } from '@reatom/hooks'
-// import { sleep } from '@reatom/utils'
 
 import { Bind, reatomJsx, type JSX } from '.'
 
@@ -158,27 +156,27 @@ test(
   }),
 )
 
-// test(
-//   'spreads',
-//   setup((h, hf, mount, parent) => {
-//     const clickTrack = mockFn()
-//     const props = atom({
-//       id: '1',
-//       'attr:b': '2',
-//       'on:click': clickTrack as Fn,
-//     })
+test(
+  'spreads',
+  setup((h, hf, mount, parent) => {
+    const clickTrack = vi.fn()
+    const props = atom({
+      id: '1',
+      'attr:b': '2',
+      'on:click': clickTrack as Fn,
+    })
 
-//     const element = <div $spread={props} /> as HTMLDivElement
+    const element = <div $spread={props} /> as HTMLDivElement
 
-//     mount(parent, element)
+    mount(parent, element)
 
-//     expect(element.id).toBe('1')
-//     expect(element.getAttribute('b')).toBe('2')
-//     expect(clickTrack.calls.length).toBe(0)
-//     element.click()
-//     expect(clickTrack.calls.length).toBe(1)
-//   }),
-// )
+    expect(element.id).toBe('1')
+    expect(element.getAttribute('b')).toBe('2')
+    expect(clickTrack.mock.calls.length).toBe(0)
+    element.click()
+    expect(clickTrack.mock.calls.length).toBe(1)
+  }),
+)
 
 test(
   'multiple renden shared element',
@@ -271,32 +269,34 @@ test(
   }),
 )
 
-// test(
-//   'linked list',
-//   setup(async (h, hf, mount, parent) => {
-//     const list = reatomLinkedList((value: any) => atom(value))
-//     const jsxList = list.reatomMap((n) => <span>{n}</span>)
-//     const one = list.create(1)
-//     const two = list.create(2)
+test(
+  'linked list',
+  setup(async (h, hf, mount, parent) => {
+    const list = reatomLinkedList((value: any) => atom(value))
+    const jsxList = list.reatomMap((n) => <span>{n}</span>)
+    const one = list.create(1)
+    const two = list.create(2)
 
-//     mount(parent, <div>{jsxList}</div>)
+    mount(parent, <div>{jsxList}</div>)
 
-//     expect(parent.innerText).toBe('12')
-//     expect(isConnected(one)).toBe(true)
-//     expect(isConnected(two)).toBe(true)
+    await wrap(sleep())
+    expect(parent.innerText).toBe('12')
+    expect(isConnected(one)).toBe(true)
+    expect(isConnected(two)).toBe(true)
 
-//     list.swap(one, two)
-//     expect(parent.innerText).toBe('21')
+    list.swap(one, two)
+    await wrap(sleep())
+    expect(parent.innerText).toBe('21')
 
-//     list.remove(two)
-//     expect(parent.innerText).toBe('1')
-//     await wrap(sleep())
-//     expect(isConnected(one)).toBe(true)
-//     expect(isConnected(two)).toBe(false)
+    list.remove(two)
+    await wrap(sleep())
+    expect(parent.innerText).toBe('1')
+    expect(isConnected(one)).toBe(true)
+    expect(isConnected(two)).toBe(false)
 
-//     list.create(<>3</>)
-//   }),
-// )
+    list.create(<>3</>)
+  }),
+)
 
 test(
   'boolean as child',
@@ -886,38 +886,42 @@ test(
   }),
 )
 
-// test(
-//   'linked list',
-//   setup((h, hf, mount, parent) => {
-//     const a = atom(true)
-//     const list = reatomLinkedList((value: string) => (
-//       <>
-//         <span>{value}</span>
-//         {atom(() => (a() ? <a /> : <br />), 'test')}
-//       </>
-//     ))
-//     list.create('1')
+test(
+  'linked list',
+  setup(async (h, hf, mount, parent) => {
+    const a = atom(true)
+    const list = reatomLinkedList((value: string) => (
+      <>
+        <span>{value}</span>
+        {atom(() => (a() ? <a /> : <br />), 'test')}
+      </>
+    ))
+    list.create('1')
 
-//     const container = <div>{list}</div>
-//     mount(parent, container)
+    const container = <div>{list}</div>
+    mount(parent, container)
 
-//     expect(container.outerHTML).toBe(
-//       '<div><!----><span>1</span><!--test--><a></a><!--test--><!----></div>',
-//     )
+    await wrap(sleep())
+    expect(container.outerHTML).toBe(
+      '<div><!----><span>1</span><!--test--><a></a><!--test--><!----></div>',
+    )
 
-//     a(false)
-//     expect(container.outerHTML).toBe(
-//       '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
-//     )
+    a(false)
+    await wrap(sleep())
+    expect(container.outerHTML).toBe(
+      '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
+    )
 
-//     const node = list.create('2')
-//     expect(container.outerHTML).toBe(
-//       '<div><!----><span>1</span><!--test--><br><!--test--><!----><!----><span>2</span><!--test--><br><!--test--><!----></div>',
-//     )
+    const node = list.create('2')
+    await wrap(sleep())
+    expect(container.outerHTML).toBe(
+      '<div><!----><span>1</span><!--test--><br><!--test--><!----><!----><span>2</span><!--test--><br><!--test--><!----></div>',
+    )
 
-//     list.remove(node)
-//     expect(container.outerHTML).toBe(
-//       '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
-//     )
-//   }),
-// )
+    list.remove(node)
+    await wrap(sleep())
+    expect(container.outerHTML).toBe(
+      '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
+    )
+  }),
+)

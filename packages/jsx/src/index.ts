@@ -1,23 +1,22 @@
 import {
   action,
-  AtomLike,
-  Atom,
-  Fn,
+  assert,
+  type AtomLike,
+  type Atom,
+  type Fn,
   isAtom,
   random,
-  Rec,
-  // throwReatomError,
-  Unsubscribe,
+  type Rec,
+  type Unsubscribe,
   wrap,
   isAction,
+  ReatomError,
+  isLinkedListAtom,
+  LL_NEXT,
+  type LinkedList,
+  type LinkedListLikeAtom,
+  type LLNode,
 } from '@reatom/core'
-// import { noop, random } from '@reatom/utils'
-// import {
-//   type LinkedList,
-//   type LLNode,
-//   isLinkedListAtom,
-//   LL_NEXT,
-// } from '@reatom/primitives'
 import type { AttributesAtomMaybe, JSX } from './jsx'
 
 declare type JSXElement = JSX.Element
@@ -62,88 +61,80 @@ let unlink = (parent: Node, un: Unsubscribe) => {
   })
 }
 
-// let walkLinkedList = (
-//   ctx: Ctx,
-//   DOM: DomApis,
-//   el: JSX.Element,
-//   list: AtomLike<LinkedList<LLNode<JSX.Element>>>,
-// ) => {
-//   let lastVersion = -1
+// TODO Should use `wrap`?
+let walkLinkedList = (
+  DOM: DomApis,
+  el: JSX.Element,
+  list: LinkedListLikeAtom<LinkedList<LLNode<JSX.Element>>>,
+) => {
+  let lastVersion = -1
 
-//   let cb = (state: LinkedList<LLNode<JSX.Element>>) => {
-//     if (state.version - 1 > lastVersion) {
-//       el.innerHTML = ''
-//       for (let { head } = state; head; head = head[LL_NEXT]) {
-//         throwNativeFragment(head)
-//         el.append(head)
-//       }
-//     } else {
-//       let appendBatch: undefined | DocumentFragment
-//       for (let change of state.changes) {
-//         if (change.kind === 'create') {
-//           throwNativeFragment(change.node)
+  let cb = (state: LinkedList<LLNode<JSX.Element>>) => {
+    if (state.version - 1 > lastVersion) {
+      el.innerHTML = ''
+      for (let { head } = state; head; head = head[LL_NEXT]) {
+        throwNativeFragment(head)
+        el.append(head)
+      }
+    } else {
+      let appendBatch: undefined | DocumentFragment
+      for (let change of state.changes) {
+        if (change.kind === 'create') {
+          throwNativeFragment(change.node)
 
-//           appendBatch ??= DOM.document.createDocumentFragment()
+          appendBatch ??= DOM.document.createDocumentFragment()
 
-//           appendBatch.append(change.node)
-//         } else if (appendBatch) {
-//           el.append(appendBatch)
-//           appendBatch = undefined
-//         }
+          appendBatch.append(change.node)
+        } else if (appendBatch) {
+          el.append(appendBatch)
+          appendBatch = undefined
+        }
 
-//         if (change.kind === 'remove') {
-//           if (isLiveFragment(change.node)) {
-//             let fragment = change.node.__reatomFragment
-//             fragment.update()
-//             fragment.start.remove()
-//             fragment.end.remove()
-//           } else {
-//             el.removeChild(change.node)
-//           }
-//         }
-//         // TODO support fragments
-//         else if (change.kind === 'swap') {
-//           let [aNext, bNext] = [change.a.nextSibling, change.b.nextSibling]
-//           if (bNext) {
-//             el.insertBefore(change.a, bNext)
-//           } else {
-//             el.append(change.a)
-//           }
+        if (change.kind === 'remove') {
+          if (isLiveFragment(change.node)) {
+            let fragment = change.node.__reatomFragment
+            fragment.update()
+            fragment.start.remove()
+            fragment.end.remove()
+          } else {
+            el.removeChild(change.node)
+          }
+        }
+        // TODO support fragments
+        else if (change.kind === 'swap') {
+          let [aNext, bNext] = [change.a.nextSibling, change.b.nextSibling]
+          if (bNext) {
+            el.insertBefore(change.a, bNext)
+          } else {
+            el.append(change.a)
+          }
 
-//           if (aNext) {
-//             el.insertBefore(change.b, aNext)
-//           } else {
-//             el.append(change.b)
-//           }
-//         }
-//         // TODO support fragments
-//         else if (change.kind === 'move') {
-//           if (change.after) {
-//             change.after.insertAdjacentElement('afterend', change.node)
-//           } else {
-//             el.append(change.node)
-//           }
-//         } else if (change.kind === 'clear') {
-//           el.innerHTML = ''
-//         }
-//       }
+          if (aNext) {
+            el.insertBefore(change.b, aNext)
+          } else {
+            el.append(change.b)
+          }
+        }
+        // TODO support fragments
+        else if (change.kind === 'move') {
+          if (change.after) {
+            change.after.insertAdjacentElement('afterend', change.node)
+          } else {
+            el.append(change.node)
+          }
+        } else if (change.kind === 'clear') {
+          el.innerHTML = ''
+        }
+      }
 
-//       if (appendBatch) el.append(appendBatch)
-//     }
-//     lastVersion = state.version
-//   }
+      if (appendBatch) el.append(appendBatch)
+    }
+    lastVersion = state.version
+  }
 
-//   // it's critical to not use not a last state, but the each state.
-//   let unSubscribe = atom.subscribe(list, noop)
-//   let unChange = list.onChange((ctx, state) => cb(state))
-
-//   cb(ctx.get(list))
-
-//   unlink(el, () => {
-//     unSubscribe()
-//     unChange()
-//   })
-// }
+  unlink(el, list.subscribe(cb))
+  cb(list())
+}
 
 type LiveDocumentFragment = DocumentFragment & {
   __reatomFragment: {
@@ -154,18 +145,18 @@ type LiveDocumentFragment = DocumentFragment & {
 }
 
 // TODO optimize
-// let isLiveFragment = (node: Node): node is LiveDocumentFragment => {
-//   return (
-//     String(node) === '[object DocumentFragment]' && '__reatomFragment' in node
-//   )
-// }
-// let throwNativeFragment = (element: JSX.Element) => {
-//   throwReatomError(
-//     String(element) === '[object DocumentFragment]' &&
-//       '__reatomFragment' in element === false,
-//     'native fragment is not supported',
-//   )
-// }
+let isLiveFragment = (node: Node): node is LiveDocumentFragment => {
+  return (
+    String(node) === '[object DocumentFragment]' && '__reatomFragment' in node
+  )
+}
+let throwNativeFragment = (element: JSX.Element) => {
+  assert(
+    String(element) !== '[object DocumentFragment]' || '__reatomFragment' in element,
+    'native fragment is not supported',
+    ReatomError,
+  )
+}
 
 let createLiveFragment = (
   DOM: DomApis,
@@ -200,6 +191,7 @@ let createLiveFragment = (
   })
 }
 
+// TODO Should use `wrap`?
 let walkAtom = (
   DOM: DomApis,
   anAtom: AtomLike<JSX.ElementPrimitiveChildren>,
@@ -391,11 +383,9 @@ export let reatomJsx = (
     let walk = (child: JSX.DOMAttributes<JSX.Element>['children']) => {
       if (Array.isArray(child)) {
         for (let i = 0; i < child.length; i++) walk(child[i])
-      }
-      // else if (isLinkedListAtom(child)) {
-      //   walkLinkedList(ctx, DOM, element, child)
-      // }
-      else if (isAtom(child)) {
+      } else if (isLinkedListAtom(child)) {
+        walkLinkedList(DOM, element, child)
+      } else if (isAtom(child)) {
         element.append(walkAtom(DOM, child))
       } else if (!isSkipped(child)) {
         element.append(child as Node | string)
@@ -420,21 +410,28 @@ export let reatomJsx = (
     // target.append(...[child].flat(Infinity))
     target.append(child)
 
+    /**
+     * @note The moved node creates two mutations: deletion then addition.
+     */
     new DOM.MutationObserver((mutationsList) => {
-      for (let mutation of mutationsList) {
-        for (let removedNode of mutation.removedNodes) {
-          /**
-           * @see https://stackoverflow.com/a/64551276
-           * @note A custom NodeFilter function slows down performance by 1.5 times.
-           */
-          let walker = DOM.document.createTreeWalker(removedNode, 1 | 128)
+      let removedNodes = new Set<Node>()
 
-          do {
-            let node = walker.currentNode as Element
-            unsubscribesMap.get(node)?.forEach((fn) => fn())
-            unsubscribesMap.delete(node)
-          } while (walker.nextNode())
-        }
+      for (let mutation of mutationsList) {
+        for (let node of mutation.removedNodes) removedNodes.add(node)
+        for (let node of mutation.addedNodes) removedNodes.delete(node)
+      }
+
+      for (let removedNode of removedNodes) {
+        /**
+         * @see https://stackoverflow.com/a/64551276
+         * @note A custom NodeFilter function slows down performance by 1.5 times.
+         */
+        let walker = DOM.document.createTreeWalker(removedNode, 1 | 128)
+
+        do {
+          unsubscribesMap.get(walker.currentNode)?.forEach((fn) => fn())
+          unsubscribesMap.delete(walker.currentNode)
+        } while (walker.nextNode())
       }
     }).observe(target.parentElement!, {
       childList: true,

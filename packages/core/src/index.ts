@@ -1,4 +1,5 @@
 export * from './core'
 export * from './methods'
 export * from './mixins'
+export * from './primitives'
 export * from './utils'

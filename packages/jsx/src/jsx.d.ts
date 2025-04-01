@@ -3,8 +3,14 @@ Respectfully copied from https://github.com/ryansolid/dom-expressions/blob/ae71a
 */
 
 import * as csstype from 'csstype'
-import { AtomLike, AtomMaybe, Atom } from '@reatom/core'
-// import { LinkedListLikeAtom, LinkedList, LLNode } from '@reatom/primitives'
+import {
+  AtomLike,
+  AtomMaybe,
+  Atom,
+  LinkedListLikeAtom,
+  LinkedList,
+  LLNode,
+} from '@reatom/core'
 
 // TODO write it manually to improve perf
 type AttributesAtomMaybe<T extends Record<keyof any, any>> = {
@@ -194,8 +200,7 @@ export namespace JSX {
       AttrAttributes,
       OnAttributes<T>,
       CustomEventHandlers<T> {
-    // TODO Support linked list.
-    children?: ElementChildren // | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
+    children?: ElementChildren | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
     innerHTML?: AtomMaybe<string>
     innerText?: AtomMaybe<string | number>
     textContent?: AtomMaybe<string | number>

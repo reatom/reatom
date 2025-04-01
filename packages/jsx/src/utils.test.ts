@@ -64,7 +64,7 @@ describe('parseClasses', () => {
         f: atom(true),
         g: () => true,
       })(),
-    ).toEqual('a b c d e f g')
+    ).toBe('a b c d e f g')
   })
 
   test('handles deep array correctly', () => {
