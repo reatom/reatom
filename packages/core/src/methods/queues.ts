@@ -1,13 +1,28 @@
-import { Frame, root } from '../core/atom'
+import { Frame, root, STACK } from '../core/atom'
+import { Fn, noop } from '../utils'
 import { wrap } from './wrap'
 
-export let schedule = async <T>(
-  fn: (...params: any[]) => T,
+// @ts-expect-error TODO
+export let schedule: {
+  <T>(
+    fn: (...params: any[]) => T,
+    queue?: 'hook' | 'compute' | 'cleanup' | 'effect',
+    frame?: Frame,
+  ): Promise<T>
+  (
+    fn: (...params: any[]) => any,
+    queue: 'hook' | 'compute' | 'cleanup' | 'effect',
+    frame: null,
+  ): void
+} = (
+  fn: Fn,
   queue: 'hook' | 'compute' | 'cleanup' | 'effect' = 'effect',
-  frame?: Frame,
-): Promise<T> =>
-  new Promise((res, rej) => {
+  frame?: null | Frame,
+): void | Promise<any> => {
+  let cb = (res: Fn, rej: Fn) => {
     let rootFrame = root()
+    // TODO
+    // if (frame === undefined) frame = STACK[STACK.length - 1]!
 
     if (
       rootFrame.state.hook.length === 0 &&
@@ -16,16 +31,22 @@ export let schedule = async <T>(
       rootFrame.state.effect.length === 0
     ) {
       Promise.resolve().then(wrap(notify, rootFrame))
+      //.catch(noop) // TODO ?
     }
 
-    rootFrame.state[queue].push(() => {
+    rootFrame.state.pushQueue(() => {
       try {
-        res(frame ? frame.run(fn) : fn())
+        let result = frame ? frame.run(fn) : fn()
+        return result instanceof Promise ? result.then(res, rej) : res(result)
       } catch (e) {
         rej(e)
+        throw e
       }
-    })
-  })
+    }, queue)
+  }
+
+  return frame === null ? cb(noop, noop) : new Promise(cb)
+}
 
 export let notify = async (): Promise<void> => {
   let { state } = root()
@@ -41,7 +62,7 @@ export let notify = async (): Promise<void> => {
   while (priority < queues.length) {
     let next = queues[priority++]!.next()
     if (!next.done) {
-      priority = 0 // need to recheck queues after the cb
+      priority = 0 // need to recheck queues after use code
       next.value()
     }
   }

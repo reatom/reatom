@@ -1,4 +1,5 @@
-import { AtomLike, root, top } from '../core'
+import { AtomLike, top } from '../core'
+import { initContext } from '../core/context'
 import { defineName, Fn } from '../utils'
 
 export let withInit = <T>(
@@ -8,7 +9,7 @@ export let withInit = <T>(
 
   return (target) =>
     defineName((next: Fn, ...params: any[]) => {
-      let context = root.context('init')
+      let context = initContext()
       if (!context.has(key)) {
         context.set(key, null)
         let frame = top()

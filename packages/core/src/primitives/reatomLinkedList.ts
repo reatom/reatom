@@ -1,26 +1,17 @@
 import {
   type Atom,
   type Action,
-  type Ctx,
-  type Rec,
   atom,
   action,
-  type Fn,
-  throwReatomError,
-  __count,
+  ReatomError,
+  named,
   isAtom,
-} from '@reatom/core'
-import { isObject } from '@reatom/utils'
+} from '../core'
+
+import { isObject, Fn, Rec } from '../utils'
+import { withInit } from '../mixins'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
-
-const readonly = <T extends Atom>(
-  anAtom: T,
-): {
-  [K in keyof T]: T[K]
-} => ({
-  ...anAtom,
-})
 
 export const LL_PREV = Symbol('Reatom linked list prev')
 export const LL_NEXT = Symbol('Reatom linked list next')
@@ -68,44 +59,43 @@ export interface LinkedListAtom<
   move: Action<[node: LLNode<Node>, after: null | LLNode<Node>], void>
   clear: Action<[], void>
 
-  find: (ctx: Ctx, cb: (node: LLNode<Node>) => boolean) => null | LLNode<Node>
+  find: (cb: (node: LLNode<Node>) => boolean) => null | LLNode<Node>
 
   /** This lazy map is useful for working with serializable identifier,
    * but it is not recommended to use it for large (thousands elements) lists */
   map: Key extends never ? never : Atom<Map<State<Node[Key]>, LLNode<Node>>>
 
-  initiate: {
-    (initState: Array<Node>): LinkedList<LLNode<Node>>
-    (ctx: Ctx, initSnapshot: Array<Params>): LinkedList<LLNode<Node>>
-  }
+  initiateFromState: (initState: Array<Node>) => LinkedList<LLNode<Node>>
+  initiateFromSnapshot: (
+    initSnapshot: Array<Params>,
+  ) => LinkedList<LLNode<Node>>
 
   reatomMap: <T extends Rec>(
-    cb: (ctx: Ctx, node: LLNode<Node>) => T,
+    cb: (node: LLNode<Node>) => T,
     options?:
       | string
       | {
           name?: string
-          onCreate?: (ctx: Ctx, node: LLNode<T>) => void
-          onRemove?: (ctx: Ctx, node: LLNode<T>, origin: LLNode<Node>) => void
-          onSwap?: (ctx: Ctx, payload: { a: LLNode<T>; b: LLNode<T> }) => void
-          onMove?: (ctx: Ctx, node: LLNode<T>) => void
+          onCreate?: (node: LLNode<T>) => void
+          onRemove?: (node: LLNode<T>, origin: LLNode<Node>) => void
+          onSwap?: (payload: { a: LLNode<T>; b: LLNode<T> }) => void
+          onMove?: (node: LLNode<T>) => void
           onClear?: (
-            ctx: Ctx,
             lastState: LinkedListDerivedState<LLNode<Node>, LLNode<T>>,
           ) => void
         },
   ) => LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>
 
   // reatomFilter: (
-  //   cb: (ctx: CtxSpy, node: Node) => any,
+  //   cb: (node: Node) => any,
   //   name?: string,
   // ) => Atom<ListType<Node>>
 
   // reatomReduce: <T>(
   //   options: {
   //     init: T
-  //     add: (ctx: CtxSpy, acc: T, node: LLNode<Node>) => T
-  //     del: (ctx: Ctx, acc: T, node: LLNode<Node>) => T
+  //     add: (acc: T, node: LLNode<Node>) => T
+  //     del: (acc: T, node: LLNode<Node>) => T
   //   },
   //   name?: string,
   // ) => Atom<T>
@@ -257,104 +247,129 @@ const toArray = <T extends Rec>(
   return arr.length === prev?.length ? prev : arr
 }
 
-export function reatomLinkedList<Node extends Rec, Params extends any[] = [Node], Key extends keyof Node = never>(
-  initState: Array<Node>,
-  name?: string
-): LinkedListAtom<Params, Node, Key>;
+export function reatomLinkedList<
+  Node extends Rec,
+  Params extends any[] = [Node],
+  Key extends keyof Node = never,
+>(initState: Array<Node>, name?: string): LinkedListAtom<Params, Node, Key>
 
-export function reatomLinkedList<Params extends any[], Node extends Rec, Key extends keyof Node = never>(
-  initState: ((ctx: Ctx, ...params: Params) => Node),
-  name?: string
-): LinkedListAtom<Params, Node, Key>;
+export function reatomLinkedList<
+  Params extends any[],
+  Node extends Rec,
+  Key extends keyof Node = never,
+>(
+  initState: (...params: Params) => Node,
+  name?: string,
+): LinkedListAtom<Params, Node, Key>
 
-export function reatomLinkedList<Params extends any[], Node extends Rec, Key extends keyof Node = never>(
+export function reatomLinkedList<
+  Params extends any[],
+  Node extends Rec,
+  Key extends keyof Node = never,
+>(
   initState: {
-    create: (ctx: Ctx, ...params: Params) => Node
+    create: (...params: Params) => Node
     initState?: Array<Node>
     key?: Key
   },
-  name?: string
-): LinkedListAtom<Params, Node, Key>;
+  name?: string,
+): LinkedListAtom<Params, Node, Key>
 
-export function reatomLinkedList<Params extends any[], Node extends Rec, Key extends keyof Node = never>(
+export function reatomLinkedList<
+  Params extends any[],
+  Node extends Rec,
+  Key extends keyof Node = never,
+>(
   initState: {
-    create?: (ctx: Ctx, ...params: Params) => Node,
-    initState: Array<Node>,
+    create?: (...params: Params) => Node
+    initState: Array<Node>
     key?: Key
   },
-  name?: string
-): LinkedListAtom<Params, Node, Key>;
+  name?: string,
+): LinkedListAtom<Params, Node, Key>
 
-export function reatomLinkedList<Params extends any[], Node extends Rec, Key extends keyof Node = never>(
+export function reatomLinkedList<
+  Params extends any[],
+  Node extends Rec,
+  Key extends keyof Node = never,
+>(
   initSnapshot: {
-    create: (ctx: Ctx, ...params: Params) => Node,
-    initSnapshot?: Array<Params>,
+    create: (...params: Params) => Node
+    initSnapshot?: Array<Params>
     key?: Key
   },
-  name?: string
-): LinkedListAtom<Params, Node, Key>;
+  name?: string,
+): LinkedListAtom<Params, Node, Key>
 
-export function reatomLinkedList<Params extends any[], Node extends Rec, Key extends keyof Node = never>(
+export function reatomLinkedList<
+  Params extends any[],
+  Node extends Rec,
+  Key extends keyof Node = never,
+>(
   options:
     | Array<Node>
-    | ((ctx: Ctx, ...params: Params) => Node)
+    | ((...params: Params) => Node)
     | {
-      create?: (ctx: Ctx, ...params: Params) => Node
-      initState?: Array<Node>
-      key?: Key
-    }
+        create?: (...params: Params) => Node
+        initState?: Array<Node>
+        key?: Key
+      }
     | {
-      create: (ctx: Ctx, ...params: Params) => Node
-      initSnapshot?: Array<Params>
-      key?: Key
-    },
-  name = __count('reatomLinkedList'),
+        create: (...params: Params) => Node
+        initSnapshot?: Array<Params>
+        key?: Key
+      },
+  name = named('linkedListAtom'),
 ): LinkedListAtom<Params, Node, Key> {
   const {
-    create: userCreate = (ctx: Ctx, ...params: Params) => params[0],
+    create: userCreate = (...params: Params) => params[0],
     key = undefined,
     ...restOptions
-  } = typeof options === 'function' ? {
-    create: options
-  } : Array.isArray(options) ? {
-    create: (ctx: Ctx, ...params: Params) => params[0],
-    initState: options,
-  } : options;
+  } = typeof options === 'function'
+    ? {
+        create: options,
+      }
+    : Array.isArray(options)
+      ? {
+          create: (...params: Params) => params[0],
+          initState: options,
+        }
+      : options
 
-  const _name = name;
+  const _name = name
 
   const isLL = (node: Node): node is LLNode<Node> =>
     !!node && LL_NEXT in node && LL_PREV in node
 
-  const throwModel = (node: Node) =>
-    throwReatomError(isLL(node), 'The data is already in a linked list.')
-  const throwNotModel = (node: Node) =>
-    throwReatomError(!isLL(node), 'The passed data is not a linked list node.')
+  const throwModel = (node: Node) => {
+    if (isLL(node))
+      throw new ReatomError('The data is already in a linked list.')
+  }
+  const throwNotModel = (node: Node) => {
+    if (!isLL(node))
+      throw new ReatomError('The passed data is not a linked list node.')
+  }
 
   // for batching
   let STATE: null | LinkedList<LLNode<Node>> = null
 
-  const linkedList = atom(STATE!, name)
-  linkedList.__reatom.initState = (ctx) => {
-    try {
-      if ('initState' in restOptions)
-        return createLinkedList(restOptions.initState ?? [])
-      else if ('initSnapshot' in restOptions)
-        return createLinkedList(ctx, restOptions.initSnapshot ?? [])
-      else return createLinkedList([])
-    } finally {
-      STATE = null
-    }
-  }
+  const linkedList = atom(STATE!, name).mix(
+    withInit(() => {
+      try {
+        if ('initState' in restOptions)
+          return createLinkedListFromState(restOptions.initState ?? [])
+        else if ('initSnapshot' in restOptions)
+          return createLinkedListFromSnapshot(restOptions.initSnapshot ?? [])
+        else return createLinkedListFromState([])
+      } finally {
+        STATE = null
+      }
+    }),
+  )
 
-  const createLinkedList = (
-    ctxOrInitState: Ctx | Node[],
-    initSnapshot?: Params[],
+  const createLinkedListFromState = (
+    initState: Node[],
   ): LinkedList<LLNode<Node>> => {
-    const initState = Array.isArray(ctxOrInitState)
-      ? ctxOrInitState
-      : initSnapshot!.map((params) => userCreate(ctxOrInitState, ...params))
-
     const state = {
       size: 0,
       version: 1,
@@ -371,10 +386,30 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
     return state
   }
 
-  const batchFn = <T>(ctx: Ctx, cb: Fn<[Ctx], T>): T => {
-    if (STATE) return cb(ctx)
+  const createLinkedListFromSnapshot = (
+    initSnapshot: Params[],
+  ): LinkedList<LLNode<Node>> => {
+    const initState = initSnapshot.map((params) => userCreate(...params))
+    const state = {
+      size: 0,
+      version: 1,
+      changes: [],
+      head: null,
+      tail: null,
+    }
 
-    STATE = linkedList(ctx, ({ head, tail, size, version }) => ({
+    for (const node of initState) {
+      throwModel(node)
+      addLL(state, node, state.tail)
+    }
+
+    return state
+  }
+
+  const batchFn = <T>(cb: Fn): T => {
+    if (STATE) return cb()
+
+    STATE = linkedList(({ head, tail, size, version }) => ({
       size,
       version: version + 1,
       changes: [],
@@ -383,7 +418,9 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
     }))
 
     try {
-      return cb(ctx)
+      return cb()
+    } catch (e) {
+      throw e
     } finally {
       STATE = null
     }
@@ -391,14 +428,15 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
 
   const batch = action(batchFn, `${name}._batch`)
 
-  const create = action((ctx, ...params: Params): LLNode<Node> => {
-    return batchFn(ctx, () => {
-      const node = userCreate(ctx, ...params) as LLNode<Node>
+  const create = action((...params: Params): LLNode<Node> => {
+    return batchFn(() => {
+      const node = userCreate(...params) as LLNode<Node>
 
-      throwReatomError(
-        !isObject(node) && typeof node !== 'function',
-        `reatomLinkedList can operate only with objects or functions, received "${node}".`,
-      )
+      if (!isObject(node) && typeof node !== 'function')
+        throw new ReatomError(
+          `reatomLinkedList can operate only with objects or functions, received "${node}".`,
+        )
+
       throwModel(node)
 
       addLL(STATE!, node, STATE!.tail)
@@ -409,8 +447,8 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
     })
   }, `${name}.create`)
 
-  const remove = action((ctx, node: LLNode<Node>): boolean => {
-    return batchFn(ctx, () => {
+  const remove = action((node: LLNode<Node>): boolean => {
+    return batchFn(() => {
       throwNotModel(node)
 
       if (
@@ -428,8 +466,8 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
     })
   }, `${name}.remove`)
 
-  const swap = action((ctx, a: LLNode<Node>, b: LLNode<Node>): void => {
-    return batchFn(ctx, () => {
+  const swap = action((a: LLNode<Node>, b: LLNode<Node>): void => {
+    return batchFn(() => {
       throwNotModel(a)
       throwNotModel(b)
 
@@ -442,8 +480,8 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
   }, `${name}.swap`)
 
   const move = action(
-    (ctx, node: LLNode<Node>, after: null | LLNode<Node>): void => {
-      return batchFn(ctx, () => {
+    (node: LLNode<Node>, after: null | LLNode<Node>): void => {
+      return batchFn(() => {
         throwNotModel(node)
 
         moveLL(STATE!, node, after)
@@ -454,80 +492,73 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
     `${name}.move`,
   )
 
-  const clear = action((ctx): void => {
-    return batchFn(ctx, () => {
+  const clear = action((): void => {
+    return batchFn(() => {
       clearLL(STATE!)
 
       STATE!.changes.push({ kind: 'clear' })
     })
   }, `${name}.clear`)
 
-  const find = (
-    ctx: Ctx,
-    cb: (node: LLNode<Node>) => boolean,
-  ): null | LLNode<Node> => {
-    for (let { head } = ctx.get(linkedList); head; head = head[LL_NEXT]) {
+  const find = (cb: (node: LLNode<Node>) => boolean): null | LLNode<Node> => {
+    for (let { head } = linkedList(); head; head = head[LL_NEXT]) {
       if (cb(head)) return head
     }
     return null
   }
 
   const array: LinkedListAtom<Params, Node, Key>['array'] = atom(
-    (ctx, state: Array<LLNode<Node>> = []) =>
-      toArray(ctx.spy(linkedList).head, state),
+    (state: Array<LLNode<Node>> = []) => toArray(linkedList().head, state),
     `${name}.array`,
   )
 
   const map = key
     ? (atom(
-        (ctx) =>
+        () =>
           new Map(
             // use array as it already memoized and simplifies the order tracking
-            ctx.spy(array).map((node) => {
+            array().map((node) => {
               const keyValue = node[key]
-              return [
-                isAtom(keyValue) ? ctx.spy(keyValue) : keyValue,
-                node,
-              ] as const
+              return [isAtom(keyValue) ? keyValue() : keyValue, node] as const
             }),
           ),
       ) as LinkedListAtom<Params, Node, Key>['map'])
     : (undefined as never)
 
   const reatomMap = <T extends Rec>(
-    cb: (ctx: Ctx, node: LLNode<Node>) => T,
+    cb: (node: LLNode<Node>) => T,
     options:
       | string
       | {
           name?: string
-          onCreate?: (ctx: Ctx, node: LLNode<T>) => void
-          onRemove?: (ctx: Ctx, node: LLNode<T>, origin: LLNode<Node>) => void
-          onSwap?: (ctx: Ctx, payload: { a: LLNode<T>; b: LLNode<T> }) => void
-          onMove?: (ctx: Ctx, node: LLNode<T>) => void
+          onCreate?: (node: LLNode<T>) => void
+          onRemove?: (node: LLNode<T>, origin: LLNode<Node>) => void
+          onSwap?: (payload: { a: LLNode<T>; b: LLNode<T> }) => void
+          onMove?: (node: LLNode<T>) => void
           onClear?: (
-            ctx: Ctx,
             lastState: LinkedListDerivedState<LLNode<Node>, LLNode<T>>,
           ) => void
         } = {},
   ): LinkedListDerivedAtom<LLNode<Node>, LLNode<T>> => {
-    const { name = __count(`${_name}.reatomMap`), ...hooks } =
+    const { name = named(`${_name}.reatomMap`), ...hooks } =
       typeof options === 'string' ? { name: options } : options
 
     type State = LinkedListDerivedState<LLNode<Node>, LLNode<T>>
 
-    const mapList = atom((ctx, mapList?: State): State => {
-      throwReatomError(
-        STATE,
-        `Can't compute the map of the linked list inside the batching.`,
-      )
+    const mapList = atom((mapList?: State): State => {
+      if (STATE) {
+        throw new ReatomError(
+          `Can't compute the map of the linked list inside the batching.`,
+        )
+      }
 
-      const ll = ctx.spy(linkedList)
+      const ll = linkedList()
 
       if (
         !mapList ||
         /* some update was missed */ ll.version - 1 > mapList.version
       ) {
-        if (mapList) hooks.onClear?.(ctx, mapList)
+        if (mapList) hooks.onClear?.(mapList)
 
         mapList = {
           size: ll.size,
@@ -539,10 +570,10 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
         }
 
         for (let head = ll.head; head; head = head[LL_NEXT]) {
-          const node = cb(ctx, head) as LLNode<T>
+          const node = cb(head) as LLNode<T>
           addLL(mapList, node, mapList.tail)
           mapList.map.set(head, node)
-          hooks.onCreate?.(ctx, node)
+          hooks.onCreate?.(node)
         }
         // cover extra size changes from `addLL`
         mapList.size = ll.size
@@ -559,11 +590,11 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
         for (const change of ll.changes) {
           switch (change.kind) {
             case 'create': {
-              const node = cb(ctx, change.node) as LLNode<T>
+              const node = cb(change.node) as LLNode<T>
               addLL(mapList, node, mapList.tail)
               mapList.map.set(change.node, node)
               mapList.changes.push({ kind: 'create', node })
-              hooks.onCreate?.(ctx, node)
+              hooks.onCreate?.(node)
               break
             }
             case 'remove': {
@@ -571,7 +602,7 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
               removeLL(mapList, node)
               mapList.map.delete(change.node)
               mapList.changes.push({ kind: 'remove', node })
-              hooks.onRemove?.(ctx, node, change.node)
+              hooks.onRemove?.(node, change.node)
               break
             }
             case 'swap': {
@@ -579,7 +610,7 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
               const b = mapList.map.get(change.b)!
               swapLL(mapList, a, b)
               mapList.changes.push({ kind: 'swap', a, b })
-              hooks.onSwap?.(ctx, { a, b })
+              hooks.onSwap?.({ a, b })
               break
             }
             case 'move': {
@@ -587,11 +618,11 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
               const after = change.after ? mapList.map.get(change.after)! : null
               moveLL(mapList, node, after)
               mapList.changes.push({ kind: 'move', node, after })
-              hooks.onMove?.(ctx, node)
+              hooks.onMove?.(node)
               break
             }
             case 'clear': {
-              hooks.onClear?.(ctx, mapList)
+              hooks.onClear?.(mapList)
               clearLL(mapList)
               mapList.changes.push({ kind: 'clear' })
               break
@@ -605,17 +636,16 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
         }
       }
 
-      throwReatomError(
-        mapList.size !== ll.size,
-        "Inconsistent linked list, is's a bug, please report an issue",
-      )
+      if (mapList.size !== ll.size)
+        throw new ReatomError(
+          "Inconsistent linked list, is's a bug, please report an issue",
+        )
 
       return mapList
     }, name)
 
     const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] = atom(
-      (ctx, state: Array<LLNode<T>> = []) =>
-        toArray(ctx.spy(mapList).head, state),
+      (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
       `${name}.array`,
     )
 
@@ -631,26 +661,26 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
   //   }: {
   //     init: T
   //     add: (ctx: CtxSpy, acc: T, node: LLNode<Node>) => T
-  //     del: (ctx: Ctx, acc: T, node: LLNode<Node>) => T
+  //     del: (acc: T, node: LLNode<Node>) => T
   //   },
-  //   name = __count(`${_name}.reatomReduce`),
+  //   name = named(`${_name}.reatomReduce`),
   // ): Atom<T> => {
   //   const acc = atom(init, `${name}._acc`)
   //   const controllers = reatomMap(
-  //     (ctx, node) =>
+  //     (node) =>
   //       atom(
   //         (ctx) => {
-  //           acc(ctx, (state) =>
+  //           acc((state) =>
   //             add(
   //               ctx,
   //               /* is the first calc */ ctx.cause.listeners.size
-  //                 ? del(ctx, state, node)
+  //                 ? del(state, node)
   //                 : state,
   //               node,
   //             ),
   //           )
   //         },
-  //         __count(`${name}._controllers`),
+  //         named(`${name}._controllers`),
   //       ).pipe(
   //         withAssign((target) => ({
   //           unsubscribe: ctx.subscribe(target, noop),
@@ -658,15 +688,15 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
   //       ),
   //     {
   //       name: `${name}._controllers`,
-  //       onRemove(ctx, node, origin) {
-  //         acc(ctx, (state) => del(ctx, state, origin))
+  //       onRemove(node, origin) {
+  //         acc((state) => del(state, origin))
   //         node.unsubscribe()
   //       },
-  //       onClear(ctx, mapList) {
+  //       onClear(mapList) {
   //         for (let head = mapList.head; head; head = head[LL_NEXT]) {
   //           head.unsubscribe()
   //         }
-  //         acc(ctx, () => init)
+  //         acc(() => init)
   //       },
   //     },
   //   )
@@ -695,14 +725,16 @@ export function reatomLinkedList<Params extends any[], Node extends Rec, Key ext
 
     array,
     map,
-    initiate: createLinkedList,
+    initiateFromState: createLinkedListFromState,
+    initiateFromSnapshot: createLinkedListFromSnapshot,
 
     reatomMap,
     // reatomFilter,
     // reatomReduce,
 
     __reatomLinkedList: true as const,
-  }).pipe(readonly)
+  })
+  // .mix(readonly) TODO: fix errors because of this line in the tests
 }
 
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>

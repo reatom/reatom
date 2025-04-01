@@ -1,44 +1,46 @@
 import { schedule } from '../methods'
 import {
   Action,
+  ActionState,
   AtomLike,
   AtomState,
-  isAction,
   ReatomError,
   top,
 } from '../core'
-import { assert, defineName, Fn } from '../utils'
+import { assert, defineName, Fn, noop } from '../utils'
 
-export let withOnChange =
+export let withChangeHook =
   <T extends AtomLike>(
     cb: (state: AtomState<T>, prevState?: AtomState<T>) => void,
   ) =>
   (_target: T) =>
     defineName((next: Fn, ...params: any[]) => {
-      let prevState = top().state
+      let frame = top()
+      let prevState = frame.state
       let state = next(...params)
       if (!Object.is(prevState, state)) {
-        schedule(() => cb(state, prevState), 'hook', top())
+        frame = top()
+        schedule(() => cb(state, prevState), 'hook', frame).catch(noop)
       }
       return state
     }, `${_target.name}.onChange`)
 
-export let withOnCall =
+export let withCallHook =
   <Params extends any[], Payload>(
     cb: (payload: Payload, params: Params) => void,
   ) =>
   (target: Action<Params, Payload>) => {
     assert(
-      isAction(target),
-      'withOnCall can be used only with actions',
+      !target.__reatom.reactive,
+      'withCallHook can be used only with actions',
       ReatomError,
     )
 
     return defineName(
-      withOnChange(
+      withChangeHook(
         (
-          state: Array<{ params: Params; payload: Payload }>,
-          prevState?: Array<{ params: Params; payload: Payload }>,
+          state: ActionState<Params, Payload>,
+          prevState?: ActionState<Params, Payload>,
         ) => {
           for (let i = prevState?.length ?? 0; i < state.length; i++) {
             let { params, payload } = state[i]!

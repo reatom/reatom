@@ -31,9 +31,7 @@ test('action cause stack', () => {
   notify()
 
   expect(logData).toBe(' <-- log <-- a2 <-- a1 <-- act')
-  expect(getTrace(_read(log)!)).toBe(
-    ' <-- log <-- a2 <-- a1 <-- act',
-  )
+  expect(getTrace(_read(log)!)).toBe(' <-- log <-- a2 <-- a1 <-- act')
 })
 
 test('actionState', () => {
@@ -49,4 +47,17 @@ test('actionState', () => {
 
   notify()
   expect(_read(act)!.state).toEqual([])
+})
+
+test('no args', () => {
+  const name = 'noArgs'
+  let i = 0
+  const act = action(() => ++i, `${name}.act`)
+
+  act()
+  act()
+  expect(_read(act)!.state).toEqual([
+    { params: [], payload: 1 },
+    { params: [], payload: 2 },
+  ])
 })

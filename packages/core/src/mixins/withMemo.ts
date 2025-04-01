@@ -1,6 +1,6 @@
 import type { AtomLike, AtomState } from '../core'
-import { top } from '../core'
-import { isShallowEqual } from '../utils'
+import { ReatomError, top } from '../core'
+import { assert, isShallowEqual } from '../utils'
 
 export let withMemo =
   <T extends AtomLike>(
@@ -10,6 +10,12 @@ export let withMemo =
     ) => boolean = isShallowEqual,
   ): ((target: T) => {}) =>
   (target) => {
+    assert(
+      target?.__reatom?.reactive === true,
+      'withMemo can be used only with atoms',
+      ReatomError,
+    )
+
     target.__reatom.middlewares.push(function memoMiddleware(next, ...params) {
       let prevState = top().state
       let nextState = next(...params)

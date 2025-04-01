@@ -2,9 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "declarationMap": true,
-    "baseUrl": "./src",
     "paths": {
-      "test": ["./test.ts"]
+      "test": ["./src/test.ts"]
     },
   },
   "exclude": ["build"]

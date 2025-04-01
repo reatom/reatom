@@ -1,4 +1,6 @@
 export * from './ifChanged'
+export * from './isCausedBy'
 export * from './peek'
 export * from './queues'
+export * from './variable'
 export * from './wrap'

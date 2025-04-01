@@ -1,10 +1,8 @@
-import { createCtx } from '@reatom/core'
-import { describe, test, expect } from 'vitest'
+import { describe, test, expect } from 'test'
 import { reatomRecord } from './reatomRecord'
 
 describe('reatomRecord', () => {
   test('should manage record state correctly', () => {
-    const ctx = createCtx()
     const person = reatomRecord({
       civis: true,
       paterfamilias: true,
@@ -14,13 +12,13 @@ describe('reatomRecord', () => {
       senator: true,
     })
 
-    person.merge(ctx, {
+    person.merge({
       civis: false,
       servus: true,
       senator: false,
     })
 
-    expect(ctx.get(person)).toEqual({
+    expect(person()).toEqual({
       civis: false,
       paterfamilias: true,
       servus: true,
@@ -29,10 +27,10 @@ describe('reatomRecord', () => {
       senator: false,
     })
 
-    person.reset(ctx, 'civis', 'servus')
-    person.omit(ctx, 'coniugium')
+    person.reset('civis', 'servus')
+    person.omit('coniugium')
 
-    expect(ctx.get(person)).toEqual({
+    expect(person()).toEqual({
       civis: true,
       paterfamilias: true,
       servus: false,

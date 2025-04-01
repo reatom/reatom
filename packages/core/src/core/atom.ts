@@ -1,7 +1,7 @@
 import type { Fn, Rec, Unsubscribe } from '../utils'
-import { assert, defineName, identity, noop } from '../utils'
+import { assert, defineName, identity } from '../utils'
 import type { Assigner, Extension, Mix } from './mix'
-import { Action, action, isAction, TemporalArray } from './action'
+import { Action, action, ActionState } from './action'
 import { schedule } from '../methods/queues'
 
 // import { COLOR } from '../picocolors'
@@ -17,6 +17,7 @@ export interface AtomLike<State = any> {
 
   /** @internal The list of applied mixins (middlewares). */
   __reatom: {
+    reactive: boolean
     middlewares: Array<Fn>
     onConnect?: Fn
     onDisconnect?: Fn
@@ -56,7 +57,7 @@ export interface Queue extends Array<Fn> {}
 export interface Store extends WeakMap<Atom, Frame> {
   get<Params extends any[], Payload>(
     target: Action<Params, Payload>,
-  ): undefined | Frame<TemporalArray<{ params: Params; payload: Payload }>>
+  ): undefined | Frame<ActionState<Params, Payload>>
   get<T>(target: Atom<T>): undefined | Frame<T>
   set<T>(target: Atom<T>, frame: Frame<T>): this
 }
@@ -69,6 +70,7 @@ export interface RootState {
   compute: Queue
   cleanup: Queue
   effect: Queue
+  pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'cleanup' | 'effect'): void
 }
 
 export interface RootFrame extends Frame<RootState> {}
@@ -76,8 +78,6 @@ export interface RootFrame extends Frame<RootState> {}
 export interface RootAtom extends AtomLike<RootState> {
   (): RootFrame
   start<T>(cb: () => T): T
-  /** @internal DO NOT USE IN PRODUCT CODE */
-  context<K extends WeakKey, V>(key: string): WeakMap<K, V>
 }
 
 // TODO rename
@@ -142,7 +142,7 @@ let enqueue = (rootFrame: RootFrame, frame: Frame) => {
     let sub = frame.subs[i]!
 
     if (sub === frame.atom) {
-      schedule(sub, 'compute')
+      schedule(sub, 'compute', null)
     } else {
       let subFrame = rootFrame.state.store.get(sub as Atom)!
       if (subFrame.pubs[0] !== null) {
@@ -161,7 +161,7 @@ let link = (frame: Frame) => {
     let pub = pubs[i]!
     if (pub.subs.push(atom) === 1) {
       if (pub.atom.__reatom.onConnect !== undefined) {
-        schedule(pub.atom.__reatom.onConnect, 'effect')
+        schedule(pub.atom.__reatom.onConnect, 'effect', null)
       }
       link(pub)
     }
@@ -188,7 +188,7 @@ let unlink = (sub: Atom, oldPubs: Frame['pubs']) => {
     if (pub.subs.length === 1) {
       pub.subs.length = 0
       if (pub.atom.__reatom.onDisconnect !== undefined) {
-        schedule(pub.atom.__reatom.onDisconnect, 'effect')
+        schedule(pub.atom.__reatom.onDisconnect, 'effect', null)
       }
       unlink(pub.atom, pub.pubs)
     }
@@ -197,10 +197,9 @@ let unlink = (sub: Atom, oldPubs: Frame['pubs']) => {
       pub.subs.pop()
     } else {
       // Search the suitable element (not effect) from the end to reduce the shift (`splice`) complexity.
-      let shiftIdx = pub.subs.findLastIndex((el) => isAtom(el))
+      let shiftIdx = pub.subs.findLastIndex((el) => el !== sub)
 
       if (shiftIdx === -1) {
-        console.warn('IS IT OK???')
         shiftIdx = idx
       }
       pub.subs[idx] = pub.subs[shiftIdx]!
@@ -266,7 +265,7 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
   if (frame!.subs.push(this) === 1) {
     if (frame!.atom.__reatom.onConnect !== undefined) {
-      schedule(frame!.atom.__reatom.onConnect, 'effect')
+      schedule(frame!.atom.__reatom.onConnect, 'effect', null)
     }
     relink(frame!, [null])
   }
@@ -281,7 +280,7 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
     if (frame.subs.length === 0) {
       if (frame.atom.__reatom.onDisconnect !== undefined) {
-        schedule(frame.atom.__reatom.onDisconnect, 'effect')
+        schedule(frame.atom.__reatom.onDisconnect, 'effect', null)
       }
       unlink(this, rootFrame.state.store.get(this as Atom)!.pubs)
     }
@@ -293,12 +292,13 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 let castAtom = <T extends AtomLike>(
   target: Fn,
   name: string,
-  // type: 'atom' | 'action' = 'atom',
+  reactive: boolean,
 ): T =>
   Object.assign(defineName(target, name), {
     toString: () => `[Atom ${name}]`,
 
     __reatom: {
+      reactive,
       middlewares: [],
       onConnect: undefined,
       onDisconnect: undefined,
@@ -318,9 +318,9 @@ function middleware(next: Fn) {
 
   let push = arguments.length > 1
   let update = arguments[1]
-  let { state, pubs } = frame
+  let { error, state, pubs } = frame
   let dirty = pubs[0] === null
-  let reactive = pubs.length !== 1
+  let dependent = pubs.length !== 1
   let subscribed = frame.subs.length !== 0
   let newState = state
 
@@ -332,18 +332,19 @@ function middleware(next: Fn) {
       typeof update === 'function' ? update(state) : update
     frame.error = null
     pubs = frame.pubs
+    pubs[0] = STACK[STACK.length - 2]!
   }
 
   let invalid =
     next !== identity &&
     (dirty ||
-      (reactive
+      (dependent
         ? !subscribed
         : // computed without dependencies should rerun only after direct state change
           push && !Object.is(state, frame.state)))
 
   // pubs invalidation check to memoize the computed
-  if (invalid && reactive) {
+  if (invalid && dependent) {
     invalid = false
     // use current frame to reduce `copy` operations, reset pubs **temporally**
     frame.pubs = getDefaultComputedPubs(next)
@@ -377,6 +378,7 @@ function middleware(next: Fn) {
         invalid = true
       }
     }
+    // restore pubs!
     frame.pubs = pubs
   }
 
@@ -387,11 +389,14 @@ function middleware(next: Fn) {
 
     frame.pubs = getDefaultComputedPubs(next)
     newState = next(newState)
+    frame.error = null
 
     if (frame.subs.length) {
       // TODO may be a bug with resubscribing
       relink(frame, pubs)
     }
+  } else {
+    if (frame.error != null) throw frame.error
   }
 
   return newState
@@ -415,8 +420,11 @@ let getDefaultComputedPubs = (setup: any) => {
 }
 
 export let atom: {
-  <T>(computed: (() => T) | ((state?: T) => T), name?: string): Computed<T>
-  <T>(init: T extends Fn ? never : T, name?: string): Atom<T>
+  <State>(
+    computed: (() => State) | ((state?: State) => State),
+    name?: string,
+  ): Computed<State>
+  <State>(init: State extends Fn ? never : State, name?: string): Atom<State>
 } = <T>(setup: {} | ((state?: T) => T), name = named('atom')): Atom<T> => {
   let initState = setup as T
   if (typeof setup === 'function') {
@@ -431,7 +439,7 @@ export let atom: {
         let rootFrame = root()
         let topFrame = top()
         let frame = rootFrame.state.store.get(atom)!
-        let push = arguments.length !== 0
+        let push = !atom.__reatom.reactive || arguments.length !== 0
 
         if (frame === undefined) {
           frame = {
@@ -447,31 +455,33 @@ export let atom: {
 
         let { error, state } = frame
         let newState = state
-        let newError = null
+        let newError = error
         let dirty = frame.pubs[0] === null
-        let reactive = frame.pubs.length !== 1
+        let dependent = frame.pubs.length !== 1
         let subscribed = frame.subs.length !== 0
 
-        if (push || dirty || (reactive && !subscribed)) {
+        if (push || dirty || (dependent && !subscribed)) {
           STACK.push(frame)
 
           middlewares: try {
             let fn: Fn = identity
 
             if (typeof setup === 'function') {
-              if (middlewares.length === 1) {
+              if (atom.__reatom.middlewares.length === 1) {
                 newState = middleware(setup as Fn)
+                newError = null
                 break middlewares
               }
 
               fn = setup as Fn
             }
 
-            for (let middleware of middlewares) {
+            for (let middleware of atom.__reatom.middlewares) {
               fn = middleware.bind(null, fn)
             }
             // @ts-ignore TODO
             newState = fn.apply(null, arguments)
+            newError = null
           } catch (error) {
             // console.log(COLOR.red('error'), atom.name)
             let copied = frame !== STACK[STACK.length - 1]
@@ -486,8 +496,7 @@ export let atom: {
           frame.state = newState
           frame.pubs[0] ??= push ? topFrame : rootFrame
 
-          // if the puller is an action it will cleanup itself by itself
-          if (!push && topFrame !== rootFrame) {
+          if (!push && topFrame.atom.__reatom.reactive) {
             // if (topFrame.atom === frame.atom) console.log(COLOR.bgRed('topFrame.atom === frame.atom')) // prettier-ignore
             topFrame.pubs.push(frame)
           }
@@ -501,7 +510,7 @@ export let atom: {
           }
 
           STACK.pop()
-        } else if (topFrame !== rootFrame) {
+        } else if (topFrame.atom.__reatom.reactive) {
           topFrame.pubs.push(frame)
         }
 
@@ -509,7 +518,7 @@ export let atom: {
           throw frame.error
         }
 
-        if (isAction(atom)) {
+        if (!atom.__reatom.reactive) {
           // @ts-ignore TODO
           return frame.state.at(-1).payload
         }
@@ -520,29 +529,26 @@ export let atom: {
       },
     }[name]!,
     name,
+    true,
   )
 
-  let { middlewares } = atom.__reatom
-  middlewares.push(middleware)
+  atom.__reatom.middlewares.push(middleware)
 
+  // @ts-ignore TODO
   return atom.mix(...globalThis.__REATOM)
 }
 
-// /** https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextvariable */
-// /** Variable of async context - process specific state, coupled with callstack frame */
-// export interface Framevar<T = any> extends AtomLike<T> {
-//   (frame?: Frame): T
-
-//   run<I extends any[], O>(value: T, fn: (...params: I) => O, ...params: I): O
-// }
-
-export let root = castAtom<RootAtom>(() => {
-  let rootFrame = STACK[0] as RootFrame
-  if (rootFrame?.atom !== root) {
-    throw new ReatomError('broken async stack')
-  }
-  return rootFrame
-}, 'root')
+export let root = castAtom<RootAtom>(
+  () => {
+    let rootFrame = STACK[0] as RootFrame
+    if (rootFrame?.atom !== root) {
+      throw new ReatomError('broken async stack')
+    }
+    return rootFrame
+  },
+  'root',
+  false,
+)
 root.start = (cb) => {
   assert(!STACK.length, 'root collision', ReatomError)
   return (
@@ -555,6 +561,9 @@ root.start = (cb) => {
         compute: [],
         cleanup: [],
         effect: [],
+        pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'cleanup' | 'effect') {
+          this[queue].push(cb)
+        }
       },
       atom: root,
       pubs: getDefaultComputedPubs(null),
@@ -562,13 +571,6 @@ root.start = (cb) => {
       run,
     } satisfies RootFrame
   ).run(cb)
-}
-root.context = (name: string) => {
-  const { context } = root().state
-  if (!context.has(name)) {
-    context.set(name, new WeakMap())
-  }
-  return context.get(name)!
 }
 
 export let _read = <T>(target: AtomLike<T>): undefined | Frame<T> =>
@@ -588,22 +590,3 @@ export let top = (): Frame => {
   }
   return STACK[STACK.length - 1]!
 }
-
-// TODO move to separate file
-export let getPrevPubs = (frame: Frame) => {
-  let rec = root.context('pubs').create(frame.atom, () => ({
-    prev: [null] as Frame['pubs'],
-    next: frame.pubs,
-  }))
-  if (rec.next !== frame.pubs) {
-    rec.prev = rec.next
-    rec.next = frame.pubs
-  }
-  return rec.prev
-}
-
-// TODO move to separate file
-export let isCausedBy = (target: AtomLike, frame = top()): boolean =>
-  frame.pubs.some(
-    (pub) => pub && (pub.atom === target || isCausedBy(target, pub)),
-  )

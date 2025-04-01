@@ -1,13 +1,5 @@
-import { schedule } from '../methods'
-import {
-  Action,
-  AtomLike,
-  AtomState,
-  isAction,
-  ReatomError,
-  top,
-} from '../core'
-import { assert, defineName, Fn } from '../utils'
+import { AtomLike } from '../core'
+import { defineName } from '../utils'
 
 export let withConnectHook =
   <T extends AtomLike>(cb: () => void) =>
