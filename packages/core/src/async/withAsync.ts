@@ -33,15 +33,36 @@ type AsyncMethods<Params extends any[] = any[], Payload = any, Error = any> = {
 }
 
 export let withAsync: {
-  <Params extends any[], Payload>(): Assigner<
-    Action<Params, Promise<Payload>>,
-    AsyncMethods<Params, Payload>
-  >
+  <T>(): {
+    <Params extends any[]>(
+      target: Action<Params, Promise<T>>,
+    ): AsyncMethods<Params, T>
+    <T extends AtomLike<Promise<T>>>(target: T): AsyncMethods<Array<unknown>, T>
+  }
 
-  <Payload>(): Assigner<
-    AtomLike<Promise<Payload>>,
-    AsyncMethods<Array<Frame>, Payload>
-  >
+  // <Params extends any[], Payload>(): Assigner<
+  //   Action<Params, Promise<Payload>>,
+  //   AsyncMethods<Params, Payload>
+  // >
+  // <T extends Action<any, Promise<any>>>(): Assigner<
+  //   T,
+  //   AsyncMethods<Parameters<T>, Awaited<ReturnType<T>>>
+  // >
+  // (): <Params extends any[], Payload>(
+  //   target: Action<Params, Promise<Payload>>,
+  // ) => AsyncMethods<Params, Payload>
+
+  // <Payload>(): Assigner<
+  //   AtomLike<Promise<Payload>>,
+  //   AsyncMethods<Array<unknown>, Payload>
+  // >
+  // <T extends AtomLike<Promise<any>>>(): Assigner<
+  //   T,
+  //   AsyncMethods<Array<unknown>, Awaited<ReturnType<T>>>
+  // >
+  // (): <T extends AtomLike<Promise<any>>>(
+  //   target: T,
+  // ) => AsyncMethods<Array<unknown>, Awaited<ReturnType<T>>>
 } = () => (target: AtomLike<Promise<any>> | Action<any[], Promise<any>>) => {
   let { reactive } = target.__reatom
 
@@ -81,10 +102,12 @@ export let withAsync: {
     let state = next(...params)
     let promise = state
 
-    if (!reactive) {
-      promise = state.at(-1)?.payload
+    if (reactive) {
+      for (const pub of top().pubs) {
+        if (pub) params.push(pub.state)
+      }
     } else {
-      params = top().pubs
+      promise = state.at(-1)?.payload
     }
 
     assert(promise instanceof Promise, 'promise expected', ReatomError)
@@ -124,7 +147,6 @@ type AsyncDataMethods<Params extends any[], Payload, State> = AsyncMethods<
   data: Atom<State>
 }
 
-// @ts-ignore TODO
 export let withAsyncData: {
   <Params extends any[], Payload>(): Assigner<
     Action<Params, Promise<Payload>>,
@@ -132,7 +154,7 @@ export let withAsyncData: {
   >
   <Payload>(): Assigner<
     AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<Frame>, Payload, Payload | undefined>
+    AsyncDataMethods<Array<unknown>, Payload, Payload | undefined>
   >
 
   <Params extends any[], Payload>(
@@ -145,7 +167,7 @@ export let withAsyncData: {
     initState: Payload,
   ): Assigner<
     AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<Frame>, Payload, Payload>
+    AsyncDataMethods<Array<unknown>, Payload, Payload>
   >
 
   <Params extends any[], Payload, State>(
@@ -158,7 +180,7 @@ export let withAsyncData: {
     initState: State,
   ): Assigner<
     AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<Frame>, Payload, Payload | State>
+    AsyncDataMethods<Array<unknown>, Payload, Payload | State>
   >
 
   <Params extends any[], Payload>(
@@ -170,10 +192,10 @@ export let withAsyncData: {
   >
   <Payload>(
     initState: Payload,
-    map: (payload: Payload, params: Array<Frame>, state: Payload) => Payload,
+    map: (payload: Payload, params: Array<unknown>, state: Payload) => Payload,
   ): Assigner<
     AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<Frame>, Payload, Payload>
+    AsyncDataMethods<Array<unknown>, Payload, Payload>
   >
 
   <Params extends any[], Payload, State>(
@@ -185,10 +207,10 @@ export let withAsyncData: {
   >
   <Payload, State>(
     initState: State,
-    map: (payload: Payload, params: Array<Frame>, state: State) => State,
+    map: (payload: Payload, params: Array<unknown>, state: State) => State,
   ): Assigner<
     AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<Frame>, Payload, State>
+    AsyncDataMethods<Array<unknown>, Payload, State>
   >
 } =
   (
@@ -201,6 +223,7 @@ export let withAsyncData: {
 
     let data = atom(initState, `${target.name}.data`).mix(
       withComputed((state) => {
+        if (target.__reatom.reactive) target()
         ifCalled(asyncMethods.onFulfill, ({ payload, params }) => {
           state = map(payload, params, state)
         })
@@ -211,11 +234,7 @@ export let withAsyncData: {
       }),
     )
 
-    asyncMethods.onFulfill.mix(
-      withCallHook((call) => {
-        data()
-      }),
-    )
+    asyncMethods.onFulfill.mix(withCallHook(() => data()))
 
     return { ...asyncMethods, data }
   }

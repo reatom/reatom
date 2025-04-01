@@ -82,7 +82,7 @@ export function assert(
 
 export const noop: (...params: any[]) => any = () => {}
 
-export const identity = <T>(value: T): T => value
+export const identity = <T>(value: T, ...a: any[]): T => value
 
 export const sleep = (ms = 0) => new Promise((r) => setTimeout(r, ms))
 

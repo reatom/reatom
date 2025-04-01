@@ -9,7 +9,10 @@ test('suspense', async () => {
   const name = 'suspense'
   const param = atom(0, `${name}.param`)
   const data = atom(async () => param(), `${name}.data`)
-  const result = atom(() => suspense(data), `${name}.result`)
+  const result = atom(() => {
+    const syncData = suspense(data)
+    return syncData
+  }, `${name}.result`)
 
   const track = subscribe(
     atom(() => {

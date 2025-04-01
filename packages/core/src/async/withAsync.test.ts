@@ -3,6 +3,7 @@ import { _read, action, atom } from '../core'
 import { withCallHook } from '../mixins'
 import { wrap } from '../methods'
 import { withAsync, withAsyncData } from './withAsync'
+import { sleep } from '../utils'
 
 test('withAsync for action', async () => {
   const name = 'actionAsync'
@@ -67,57 +68,21 @@ test('withAsyncData for action', async () => {
   expect(onFulfill).toBeCalledWith({ payload: 2, params: [1] })
 })
 
-// test('withAsyncData - basic async atom', async () => {
-//   const name = 'asyncDataAtom'
-//   const params = atom(42, `${name}.params`)
-//   const data = atom(async () => params(), `${name}.data`).mix(withAsyncData())
+test('withAsyncData for atom', async () => {
+  const name = 'atomAsyncData'
+  const param = atom(0, `${name}.param`)
+  const resource = atom(async () => param() + 1, `${name}.resource`).mix(
+    withAsyncData(),
+  )
+  const onFulfill = vi.fn()
+  resource.onFulfill.mix(withCallHook((call) => onFulfill(call)))
 
-//   expect(data.data()).toBeUndefined()
-//   expect(data.ready()).toBe(false)
+  expect(resource.data()).toBeUndefined()
+  expect(resource.ready()).toBe(false)
 
-//   expect(await wrap(data())).toBe(42)
-//   expect(data.data()).toBe(42)
-//   expect(data.ready()).toBe(true)
-// })
-
-// test('withAsyncData - with initial state (same type)', async () => {
-//   const name = 'asyncDataInitial'
-//   const fetch = action(async (param: number) => param * 2, `${name}.fetch`).mix(
-//     withAsyncData(100),
-//   )
-
-//   expect(fetch.data()).toBe(100)
-
-//   const promise = fetch(50)
-//   await wrap(promise)
-//   expect(fetch.data()).toBe(100)
-// })
-
-// test('withAsyncData - with initial state (different type)', async () => {
-//   const name = 'asyncDataDiffType'
-//   const fetch = action(
-//     async (param: string) => param.length,
-//     `${name}.fetch`,
-//   ).mix(withAsyncData('initial'))
-
-//   expect(fetch.data()).toBe('initial')
-
-//   const promise = fetch('test string')
-//   await wrap(promise)
-//   expect(fetch.data()).toBe(11)
-// })
-
-// test('withAsyncData - with custom mapping function', async () => {
-//   const name = 'asyncDataMapping'
-//   const fetch = action(async (param: number) => param, `${name}.fetch`).mix(
-//     withAsyncData(0, (payload, params, state) => state + payload),
-//   )
-
-//   expect(fetch.data()).toBe(0)
-
-//   await wrap(fetch(5))
-//   expect(fetch.data()).toBe(5)
-
-//   await wrap(fetch(10))
-//   expect(fetch.data()).toBe(15)
-// })
+  await wrap(sleep())
+  expect(resource.ready()).toBe(true)
+  expect(resource.data()).toBe(1)
+  expect(onFulfill).toBeCalledTimes(1)
+  expect(onFulfill).toBeCalledWith({ payload: 1, params: [0] })
+})

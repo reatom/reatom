@@ -7,8 +7,8 @@ import {
   Frame,
   AtomLike,
   AtomState,
-  getPrevPubs,
 } from '../core'
+import { getPrevPubs } from '../core/context'
 import { assert } from '../utils'
 
 export const ifChanged = <T extends AtomLike>(

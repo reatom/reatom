@@ -1,6 +1,7 @@
 import { schedule } from '../methods'
 import {
   Action,
+  ActionState,
   AtomLike,
   AtomState,
   ReatomError,
@@ -36,8 +37,8 @@ export let withCallHook =
     return defineName(
       withChangeHook(
         (
-          state: Array<{ params: Params; payload: Payload }>,
-          prevState?: Array<{ params: Params; payload: Payload }>,
+          state: ActionState<Params, Payload>,
+          prevState?: ActionState<Params, Payload>,
         ) => {
           for (let i = prevState?.length ?? 0; i < state.length; i++) {
             let { params, payload } = state[i]!

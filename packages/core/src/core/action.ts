@@ -5,9 +5,12 @@ import { schedule } from '../methods/queues'
 /** Autoclearable array of processed events */
 export interface TemporalArray<T = any> extends Array<T> {}
 
+export interface ActionState<Params extends any[] = any[], Payload = any>
+  extends TemporalArray<{ params: Params; payload: Payload }> {}
+
 /** Logic container with atom features */
 export interface Action<Params extends any[] = any[], Payload = any>
-  extends AtomLike<TemporalArray<{ params: Params; payload: Payload }>> {
+  extends AtomLike<ActionState<Params, Payload>> {
   // TODO
   // (): never
   (...params: Params): Payload
@@ -20,6 +23,7 @@ let actionMiddleware = (next: Fn, ...params: any[]) => {
   STACK[STACK.length - 1] = frame = _copy(rootFrame, frame)
 
   try {
+    frame.pubs[0] = STACK[STACK.length - 2]!
     // FIXME what to do with error?
     return [...frame.state, { params, payload: next(...params) }]
   } finally {
