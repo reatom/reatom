@@ -1,22 +1,22 @@
 import {
   action,
-  Atom,
-  AtomMut,
-  createCtx,
-  Ctx,
-  Fn,
+  assert,
+  type AtomLike,
+  type Atom,
+  type Fn,
   isAtom,
-  Rec,
-  throwReatomError,
-  Unsubscribe,
-} from '@reatom/core'
-import { noop, random } from '@reatom/utils'
-import {
-  type LinkedList,
-  type LLNode,
+  random,
+  type Rec,
+  type Unsubscribe,
+  wrap,
+  isAction,
+  ReatomError,
   isLinkedListAtom,
   LL_NEXT,
-} from '@reatom/primitives'
+  type LinkedList,
+  type LinkedListLikeAtom,
+  type LLNode,
+} from '@reatom/core'
 import type { AttributesAtomMaybe, JSX } from './jsx'
 
 declare type JSXElement = JSX.Element
@@ -40,7 +40,7 @@ type DomApis = Pick<
   | 'DocumentFragment'
 >
 
-const isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
+let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
 
 let unsubscribesMap = new WeakMap<Node, Array<Fn>>()
@@ -61,15 +61,15 @@ let unlink = (parent: Node, un: Unsubscribe) => {
   })
 }
 
-const walkLinkedList = (
-  ctx: Ctx,
+// TODO Should use `wrap`?
+let walkLinkedList = (
   DOM: DomApis,
   el: JSX.Element,
-  list: Atom<LinkedList<LLNode<JSX.Element>>>,
+  list: LinkedListLikeAtom<LinkedList<LLNode<JSX.Element>>>,
 ) => {
   let lastVersion = -1
 
-  const cb = (state: LinkedList<LLNode<JSX.Element>>) => {
+  let cb = (state: LinkedList<LLNode<JSX.Element>>) => {
     if (state.version - 1 > lastVersion) {
       el.innerHTML = ''
       for (let { head } = state; head; head = head[LL_NEXT]) {
@@ -78,7 +78,7 @@ const walkLinkedList = (
       }
     } else {
       let appendBatch: undefined | DocumentFragment
-      for (const change of state.changes) {
+      for (let change of state.changes) {
         if (change.kind === 'create') {
           throwNativeFragment(change.node)
 
@@ -92,7 +92,7 @@ const walkLinkedList = (
 
         if (change.kind === 'remove') {
           if (isLiveFragment(change.node)) {
-            const fragment = change.node.__reatomFragment
+            let fragment = change.node.__reatomFragment
             fragment.update()
             fragment.start.remove()
             fragment.end.remove()
@@ -132,16 +132,8 @@ const walkLinkedList = (
     lastVersion = state.version
   }
 
-  // it's critical to not use not a last state, but the each state.
-  const unSubscribe = ctx.subscribe(list, noop)
-  const unChange = list.onChange((ctx, state) => cb(state))
-
-  cb(ctx.get(list))
-
-  unlink(el, () => {
-    unSubscribe()
-    unChange()
-  })
+  unlink(el, list.subscribe(cb))
+  cb(list())
 }
 
 type LiveDocumentFragment = DocumentFragment & {
@@ -153,29 +145,29 @@ type LiveDocumentFragment = DocumentFragment & {
 }
 
 // TODO optimize
-const isLiveFragment = (node: Node): node is LiveDocumentFragment => {
+let isLiveFragment = (node: Node): node is LiveDocumentFragment => {
   return (
     String(node) === '[object DocumentFragment]' && '__reatomFragment' in node
   )
 }
-const throwNativeFragment = (element: JSX.Element) => {
-  throwReatomError(
-    String(element) === '[object DocumentFragment]' &&
-      '__reatomFragment' in element === false,
+let throwNativeFragment = (element: JSX.Element) => {
+  assert(
+    String(element) !== '[object DocumentFragment]' || '__reatomFragment' in element,
     'native fragment is not supported',
+    ReatomError,
   )
 }
 
-const createLiveFragment = (
+let createLiveFragment = (
   DOM: DomApis,
   name: string,
 ): LiveDocumentFragment => {
-  const fragment = DOM.document.createDocumentFragment()
-  const start = DOM.document.createComment(name)
-  const end = start.cloneNode() as Comment
+  let fragment = DOM.document.createDocumentFragment()
+  let start = DOM.document.createComment(name)
+  let end = start.cloneNode() as Comment
   fragment.append(start, end)
 
-  const update = (element?: JSX.ElementPrimitiveChildren) => {
+  let update = (element?: JSX.ElementPrimitiveChildren) => {
     while (start.nextSibling && start.nextSibling !== end) {
       start.nextSibling!.remove?.()
     }
@@ -183,8 +175,8 @@ const createLiveFragment = (
     if (element instanceof DOM.Node) {
       start.after(element)
     } else if (!isSkipped(element)) {
-      const node = isAtom(element)
-        ? walkAtom(ctx, DOM, element)
+      let node = isAtom(element)
+        ? walkAtom(DOM, element)
         : DOM.document.createTextNode(String(element))
       start.after(node)
     }
@@ -199,14 +191,13 @@ const createLiveFragment = (
   })
 }
 
-const walkAtom = (
-  ctx: Ctx,
+// TODO Should use `wrap`?
+let walkAtom = (
   DOM: DomApis,
-  anAtom: Atom<JSX.ElementPrimitiveChildren>,
+  anAtom: AtomLike<JSX.ElementPrimitiveChildren>,
 ): DocumentFragment => {
-  const fragment = createLiveFragment(DOM, anAtom.__reatom.name!)
-
-  const un = ctx.subscribe(anAtom, fragment.__reatomFragment.update)
+  let fragment = createLiveFragment(DOM, anAtom.name)
+  let un = anAtom.subscribe(fragment.__reatomFragment.update)
 
   unsubscribesMap.set(fragment.__reatomFragment.start, [])
   unlink(fragment.__reatomFragment.start, un)
@@ -214,7 +205,7 @@ const walkAtom = (
   return fragment
 }
 
-const patchStyleProperty = (
+let patchStyleProperty = (
   style: CSSStyleDeclaration,
   key: string,
   value: any,
@@ -223,8 +214,7 @@ const patchStyleProperty = (
   else style.setProperty(key, value)
 }
 
-export const reatomJsx = (
-  ctx: Ctx,
+export let reatomJsx = (
   DOM: DomApis = globalThis.window,
   {
     stylesheetContainer = DOM.document.head,
@@ -236,7 +226,7 @@ export const reatomJsx = (
     stylesheetContainer?: Node
   } = {},
 ) => {
-  const styles: Rec<string> = {}
+  let styles: Rec<string> = {}
   let stylesheet = (stylesheetContainer ?? DOM.document.head).appendChild(
     DOM.document.createElement('style'),
   )
@@ -247,14 +237,14 @@ export const reatomJsx = (
       key = key.slice(3)
       // only for logging purposes
       val = action(val, `${name}.${element.nodeName.toLowerCase()}._${key}`)
-      element.addEventListener(key, (event) => val(ctx, event))
+      element.addEventListener(key, val)
     } else if (key.startsWith('css:')) {
       key = '--' + key.slice(4)
       if (val == null) element.style.removeProperty(key)
       else element.style.setProperty(key, String(val))
     } else if (key === 'css') {
-      const prefix = name ? name + '_' : ''
-      const styleKey = prefix + val
+      let prefix = name ? name + '_' : ''
+      let styleKey = prefix + val
       let styleId = styles[styleKey]
       if (!styleId) {
         styleId = styles[styleKey] = prefix + random(0, 1e6).toString()
@@ -263,7 +253,7 @@ export const reatomJsx = (
       /** @see https://measurethat.net/Benchmarks/Show/11819 */
       element.setAttribute('data-reatom', styleId)
     } else if (key === 'style' && typeof val === 'object') {
-      for (const key in val) patchStyleProperty(element.style, key, val[key])
+      for (let key in val) patchStyleProperty(element.style, key, val[key])
     } else if (key.startsWith('style:')) {
       key = key.slice(6)
       patchStyleProperty(element.style, key, val)
@@ -289,17 +279,17 @@ export const reatomJsx = (
     }
   }
 
-  let h = (tag: any, props: Rec, ...children: any[]) => {
+  let h = wrap((tag: any, props: Rec, ...children: any[]) => {
     if (isAtom(tag)) {
-      return walkAtom(ctx, DOM, tag)
+      return walkAtom(DOM, tag)
     }
 
     if (tag === hf) {
       // needed for `walkLinkedList`
-      const fragment = createLiveFragment(DOM, '')
+      let fragment = createLiveFragment(DOM, '')
       for (let i = 0; i < children.length; i++) {
-        const child = children[i]
-        fragment.append(isAtom(child) ? walkAtom(ctx, DOM, child) : child)
+        let child = children[i]
+        fragment.append(isAtom(child) ? walkAtom(DOM, child) : child)
       }
       fragment.append(fragment.__reatomFragment.end)
       return fragment
@@ -341,20 +331,20 @@ export const reatomJsx = (
       if (k !== 'children' && k !== 'element') {
         let prop = props[k]
         if (k === 'ref') {
-          ctx.schedule(() => {
-            const cleanup = prop(ctx, element)
+          // TODO Double check, most likely incorrect.
+          wrap(Promise.resolve().then(() => {
+            let cleanup = prop(element)
             if (typeof cleanup === 'function') {
               let list = unsubscribesMap.get(element)
               if (!list) unsubscribesMap.set(element, (list = []))
-              unlink(element, () => cleanup(ctx, element))
+              unlink(element, () => cleanup(element))
             }
-          })
-        } else if (isAtom(prop) && !prop.__reatom.isAction) {
+          }))
+        } else if (isAtom(prop) && !isAction(prop)) {
           if (k.startsWith('model:')) {
             let name = (k = k.slice(6)) as 'value' | 'valueAsNumber' | 'checked'
-            set(element, 'on:input', (ctx: Ctx, event: any) => {
-              ;(prop as AtomMut)(
-                ctx,
+            set(element, 'on:input', (event: any) => {
+              ;(prop as Atom)(
                 name === 'valueAsNumber'
                   ? +event.target.value
                   : event.target[name],
@@ -371,7 +361,7 @@ export const reatomJsx = (
           }
           // TODO handle unsubscribe!
           let un: undefined | Unsubscribe
-          un = ctx.subscribe(prop, (v) =>
+          un = prop.subscribe((v) =>
             !un || element.isConnected
               ? k === '$spread'
                 ? Object.entries(v).forEach(([k, v]) => set(element, k, v))
@@ -393,14 +383,12 @@ export const reatomJsx = (
     let walk = (child: JSX.DOMAttributes<JSX.Element>['children']) => {
       if (Array.isArray(child)) {
         for (let i = 0; i < child.length; i++) walk(child[i])
-      } else {
-        if (isLinkedListAtom(child)) {
-          walkLinkedList(ctx, DOM, element, child)
-        } else if (isAtom(child)) {
-          element.append(walkAtom(ctx, DOM, child))
-        } else if (!isSkipped(child)) {
-          element.append(child as Node | string)
-        }
+      } else if (isLinkedListAtom(child)) {
+        walkLinkedList(DOM, element, child)
+      } else if (isAtom(child)) {
+        element.append(walkAtom(DOM, child))
+      } else if (!isSkipped(child)) {
+        element.append(child as Node | string)
       }
     }
 
@@ -409,52 +397,58 @@ export const reatomJsx = (
     }
 
     return element
-  }
+  })
 
   /**
    * Fragment.
    * @todo Describe a function as a component.
    */
-  let hf = () => {}
+  let hf = wrap(() => {})
 
-  let mount = (target: Element, child: Element) => {
+  let mount = wrap((target: Element, child: Element) => {
     // TODO fix
     // target.append(...[child].flat(Infinity))
     target.append(child)
 
+    /**
+     * @note The moved node creates two mutations: deletion then addition.
+     */
     new DOM.MutationObserver((mutationsList) => {
-      for (let mutation of mutationsList) {
-        for (let removedNode of mutation.removedNodes) {
-          /**
-           * @see https://stackoverflow.com/a/64551276
-           * @note A custom NodeFilter function slows down performance by 1.5 times.
-           */
-          const walker = DOM.document.createTreeWalker(removedNode, 1 | 128)
+      let removedNodes = new Set<Node>()
 
-          do {
-            const node = walker.currentNode as Element
-            unsubscribesMap.get(node)?.forEach((fn) => fn())
-            unsubscribesMap.delete(node)
-          } while (walker.nextNode())
-        }
+      for (let mutation of mutationsList) {
+        for (let node of mutation.removedNodes) removedNodes.add(node)
+        for (let node of mutation.addedNodes) removedNodes.delete(node)
+      }
+
+      for (let removedNode of removedNodes) {
+        /**
+         * @see https://stackoverflow.com/a/64551276
+         * @note A custom NodeFilter function slows down performance by 1.5 times.
+         */
+        let walker = DOM.document.createTreeWalker(removedNode, 1 | 128)
+
+        do {
+          unsubscribesMap.get(walker.currentNode)?.forEach((fn) => fn())
+          unsubscribesMap.delete(walker.currentNode)
+        } while (walker.nextNode())
       }
     }).observe(target.parentElement!, {
       childList: true,
       subtree: true,
     })
-  }
+  })
 
   return { h, hf, mount }
 }
 
-export const ctx = createCtx({ restrictMultipleContexts: false })
-export const { h, hf, mount } = reatomJsx(ctx)
+export let { h, hf, mount } = reatomJsx()
 
 /**
  * This simple utility needed only for syntax highlighting and it just concatenates all passed strings.
  * Falsy values are ignored, except for `0`.
  */
-export const css = (strings: TemplateStringsArray, ...values: any[]) => {
+export let css = (strings: TemplateStringsArray, ...values: any[]) => {
   let result = ''
   for (let i = 0; i < strings.length; i++) {
     result += strings[i] + (values[i] || values[i] === 0 ? values[i] : '')
@@ -462,7 +456,7 @@ export const css = (strings: TemplateStringsArray, ...values: any[]) => {
   return result
 }
 
-export const Bind = <T extends Element>(
+export let Bind = <T extends Element>(
   props: { element: T } & AttributesAtomMaybe<
     Partial<Omit<T, 'children'>> & JSX.DOMAttributes<T>
   >,

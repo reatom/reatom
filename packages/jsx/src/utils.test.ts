@@ -1,72 +1,82 @@
 import { test, expect, describe } from 'vitest'
 import { atom } from '@reatom/core'
-import { createTestCtx } from '@reatom/testing'
 import { cn } from './utils'
 
 describe('parseClasses', () => {
-  const ctx = createTestCtx()
-
   test('handles falsy correctly', () => {
-    expect(ctx.get(cn(false))).toBe('')
-    expect(ctx.get(cn(true))).toBe('')
-    expect(ctx.get(cn(null))).toBe('')
-    expect(ctx.get(cn(undefined))).toBe('')
-    expect(ctx.get(cn({}))).toBe('')
-    expect(ctx.get(cn([]))).toBe('')
-    expect(ctx.get(cn(atom(undefined)))).toBe('')
-    expect(ctx.get(cn(() => undefined))).toBe('')
+    expect(cn('')()).toBe('')
+    expect(cn(0)()).toBe('')
+    expect(cn(1)()).toBe('')
+    expect(cn(NaN)()).toBe('')
+    expect(cn(false)()).toBe('')
+    expect(cn(true)()).toBe('')
+    expect(cn(null)()).toBe('')
+    expect(cn(undefined)()).toBe('')
+    expect(cn({})()).toBe('')
+    expect(cn([])()).toBe('')
+    expect(cn(atom(undefined))()).toBe('')
+    expect(cn(() => undefined)()).toBe('')
   })
 
   test('handles falsy object correctly', () => {
     expect(
-      ctx.get(
-        cn({
-          a: '',
-          b: 0,
-          c: NaN,
-          d: false,
-          e: null,
-          f: undefined,
-          g: atom(undefined),
-        }),
-      ),
+      cn({
+        a: '',
+        b: 0,
+        c: NaN,
+        d: false,
+        e: null,
+        f: undefined,
+        g: atom(undefined),
+        h: () => undefined,
+      })(),
     ).toBe('')
   })
 
   test('handles falsy array correctly', () => {
     expect(
-      ctx.get(
-        cn(['', null, undefined, {}, [], atom(undefined), () => undefined]),
-      ),
+      cn([
+        '',
+        0,
+        1,
+        NaN,
+        false,
+        true,
+        null,
+        undefined,
+        {},
+        [],
+        atom(undefined),
+        () => undefined,
+      ])(),
     ).toBe('')
   })
 
   test('handles object correctly', () => {
     expect(
-      ctx.get(
-        cn({
-          a: 'a',
-          b: 1,
-          c: true,
-          d: {},
-          e: [],
-          f: atom(true),
-          g: () => undefined,
-        }),
-      ),
-    ).toEqual('a b c d e f g')
+      cn({
+        '': true,
+        a: 'a',
+        b: 1,
+        c: true,
+        d: {},
+        e: [],
+        f: atom(true),
+        g: () => true,
+      })(),
+    ).toBe('a b c d e f g')
   })
 
   test('handles deep array correctly', () => {
-    expect(ctx.get(cn(['a', ['b', ['c']]]))).toBe('a b c')
+    expect(cn(['a', ['b', ['c']]])()).toBe('a b c')
   })
 
   test('handles deep atom correctly', () => {
-    expect(ctx.get(cn(atom(() => atom(() => atom('a')))))).toBe('a')
+    expect(cn(atom(() => atom(() => atom('a'))))()).toBe('a')
   })
 
   test('handles deep getter correctly', () => {
-    expect(ctx.get(cn(() => () => () => 'a'))).toBe('a')
+    expect(cn(() => () => () => 'a')()).toBe('a')
   })
 
   test('handles complex correctly', () => {
@@ -76,11 +86,11 @@ describe('parseClasses', () => {
       atom(() => ['a', { b: isBAtom }, ['c'], stringAtom, () => 'e']),
     )
 
-    expect(ctx.get(classNameAtom)).toBe('a b c d e')
+    expect(classNameAtom()).toBe('a b c d e')
 
-    isBAtom(ctx, false)
-    stringAtom(ctx, 'dd')
+    isBAtom(false)
+    stringAtom('dd')
 
-    expect(ctx.get(classNameAtom)).toBe('a c dd e')
+    expect(classNameAtom()).toBe('a c dd e')
   })
 })

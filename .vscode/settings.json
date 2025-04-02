@@ -3,7 +3,8 @@
   "diffEditor.codeLens": true,
   "cSpell.words": [
     "linkedom",
-    "localstorage"
+    "localstorage",
+    "reatom"
   ],
   "editor.defaultFormatter": "esbenp.prettier-vscode",
 }

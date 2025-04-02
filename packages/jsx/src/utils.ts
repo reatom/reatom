@@ -1,42 +1,44 @@
-import { atom, Atom, AtomMaybe, CtxSpy, isAtom } from '@reatom/core'
-import { isObject } from '@reatom/utils'
+import { atom, type AtomLike, isObject } from '@reatom/core'
 
-export type ClassNameValue = AtomMaybe<
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
+type Primitive = string | number | boolean | null | undefined
+type MaybeGetter<T = unknown> = T | (() => T)
+
+export type ClassNameValue = MaybeGetter<
+  | Primitive
   | Array<ClassNameValue>
-  | Atom<ClassNameValue>
-  | Record<
-      string,
-      AtomMaybe<string | number | boolean | null | undefined | object>
-    >
-  | ((ctx: CtxSpy) => ClassNameValue)
+  | AtomLike<ClassNameValue>
+  | Record<string, unknown>
+  | (() => ClassNameValue)
 >
 
-export const cn = (value: ClassNameValue): Atom<string> =>
-  atom((ctx) => parseClasses(ctx, value))
+// TODO: Pass the atom name as the second argument.
+export let cn = (value: ClassNameValue): AtomLike<string> =>
+  atom(() => parseClasses(value))
 
-const parseClasses = (ctx: CtxSpy, value: ClassNameValue): string => {
+let parseClasses = (value: ClassNameValue): string => {
   let className = ''
-  while (isAtom(value)) value = ctx.spy(value)
-  if (typeof value === 'string') {
-    className = value
-  } else if (typeof value === 'function') {
-    className = parseClasses(ctx, value(ctx))
-  } else if (Array.isArray(value)) {
+  value = resolveGetter(value)
+  if (typeof value === 'string') className = value
+  else if (Array.isArray(value)) {
     for (let i = 0; i < value.length; i++) {
-      const parsed = parseClasses(ctx, value[i])
-      if (parsed !== '') className += className === '' ? parsed : ' ' + parsed
+      let parsed = parseClasses(value[i])
+      className = joinClassName(className, parsed)
     }
   } else if (isObject(value)) {
-    for (const name in value) {
-      let val = value[name]
-      while (isAtom(val)) val = ctx.spy(val)
-      if (val) className += className === '' ? name : ' ' + name
+    for (let name in value) {
+      let val = resolveGetter(value[name] as any)
+      if (val) className = joinClassName(className, name)
     }
   }
+  return className
+}
+
+let resolveGetter = (value: ClassNameValue): ClassNameValue => {
+  while (typeof value === 'function') value = value()
+  return value
+}
+
+let joinClassName = (className: string, value: string): string => {
+  if (value !== '') className += className === '' ? value : ' ' + value
   return className
 }
