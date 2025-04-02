@@ -78,6 +78,7 @@ export interface RootFrame extends Frame<RootState> {}
 export interface RootAtom extends AtomLike<RootState> {
   (): RootFrame
   start<T>(cb: () => T): T
+  start(): RootFrame
 }
 
 // TODO rename
@@ -420,11 +421,11 @@ let getDefaultComputedPubs = (setup: any) => {
 }
 
 export let atom: {
+  <State>(init: State extends Fn ? never : State, name?: string): Atom<State>
   <State>(
     computed: (() => State) | ((state?: State) => State),
     name?: string,
   ): Computed<State>
-  <State>(init: State extends Fn ? never : State, name?: string): Atom<State>
 } = <T>(setup: {} | ((state?: T) => T), name = named('atom')): Atom<T> => {
   let initState = setup as T
   if (typeof setup === 'function') {
@@ -549,7 +550,7 @@ export let root = castAtom<RootAtom>(
   'root',
   false,
 )
-root.start = (cb) => {
+root.start = (cb = top) => {
   assert(!STACK.length, 'root collision', ReatomError)
   return (
     {
@@ -563,7 +564,7 @@ root.start = (cb) => {
         effect: [],
         pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'cleanup' | 'effect') {
           this[queue].push(cb)
-        }
+        },
       },
       atom: root,
       pubs: getDefaultComputedPubs(null),
