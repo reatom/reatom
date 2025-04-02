@@ -1,5 +1,5 @@
 import { createTestCtx } from '@reatom/testing'
-import { expect,test } from 'vitest'
+import { expect, test } from 'vitest'
 
 test('stub', () => {
   const ctx = createTestCtx()
