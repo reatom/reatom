@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.10.0](https://github.com/artalar/reatom/compare/primitives-v3.9.0...primitives-v3.10.0) (2025-04-02)
+
+
+### Features
+
+* **primitives:** constructor as initializer for primitives ([#1049](https://github.com/artalar/reatom/issues/1049)) ([5657158](https://github.com/artalar/reatom/commit/5657158aebbc0f7cbe03caa1cf97bb6df9a1af1f))
+
 ## [3.9.0](https://github.com/artalar/reatom/compare/primitives-v3.8.0...primitives-v3.9.0) (2025-02-27)
 
 ### Features
