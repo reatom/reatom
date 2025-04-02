@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.1](https://github.com/artalar/reatom/compare/devtools-v0.13.0...devtools-v0.13.1) (2025-04-02)
+
+
+### Bug Fixes
+
+* **devtools:** deps ([72dc64f](https://github.com/artalar/reatom/commit/72dc64fb9e68116bdc0d986bc9d7806c1dcd042e))
+* **devtools:** refactor model ([d596ba3](https://github.com/artalar/reatom/commit/d596ba3ff1da18669279a5cd14c764eb7d0ec8b4))
+
 ## [0.13.0](https://github.com/artalar/reatom/compare/devtools-v0.12.0...devtools-v0.13.0) (2025-03-14)
 
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.4.6](https://github.com/artalar/reatom/compare/persist-web-storage-v3.4.5...persist-web-storage-v3.4.6) (2025-04-02)
+
+
+### Bug Fixes
+
+* **persist-web-storage:** types bundling ([971aed4](https://github.com/artalar/reatom/commit/971aed424c778e9fe82da8dbd71e5a6bf779ec1c))
+
 ## [3.4.5](https://github.com/artalar/reatom/compare/persist-web-storage-v3.4.4...persist-web-storage-v3.4.5) (2025-03-14)
 
 

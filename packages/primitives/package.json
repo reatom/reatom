@@ -1,6 +1,6 @@
 {
   "name": "@reatom/primitives",
-  "version": "3.9.0",
+  "version": "3.10.0",
   "private": false,
   "sideEffects": false,
   "description": "Reatom for primitives",
@@ -35,5 +35,7 @@
     "url": "https://github.com/artalar/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/primitives",
-  "files": ["/build"]
+  "files": [
+    "/build"
+  ]
 }

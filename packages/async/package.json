@@ -1,6 +1,6 @@
 {
   "name": "@reatom/async",
-  "version": "3.16.7",
+  "version": "3.16.8",
   "private": false,
   "sideEffects": false,
   "description": "Reatom for async",
@@ -41,5 +41,7 @@
     "url": "https://github.com/artalar/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/async",
-  "files": ["/build"]
+  "files": [
+    "/build"
+  ]
 }
