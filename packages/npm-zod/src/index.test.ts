@@ -115,3 +115,15 @@ test('right values for lazy', async () => {
   expect(model.number()).toBe(42)
   expect(model.string()).toBe('test')
 })
+
+test('should throw errors for mismatching contracts', async () => {
+  const schema = reatomZod(z.object({
+    n: z.number().min(0),
+    s: z.string().max(3),
+  }), {
+    initState: { n: 0, s: '333' },
+  })
+
+  expect(() => schema.n(-1)).toThrow()
+  expect(() => schema.s('3333')).toThrow()
+})
