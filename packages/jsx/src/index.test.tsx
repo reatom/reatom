@@ -1,69 +1,55 @@
 import { test, expect, vi } from 'vitest'
 import {
   type Fn,
-  type Rec,
   atom,
   clearStack,
   isConnected,
+  mockRandom,
   notify,
   reatomLinkedList,
   root,
   sleep,
+  withInit,
   wrap,
 } from '@reatom/core'
 
-import { Bind, reatomJsx, type JSX } from '.'
-
-type SetupFn = (
-  h: (tag: any, props: Rec, ...children: any[]) => any,
-  hf: () => void,
-  mount: (target: Element, child: Element) => void,
-  parent: HTMLElement,
-) => void
+import { h, hf, mount, Bind, DEBUG, type JSX } from '.'
 
 clearStack()
-const setup = (fn: SetupFn) => () =>
-  root.start(() => {
-    const { h, hf, mount } = reatomJsx(window)
-    const parent = window.document.createElement('div')
-    window.document.body.appendChild(parent)
 
-    return fn(h, hf, mount, parent)
-  })
+DEBUG.mix(withInit(() => false))
 
-/** Only for highlight */
-const html = (arr: TemplateStringsArray, ...args: any[]) => {
-  const html = arr.reduce((acc, str, i) => {
-    return acc + str + (args[i] || '')
-  }, '')
-  return html
-}
+const parent = atom<HTMLElement>(null as any, 'parent').mix(
+  withInit(() => {
+    const div = <div />
+    window.document.body.appendChild(div)
 
-test(
-  'static props & children',
-  setup(async (h, hf, mount, parent) => {
+    return div
+  }),
+)
+
+test('static props & children', () =>
+  root.start(async () => {
     const element = <div id="some-id">Hello, world!</div>
 
-    mount(parent, element)
+    mount(parent(), element)
     await wrap(sleep())
 
     expect(element.tagName).toBe('DIV')
     expect(element.id).toBe('some-id')
     expect(element.childNodes.length).toBe(1)
     expect(element.textContent).toBe('Hello, world!')
-  }),
-)
+  }))
 
-test(
-  'dynamic props',
-  setup(async (h, hf, mount, parent) => {
+test('dynamic props', () =>
+  root.start(async () => {
     const val = atom('val', 'val')
     const prp = atom('prp', 'prp')
     const atr = atom('atr', 'atr')
 
     const element = <div id={val} prop:prp={prp} attr:atr={atr} />
 
-    mount(parent, element)
+    mount(parent(), element)
     await wrap(sleep())
 
     expect(element.id).toBe('val')
@@ -78,12 +64,10 @@ test(
     expect(element.id).toBe('val1')
     expect((element as any).prp).toBe('prp1')
     expect(element.getAttribute('atr')).toBe('atr1')
-  }),
-)
+  }))
 
-test(
-  'children updates',
-  setup(async (h, hf, mount, parent) => {
+test('children updates', () =>
+  root.start(async () => {
     const val = atom('foo', 'val')
 
     const route = atom('a', 'route')
@@ -97,7 +81,7 @@ test(
       </div>
     )
 
-    mount(parent, element)
+    mount(parent(), element)
     await wrap(sleep())
 
     expect(element.childNodes.length).toBe(7)
@@ -112,17 +96,15 @@ test(
     route('b')
     await wrap(sleep())
     expect(element.childNodes[5]).toBe(b)
-  }),
-)
+  }))
 
-test(
-  'dynamic children',
-  setup(async (h, hf, mount, parent) => {
+test('dynamic children', () =>
+  root.start(async () => {
     const children = atom(<div />)
 
     const element = <div>{children}</div>
 
-    mount(parent, element)
+    mount(parent(), element)
     await wrap(sleep())
 
     expect(element.childNodes.length).toBe(3)
@@ -153,12 +135,10 @@ test(
     before('before...')
     await wrap(sleep())
     expect((element as HTMLDivElement).innerText).toBe('before...innerafter')
-  }),
-)
+  }))
 
-test(
-  'spreads',
-  setup((h, hf, mount, parent) => {
+test('spreads', () =>
+  root.start(() => {
     const clickTrack = vi.fn()
     const props = atom({
       id: '1',
@@ -166,21 +146,19 @@ test(
       'on:click': clickTrack as Fn,
     })
 
-    const element = <div $spread={props} /> as HTMLDivElement
+    const element = (<div $spread={props} />) as HTMLDivElement
 
-    mount(parent, element)
+    mount(parent(), element)
 
     expect(element.id).toBe('1')
     expect(element.getAttribute('b')).toBe('2')
     expect(clickTrack.mock.calls.length).toBe(0)
     element.click()
     expect(clickTrack.mock.calls.length).toBe(1)
-  }),
-)
+  }))
 
-test(
-  'multiple renden shared element',
-  setup(async (h, hf, mount, parent) => {
+test('multiple renden shared element', () =>
+  root.start(async () => {
     const valueAtom = atom('abc', 'value')
     const element = <p>{valueAtom}</p>
 
@@ -197,7 +175,7 @@ test(
     )
     const app = <div>{childAtom}</div>
 
-    mount(parent, app)
+    mount(parent(), app)
     await wrap(sleep())
     expect(app.innerHTML).toBe(
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->abc<!--value--></p></div><!----><!--child-->',
@@ -219,12 +197,10 @@ test(
     expect(app.innerHTML).toBe(
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->def<!--value--></p></div><!----><!--child-->',
     )
-  }),
-)
+  }))
 
-test(
-  'fragment as child',
-  setup(async (h, hf, mount, parent) => {
+test('fragment as child', () =>
+  root.start(async () => {
     const child = (
       <>
         <div>foo</div>
@@ -233,17 +209,15 @@ test(
         </>
       </>
     )
-    mount(parent, child)
+    mount(parent(), child)
     await wrap(sleep())
 
-    expect(parent.childNodes.length).toBe(6)
-    expect(parent.textContent).toBe('foobar')
-  }),
-)
+    expect(parent().childNodes.length).toBe(6)
+    expect(parent().textContent).toBe('foobar')
+  }))
 
-test(
-  'array children',
-  setup(async (h, hf, mount, parent) => {
+test('array children', () =>
+  root.start(async () => {
     const n = atom(1)
     const list = atom(() => (
       <>{...Array.from({ length: n() }, (_, i) => <li>{i + 1}</li>)}</>
@@ -256,7 +230,7 @@ test(
       </ul>
     )
 
-    mount(parent, element)
+    mount(parent(), element)
     await wrap(sleep())
 
     expect(element.childNodes.length).toBe(6)
@@ -266,41 +240,41 @@ test(
     await wrap(sleep())
     expect(element.childNodes.length).toBe(7)
     expect(element.textContent).toBe('12')
-  }),
-)
+  }))
 
-test(
-  'linked list',
-  setup(async (h, hf, mount, parent) => {
+test('linked list', () =>
+  root.start(async () => {
     const list = reatomLinkedList((value: any) => atom(value))
     const jsxList = list.reatomMap((n) => <span>{n}</span>)
     const one = list.create(1)
     const two = list.create(2)
 
-    mount(parent, <div>{jsxList}</div>)
+    mount(parent(), <div>{jsxList}</div>)
 
     await wrap(sleep())
-    expect(parent.innerText).toBe('12')
+    expect(parent().innerText).toBe('12')
+    expect(isConnected(list)).toBe(true)
+    expect(isConnected(jsxList)).toBe(true)
     expect(isConnected(one)).toBe(true)
     expect(isConnected(two)).toBe(true)
+    expect(list.array()).toEqual([one, two])
 
     list.swap(one, two)
     await wrap(sleep())
-    expect(parent.innerText).toBe('21')
+    expect(list.array()).toEqual([two, one])
+    expect(parent().innerText).toBe('21')
 
     list.remove(two)
     await wrap(sleep())
-    expect(parent.innerText).toBe('1')
+    expect(parent().innerText).toBe('1')
     expect(isConnected(one)).toBe(true)
     expect(isConnected(two)).toBe(false)
 
     list.create(<>3</>)
-  }),
-)
+  }))
 
-test(
-  'boolean as child',
-  setup(async (h, hf, mount, parent) => {
+test('boolean as child', () =>
+  root.start(async () => {
     const trueAtom = atom(true, 'true')
     const trueValue = true
     const falseAtom = atom(false, 'false')
@@ -321,12 +295,10 @@ test(
       '<!--true--><!--true--><!--false--><!--false-->',
     )
     expect(element.textContent).toBe('')
-  }),
-)
+  }))
 
-test(
-  'null as child',
-  setup(async (h, hf, mount, parent) => {
+test('null as child', () =>
+  root.start(async () => {
     const nullAtom = atom(null, 'null')
     const nullValue = null
 
@@ -341,12 +313,10 @@ test(
     expect(element.childNodes.length).toBe(2)
     expect(element.innerHTML).toBe('<!--null--><!--null-->')
     expect(element.textContent).toBe('')
-  }),
-)
+  }))
 
-test(
-  'undefined as child',
-  setup(async (h, hf, mount, parent) => {
+test('undefined as child', () =>
+  root.start(async () => {
     const undefinedAtom = atom(undefined, 'undefined')
     const undefinedValue = undefined
 
@@ -361,12 +331,10 @@ test(
     expect(element.childNodes.length).toBe(2)
     expect(element.innerHTML).toBe('<!--undefined--><!--undefined-->')
     expect(element.textContent).toBe('')
-  }),
-)
+  }))
 
-test(
-  'empty string as child',
-  setup(async (h, hf, mount, parent) => {
+test('empty string as child', () =>
+  root.start(async () => {
     const emptyStringAtom = atom('', 'emptyString')
     const emptyStringValue = ''
 
@@ -381,57 +349,49 @@ test(
     expect(element.childNodes.length).toBe(2)
     expect(element.innerHTML).toBe('<!--emptyString--><!--emptyString-->')
     expect(element.textContent).toBe('')
-  }),
-)
+  }))
 
-test(
-  'update skipped atom',
-  setup(async (h, hf, mount, parent) => {
+test('update skipped atom', () =>
+  root.start(async () => {
     const valueAtom = atom<number | undefined>(undefined, 'value')
 
     const element = <div>{valueAtom}</div>
 
-    mount(parent, element)
+    mount(parent(), element)
     await wrap(sleep())
 
-    expect(parent.childNodes.length).toBe(1)
-    expect(parent.textContent).toBe('')
+    expect(parent().childNodes.length).toBe(1)
+    expect(parent().textContent).toBe('')
 
     valueAtom(123)
 
     await wrap(sleep())
-    expect(parent.childNodes.length).toBe(1)
-    expect(parent.textContent).toBe('123')
-  }),
-)
+    expect(parent().childNodes.length).toBe(1)
+    expect(parent().textContent).toBe('123')
+  }))
 
-test(
-  'render HTMLElement atom',
-  setup(async (h, hf, mount, parent) => {
+test('render HTMLElement atom', () =>
+  root.start(async () => {
     const htmlAtom = atom(<div>div</div>, 'html')
 
     const element = <div>{htmlAtom}</div>
 
     await wrap(sleep())
     expect(element.innerHTML).toBe('<!--html--><div>div</div><!--html-->')
-  }),
-)
+  }))
 
-test(
-  'render SVGElement atom',
-  setup(async (h, hf, mount, parent) => {
+test('render SVGElement atom', () =>
+  root.start(async () => {
     const svgAtom = atom(<svg:svg>svg</svg:svg>, 'svg')
 
     const element = <div>{svgAtom}</div>
 
     await wrap(sleep())
     expect(element.innerHTML).toBe('<!--svg--><svg>svg</svg><!--svg-->')
-  }),
-)
+  }))
 
-test(
-  'custom component',
-  setup(async (h, hf, mount, parent) => {
+test('custom component', () =>
+  root.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     await wrap(sleep())
@@ -440,12 +400,10 @@ test(
       true,
     )
     expect(((<Component>123</Component>) as HTMLElement).innerText).toBe('123')
-  }),
-)
+  }))
 
-test(
-  'ref unmount callback',
-  setup(async (h, hf, mount, parent) => {
+test('ref unmount callback', () =>
+  root.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     let ref: null | HTMLElement = null
@@ -461,19 +419,17 @@ test(
       />
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     await wrap(sleep())
     expect(ref).toBeInstanceOf(window.HTMLElement)
 
-    parent.remove()
+    parent().remove()
     await wrap(sleep())
     expect(ref).toBe(null)
-  }),
-)
+  }))
 
-test(
-  'child ref unmount callback',
-  setup(async (h, hf, mount, parent) => {
+test('child ref unmount callback', () =>
+  root.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     let ref: null | HTMLElement = null
@@ -489,19 +445,17 @@ test(
       />
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     await wrap(sleep())
     expect(ref).toBeInstanceOf(window.HTMLElement)
 
     ref!.remove()
     await wrap(sleep())
     expect(ref).toBe(null)
-  }),
-)
+  }))
 
-test(
-  'same arguments in ref mount and unmount hooks',
-  setup(async (h, hf, mount, parent) => {
+test('same arguments in ref mount and unmount hooks', () =>
+  root.start(async () => {
     let mountElement: HTMLElement
     let unmountElement: HTMLElement
 
@@ -520,7 +474,7 @@ test(
       />
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     await wrap(sleep())
     expect(ref).toBeInstanceOf(window.HTMLElement)
 
@@ -529,12 +483,10 @@ test(
     expect(ref).toBe(null)
     expect(mountElement!).toBe(component)
     expect(unmountElement!).toBe(component)
-  }),
-)
+  }))
 
-test(
-  'css property and class attribute',
-  setup(async (h, hf, mount, parent) => {
+test('css property and class attribute', () =>
+  root.start(async () => {
     const cls = 'class'
     const css = 'color: red;'
 
@@ -548,57 +500,66 @@ test(
       </div>
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     expect(ref1).toBeInstanceOf(window.HTMLElement)
     expect(ref2).toBeInstanceOf(window.HTMLElement)
     await wrap(sleep())
 
     expect(ref1.className).toBe(cls)
-    expect(ref1.dataset.reatom).toBeTruthy()
+    expect(ref1.dataset['reatomStyle']).toBeTruthy()
 
     expect(ref2.className).toBe(cls)
-    expect(ref2.dataset.reatom).toBeTruthy()
+    expect(ref2.dataset['reatomStyle']).toBeTruthy()
 
-    expect(ref1.dataset.reatom).toBe(ref2.dataset.reatom)
-  }),
-)
+    expect(ref1.dataset['reatomStyle']).toBe(ref2.dataset['reatomStyle'])
+  }))
 
-test(
-  'css property generate class name',
-  setup(async (h, hf, mount, parent) => {
-    const css = 'color: red;'
+test('css property generate class name', () =>
+  root.start(async () => {
+    const First = () => <div css="color: red;"></div> // same
+    const Second = () => <div css="color: red;"></div> // same
+    const Third = () => <div css="color: blue;"></div>
 
-    const First = () => <div css={css}></div>
-    const Second = () => <div css={css}></div>
+    DEBUG(true)
 
     const first = <First></First>
     const second = <Second></Second>
+    const third = <Third></Third>
 
     const component = (
       <div>
         {first}
         {second}
+        {third}
       </div>
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     await wrap(sleep())
 
-    expect(first.dataset.reatom!.startsWith(First.name)).toBeTruthy()
-    expect(second.dataset.reatom!.startsWith(Second.name)).toBeTruthy()
-  }),
-)
+    expect({ ...first.dataset }).toEqual({
+      reatomName: 'First',
+      reatomStyle: '1', // same
+    })
+    expect({ ...second.dataset }).toEqual({
+      reatomName: 'Second',
+      reatomStyle: '1', // same
+    })
+    expect({ ...third.dataset }).toEqual({
+      reatomName: 'Third',
+      reatomStyle: '2',
+    })
+  }))
 
-test(
-  'css custom property',
-  setup(async (h, hf, mount, parent) => {
+test('css custom property', () =>
+  root.start(async () => {
     const colorAtom = atom('red' as string | undefined)
 
     const component = (
       <div css:first-property={colorAtom} css:secondProperty={colorAtom}></div>
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     await wrap(sleep())
 
     expect(component.style.getPropertyValue('--first-property')).toBe('red')
@@ -615,12 +576,10 @@ test(
     await wrap(sleep())
     expect(component.style.getPropertyValue('--first-property')).toBe('')
     expect(component.style.getPropertyValue('--secondProperty')).toBe('')
-  }),
-)
+  }))
 
-test(
-  'class and className attribute',
-  setup(async (h, hf, mount, parent) => {
+test('class and className attribute', () =>
+  root.start(async () => {
     const classAtom = atom('' as string | undefined)
 
     const ref1 = <div class={classAtom}></div>
@@ -633,7 +592,7 @@ test(
       </div>
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     await wrap(sleep())
 
     expect(ref1.hasAttribute('class')).toBe(true)
@@ -652,12 +611,10 @@ test(
     expect(ref2.className).toBe('')
     expect(ref1.hasAttribute('class')).toBe(false)
     expect(ref2.hasAttribute('class')).toBe(false)
-  }),
-)
+  }))
 
-test(
-  'ref mount and unmount callbacks order',
-  setup(async (h, hf, mount, parent) => {
+test('ref mount and unmount callbacks order', () =>
+  root.start(async () => {
     const order: number[] = []
 
     const createRef = (index: number) => {
@@ -677,18 +634,16 @@ test(
       </div>
     )
 
-    mount(parent, component)
+    mount(parent(), component)
     await wrap(sleep())
-    parent.remove()
+    parent().remove()
     await wrap(sleep())
 
     expect(order).toStrictEqual([2, 1, 0, 0, 1, 2])
-  }),
-)
+  }))
 
-test(
-  'style object update',
-  setup(async (h, hf, mount, parent) => {
+test('style object update', () =>
+  root.start(async () => {
     const styleTopAtom = atom<JSX.StyleProperties['top']>('0')
     const styleRightAtom = atom<JSX.StyleProperties['right']>(undefined)
     const styleBottomAtom = atom<JSX.StyleProperties['bottom']>(null)
@@ -717,7 +672,7 @@ test(
       </div>
     )
 
-    mount(parent, component)
+    mount(parent(), component)
 
     await wrap(sleep())
     expect(firstEl.getAttribute('style')).toBe('top: 0px; left: 0px;')
@@ -729,12 +684,10 @@ test(
     await wrap(sleep())
     expect(firstEl.getAttribute('style')).toBe('left: 0px; bottom: 0px;')
     expect(secondEl.getAttribute('style')).toBe('left: 0px; bottom: 0px;')
-  }),
-)
+  }))
 
-test(
-  'render atom fragments',
-  setup(async (h, hf, mount, parent) => {
+test('render atom fragments', () =>
+  root.start(async () => {
     const bool1Atom = atom(false)
     const bool2Atom = atom(false)
 
@@ -765,7 +718,7 @@ test(
       </div>
     )
 
-    mount(parent, element)
+    mount(parent(), element)
 
     await wrap(sleep())
 
@@ -814,12 +767,10 @@ test(
     bool2Atom(false)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect1)
-  }),
-)
+  }))
 
-test(
-  'Bind',
-  setup(async (h, hf, mount, parent) => {
+test('Bind', () =>
+  root.start(async () => {
     const div = (<div />) as HTMLDivElement
     const input = (<input />) as HTMLInputElement
     const svg = (<svg:svg />) as SVGSVGElement
@@ -847,7 +798,7 @@ test(
     )
 
     mount(
-      parent,
+      parent(),
       <main>
         {testDiv}
         {testInput}
@@ -862,16 +813,14 @@ test(
     await wrap(sleep())
     expect(input.value).toBe('43')
     expect(testSvg.innerHTML).toBe('<path d="M 10 10 H 100"></path>')
-  }),
-)
+  }))
 
-test(
-  'dynamic atom fragment',
-  setup(async (h, hf, mount, parent) => {
+test('dynamic atom fragment', () =>
+  root.start(async () => {
     const child = atom<JSX.HTMLAttributes['children']>(<span />, 'test')
 
     const container = <div>{child}</div>
-    mount(parent, container)
+    mount(parent(), container)
 
     await wrap(sleep())
     expect(container.outerHTML).toBe(
@@ -883,12 +832,10 @@ test(
     expect(container.outerHTML).toBe(
       '<div><!--test--><!--test.child-->child atom<!--test.child--><!--test--></div>',
     )
-  }),
-)
+  }))
 
-test(
-  'linked list',
-  setup(async (h, hf, mount, parent) => {
+test('linked list', () =>
+  root.start(async () => {
     const a = atom(true)
     const list = reatomLinkedList((value: string) => (
       <>
@@ -899,7 +846,7 @@ test(
     list.create('1')
 
     const container = <div>{list}</div>
-    mount(parent, container)
+    mount(parent(), container)
 
     await wrap(sleep())
     expect(container.outerHTML).toBe(
@@ -923,5 +870,4 @@ test(
     expect(container.outerHTML).toBe(
       '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
     )
-  }),
-)
+  }))
