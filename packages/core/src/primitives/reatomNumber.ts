@@ -1,5 +1,4 @@
-import { Action, Atom, atom } from '@reatom/core'
-import { named } from '../core'
+import { Action, Atom, atom, named } from '../core'
 import { random } from '../utils'
 
 export interface NumberAtom extends Atom<number> {

@@ -1,4 +1,5 @@
 import { Action, Atom, atom, named, ReatomError } from '../core'
+import { Fn } from '../utils'
 
 export type EnumFormat = 'camelCase' | 'snake_case'
 
@@ -46,10 +47,10 @@ export const reatomEnum = <
   if (!initState)
     throw new ReatomError(`enum "${name}" must have an at least one variant`)
 
-  return atom(initState, name).mix(
+  return atom(initState as string, name).mix(
     (target) => ({ reset: () => target(initState!) }),
     (target) =>
-      (next, ...params) => {
+      (next: Fn, ...params) => {
         const value = next(...params)
 
         if (!variants.includes(value))
