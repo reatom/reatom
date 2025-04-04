@@ -69,7 +69,7 @@ export function withInput<Params extends any[], T>(
 ): Middleware<Atom<T>, [] | Params> {
   return () =>
     (next, ...params) =>
-      params.length ? next(parse(...params)) : next()
+      params.length ? next(parse(...params as Params)) : next()
 }
 
 test('input payload change', () => {
