@@ -1,52 +1,56 @@
-import { atom, Atom } from '@reatom/core'
+import { top, reatomAbstractRender, AbstractRender } from '@reatom/core'
 import { LitElement, PropertyDeclaration, PropertyValues } from 'lit'
 
 const __inner_update = Symbol('Inner update')
 
-export class ReatomElement extends LitElement {
-  private _sub?: () => void
-  declare __changedProps: Atom
+type Constructor<T> = new (...args: any[]) => T
 
-  constructor() {
-    super()
-    // @ts-expect-error Добавляем атом в экземляр LitElement
-    super.__changedProps = atom(undefined)
-  }
-  connectedCallback(): void {
-    super.connectedCallback()
-    this._sub = this.render.subscribe(() => {
-      this.requestUpdate(__inner_update, 1)
-    })
-  }
+export const withReatomElement = <T extends Constructor<LitElement>>(
+  superClass: T,
+): T => {
+  return class ReatomLitElement extends superClass {
+    __changedProps?: PropertyValues
+    __abstractRender: AbstractRender<unknown, unknown>
 
-  shouldUpdate(_changedProperties: PropertyValues): boolean {
-    if (
-      _changedProperties.size === 1 &&
-      _changedProperties.has(__inner_update)
-    ) {
+    constructor(...args: any[]) {
+      super(...args)
+
+      this.__abstractRender = reatomAbstractRender({
+        frame: top(),
+        render: () => super.render(),
+        rerender: () => {
+          return this.requestUpdate(__inner_update, 1)
+        },
+        name: 'ReatomElement',
+      })
+    }
+
+    override render() {
+      return this.__abstractRender.render(this.__changedProps).result
+    }
+
+    override shouldUpdate(_changedProperties: PropertyValues): boolean {
+      if (
+        _changedProperties.size === 1 &&
+        _changedProperties.has(__inner_update)
+      ) {
+        //return true
+      }
+      this.__changedProps = _changedProperties
       return true
     }
-    this.__changedProps(_changedProperties)
-    return true
-  }
 
-  disconnectedCallback(): void {
-    super.disconnectedCallback()
-    this._sub?.()
-  }
+    override connectedCallback(): void {
+      super.connectedCallback()
+      this.__abstractRender.mount()
+    }
 
-  /**
-   * !!! For render use renderContent method !!!
-   */
-  render = atom(() => {
-    this.__changedProps()
-    return this.renderContent()
-  })
-
-  protected renderContent() {
-    return super.render()
+    override disconnectedCallback(): void {
+      super.disconnectedCallback()
+      this.__abstractRender.abort()
+    }
   }
 }
 
-export { html, svg } from './html'
-export { watch } from './watch'
+export { html, svg } from './html.js'
+export { watch } from './watch.js'

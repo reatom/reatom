@@ -1,9 +1,9 @@
-import { atom, peek } from '@reatom/core'
-import { ReatomElement, html } from '../src'
+import { atom, Atom, peek } from '@reatom/core'
+import { withReatomElement, watch } from '../src/index.js'
+import { LitElement, html } from 'lit'
 
 const timer = atom(0)
 const countAtom = atom(0)
-const renderCount = atom(0)
 
 const increment = atom(() => {
   countAtom(countAtom() + 1)
@@ -13,45 +13,57 @@ setInterval(() => {
   timer(timer() + 1)
 }, 1_000)
 
-class RenderCountElement extends ReatomElement {
-  protected renderContent() {
-    return html`<div>Render count: ${renderCount}</div>`
-  }
-}
+const RenderCountElement = withReatomElement(
+  class RenderCountElement extends LitElement {
+    declare count: Atom<number>
 
-class CounterElement extends ReatomElement {
-  static properties = { innerCount: { type: Number, state: true } }
-  declare innerCount: number
+    override render() {
+      return html`<div>Render count: ${this.count()}</div>`
+    }
+  },
+)
 
-  private handleClick2 = () => {
-    this.innerCount++
-  }
+const CounterElement = withReatomElement(
+  class CounterElement extends LitElement {
+    static override properties = { innerCount: { type: Number, state: true } }
+    declare innerCount: number
 
-  constructor() {
-    super()
+    renderCount = atom(0)
 
-    this.innerCount = 0
-  }
+    private handleClick = () => {
+      this.innerCount++
+    }
 
-  protected renderContent() {
-    const v = peek(renderCount)
-    renderCount(v + 1)
+    constructor() {
+      super()
 
-    console.log('renderContent', v)
-    return html`
-      <div>
-        <h1>Timer: ${timer}</h1>
-        <h3>Reatom Reactivity: ${countAtom}</h3>
-        <h3>LitElement Reactivity: ${this.innerCount}</h3>
+      this.innerCount = 0
+    }
 
-        <button @click=${this.handleClick2}>
-          Increment LitElement Reactivity
-        </button>
-        <button @click=${() => increment()}>Increment Reatom Reactivity</button>
-      </div>
-    `
-  }
-}
+    override render() {
+      return html`
+        <div>
+          <h1>Timer: ${watch(timer)}</h1>
+          <h3>Reatom Reactivity: ${watch(countAtom)}</h3>
+          <h3>LitElement Reactivity: ${this.innerCount}</h3>
+
+          <button @click=${this.handleClick}>
+            Increment LitElement Reactivity
+          </button>
+          <button @click=${() => increment()}>
+            Increment Reatom Reactivity
+          </button>
+          <render-count .count=${this.renderCount}></render-count>
+        </div>
+      `
+    }
+
+    override updated() {
+      const v = peek(this.renderCount)
+      this.renderCount(v + 1)
+    }
+  },
+)
 
 customElements.define('counter-element', CounterElement)
 customElements.define('render-count', RenderCountElement)
