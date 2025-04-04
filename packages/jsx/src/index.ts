@@ -59,6 +59,25 @@ export let stylesheet = atom<HTMLElement>(null as any, 'jsx.stylesheet').mix(
 )
 let name = ''
 
+/**
+ * @see https://github.com/preactjs/preact/blob/d16a34e275e31afd6738a9f82b5ba2fb9dbf032b/src/diff/props.js#L107
+ * @see https://www.measurethat.net/Benchmarks/Show/7818
+ */
+let propertiesAsAttributes = new Set([
+  'width',
+  'height',
+  'href',
+  'list',
+  'form',
+  /** Default value in browsers is `-1` and an empty string is cast to `0` instead */
+  'tabIndex',
+  'download',
+  'rowSpan',
+  'colSpan',
+  'role',
+  'popover',
+])
+
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
 
@@ -274,22 +293,34 @@ let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
   } else if (key.startsWith('prop:')) {
     // @ts-expect-error
     element[key.slice(5)] = val
+  } else if (
+    !propertiesAsAttributes.has(key)
+    && element instanceof dom.HTMLElement
+    && (key in element || key === 'class')
+  ) {
+    /**
+     * @see https://measurethat.net/Benchmarks/Show/54
+     * @see https://measurethat.net/Benchmarks/Show/31249
+     */
+    if (key === 'class') key = 'className'
+    // @ts-ignore
+    element[key] = val == null ? '' : val
   } else {
     if (key === 'className') key = 'class'
     else if (key.startsWith('attr:')) key = key.slice(5)
 
-    if (val == null || val === false) element.removeAttribute(key)
-    else {
-      val = val === true ? '' : String(val)
-      /**
-       * @see https://measurethat.net/Benchmarks/Show/54
-       * @see https://measurethat.net/Benchmarks/Show/31249
-       */
-      if (key === 'class' && element instanceof dom.HTMLElement) {
-        element.className = val
-      } else {
-        element.setAttribute(key, val)
-      }
+    /**
+     * @note aria- and data- attributes have no boolean representation.
+     * A `false` value is different from the attribute not being
+     * present, so we can't remove it. For non-boolean aria
+     * attributes we could treat false as a removal, but the
+     * amount of exceptions would cost too many bytes. On top of
+     * that other frameworks generally stringify `false`.
+     */
+    if (val == null || (val === false && key[4] !== '-')) {
+      element.removeAttribute(key)
+    } else {
+      element.setAttribute(key, key == 'popover' && val == true ? '' : val)
     }
   }
 }

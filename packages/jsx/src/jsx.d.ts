@@ -790,7 +790,7 @@ export namespace JSX {
   }
   interface AnchorHTMLAttributes<T = HTMLElementTagNameMap['anchor']>
     extends HTMLAttributes<T> {
-    download?: any
+    download?: string
     href?: string
     hreflang?: string
     media?: string
@@ -806,7 +806,7 @@ export namespace JSX {
     extends HTMLAttributes<T> {
     alt?: string
     coords?: string
-    download?: any
+    download?: string
     href?: string
     hreflang?: string
     ping?: string
@@ -2306,9 +2306,7 @@ export namespace JSX {
     section: HTMLAttributes<HTMLElementTagNameMap['section']>
     select: SelectHTMLAttributes<HTMLElementTagNameMap['select']>
     slot: HTMLSlotElementAttributes
-    HTMLElementTagNameMap: HTMLAttributes<
-      HTMLElementTagNameMap['HTMLElementTagNameMap']
-    >
+    small: HTMLAttributes<HTMLElementTagNameMap['small']>
     source: SourceHTMLAttributes<HTMLElementTagNameMap['source']>
     span: HTMLAttributes<HTMLElementTagNameMap['span']>
     strong: HTMLAttributes<HTMLElementTagNameMap['strong']>
