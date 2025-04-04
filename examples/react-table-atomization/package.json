@@ -38,6 +38,6 @@
     "prettier": "3.2.5",
     "typescript": "^5.4.3",
     "typescript-language-server": "^4.3.3",
-    "vite": "^6.2.2"
+    "vite": "^6.2.5"
   }
 }
