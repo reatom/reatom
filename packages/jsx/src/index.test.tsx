@@ -871,3 +871,148 @@ test('linked list', () =>
       '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
     )
   }))
+
+const expectHtmlElementProperty = <
+  Tag extends keyof JSX.HTMLElementTags,
+  Property extends keyof JSX.HTMLElementTags[Tag],
+  Value extends JSX.HTMLElementTags[Tag][Property],
+  Expected extends Tag extends keyof HTMLElementTagNameMap
+    ? Property extends keyof HTMLElementTagNameMap[Tag]
+      ? HTMLElementTagNameMap[Tag][Property]
+      : never
+    : never,
+>(
+  tag: Tag,
+  prop: Property & string,
+  value: Value,
+  expected: Expected,
+  hasAttr: boolean,
+  getAttr: null | string,
+) => {
+  const element = h(tag, { [prop]: value }) as HTMLElement
+  expect((element as any)[prop]).toBe(expected)
+  expect(element.hasAttribute(prop.toLowerCase())).toBe(hasAttr)
+  expect(element.getAttribute(prop.toLowerCase())).toBe(getAttr)
+}
+
+test('width property', () =>
+  root.start(async () => {
+    expectHtmlElementProperty('img', 'width', undefined, 0, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('img', 'width', null, 0, false, null)
+    expectHtmlElementProperty('img', 'width', 1, 1, true, '1')
+    expectHtmlElementProperty('img', 'width', '1', 1, true, '1')
+    expectHtmlElementProperty('img', 'width', -1, 0, true, '-1')
+  }))
+
+test('height property', () =>
+  root.start(async () => {
+    expectHtmlElementProperty('img', 'height', undefined, 0, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('img', 'height', null, 0, false, null)
+    expectHtmlElementProperty('img', 'height', 1, 1, true, '1')
+    expectHtmlElementProperty('img', 'height', '1', 1, true, '1')
+    expectHtmlElementProperty('img', 'height', -1, 0, true, '-1')
+  }))
+
+test('download property', () =>
+  root.start(async () => {
+    expectHtmlElementProperty('a', 'download', undefined, '', false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('a', 'download', null, '', false, null)
+    // expectHtmlElementProperty('a', 'download', false, '', false, null)
+    // expectHtmlElementProperty('a', 'download', true, '', true, '')
+    expectHtmlElementProperty('a', 'download', 'abc', 'abc', true, 'abc')
+  }))
+
+test('href property', () =>
+  root.start(async () => {
+    expectHtmlElementProperty('a', 'href', undefined, '', false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('a', 'href', null, '', false, null)
+    expectHtmlElementProperty('a', 'href', 'https://test.com/', 'https://test.com/', true, 'https://test.com/')
+  }))
+
+test('list property', () =>
+  root.start(async () => {
+    const element = <input list="list"></input>
+    const list = <datalist id="list"></datalist>
+    mount(parent(), <div>{element}{list}</div>)
+
+    expect(element.list).toBe(list)
+    expect(element.hasAttribute('list')).toBe(true)
+    expect(element.getAttribute('list')).toBe('list')
+
+    expectHtmlElementProperty('input', 'list', undefined, null, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('input', 'list', null, null, false, null)
+  }))
+
+test('form property', () =>
+  root.start(async () => {
+    const element = <input form="form"></input>
+    const form = <form id="form"></form>
+    mount(parent(), <div>{element}{form}</div>)
+
+    expect(element.form).toBe(form)
+    expect(element.hasAttribute('form')).toBe(true)
+    expect(element.getAttribute('form')).toBe('form')
+
+    expectHtmlElementProperty('input', 'form', undefined, null, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('input', 'form', null, null, false, null)
+  }))
+
+test('tabIndex property', () =>
+  root.start(async () => {
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('div', 'tabIndex', undefined, -1, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('div', 'tabIndex', null, -1, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('div', 'tabIndex', 0, 0, true, '0')
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('div', 'tabIndex', '0', 0, true, '0')
+  }))
+
+test('rowSpan property', () =>
+  root.start(async () => {
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'rowSpan', undefined, 1, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'rowSpan', null, 1, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'rowSpan', 0, 0, true, '0')
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'rowSpan', -1, 1, true, '-1')
+  }))
+
+test('colSpan property', () =>
+  root.start(async () => {
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'colSpan', undefined, 1, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'colSpan', null, 1, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'colSpan', 1, 1, true, '1')
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('td', 'colSpan', 0, 1, true, '0')
+  }))
+
+test('role property', () =>
+  root.start(async () => {
+    expectHtmlElementProperty('div', 'role', undefined, null, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('div', 'role', null, null, false, null)
+    expectHtmlElementProperty('div', 'role', 'alert', 'alert', true, 'alert')
+  }))
+
+test('popover property', () =>
+  root.start(async () => {
+    expectHtmlElementProperty('div', 'popover', undefined, null, false, null)
+    // @ts-expect-error TODO fix types
+    expectHtmlElementProperty('div', 'popover', null, null, false, null)
+    expectHtmlElementProperty('div', 'popover', false, null, false, null)
+    expectHtmlElementProperty('div', 'popover', true, 'auto', true, '')
+    expectHtmlElementProperty('div', 'popover', 'auto', 'auto', true, 'auto')
+  }))
