@@ -161,21 +161,6 @@ export let withAsyncData: {
     AsyncDataMethods<Params, Payload, Payload>
   >
 
-  <Params extends any[], Payload>(
-    initState: Payload,
-    map: (payload: Payload, params: Params, state: Payload) => Payload,
-  ): Assigner<
-    Action<Params, Promise<Payload>>,
-    AsyncDataMethods<Params, Payload, Payload>
-  >
-  <Payload>(
-    initState: Payload,
-    map: (payload: Payload, params: Array<unknown>, state: Payload) => Payload,
-  ): Assigner<
-    AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<unknown>, Payload, Payload>
-  >
-
   <Params extends any[], Payload, State>(
     initState: State,
     map: (payload: Payload, params: Params, state: State) => State,
@@ -191,9 +176,28 @@ export let withAsyncData: {
     AsyncDataMethods<Array<unknown>, Payload, State>
   >
 
+  <Params extends any[], Payload>(
+    initState: Payload,
+    map: (payload: Payload, params: Params, state: Payload) => Payload,
+  ): Assigner<
+    Action<Params, Promise<Payload>>,
+    AsyncDataMethods<Params, Payload, Payload>
+  >
+  <Payload>(
+    initState: Payload,
+    map: (payload: Payload, params: Array<unknown>, state: Payload) => Payload,
+  ): Assigner<
+    AtomLike<Promise<Payload>>,
+    AsyncDataMethods<Array<unknown>, Payload, Payload>
+  >
+
   <Params extends any[], Payload>(): Assigner<
     Action<Params, Promise<Payload>>,
     AsyncDataMethods<Params, Payload, Payload | undefined>
+  >
+  <Payload>(): Assigner<
+    AtomLike<Promise<Payload>>,
+    AsyncDataMethods<Array<unknown>, Payload, Payload | undefined>
   >
 
   <Params extends any[], Payload, State>(

@@ -68,6 +68,19 @@ test('withAsyncData for action', async () => {
   expect(onFulfill).toBeCalledWith({ payload: 2, params: [1] })
 })
 
+test('withAsyncData for action with mappings', async () => {
+  const name = 'actionAsyncDataMap'
+  const fetch = action(async (param: number) => param + 1, `${name}.fetch`).mix(
+    withAsyncData(new Array<number>(), (payload, _params, _state) => [payload]),
+  )
+
+  expect(fetch.data()).toEqual([])
+
+  await wrap(fetch(1))
+  expect(fetch.ready()).toBe(true)
+  expect(fetch.data()).toEqual([2])
+})
+
 test('withAsyncData for atom', async () => {
   const name = 'atomAsyncData'
   const param = atom(0, `${name}.param`)
@@ -85,4 +98,18 @@ test('withAsyncData for atom', async () => {
   expect(resource.data()).toBe(1)
   expect(onFulfill).toBeCalledTimes(1)
   expect(onFulfill).toBeCalledWith({ payload: 1, params: [0] })
+})
+
+test('withAsyncData for atom with mappings', async () => {
+  const name = 'actionAtomDataMap'
+  const param = atom(1, `${name}.param`)
+  const resource = atom(async () => param() + 1, `${name}.resource`).mix(
+    withAsyncData(new Array<number>(), (payload, _params, _state) => [payload]),
+  )
+
+  expect(resource.data()).toEqual([])
+
+  await wrap(resource())
+  expect(resource.ready()).toBe(true)
+  expect(resource.data()).toEqual([2])
 })
