@@ -2,7 +2,7 @@ import { expect, expectTypeOf, test } from 'test'
 
 import { Atom, atom, AtomLike } from './atom'
 import { Action, isAction } from './action'
-import { Assigner, AtomInput, Middleware } from './mix'
+import { Assigner, Middleware } from './mix'
 import { withChangeHook } from '../mixins'
 
 // Simple extension for testing
@@ -66,7 +66,7 @@ test('bind assigned functions', () => {
 
 export function withInput<Params extends any[], T>(
   parse: (...parse: Params) => T,
-): Middleware<Atom<T>, Params> {
+): Middleware<Atom<T>, [] | Params> {
   return () =>
     (next, ...params) =>
       params.length ? next(parse(...params)) : next()
@@ -101,7 +101,7 @@ test('input payload change', () => {
   ;() => n3('3')
 
   expectTypeOf(n1).not.toExtend<Atom<string>>()
-  expectTypeOf(n1).toEqualTypeOf<AtomInput<[number], string>>()
+  expectTypeOf(n1).toEqualTypeOf<AtomLike<string, [number]>>()
   expectTypeOf(n2).toExtend<AtomLike<string> & ((value?: number) => string)>()
   expectTypeOf(n2).not.toExtend<
     AtomLike<string> & ((value?: number) => number)
@@ -121,7 +121,7 @@ test('middleware persists properties', () => {
   ;() => n('3')
 
   expectTypeOf(n).toExtend<
-    AtomInput<[value: number], string> & {
+    AtomLike<string, [value: number]> & {
       test: number
     }
   >()

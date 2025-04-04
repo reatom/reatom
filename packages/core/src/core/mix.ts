@@ -1,4 +1,4 @@
-import { AtomLike } from './atom'
+import { AtomLike, AtomState } from './atom'
 import { OverloadParameters, Rec as UtilsRec } from '../utils'
 import { Action } from './action'
 
@@ -37,10 +37,6 @@ export type Extension<
   Params extends any[] = any[],
 > = Assigner<Target, Assigned> | Middleware<Target, Params>
 
-export interface AtomInput<Params extends any[], State>
-  extends AtomLike<State> {
-  (...params: Params): State
-}
 
 // Base type for handling a single extension
 export type ExtendedAtom<
@@ -61,8 +57,8 @@ export type ExtendedAtom<
                 [K in Exclude<keyof Target, keyof Action>]: Target[K]
               }
           : Exclude<keyof Target, keyof AtomLike> extends never
-            ? AtomInput<Exclude<Params, []>, ReturnType<Target>>
-            : AtomInput<Exclude<Params, []>, ReturnType<Target>> & {
+            ? AtomLike<AtomState<Target>, Params, ReturnType<Target>>
+            : AtomLike<AtomState<Target>, Params, ReturnType<Target>> & {
                 [K in Exclude<keyof Target, keyof AtomLike>]: Target[K]
               }
         : never
