@@ -23,7 +23,7 @@ test('action cause stack', () => {
   let logData
   const log = atom(() => {
     a2()
-    logData = getTrace()
+    logData = getTrace().replaceAll('\n', ' ')
   }, 'log')
   log.subscribe()
   logData = undefined
@@ -31,8 +31,8 @@ test('action cause stack', () => {
   act(1)
   notify()
 
-  expect(logData).toBe(' <-- log <-- a2 <-- a1 <-- act')
-  expect(getTrace(_read(log)!)).toBe(' <-- log <-- a2 <-- a1 <-- act')
+  expect(logData).toBe('<-- log <-- a2 <-- a1 <-- act')
+  expect(getTrace(_read(log)!).replaceAll('\n', ' ')).toBe('<-- log <-- a2 <-- a1 <-- act')
 })
 
 test('actionState', () => {

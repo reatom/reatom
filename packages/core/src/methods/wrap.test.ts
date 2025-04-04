@@ -33,7 +33,10 @@ test('async frame stack', async () => {
 
       atom(() => {
         try {
-          logs.push(a0() + getStackTrace().replaceAll(`${name}.`, ''))
+          logs.push(
+            a0() +
+              ' ' + getStackTrace().replaceAll(`${name}.`, '').replaceAll('\n', ' '),
+          )
         } catch (error) {
           reject(error)
         }
