@@ -20,6 +20,8 @@ import {
   isObject,
   atom,
   withInit,
+  root,
+  Action,
 } from '@reatom/core'
 import type { AttributesAtomMaybe, JSX } from './jsx'
 
@@ -171,10 +173,13 @@ let walkLinkedList = (
 
   // it's critical to not use not a last state, but the each state.
   const unSubscribe = list.subscribe(noop)
-  const unChange = addChangeHook(list, cb)
+  const rootFrame = root()
+  const unChange = addChangeHook(list, (state) => {
+    if (rootFrame === root()) cb(state)
+  })
 
   let state = list()
-  // check if change hook wasn't called
+  // check if change hook wasn't called by initialization
   if (lastVersion === -1) cb(state)
 
   unlink(el, () => {
