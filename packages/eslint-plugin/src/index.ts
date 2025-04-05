@@ -1,7 +1,7 @@
 import { ESLint } from 'eslint'
 import { asyncRule } from './rules/async-rule'
 import { unitNamingRule } from './rules/unit-naming-rule'
-import { scheduleImportRule } from './rules/schedule-import-rule.ts'
+import { scheduleImportRule } from './rules/schedule-import-rule'
 
 const rules = {
   'unit-naming-rule': unitNamingRule,

@@ -6,19 +6,18 @@ const importsMap = {
   schedule: 'import { schedule } from "@reatom/framework";\n',
 }
 const importNames = Object.keys(importsMap)
-type TImport = keyof typeof importsMap
 
 const getTextToReplace = (
   numberArgumentText: string,
   callbackArgumentText: string,
 ) => {
-  if (Boolean(numberArgumentText)) {
+  if (numberArgumentText) {
     return `schedule(ctx, ${callbackArgumentText}, ${numberArgumentText})`
   }
   return `wrap(ctx, ${callbackArgumentText})`
 }
 const getMessage = (n?: estree.Expression | estree.SpreadElement) => {
-  if (Boolean(n)) {
+  if (n) {
     return "Use 'schedule(ctx, cb, n)' instead of deprecated 'ctx.schedule(cb, n)'."
   }
   return "Use 'wrap(ctx, cb)' instead of deprecated 'ctx.schedule(cb)'."
@@ -37,7 +36,7 @@ export const scheduleImportRule: Rule.RuleModule = {
   create(context) {
     let hasImport = false
     let lastImport: estree.ImportDeclaration | null = null
-    let exsistsImportSpecifiers = new Set()
+    const existsImportSpecifiers = new Set()
 
     return {
       ImportDeclaration(node) {
@@ -51,17 +50,17 @@ export const scheduleImportRule: Rule.RuleModule = {
               importNames.includes(specifier.imported.name)
             ) {
               hasImport = true
-              exsistsImportSpecifiers.add(specifier.imported.name)
+              existsImportSpecifiers.add(specifier.imported.name)
             }
           })
         }
       },
 
-      'CallExpression[callee.type=MemberExpression][callee.object.type=Identifier][callee.property.type=Identifier]'(
+      'CallExpression[callee.type=MemberExpression][callee.object.type=Identifier][callee.object.name="ctx"][callee.property.type=Identifier][callee.property.name="schedule"]'(
         node: estree.CallExpression,
       ) {
-        let callbackArgument = node.arguments[0]
-        let numberArgument = node.arguments[1]
+        const callbackArgument = node.arguments[0]
+        const numberArgument = node.arguments[1]
 
         context.report({
           node,
@@ -85,19 +84,19 @@ export const scheduleImportRule: Rule.RuleModule = {
 
             const neededImport = numberArgument ? 'schedule' : 'wrap'
 
-            if (!exsistsImportSpecifiers.has(neededImport)) {
+            if (!existsImportSpecifiers.has(neededImport)) {
               if (hasImport && lastImport) {
-                const exsistedSpecifier = lastImport.specifiers.find(
+                const existedSpecifier = lastImport.specifiers.find(
                   (specifier) =>
                     specifier.type == 'ImportSpecifier' &&
                     'name' in specifier.imported &&
                     importNames.includes(specifier.imported.name),
                 )
 
-                if (exsistedSpecifier) {
+                if (existedSpecifier) {
                   fixes.push(
                     fixer.insertTextAfter(
-                      exsistedSpecifier,
+                      existedSpecifier,
                       `, ${neededImport}`,
                     ),
                   )

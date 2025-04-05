@@ -118,6 +118,7 @@ export const unitNamingRule: Rule.RuleModule = {
 
         const expectedUnit = idScopes.at(-1)
         if (!expectedUnit) return
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const unitIsProp = (expectedUnit as any).parent.type === 'Property'
         const expectedObject = unitIsProp
           ? (idScopes.at(-2)?.name ?? null)
