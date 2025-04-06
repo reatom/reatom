@@ -1,6 +1,9 @@
 {
   "name": "@reatom/core",
   "version": "1000.0.0-alpha.0",
+  "publishConfig": {
+    "tag": "alpha"
+  },
   "private": true,
   "description": "The ultimate state manager",
   "exports": {

@@ -4,6 +4,9 @@
 
 Reatom is a **revolutionary** state management solution that brings together the best practices from multiple paradigms into a cohesive, enjoyable developer experience. It's incredibly powerful yet refreshingly simple - designed for developers who value both elegance and efficiency.
 
+> [!NOTE]
+> This is Alpha documentation. Code examples should work, but text around may contain errors.
+
 ## 🌟 Why Reatom?
 
 In a landscape crowded with state managers, Reatom stands apart as a **unique synthesis** of reactive programming, immutable state management, and functional programming. It offers:
@@ -19,7 +22,7 @@ In a landscape crowded with state managers, Reatom stands apart as a **unique sy
 ## 🚀 Installation
 
 ```sh
-npm i @reatom/core
+npm i @reatom/core@alpha
 ```
 
 ## 🎬 Quick Start
