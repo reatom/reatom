@@ -14,6 +14,32 @@ export interface __reatom {
   onDisconnect?: Fn
 }
 
+const atom1 = <T>(initOrVal?: (() => T) | T, name?: string) => {
+  return reatom(
+    {
+      initState:
+        initOrVal === undefined
+          ? undefined
+          : typeof initOrVal === 'function'
+            ? initOrVal as () => T
+            : () => initOrVal,
+    },
+    name,
+  )
+}
+
+const computed: <T>(
+  computer: (prev: T | undefined) => T,
+  name?: string,
+) => Computed<T> = (computer, name) => {
+  return reatom(
+    {
+      computed: computer,
+    },
+    name,
+  )
+}
+
 /** Base atom interface for other userspace implementations */
 export interface AtomLike<
   State = any,
@@ -460,18 +486,10 @@ declare global {
 assert(!globalThis.__REATOM, 'root duplication', ReatomError)
 globalThis.__REATOM = []
 
-export let atom: {
-  <State>(init: State extends Fn ? never : State, name?: string): Atom<State>
-  <State>(
-    computed: (() => State) | ((state?: State) => State),
-    name?: string,
-  ): Computed<State>
-} = <T>(setup: {} | ((state?: T) => T), name = named('atom')): Atom<T> => {
-  let initState = setup as T
-  if (typeof setup === 'function') {
-    // defineName(setup, name + '.computed')
-    initState = undefined as T
-  }
+export let reatom = <T>(setup: {
+  initState?: () => T
+  computed?: (prev: T | undefined) => T
+}, name = named('atom')): Atom<T> => {
 
   let atom = castAtom<Atom<T>>(
     {
@@ -485,7 +503,7 @@ export let atom: {
         if (frame === undefined) {
           frame = {
             error: null,
-            state: initState,
+            state: setup.initState ? setup.initState() : undefined as T,
             atom,
             pubs: [null],
             subs: [],
@@ -511,14 +529,14 @@ export let atom: {
           middlewares: try {
             let fn: Fn = identity
 
-            if (typeof setup === 'function') {
+            if (setup.computed) {
               if (atom.__reatom.middlewares.length === 1) {
-                newState = middleware(setup as Fn)
+                newState = middleware(setup.computed)
                 newError = null
                 break middlewares
               }
 
-              fn = setup as Fn
+              fn = setup.computed
             }
 
             for (let middleware of atom.__reatom.middlewares) {
