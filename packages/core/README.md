@@ -705,25 +705,29 @@ https://antfu.me/posts/epoch-semver
 
 #### How to store functions in atoms
 
-If you need to store a function, call the atom with setter function which returns the target function.
-
+You can't store functions directly in atoms, as other values, because it will be treated as computed callback;
 ```ts
-// ❌ wrong
-fnRef(myFn)
-// ✅ correct
-fnRef(() => myFn)
+const fnAtom = atom((message) => alert(message)) // ❌ this will not work, function will be called immediately;
 ```
 
-If you need to store a function from the init state, use typecasting and `withInit` mixin.
-
+Here are the few workarounds how to deal with it:
+1. Wrap it in a founction that returns your callback
 ```ts
-const fnRef = atom(undefined as unknown as MyFn, 'fnRef').mix(
+const fnAtom = atom(() => (message) => alert(message), 'fnAtom') // ✅ correct
+const sayHello = action(() => fnAtom()('hello'))
+```
+
+2. Use withInit mixin
+```ts
+const fnAtom = atom(undefined as unknown as MyFn, 'fnAtom').mix(
   withInit(() => myFn),
-)
+) // ✅ correct
+const sayHello = action(() => fnAtom()('hello'))
 ```
 
-And of course, you can store a function in an object.
-
+3. Put function inside an object
 ```ts
-const fnRef = atom({ fn: myFn }, 'fnRef')
+const fnAtom = atom({ cb: (message) => alert(message) }, 'fnAtom') // ✅ correct
+const sayHello = action(() => fnAtom().cb('hello'))
 ```
+
