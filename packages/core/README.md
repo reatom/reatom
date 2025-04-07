@@ -52,8 +52,8 @@ export const Hello = reatomComponent(() => (
 
 Isn't that beautiful? No boilerplate, no complex setup - just pure, reactive programming joy.
 
-- `atom` - is base state container, it can be reded by calling it as a function without arguments and updated by calling it as a function with arguments.
-- `atom` can accept a computed function with automatically subsribes to all reded atoms inside of it.
+- `atom` - is a base state container that can be read by calling it as a function without arguments and updated by calling it as a function with arguments.
+- `atom` can accept a computed function that automatically subscribes to all read atoms inside of it.
 - `mix` is a method to bind additional methods as actions and apply a various set of extension (see below).
 
 Thats all you need to get started with Reatom!
@@ -150,7 +150,7 @@ submitForm()
 // Logs: Submitting: { name: 'Bob', email: 'bob@example.com' }
 ```
 
-Actions are central to managing state transitions and side effects in a structured and debuggable way. You could also subscribes to actions to react to their effects, which is handy for analytics tracking or complex effects management, we will deep into it later.
+Actions are central to managing state transitions and side effects in a structured and debuggable way. You can also subscribe to actions to react to their effects, which is handy for analytics tracking or complex effects management; we will delve into it later.
 
 ## 🌊 Building a Reactive App
 
@@ -241,7 +241,7 @@ counter.add(10)
 counter.reset()
 ```
 
-This approach keeps related functionality grouped together, making your code more organized and maintainable. Note that the passed method are automatically converted to actions which means it logs all calls to the logger or to the debugger!
+This approach keeps related functionality grouped together, making your code more organized and maintainable. Note that the passed methods are automatically converted to actions, which means it logs all calls to the logger or the debugger!
 
 Another usecase for the `mix` is applying aditional extensions to enhance atom or actions functionality. Lets dive in to the debuging and extensions system in the next sections.
 
@@ -256,7 +256,7 @@ import { connectLogger } from '@reatom/core'
 connectLogger()
 ```
 
-Each atom update and action call is logged to the console if it has a name. Yeah, "name" - it is the second argument of `atom()` and `action()` methods. We hightly recomended to give atoms and actions proper names to make debugging easier. LLMs play nice with it, also you can use our eslint plugin for automatic name generation (via "fix" command).
+Each atom update and action call is logged to the console if it has a name. "Name" is the second argument of the `atom()` and `action()` methods. We highly recommend giving atoms and actions proper names to make debugging easier. LLMs work nicely with it, and you can also use our eslint plugin for automatic name generation (via the "fix" command).
 
 Each log contains its name and a payload. And the title of the log is clickable! It opens logs group with many related useful information, like "previous state" for atoms or "parameters" for actions.
 
@@ -476,7 +476,7 @@ Reatom is already highly optimized, but here are some tips for maximum performan
 
 ### Testing
 
-Testing Reatom code is straightforward since all behavior is explicit:
+Testing Reatom code is straightforward since all behavior is explicit.
 
 ```ts
 import { clearStack, root } from '@reatom/core'
@@ -695,8 +695,35 @@ Join our thriving community of Reatom enthusiasts:
 
 ## 🙏 Contributing
 
-We welcome contributions of all kinds! Check out our [Contributing Guide](https://github.com/artalar/reatom/blob/v3/CONTRIBUTING.md) to get started.
+We welcome contributions of all kinds! Check out our [Contributing Guide](https://github.com/artalar/reatom/blob/v1000/CONTRIBUTING.md) to get started.
 
-## 📄 License
+## FAQ
 
-MIT
+### Version naming
+
+https://antfu.me/posts/epoch-semver
+
+#### How to store functions in atoms
+
+If you need to store a function, call the atom with setter function which returns the target function.
+
+```ts
+// ❌ wrong
+fnRef(myFn)
+// ✅ correct
+fnRef(() => myFn)
+```
+
+If you need to store a function from the init state, use typecasting and `withInit` mixin.
+
+```ts
+const fnRef = atom(undefined as unknown as MyFn, 'fnRef').mix(
+  withInit(() => myFn),
+)
+```
+
+And of course, you can store a function in an object.
+
+```ts
+const fnRef = atom({ fn: myFn }, 'fnRef')
+```
