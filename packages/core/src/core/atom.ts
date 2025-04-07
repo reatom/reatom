@@ -284,7 +284,7 @@ function subscribe(
   // console.log('subscribe', this.name)
 
   if (userCb !== undefined) {
-    return atom(() => {
+    return computed(() => {
       userCb(this())
     }, `${this.name}._subscribe`).subscribe()
   }

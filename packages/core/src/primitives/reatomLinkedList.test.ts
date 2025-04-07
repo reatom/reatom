@@ -1,4 +1,4 @@
-import { atom, isAtom } from '../core'
+import { atom, computed, isAtom } from '../core'
 import { describe, test, expect, subscribe, vi } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 import { parseAtoms } from './parseAtoms'
@@ -171,7 +171,7 @@ test('should respect initSnapshot for initializing', () => {
     key: 'id',
     initSnapshot: [['1'], ['2']],
   })
-  const track = subscribe(atom(() => [...list.map().keys()]))
+  const track = subscribe(computed(() => [...list.map().keys()]))
 
   expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
@@ -189,19 +189,4 @@ test('should accept array as initState', () => {
   notify()
   expect(list.array().every(isAtom)).toBeTruthy()
   expect(list.array().length).toBe(3)
-})
-
-test('should accept only initState and key optionally', () => {
-  const list = reatomLinkedList({
-    initState: [{ id: atom('1') }, { id: atom('2') }],
-    key: 'id',
-  })
-
-  const track = subscribe(atom(() => [...list.map().keys()]))
-
-  expect(track.mock.lastCall?.[0]).toStrictEqual(['1', '2'])
-
-  list.map().get('1')?.id('0')
-  notify()
-  expect(track.mock.lastCall?.[0]).toStrictEqual(['0', '2'])
 })

@@ -4,6 +4,7 @@ import {
   atom,
   Atom,
   AtomLike,
+  computed,
   Computed,
   ReatomError,
   root,
@@ -83,7 +84,7 @@ export let withAsync: {
     )
   }
 
-  let ready = atom(() => pending() === 0, `${target.name}.ready`)
+  let ready = computed(() => pending() === 0, `${target.name}.ready`)
 
   let touched = new WeakSet<Promise<any>>()
 

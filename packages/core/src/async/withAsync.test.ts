@@ -1,5 +1,5 @@
 import { expect, subscribe, test, vi } from 'test'
-import { _read, action, atom } from '../core'
+import { _read, action, atom, computed } from '../core'
 import { withCallHook } from '../mixins'
 import { wrap } from '../methods'
 import { withAsync, withAsyncData } from './withAsync'
@@ -31,7 +31,7 @@ test('withAsync for action', async () => {
 test('withAsync for atom', async () => {
   const name = 'atomAsync'
   const params = atom(0, `${name}.params`)
-  const data = atom(async () => params(), `${name}.data`).mix(withAsync())
+  const data = computed(async () => params(), `${name}.data`).mix(withAsync())
 
   expect(data.pending()).toBe(1)
   expect(data.ready()).toBe(false)
@@ -85,7 +85,7 @@ test('withAsyncData for action with mappings', async () => {
 test('withAsyncData for atom', async () => {
   const name = 'atomAsyncData'
   const param = atom(0, `${name}.param`)
-  const resource = atom(async () => param() + 1, `${name}.resource`).mix(
+  const resource = computed(async () => param() + 1, `${name}.resource`).mix(
     withAsyncData(),
   )
   const onFulfill = vi.fn()
@@ -104,7 +104,7 @@ test('withAsyncData for atom', async () => {
 test('withAsyncData for atom with mappings', async () => {
   const name = 'atomAtomDataMap'
   const param = atom(1, `${name}.param`)
-  const resource = atom(async () => param() + 1, `${name}.resource`).mix(
+  const resource = computed(async () => param() + 1, `${name}.resource`).mix(
     withAsyncData(new Array<number>(), (payload, _params, _state) => [payload]),
   )
 
@@ -118,7 +118,7 @@ test('withAsyncData for atom with mappings', async () => {
 test('withAsyncData atom concurrent', async () => {
   const name = 'actionAtomDataMap'
   const param = atom(0, `${name}.param`)
-  const resource = atom(async () => {
+  const resource = computed(async () => {
     let paramState = param()
     await wrap(sleep())
     return paramState + 1
@@ -146,7 +146,7 @@ test('withAsyncData atom concurrent', async () => {
 test('withAsyncData atom concurrent', async () => {
   const name = 'actionAtomDataMap'
   const param = atom(0, `${name}.param`)
-  const resource = atom(async () => {
+  const resource = computed(async () => {
     let paramState = param()
     await wrap(sleep(10))
     return paramState + 1
@@ -181,7 +181,7 @@ test('withAsync for atom error handling', async () => {
   const name = 'atomAsyncError'
   const error = new Error('TEST')
   const shouldFailAtom = atom(true, `${name}.shouldFail`)
-  const data = atom(async () => {
+  const data = computed(async () => {
     const shouldFail = shouldFailAtom()
     await wrap(sleep())
     if (shouldFail) throw error

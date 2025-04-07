@@ -1,6 +1,6 @@
 import { expect, subscribe, test, vi } from 'test'
 import { withMemo } from './withMemo'
-import { atom } from '../core'
+import { atom, computed } from '../core'
 import { isDeepEqual } from '../utils'
 import { notify } from '../methods'
 
@@ -50,8 +50,8 @@ test('deep', () => {
 test('computed propagation', () => {
   const data = atom([{ a: 1 }], 'data').mix(withMemo(isDeepEqual))
   const computedFn = vi.fn(() => data()[0]?.a)
-  const computed = atom(computedFn, 'computed')
-  computed.subscribe()
+  const computedResult = computed(computedFn, 'computed')
+  computedResult.subscribe()
 
   expect(computedFn).toBeCalledTimes(1)
 

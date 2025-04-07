@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'test'
 import { variable } from './variable'
-import { action, atom, root } from '../core'
+import { action, atom, computed, root } from '../core'
 import { withAsyncData } from '../async/withAsync'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
@@ -43,7 +43,7 @@ test('scope propagation for atoms', async () => {
 
   const param = atom(0)
   const paramVar = variable<number>()
-  const resource = atom(async () => param()).mix(
+  const resource = computed(async () => param()).mix(
     withAsyncData({ param: -1, paramVar: -1 }, (param) => ({
       param,
       paramVar: paramVar.get(),

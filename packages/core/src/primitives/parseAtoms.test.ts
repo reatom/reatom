@@ -6,7 +6,7 @@ import {
 } from './reatomLinkedList'
 
 import { test, describe, expect } from 'vitest'
-import { atom } from '../core'
+import { atom, computed } from '../core'
 import { parseAtoms } from './parseAtoms'
 import { reatomEnum } from './reatomEnum'
 
@@ -21,11 +21,11 @@ describe('runtime', () => {
 
   test('should parse deep atoms', () => {
     expect(
-      parseAtoms(atom(() => atom('deep'))),
+      parseAtoms(computed(() => atom('deep'))),
     ).toBe('deep')
 
     expect(
-      parseAtoms(atom(() => [atom(['deep'])])),
+      parseAtoms(computed(() => [atom(['deep'])])),
     ).toEqual([['deep']])
   })
 
@@ -66,7 +66,7 @@ describe('runtime', () => {
 
   test('should spy if inside atom', () => {
     const valueAtom = atom('default')
-    const parsedAtom = atom((ctx) => parseAtoms({ key: valueAtom }))
+    const parsedAtom = computed(() => parseAtoms({ key: valueAtom }))
 
     expect(parsedAtom()).toEqual({ key: 'default' })
 
@@ -195,10 +195,10 @@ describe('types', () => {
 
   it('should parse deep atoms', () => {
     expectTypeOf(
-      parseAtoms(atom(() => atom('deep'))),
+      parseAtoms(computed(() => atom('deep'))),
     ).toEqualTypeOf<string>()
     expectTypeOf(
-      parseAtoms(atom(() => [atom(['deep'])])),
+      parseAtoms(computed(() => [atom(['deep'])])),
     ).toEqualTypeOf<string[][]>()
   })
 
