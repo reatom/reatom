@@ -87,7 +87,7 @@ test('deps shift', () => {
   const dep2 = atom(0, `${name}.dep2`)
   const deps = [dep0, dep1, dep2]
 
-  const a = atom(() => deps.forEach((dep) => dep()), `${name}.a`)
+  const a = computed(() => deps.forEach((dep) => dep()), `${name}.a`)
 
   a.subscribe()
 

@@ -33,7 +33,7 @@ test('should respect initState, create and remove elements properly', () => {
 test('should swap elements', () => {
   const list = reatomLinkedList((n: number) => ({ n }))
   const { array } = list.reatomMap(({ n }) => ({ n }))
-  const track = subscribe(atom(() => array().map(({ n }) => n)))
+  const track = subscribe(computed(() => array().map(({ n }) => n)))
   const one = list.create(1)
   const two = list.create(2)
   const three = list.create(3)
@@ -113,7 +113,7 @@ test('should respect node keys even if it is an atom', () => {
     key: 'id',
     initState: [{ id: atom('1') }, { id: atom('2') }],
   })
-  const track = subscribe(atom(() => [...list.map().keys()]))
+  const track = subscribe(computed(() => [...list.map().keys()]))
 
   expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 

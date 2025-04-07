@@ -23,7 +23,7 @@ test('action cause stack', () => {
   }, `${name}.act`)
 
   let logData
-  const log = atom(() => {
+  const log = computed(() => {
     a2()
     logData = getTrace()
   }, 'log')

@@ -22,7 +22,7 @@ test('async frame stack', async () => {
 
   await wrap(
     new Promise<void>((resolve, reject) => {
-      atom(async () => {
+      computed(async () => {
         try {
           const v = a2()
 
@@ -35,7 +35,7 @@ test('async frame stack', async () => {
         }
       }, `${name}.loop`).subscribe()
 
-      atom(() => {
+      computed(() => {
         try {
           logs.push(a0() + getTrace())
         } catch (error) {
