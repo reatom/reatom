@@ -14,32 +14,6 @@ export interface __reatom {
   onDisconnect?: Fn
 }
 
-export const atom = <T>(initOrVal?: (() => T) | T, name?: string) => {
-  return reatom(
-    {
-      initState:
-        initOrVal === undefined
-          ? undefined
-          : typeof initOrVal === 'function'
-            ? initOrVal as () => T
-            : () => initOrVal,
-    },
-    name,
-  )
-}
-
-export const computed: <T>(
-  computer: (prev: T | undefined) => T,
-  name?: string,
-) => Computed<T> = (computer, name) => {
-  return reatom(
-    {
-      computed: computer,
-    },
-    name,
-  )
-}
-
 /** Base atom interface for other userspace implementations */
 export interface AtomLike<
   State = any,
@@ -486,11 +460,13 @@ declare global {
 assert(!globalThis.__REATOM, 'root duplication', ReatomError)
 globalThis.__REATOM = []
 
-export let reatom = <T>(setup: {
-  initState?: () => T
-  computed?: (prev: T | undefined) => T
-}, name = named('atom')): Atom<T> => {
-
+export let reatom = <T>(
+  setup: {
+    initState?: () => T
+    computed?: (prev: T | undefined) => T
+  },
+  name = named('atom'),
+): Atom<T> => {
   let atom = castAtom<Atom<T>>(
     {
       // Use computed property name to setup the function name for better stack traces
@@ -503,7 +479,7 @@ export let reatom = <T>(setup: {
         if (frame === undefined) {
           frame = {
             error: null,
-            state: setup.initState ? setup.initState() : undefined as T,
+            state: setup.initState ? setup.initState() : (undefined as T),
             atom,
             pubs: [null],
             subs: [],
@@ -600,6 +576,31 @@ export let reatom = <T>(setup: {
   // @ts-ignore TODO
   return atom.mix(...globalThis.__REATOM)
 }
+
+
+export let atom = <T>(initOrVal?: (() => T) | T, name?: string) =>
+  reatom(
+    {
+      initState:
+        initOrVal === undefined
+          ? undefined
+          : typeof initOrVal === 'function'
+            ? (initOrVal as () => T)
+            : () => initOrVal,
+    },
+    name,
+  )
+
+export let computed: <T>(
+  computer: (prev: T | undefined) => T,
+  name?: string,
+) => Computed<T> = (computer, name) =>
+  reatom(
+    {
+      computed: computer,
+    },
+    name,
+  )
 
 export let root = castAtom<RootAtom>(
   () => {
