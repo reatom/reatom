@@ -14,7 +14,7 @@ export interface __reatom {
   onDisconnect?: Fn
 }
 
-const atom1 = <T>(initOrVal?: (() => T) | T, name?: string) => {
+export const atom = <T>(initOrVal?: (() => T) | T, name?: string) => {
   return reatom(
     {
       initState:
@@ -28,7 +28,7 @@ const atom1 = <T>(initOrVal?: (() => T) | T, name?: string) => {
   )
 }
 
-const computed: <T>(
+export const computed: <T>(
   computer: (prev: T | undefined) => T,
   name?: string,
 ) => Computed<T> = (computer, name) => {
