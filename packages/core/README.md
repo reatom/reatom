@@ -30,13 +30,13 @@ npm i @reatom/core@alpha
 Here's a taste of the Reatom experience - notice how clean, readable, and intuitive the code is:
 
 ```tsx
-import { atom } from '@reatom/core'
+import { atom, computed } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
 // Create an atom with related methods
 const input = atom('')
 // Create computed atom
-const greeting = atom(() => `Hello, ${input()}!`)
+const greeting = computed(() => `Hello, ${input()}!`)
 
 // Use in UI components
 export const Hello = reatomComponent(() => (
@@ -110,14 +110,14 @@ Actions are functions that orchestrate state changes and side effects. They bund
 Imagine managing a simple form. Actions help structure the updates:
 
 ```ts
-import { atom, action } from '@reatom/core'
+import { atom, action, computed } from '@reatom/core'
 
 // Atoms for form fields
 const name = atom('', 'name')
 const email = atom('', 'email')
 
 // Computed atom for validation (simplified)
-const isFormValid = atom(
+const isFormValid = computed(
   () => name().length > 0 && email().includes('@'),
   'isFormValid',
 )
@@ -157,7 +157,7 @@ Actions are central to managing state transitions and side effects in a structur
 Let's build a search feature to see Reatom's power and elegance in action:
 
 ```ts
-import { atom, action } from '@reatom/core'
+import { atom, action, computed } from '@reatom/core'
 
 // Split each part of your state to separate atoms
 const search = atom('')
@@ -165,7 +165,7 @@ const isSearching = atom(false)
 const results = atom([])
 
 // Compute derived states
-const tip = atom(() => {
+const tip = computed(() => {
   if (isSearching()) return 'Searching...'
 
   const query = search()
@@ -323,11 +323,11 @@ if (lastError) {
 Need data that automatically refetches when its dependencies change? Async atoms combined with `withAsyncData` are your secret weapon!
 
 ```ts
-import { atom, withAsyncData, wrap } from '@reatom/core'
+import { atom, computed, withAsyncData, wrap } from '@reatom/core'
 
 const userId = atom('user-1', 'userId')
 
-const userProfile = atom(async () => {
+const userProfile = computed(async () => {
   // This function re-runs whenever `userId` changes!
   const id = userId()
 
@@ -708,22 +708,8 @@ https://antfu.me/posts/epoch-semver
 If you need to store a function, call the atom with setter function which returns the target function.
 
 ```ts
-// ❌ wrong
-fnRef(myFn)
 // ✅ correct
-fnRef(() => myFn)
-```
-
-If you need to store a function from the init state, use typecasting and `withInit` mixin.
-
-```ts
-const fnRef = atom(undefined as unknown as MyFn, 'fnRef').mix(
-  withInit(() => myFn),
-)
-```
-
-And of course, you can store a function in an object.
-
-```ts
-const fnRef = atom({ fn: myFn }, 'fnRef')
+const fnRef = atom(() => myFn, 'fnRef');
+// ❌ wrong, treats myFn as initializer
+const fnRef = fnRef(myFn)
 ```
