@@ -1,4 +1,4 @@
-import { Action, atom, Atom, Computed, named } from '../core'
+import { Action, _atom, Atom, Computed, named } from '../core'
 
 export interface SetAtom<T> extends Atom<Set<T>> {
   add: Action<[el: T], Set<T>>
@@ -36,7 +36,7 @@ export const reatomSet = <T>(
 ): SetAtom<T> => {
   const atomInitState = initState instanceof Set ? initState : new Set(initState);
   
-  return atom(atomInitState, name).mix(
+  return _atom(atomInitState, name).mix(
     (target) => ({
       add: (el: T) => (
         target((prev) => (prev.has(el) ? prev : new Set(prev).add(el)))
@@ -81,7 +81,7 @@ export const reatomSet = <T>(
       //   (target() as ProposalSet<T>).isSupersetOf(set),
       // isDisjointFrom: (set: Set<T>) =>
       //   (target() as ProposalSet<T>).isDisjointFrom(set),
-      size: atom(() => target().size, `${target.name}.size`),
+      size: _atom(() => target().size, `${target.name}.size`),
     }),
   )
 }

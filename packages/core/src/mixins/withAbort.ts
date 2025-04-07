@@ -1,4 +1,4 @@
-import { atom, AtomLike, ReatomError } from '../core'
+import { _atom, AtomLike, ReatomError } from '../core'
 import { AbortAtom, peek, reatomAbort } from '../methods'
 import { assert, toAbortError } from '../utils'
 
@@ -11,7 +11,7 @@ export let withAbort =
       ReatomError,
     )
 
-    let abortContainer = atom<null | AbortAtom>(
+    let abortContainer = _atom<null | AbortAtom>(
       null,
       `${target.name}._abortContainer`,
     )

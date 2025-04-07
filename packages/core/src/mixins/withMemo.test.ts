@@ -1,12 +1,12 @@
 import { expect, subscribe, test, vi } from 'test'
 import { withMemo } from './withMemo'
-import { atom } from '../core'
+import { _atom } from '../core'
 import { isDeepEqual } from '../utils'
 import { notify } from '../methods'
 
 test('memo', () => {
   const name = 'memo'
-  const data = atom<{ a: number; b?: number }>({ a: 1 }, `${name}.data`).mix(withMemo())
+  const data = _atom<{ a: number; b?: number }>({ a: 1 }, `${name}.data`).mix(withMemo())
 
   const state = data()
   data({ a: 1 })
@@ -25,7 +25,7 @@ test('memo', () => {
 
 test('shallow', () => {
   const name = 'memoShallow'
-  const data = atom([{ a: 1 }], `${name}.data`).mix(withMemo())
+  const data = _atom([{ a: 1 }], `${name}.data`).mix(withMemo())
 
   const state = data()
   data([state[0]!])
@@ -37,7 +37,7 @@ test('shallow', () => {
 
 test('deep', () => {
   const name = 'memoDeep'
-  const data = atom([{ a: 1 }], `${name}.data`).mix(withMemo(isDeepEqual))
+  const data = _atom([{ a: 1 }], `${name}.data`).mix(withMemo(isDeepEqual))
 
   const state = data()
   data([state[0]!])
@@ -48,9 +48,9 @@ test('deep', () => {
 })
 
 test('computed propagation', () => {
-  const data = atom([{ a: 1 }], 'data').mix(withMemo(isDeepEqual))
+  const data = _atom([{ a: 1 }], 'data').mix(withMemo(isDeepEqual))
   const computedFn = vi.fn(() => data()[0]?.a)
-  const computed = atom(computedFn, 'computed')
+  const computed = _atom(computedFn, 'computed')
   computed.subscribe()
 
   expect(computedFn).toBeCalledTimes(1)
@@ -65,7 +65,7 @@ test('computed propagation', () => {
 })
 
 test('subscription propagation', () => {
-  const data = atom([{ a: 1 }], 'data').mix(withMemo(isDeepEqual))
+  const data = _atom([{ a: 1 }], 'data').mix(withMemo(isDeepEqual))
   const track = subscribe(data)
 
   expect(track).toBeCalledTimes(1)

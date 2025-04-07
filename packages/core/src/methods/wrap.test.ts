@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { atom, root } from '../core/atom'
+import { _atom, root } from '../core/atom'
 import { wrap } from './wrap'
 import { sleep } from '../utils'
 import { getStackTrace } from '../connectLogger'
@@ -12,17 +12,17 @@ test('async frame stack', async () => {
       .replaceAll(`${name}.`, '')
       .replace(/ \[\#\d\]/g, '')
 
-  const a0 = atom(0, `${name}.a0`)
-  const a1 = atom(() => {
+  const a0 = _atom(0, `${name}.a0`)
+  const a1 = _atom(() => {
     return a0() + 1
   }, `${name}.a1`)
-  const a2 = atom(() => a1() + 1, `${name}.a2`)
+  const a2 = _atom(() => a1() + 1, `${name}.a2`)
 
   const logs: Array<string> = []
 
   await wrap(
     new Promise<void>((resolve, reject) => {
-      atom(async () => {
+      _atom(async () => {
         try {
           const v = a2()
 
@@ -35,7 +35,7 @@ test('async frame stack', async () => {
         }
       }, `${name}.loop`).subscribe()
 
-      atom(() => {
+      _atom(() => {
         try {
           logs.push(a0() + getTrace())
         } catch (error) {

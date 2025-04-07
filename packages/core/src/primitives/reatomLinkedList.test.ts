@@ -1,4 +1,4 @@
-import { atom, isAtom } from '../core'
+import { _atom, isAtom } from '../core'
 import { describe, test, expect, subscribe, vi } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 import { parseAtoms } from './parseAtoms'
@@ -7,8 +7,8 @@ import { isCausedBy, notify } from '../methods'
 
 test('should respect initState, create and remove elements properly', () => {
   const list = reatomLinkedList({
-    create: (n: number) => atom(n),
-    initState: [atom(1), atom(2)],
+    create: (n: number) => _atom(n),
+    initState: [_atom(1), _atom(2)],
   })
 
   const last = list.create(3)
@@ -33,7 +33,7 @@ test('should respect initState, create and remove elements properly', () => {
 test('should swap elements', () => {
   const list = reatomLinkedList((n: number) => ({ n }))
   const { array } = list.reatomMap(({ n }) => ({ n }))
-  const track = subscribe(atom(() => array().map(({ n }) => n)))
+  const track = subscribe(_atom(() => array().map(({ n }) => n)))
   const one = list.create(1)
   const two = list.create(2)
   const three = list.create(3)
@@ -109,11 +109,11 @@ test('should move elements', () => {
 
 test('should respect node keys even if it is an atom', () => {
   const list = reatomLinkedList({
-    create: (id: string) => ({ id: atom(id) }),
+    create: (id: string) => ({ id: _atom(id) }),
     key: 'id',
-    initState: [{ id: atom('1') }, { id: atom('2') }],
+    initState: [{ id: _atom('1') }, { id: _atom('2') }],
   })
-  const track = subscribe(atom(() => [...list.map().keys()]))
+  const track = subscribe(_atom(() => [...list.map().keys()]))
 
   expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
@@ -167,11 +167,11 @@ test('should remove a single node', () => {
 
 test('should respect initSnapshot for initializing', () => {
   const list = reatomLinkedList({
-    create: (id: string) => ({ id: atom(id) }),
+    create: (id: string) => ({ id: _atom(id) }),
     key: 'id',
     initSnapshot: [['1'], ['2']],
   })
-  const track = subscribe(atom(() => [...list.map().keys()]))
+  const track = subscribe(_atom(() => [...list.map().keys()]))
 
   expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
@@ -181,11 +181,11 @@ test('should respect initSnapshot for initializing', () => {
 })
 
 test('should accept array as initState', () => {
-  const list = reatomLinkedList([atom(1), atom(2)])
+  const list = reatomLinkedList([_atom(1), _atom(2)])
 
   expect(list.array().every(isAtom)).toBeTruthy()
 
-  list.create(atom(3))
+  list.create(_atom(3))
   notify()
   expect(list.array().every(isAtom)).toBeTruthy()
   expect(list.array().length).toBe(3)
@@ -193,11 +193,11 @@ test('should accept array as initState', () => {
 
 test('should accept only initState and key optionally', () => {
   const list = reatomLinkedList({
-    initState: [{ id: atom('1') }, { id: atom('2') }],
+    initState: [{ id: _atom('1') }, { id: _atom('2') }],
     key: 'id',
   })
 
-  const track = subscribe(atom(() => [...list.map().keys()]))
+  const track = subscribe(_atom(() => [...list.map().keys()]))
 
   expect(track.mock.lastCall?.[0]).toStrictEqual(['1', '2'])
 

@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 import { action } from './action'
-import { _read, atom, Frame } from './atom'
+import { _read, _atom, Frame } from './atom'
 import { notify } from '../methods'
 import { getStackTrace } from '../connectLogger'
 
@@ -16,14 +16,14 @@ test('action cause stack', () => {
     getStackTrace('', ' ', frame)
       .replaceAll(`${name}.`, '')
       .replace(/ \[\#\d\]/g, '')
-  const a1 = atom(0, `${name}.a1`)
-  const a2 = atom(() => a1(), `${name}.a2`)
+  const a1 = _atom(0, `${name}.a1`)
+  const a2 = _atom(() => a1(), `${name}.a2`)
   const act = action((number: number) => {
     return a1(number)
   }, `${name}.act`)
 
   let logData
-  const log = atom(() => {
+  const log = _atom(() => {
     a2()
     logData = getTrace()
   }, 'log')

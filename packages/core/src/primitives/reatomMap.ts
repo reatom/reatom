@@ -1,4 +1,4 @@
-import { type Action, type Atom, atom, named } from '../core'
+import { type Action, type Atom, _atom, named } from '../core'
 import { Computed } from '../core'
 
 export interface MapAtom<Key, Value> extends Atom<Map<Key, Value>> {
@@ -24,7 +24,7 @@ export const reatomMap = <Key, Value>(
   const atomInitState =
     initState instanceof Map ? initState : new Map(initState)
 
-  return atom(atomInitState, name).mix((target) => {
+  return _atom(atomInitState, name).mix((target) => {
     const actions = {
       getOrCreate: (key: Key, creator: () => Value) => {
         const state = target()
@@ -51,7 +51,7 @@ export const reatomMap = <Key, Value>(
         }),
       clear: () => target(new Map()),
       reset: () => target(atomInitState),
-      size: atom(() => target().size, `${target.name}.size`),
+      size: _atom(() => target().size, `${target.name}.size`),
     }
 
     return actions

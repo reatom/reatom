@@ -1,5 +1,5 @@
 import { expect, subscribe, test, vi } from 'test'
-import { _read, Atom, atom, AtomLike, isConnected, root } from './atom'
+import { _read, Atom, _atom, AtomLike, isConnected, root } from './atom'
 import { notify } from '../methods'
 import { Middleware } from './mix'
 
@@ -9,24 +9,24 @@ test('diamonds', () => {
   const middleware = vi.fn<ReturnType<Middleware<AtomLike<number>>>>(
     (next, ...a) => next(...a),
   )
-  const a1 = atom(0, `${name}.a1`).mix(() => middleware) as Atom<number>
-  const a2 = atom(() => {
+  const a1 = _atom(0, `${name}.a1`).mix(() => middleware) as Atom<number>
+  const a2 = _atom(() => {
     computedCalls++
     return a1() + a1() - a1()
   }, `${name}.a2`).mix(() => middleware)
-  const a3 = atom(() => {
+  const a3 = _atom(() => {
     computedCalls++
     return a1()
   }, `${name}.a3`).mix(() => middleware)
-  const a4 = atom(() => {
+  const a4 = _atom(() => {
     computedCalls++
     return a2() + a3()
   }, `${name}.a4`).mix(() => middleware)
-  const a5 = atom(() => {
+  const a5 = _atom(() => {
     computedCalls++
     return a2() + a3()
   }, `${name}.a5`).mix(() => middleware)
-  const a6 = atom(() => {
+  const a6 = _atom(() => {
     computedCalls++
     return a4() + a5()
   }, `${name}.a6`).mix(() => middleware)

@@ -1,4 +1,4 @@
-import { Action, Atom, atom, named } from '../core'
+import { Action, Atom, _atom, named } from '../core'
 
 export interface ArrayAtom<T> extends Atom<Array<T>> {
   push: Action<[...items: T[]], number>
@@ -11,7 +11,7 @@ export const reatomArray = <T>(
   initState = [] as T[],
   name = named('arrayAtom'),
 ): ArrayAtom<T> =>
-  atom(initState, name).mix((target) => ({
+  _atom(initState, name).mix((target) => ({
     push: (...items: T[]) => {
       const arrCopy = target().slice()
       const pushed = arrCopy.push(...items)

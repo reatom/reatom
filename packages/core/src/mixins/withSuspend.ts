@@ -1,5 +1,5 @@
 import type { AtomLike, AtomState, Computed, Assigner } from '../core'
-import { atom, ReatomError, top } from '../core'
+import { _atom, ReatomError, top } from '../core'
 import { withComputed } from './withComputed'
 import { assert } from '../utils'
 import { wrap } from '../methods'
@@ -55,7 +55,7 @@ export let withSuspend =
   (target) => {
     if ('suspended' in target) return {} as any
 
-    let suspended = atom(undefined, `${target.name}.suspended`).mix(
+    let suspended = _atom(undefined, `${target.name}.suspended`).mix(
       withComputed((state) => {
         let promise = target()
 

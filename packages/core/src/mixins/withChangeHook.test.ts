@@ -1,14 +1,14 @@
 import { expect, test, vi } from 'test'
-import { action, atom } from '../core'
+import { action, _atom } from '../core'
 import { withChangeHook, withCallHook } from './withChangeHook'
 import { notify } from '../methods'
 
 test('atomChange', () => {
   const name = 'atomChange'
   const cb = vi.fn()
-  const a1 = atom(0, `${name}.a1`).mix(withChangeHook(cb))
-  const a2 = atom(0, `${name}.a2`).mix(withChangeHook(cb))
-  const a3 = atom(() => a2(), `${name}.a2`).mix(withChangeHook(cb))
+  const a1 = _atom(0, `${name}.a1`).mix(withChangeHook(cb))
+  const a2 = _atom(0, `${name}.a2`).mix(withChangeHook(cb))
+  const a3 = _atom(() => a2(), `${name}.a2`).mix(withChangeHook(cb))
 
   a1()
   notify()

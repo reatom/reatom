@@ -1,7 +1,7 @@
 import {
   type Atom,
   type Action,
-  atom,
+  _atom,
   action,
   ReatomError,
   named,
@@ -353,7 +353,7 @@ export function reatomLinkedList<
   // for batching
   let STATE: null | LinkedList<LLNode<Node>> = null
 
-  const linkedList = atom(STATE!, name).mix(
+  const linkedList = _atom(STATE!, name).mix(
     withInit(() => {
       try {
         if ('initState' in restOptions)
@@ -507,13 +507,13 @@ export function reatomLinkedList<
     return null
   }
 
-  const array: LinkedListAtom<Params, Node, Key>['array'] = atom(
+  const array: LinkedListAtom<Params, Node, Key>['array'] = _atom(
     (state: Array<LLNode<Node>> = []) => toArray(linkedList().head, state),
     `${name}.array`,
   )
 
   const map = key
-    ? (atom(
+    ? (_atom(
         () =>
           new Map(
             // use array as it already memoized and simplifies the order tracking
@@ -545,7 +545,7 @@ export function reatomLinkedList<
 
     type State = LinkedListDerivedState<LLNode<Node>, LLNode<T>>
 
-    const mapList = atom((mapList?: State): State => {
+    const mapList = _atom((mapList?: State): State => {
       if (STATE) {
         throw new ReatomError(
           `Can't compute the map of the linked list inside the batching.`,
@@ -644,7 +644,7 @@ export function reatomLinkedList<
       return mapList
     }, name)
 
-    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] = atom(
+    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] = _atom(
       (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
       `${name}.array`,
     )

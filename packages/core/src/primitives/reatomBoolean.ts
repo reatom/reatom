@@ -1,4 +1,4 @@
-import { Action, Atom, atom, named } from '../core'
+import { Action, Atom, _atom, named } from '../core'
 
 export interface BooleanAtom extends Atom<boolean> {
   toggle: Action<[], boolean>
@@ -8,7 +8,7 @@ export interface BooleanAtom extends Atom<boolean> {
 }
 
 export const reatomBoolean = (init = false, name = named('booleanAtom')): BooleanAtom =>
-  atom(init, name).mix(
+  _atom(init, name).mix(
     (target) => ({
       toggle: () => target((prev) => !prev),
       setTrue: () => target(true) as true,

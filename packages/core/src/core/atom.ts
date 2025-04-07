@@ -1,9 +1,10 @@
 import type { Fn, Rec, Unsubscribe } from '../utils'
-import { assert, defineName, identity } from '../utils'
 import type { Assigner, Extension, Mix } from './mix'
+import type { AbortAtom } from '../methods'
+import type { Computed } from './computed';
+import { assert, defineName, identity } from '../utils'
 import { action } from './action'
 import { schedule } from '../methods/queues'
-import { type AbortAtom } from '../methods'
 
 /** @internal The list of applied mixins (middlewares). */
 export interface __reatom {
@@ -40,11 +41,6 @@ export interface Atom<State = any> extends AtomLike<State> {
   (newState: State): State
 }
 
-/** Derived state container */
-export interface Computed<State = any> extends AtomLike<State> {
-  (): State
-}
-
 /** Call(atom)stack snapshot */
 export interface Frame<
   State = any,
@@ -67,7 +63,7 @@ export interface Frame<
 
 export type AtomState<T> = T extends AtomLike<infer State> ? State : never
 
-export interface Queue extends Array<Fn> {}
+export interface Queue extends Array<Fn> { }
 
 /** Atom's state mappings for context */
 export interface Store extends WeakMap<Atom, Frame> {
@@ -106,7 +102,7 @@ export interface RootState {
   pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'cleanup' | 'effect'): void
 }
 
-export interface RootFrame extends Frame<RootState> {}
+export interface RootFrame extends Frame<RootState> { }
 
 export interface RootAtom extends AtomLike<RootState> {
   (): RootFrame
@@ -114,7 +110,7 @@ export interface RootAtom extends AtomLike<RootState> {
   start(): RootFrame
 }
 
-export class ReatomError extends Error {}
+export class ReatomError extends Error { }
 
 /* A simple "push‐run‐pop" callstack management */
 export function run<I extends any[], O>(
@@ -284,7 +280,7 @@ function subscribe(
   // console.log('subscribe', this.name)
 
   if (userCb !== undefined) {
-    return atom(() => {
+    return _atom(() => {
       userCb(this())
     }, `${this.name}._subscribe`).subscribe()
   }
@@ -386,7 +382,7 @@ function middleware(next: Fn) {
       (dependent
         ? !subscribed
         : // computed without dependencies should rerun only after direct state change
-          push && !Object.is(state, frame.state)))
+        push && !Object.is(state, frame.state)))
 
   // pubs invalidation check to memoize the computed
   if (invalid && dependent) {
@@ -460,7 +456,8 @@ declare global {
 assert(!globalThis.__REATOM, 'root duplication', ReatomError)
 globalThis.__REATOM = []
 
-export let atom: {
+
+export let _atom: {
   <State>(init: State extends Fn ? never : State, name?: string): Atom<State>
   <State>(
     computed: (() => State) | ((state?: State) => State),
@@ -582,6 +579,10 @@ export let atom: {
   // @ts-ignore TODO
   return atom.mix(...globalThis.__REATOM)
 }
+
+export let atom: {
+  <State>(init: State extends Fn ? never : State, name?: string): Atom<State>
+} = _atom;
 
 export let root = castAtom<RootAtom>(
   () => {

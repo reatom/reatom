@@ -1,17 +1,17 @@
 import { expect, vi, test, subscribe } from 'test'
 
-import { _read, atom, AtomLike, isConnected, root } from './atom'
+import { _read, _atom, AtomLike, isConnected, root } from './atom'
 import { withComputed } from '../mixins'
 import { notify } from '../methods/queues'
 import { Middleware } from './mix'
 
 test('linking', () => {
   const name = 'linking'
-  const a1 = atom(0, `${name}.a1`)
-  const a2 = atom(() => a1(), `${name}.a2`)
+  const a1 = _atom(0, `${name}.a1`)
+  const a2 = _atom(() => a1(), `${name}.a2`)
   const fn = vi.fn()
 
-  const testEffect = atom(() => fn(a2()), `${name}.testEffect`)
+  const testEffect = _atom(() => fn(a2()), `${name}.testEffect`)
 
   const { store } = root().state
 
@@ -43,12 +43,12 @@ test('linking', () => {
 
 test('reading', () => {
   const name = 'reading'
-  const a = atom(0, `${name}.a`)
+  const a = _atom(0, `${name}.a`)
   const bFn = vi.fn(() => a())
   const bMiddleware = vi.fn<ReturnType<Middleware<AtomLike>>>((next, ...a) =>
     next(...a),
   )
-  const b = atom(bFn, `${name}.b`).mix(bMiddleware)
+  const b = _atom(bFn, `${name}.b`).mix(bMiddleware)
 
   expect(b()).toBe(0)
   expect(b()).toBe(0)
@@ -59,11 +59,11 @@ test('reading', () => {
 
 test('disconnect tail deps', () => {
   const name = 'disconnectTail'
-  const aAtom = atom(0, `${name}.aAtom`)
+  const aAtom = _atom(0, `${name}.aAtom`)
   const track = vi.fn(() => aAtom())
-  const bAtom = atom(track, `${name}.bAtom`)
-  const isActiveAtom = atom(true, `${name}.isActiveAtom`)
-  const bAtomControlled = atom(
+  const bAtom = _atom(track, `${name}.bAtom`)
+  const isActiveAtom = _atom(true, `${name}.isActiveAtom`)
+  const bAtomControlled = _atom(
     (state?: any) => (isActiveAtom() ? bAtom() : state),
     `${name}.bAtomControlled`,
   )
@@ -82,12 +82,12 @@ test('disconnect tail deps', () => {
 
 test('deps shift', () => {
   const name = 'depsShift'
-  const dep0 = atom(0, `${name}.dep0`)
-  const dep1 = atom(0, `${name}.dep1`)
-  const dep2 = atom(0, `${name}.dep2`)
+  const dep0 = _atom(0, `${name}.dep0`)
+  const dep1 = _atom(0, `${name}.dep1`)
+  const dep2 = _atom(0, `${name}.dep2`)
   const deps = [dep0, dep1, dep2]
 
-  const a = atom(() => deps.forEach((dep) => dep()), `${name}.a`)
+  const a = _atom(() => deps.forEach((dep) => dep()), `${name}.a`)
 
   a.subscribe()
 
@@ -104,8 +104,8 @@ test('deps shift', () => {
 
 test('subscribe to cached atom', () => {
   const name = 'cachedAtom'
-  const a1 = atom(0, `${name}.a1`)
-  const a2 = atom(() => a1(), `${name}.a2`)
+  const a1 = _atom(0, `${name}.a1`)
+  const a2 = _atom(() => a1(), `${name}.a2`)
 
   // First get the value without subscribing
   a2()
@@ -119,9 +119,9 @@ test('subscribe to cached atom', () => {
 
 test('update propagation for atom with listener', () => {
   const name = 'updatePropagation'
-  const a1 = atom(0, `${name}.a1`)
-  const a2 = atom(() => a1(), `${name}.a2`)
-  const a3 = atom(() => a2(), `${name}.a3`)
+  const a1 = _atom(0, `${name}.a1`)
+  const a2 = _atom(() => a1(), `${name}.a2`)
+  const a3 = _atom(() => a2(), `${name}.a3`)
 
   const cb2 = subscribe(a2)
   const cb3 = subscribe(a3)
@@ -148,17 +148,17 @@ test('update propagation for atom with listener', () => {
   a3.subscribe(cb3)
   expect(_read(a2)!.subs.length).toBe(2)
 
-  atom(() => a3()).subscribe()
+  _atom(() => a3()).subscribe()
   expect(_read(a2)!.subs.length).toBe(2)
 })
 
 test('conditional deps duplication', () => {
   const name = 'conditionalDeps'
-  const condition = atom(true, `${name}.condition`)
-  const dep1 = atom(1, `${name}.dep1`)
-  const dep2 = atom(2, `${name}.dep2`)
+  const condition = _atom(true, `${name}.condition`)
+  const dep1 = _atom(1, `${name}.dep1`)
+  const dep2 = _atom(2, `${name}.dep2`)
 
-  const conditional = atom(() => {
+  const conditional = _atom(() => {
     if (condition()) {
       return dep1()
     } else {
@@ -166,7 +166,7 @@ test('conditional deps duplication', () => {
     }
   }, `${name}.conditional`)
 
-  const fn = subscribe(atom(() => conditional(), `${name}.testEffect`))
+  const fn = subscribe(_atom(() => conditional(), `${name}.testEffect`))
 
   expect(fn).toBeCalledTimes(1)
   expect(fn).toBeCalledWith(1)
@@ -206,7 +206,7 @@ test('conditional deps duplication', () => {
 
 test('computed without dependencies', () => {
   const name = 'noDeps'
-  const a = atom(0, `${name}.a`).mix(
+  const a = _atom(0, `${name}.a`).mix(
     withComputed((state) => {
       return state + 1
     }),
@@ -224,14 +224,14 @@ test('computed without dependencies', () => {
 
 test('error tracking', () => {
   const name = 'errorTracking'
-  const a = atom(0, `${name}.a`)
-  const b = atom(() => {
+  const a = _atom(0, `${name}.a`)
+  const b = _atom(() => {
     const aState = a()
     if (aState < 5) throw new Error('error')
     success = true
     return a()
   }, `${name}.b`)
-  atom(() => {
+  _atom(() => {
     try {
       b()
     } catch {
@@ -255,9 +255,9 @@ test('error tracking', () => {
 
 test('middleware connection', () => {
   const name = 'middlewareConnection'
-  const before = atom(null, `${name}.before`)
-  const after = atom(null, `${name}.after`)
-  const target = atom(null, `${name}.target`).mix(() => (next) => {
+  const before = _atom(null, `${name}.before`)
+  const after = _atom(null, `${name}.after`)
+  const target = _atom(null, `${name}.target`).mix(() => (next) => {
     before()
     const state = next()
     after()

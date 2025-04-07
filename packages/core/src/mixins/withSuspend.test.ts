@@ -1,21 +1,21 @@
 import { expect, test, subscribe } from 'test'
 
-import { atom, isConnected } from '../core'
+import { _atom, isConnected } from '../core'
 import { suspense } from './withSuspend'
 import { sleep } from '../utils'
 import { notify, wrap } from '../methods'
 
 test('suspense', async () => {
   const name = 'suspense'
-  const param = atom(0, `${name}.param`)
-  const data = atom(async () => param(), `${name}.data`)
-  const result = atom(() => {
+  const param = _atom(0, `${name}.param`)
+  const data = _atom(async () => param(), `${name}.data`)
+  const result = _atom(() => {
     const syncData = suspense(data)
     return syncData
   }, `${name}.result`)
 
   const track = subscribe(
-    atom(() => {
+    _atom(() => {
       try {
         return result()
       } catch (error) {
@@ -44,14 +44,14 @@ test('suspense', async () => {
 
 test('suspense reject propagation', async () => {
   const name = 'suspenseReject'
-  const param = atom(0, `${name}.param`)
-  const data = atom(async () => {
+  const param = _atom(0, `${name}.param`)
+  const data = _atom(async () => {
     if (param() < 5) throw new Error('error')
     return param()
   }, `${name}.data`)
 
   let calls = 0
-  const result = atom(() => {
+  const result = _atom(() => {
     try {
       calls++
       return suspense(data)

@@ -1,7 +1,7 @@
 import {
   action,
   Action,
-  atom,
+  _atom,
   Atom,
   AtomLike,
   Computed,
@@ -59,7 +59,7 @@ export let withAsync: {
     return call
   }, `${target.name}._onSettle`)
 
-  let pending = atom(0, `${target.name}._pending`)
+  let pending = _atom(0, `${target.name}._pending`)
     // computed needed to ensure that `pending` (and `ready`) connection will connect the target
     // which is especially important for an atom target
     .mix(
@@ -73,7 +73,7 @@ export let withAsync: {
       }),
     )
 
-  let error = atom<unknown | undefined>(undefined, `${target.name}._error`)
+  let error = _atom<unknown | undefined>(undefined, `${target.name}._error`)
   if (target.__reatom.reactive) {
     error.mix(
       withComputed((state) => {
@@ -83,7 +83,7 @@ export let withAsync: {
     )
   }
 
-  let ready = atom(() => pending() === 0, `${target.name}.ready`)
+  let ready = _atom(() => pending() === 0, `${target.name}.ready`)
 
   let touched = new WeakSet<Promise<any>>()
 
@@ -204,7 +204,7 @@ export let withAsyncData: {
   (target: AtomLike<Promise<any>>) => {
     let asyncTarget = target.mix(withAbort(), withAsync())
 
-    let data = atom(initState, `${target.name}.data`).mix(
+    let data = _atom(initState, `${target.name}.data`).mix(
       withComputed((state) => {
         if (target.__reatom.reactive) target()
         ifCalled(asyncTarget.onFulfill, ({ payload, params }) => {

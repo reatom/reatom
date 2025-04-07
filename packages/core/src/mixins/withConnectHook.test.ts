@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'test'
-import { atom } from '../core'
+import { _atom } from '../core'
 import { withConnectHook, withDisconnectHook } from './withConnectHook'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
@@ -8,11 +8,11 @@ test('withConnectHook', async () => {
   const name = 'withConnectHook'
   let connect = vi.fn()
   let disconnect = vi.fn()
-  const a = atom(0, `${name}.a`).mix(
+  const a = _atom(0, `${name}.a`).mix(
     withConnectHook(() => connect('a')),
     withDisconnectHook(() => disconnect('a')),
   )
-  const b = atom(() => a(), `${name}.b`).mix(
+  const b = _atom(() => a(), `${name}.b`).mix(
     withConnectHook(() => connect('b')),
     withDisconnectHook(() => disconnect('b')),
   )

@@ -1,4 +1,4 @@
-import { _read, atom, root, STACK, type Frame } from './core'
+import { _read, _atom, root, STACK, type Frame } from './core'
 import { getPrevPubs } from './core/context'
 import { AbortAtom, reatomAbort, findVar, variable, wrap } from './methods'
 import { Fn, toAbortError, Unsubscribe } from './utils'
@@ -40,9 +40,9 @@ export let reatomAbstractRender = <Props, Result>({
 
   let changedVar = variable<boolean>()
 
-  let propsAtom = atom({} as Exclude<Props, Fn>, `${name}._propsAtom`)
+  let propsAtom = _atom({} as Exclude<Props, Fn>, `${name}._propsAtom`)
 
-  let renderAtom = atom((state?: { result: Result }): { result: Result } => {
+  let renderAtom = _atom((state?: { result: Result }): { result: Result } => {
     let pubs = getPrevPubs()
 
     let props = propsAtom()

@@ -1,7 +1,7 @@
 import {
   __reatom,
   _copy,
-  atom,
+  _atom,
   AtomLike,
   isAtom,
   named,
@@ -67,7 +67,7 @@ export let action: {
   cb: (...params: Params) => Payload,
   name = named('action'),
 ): Action<Params, Payload> => {
-  let target = atom([], name) as any as Action
+  let target = _atom([], name) as any as Action
 
   target.__reatom.reactive = false
 

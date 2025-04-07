@@ -1,4 +1,4 @@
-import { Action, Atom, atom, named } from '../core'
+import { Action, Atom, _atom, named } from '../core'
 import { random } from '../utils'
 
 export interface NumberAtom extends Atom<number> {
@@ -12,7 +12,7 @@ export const reatomNumber = (
   initState = 0,
   name = named('numberAtom'),
 ): NumberAtom =>
-  atom(initState, name).mix((target) => ({
+  _atom(initState, name).mix((target) => ({
     increment: (by = 1) => target((prev) => prev + by),
     decrement: (by = 1) => target((prev) => prev - by),
     random: (min?: number, max?: number) => target(random(min, max)),

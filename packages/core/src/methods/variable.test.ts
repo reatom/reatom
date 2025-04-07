@@ -1,12 +1,12 @@
 import { expect, test, vi } from 'test'
 import { variable } from './variable'
-import { action, atom, root } from '../core'
+import { action, _atom, root } from '../core'
 import { withAsyncData } from '../async/withAsync'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
 
 test('unique scope', async () => {
-  const countVar = variable((init: number) => atom(init))
+  const countVar = variable((init: number) => _atom(init))
   const init = action(countVar.set)
 
   const log = vi.fn()
@@ -17,7 +17,7 @@ test('unique scope', async () => {
 })
 
 test('scope propagation for actions', async () => {
-  const countVar = variable((init: number) => atom(init))
+  const countVar = variable((init: number) => _atom(init))
   const read = action(() => countVar.get()())
   const init = action((init: number) => {
     countVar.set(init)
@@ -41,9 +41,9 @@ test('scope propagation for atoms', async () => {
     })
   }
 
-  const param = atom(0)
+  const param = _atom(0)
   const paramVar = variable<number>()
-  const resource = atom(async () => param()).mix(
+  const resource = _atom(async () => param()).mix(
     withAsyncData({ param: -1, paramVar: -1 }, (param) => ({
       param,
       paramVar: paramVar.get(),

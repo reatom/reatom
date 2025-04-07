@@ -6,7 +6,7 @@ import {
 } from './reatomLinkedList'
 
 import { test, describe, expect } from 'vitest'
-import { atom } from '../core'
+import { _atom } from '../core'
 import { parseAtoms } from './parseAtoms'
 import { reatomEnum } from './reatomEnum'
 
@@ -21,21 +21,21 @@ describe('runtime', () => {
 
   test('should parse deep atoms', () => {
     expect(
-      parseAtoms(atom(() => atom('deep'))),
+      parseAtoms(_atom(() => _atom('deep'))),
     ).toBe('deep')
 
     expect(
-      parseAtoms(atom(() => [atom(['deep'])])),
+      parseAtoms(_atom(() => [_atom(['deep'])])),
     ).toEqual([['deep']])
   })
 
   test('should parse records', () => {
     expect(
       parseAtoms({
-        someValue: atom(1),
+        someValue: _atom(1),
         someDeep: {
           deep: {
-            deep: atom('value'),
+            deep: _atom('value'),
           },
         },
       }),
@@ -52,9 +52,9 @@ describe('runtime', () => {
   test('should parse maps', () => {
     const atomized = new Map()
     const keyObj = {}
-    const keyAtom = atom('')
-    atomized.set(1, atom(1))
-    atomized.set(keyObj, atom({ someKey: atom('someValue') }))
+    const keyAtom = _atom('')
+    atomized.set(1, _atom(1))
+    atomized.set(keyObj, _atom({ someKey: _atom('someValue') }))
     atomized.set(keyAtom, 'someRawValue')
 
     const parsed = parseAtoms(atomized)
@@ -65,8 +65,8 @@ describe('runtime', () => {
   })
 
   test('should spy if inside atom', () => {
-    const valueAtom = atom('default')
-    const parsedAtom = atom((ctx) => parseAtoms({ key: valueAtom }))
+    const valueAtom = _atom('default')
+    const parsedAtom = _atom((ctx) => parseAtoms({ key: valueAtom }))
 
     expect(parsedAtom()).toEqual({ key: 'default' })
 
@@ -78,10 +78,10 @@ describe('runtime', () => {
     const atomized = new Set()
     const symbol = Symbol()
     const keyObj = { __id__: symbol }
-    atomized.add(atom(1))
-    atomized.add(atom(1))
-    atomized.add(atom(1))
-    atomized.add(atom(1))
+    atomized.add(_atom(1))
+    atomized.add(_atom(1))
+    atomized.add(_atom(1))
+    atomized.add(_atom(1))
     atomized.add(keyObj)
     atomized.add('someRawValue')
 
@@ -99,10 +99,10 @@ describe('runtime', () => {
   test('should parse mixed values', () => {
     expect(
       parseAtoms({
-        someValue: atom(1),
+        someValue: _atom(1),
         someDeep: {
           deep: {
-            deep: atom('value'),
+            deep: _atom('value'),
           },
         },
       }),
@@ -117,7 +117,7 @@ describe('runtime', () => {
   })
 
   test('should parse deep structures', () => {
-    expect(parseAtoms([[[[[atom('deepStruct')]]]]])).toEqual([
+    expect(parseAtoms([[[[[_atom('deepStruct')]]]]])).toEqual([
       [[[['deepStruct']]]],
     ])
   })
@@ -195,20 +195,20 @@ describe('types', () => {
 
   it('should parse deep atoms', () => {
     expectTypeOf(
-      parseAtoms(atom(() => atom('deep'))),
+      parseAtoms(_atom(() => _atom('deep'))),
     ).toEqualTypeOf<string>()
     expectTypeOf(
-      parseAtoms(atom(() => [atom(['deep'])])),
+      parseAtoms(_atom(() => [_atom(['deep'])])),
     ).toEqualTypeOf<string[][]>()
   })
 
   it('should parse records', () => {
     expectTypeOf(
       parseAtoms({
-        someValue: atom(1),
+        someValue: _atom(1),
         someDeep: {
           deep: {
-            deep: atom('value'),
+            deep: _atom('value'),
           },
         },
       }),
@@ -225,9 +225,9 @@ describe('types', () => {
   it('should parse maps', () => {
     const atomized = new Map<any, any>()
     const keyObj = {}
-    const keyAtom = atom('')
-    atomized.set(1, atom(1))
-    atomized.set(keyObj, atom({ someKey: atom('someValue') }))
+    const keyAtom = _atom('')
+    atomized.set(1, _atom(1))
+    atomized.set(keyObj, _atom({ someKey: _atom('someValue') }))
     atomized.set(keyAtom, 'someRawValue')
 
     expectTypeOf(parseAtoms(atomized)).toEqualTypeOf<Map<any, any>>()
@@ -235,7 +235,7 @@ describe('types', () => {
 
   it('should parse sets', () => {
     const atomized = new Set<any>()
-    atomized.add(atom(1))
+    atomized.add(_atom(1))
     atomized.add('someRawValue')
 
     expectTypeOf(parseAtoms(atomized)).toEqualTypeOf<Set<any>>()
@@ -244,10 +244,10 @@ describe('types', () => {
   it('should parse mixed values', () => {
     expectTypeOf(
       parseAtoms({
-        someValue: atom(1),
+        someValue: _atom(1),
         someDeep: {
           deep: {
-            deep: atom('value'),
+            deep: _atom('value'),
           },
         },
       }),
@@ -262,7 +262,7 @@ describe('types', () => {
   })
 
   it('should parse deep structures', () => {
-    expectTypeOf(parseAtoms([[[[[atom('deepStruct')]]]]])).toEqualTypeOf<
+    expectTypeOf(parseAtoms([[[[[_atom('deepStruct')]]]]])).toEqualTypeOf<
       string[][][][][]
     >()
   })
@@ -270,12 +270,12 @@ describe('types', () => {
   it('should parse linked list as array', () => {
     const model = reatomLinkedList((value: number) => ({
       kind: 'TEST' as const,
-      bool1: atom(true),
-      array: atom([
-        atom({
+      bool1: _atom(true),
+      array: _atom([
+        _atom({
           type: reatomEnum(['A', 'B', 'C']),
-          str1: atom(''),
-          bool: atom(false),
+          str1: _atom(''),
+          bool: _atom(false),
         }),
       ]),
     }))

@@ -1,4 +1,4 @@
-import { Action, atom, Atom, named } from '../core'
+import { Action, _atom, Atom, named } from '../core'
 import { Fn, Rec, omit } from '../utils'
 
 export interface RecordAtom<T extends Rec> extends Atom<T> {
@@ -11,7 +11,7 @@ export const reatomRecord = <T extends Rec>(
   initState: Exclude<T, Fn>,
   name = named('recordAtom'),
 ): RecordAtom<T> =>
-  atom(initState, name).mix(
+  _atom(initState, name).mix(
     (target) => ({
       merge: (slice: Partial<T>) => (
         target((prev) => {

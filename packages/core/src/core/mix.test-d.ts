@@ -1,6 +1,6 @@
 import { expect, expectTypeOf, test } from 'test'
 
-import { Atom, atom, AtomLike } from './atom'
+import { Atom, _atom, AtomLike } from './atom'
 import { Action, isAction } from './action'
 import { Assigner, Middleware } from './mix'
 import { withChangeHook } from '../mixins'
@@ -14,10 +14,10 @@ const withProp =
 test('1 assigner extension', () => {
   const name = '1ext'
 
-  const test0 = atom(0, `${name}.test0`).mix(() => ({}))
+  const test0 = _atom(0, `${name}.test0`).mix(() => ({}))
   expectTypeOf(test0).toExtend<Atom<number>>()
 
-  const test1 = atom(0, `${name}.test1`).mix(withProp('a', 1))
+  const test1 = _atom(0, `${name}.test1`).mix(withProp('a', 1))
 
   expectTypeOf(test1).toHaveProperty('a')
   expectTypeOf(test1.a).toEqualTypeOf<number>()
@@ -25,7 +25,7 @@ test('1 assigner extension', () => {
 
 test('7 assigner extensions', () => {
   const name = '7ext'
-  const test7 = atom(0, `${name}.test7`).mix(
+  const test7 = _atom(0, `${name}.test7`).mix(
     withProp('a', 1),
     withProp('b', 2),
     withProp('c', 3),
@@ -50,7 +50,7 @@ test('7 assigner extensions', () => {
 
 test('bind assigned functions', () => {
   const name = 'bindFunctions'
-  const number = atom(0, `${name}.number`).mix((target) => ({
+  const number = _atom(0, `${name}.number`).mix((target) => ({
     inc: (to = 1) => target(target() + to),
   }))
 
@@ -74,16 +74,16 @@ export function withInput<Params extends any[], T>(
 
 test('input payload change', () => {
   const name = 'middlewareInput'
-  const n1 = atom('', `${name}.n1`).mix(
+  const n1 = _atom('', `${name}.n1`).mix(
     () =>
       (next, ...params: [] | [number]) =>
         params.length ? next(String(params[0])) : next(),
   )
-  const n2 = atom('', `${name}.n2`).mix(
+  const n2 = _atom('', `${name}.n2`).mix(
     () => (next, value?: number) =>
       value === undefined ? next() : next(String(value)),
   )
-  const n3 = atom('', `${name}.n3`).mix(
+  const n3 = _atom('', `${name}.n3`).mix(
     withInput((value: number) => String(value)),
   )
 
@@ -110,7 +110,7 @@ test('input payload change', () => {
 
 test('middleware persists properties', () => {
   const name = 'middlewareProperties'
-  const n = atom('', `${name}.n`).mix(
+  const n = _atom('', `${name}.n`).mix(
     () => ({ test: 0 }),
     withInput((value: number) => String(value)),
   )
@@ -128,7 +128,7 @@ test('middleware persists properties', () => {
 })
 
 test('withChangeHandler', () => {
-  atom(0).mix(
+  _atom(0).mix(
     withChangeHook((state, prev) => {
       expectTypeOf(state).toBeNumber()
       expectTypeOf(prev).toEqualTypeOf<undefined | number>()

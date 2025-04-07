@@ -1,4 +1,4 @@
-import { atom, AtomLike, Frame, named, root, top } from '../core'
+import { _atom, AtomLike, Frame, named, root, top } from '../core'
 import { findInPubs } from '../core/context'
 import { withComputed } from '../mixins'
 import { AbortError, toAbortError } from '../utils'
@@ -23,7 +23,7 @@ let abortMethods = {
  * it is computed from all other abort atoms of the current frame tree */
 export let reatomAbort = (name = named('abort'), frame = top()): AbortAtom =>
   Object.assign(
-    atom<null | AbortError>(null, name).mix(
+    _atom<null | AbortError>(null, name).mix(
       withComputed((state) => {
         if (state != null) return state
         let context = root().state.context.abort

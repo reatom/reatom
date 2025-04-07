@@ -1,4 +1,4 @@
-import { Action, Atom, atom, named, ReatomError } from '../core'
+import { Action, Atom, _atom, named, ReatomError } from '../core'
 import { Fn } from '../utils'
 
 export type EnumFormat = 'camelCase' | 'snake_case'
@@ -47,7 +47,7 @@ export const reatomEnum = <
   if (!initState)
     throw new ReatomError(`enum "${name}" must have an at least one variant`)
 
-  return atom(initState as string, name).mix(
+  return _atom(initState as string, name).mix(
     (target) => ({ reset: () => target(initState!) }),
     (target) =>
       (next: Fn, ...params) => {
