@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@astrojs/react": "^4.2.3",
+    "@astrojs/starlight": "https://gitpkg.now.sh/HiDeoo/starlight/packages/starlight?hd-feat-cascade-layers",
+    "@astrojs/starlight-tailwind": "https://gitpkg.now.sh/HiDeoo/starlight/packages/tailwind?hd-feat-cascade-layers",
     "@codemirror/lang-javascript": "^6.2.3",
     "@codemirror/state": "^6.5.2",
     "@discoveryjs/discovery": "^1.0.0-beta.94",
@@ -39,7 +41,6 @@
     "tw-animate-css": "^1.2.5"
   },
   "devDependencies": {
-    "@astrojs/starlight": "^0.33.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.2",
     "prettier": "^3.5.3",

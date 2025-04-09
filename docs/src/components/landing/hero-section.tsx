@@ -54,7 +54,7 @@ export function HeroSection() {
           <AnimatedGradientText className="mb-6 max-w-4xl pb-2 text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
             The State Manager That Moves at the Speed of Thought
           </AnimatedGradientText>
-          <p className="mt-4 mb-8 max-w-[700px] text-lg md:text-xl">
+          <p className="mt-4 mb-8 max-w-2xl text-lg md:text-xl">
             Simple, powerful, and blazingly fast state management for modern JavaScript
             applications. Only 2KB gzipped with the best TypeScript experience.
           </p>
@@ -62,11 +62,11 @@ export function HeroSection() {
             <a href="/docs/getting-started/setup">
               <Button
                 size="lg"
-                className="text-background hover:bg-foreground/80 gap-2 rounded-full px-8 hover:animate-none"
+                className="hover:bg-foreground/80 gap-2 rounded-full px-8 hover:animate-none"
               >
-                <Zap className="h-4 w-4 fill-yellow-300 text-yellow-300" />
+                <Zap className="size-4 fill-yellow-300 text-yellow-300" />
                 Get Started
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight className="size-4" />
               </Button>
             </a>
             <a href="https://github.com/reatom/reatom">

@@ -284,7 +284,7 @@ export function AdvancedExample() {
           </p>
         </div>
 
-        <div className="mx-auto max-w-4xl">
+        <div className="mx-auto max-w-4xl flex flex-col items-center">
           <Tabs defaultValue="Data Fetching" value={activeTab} onValueChange={setActiveTab}>
             <div className="mb-4">
               <TabsList className="border border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
@@ -302,7 +302,7 @@ export function AdvancedExample() {
                 ))}
               </TabsList>
             </div>
-
+            <div className="max-w-[30rem] md:max-w-full">
             {advancedExamples.map((example) => (
               <TabsContent
                 key={example.name}
@@ -325,6 +325,7 @@ export function AdvancedExample() {
                 </pre>
               </TabsContent>
             ))}
+            </div>
           </Tabs>
         </div>
       </div>

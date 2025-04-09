@@ -1,7 +1,8 @@
-@import 'tailwindcss';
+@layer base, starlight.base, starlight.reset, starlight.core, starlight.content, starlight.components, starlight.utils, theme, components, utilities;
+@import '@astrojs/starlight-tailwind';
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
 @import 'tw-animate-css';
-
-@custom-variant dark (&:is(.dark *));
 
 :root {
   --radius: 0.625rem;
@@ -72,7 +73,7 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-@theme inline {
+@theme {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

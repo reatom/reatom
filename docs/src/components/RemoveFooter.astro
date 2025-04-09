@@ -1,0 +1,11 @@
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const contentPanels = document.querySelectorAll('footer');
+    contentPanels.forEach(panel => {
+      const hasFooter = panel.querySelector('.sl-flex');
+      if (hasFooter) {
+        panel.remove();
+      }
+    });
+  });
+</script> 

@@ -104,6 +104,9 @@ export default defineConfig({
     },
   },
   markdown: {
+    shiki: {
+      theme: 'css-variables',
+    },
     rehypePlugins: [
       [
         rehypeExternalLinks,

@@ -5,6 +5,8 @@
       "name": "@reatom/docs",
       "dependencies": {
         "@astrojs/react": "^4.2.3",
+        "@astrojs/starlight": "https://gitpkg.now.sh/HiDeoo/starlight/packages/starlight?hd-feat-cascade-layers",
+        "@astrojs/starlight-tailwind": "https://gitpkg.now.sh/HiDeoo/starlight/packages/tailwind?hd-feat-cascade-layers",
         "@codemirror/lang-javascript": "^6.2.3",
         "@codemirror/state": "^6.5.2",
         "@discoveryjs/discovery": "^1.0.0-beta.94",
@@ -31,7 +33,6 @@
         "tw-animate-css": "^1.2.5",
       },
       "devDependencies": {
-        "@astrojs/starlight": "^0.33.0",
         "@types/react": "^19.1.0",
         "@types/react-dom": "^19.1.2",
         "prettier": "^3.5.3",
@@ -67,6 +68,8 @@
     "@astrojs/sitemap": ["@astrojs/sitemap@3.3.0", "", { "dependencies": { "sitemap": "^8.0.0", "stream-replace-string": "^2.0.0", "zod": "^3.24.2" } }, "sha512-nYE4lKQtk+Kbrw/w0G0TTgT724co0jUsU4tPlHY9au5HmTBKbwiCLwO/15b1/y13aZ4Kr9ZbMeMHlXuwn0ty4Q=="],
 
     "@astrojs/starlight": ["@astrojs/starlight@0.33.0", "", { "dependencies": { "@astrojs/mdx": "^4.0.5", "@astrojs/sitemap": "^3.2.1", "@pagefind/default-ui": "^1.3.0", "@types/hast": "^3.0.4", "@types/js-yaml": "^4.0.9", "@types/mdast": "^4.0.4", "astro-expressive-code": "^0.40.0", "bcp-47": "^2.1.0", "hast-util-from-html": "^2.0.1", "hast-util-select": "^6.0.2", "hast-util-to-string": "^3.0.0", "hastscript": "^9.0.0", "i18next": "^23.11.5", "js-yaml": "^4.1.0", "klona": "^2.0.6", "mdast-util-directive": "^3.0.0", "mdast-util-to-markdown": "^2.1.0", "mdast-util-to-string": "^4.0.0", "pagefind": "^1.3.0", "rehype": "^13.0.1", "rehype-format": "^5.0.0", "remark-directive": "^3.0.0", "unified": "^11.0.5", "unist-util-visit": "^5.0.0", "vfile": "^6.0.2" }, "peerDependencies": { "astro": "^5.1.5" } }, "sha512-BAdz3TJ5f7e0iDwu7ZNy6i6Rlca2sgi416K8pGPN3VMIlgJmj9NCqSUGZh+OQhk5FNzmnssi8w+xQQeNpe5hDw=="],
+
+    "@astrojs/starlight-tailwind": ["@astrojs/starlight-tailwind@https://gitpkg.now.sh/HiDeoo/starlight/packages/tailwind?hd-feat-cascade-layers", { "peerDependencies": { "@astrojs/starlight": ">=0.33.0", "tailwindcss": "^4.0.0" } }],
 
     "@astrojs/telemetry": ["@astrojs/telemetry@3.2.0", "", { "dependencies": { "ci-info": "^4.1.0", "debug": "^4.3.7", "dlv": "^1.1.3", "dset": "^3.1.4", "is-docker": "^3.0.0", "is-wsl": "^3.1.0", "which-pm-runs": "^1.1.0" } }, "sha512-wxhSKRfKugLwLlr4OFfcqovk+LIFtKwLyGPqMsv+9/ibqqnW3Gv7tBhtKEb0gAyUAC4G9BTVQeQahqnQAhd6IQ=="],
 
