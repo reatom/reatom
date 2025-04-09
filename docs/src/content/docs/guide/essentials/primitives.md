@@ -1,5 +1,5 @@
 ---
-title: Learning
+title: Primitives
 description: Explaining basic concepts, primitives and tools
 sidebar:
   order: 2

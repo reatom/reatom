@@ -22,8 +22,8 @@ export default defineConfig({
             switcherStyle: 'hidden',
           },
           navLinks: {
-            leading: { useSidebarLabelled: "leadingNavLinks" }
-          }
+            leading: { useSidebarLabelled: 'leadingNavLinks' },
+          },
         }),
       ],
       title: 'Reatom',
@@ -46,7 +46,7 @@ export default defineConfig({
           items: [
             {
               label: 'Guide',
-              link: 'guide',
+              link: 'guide/getting-started',
             },
             {
               label: 'Recipes',
@@ -59,21 +59,32 @@ export default defineConfig({
           ],
         },
         {
-          label: 'Getting Started',
-          autogenerate: {
-            directory: 'guide',
-          },
+          label: 'Guide',
+          items: [
+            {
+              label: 'Getting started',
+              autogenerate: {
+                directory: 'guide/getting-started',
+              },
+            },
+            {
+              label: 'Essentials',
+              autogenerate: {
+                directory: 'guide/essentials',
+              },
+            },
+            {
+              label: 'Extra',
+              autogenerate: {
+                directory: 'guide/extra',
+              },
+            },
+          ],
         },
         {
           label: 'Recipes',
           autogenerate: {
             directory: 'recipes',
-          },
-        },
-        {
-          label: 'Packages',
-          autogenerate: {
-            directory: 'package',
           },
         },
       ],
