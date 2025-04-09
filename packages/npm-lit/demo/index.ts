@@ -2,15 +2,13 @@ import { atom, Atom, peek } from '@reatom/core'
 import { withReatomElement, watch } from '../src/index.js'
 import { LitElement, html } from 'lit'
 
-const timer = atom(0)
-const countAtom = atom(0)
-
-const increment = atom(() => {
-  countAtom(countAtom() + 1)
-})
+const timer = atom(0, 'timer')
+const count = atom(0, 'count').mix((target) => ({
+  increment: () => target((state) => state + 1)
+}))
 
 setInterval(() => {
-  timer(timer() + 1)
+  timer(state => state + 1)
 }, 1_000)
 
 const RenderCountElement = withReatomElement(
@@ -44,13 +42,13 @@ const CounterElement = withReatomElement(
       return html`
         <div>
           <h1>Timer: ${watch(timer)}</h1>
-          <h3>Reatom Reactivity: ${watch(countAtom)}</h3>
+          <h3>Reatom Reactivity: ${watch(count)}</h3>
           <h3>LitElement Reactivity: ${this.innerCount}</h3>
 
           <button @click=${this.handleClick}>
             Increment LitElement Reactivity
           </button>
-          <button @click=${() => increment()}>
+          <button @click=${() => count.increment()}>
             Increment Reatom Reactivity
           </button>
           <render-count .count=${this.renderCount}></render-count>

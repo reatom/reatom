@@ -1,17 +1,17 @@
-import { top, reatomAbstractRender, AbstractRender } from '@reatom/core'
-import { LitElement, PropertyDeclaration, PropertyValues } from 'lit'
+import { top, Constructor, reatomAbstractRender, AbstractRender, Unsubscribe } from '@reatom/core'
+import { LitElement, PropertyValues } from 'lit'
 
 const __inner_update = Symbol('Inner update')
 
-type Constructor<T> = new (...args: any[]) => T
 
 export const withReatomElement = <T extends Constructor<LitElement>>(
   superClass: T,
 ): T => {
   return class ReatomLitElement extends superClass {
-    __changedProps?: PropertyValues
-    __abstractRender: AbstractRender<unknown, unknown>
-
+    private __changedProps?: PropertyValues
+    private __abstractRender: AbstractRender<unknown, unknown>
+    private __unmount?: Unsubscribe
+    
     constructor(...args: any[]) {
       super(...args)
 
@@ -42,12 +42,13 @@ export const withReatomElement = <T extends Constructor<LitElement>>(
 
     override connectedCallback(): void {
       super.connectedCallback()
-      this.__abstractRender.mount()
+      this.__unmount = this.__abstractRender.mount()
+      
     }
 
     override disconnectedCallback(): void {
       super.disconnectedCallback()
-      this.__abstractRender.abort()
+      this.__unmount?.()
     }
   }
 }

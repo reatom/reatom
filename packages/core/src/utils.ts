@@ -386,3 +386,5 @@ export const setTimeout: SetTimeout = Object.assign(
 
 /** @link https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#maximum_delay_value */
 export const MAX_SAFE_TIMEOUT = 2 ** 31 - 1
+
+export type Constructor<T> = new (...args: any[]) => T
