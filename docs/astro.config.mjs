@@ -5,6 +5,8 @@ import rehypeExternalLinks from 'rehype-external-links'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypeSlug from 'rehype-slug'
 import starlightUtils from '@lorenzo_lewis/starlight-utils'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@astrojs/react';
 
 // https://astro.build/config
 export default defineConfig({
@@ -13,76 +15,88 @@ export default defineConfig({
   redirects: {
     '/core': '/package/core',
   },
-  integrations: [
-    starlight({
-      plugins: [
-        starlightLinksValidator(),
-        starlightUtils({
-          multiSidebar: {
-            switcherStyle: 'hidden',
-          },
-          navLinks: {
-            leading: { useSidebarLabelled: "leadingNavLinks" }
-          }
-        }),
-      ],
-      title: 'Reatom',
-      logo: {
-        src: './src/assets/logo_light.svg',
-      },
-      social: {
-        github: 'https://github.com/artalar/reatom',
-        twitter: 'https://twitter.com/reatomjs',
-        youtube:
-          'https://www.youtube.com/playlist?list=PLXObawgXpIfxERCN8Lqd89wdsXeUHm9XU',
-      },
-      editLink: {
-        baseUrl: 'https://github.com/artalar/reatom/edit/v3/docs/',
-      },
-      customCss: ['./src/styles/custom.css'],
-      sidebar: [
-        {
-          label: 'leadingNavLinks',
-          items: [
-            {
-              label: 'Guide',
-              link: 'guide',
-            },
-            {
-              label: 'Recipes',
-              link: 'recipes',
-            },
-            {
-              label: 'Reference',
-              link: 'reference',
-            },
-          ],
+  vite: {
+    plugins: [tailwindcss()],
+  },
+  integrations: [starlight({
+    plugins: [
+      starlightLinksValidator(),
+      starlightUtils({
+        multiSidebar: {
+          switcherStyle: 'hidden',
         },
-        {
-          label: 'Getting Started',
-          autogenerate: {
-            directory: 'guide',
-          },
-        },
-        {
-          label: 'Recipes',
-          autogenerate: {
-            directory: 'recipes',
-          },
-        },
-        {
-          label: 'Packages',
-          autogenerate: {
-            directory: 'package',
-          },
-        },
-      ],
-      components: {
-        Header: './src/components/Header.astro',
-        MobileMenuFooter: './src/components/MobileMenuFooter.astro',
+        navLinks: {
+          leading: { useSidebarLabelled: "leadingNavLinks" }
+        }
+      }),
+    ],
+    title: 'Reatom',
+    logo: {
+      src: './src/assets/logo_light.svg',
+    },
+    social: [
+      {
+        icon: 'github',
+        label: 'GitHub',
+        href: 'https://github.com/reatom/reatom',
       },
-    }),
-  ],
+      {
+        icon: 'twitter',
+        label: 'Twitter',
+        href: 'https://twitter.com/reatomjs',
+      },
+      {
+        icon: 'youtube',
+        label: 'YouTube',
+        href: 'https://www.youtube.com/playlist?list=PLXObawgXpIfxERCN8Lqd89wdsXeUHm9XU',
+      },
+    ],
+    editLink: {
+      baseUrl: 'https://github.com/reatom/reatom/edit/docs/',
+    },
+    customCss: ['./src/styles/tailwind.css'],
+    sidebar: [
+      {
+        label: 'leadingNavLinks',
+        items: [
+          {
+            label: 'Guide',
+            link: 'guide',
+          },
+          {
+            label: 'Recipes',
+            link: 'recipes',
+          },
+          {
+            label: 'Reference',
+            link: 'reference',
+          },
+        ],
+      },
+      {
+        label: 'Getting Started',
+        autogenerate: {
+          directory: 'guide',
+        },
+      },
+      {
+        label: 'Recipes',
+        autogenerate: {
+          directory: 'recipes',
+        },
+      },
+      {
+        label: 'Packages',
+        autogenerate: {
+          directory: 'package',
+        },
+      },
+    ],
+    components: {
+      Header: './src/components/Header.astro',
+      MobileMenuFooter: './src/components/MobileMenuFooter.astro',
+    },
+  }), react()],
   // Process images with sharp: https://docs.astro.build/en/guides/assets/#using-sharp
   image: {
     service: {

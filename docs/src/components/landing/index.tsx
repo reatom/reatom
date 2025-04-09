@@ -1,0 +1,12 @@
+export { Footer } from './footer'
+
+export { SpeedParticles } from './speed-particles'
+export { AnimatedGradientText } from './animated-gradient-text'
+export { ComparisonSection } from './comparison-section'
+export { AnimatedCard } from './animated-card'
+export { FeaturesSection } from './feature-items'
+export { TestimonialsSection } from './testimonials'
+export { HeroSection } from './hero-section'
+export { CodeExamples } from './code-examples'
+export { AdvancedExample } from './advanced-example'
+export { CTASection } from './cta-section'

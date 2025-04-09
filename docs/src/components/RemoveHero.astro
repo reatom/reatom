@@ -1,0 +1,11 @@
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const contentPanels = document.querySelectorAll('.content-panel');
+    contentPanels.forEach(panel => {
+      const hasHero = panel.querySelector('.sl-container h1#_top');
+      if (hasHero) {
+        panel.remove();
+      }
+    });
+  });
+</script> 

@@ -1,0 +1,35 @@
+---
+import {
+  HeroSection,
+  FeaturesSection,
+  ComparisonSection,
+  CodeExamples,
+  AdvancedExample,
+  TestimonialsSection,
+  CTASection,
+  Footer
+} from '../components/landing'
+import RemoveHero from './RemoveHero.astro'
+---
+
+<!-- HACK: This is very bad and has ugly layout shift but I don't know how to do this better -->
+<RemoveHero/>
+
+<main>
+  <HeroSection client:load />
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <FeaturesSection client:load/>
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <CodeExamples client:load />
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <AdvancedExample client:load />
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <ComparisonSection client:load />
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <TestimonialsSection client:load />
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <div class="border-t border-zinc-200 dark:border-zinc-800"></div>
+  <CTASection client:load />
+</main>
+<Footer client:load/>
