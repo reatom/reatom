@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'test'
-import { action, atom } from '../core'
+import { action, atom, computed } from '../core'
 import { withChangeHook, withCallHook } from './withChangeHook'
 import { notify } from '../methods'
 
@@ -8,7 +8,7 @@ test('atomChange', () => {
   const cb = vi.fn()
   const a1 = atom(0, `${name}.a1`).mix(withChangeHook(cb))
   const a2 = atom(0, `${name}.a2`).mix(withChangeHook(cb))
-  const a3 = atom(() => a2(), `${name}.a2`).mix(withChangeHook(cb))
+  const a3 = computed(() => a2(), `${name}.a2`).mix(withChangeHook(cb))
 
   a1()
   notify()

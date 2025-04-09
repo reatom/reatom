@@ -1,11 +1,9 @@
+import { wrap } from '@reatom/core'
 import { reatomComponent } from '@reatom/npm-react'
 import { search, issuesResource, page } from './model'
-import { wrap } from '@reatom/core'
 
-export const App = reatomComponent(() => {
-  // const isLoading = Boolean(ctx.spy(issuesResource.pendingAtom) || ctx.spy(issuesResource.retriesAtom))
-
-  return (
+export const App = reatomComponent(
+  () => (
     <main>
       <input
         value={search()}
@@ -26,5 +24,6 @@ export const App = reatomComponent(() => {
         {issuesResource.data().length === 0 && <i>found nothing</i>}
       </ul>
     </main>
-  )
-}, 'App')
+  ),
+  'App',
+)

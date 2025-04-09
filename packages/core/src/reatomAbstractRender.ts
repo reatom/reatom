@@ -1,6 +1,6 @@
-import { _read, atom, root, STACK, type Frame } from './core'
+import { _read, atom, computed, root, STACK, type Frame } from './core'
 import { getPrevPubs } from './core/context'
-import { AbortAtom, abortVar, find, variable, wrap } from './methods'
+import { AbortAtom, reatomAbort, findVar, variable, wrap } from './methods'
 import { Fn, toAbortError, Unsubscribe } from './utils'
 
 export interface AbstractRender<Props, Result> {
@@ -30,25 +30,25 @@ export let reatomAbstractRender = <Props, Result>({
   let rootFrame =
     STACK.length !== 0
       ? STACK[0]!
-      : find((frame) => (frame.atom === root ? frame : undefined), frame)!
+      : findVar((frame) => (frame.atom === root ? frame : undefined), frame)!
 
   STACK.push(rootFrame, frame)
 
   let rendering = false
 
-  let abort = abortVar.set()
+  let abort = reatomAbort(`${name}.abort`, frame)
 
   let changedVar = variable<boolean>()
 
   let propsAtom = atom({} as Exclude<Props, Fn>, `${name}._propsAtom`)
 
-  let renderAtom = atom((state?: { result: Result }): { result: Result } => {
+  let renderAtom = computed((state?: { result: Result }): { result: Result } => {
     let pubs = getPrevPubs()
 
     let props = propsAtom()
 
     if (rendering) {
-      abortVar.set(abort)
+      abort.set()
       return { result: render(props) }
     }
 

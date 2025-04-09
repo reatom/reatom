@@ -59,6 +59,7 @@ export const ifCalled = <Params extends any[], Payload>(
       atom: target,
       pubs: [rootFrame],
       subs: [],
+      reactive: false,
       run,
     }
     rootFrame.state.store.set(target, targetFrame)

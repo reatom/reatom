@@ -1,4 +1,4 @@
-import { _read, action, atom, root } from '../core'
+import { _read, action, atom, computed, root } from '../core'
 import { expect, test, vi } from 'test'
 import { ifChanged, ifCalled } from './ifChanged'
 import { sleep } from '../utils'
@@ -9,7 +9,7 @@ test('ifChanged', () => {
   const name = 'ifChanged'
   const some = atom(0, `${name}.some`)
   const log = vi.fn<(newState: number, oldState?: number) => any>()
-  const data = atom(() => {
+  const data = computed(() => {
     ifChanged(some, log)
   }, `${name}.data`)
   let un = data.subscribe()
@@ -40,11 +40,11 @@ test('ifChanged few parents', () => {
   const log = vi.fn<(newState: number, oldState?: number) => any>()
   const some = atom(0, `${name}.some`)
 
-  atom(() => {
+  computed(() => {
     ifChanged(some, log)
     ifChanged(some, log)
   }).subscribe()
-  atom(() => {
+  computed(() => {
     ifChanged(some, log)
     ifChanged(some, log)
   }).subscribe()
@@ -60,7 +60,7 @@ test('ifCalled', async () => {
   const name = 'ifChanged'
   const sum = action((a: number, b: number) => a + b, `${name}.sum`)
   const log = vi.fn<(payload: number, params: [number, number]) => any>()
-  const data = atom((state = 0) => {
+  const data = computed((state = 0) => {
     ifCalled(sum, log)
     return state
   }, `${name}.data`)
@@ -82,7 +82,7 @@ test('ifCalled skip duplicates', async () => {
   const sum = action((a: number, b: number) => a + b, `${name}.sum`)
   const log = vi.fn<(payload: number, params: [number, number]) => any>()
   const param = atom(0, `${name}.param`)
-  const data = atom(() => {
+  const data = computed(() => {
     param()
     ifCalled(sum, log)
   }, `${name}.data`)

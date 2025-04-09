@@ -46,7 +46,6 @@ export const issuesResource = atom(async () => {
   return items
 }, 'issues').mix(
   withAsyncData([]),
-  // withErrorAtom(),
   // withCache({ length: 100, swr: false, withPersist: withLocalStorage }),
   // withRetry({
   //   onReject(_ctx, error, retries) {

@@ -1,44 +1,77 @@
-import { Frame, isConnected, root, top } from './core/atom'
+import { AtomLike, Frame, isConnected, root, top } from './core/atom'
 import { withCallHook, withChangeHook } from './mixins'
+import { isBrowser } from './utils'
 
-export const getStackTrace = (acc = '', frame = top()): string => {
-  if (acc.length > 500) throw new Error('RECURSION')
-  if (!acc) acc = `<-- ${frame.atom.name}`
-  const cause = frame.pubs.find((pub: Frame | null) => pub && pub.atom !== root)
-  return cause ? getStackTrace(`${acc}\n<-- ${cause.atom.name}`, cause) : acc
+let isSkip = (target: AtomLike) =>
+  target.name.startsWith('_') || /\._/.test(target.name)
+
+let serialCount = 0
+let serialNumbers = new WeakMap<Frame, number>()
+
+let getSerial = (frame = top()) => {
+  if (isSkip(frame.atom)) return ''
+
+  let serial = serialNumbers.get(frame)
+  if (serial === undefined) {
+    serialNumbers.set(frame, (serial = ++serialCount))
+  }
+
+  return ` [#${serial}]`
 }
 
-export const connectLogger = () => {
-  globalThis.__REATOM.push((target) => {
-    if (target.name.startsWith('_') || /\._/.test(target.name)) {
-      return {}
-    }
+export let getStackTrace = (acc = '', indent = '\n', frame = top()): string => {
+  if (acc.length > 500) throw new Error('RECURSION')
 
-    const color = target.__reatom.reactive
-      ? 'background: #151134; color: white;'
-      : 'background: #ffff80; color: #151134;'
-    const style = `${color}font-size: 12px; font-weight: 600; padding: 0.15em;  padding-right: 1ch;`
-    const title = `%c ${target.name}`
+  let cause = frame.pubs.find((pub: Frame | null) => pub && pub.atom !== root)
+
+  if (!cause) return acc ? acc : `${indent}<-- root`
+
+  return getStackTrace(
+    `${acc}${indent}<-- ${cause.atom.name}${getSerial(cause)}`,
+    indent,
+    cause,
+  )
+}
+
+export let connectLogger = () => {
+  let isNodeEnv = !isBrowser()
+
+  globalThis.__REATOM.push((target) => {
+    if (isSkip(target)) return {}
+
+    let title = `%c ${target.name}`
+    let style = ''
+    if (isNodeEnv) {
+      let nodeReactiveStyle = '\x1b[44m\x1b[37m' // blue background, white text
+      let nodeActionStyle = '\x1b[43m\x1b[30m' // yellow background, black text
+      let nodeResetStyle = '\x1b[0m'
+      title = `${target.__reatom.reactive ? nodeReactiveStyle : nodeActionStyle} ${target.name} ${nodeResetStyle}`
+    } else {
+      let color = target.__reatom.reactive
+        ? 'background: #151134; color: white;'
+        : 'background: #ffff80; color: #151134;'
+      style = `${color}font-size: 12px; font-weight: 600; padding: 0.15em;  padding-right: 1ch;`
+    }
 
     return target.__reatom.reactive
       ? withChangeHook((state, prevState) => {
-          console.groupCollapsed(title, style)
-          console.log('previous state:', prevState)
-          console.log('stack:')
-          console.log(getStackTrace())
+          console.groupCollapsed(`${title}${getSerial()}`, style)
+          if (isNodeEnv) console.log(state)
+          console.log('prev:', prevState)
+          console.log('stack:', getStackTrace('', isNodeEnv ? ' ' : '\n'))
           console.log('connected:', isConnected(target))
-          console.log('frame:', top())
+          if (!isNodeEnv) console.log('frame:', top())
           console.groupEnd()
-          console.log(state)
+          if (!isNodeEnv) console.log(state)
         })(target)
       : withCallHook((payload, params) => {
-          console.groupCollapsed(title, style)
+          console.groupCollapsed(`${title}${getSerial()}`, style)
+          if (isNodeEnv) console.log(payload)
           params.forEach((param, i) => console.log(`param ${i + 1}:`, param))
-          console.log('stack:')
-          console.log(getStackTrace())
-          console.log('frame:', top())
+          console.log('stack:', getStackTrace('', isNodeEnv ? ' ' : '\n'))
+          if (!isNodeEnv) console.log('frame:', top())
           console.groupEnd()
-          console.log(payload)
+          if (!isNodeEnv) console.log(payload)
         })(target)
   })
 }

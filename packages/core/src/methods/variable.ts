@@ -1,20 +1,18 @@
-import { Frame, top, WeakMap } from '../core'
-import { variableContext } from '../core/context'
+import { Frame, root, top } from '../core'
 import { assert, identity } from '../utils'
 
-export let find = <T>(
+export let findVar = <T>(
   cb: (frame: Frame) => undefined | T,
   frame = top(),
   // @ts-expect-error
 ): undefined | T => {
-  frame ??= top()
   let result = cb(frame)
   if (result !== undefined) return result
 
   for (let i = 0; i < frame.pubs.length; i++) {
     let pub = frame.pubs[i]
     if (pub) {
-      let result = find(cb, pub)
+      let result = findVar(cb, pub)
       if (result !== undefined) return result
     }
   }
@@ -40,8 +38,8 @@ export let variable: {
   let key = {}
 
   let read = (frame = top()) => {
-    let context = variableContext()
-    let value = find((frame) => context.get(frame)?.get(key), frame)
+    let context = root().state.context.variable
+    let value = findVar((frame) => context.get(frame)?.get(key), frame)
 
     return value
   }
@@ -59,8 +57,10 @@ export let variable: {
       let frame = top()
       let value = set(...params)
       assert(value !== undefined, `Variable can't be undefined`)
-      let context = variableContext()
-      context.create(frame, () => new WeakMap()).set(key, value)
+      let context = root().state.context.variable
+      let recs = context.get(frame)
+      if (!recs) context.set(frame, (recs = new WeakMap()))
+      recs.set(key, value)
 
       return value
     },

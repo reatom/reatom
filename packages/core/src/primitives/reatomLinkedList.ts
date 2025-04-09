@@ -6,6 +6,7 @@ import {
   ReatomError,
   named,
   isAtom,
+  computed,
 } from '../core'
 
 import { isObject, Fn, Rec } from '../utils'
@@ -507,13 +508,13 @@ export function reatomLinkedList<
     return null
   }
 
-  const array: LinkedListAtom<Params, Node, Key>['array'] = atom(
+  const array: LinkedListAtom<Params, Node, Key>['array'] = computed(
     (state: Array<LLNode<Node>> = []) => toArray(linkedList().head, state),
     `${name}.array`,
   )
 
   const map = key
-    ? (atom(
+    ? (computed(
         () =>
           new Map(
             // use array as it already memoized and simplifies the order tracking
@@ -545,7 +546,7 @@ export function reatomLinkedList<
 
     type State = LinkedListDerivedState<LLNode<Node>, LLNode<T>>
 
-    const mapList = atom((mapList?: State): State => {
+    const mapList = computed((mapList?: State): State => {
       if (STATE) {
         throw new ReatomError(
           `Can't compute the map of the linked list inside the batching.`,
@@ -644,7 +645,7 @@ export function reatomLinkedList<
       return mapList
     }, name)
 
-    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] = atom(
+    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] = computed(
       (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
       `${name}.array`,
     )

@@ -1,6 +1,5 @@
-import { test, expect } from 'vitest'
-import { createTestCtx, mockFn } from '@reatom/testing'
-import { ParseAtoms, parseAtoms } from '@reatom/lens'
+import { test, expect, vi } from 'vitest'
+import { notify, ParseAtoms, parseAtoms } from '@reatom/core'
 import { z } from 'zod'
 import { reatomZod } from './'
 
@@ -13,19 +12,19 @@ test('base API', async () => {
     }),
     {
       sync: () => {
-        track(parseAtoms(ctx, model))
+        track(parseAtoms(model))
       },
       initState: { n: 42, readonly: 'foo' },
     },
   )
-  const track = mockFn<[ParseAtoms<typeof model>], any>()
-  const ctx = createTestCtx()
+  const track = vi.fn<(parsed: ParseAtoms<typeof model>) => void>()
 
   expect(model.readonly).toBe('foo')
-  expect(ctx.get(model.n)).toBe(42)
+  expect(model.n()).toBe(42)
 
-  model.s(ctx, 'bar')
-  expect(track.lastInput()).toEqual({ n: 42, s: 'bar', readonly: 'foo' })
+  model.s('bar')
+  notify()
+  expect(track).toHaveBeenLastCalledWith({ n: 42, s: 'bar', readonly: 'foo' })
 })
 
 test('right values for effects', async () => {
@@ -38,20 +37,14 @@ test('right values for effects', async () => {
   })
 
   const model = reatomZod(schema, {
-    sync: () => {
-      track(parseAtoms(ctx, model))
-    },
     initState: {
       refine: 'string',
       transform: 1337,
     },
   })
 
-  const track = mockFn<[ParseAtoms<typeof model>], any>()
-  const ctx = createTestCtx()
-
-  expect(ctx.get(model.refine)).toBe('string')
-  expect(ctx.get(model.transform)).toBe(1337)
+  expect(model.refine()).toBe('string')
+  expect(model.transform()).toBe(1337)
 })
 
 test('right values for catch', async () => {
@@ -60,21 +53,15 @@ test('right values for catch', async () => {
   })
 
   const model = reatomZod(schema, {
-    sync: () => {
-      track(parseAtoms(ctx, model))
-    },
     initState: {
       catch: null,
     },
   })
 
-  const track = mockFn<[ParseAtoms<typeof model>], any>()
-  const ctx = createTestCtx()
-
-  expect(ctx.get(model.catch)).toBe(null)
+  expect(model.catch()).toBe(null)
 
   const catchModel = reatomZod(schema, { initState: undefined })
-  expect(ctx.get(catchModel.catch)).toBe('catchValue')
+  expect(catchModel.catch()).toBe('catchValue')
 })
 
 test('right values for brand', async () => {
@@ -86,18 +73,12 @@ test('right values for brand', async () => {
   })
 
   const model = reatomZod(schema, {
-    sync: () => {
-      track(parseAtoms(ctx, model))
-    },
     initState: {
       brand: brandedValue,
     },
   })
 
-  const track = mockFn<[ParseAtoms<typeof model>], any>()
-  const ctx = createTestCtx()
-
-  expect(ctx.get(model.brand)).toBe(brandedValue)
+  expect(model.brand()).toBe(brandedValue)
 })
 
 test('right values for pipeline', async () => {
@@ -108,18 +89,12 @@ test('right values for pipeline', async () => {
   })
 
   const model = reatomZod(schema, {
-    sync: () => {
-      track(parseAtoms(ctx, model))
-    },
     initState: {
       pipeline: dateValue,
     },
   })
 
-  const track = mockFn<[ParseAtoms<typeof model>], any>()
-  const ctx = createTestCtx()
-
-  expect(ctx.get(model.pipeline)).toBe(dateValue)
+  expect(model.pipeline()).toBe(dateValue)
 })
 
 test('right values for lazy', async () => {
@@ -131,18 +106,24 @@ test('right values for lazy', async () => {
   )
 
   const model = reatomZod(lazySchema, {
-    sync: () => {
-      track(parseAtoms(ctx, model))
-    },
     initState: {
       number: 42,
       string: 'test',
     },
   })
 
-  const track = mockFn<[ParseAtoms<typeof model>], any>()
-  const ctx = createTestCtx()
+  expect(model.number()).toBe(42)
+  expect(model.string()).toBe('test')
+})
 
-  expect(ctx.get(model.number)).toBe(42)
-  expect(ctx.get(model.string)).toBe('test')
+test('should throw errors for mismatching contracts', async () => {
+  const schema = reatomZod(z.object({
+    n: z.number().min(0),
+    s: z.string().max(3),
+  }), {
+    initState: { n: 0, s: '333' },
+  })
+
+  expect(() => schema.n(-1)).toThrow()
+  expect(() => schema.s('3333')).toThrow()
 })

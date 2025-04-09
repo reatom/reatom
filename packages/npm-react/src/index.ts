@@ -53,21 +53,22 @@ export let useFrame = (): Frame => {
   return frame
 }
 
-let isSuspense = (thing: unknown) =>
+export let isSuspense = (thing: unknown) =>
   thing instanceof Promise ||
   (thing instanceof Error && thing.message.startsWith('Suspense Exception'))
+
+let getName = (Component: Fn, name?: string): string =>
+  name
+    ? `Component.${name}`
+    : Component.name && Component.name !== anonFnName
+      ? `Component.${Component.name}`
+      : named('Component')
 
 export let reatomComponent = <Props extends Rec>(
   Component: (props: Props) => React.ReactNode,
   name?: string,
 ): ((props: Props) => React.ReactNode) => {
-  if (name) {
-    name = `Component.${name}`
-  } else if (Component.name && Component.name !== anonFnName) {
-    name = `Component.${Component.name}`
-  } else {
-    name = named('Component')
-  }
+  name = getName(Component, name)
 
   return {
     [name](props: Props): React.ReactNode {
@@ -107,3 +108,9 @@ export let reatomComponent = <Props extends Rec>(
     },
   }[name]!
 }
+
+export let reatomFactoryComponent = <Props extends Rec>(
+  init: (initProps: Props) => (props: Props) => React.ReactNode,
+  name?: string,
+): ((props: Props) => React.ReactNode) =>
+  reatomComponent((props) => React.useMemo(() => init(props), [])(props), name)

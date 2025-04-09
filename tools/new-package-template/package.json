@@ -42,5 +42,12 @@
     "state-manager",
     "reatom"
   ],
-  "files": ["/build"]
+  "files": [
+    "/build"
+  ],
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "eslint-plugin-simple-import-sort": "^12.1.1"
+  }
 }

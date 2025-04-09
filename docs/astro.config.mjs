@@ -1,12 +1,10 @@
-import { $ } from 'zx'
 import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
 import starlightLinksValidator from 'starlight-links-validator'
 import rehypeExternalLinks from 'rehype-external-links'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypeSlug from 'rehype-slug'
-
-if (!process.env.VERCEL) await $`tsx sync-readme-to-pages.ts`
+import starlightUtils from '@lorenzo_lewis/starlight-utils'
 
 // https://astro.build/config
 export default defineConfig({
@@ -17,7 +15,17 @@ export default defineConfig({
   },
   integrations: [
     starlight({
-      plugins: [starlightLinksValidator()],
+      plugins: [
+        starlightLinksValidator(),
+        starlightUtils({
+          multiSidebar: {
+            switcherStyle: 'hidden',
+          },
+          navLinks: {
+            leading: { useSidebarLabelled: "leadingNavLinks" }
+          }
+        }),
+      ],
       title: 'Reatom',
       logo: {
         src: './src/assets/logo_light.svg',
@@ -34,18 +42,27 @@ export default defineConfig({
       customCss: ['./src/styles/custom.css'],
       sidebar: [
         {
+          label: 'leadingNavLinks',
+          items: [
+            {
+              label: 'Guide',
+              link: 'guide',
+            },
+            {
+              label: 'Recipes',
+              link: 'recipes',
+            },
+            {
+              label: 'Reference',
+              link: 'reference',
+            },
+          ],
+        },
+        {
           label: 'Getting Started',
           autogenerate: {
-            directory: 'getting-started',
+            directory: 'guide',
           },
-        },
-        {
-          label: 'Examples',
-          link: 'examples',
-        },
-        {
-          label: 'Handbook',
-          link: 'handbook',
         },
         {
           label: 'Recipes',
@@ -59,26 +76,10 @@ export default defineConfig({
             directory: 'package',
           },
         },
-        {
-          label: 'REPL',
-          link: 'repl',
-        },
-        {
-          label: 'Compat',
-          autogenerate: {
-            directory: 'compat',
-            collapsed: true,
-          },
-        },
-        {
-          label: 'Contributing',
-          link: 'contributing',
-        },
       ],
       components: {
-        MarkdownContent: './src/components/MarkdownContent.astro',
         Header: './src/components/Header.astro',
-        MobileMenuFooter: './src/components/MobileMenuFooter.astro'
+        MobileMenuFooter: './src/components/MobileMenuFooter.astro',
       },
     }),
   ],

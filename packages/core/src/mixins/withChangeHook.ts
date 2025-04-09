@@ -8,7 +8,7 @@ import {
   ReatomError,
   top,
 } from '../core'
-import { assert, defineName, Fn, Unsubscribe } from '../utils'
+import { assert, defineName, Fn, noop, Unsubscribe } from '../utils'
 
 let addHook = <T extends AtomLike, F extends Fn>(
   middleware: (cb: F) => Middleware<T>,
@@ -37,7 +37,7 @@ export let withChangeHook =
 
       if (!Object.is(prevState, state)) {
         frame = top()
-        schedule(() => cb(state, prevState), 'hook', frame).catch(console.log)
+        schedule(() => cb(state, prevState), 'hook', frame).catch(noop)
       }
       return state
     }, `${_target.name}.onChange`)

@@ -3,9 +3,11 @@ import { assert, defineName, identity } from '../utils'
 import type { Assigner, Extension, Mix } from './mix'
 import { action } from './action'
 import { schedule } from '../methods/queues'
+import { type AbortAtom } from '../methods'
 
 /** @internal The list of applied mixins (middlewares). */
 export interface __reatom {
+  // an action or the root atom is not reactive
   reactive: boolean
   middlewares: Array<(next: Fn, ...params: any[]) => any>
   onConnect?: Fn
@@ -23,7 +25,10 @@ export interface AtomLike<
   /** Extension system */
   mix: Mix<this>
 
-  subscribe: (cb?: (state: State) => any) => Unsubscribe
+  subscribe: (
+    cb?: (state: State) => any,
+    queue?: 'hook' | 'compute' | 'cleanup' | 'effect',
+  ) => Unsubscribe
 
   /** @internal The list of applied mixins (middlewares). */
   __reatom: __reatom
@@ -55,6 +60,9 @@ export interface Frame<
   subs: Array<AtomLike>
   /** Run the callback in this context. DO NOT USE directly, use `wrap` instead. */
   run<I extends any[], O>(fn: (...params: I) => O, ...params: I): O
+
+  /** @internal a computed processing flag */ // TODO move outside frame to reduce memory overhead
+  reactive: boolean
 }
 
 export type AtomState<T> = T extends AtomLike<infer State> ? State : never
@@ -72,10 +80,25 @@ export interface Store extends WeakMap<Atom, Frame> {
   ): this
 }
 
+/** @internal DO NOT USE IN PRODUCT CODE */
+export interface RootContext {
+  init: WeakMap<WeakKey, any>
+  variable: WeakMap<Frame, WeakMap<WeakKey, any>>
+  abort: WeakMap<Frame, AbortAtom>
+  pubs: WeakMap<
+    Atom,
+    {
+      prev: Frame['pubs']
+      next: Frame['pubs']
+    }
+  >
+  [key: string]: WeakMap<WeakKey, any>
+}
+
 export interface RootState {
   store: Store
   /** @internal DO NOT USE IN PRODUCT CODE */
-  context: Map<string, WeakMap>
+  context: RootContext
   hook: Queue
   compute: Queue
   cleanup: Queue
@@ -89,19 +112,6 @@ export interface RootAtom extends AtomLike<RootState> {
   (): RootFrame
   start<T>(cb: () => T): T
   start(): RootFrame
-}
-
-// TODO rename
-export class WeakMap<
-  K extends WeakKey = WeakKey,
-  V = any,
-> extends globalThis.WeakMap<K, V> {
-  create<T extends V>(key: K, create: () => T): T {
-    if (create && !this.has(key)) {
-      this.set(key, create())
-    }
-    return super.get(key) as T
-  }
 }
 
 export class ReatomError extends Error {}
@@ -121,7 +131,7 @@ export function run<I extends any[], O>(
   }
 }
 
-export let _copy = (rootFrame: RootFrame, frame: Frame) => {
+export let _copy = (rootFrame: RootFrame, frame: Frame, toTop: boolean) => {
   // console.log(COLOR.dimGreen('copy'), frame.atom.name)
 
   let pubs = (
@@ -136,9 +146,14 @@ export let _copy = (rootFrame: RootFrame, frame: Frame) => {
     atom: frame.atom,
     pubs,
     subs: frame.subs,
+    reactive: false,
     run,
   }
+
   rootFrame.state.store.set(frame.atom, frame)
+
+  if (toTop) STACK[STACK.length - 1] = frame
+
   return frame
 }
 
@@ -157,7 +172,7 @@ let enqueue = (rootFrame: RootFrame, frame: Frame) => {
     } else {
       let subFrame = rootFrame.state.store.get(sub as Atom)!
       if (subFrame.pubs[0] !== null) {
-        enqueue(rootFrame, _copy(rootFrame, subFrame))
+        enqueue(rootFrame, _copy(rootFrame, subFrame, false))
       }
     }
   }
@@ -197,7 +212,7 @@ let unlink = (sub: Atom, oldPubs: Frame['pubs']) => {
     if (idx === -1) continue
 
     if (pub.subs.length === 1) {
-      pub.subs.length = 0
+      pub.subs.pop()
       if (pub.atom.__reatom.onDisconnect !== undefined) {
         schedule(pub.atom.__reatom.onDisconnect, 'effect', null)
       }
@@ -261,14 +276,25 @@ let mix = (target: AtomLike, ext: Extension<AtomLike>): AtomLike => {
   return target
 }
 
-function subscribe(this: AtomLike, userCb?: Fn) {
+function subscribe(
+  this: AtomLike,
+  userCb?: Fn,
+  queue: 'hook' | 'compute' | 'effect' = 'effect',
+) {
   // console.log('subscribe', this.name)
 
   if (userCb !== undefined) {
-    return atom(() => userCb(this()), `${this.name}.subscribe`).subscribe()
+    return computed(() => {
+      userCb(this())
+    }, `${this.name}._subscribe`).subscribe()
   }
 
-  this()
+  STACK.push(root())
+  try {
+    this()
+  } finally {
+    STACK.pop()
+  }
 
   let rootFrame = root()
 
@@ -276,7 +302,7 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
   if (frame!.subs.push(this) === 1) {
     if (frame!.atom.__reatom.onConnect !== undefined) {
-      schedule(frame!.atom.__reatom.onConnect, 'effect', null)
+      schedule(frame!.atom.__reatom.onConnect, queue, null)
     }
     relink(frame!, [null])
   }
@@ -343,7 +369,10 @@ function middleware(next: Fn) {
   // console.log((push ? COLOR.cyan : COLOR.yellow)('enter'), frame.atom.name)
 
   if (push) {
-    STACK[STACK.length - 1] = frame = _copy(rootFrame, frame)
+    if (!dirty) {
+      frame = _copy(rootFrame, frame, true)
+    }
+
     newState = frame.state =
       typeof update === 'function' ? update(state) : update
     frame.error = null
@@ -363,7 +392,7 @@ function middleware(next: Fn) {
   if (invalid && dependent) {
     invalid = false
     // use current frame to reduce `copy` operations, reset pubs **temporally**
-    frame.pubs = getDefaultComputedPubs(next)
+    frame.pubs = [null]
     for (let i = 1; i < pubs.length; i++) {
       let { error: pubError, state: pubState, atom: pubAtom } = pubs[i]!
       let pubFreshState = pubState
@@ -377,7 +406,6 @@ function middleware(next: Fn) {
       ) {
         pubFreshState = pubFrame.state
         pubFreshError = pubFrame.error
-        frame.pubs.push(pubFrame)
       } else {
         try {
           pubFreshState = pubAtom()
@@ -400,12 +428,18 @@ function middleware(next: Fn) {
 
   if (invalid) {
     if (!push && !dirty) {
-      STACK[STACK.length - 1] = frame = _copy(rootFrame, frame)
+      frame = _copy(rootFrame, frame, true)
     }
 
-    frame.pubs = getDefaultComputedPubs(next)
-    newState = next(newState)
+    frame.pubs = [null]
+    try {
+      frame.reactive = true
+      frame.state = newState = next(newState)
+    } finally {
+      frame.reactive = false
+    }
     frame.error = null
+    frame.pubs[0] = push ? STACK[STACK.length - 2]! : rootFrame
 
     if (frame.subs.length) {
       // TODO may be a bug with resubscribing
@@ -426,28 +460,13 @@ declare global {
 assert(!globalThis.__REATOM, 'root duplication', ReatomError)
 globalThis.__REATOM = []
 
-//Try to reduce mem usage
-let getDefaultComputedPubs = (setup: any) => {
-  if (typeof setup === 'function') return [null] as Frame['pubs']
-  let pubs = Array.from({ length: 4 }) as Frame['pubs']
-  pubs[0] = null
-  pubs.length = 1
-  return pubs
-}
-
-export let atom: {
-  <State>(init: State extends Fn ? never : State, name?: string): Atom<State>
-  <State>(
-    computed: (() => State) | ((state?: State) => State),
-    name?: string,
-  ): Computed<State>
-} = <T>(setup: {} | ((state?: T) => T), name = named('atom')): Atom<T> => {
-  let initState = setup as T
-  if (typeof setup === 'function') {
-    // defineName(setup, name + '.computed')
-    initState = undefined as T
-  }
-
+export let createAtom = <T>(
+  setup: {
+    initState?: () => T
+    computed?: (prev: T | undefined) => T
+  },
+  name = named('atom'),
+): Atom<T> => {
   let atom = castAtom<Atom<T>>(
     {
       // Use computed property name to setup the function name for better stack traces
@@ -460,13 +479,27 @@ export let atom: {
         if (frame === undefined) {
           frame = {
             error: null,
-            state: initState,
+            state: undefined as T,
             atom,
-            pubs: getDefaultComputedPubs(setup),
+            pubs: [null],
             subs: [],
+            reactive: false,
             run,
           }
           rootFrame.state.store.set(atom, frame)
+
+          if (setup.initState !== undefined) {
+            try {
+              STACK.push(frame)
+              frame.state = setup.initState() as T
+            } catch (error) {
+              frame.error = error ?? new ReatomError('Unknown error')
+              frame.pubs[0] = rootFrame
+              throw error
+            } finally {
+              STACK.pop()
+            }
+          }
         }
 
         let { error, state } = frame
@@ -476,20 +509,23 @@ export let atom: {
         let dependent = frame.pubs.length !== 1
         let subscribed = frame.subs.length !== 0
 
-        if (push || dirty || (dependent && !subscribed)) {
+        if (
+          !frame.reactive && // cycle
+          (push || dirty || (dependent && !subscribed))
+        ) {
           STACK.push(frame)
 
           middlewares: try {
             let fn: Fn = identity
 
-            if (typeof setup === 'function') {
+            if (setup.computed) {
               if (atom.__reatom.middlewares.length === 1) {
-                newState = middleware(setup as Fn)
+                newState = middleware(setup.computed)
                 newError = null
                 break middlewares
               }
 
-              fn = setup as Fn
+              fn = setup.computed
             }
 
             for (let middleware of atom.__reatom.middlewares) {
@@ -502,7 +538,7 @@ export let atom: {
             // console.log(COLOR.red('error'), atom.name)
             let copied = frame !== STACK[STACK.length - 1]
             if (!copied && !push && !dirty) {
-              STACK[STACK.length - 1] = frame = _copy(rootFrame, frame)
+              frame = _copy(rootFrame, frame, true)
             }
             newError = error ?? new ReatomError('Unknown error')
           }
@@ -512,7 +548,7 @@ export let atom: {
           frame.state = newState
           frame.pubs[0] ??= push ? topFrame : rootFrame
 
-          if (!push && topFrame.atom.__reatom.reactive) {
+          if (!push && topFrame.reactive) {
             // if (topFrame.atom === frame.atom) console.log(COLOR.bgRed('topFrame.atom === frame.atom')) // prettier-ignore
             topFrame.pubs.push(frame)
           }
@@ -526,7 +562,7 @@ export let atom: {
           }
 
           STACK.pop()
-        } else if (topFrame.atom.__reatom.reactive) {
+        } else if (topFrame.reactive) {
           topFrame.pubs.push(frame)
         }
 
@@ -554,6 +590,27 @@ export let atom: {
   return atom.mix(...globalThis.__REATOM)
 }
 
+export let atom: {
+  <T>(createState: () => T, name?: string): Atom<T>
+  <T>(initState: T, name?: string): Atom<T>
+} = (initOrVal: any, name?: string) =>
+  createAtom(
+    {
+      initState:
+        initOrVal === undefined
+          ? undefined
+          : typeof initOrVal === 'function'
+            ? initOrVal
+            : () => initOrVal,
+    },
+    name,
+  )
+
+export let computed = <T>(
+  computed: (state: T | undefined) => T,
+  name?: string,
+): Computed<T> => createAtom({ computed }, name)
+
 export let root = castAtom<RootAtom>(
   () => {
     let rootFrame = STACK[0] as RootFrame
@@ -572,18 +629,24 @@ root.start = (cb = top) => {
       error: null,
       state: {
         store: new WeakMap() as Store,
-        context: new Map(),
+        context: {
+          init: new WeakMap(),
+          variable: new WeakMap(),
+          abort: new WeakMap(),
+          pubs: new WeakMap(),
+        },
         hook: [],
         compute: [],
         cleanup: [],
         effect: [],
-        pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'cleanup' | 'effect') {
+        pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'effect') {
           this[queue].push(cb)
         },
       },
       atom: root,
-      pubs: getDefaultComputedPubs(null),
+      pubs: [null],
       subs: [],
+      reactive: false,
       run,
     } satisfies RootFrame
   ).run(cb)
