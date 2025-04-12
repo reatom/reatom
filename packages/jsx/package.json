@@ -1,6 +1,9 @@
 {
   "name": "@reatom/jsx",
-  "version": "3.18.1",
+  "version": "1000.0.0-alpha.0",
+  "publishConfig": {
+    "tag": "alpha"
+  },
   "private": true,
   "sideEffects": false,
   "description": "Reatom for jsx",

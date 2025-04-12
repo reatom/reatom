@@ -5,10 +5,9 @@ import {
   clearStack,
   computed,
   isConnected,
-  mockRandom,
   notify,
   reatomLinkedList,
-  root,
+  context,
   sleep,
   withInit,
   wrap,
@@ -30,7 +29,7 @@ const parent = atom<HTMLElement>(null as any, 'parent').extend(
 )
 
 test('static props & children', () =>
-  root.start(async () => {
+  context.start(async () => {
     const element = <div id="some-id">Hello, world!</div>
 
     mount(parent(), element)
@@ -43,7 +42,7 @@ test('static props & children', () =>
   }))
 
 test('dynamic props', () =>
-  root.start(async () => {
+  context.start(async () => {
     const val = atom('val', 'val')
     const prp = atom('prp', 'prp')
     const atr = atom('atr', 'atr')
@@ -68,7 +67,7 @@ test('dynamic props', () =>
   }))
 
 test('children updates', () =>
-  root.start(async () => {
+  context.start(async () => {
     const val = atom('foo', 'val')
 
     const route = atom('a', 'route')
@@ -100,7 +99,7 @@ test('children updates', () =>
   }))
 
 test('dynamic children', () =>
-  root.start(async () => {
+  context.start(async () => {
     const children = atom(<div />)
 
     const element = <div>{children}</div>
@@ -139,7 +138,7 @@ test('dynamic children', () =>
   }))
 
 test('spreads', () =>
-  root.start(() => {
+  context.start(() => {
     const clickTrack = vi.fn()
     const props = atom({
       id: '1',
@@ -159,7 +158,7 @@ test('spreads', () =>
   }))
 
 test('multiple renden shared element', () =>
-  root.start(async () => {
+  context.start(async () => {
     const valueAtom = atom('abc', 'value')
     const element = <p>{valueAtom}</p>
 
@@ -201,7 +200,7 @@ test('multiple renden shared element', () =>
   }))
 
 test('fragment as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const child = (
       <>
         <div>foo</div>
@@ -218,7 +217,7 @@ test('fragment as child', () =>
   }))
 
 test('array children', () =>
-  root.start(async () => {
+  context.start(async () => {
     const n = atom(1)
     const list = computed(() => (
       <>{...Array.from({ length: n() }, (_, i) => <li>{i + 1}</li>)}</>
@@ -244,7 +243,7 @@ test('array children', () =>
   }))
 
 test('linked list', () =>
-  root.start(async () => {
+  context.start(async () => {
     const list = reatomLinkedList((value: any) => atom(value))
     const jsxList = list.reatomMap((n) => <span>{n}</span>)
     const one = list.create(1)
@@ -275,7 +274,7 @@ test('linked list', () =>
   }))
 
 test('boolean as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const trueAtom = atom(true, 'true')
     const trueValue = true
     const falseAtom = atom(false, 'false')
@@ -299,7 +298,7 @@ test('boolean as child', () =>
   }))
 
 test('null as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const nullAtom = atom(null, 'null')
     const nullValue = null
 
@@ -317,7 +316,7 @@ test('null as child', () =>
   }))
 
 test('undefined as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const undefinedAtom = atom(undefined, 'undefined')
     const undefinedValue = undefined
 
@@ -335,7 +334,7 @@ test('undefined as child', () =>
   }))
 
 test('empty string as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const emptyStringAtom = atom('', 'emptyString')
     const emptyStringValue = ''
 
@@ -353,7 +352,7 @@ test('empty string as child', () =>
   }))
 
 test('update skipped atom', () =>
-  root.start(async () => {
+  context.start(async () => {
     const valueAtom = atom<number | undefined>(undefined, 'value')
 
     const element = <div>{valueAtom}</div>
@@ -372,7 +371,7 @@ test('update skipped atom', () =>
   }))
 
 test('render HTMLElement atom', () =>
-  root.start(async () => {
+  context.start(async () => {
     const htmlAtom = atom(<div>div</div>, 'html')
 
     const element = <div>{htmlAtom}</div>
@@ -382,7 +381,7 @@ test('render HTMLElement atom', () =>
   }))
 
 test('render SVGElement atom', () =>
-  root.start(async () => {
+  context.start(async () => {
     const svgAtom = atom(<svg:svg>svg</svg:svg>, 'svg')
 
     const element = <div>{svgAtom}</div>
@@ -392,7 +391,7 @@ test('render SVGElement atom', () =>
   }))
 
 test('custom component', () =>
-  root.start(async () => {
+  context.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     await wrap(sleep())
@@ -404,7 +403,7 @@ test('custom component', () =>
   }))
 
 test('ref unmount callback', () =>
-  root.start(async () => {
+  context.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     let ref: null | HTMLElement = null
@@ -430,7 +429,7 @@ test('ref unmount callback', () =>
   }))
 
 test('child ref unmount callback', () =>
-  root.start(async () => {
+  context.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     let ref: null | HTMLElement = null
@@ -456,7 +455,7 @@ test('child ref unmount callback', () =>
   }))
 
 test('same arguments in ref mount and unmount hooks', () =>
-  root.start(async () => {
+  context.start(async () => {
     let mountElement: HTMLElement
     let unmountElement: HTMLElement
 
@@ -487,7 +486,7 @@ test('same arguments in ref mount and unmount hooks', () =>
   }))
 
 test('css property and class attribute', () =>
-  root.start(async () => {
+  context.start(async () => {
     const cls = 'class'
     const css = 'color: red;'
 
@@ -516,7 +515,7 @@ test('css property and class attribute', () =>
   }))
 
 test('css property generate class name', () =>
-  root.start(async () => {
+  context.start(async () => {
     const First = () => <div css="color: red;"></div> // same
     const Second = () => <div css="color: red;"></div> // same
     const Third = () => <div css="color: blue;"></div>
@@ -553,7 +552,7 @@ test('css property generate class name', () =>
   }))
 
 test('css custom property', () =>
-  root.start(async () => {
+  context.start(async () => {
     const colorAtom = atom('red' as string | undefined)
 
     const component = (
@@ -580,7 +579,7 @@ test('css custom property', () =>
   }))
 
 test('class and className attribute', () =>
-  root.start(async () => {
+  context.start(async () => {
     const classAtom = atom('' as string | undefined)
 
     const ref1 = <div class={classAtom}></div>
@@ -615,7 +614,7 @@ test('class and className attribute', () =>
   }))
 
 test('ref mount and unmount callbacks order', () =>
-  root.start(async () => {
+  context.start(async () => {
     const order: number[] = []
 
     const createRef = (index: number) => {
@@ -644,7 +643,7 @@ test('ref mount and unmount callbacks order', () =>
   }))
 
 test('style object update', () =>
-  root.start(async () => {
+  context.start(async () => {
     const styleTopAtom = atom<JSX.StyleProperties['top']>('0')
     const styleRightAtom = atom<JSX.StyleProperties['right']>(undefined)
     const styleBottomAtom = atom<JSX.StyleProperties['bottom']>(null)
@@ -688,7 +687,7 @@ test('style object update', () =>
   }))
 
 test('render atom fragments', () =>
-  root.start(async () => {
+  context.start(async () => {
     const bool1Atom = atom(false)
     const bool2Atom = atom(false)
 
@@ -771,7 +770,7 @@ test('render atom fragments', () =>
   }))
 
 test('Bind', () =>
-  root.start(async () => {
+  context.start(async () => {
     const div = (<div />) as HTMLDivElement
     const input = (<input />) as HTMLInputElement
     const svg = (<svg:svg />) as SVGSVGElement
@@ -817,7 +816,7 @@ test('Bind', () =>
   }))
 
 test('dynamic atom fragment', () =>
-  root.start(async () => {
+  context.start(async () => {
     const child = atom<JSX.HTMLAttributes['children']>(<span />, 'test')
 
     const container = <div>{child}</div>
@@ -836,7 +835,7 @@ test('dynamic atom fragment', () =>
   }))
 
 test('linked list', () =>
-  root.start(async () => {
+  context.start(async () => {
     const a = atom(true)
     const list = reatomLinkedList((value: string) => (
       <>
@@ -897,7 +896,7 @@ const expectHtmlElementProperty = <
 }
 
 test('width property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('img', 'width', undefined, 0, false, null)
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('img', 'width', null, 0, false, null)
@@ -907,7 +906,7 @@ test('width property', () =>
   }))
 
 test('height property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('img', 'height', undefined, 0, false, null)
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('img', 'height', null, 0, false, null)
@@ -917,7 +916,7 @@ test('height property', () =>
   }))
 
 test('download property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('a', 'download', undefined, '', false, null)
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('a', 'download', null, '', false, null)
@@ -927,7 +926,7 @@ test('download property', () =>
   }))
 
 test('href property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('a', 'href', undefined, '', false, null)
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('a', 'href', null, '', false, null)
@@ -942,7 +941,7 @@ test('href property', () =>
   }))
 
 test('list property', () =>
-  root.start(async () => {
+  context.start(async () => {
     const element = <input list="list"></input>
     const list = <datalist id="list"></datalist>
     mount(
@@ -963,7 +962,7 @@ test('list property', () =>
   }))
 
 test('form property', () =>
-  root.start(async () => {
+  context.start(async () => {
     const element = <input form="form"></input>
     const form = <form id="form"></form>
     mount(
@@ -984,7 +983,7 @@ test('form property', () =>
   }))
 
 test('tabIndex property', () =>
-  root.start(async () => {
+  context.start(async () => {
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('div', 'tabIndex', undefined, -1, false, null)
     // @ts-expect-error TODO fix types
@@ -996,7 +995,7 @@ test('tabIndex property', () =>
   }))
 
 test('rowSpan property', () =>
-  root.start(async () => {
+  context.start(async () => {
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('td', 'rowSpan', undefined, 1, false, null)
     // @ts-expect-error TODO fix types
@@ -1008,7 +1007,7 @@ test('rowSpan property', () =>
   }))
 
 test('colSpan property', () =>
-  root.start(async () => {
+  context.start(async () => {
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('td', 'colSpan', undefined, 1, false, null)
     // @ts-expect-error TODO fix types
@@ -1020,14 +1019,14 @@ test('colSpan property', () =>
   }))
 
 test('role property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('div', 'role', undefined, null, false, null)
     expectHtmlElementProperty('div', 'role', null, null, false, null)
     expectHtmlElementProperty('div', 'role', 'alert', 'alert', true, 'alert')
   }))
 
 test('popover property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('div', 'popover', undefined, null, false, null)
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('div', 'popover', null, null, false, null)
@@ -1037,7 +1036,7 @@ test('popover property', () =>
   }))
 
 test('aria attributes', () =>
-  root.start(async () => {
+  context.start(async () => {
     const expectAttribute = <
       Attr extends keyof JSX.AriaAttributes,
       Value extends JSX.AriaAttributes[Attr],
