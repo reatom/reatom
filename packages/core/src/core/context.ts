@@ -1,6 +1,6 @@
-import { top, Frame, root } from './atom'
+import { top, Frame, root } from './'
 
-/** @internal DO NOT USE IN PRODUCT CODE */
+/** @internal */
 export let getPrevPubs = (frame = top()) => {
   let context = root().state.context.pubs
   let rec = context.get(frame.atom)

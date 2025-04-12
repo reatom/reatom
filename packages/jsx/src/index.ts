@@ -52,7 +52,7 @@ export let DEBUG = atom(true, 'jsx.DEBUG')
 
 let stylesCount = 0
 let styles: Rec<string> = {}
-export let stylesheet = atom<HTMLElement>(null as any, 'jsx.stylesheet').mix(
+export let stylesheet = atom<HTMLElement>(null as any, 'jsx.stylesheet').extend(
   withInit(
     (state) =>
       state ?? // could be initialized with different element
@@ -299,9 +299,9 @@ let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
     // @ts-expect-error
     element[key.slice(5)] = val
   } else if (
-    !propertiesAsAttributes.has(key)
-    && element instanceof dom.HTMLElement
-    && (key in element || key === 'class')
+    !propertiesAsAttributes.has(key) &&
+    element instanceof dom.HTMLElement &&
+    (key in element || key === 'class')
   ) {
     /**
      * @see https://measurethat.net/Benchmarks/Show/54

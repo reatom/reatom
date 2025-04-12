@@ -21,7 +21,7 @@ async function testAggregateGrowing(count: number, method: 'push' | 'unshift') {
     molAtoms.reduce((sum, atom) => sum + atom.sync(), 0),
   )
 
-  const ReatomAtom = Reatom.atom(
+  const ReatomAtom = Reatom.computed(
     () => ReatomAtoms.reduce((sum, atom) => sum + atom(), 0),
     `sum`,
   )
@@ -132,7 +132,7 @@ async function testAggregateShrinking(count: number, method: 'pop' | 'shift') {
     molAtoms.reduce((sum, atom) => sum + atom.sync(), 0),
   )
 
-  const ReatomAtom = Reatom.atom(
+  const ReatomAtom = Reatom.computed(
     () => ReatomAtoms.reduce((sum, atom) => sum + atom(), 0),
     `sum`,
   )
@@ -240,7 +240,7 @@ async function testParent(count: number) {
       molPubAtom.sync()
       molAtoms.push(molPubAtom)
 
-      const ReatomDepAtom = Reatom.atom(() => ReatomAtom())
+      const ReatomDepAtom = Reatom.computed(() => ReatomAtom())
       ReatomRoot.run(ReatomDepAtom.subscribe)
 
       const mobxDepAtom = computed(() => mobxAtom.get())

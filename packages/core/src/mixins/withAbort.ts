@@ -1,29 +1,42 @@
-import { atom, AtomLike, ReatomError } from '../core'
+import { Atom, atom, AtomLike, ReatomError, top } from '../core'
 import { AbortAtom, peek, reatomAbort } from '../methods'
-import { assert, toAbortError } from '../utils'
+import { assert, Fn, toAbortError } from '../utils'
 
-export let withAbort =
-  (strategy: 'last-in-win' | 'first-in-win' = 'last-in-win') =>
-  (target: AtomLike) => {
-    assert(
-      strategy === 'last-in-win',
-      'only last-in-win strategy is supported',
-      ReatomError,
-    )
+export interface AbortExt {
+  abort: (reason?: any) => void
+  _abortContainer: Atom<null | AbortAtom>
+}
 
-    let abortContainer = atom<null | AbortAtom>(
+export interface AbortMix<Target extends AtomLike = AtomLike> {
+  <T extends Target>(target: T): T & AbortExt
+}
+
+export let withAbort = (
+  strategy: 'last-in-win' | 'first-in-win' = 'last-in-win',
+): AbortMix => {
+  assert(
+    strategy === 'last-in-win',
+    'only last-in-win strategy is supported',
+    ReatomError,
+  )
+
+  return (target) => {
+    let _abortContainer = atom<null | AbortAtom>(
       null,
       `${target.name}._abortContainer`,
     )
 
-    let abortMiddleware = (next: (...a: any[]) => any, ...a: any[]) => {
-      peek(abortContainer)?.(toAbortError(`${target.name} concurrent`))
+    let abortMiddleware = (next: Fn, ...params: any[]) => {
+      let prevState = top().state
+      let state = next(...params)
 
-      // initiate in the current frame, not in the abortContainer update callback
+      if (target.__reatom.reactive && Object.is(prevState, state)) return state
+
+      peek(_abortContainer)?.(toAbortError(`${target.name} concurrent`))
+
+      // initiate in the current frame, not in the _abortContainer update callback
       let abort = reatomAbort(`${target.name}.abort`)
-      abortContainer(() => abort)!
-
-      let state = next(...a)
+      _abortContainer(() => abort)!
 
       let maybePromise = target.__reatom.reactive
         ? state
@@ -47,11 +60,12 @@ export let withAbort =
       return state
     }
 
+    target.__reatom.middlewares.push(abortMiddleware)
+
     let abort = (reason?: any) => {
-      abortContainer()?.(reason)
+      _abortContainer()?.(reason)
     }
 
-    target.__reatom.middlewares.unshift(abortMiddleware)
-
-    return { abort, abortContainer }
+    return Object.assign(target, { abort, _abortContainer })
   }
+}

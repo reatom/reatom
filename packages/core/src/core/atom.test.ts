@@ -1,9 +1,14 @@
+import {
+  notify,
+  withTap,
+  _read,
+  atom,
+  computed,
+  createAtom,
+  isConnected,
+  root,
+} from './'
 import { expect, vi, test, subscribe } from 'test'
-
-import { _read, atom, AtomLike, computed, isConnected, root } from './atom'
-import { withComputed } from '../mixins'
-import { notify } from '../methods/queues'
-import { Middleware } from './mix'
 
 test('linking', () => {
   const name = 'linking'
@@ -45,16 +50,21 @@ test('reading', () => {
   const name = 'reading'
   const a = atom(0, `${name}.a`)
   const bFn = vi.fn(() => a())
-  const bMiddleware = vi.fn<ReturnType<Middleware<AtomLike>>>((next, ...a) =>
-    next(...a),
-  )
-  const b = atom(bFn, `${name}.b`).mix(bMiddleware)
+  const bMiddleware = vi.fn((state: any) => state)
+  const b = computed(bFn, `${name}.b`).extend(withTap(bMiddleware))
 
   expect(b()).toBe(0)
   expect(b()).toBe(0)
   expect(b()).toBe(0)
   expect(bFn).toBeCalledTimes(1)
-  expect(bMiddleware).toBeCalledTimes(1)
+  expect(bMiddleware).toBeCalledTimes(3)
+
+  b.subscribe()
+  expect(b()).toBe(0)
+  expect(b()).toBe(0)
+  expect(b()).toBe(0)
+  expect(bFn).toBeCalledTimes(1)
+  expect(bMiddleware).toBeCalledTimes(4)
 })
 
 test('disconnect tail deps', () => {
@@ -63,21 +73,20 @@ test('disconnect tail deps', () => {
   const track = vi.fn(() => aAtom())
   const bAtom = computed(track, `${name}.bAtom`)
   const isActiveAtom = atom(true, `${name}.isActiveAtom`)
-  const bAtomControlled = computed(
-    (state?: any) => (isActiveAtom() ? bAtom() : state),
-    `${name}.bAtomControlled`,
-  )
+  const bAtomControlled = computed((state?: number) => {
+    return isActiveAtom() ? bAtom() : state!
+  }, `${name}.bAtomControlled`)
 
+  expect(isConnected(bAtom)).toBe(false)
   bAtomControlled.subscribe()
   expect(track).toBeCalledTimes(1)
-  expect(isConnected(bAtom)).toBe(true)
 
   isActiveAtom(false)
   notify()
+  expect(isConnected(bAtom)).toBe(false)
   aAtom(aAtom() + 1)
   notify()
   expect(track).toBeCalledTimes(1)
-  expect(isConnected(bAtom)).toBe(false)
 })
 
 test('deps shift', () => {
@@ -206,10 +215,13 @@ test('conditional deps duplication', () => {
 
 test('computed without dependencies', () => {
   const name = 'noDeps'
-  const a = atom(0, `${name}.a`).mix(
-    withComputed((state) => {
-      return state + 1
-    }),
+
+  const a = createAtom(
+    {
+      initState: 0,
+      computed: (state) => state + 1,
+    },
+    `${name}.a`,
   )
 
   expect(a()).toBe(1)
@@ -257,15 +269,43 @@ test('middleware connection', () => {
   const name = 'middlewareConnection'
   const before = atom(null, `${name}.before`)
   const after = atom(null, `${name}.after`)
-  const target = atom(null, `${name}.target`).mix(() => (next) => {
-    before()
-    const state = next()
-    after()
-    return state
-  })
+  const target = atom(null, `${name}.target`).extend(
+    (middleware) =>
+      ((...a: Parameters<typeof middleware>) => {
+        before()
+        const state = middleware(...a)
+        after()
+        return state
+      }) as typeof middleware,
+  )
 
   target.subscribe()
   expect(isConnected(target)).toBe(true)
   expect(isConnected(before)).toBe(false)
   expect(isConnected(after)).toBe(false)
+})
+
+test('computed should not accept params', () => {
+  const name = 'computedNoParams'
+  const dep = atom(0, `${name}.a`)
+  const bComputed = vi.fn(() => dep())
+  const lowLevelComputed = createAtom({ computed: bComputed }, `${name}.b`)
+  const normalComputed = computed(() => dep(), `${name}.c`)
+  
+  expect(lowLevelComputed()).toBe(0)
+  expect(lowLevelComputed()).toBe(0)
+  expect(normalComputed()).toBe(0)
+  expect(bComputed).toBeCalledTimes(1)
+
+  dep(s => s + 1)
+  expect(lowLevelComputed()).toBe(1)
+  expect(normalComputed()).toBe(1)
+  expect(bComputed).toBeCalledTimes(2)
+
+  expect(lowLevelComputed(2)).toBe(2)
+  expect(lowLevelComputed()).toBe(2)
+  // @ts-expect-error
+  expect(normalComputed(2)).toBe(1)
+  expect(normalComputed()).toBe(1)
+  expect(bComputed).toBeCalledTimes(2)
 })

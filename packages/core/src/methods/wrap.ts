@@ -1,5 +1,5 @@
-import { assert, defineName, Fn } from '../utils'
-import { top, root, STACK, ReatomError } from '../core/atom'
+import { assert, Fn } from '../utils'
+import { top, root, STACK, ReatomError } from '../core'
 
 export let wrap = <T extends Promise<any> | Fn>(
   target: T,
@@ -8,7 +8,7 @@ export let wrap = <T extends Promise<any> | Fn>(
   let rootFrame = root()
 
   if (typeof target === 'function') {
-    return defineName((...params: any) => {
+    return function wrap(...params: any) {
       assert(
         STACK.length === 0 || STACK[0] === rootFrame,
         'root collision',
@@ -22,7 +22,7 @@ export let wrap = <T extends Promise<any> | Fn>(
         STACK.pop()
         STACK.pop()
       }
-    }, `${frame.atom.name}.wrap`) as T
+    } as T
   }
 
   assert(target instanceof Promise, 'target should be promise', ReatomError)

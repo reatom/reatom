@@ -376,21 +376,21 @@ const testComputers = setupComputersTest({
   //   return (i) => store.dispatch(a.entry(i))
   // },
   async reatom({ listener, startCreation, endCreation }) {
-    const { atom, root, wrap, notify, clearStack } = await import('./build')
+    const { atom, computed, root, wrap, notify, clearStack } = await import('./build')
 
     startCreation()
 
     clearStack()
 
     const entry = atom(0, 'entry')
-    const a = atom(() => entry(), 'a')
-    const b = atom(() => a() + 1, 'b')
-    const c = atom(() => a() + 1, 'c')
-    const d = atom(() => b() + c(), 'd')
-    const e = atom(() => d() + 1, 'e')
-    const f = atom(() => d() + e(), 'f')
-    const g = atom(() => d() + e(), 'g')
-    const h = atom(() => f() + g(), 'h')
+    const a = computed(() => entry(), 'a')
+    const b = computed(() => a() + 1, 'b')
+    const c = computed(() => a() + 1, 'c')
+    const d = computed(() => b() + c(), 'd')
+    const e = computed(() => d() + 1, 'e')
+    const f = computed(() => d() + e(), 'f')
+    const g = computed(() => d() + e(), 'g')
+    const h = computed(() => f() + g(), 'h')
 
     return root.start(() => {
       h.subscribe(listener)

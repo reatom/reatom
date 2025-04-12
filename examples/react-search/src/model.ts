@@ -1,5 +1,6 @@
 import {
   atom,
+  computed,
   sleep,
   // withCache,
   withAsyncData,
@@ -16,7 +17,7 @@ import {
 export const search = atom('', 'search')
 // .mix(withSearchParamsPersist('search'))
 
-export const page = atom(1, 'page').mix(
+export const page = atom(1, 'page').actions(
   // // reset the state on other filters change
   // withComputed((state) => {
   //   searchAtom()
@@ -30,7 +31,7 @@ export const page = atom(1, 'page').mix(
   }),
 )
 
-export const issuesResource = atom(async () => {
+export const issuesResource = computed(async () => {
   const queryState = search()
   const pageState = page()
 
@@ -44,8 +45,8 @@ export const issuesResource = atom(async () => {
     page: pageState /* signal */,
   })
   return items
-}, 'issues').mix(
-  withAsyncData([]),
+}, 'issues').extend(
+  withAsyncData(null, []),
   // withCache({ length: 100, swr: false, withPersist: withLocalStorage }),
   // withRetry({
   //   onReject(_ctx, error, retries) {

@@ -1,224 +1,263 @@
 import {
   action,
   Action,
-  atom,
   Atom,
   AtomLike,
   computed,
   Computed,
+  createAtom,
   ReatomError,
   root,
   STACK,
   top,
+  withMiddleware,
 } from '../core'
 import { ifCalled, ifChanged, wrap } from '../methods'
-import { withAbort, withCallHook } from '../mixins'
+import { AbortExt, withAbort, withCallHook } from '../mixins'
 import { assert, Fn, identity, isAbort } from '../utils'
-import { withComputed } from '../mixins/withComputed'
 
-type AsyncMethods<
-  Params extends unknown[] = any[],
+export interface AsyncExt<
+  Params extends any[] = any[],
   Payload = any,
   Error = any,
-> = {
+> {
   ready: Computed<boolean>
+
   onFulfill: Action<
     [payload: Payload, params: Params],
     { payload: Payload; params: Params }
   >
+
   onReject: Action<
     [error: Error, params: Params],
     { error: Error; params: Params }
   >
+
   onSettle: Action<
     [{ payload: Payload; params: Params } | { error: Error; params: Params }],
     { payload: Payload; params: Params } | { error: Error; params: Params }
   >
+
   pending: Computed<number>
+
   error: Atom<undefined | Error>
 }
 
-export let withAsync: {
-  <T>(): {
-    <Params extends unknown[]>(
-      target: Action<Params, Promise<T>>,
-    ): AsyncMethods<Params, T>
-
-    <T extends AtomLike<Promise<T>>>(target: T): AsyncMethods<Array<unknown>, T>
-  }
-} = () => (target: AtomLike<Promise<any>> | Action<any[], Promise<any>>) => {
-  let onFulfill: AsyncMethods['onFulfill'] = action((payload, params) => {
-    error(undefined)
-    return onSettle({ payload, params }) as any // TODO
-  }, `${target.name}.onFulfill`)
-  let onReject: AsyncMethods['onReject'] = action((err, params) => {
-    if (!isAbort(err)) error(err)
-    return onSettle({ error: err, params }) as any // TODO
-  }, `${target.name}.onReject`)
-  let onSettle: AsyncMethods['onSettle'] = action((call) => {
-    pending((state) => state - 1)
-    return call
-  }, `${target.name}._onSettle`)
-
-  let pending = atom(0, `${target.name}._pending`)
-    // computed needed to ensure that `pending` (and `ready`) connection will connect the target
-    // which is especially important for an atom target
-    .mix(
-      withComputed((state) => {
-        if (target.__reatom.reactive) {
-          ifChanged(target, () => state++)
-        } else {
-          ifCalled(target as Action, () => state++)
-        }
-        return state
-      }),
-    )
-
-  let error = atom<unknown | undefined>(undefined, `${target.name}._error`)
-  if (target.__reatom.reactive) {
-    error.mix(
-      withComputed((state) => {
-        target()
-        return state
-      }),
-    )
-  }
-
-  let ready = computed(() => pending() === 0, `${target.name}.ready`)
-
-  let touched = new WeakSet<Promise<any>>()
-
-  // @ts-expect-error TODO
-  target.mix(() => (next: Fn, ...params: any[]) => {
-    let state = next(...params)
-    let promise = state
-
-    if (target.__reatom.reactive) {
-      for (let pub of top().pubs) {
-        if (pub !== null && pub.atom !== root) params.push(pub.state)
-      }
-    } else {
-      promise = state.at(-1)?.payload
-    }
-
-    assert(promise instanceof Promise, 'promise expected', ReatomError)
-
-    if (touched.has(promise)) return state
-    touched.add(promise)
-
-    // outer promise handlers should tick after the async handlers
-    promise = promise.then(
-      wrap((payload) => onFulfill(payload, params)),
-      wrap((error) => onReject(error, params)),
-    )
-
-    if (!target.__reatom.reactive) {
-      state.at(-1)!.payload = promise
-    }
-
-    // FIXME pretty dirty hack, we need a general solution
-    if (STACK[STACK.length - 2]?.atom !== pending) {
-      pending()
-    }
-
-    return state
-  })
-
-  return {
-    ready,
-    onFulfill,
-    onReject,
-    onSettle,
-    pending,
-    error,
-  } as AsyncMethods
+export type AsyncOptions<Err = Error, EmptyErr = undefined> = {
+  parseError?: (error: unknown) => Err
+  emptyError?: EmptyErr
+  resetError?: null | 'onCall' | 'onFulfill'
 }
 
-type AsyncDataMethods<Params extends unknown[], Payload, State> = AsyncMethods<
-  Params,
-  Payload
-> & {
+export let withAsync: {
+  <Err = Error, EmptyErr = undefined>(
+    options?: null | AsyncOptions<Err, EmptyErr>,
+  ): <T extends AtomLike>(
+    target: T,
+  ) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
+    ? T & AsyncExt<Params, Payload, Err | EmptyErr>
+    : never
+} =
+  (options) =>
+  (target: AtomLike): any => {
+    let {
+      parseError = (e: any) => (e instanceof Error ? e : new Error(String(e))),
+      emptyError,
+      resetError = 'onCall',
+    } = options ?? {}
+
+    let onFulfill: AsyncExt['onFulfill'] = action((payload, params) => {
+      if (resetError === 'onFulfill') error(emptyError)
+      return onSettle({ payload, params }) as any // TODO
+    }, `${target.name}.onFulfill`)
+    let onReject: AsyncExt['onReject'] = action((err, params) => {
+      if (!isAbort(err)) error(parseError(err))
+      return onSettle({ error: err, params }) as any // TODO
+    }, `${target.name}.onReject`)
+    let onSettle: AsyncExt['onSettle'] = action((call) => {
+      pending((state) => state - 1)
+      return call
+    }, `${target.name}._onSettle`)
+
+    let pending = createAtom(
+      {
+        // computed needed to ensure that `pending` (and `ready`) connection will connect the target
+        // which is especially important for an atom target
+        computed(state = 0) {
+          if (target.__reatom.reactive) {
+            ifChanged(target, () => state++)
+          } else {
+            ifCalled(target as Action, () => state++)
+          }
+          return state
+        },
+      },
+      `${target.name}._pending`,
+    )
+
+    let error = createAtom(
+      {
+        initState: emptyError as any,
+        computed: target.__reatom.reactive
+          ? (state) => {
+              target()
+              state
+            }
+          : undefined,
+      },
+      `${target.name}._error`,
+    )
+
+    let ready = computed(() => pending() === 0, `${target.name}.ready`)
+
+    let touched = new WeakSet<Promise<any>>()
+
+    let asyncExtension = (next: Fn, ...params: any[]) => {
+      let state = next(...params)
+      let promise = state
+
+      if (target.__reatom.reactive) {
+        for (let pub of top().pubs) {
+          if (pub !== null && pub.atom !== root) params.push(pub.state)
+        }
+      } else {
+        promise = state.at(-1)?.payload
+      }
+
+      assert(promise instanceof Promise, 'promise expected', ReatomError)
+
+      if (touched.has(promise)) return state
+      touched.add(promise)
+
+      // outer promise handlers should tick after the async handlers
+      promise = promise.then(
+        wrap((payload) => onFulfill(payload, params)),
+        wrap((error) => onReject(error, params)),
+      )
+
+      if (!target.__reatom.reactive) {
+        state.at(-1)!.payload = promise
+      }
+
+      // FIXME pretty dirty hack, we need a general solution
+      if (STACK[STACK.length - 2]?.atom !== pending) {
+        pending()
+      }
+
+      if (resetError === 'onCall') error(emptyError)
+
+      return state
+    }
+
+    return Object.assign(target.extend(withMiddleware(() => asyncExtension)), {
+      ready,
+      onFulfill,
+      onReject,
+      onSettle,
+      pending,
+      error,
+    }) satisfies AtomLike & AsyncExt
+  }
+
+export interface AsyncDataExt<
+  Params extends any[] = any[],
+  Payload = any,
+  State = any,
+  Error = any,
+> extends AsyncExt<Params, Payload, Error>,
+    AbortExt {
   data: Atom<State>
 }
 
 // @ts-ignore TODO
 export let withAsyncData: {
-  <Params extends unknown[], Payload>(): {
-    (
-      target: Action<Params, Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload | undefined>
-    (
-      target: AtomLike<Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload | undefined>
+  <Err = Error, EmptyErr = undefined>(
+    options?: null | AsyncOptions<Err, EmptyErr>,
+  ): {
+    <T extends AtomLike>(
+      target: T,
+    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
+      ? T & AsyncDataExt<Params, Payload, undefined | Payload, Err | EmptyErr>
+      : never
   }
 
-  <Params extends unknown[], Payload, State>(
+  <State, Err = Error, EmptyErr = undefined>(
+    options: null | AsyncOptions<Err, EmptyErr>,
     initState: State,
   ): {
-    (
-      target: Action<Params, Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload | State>
-    (
-      target: AtomLike<Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload | State>
+    <T extends AtomLike>(
+      target: T,
+    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
+      ? T & AsyncDataExt<Params, Payload, State | Payload, Err | EmptyErr>
+      : never
   }
 
-  <Params extends unknown[], Payload>(
+  <Payload, Err = Error, EmptyErr = undefined>(
+    options: null | AsyncOptions<Err, EmptyErr>,
     initState: Payload,
   ): {
-    (
-      target: Action<Params, Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload>
-    (
-      target: AtomLike<Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload>
+    <T extends AtomLike<any, any, Promise<Payload>>>(
+      target: T,
+    ): T extends AtomLike<any, infer Params>
+      ? T & AsyncDataExt<Params, Payload, Payload, Err | EmptyErr>
+      : never
   }
 
-  <Params extends unknown[], Payload, State>(
+  <State, T extends AtomLike, Err = Error, EmptyErr = undefined>(
+    options: null | AsyncOptions<Err, EmptyErr>,
     initState: State,
-    map: (payload: Payload, params: Params, state: State) => State,
+    map: T extends AtomLike<any, infer Params, Promise<infer Payload>>
+      ? (payload: Payload, params: Params, state: State) => State
+      : never,
   ): {
     (
-      target: Action<Params, Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, State>
-    (
-      target: AtomLike<Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, State>
+      target: T,
+    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
+      ? T & AsyncDataExt<Params, Payload, State, Err | EmptyErr>
+      : never
   }
 
-  <Params extends unknown[], Payload>(
-    initState: Payload,
-    map: (payload: Payload, params: Params, state: Payload) => Payload,
+  <T extends AtomLike, Err = Error, EmptyErr = undefined>(
+    options: null | AsyncOptions<Err, EmptyErr>,
+    initState: Awaited<ReturnType<T>>,
+    map: T extends AtomLike<any, infer Params, Promise<infer Payload>>
+      ? (payload: Payload, params: Params, state: Payload) => Payload
+      : never,
   ): {
     (
-      target: Action<Params, Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload>
-    (
-      target: AtomLike<Promise<Payload>>,
-    ): AsyncDataMethods<Params, Payload, Payload>
+      target: T,
+    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
+      ? T & AsyncDataExt<Params, Payload, Payload, Err | EmptyErr>
+      : never
   }
 } =
   (
+    options: null | AsyncOptions<any, any>,
     initState: any,
     map: (payload: any, params: any, state: any) => any = identity,
   ) =>
   (target: AtomLike<Promise<any>>) => {
-    let asyncTarget = target.mix(withAbort(), withAsync())
+    let asyncTarget = target.extend(withAbort(), withAsync(options))
 
-    let data = atom(initState, `${target.name}.data`).mix(
-      withComputed((state) => {
-        if (target.__reatom.reactive) target()
-        ifCalled(asyncTarget.onFulfill, ({ payload, params }) => {
-          state = map(payload, params, state)
-        })
-        return state
-      }),
-      () => ({
-        reset: () => data(initState),
-      }),
-    )
+    let data = createAtom(
+      {
+        initState:
+          typeof initState === 'function' ? () => initState : initState,
+        computed(state) {
+          if (target.__reatom.reactive) target()
+          ifCalled(asyncTarget.onFulfill, ({ payload, params }) => {
+            state = map(payload, params, state)
+          })
+          return state
+        },
+      },
+      `${target.name}.data`,
+    ).actions((target) => ({
+      reset: () => target(() => initState),
+    }))
 
-    asyncTarget.onFulfill.mix(withCallHook(() => data()))
+    asyncTarget.onFulfill.extend(withCallHook(() => data()))
 
-    return { data }
+    // FIXME new target
+    return Object.assign(asyncTarget, { data })
   }

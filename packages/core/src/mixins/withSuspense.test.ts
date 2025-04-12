@@ -1,9 +1,9 @@
 import { expect, test, subscribe } from 'test'
 
-import { atom, computed, isConnected } from '../core'
-import { suspense } from './withSuspend'
+import { atom, computed, isConnected, notify } from '../core'
+import { suspense } from './withSuspense'
 import { sleep } from '../utils'
-import { notify, wrap } from '../methods'
+import { wrap } from '../methods'
 
 test('suspense', async () => {
   const name = 'suspense'

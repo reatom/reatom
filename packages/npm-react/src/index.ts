@@ -9,6 +9,7 @@ import {
   reatomAbstractRender,
   Rec,
   STACK,
+  wrap,
 } from '@reatom/core'
 
 // useLayoutEffect will show warning if used during ssr, e.g. with Next.js
@@ -113,4 +114,11 @@ export let reatomFactoryComponent = <Props extends Rec>(
   init: (initProps: Props) => (props: Props) => React.ReactNode,
   name?: string,
 ): ((props: Props) => React.ReactNode) =>
-  reatomComponent((props) => React.useMemo(() => init(props), [])(props), name)
+  reatomComponent(
+    (props) =>
+      React.useMemo(
+        wrap(() => init(props)),
+        [],
+      )(props),
+    name,
+  )

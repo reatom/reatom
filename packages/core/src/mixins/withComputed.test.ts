@@ -1,13 +1,12 @@
 import { expect, subscribe, test, vi } from 'test'
-import { atom } from '../core'
+import { atom, notify } from '../core'
 import { withComputed } from './withComputed'
-import { notify } from '../methods'
 
 test('withComputed', () => {
   const name = 'withComputed'
   const param = atom(1, `${name}.param`)
   const computed = vi.fn(() => param())
-  const data = atom(0, `${name}.data`).mix(withComputed(computed))
+  const data = atom(0, `${name}.data`).extend(withComputed(computed))
   const track = subscribe(data)
 
   expect(track).toBeCalledWith(1)

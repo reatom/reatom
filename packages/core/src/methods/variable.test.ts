@@ -43,8 +43,8 @@ test('scope propagation for atoms', async () => {
 
   const param = atom(0)
   const paramVar = variable<number>()
-  const resource = computed(async () => param()).mix(
-    withAsyncData({ param: -1, paramVar: -1 }, (param) => ({
+  const resource = computed(async () => param()).extend(
+    withAsyncData(null, { param: -1, paramVar: -1 }, (param) => ({
       param,
       paramVar: paramVar.get(),
     })),

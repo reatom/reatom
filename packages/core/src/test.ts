@@ -1,5 +1,5 @@
 import { test as viTest, vi, type Mock } from 'vitest'
-import { clearStack, root, AtomLike, top, Frame } from './core/atom'
+import { clearStack, root, AtomLike } from './core'
 import { noop, type Unsubscribe } from './utils'
 
 clearStack()
@@ -10,26 +10,6 @@ export const test = Object.assign(
     viTest(name, () => root.start(fn)),
   viTest,
 ) as typeof viTest
-
-// declare module './core/atom' {
-//   export interface AtomLike<State> {
-//     testing: {
-//       subscribe<T extends (state: State) => any>(
-//         cb?: T,
-//       ): Mock<T> & { unsubscribe: Unsubscribe }
-//     }
-//   }
-// }
-
-// MIDDLEWARES.push((target) => ({
-//   testing: {
-//     subscribe: (cb: Fn = noop) => {
-//       const mock = vi.fn(cb)
-//       const unsubscribe = target.subscribe(mock)
-//       return Object.assign(mock, { unsubscribe })
-//     },
-//   },
-// }))
 
 export function subscribe<State, T extends (state: State) => any>(
   target: AtomLike<State>,

@@ -1,12 +1,13 @@
-import type { AtomLike, AtomState } from '../core'
+import type { AtomLike, AtomState, Ext } from '../core'
 
 export let withComputed =
-  <T extends AtomLike>(
-    computed: (state: AtomState<T>) => AtomState<T>,
-  ): ((target: T) => {}) =>
+  <Target extends AtomLike>(
+    computed: (state: AtomState<Target>) => AtomState<Target>,
+  ): Ext<Target> =>
   (target) => {
-    target.__reatom.middlewares.unshift(function withComputedHandler(next, state) {
-      return next(computed(state))
+    target.__reatom.middlewares.unshift((next, ...params) => {
+      let state = next(params)
+      return computed(state)
     })
-    return {}
+    return target
   }

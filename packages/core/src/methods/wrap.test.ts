@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { atom, computed, root } from '../core/atom'
+import { atom, computed, root } from '../core'
 import { wrap } from './wrap'
 import { sleep } from '../utils'
 import { getStackTrace } from '../connectLogger'

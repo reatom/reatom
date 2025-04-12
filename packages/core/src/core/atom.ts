@@ -1,71 +1,86 @@
-import type { Fn, Rec, Unsubscribe } from '../utils'
-import { assert, defineName, identity } from '../utils'
-import type { Assigner, Extension, Mix } from './mix'
-import { action } from './action'
-import { schedule } from '../methods/queues'
+import {
+  actions,
+  type ActionsExt,
+  Ext,
+  extend,
+  type Extend,
+  schedule,
+} from './'
+import type { Fn, Unsubscribe } from '../utils'
+import { assert, identity } from '../utils'
 import { type AbortAtom } from '../methods'
 
-/** @internal The list of applied mixins (middlewares). */
-export interface __reatom {
-  // an action or the root atom is not reactive
-  reactive: boolean
-  middlewares: Array<(next: Fn, ...params: any[]) => any>
-  onConnect?: Fn
-  onDisconnect?: Fn
+/** @internal */
+export interface AtomMeta {
+  // `false` for an action or the root
+  readonly reactive: boolean
+  readonly initState: any
+  readonly middlewares: Array<(next: Fn, ...params: any[]) => any>
+  /** @internal the atom processing flag, used to prevent cycles. DO NOT USE outside atom.ts */
+  processing: boolean
+  /** @internal a computed processing flag, used to prevent linking in middlewares. DO NOT USE outside atom.ts */
+  linking: boolean
+  onConnect: undefined | Fn
+  onDisconnect: undefined | Fn
 }
 
 /** Base atom interface for other userspace implementations */
 export interface AtomLike<
   State = any,
-  Params extends any[] = [],
+  Params extends any[] = any[],
   Payload = State,
 > {
   (...params: Params): Payload
 
-  /** Extension system */
-  mix: Mix<this>
+  /** Bind methods */
+  actions: ActionsExt<this>
 
+  /** Extension system */
+  extend: Extend<this>
+
+  /** Subscribe to changes (first call immediately) */
   subscribe: (
     cb?: (state: State) => any,
     queue?: 'hook' | 'compute' | 'cleanup' | 'effect',
   ) => Unsubscribe
 
-  /** @internal The list of applied mixins (middlewares). */
-  __reatom: __reatom
+  /** @internal */
+  __reatom: AtomMeta
 }
 
 /** Base changeable state container */
-export interface Atom<State = any> extends AtomLike<State> {
+export interface Atom<State = any> extends AtomLike<State, []> {
   (update: (state: State) => State): State
   (newState: State): State
 }
 
 /** Derived state container */
-export interface Computed<State = any> extends AtomLike<State> {
-  (): State
-}
+export interface Computed<State = any> extends AtomLike<State, []> {}
 
 /** Call(atom)stack snapshot */
 export interface Frame<
   State = any,
   Params extends any[] = any[],
-  Payload = any,
+  Payload = State,
 > {
   error: null | NonNullable<unknown>
+
   state: State
-  atom: AtomLike<State, Params, Payload>
+
+  readonly atom: AtomLike<State, Params, Payload>
+
   /** Immutable list of dependencies.
    * The first element is actualization flag and an imperative write cause. */
   pubs: [actualization: null | Frame, ...dependencies: Array<Frame>]
-  subs: Array<AtomLike>
+
+  readonly subs: Array<AtomLike>
+
   /** Run the callback in this context. DO NOT USE directly, use `wrap` instead. */
   run<I extends any[], O>(fn: (...params: I) => O, ...params: I): O
-
-  /** @internal a computed processing flag */ // TODO move outside frame to reduce memory overhead
-  reactive: boolean
 }
 
-export type AtomState<T> = T extends AtomLike<infer State> ? State : never
+export type AtomState<T> =
+  T extends AtomLike<infer State, any, any> ? State : never
 
 export interface Queue extends Array<Fn> {}
 
@@ -80,7 +95,7 @@ export interface Store extends WeakMap<Atom, Frame> {
   ): this
 }
 
-/** @internal DO NOT USE IN PRODUCT CODE */
+/** @internal */
 export interface RootContext {
   init: WeakMap<WeakKey, any>
   variable: WeakMap<Frame, WeakMap<WeakKey, any>>
@@ -97,7 +112,7 @@ export interface RootContext {
 
 export interface RootState {
   store: Store
-  /** @internal DO NOT USE IN PRODUCT CODE */
+  /** @internal */
   context: RootContext
   hook: Queue
   compute: Queue
@@ -106,10 +121,9 @@ export interface RootState {
   pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'cleanup' | 'effect'): void
 }
 
-export interface RootFrame extends Frame<RootState> {}
+export interface RootFrame extends Frame<RootState, [], RootFrame> {}
 
-export interface RootAtom extends AtomLike<RootState> {
-  (): RootFrame
+export interface RootAtom extends AtomLike<RootState, [], RootFrame> {
   start<T>(cb: () => T): T
   start(): RootFrame
 }
@@ -146,7 +160,6 @@ export let _copy = (rootFrame: RootFrame, frame: Frame, toTop: boolean) => {
     atom: frame.atom,
     pubs,
     subs: frame.subs,
-    reactive: false,
     run,
   }
 
@@ -249,31 +262,13 @@ let relink = (frame: Frame, oldPubs: Frame['pubs']) => {
   }
 }
 
-export let isConnected = (anAtom: Atom): boolean =>
+export let isConnected = (anAtom: AtomLike): boolean =>
   !!root().state.store.get(anAtom)?.subs.length
 
-let i = 0
-export let named = (name: string | TemplateStringsArray) => `${name}#${++i}`
-
-let mix = (target: AtomLike, ext: Extension<AtomLike>): AtomLike => {
-  let result = ext(target)
-  if (typeof result === 'function') {
-    target.__reatom.middlewares.push(result)
-  } else {
-    for (let key in result) {
-      assert(
-        !(key in target),
-        `Key "${key}" already exist in atom ${target.name}`,
-      )
-      let value = result[key]
-      // @ts-expect-error
-      target[key] =
-        typeof value === 'function' && !isAtom(value)
-          ? action(value as Fn, `${target.name}.${key}`)
-          : value
-    }
+export function assertFn(fn: Fn): asserts fn is Fn {
+  if (typeof fn !== 'function') {
+    throw new ReatomError('function expected')
   }
-  return target
 }
 
 function subscribe(
@@ -321,7 +316,7 @@ function subscribe(
       if (frame.atom.__reatom.onDisconnect !== undefined) {
         schedule(frame.atom.__reatom.onDisconnect, 'effect', null)
       }
-      unlink(this, rootFrame.state.store.get(this as Atom)!.pubs)
+      unlink(this, rootFrame.state.store.get(this)!.pubs)
     }
 
     frame = undefined
@@ -331,35 +326,24 @@ function subscribe(
   }
 }
 
-let castAtom = <T extends AtomLike>(
-  target: Fn,
-  name: string,
-  reactive: boolean,
-): T =>
-  Object.assign(defineName(target, name), {
-    toString: () => `[Atom ${name}]`,
+let i = 0
+export let named = (name: string | TemplateStringsArray) => `${name}#${++i}`
 
-    __reatom: {
-      reactive,
-      middlewares: [],
-      onConnect: undefined,
-      onDisconnect: undefined,
-    },
+declare global {
+  // @ts-ignore TODO
+  var __REATOM: Array<Ext>
+}
 
-    mix: (...extensions: Extension<AtomLike>[]) =>
-      extensions.reduce(mix, target as AtomLike),
-
-    subscribe: subscribe.bind(target as AtomLike),
-  } as Exclude<AtomLike, Fn>) as T
+assert(!globalThis.__REATOM, 'root duplication', ReatomError)
+globalThis.__REATOM = []
 
 /** The hurt of atom internal logic*/
-function middleware(next: Fn) {
+function atomMiddleware(next: Fn) {
   let rootFrame = STACK[0]!
   let frame = STACK[STACK.length - 1]!
   // let causeFrame = STACK[STACK.length - 2]!
 
   let push = arguments.length > 1
-  let update = arguments[1]
   let { state, pubs } = frame
   let dirty = pubs[0] === null
   let dependent = pubs.length !== 1
@@ -372,6 +356,8 @@ function middleware(next: Fn) {
     if (!dirty) {
       frame = _copy(rootFrame, frame, true)
     }
+
+    let update = arguments[1]
 
     newState = frame.state =
       typeof update === 'function' ? update(state) : update
@@ -433,13 +419,15 @@ function middleware(next: Fn) {
 
     frame.pubs = [null]
     try {
-      frame.reactive = true
+      frame.atom.__reatom.linking = true
       frame.state = newState = next(newState)
     } finally {
-      frame.reactive = false
+      frame.atom.__reatom.linking = false
     }
     frame.error = null
     frame.pubs[0] = push ? STACK[STACK.length - 2]! : rootFrame
+    // TODO
+    // Object.freeze(frame.pubs)
 
     if (frame.subs.length) {
       // TODO may be a bug with resubscribing
@@ -452,53 +440,90 @@ function middleware(next: Fn) {
   return newState
 }
 
-declare global {
-  // @ts-ignore TODO
-  var __REATOM: Array<Assigner<AtomLike, Rec>>
-}
+let castAtom = <T extends AtomLike>(
+  target: Fn,
+  meta: Omit<AtomMeta, 'processing' | 'linking' | 'onConnect' | 'onDisconnect'>,
+): T =>
+  Object.assign(target, {
+    actions,
 
-assert(!globalThis.__REATOM, 'root duplication', ReatomError)
-globalThis.__REATOM = []
+    extend,
 
-export let createAtom = <T>(
+    subscribe: subscribe.bind(target as T),
+
+    __reatom: {
+      reactive: meta.reactive,
+      initState: meta.initState,
+      middlewares: meta.middlewares,
+      processing: false,
+      linking: false,
+      onConnect: undefined,
+      onDisconnect: undefined,
+    } satisfies AtomMeta,
+
+    toString: () => `[Atom ${target.name}]`,
+  } as Exclude<AtomLike, Fn>) as T
+
+export let createAtom: {
+  <State>(
+    setup: {
+      initState: State | (() => State)
+      computed: (prev: State) => State
+    },
+    name?: string,
+  ): Atom<State>
+  <State>(
+    setup: {
+      initState?: State | (() => State)
+      computed?: (() => State) | ((state?: State) => State)
+    },
+    name?: string,
+  ): Atom<State>
+} = <State>(
   setup: {
-    initState?: () => T
-    computed?: (prev: T | undefined) => T
+    initState?: State | (() => State)
+    computed?: (prev: State | undefined) => State
   },
   name = named('atom'),
-): Atom<T> => {
-  let atom = castAtom<Atom<T>>(
+): Atom<State> => {
+  let computed = setup.computed && atomMiddleware.bind(null, setup.computed)
+
+  let target = castAtom<AtomLike<State>>(
     {
       // Use computed property name to setup the function name for better stack traces
-      [name](): T {
+      [name](): State {
+        let { reactive, initState, middlewares } = target.__reatom
         let rootFrame = root()
         let topFrame = top()
-        let frame = rootFrame.state.store.get(atom)!
-        let push = !atom.__reatom.reactive || arguments.length !== 0
+        let frame = rootFrame.state.store.get(target)!
+        let push = !reactive || arguments.length !== 0
 
         if (frame === undefined) {
           frame = {
             error: null,
-            state: undefined as T,
-            atom,
+            state: undefined as State,
+            atom: target,
             pubs: [null],
             subs: [],
-            reactive: false,
             run,
           }
-          rootFrame.state.store.set(atom, frame)
+          rootFrame.state.store.set(target, frame)
 
-          if (setup.initState !== undefined) {
+          if (typeof initState === 'function') {
             try {
               STACK.push(frame)
-              frame.state = setup.initState() as T
+              if (reactive) target.__reatom.processing = true
+              frame.state = initState() as State
             } catch (error) {
               frame.error = error ?? new ReatomError('Unknown error')
               frame.pubs[0] = rootFrame
               throw error
             } finally {
+              if (reactive) target.__reatom.processing = false
               STACK.pop()
             }
+          } else {
+            frame.state = initState
           }
         }
 
@@ -510,29 +535,41 @@ export let createAtom = <T>(
         let subscribed = frame.subs.length !== 0
 
         if (
-          !frame.reactive && // cycle
+          !target.__reatom.processing &&
           (push || dirty || (dependent && !subscribed))
         ) {
           STACK.push(frame)
 
+          if (reactive) target.__reatom.processing = true
+
           middlewares: try {
             let fn: Fn = identity
 
-            if (setup.computed) {
-              if (atom.__reatom.middlewares.length === 1) {
-                newState = middleware(setup.computed)
+            if (computed !== undefined) {
+              if (
+                middlewares.length === 1 &&
+                middlewares[0] === atomMiddleware
+              ) {
+                newState = computed.apply(
+                  null,
+                  // @ts-ignore TODO
+                  arguments,
+                )
                 newError = null
                 break middlewares
               }
 
-              fn = setup.computed
+              fn = setup.computed!
             }
 
-            for (let middleware of atom.__reatom.middlewares) {
+            for (let middleware of middlewares) {
               fn = middleware.bind(null, fn)
             }
-            // @ts-ignore TODO
-            newState = fn.apply(null, arguments)
+            newState = fn.apply(
+              null,
+              // @ts-ignore TODO
+              arguments,
+            )
             newError = null
           } catch (error) {
             // console.log(COLOR.red('error'), atom.name)
@@ -548,7 +585,7 @@ export let createAtom = <T>(
           frame.state = newState
           frame.pubs[0] ??= push ? topFrame : rootFrame
 
-          if (!push && topFrame.reactive) {
+          if (!push && topFrame.atom.__reatom.linking) {
             // if (topFrame.atom === frame.atom) console.log(COLOR.bgRed('topFrame.atom === frame.atom')) // prettier-ignore
             topFrame.pubs.push(frame)
           }
@@ -561,8 +598,10 @@ export let createAtom = <T>(
             enqueue(rootFrame, frame)
           }
 
+          target.__reatom.processing = false
+
           STACK.pop()
-        } else if (topFrame.reactive) {
+        } else if (topFrame.atom.__reatom.linking) {
           topFrame.pubs.push(frame)
         }
 
@@ -570,57 +609,64 @@ export let createAtom = <T>(
           throw frame.error
         }
 
-        if (!atom.__reatom.reactive) {
+        if (!reactive) {
           // @ts-ignore TODO
           return frame.state.at(-1).payload
         }
 
         return frame.state
         // TODO if `isInit` triggers some logic which change (with a new frame) the atom, what state should we return??
-        return rootFrame.state.store.get(atom)!.state
+        return rootFrame.state.store.get(target)!.state
       },
     }[name]!,
-    name,
-    true,
+    {
+      reactive: true,
+      initState: setup.initState,
+      middlewares: [atomMiddleware],
+    },
   )
 
-  atom.__reatom.middlewares.push(middleware)
-
-  // @ts-ignore TODO
-  return atom.mix(...globalThis.__REATOM)
+  return globalThis.__REATOM.length === 0
+    ? target
+    : // @ts-expect-error
+      target.extend(...globalThis.__REATOM)
 }
 
 export let atom: {
   <T>(createState: () => T, name?: string): Atom<T>
   <T>(initState: T, name?: string): Atom<T>
-} = (initOrVal: any, name?: string) =>
-  createAtom(
-    {
-      initState:
-        initOrVal === undefined
-          ? undefined
-          : typeof initOrVal === 'function'
-            ? initOrVal
-            : () => initOrVal,
-    },
-    name,
-  )
+} = (initState: any, name?: string) => createAtom({ initState }, name)
 
-export let computed = <T>(
-  computed: (state: T | undefined) => T,
+function computedParams(next: Fn) {
+  if (arguments.length > 1) {
+    console.error("Computed can't accept parameters")
+  }
+  return next()
+}
+
+export let computed = <State>(
+  computed: (() => State) | ((state?: State) => State),
   name?: string,
-): Computed<T> => createAtom({ computed }, name)
+): Computed<State> =>
+  createAtom({ computed }, name).extend((target) => {
+    target.__reatom.middlewares.push(computedParams)
+    return target
+  })
 
 export let root = castAtom<RootAtom>(
   () => {
     let rootFrame = STACK[0] as RootFrame
+    // @ts-ignore
     if (rootFrame?.atom !== root) {
       throw new ReatomError('broken async stack')
     }
     return rootFrame
   },
-  'root',
-  false,
+  {
+    reactive: false,
+    initState: undefined,
+    middlewares: [],
+  },
 )
 root.start = (cb = top) => {
   assert(STACK.length === 0, 'root collision', ReatomError)
@@ -642,11 +688,10 @@ root.start = (cb = top) => {
         pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'effect') {
           this[queue].push(cb)
         },
-      },
-      atom: root,
+      } satisfies RootState,
+      atom: root as any,
       pubs: [null],
       subs: [],
-      reactive: false,
       run,
     } satisfies RootFrame
   ).run(cb)

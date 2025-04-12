@@ -1,7 +1,6 @@
+
+import { action, notify, _read, atom, computed, Frame } from './'
 import { expect, test } from 'test'
-import { action } from './action'
-import { _read, atom, computed, Frame } from './atom'
-import { notify } from '../methods'
 import { getStackTrace } from '../connectLogger'
 
 test('action', () => {

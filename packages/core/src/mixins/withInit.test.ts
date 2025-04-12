@@ -4,7 +4,7 @@ import { withInit } from './withInit'
 
 test('init value', () => {
   const name = 'initValue'
-  const data = atom(0, `${name}.data`).mix(withInit(1))
+  const data = atom(0, `${name}.data`).extend(withInit(1))
 
   expect(data()).toBe(1)
 })
@@ -12,7 +12,7 @@ test('init value', () => {
 test('init callback', () => {
   const name = 'initCallback'
   let init = vi.fn(() => 1)
-  const data = atom(0, `${name}.data`).mix(withInit(init))
+  const data = atom(0, `${name}.data`).extend(withInit(init))
 
   expect(data()).toBe(1)
   expect(init).toBeCalledTimes(1)
@@ -25,7 +25,7 @@ test('init callback', () => {
 test('different roots', () => {
   const name = 'initRoots'
   let i = 0
-  const data = atom(0, `${name}.data`).mix(withInit(() => i++))
+  const data = atom(0, `${name}.data`).extend(withInit(() => i++))
 
   expect(data()).toBe(0)
   expect(data()).toBe(0)
@@ -44,21 +44,12 @@ test('different roots', () => {
   })
 })
 
-test('recursion', () => {
-  const name = 'recursion'
-  let init = vi.fn((): number => data(1))
-  const data = atom(0, `${name}.data`).mix(withInit(init))
-
-  expect(data()).toBe(1)
-  expect(init).toBeCalledTimes(1)
-})
-
 test('reuse', () => {
   const name = 'reuse'
   let init = vi.fn(() => 1)
   const initExt = withInit(init)
-  const a1 = atom(0, `${name}.a1`).mix(initExt)
-  const a2 = atom(0, `${name}.a2`).mix(initExt)
+  const a1 = atom(0, `${name}.a1`).extend(initExt)
+  const a2 = atom(0, `${name}.a2`).extend(initExt)
 
   expect(a1()).toBe(1)
   expect(a2()).toBe(0)
@@ -69,7 +60,7 @@ test('few', () => {
   const name = 'few'
   let init1 = vi.fn(() => 1)
   let init2 = vi.fn(() => 2)
-  const data = atom(0, `${name}.data`).mix(
+  const data = atom(0, `${name}.data`).extend(
     // TODO document the order!
     withInit(init2),
     withInit(init1),

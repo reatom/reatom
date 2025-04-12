@@ -1,6 +1,14 @@
-import { atom, AtomLike, Frame, named, root, top } from '../core'
+import {
+  AtomLike,
+  createAtom,
+  Frame,
+  named,
+  root,
+  top,
+  withAssign,
+  withParams,
+} from '../core'
 import { findInPubs } from '../core/context'
-import { withComputed } from '../mixins'
 import { AbortError, toAbortError } from '../utils'
 
 export interface AbortAtom
@@ -22,20 +30,19 @@ let abortMethods = {
 /** This creates abort atom strongly coupled to the current frame,
  * it is computed from all other abort atoms of the current frame tree */
 export let reatomAbort = (name = named('abort'), frame = top()): AbortAtom =>
-  Object.assign(
-    atom<null | AbortError>(null, name).mix(
-      withComputed((state) => {
-        if (state != null) return state
+  createAtom<null | AbortError>(
+    {
+      initState: null,
+      computed: (state) => {
+        if (state !== null) return state
         let context = root().state.context.abort
         return (
           findInPubs([frame.pubs], (frame) => context.get(frame)?.()) ?? null
         )
-      }),
-      () =>
-        (next, ...params: [] | [reason: any]) =>
-          params.length === 0
-            ? next()
-            : next(toAbortError(params[0] || `${name} abort`)),
-    ),
-    abortMethods,
+      },
+    },
+    name,
+  ).extend(
+    withParams((value) => toAbortError(value || `${name} abort`)),
+    withAssign(abortMethods),
   )

@@ -1,4 +1,12 @@
-import { Action, Atom, atom, named, ReatomError } from '../core'
+import {
+  Action,
+  Atom,
+  atom,
+  named,
+  ReatomError,
+  withAssign,
+  withMiddleware,
+} from '../core'
 import { Fn } from '../utils'
 
 export type EnumFormat = 'camelCase' | 'snake_case'
@@ -47,10 +55,9 @@ export const reatomEnum = <
   if (!initState)
     throw new ReatomError(`enum "${name}" must have an at least one variant`)
 
-  return atom(initState as string, name).mix(
-    (target) => ({ reset: () => target(initState!) }),
-    (target) =>
-      (next: Fn, ...params) => {
+  return atom(initState as string, name)
+    .extend(
+      withMiddleware((target) => (next: Fn, ...params) => {
         const value = next(...params)
 
         if (!variants.includes(value))
@@ -59,8 +66,10 @@ export const reatomEnum = <
           )
 
         return value
-      },
-    (target) =>
+      }),
+    )
+    .actions((target) => ({ reset: () => target(initState!) }))
+    .actions((target) =>
       variants.reduce(
         (acc, variant) => {
           const setterName = variant.replace(
@@ -78,6 +87,8 @@ export const reatomEnum = <
         },
         {} as EnumVariantSetters<T, Format>,
       ),
-    () => ({ enum: Object.fromEntries(variants.map((v) => [v, v])) }),
-  ) as EnumAtom<T, Format>
+    )
+    .extend(
+      withAssign({ enum: Object.fromEntries(variants.map((v) => [v, v])) }),
+    ) as EnumAtom<T, Format>
 }
