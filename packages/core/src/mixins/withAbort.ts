@@ -30,6 +30,8 @@ export let withAbort = (
       let prevState = top().state
       let state = next(...params)
 
+      // context().state.pushQueue
+
       if (target.__reatom.reactive && Object.is(prevState, state)) return state
 
       peek(_abortContainer)?.(toAbortError(`${target.name} concurrent`))

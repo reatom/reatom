@@ -32,7 +32,7 @@ async function testAggregateGrowing(count: number, method: 'push' | 'unshift') {
   const actAtom = act(() => actAtoms.reduce((sum, a) => sum + a(), 0))
 
   Reatom.clearStack()
-  const ReatomRoot = Reatom.root.start(() => Reatom.root())
+  const ReatomRoot = Reatom.context.start(() => Reatom.context())
 
   ReatomRoot.run(ReatomAtom.subscribe)
   molAtom.sync()
@@ -143,7 +143,7 @@ async function testAggregateShrinking(count: number, method: 'pop' | 'shift') {
   const actAtom = act(() => actAtoms.reduce((sum, a) => sum + a(), 0))
 
   Reatom.clearStack()
-  const ReatomRoot = Reatom.root.start(() => Reatom.root())
+  const ReatomRoot = Reatom.context.start(() => Reatom.context())
 
   ReatomRoot.run(ReatomAtom.subscribe)
   molAtom.sync()
@@ -231,7 +231,7 @@ async function testParent(count: number) {
   const actAtoms = []
 
   Reatom.clearStack()
-  const ReatomRoot = Reatom.root.start(() => Reatom.root())
+  const ReatomRoot = Reatom.context.start(() => Reatom.context())
 
   {
     let i = count
@@ -312,8 +312,9 @@ async function testParent(count: number) {
 }
 
 ;(async () => {
-  const subscribers = [2, 2, 2, 2, 4, 8, 16]
-  // const subscribers = [2, 4, 8, 16, 32, 64, 128, 256, 512]
+  // const subscribers = [20]
+  // const subscribers = [2, 2, 2, 2, 4, 8, 16]
+  const subscribers = [2, 4, 8, 16, 32, 64, 128]
   // const subscribers = [1, 2, 2, 2, 2, 4, 4, 4, 4, 4, 4, 4, 4, 10]
 
   let results: any[] = [];

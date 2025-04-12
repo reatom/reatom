@@ -22,7 +22,6 @@
     "test:watch": "vitest src/*"
   },
   "peerDependencies": {
-    "@reatom/core": ">=3.5.0",
     "vue": "^3.3.13"
   },
   "author": {

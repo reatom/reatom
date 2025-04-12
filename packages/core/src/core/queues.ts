@@ -65,7 +65,7 @@ let QueueIterator = (queue: Queue, i: number) => () =>
   i < queue.length ? queue[i++] : undefined
 
 // FIXME reschedule notify if the amount of tasks is changed??
-export let notify = async (): Promise<void> => {
+export let notify = () => {
   let { state } = context()
 
   let queues = [

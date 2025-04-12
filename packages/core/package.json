@@ -65,6 +65,7 @@
     "@preact/signals-core": "latest",
     "@types/node": "latest",
     "@webreflection/signal": "latest",
+    "alien-signals": "^1.0.13",
     "cellx": "latest",
     "dexnode": "^1.2.2",
     "effector": "latest",
