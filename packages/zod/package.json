@@ -1,9 +1,12 @@
 {
-  "name": "@reatom/npm-zod",
-  "version": "3.11.0",
+  "name": "@reatom/zod",
+  "version": "1000.0.0-alpha.0",
+  "publishConfig": {
+    "tag": "alpha"
+  },
   "private": true,
   "sideEffects": false,
-  "description": "Reatom for npm-zod",
+  "description": "Reatom for zod",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -40,9 +43,9 @@
   "bugs": {
     "url": "https://github.com/artalar/reatom/issues"
   },
-  "homepage": "https://www.reatom.dev/package/npm-zod",
+  "homepage": "https://www.reatom.dev/package/zod",
   "keywords": [
-    "npm-zod",
+    "zod",
     "reactive",
     "reactivity",
     "state-manager",
