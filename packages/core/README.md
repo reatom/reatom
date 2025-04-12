@@ -4,9 +4,6 @@
 
 Reatom is a **revolutionary** state management solution that brings together the best practices from multiple paradigms into a cohesive, enjoyable developer experience. It's incredibly powerful yet refreshingly simple - designed for developers who value both elegance and efficiency.
 
-> [!NOTE]
-> This is Alpha documentation. Code examples should work, but text around may contain errors.
-
 ## 🌟 Why Reatom?
 
 In a landscape crowded with state managers, Reatom stands apart as a **unique synthesis** of reactive programming, immutable state management, and functional programming. It offers:
@@ -33,10 +30,10 @@ Here's a taste of the Reatom experience - notice how clean, readable, and intuit
 import { atom, computed } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
-// Create an atom with related methods
-const input = atom('')
+// Create an atom with an initial value
+const input = atom('', 'input')
 // Create computed atom
-const greeting = computed(() => `Hello, ${input()}!`)
+const greeting = computed(() => `Hello, ${input()}!`, 'greeting')
 
 // Use in UI components
 export const Hello = reatomComponent(() => (
@@ -50,13 +47,27 @@ export const Hello = reatomComponent(() => (
 ))
 ```
 
+Comparing with other state managers, Reatom's approach is much cleaner:
+
+```tsx
+// Reatom approach
+const counter = atom(0, 'counter').actions((target) => ({
+  increasePopulation: () => target((state) => state + 1),
+  removeAllBears: () => target(0),
+}))
+
+// Usage
+counter.increasePopulation()
+counter.removeAllBears()
+```
+
 Isn't that beautiful? No boilerplate, no complex setup - just pure, reactive programming joy.
 
 - `atom` - is a base state container that can be read by calling it as a function without arguments and updated by calling it as a function with arguments.
-- `atom` can accept a computed function that automatically subscribes to all read atoms inside of it.
-- `mix` is a method to bind additional methods as actions and apply a various set of extension (see below).
+- `computed` - creates an atom that derives its value from other atoms, automatically tracking dependencies.
+- `extend` - is a method to bind additional methods as actions and apply a various set of extensions (see below).
 
-Thats all you need to get started with Reatom!
+That's all you need to get started with Reatom!
 
 ## 🧠 Core Concepts
 
@@ -157,12 +168,12 @@ Actions are central to managing state transitions and side effects in a structur
 Let's build a search feature to see Reatom's power and elegance in action:
 
 ```ts
-import { atom, action, computed } from '@reatom/core'
+import { atom, action, computed, wrap } from '@reatom/core'
 
 // Split each part of your state to separate atoms
-const search = atom('')
-const isSearching = atom(false)
-const results = atom([])
+const search = atom('', 'search')
+const isSearching = atom(false, 'isSearching')
+const results = atom([], 'results')
 
 // Compute derived states
 const tip = computed(() => {
@@ -176,12 +187,13 @@ const tip = computed(() => {
   }
 
   return `Found ${items.length} item${items.length === 1 ? '' : 's'}`
-})
+}, 'tip')
 
 // Describe all changes and effects in actions
 const handleChange = action((event) => {
   search(event.currentTarget.value)
-})
+}, 'handleChange')
+
 const performSearch = action(async (query) => {
   // Clear previous results
   results([])
@@ -191,12 +203,14 @@ const performSearch = action(async (query) => {
   isSearching(true)
 
   try {
-    const data = await fetch(`/api/search?q=${query}`).then((r) => r.json())
+    // Using wrap to preserve reactive context across async boundaries
+    const response = await wrap(fetch(`/api/search?q=${query}`))
+    const data = await wrap(response.json())
     results(data)
   } finally {
     isSearching(false)
   }
-})
+}, 'performSearch')
 
 // Link data and effects
 search.subscribe(performSearch)
@@ -222,20 +236,20 @@ export const SearchFeature = reatomComponent(() => (
 ))
 ```
 
-## 🧩 Composing State with `.mix()`
+## 🧩 Composing State with `.actions()` and `.extend()`
 
-Reatom's composition system is where its true power shines. The `.mix()` function lets you enhance atoms and actions with additional capabilities and methods.
+Reatom's composition system is where its true power shines. The `.actions()` function lets you enhance atoms with additional methods, while `.extend()` allows you to apply extensions that add capabilities to atoms and actions.
 
 ```ts
 // Create a counter with increment/decrement methods
-const counter = atom(0).mix((target) => ({
+const counter = atom(0, 'counter').actions((target) => ({
   inc: () => target((state) => state + 1),
   add: (to: number) => target((state) => state + to),
   reset: () => target(0),
 }))
 
 // Now you can use those methods on the original atom.
-// Each method an action now, which means it logs all calls to the logger or the debugger
+// Each method is an action now, which means it logs all calls to the logger or the debugger
 counter.inc()
 counter.add(10)
 counter.reset()
@@ -243,7 +257,7 @@ counter.reset()
 
 This approach keeps related functionality grouped together, making your code more organized and maintainable. Note that the passed methods are automatically converted to actions, which means it logs all calls to the logger or the debugger!
 
-Another usecase for the `mix` is applying aditional extensions to enhance atom or actions functionality. Lets dive in to the debuging and extensions system in the next sections.
+Another usecase is applying additional extensions to enhance atom or action functionality using `.extend()`. Let's dive into the debugging and extension system in the next sections.
 
 ## 🧐 Debugging Mastery
 
@@ -263,6 +277,43 @@ Each log contains its name and a payload. And the title of the log is clickable!
 > By the way, the logger works fine in node.js environment too, which can be helpful for testing or server-side rendering.
 
 ## 🧪 Advanced Patterns
+
+### Action mindset
+
+In application development, events like button clicks or network responses often trigger scattered logic, making workflows hard to trace and manage. What if events were more than just notifications? What if they were intelligent commands within our state system?
+
+Meet **Reatom Actions**.
+
+Think beyond traditional events, which are like simple doorbells – they signal presence, nothing more. A Reatom Action is akin to a smart home command: it doesn't just announce "someone's at the door," it intrinsically links that trigger to a defined workflow – turning on lights, sending notifications, logging the event.
+
+**The Core Shift: Bundling Intent with Logic**
+
+The key innovation is that **an Action *contains* its execution logic.** You don't dispatch a generic `userLoggedIn` event and handle it elsewhere. You define the `userLoggedIn` Action *with* the function that fetches user data, updates state, and performs related side effects.
+
+This integration brings significant advantages:
+
+1.  **Defined Workflows:** Actions become self-contained units of work. The "what happens next" is colocated with the trigger, drastically improving clarity and maintainability. The Action's definition *is* its workflow.
+
+2.  **Unified Tooling & Reactivity:** Actions are built on Reatom's core Atom primitive. This means all the powerful tooling – logging, dev tools, time-travel debugging, caching, debouncing – applies seamlessly. No extra middleware needed to observe or control event flows.
+
+3.  **Advanced Event-Driven Patterns (The Escape Hatch):** While primarily focused on bundling logic, Actions *do* briefly log their invocations (conceptually, as `Array<{ params, payload }>`). While not the main focus, this internal reactivity serves as an optional, powerful **escape hatch**. It allows you to directly observe and react to the *history* of Action calls, enabling complex, saga-like event-driven coordination (`await take(someAction)`) for intricate scenarios when the standard workflow encapsulation isn't enough.
+
+**Falling into the Pit of Success**
+
+This design naturally guides developers toward better organization:
+*   **Clear Responsibility:** Actions encapsulate specific tasks.
+*   **Enhanced Testability:** Testing an Action tests its entire embedded workflow.
+*   **Reduced Complexity:** Logic is centralized around intent, not scattered.
+
+**Example Scenarios:**
+
+*   **`submitForm` Action:** Contains logic for validation, API call, success/error state updates.
+*   **`processWebSocketMessage` Action:** Parses data, updates relevant Atoms, potentially triggers other Actions based on content.
+*   **`searchQueryChanged` Action:** Integrates debouncing before executing the actual search logic (potentially another Action).
+
+**In Summary**
+
+Reatom Actions rethink event handling. By bundling logic with intent and leveraging the robust Atom foundation, they offer a cohesive, developer-friendly way to manage application dynamics. They provide clear workflow definitions out-of-the-box, with the underlying reactivity available as a tool for advanced use cases, guiding developers towards more organized, predictable, and maintainable code. It's a smarter way to connect transient occurrences to meaningful state transitions.
 
 ### Asynchronous Operations
 
@@ -297,7 +348,7 @@ const updateUserPrefs = action(
   'updateUserPrefs',
 )
   // Apply the extension to get status tracking atoms and hooks
-  .mix(withAsync())
+  .extend(withAsync())
 
 // --- Usage ---
 
@@ -305,7 +356,7 @@ const updateUserPrefs = action(
 updateUserPrefs({ theme: 'dark', notifications: true })
 
 // Reactively monitor the update status:
-console.log('Is update in progress?', updateUserPrefs.ready()) // Check the loading state
+console.log('Is update in progress?', !updateUserPrefs.ready()) // Check the loading state
 
 // Access the last error state reactively:
 const lastError = updateUserPrefs.error() // Atom<null | Error>
@@ -338,11 +389,11 @@ const userProfile = computed(async () => {
   return await wrap(response.json())
 }, 'userProfile')
   // Use withAsyncData to automatically store the fetched data
-  .mix(withAsyncData(null)) // `null` is the initial data value before the first fetch
+  .extend(withAsyncData(null)) // `null` is the initial data value before the first fetch
 
 // Read the data and status reactively
 console.log('Initial data:', userProfile.data()) // null
-console.log('Is loading?', userProfile.ready()) // false (after initial setup)
+console.log('Is loading?', !userProfile.ready()) // false (after initial setup)
 
 // Now, trigger a change in the dependency:
 userId('2') // Request user 2
@@ -370,16 +421,21 @@ This automatic cancellation is a game-changer for UIs driven by rapidly changing
 For larger applications, maintaining context across async boundaries is crucial. Reatom provides the `wrap` function to preserve the reactive context:
 
 ```ts
+import { action, wrap } from '@reatom/core'
+
 const fetchData = action(async () => {
   // Without wrap, the context would be lost after the await
-  const data = await wrap(fetch('/api/data').then((r) => r.json()))
+  const response = await wrap(fetch('/api/data'))
+  const data = await wrap(response.json())
 
   // We can still access and update atoms correctly here
   results(data)
-})
+  
+  return data
+}, 'fetchData')
 ```
 
-While the default root context works for simple applications, using `wrap` is recommended for larger applications to enable advanced features like stack trace debugging.
+The `wrap` function is essential for preserving the reactive context across async boundaries. Without it, the async operation would lose the Reatom context, and any atom operations after the await would happen in a different context or fail entirely.
 
 ## 🧩 Framework Integration
 
@@ -402,7 +458,7 @@ const UserProfile = reatomComponent(() => {
     <div>
       <h1>{userName()}</h1>
       <button onClick={fetchUserData}>Refresh</button>
-      {userProfile.loading() && <div>Loading...</div>}
+      {!userProfile.ready() && <div>Loading...</div>}
     </div>
   )
 })
@@ -447,8 +503,8 @@ Group related state and actions together in domain-specific modules:
 
 ```ts
 // users/model.ts
-export const user = atom(null)
-export const isLoading = atom(false)
+export const user = atom(null, 'user')
+export const isLoading = atom(false, 'isLoading')
 
 export const login = action(async (username, password) => {
   isLoading(true)
@@ -459,11 +515,11 @@ export const login = action(async (username, password) => {
   } finally {
     isLoading(false)
   }
-})
+}, 'login')
 
 export const logout = action(() => {
   user(null)
-})
+}, 'logout')
 ```
 
 ### Performance Optimization
@@ -489,8 +545,8 @@ beforeEach(() => {
 test('counter increments', () =>
   root.start(() => {
     // Arrange
-    const counter = atom(0)
-    const increment = action(() => counter(counter() + 1))
+    const counter = atom(0, 'counter')
+    const increment = action(() => counter(counter() + 1), 'increment')
 
     // Act
     increment()
@@ -510,35 +566,37 @@ If you're migrating from Reatom v2:
 4. Remove "Atom" suffix from variable names
 5. Replace `reatomAsync` and `reatomResource` with regular atoms and appropriate middlewares
 
-## 🧩 Extension System (Mixins)
+## 🧩 Extension System
 
-Reatom features a powerful **Extension System**, often referred to as "Mixins", allowing you to enhance atoms and actions with reusable behaviors and derived states. Think of them as plug-ins for your reactive primitives!
+Reatom features a powerful **Extension System** allowing you to enhance atoms and actions with reusable behaviors and derived states. Think of them as plug-ins for your reactive primitives!
 
-**The Core Idea:** Use the `.mix()` method on any atom or action to apply one or more extensions. Extensions are functions (often conventionally named starting with `with...`) that augment the target's capabilities.
+**The Core Idea:** Use the `.extend()` method on any atom or action to apply one or more extensions. Extensions are functions (often conventionally named starting with `with...`) that augment the target's capabilities.
 
 ```ts
-import { atom, action, isAction } from '@reatom/core'
-// Assume these extensions exist (Reatom provides many built-in ones!)
-// Let's imagine simple custom ones for illustration:
-const withReset = (initialValue: any) => (target: Atom) => ({
-  reset: action(() => target(initialValue), `${target.name}.reset`),
-})
-const withConsoleLogger =
-  () =>
-  (target: Atom | Action) =>
-  (next: Function, ...params: any[]) => {
-    console.log(`[${target.name}] Calling with:`, params)
-    const result = next(...params)
-    if (isAction(target)) {
-      console.log(`[${target.name}] Returned:`, result)
-    } else {
-      console.log(`[${target.name}] New state:`, result)
+import { atom, action, isAction, withAssign, withMiddleware } from '@reatom/core'
+
+// Creating custom extensions
+const withReset = <T>(initialValue: T) => 
+  withAssign((target: Atom<T>) => ({
+    reset: action(() => target(initialValue), `${target.name}.reset`),
+  }))
+
+const withConsoleLogger = () => 
+  withMiddleware((target: AtomLike) => {
+    return (next: Function, ...params: any[]) => {
+      console.log(`[${target.name}] Calling with:`, params)
+      const result = next(...params)
+      if (isAction(target)) {
+        console.log(`[${target.name}] Returned:`, result)
+      } else {
+        console.log(`[${target.name}] New state:`, result)
+      }
+      return result
     }
-    return result
-  }
+  })
 
 // --- Enhancing an Atom ---
-const counter = atom(0, 'counter').mix(
+const counter = atom(0, 'counter').extend(
   withReset(0), // Adds a `.reset()` action
   withConsoleLogger(), // Adds console logging on updates/calls
 )
@@ -552,16 +610,16 @@ const fetchData = action(async (id: string) => {
   /* ... */ return `Data ${id}`
 }, 'fetchData')
   // Let's use a built-in one this time!
-  .mix(withAsyncData()) // Adds `.data()`, `.error()` atoms etc.
-  .mix(withConsoleLogger()) // Logs action calls and results
+  .extend(withAsyncData(null)) // Adds `.data()`, `.error()` atoms etc.
+  .extend(withConsoleLogger()) // Logs action calls and results
 
 fetchData('abc') // Logs the call
-console.log('Is fetching?', fetchData.ready()) // Check if it's loading
+console.log('Is fetching?', !fetchData.ready()) // Check if it's loading
 ```
 
 **How Extensions Work (Simplified):**
 
-1.  **Mixin Function (`with...`)**: A function (like `withReset`) that might take options and returns an _Extension Function_. This outer function sets up any context the extension needs.
+1.  **Extension Function (`with...`)**: A function (like `withReset`) that might take options and returns an _Extension Function_. This outer function sets up any context the extension needs.
 2.  **Extension Function**: Takes the target atom/action (`target`) and returns either:
     - **An Assigner Object**: An object whose properties are merged onto the target. Function properties automatically become named actions! (e.g., `withReset` adds `{ reset: /* action */ }`). This is great for adding related actions or state atoms.
     - **A Middleware Function**: A function that wraps the core logic (`next`) of the atom's computation or the action's execution. It can run code before/after `next`, modify parameters, or change the result (e.g., logging, caching, validation).
@@ -581,11 +639,14 @@ Reatom provides a rich set of built-in extensions (`@reatom/async`, `@reatom/per
 
 ```ts
 // Create atoms
-atom<T>(initialValue: T): Atom<T>
-atom<T>(computer: () => T): Atom<T>
+atom<T>(initialValue: T, name?: string): Atom<T>
+atom<T>(computer: () => T, name?: string): Atom<T>
+
+// Create computed atoms
+computed<T>(computer: () => T, name?: string): Computed<T>
 
 // Create actions
-action<P extends any[], R>(fn: (...params: P) => R): Action<P, R>
+action<P extends any[], R>(fn: (...params: P) => R, name?: string): Action<P, R>
 
 // Preserve context across async boundaries
 wrap<T>(promise: Promise<T>): Promise<T>
@@ -601,6 +662,12 @@ withAsyncData(defaultValue?: T): Extension
 
 // Add a computed to a regular atom
 withComputed<T, C>(computer: (state: T) => C): Extension
+
+// Add change hook
+withChangeHook<T>(cb: (state: T, prevState: T | undefined) => void): Extension
+
+// Add call hook for actions
+withCallHook<P, R>(cb: (payload: R, params: P) => void): Extension
 ```
 
 ### Atom Interface
@@ -618,7 +685,12 @@ interface Atom<T> {
   subscribe(callback?: (value: T) => void): () => void
 
   // Add extensions
-  mix<E extends Extension[]>(...extensions: E): this & ApplyExtensions<this, E>
+  extend<E extends Extension[]>(...extensions: E): this & ApplyExtensions<this, E>
+  
+  // Add methods
+  actions<M extends Record<string, Function>>(
+    methods: (target: this) => M
+  ): this & M
 }
 ```
 
@@ -629,11 +701,16 @@ interface Action<P extends any[], R> {
   // Call the action
   (...params: P): R
 
-  // Subscribe to changes
+  // Subscribe to action calls
   subscribe(callback?: (value: R) => void): () => void
 
   // Add extensions
-  mix<E extends Extension[]>(...extensions: E): this & ApplyExtensions<this, E>
+  extend<E extends Extension[]>(...extensions: E): this & ApplyExtensions<this, E>
+  
+  // Add methods
+  actions<M extends Record<string, Function>>(
+    methods: (target: this) => M
+  ): this & M
 }
 ```
 
@@ -672,12 +749,11 @@ interface AsyncMethods<
   // Atom representing the number of currently pending operations
   pending: Computed<number>
 
-  // TODO
+  // Atom containing the last error
   error: Atom<Error>
 }
 
 // Interface provided by withAsyncData (extends AsyncMethods)
-// Note: `withAsyncData` also implicitly adds error handling via `withError` typically.
 interface AsyncDataMethods<Params extends any[], Payload, State>
   extends AsyncMethods<Params, Payload> {
   // Atom holding the successfully fetched data (or initial state)
@@ -703,13 +779,49 @@ We welcome contributions of all kinds! Check out our [Contributing Guide](https:
 
 https://antfu.me/posts/epoch-semver
 
-#### How to store functions in atoms
+### How to store functions in atoms
 
 If you need to store a function, call the atom with setter function which returns the target function.
 
 ```ts
 // ✅ correct
-const fnRef = atom(() => myFn, 'fnRef');
+const fnRef = atom(() => myFn, 'fnRef')
 // ❌ wrong, treats myFn as initializer
-const fnRef = fnRef(myFn)
+const fnRef = atom(myFn)
 ```
+
+### Context System
+
+Reatom has a powerful context system that allows atoms and actions to run in isolated environments. This is critical for:
+
+1. **Server-Side Rendering (SSR)**: Each request needs its own isolated state
+2. **Testing**: Tests need to run with clean, isolated state
+3. **Multiple instances**: Running multiple independent instances of your app
+
+To run code in a separate context, use the `root.start()` method:
+
+```ts
+// Run a function in a new isolated context
+const result = root.start(() => {
+  // All atom operations here happen in an isolated context
+  counter(5)
+  return counter()
+})
+
+// In testing
+test('counter increments', () =>
+  root.start(() => {
+    // Each test runs in its own isolated context
+    counter(0)
+    counter.increment()
+    expect(counter()).toBe(1)
+  }))
+
+// In SSR
+app.get('/', (req, res) => {
+  const html = root.start(() => {
+    // Each request gets its own isolated state
+    return renderApp()
+  })
+  res.send(html)
+})

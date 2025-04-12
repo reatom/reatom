@@ -1,5 +1,5 @@
-import { expect, subscribe, test, vi } from 'test'
-import { _read, action, atom, computed } from '../core'
+import { expect, expectTypeOf, subscribe, test, vi } from 'test'
+import { _read, action, Atom, atom, computed } from '../core'
 import { withCallHook } from '../mixins'
 import { wrap } from '../methods'
 import { withAsync, withAsyncData } from './withAsync'
@@ -10,12 +10,12 @@ test('withAsync for action', async () => {
   let fetchTrack = vi.fn()
   let fulfilLTrack = vi.fn()
   let settleTrack = vi.fn()
-  const fetch = action(async (param: number) => param, `${name}.fetch`).mix(
+  const fetch = action(async (param: number) => param, `${name}.fetch`).extend(
     withAsync(),
     withCallHook((payload, params) => fetchTrack({ payload, params })),
   )
-  fetch.onFulfill.mix(withCallHook((call) => fulfilLTrack(call)))
-  fetch.onSettle.mix(withCallHook((call) => settleTrack(call)))
+  fetch.onFulfill.extend(withCallHook((call) => fulfilLTrack(call)))
+  fetch.onSettle.extend(withCallHook((call) => settleTrack(call)))
 
   const promise = fetch(1)
   await wrap(promise)
@@ -31,7 +31,9 @@ test('withAsync for action', async () => {
 test('withAsync for atom', async () => {
   const name = 'atomAsync'
   const params = atom(0, `${name}.params`)
-  const data = computed(async () => params(), `${name}.data`).mix(withAsync())
+  const data = computed(async () => params(), `${name}.data`).extend(
+    withAsync(),
+  )
 
   expect(data.pending()).toBe(1)
   expect(data.ready()).toBe(false)
@@ -47,11 +49,12 @@ test('withAsync for atom', async () => {
 
 test('withAsyncData for action', async () => {
   const name = 'actionAsyncData'
-  const fetch = action(async (param: number) => param + 1, `${name}.fetch`).mix(
-    withAsyncData(),
-  )
+  const fetch = action(
+    async (param: number) => param + 1,
+    `${name}.fetch`,
+  ).extend(withAsyncData(null))
   const onFulfill = vi.fn()
-  fetch.onFulfill.mix(withCallHook((call) => onFulfill(call)))
+  fetch.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
   expect(fetch.data()).toBeUndefined()
   expect(fetch.ready()).toBe(true)
@@ -70,8 +73,13 @@ test('withAsyncData for action', async () => {
 
 test('withAsyncData for action with mappings', async () => {
   const name = 'actionAsyncDataMap'
-  const fetch = action(async (param: number) => param + 1, `${name}.fetch`).mix(
-    withAsyncData(new Array<number>(), (payload, _params, _state) => [payload]),
+  const fetch = action(
+    async (param: number) => param + 1,
+    `${name}.fetch`,
+  ).extend(
+    withAsyncData(null, new Array<number>(), (payload, _params, _state) => [
+      payload,
+    ]),
   )
 
   expect(fetch.data()).toEqual([])
@@ -85,11 +93,11 @@ test('withAsyncData for action with mappings', async () => {
 test('withAsyncData for atom', async () => {
   const name = 'atomAsyncData'
   const param = atom(0, `${name}.param`)
-  const resource = computed(async () => param() + 1, `${name}.resource`).mix(
-    withAsyncData(),
+  const resource = computed(async () => param() + 1, `${name}.resource`).extend(
+    withAsyncData(null),
   )
   const onFulfill = vi.fn()
-  resource.onFulfill.mix(withCallHook((call) => onFulfill(call)))
+  resource.onFulfill.extend(withCallHook((payload) => onFulfill(payload)))
 
   expect(resource.data()).toBeUndefined()
   expect(resource.ready()).toBe(false)
@@ -104,8 +112,10 @@ test('withAsyncData for atom', async () => {
 test('withAsyncData for atom with mappings', async () => {
   const name = 'atomAtomDataMap'
   const param = atom(1, `${name}.param`)
-  const resource = computed(async () => param() + 1, `${name}.resource`).mix(
-    withAsyncData(new Array<number>(), (payload, _params, _state) => [payload]),
+  const resource = computed(async () => param() + 1, `${name}.resource`).extend(
+    withAsyncData(null, new Array<number>(), (payload, _params, _state) => [
+      payload,
+    ]),
   )
 
   expect(resource.data()).toEqual([])
@@ -122,9 +132,9 @@ test('withAsyncData atom concurrent', async () => {
     let paramState = param()
     await wrap(sleep())
     return paramState + 1
-  }, `${name}.resource`).mix(withAsyncData(0))
+  }, `${name}.resource`).extend(withAsyncData(null, 0))
   const onFulfill = vi.fn()
-  resource.onFulfill.mix(withCallHook((call) => onFulfill(call)))
+  resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
   const track = subscribe(resource.data)
 
@@ -150,9 +160,9 @@ test('withAsyncData atom concurrent', async () => {
     let paramState = param()
     await wrap(sleep(10))
     return paramState + 1
-  }, `${name}.resource`).mix(withAsyncData(0))
+  }, `${name}.resource`).extend(withAsyncData(null, 0))
   const onFulfill = vi.fn()
-  resource.onFulfill.mix(withCallHook((call) => onFulfill(call)))
+  resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
   const track = subscribe(resource.pending)
 
@@ -177,40 +187,95 @@ test('withAsyncData atom concurrent', async () => {
   expect(onFulfill).toBeCalledWith({ payload: 4, params: [3] })
 })
 
-test('withAsync for atom error handling', async () => {
+test('withAsync for action error handling', async () => {
   const name = 'atomAsyncError'
-  const error = new Error('TEST')
-  const shouldFailAtom = atom(true, `${name}.shouldFail`)
-  const data = computed(async () => {
-    const shouldFail = shouldFailAtom()
+  const fetch = action(async (shouldFail: boolean) => {
     await wrap(sleep())
-    if (shouldFail) throw error
+    if (shouldFail) throw 'TEST'
     return 'Success'
-  }, `${name}.data`).mix(withAsync())
+  }, `${name}.data`).extend(withAsync())
 
   const onReject = vi.fn()
-  data.onReject.mix(withCallHook((call) => onReject(call)))
+  fetch.onReject.extend(withCallHook((call) => onReject(call)))
   const onFulfill = vi.fn()
-  data.onFulfill.mix(withCallHook((call) => onFulfill(call)))
+  fetch.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
-  expect(data.error()).toBeUndefined()
+  expect(fetch.error()).toBeUndefined()
 
-  await wrap(data().catch(noop))
+  await wrap(fetch(true).catch(noop))
 
-  expect(data.ready()).toBe(true)
-  expect(data.error()).toBe(error)
-  expect(onReject).toHaveBeenCalledWith({ error, params: [true] })
+  expect(fetch.ready()).toBe(true)
+  expect(fetch.error()).instanceOf(Error)
+  expect(fetch.error()?.message).toBe('TEST')
+  expect(onReject).toHaveBeenCalledWith({
+    error: 'TEST',
+    params: [true],
+  })
   expect(onFulfill).not.toHaveBeenCalled()
 
-  shouldFailAtom(false)
-  expect(data.ready()).toBe(false)
-  await wrap(data())
+  const promise = fetch(false)
+  expect(fetch.ready()).toBe(false)
+  await wrap(promise)
 
-  expect(data.ready()).toBe(true)
-  expect(data.error()).toBeUndefined()
+  expect(fetch.ready()).toBe(true)
+  expect(fetch.error()).toBeUndefined()
   expect(onReject).toHaveBeenCalledTimes(1)
   expect(onFulfill).toHaveBeenCalledWith({
     payload: 'Success',
     params: [false],
   })
+})
+
+test('withAsyncData for atom error handling', async () => {
+  const name = 'atomAsyncError'
+  const errorMessage = 'TEST'
+  const shouldFailAtom = atom(true, `${name}.shouldFail`)
+  const resource = computed(async () => {
+    const shouldFail = shouldFailAtom()
+    await wrap(sleep())
+    if (shouldFail) throw new Error(errorMessage)
+    return 'Success'
+  }, `${name}.resource`).extend(
+    withAsyncData(
+      {
+        parseError: (thing) =>
+          thing instanceof Error ? thing.message : String(thing),
+      },
+      null,
+    ),
+  )
+
+  const onReject = vi.fn()
+  resource.onReject.extend(withCallHook((call) => onReject(call)))
+  const onFulfill = vi.fn()
+  resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
+
+  expect(resource.error()).toBeUndefined()
+  expect(resource.data()).toBe(null)
+  expectTypeOf(resource.data).toExtend<Atom<null | string>>()
+
+  await wrap(resource().catch(noop))
+
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).toBe(errorMessage)
+  expect(onReject).toHaveBeenCalledWith({
+    error: new Error(errorMessage),
+    params: [true],
+  })
+  expect(onFulfill).not.toHaveBeenCalled()
+
+  shouldFailAtom(false)
+  expect(resource.ready()).toBe(false)
+  await wrap(resource())
+
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).toBeUndefined()
+  expect(resource.data()).toBe('Success')
+  expect(onReject).toHaveBeenCalledTimes(1)
+  expect(onFulfill).toHaveBeenCalledWith({
+    payload: 'Success',
+    params: [false],
+  })
+
+  expect(resource.error('test')).toBe('test')
 })

@@ -1,26 +1,25 @@
-import { AtomLike } from '../core'
-import { defineName } from '../utils'
+import { AtomLike, Ext } from '../core'
 
-export let withConnectHook =
-  <T extends AtomLike>(cb: () => void) =>
-  (target: T) => {
-    let prevHook = target.__reatom.onConnect
-    target.__reatom.onConnect = defineName(() => {
-      prevHook?.()
-      cb()
-    }, `${target.name}.connectHook`)
+export let withLifecycleHook =
+  <Target extends AtomLike>(
+    cb: () => void,
+    hookName: 'onConnect' | 'onDisconnect',
+  ): Ext<Target> =>
+  (target) => {
+    let name = `${target.name}.${hookName}`
+    let prevHook = target.__reatom[hookName]
+    target.__reatom[hookName] = {
+      [name]() {
+        prevHook?.()
+        cb()
+      },
+    }[name]
 
-    return {}
+    return target
   }
 
-export let withDisconnectHook =
-  <T extends AtomLike>(cb: () => void) =>
-  (target: T) => {
-    let prevHook = target.__reatom.onDisconnect
-    target.__reatom.onDisconnect = defineName(() => {
-      prevHook?.()
-      cb()
-    }, `${target.name}.disconnectHook`)
+export let withConnectHook = (cb: () => void): Ext =>
+  withLifecycleHook(cb, 'onConnect')
 
-    return {}
-  }
+export let withDisconnectHook = (cb: () => void): Ext =>
+  withLifecycleHook(cb, 'onDisconnect')

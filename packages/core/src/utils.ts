@@ -171,18 +171,6 @@ export const isDeepEqual = (a: any, b: any) => {
   return isShallowEqual(a, b, is)
 }
 
-export let defineName = <T extends Fn | Function>(
-  target: T,
-  // @ts-expect-errord
-  name: string,
-): T => {
-  // TODO Enable by a flag in devtools. This enables beautiful readable stacktraces, but lead to deopts with 1.5x the whole code slowdown
-  // if (import.meta?.env?.TEST) {
-  //   Object.defineProperty(target as Fn, 'name', { value: name })
-  // }
-  return target
-}
-
 export type Assign<T1, T2, T3 = {}, T4 = {}> = Plain<
   (T1 extends (...params: infer I) => infer O ? (...params: I) => O : {}) &
     Omit<T1, keyof T2 | keyof T3 | keyof T4> &
@@ -193,6 +181,8 @@ export type Assign<T1, T2, T3 = {}, T4 = {}> = Plain<
 
 /** `Object.assign` with fixed types, equal properties replaced instead of changed to a union */
 export const assign: {
+  <T1, T2>(a1: T1, a2: T2): Assign<T1, T2>
+  <T1, T2, T3 = {}>(a1: T1, a2: T2, a3?: T3): Assign<T1, T2, T3>
   <T1, T2, T3 = {}, T4 = {}>(
     a1: T1,
     a2: T2,
@@ -202,7 +192,7 @@ export const assign: {
 } = Object.assign
 
 /** `Object.assign` which set an empty object to the first argument */
-export const merge: typeof assign = (...params) => Object.assign({}, ...params)
+export const merge: typeof assign = (...params: any[]) => Object.assign({}, ...params)
 
 export const keys: {
   <T extends object>(thing: T): Array<keyof T>

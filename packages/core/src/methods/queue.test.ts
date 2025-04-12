@@ -1,6 +1,6 @@
 import { clearStack, root } from '../core'
 import { expect, test } from 'test'
-import { notify, schedule } from './queues'
+import { notify, schedule } from '../core'
 
 test('no extra tick by schedule', async () => {
   clearStack()

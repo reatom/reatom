@@ -96,7 +96,7 @@ describe('runtime', () => {
     // expect(parsed.size).toBe(3)
   })
 
-  test('should parse mixed values', () => {
+  test('should parse extended values', () => {
     expect(
       parseAtoms({
         someValue: atom(1),
@@ -241,7 +241,7 @@ describe('types', () => {
     expectTypeOf(parseAtoms(atomized)).toEqualTypeOf<Set<any>>()
   })
 
-  it('should parse mixed values', () => {
+  it('should parse extended values', () => {
     expectTypeOf(
       parseAtoms({
         someValue: atom(1),

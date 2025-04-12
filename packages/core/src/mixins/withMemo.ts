@@ -1,4 +1,4 @@
-import type { AtomLike, AtomState } from '../core'
+import type { AtomLike, AtomState, Ext } from '../core'
 import { ReatomError, top } from '../core'
 import { assert, isShallowEqual } from '../utils'
 
@@ -8,7 +8,7 @@ export let withMemo =
       prevState: AtomState<T>,
       nextState: AtomState<T>,
     ) => boolean = isShallowEqual,
-  ): ((target: T) => {}) =>
+  ): Ext<T> =>
   (target) => {
     assert(
       target?.__reatom?.reactive === true,
@@ -16,10 +16,10 @@ export let withMemo =
       ReatomError,
     )
 
-    target.__reatom.middlewares.push(function memoMiddleware(next, ...params) {
+    target.__reatom.middlewares.push(function memoExt(next, ...params) {
       let prevState = top().state
       let nextState = next(...params)
       return isEqual(prevState, nextState) ? prevState : nextState
     })
-    return {}
+    return target
   }

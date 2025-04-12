@@ -23,6 +23,7 @@ import {
   reatomMap,
   reatomSet,
   withChangeHook,
+  withMiddleware,
 } from '@reatom/core'
 
 import { z } from 'zod'
@@ -380,12 +381,13 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
 
   theAtom ??= atom(state, name)
 
-  theAtom.mix(
-    () =>
-      (next, ...params) =>
-        // @ts-expect-error bad typing
-        params.length ? next(parse(params[0])) : next(),
-    withChangeHook((value) => {
+  theAtom.extend(
+    withMiddleware(
+      () =>
+        (next, ...params) =>
+          params.length ? next(parse(params[0])) : next(),
+    ),
+    withChangeHook(() => {
       if (isCausedBy(silentUpdate)) return
       // TODO @artalar the parse is required for using the default values
       // type.parse(parseAtoms(ctx, value));

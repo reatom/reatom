@@ -1,7 +1,7 @@
 import { _read, atom, computed, root, STACK, type Frame } from './core'
 import { getPrevPubs } from './core/context'
 import { AbortAtom, reatomAbort, findVar, variable, wrap } from './methods'
-import { Fn, toAbortError, Unsubscribe } from './utils'
+import { toAbortError, Unsubscribe } from './utils'
 
 export interface AbstractRender<Props, Result> {
   render: (props: Props) => { result: Result }
@@ -40,32 +40,35 @@ export let reatomAbstractRender = <Props, Result>({
 
   let changedVar = variable<boolean>()
 
-  let propsAtom = atom({} as Exclude<Props, Fn>, `${name}._propsAtom`)
+  let propsAtom = atom({} as Props, `${name}._propsAtom`)
 
-  let renderAtom = computed((state?: { result: Result }): { result: Result } => {
-    let pubs = getPrevPubs()
+  let renderAtom = computed(
+    (state?: { result: Result }): { result: Result } => {
+      let pubs = getPrevPubs()
 
-    let props = propsAtom()
+      let props = propsAtom()
 
-    if (rendering) {
-      abort.set()
-      return { result: render(props) }
-    }
+      if (rendering) {
+        abort.set()
+        return { result: render(props) }
+      }
 
-    changedVar.set(true)
+      changedVar.set(true)
 
-    // do not drop subscriptions from the render
-    for (
-      // skip actualization pub and `propsAtom`
-      let i = 2;
-      i < pubs.length;
-      i++
-    ) {
-      pubs[i]!.atom()
-    }
+      // do not drop subscriptions from the render
+      for (
+        // skip actualization pub and `propsAtom`
+        let i = 2;
+        i < pubs.length;
+        i++
+      ) {
+        pubs[i]!.atom()
+      }
 
-    return { result: state!.result }
-  }, `${name}._renderAtom`)
+      return { result: state!.result }
+    },
+    `${name}._renderAtom`,
+  )
 
   let _render = (props: Props) => {
     try {

@@ -3,7 +3,7 @@ import { expect, test, vi } from 'test'
 import { ifChanged, ifCalled } from './ifChanged'
 import { sleep } from '../utils'
 import { wrap } from './wrap'
-import { notify } from './queues'
+import { notify } from '../core'
 
 test('ifChanged', () => {
   const name = 'ifChanged'

@@ -7,8 +7,6 @@ import {
   Frame,
   AtomLike,
   AtomState,
-  assertAction,
-  assertNotAction,
   ActionState,
 } from '../core'
 import { getPrevPubs } from '../core/context'
@@ -18,7 +16,9 @@ export const ifChanged = <T extends AtomLike>(
   target: T,
   cb: (newState: AtomState<T>, oldState?: AtomState<T>) => void,
 ) => {
-  assertNotAction(target)
+  if (!target.__reatom.reactive) {
+    throw new ReatomError('atom expected')
+  }
 
   let frame = top()
   let prevPubs = getPrevPubs(frame)
@@ -39,7 +39,9 @@ export const ifCalled = <Params extends any[], Payload>(
   target: Action<Params, Payload>,
   cb: (payload: Payload, params: Params) => void,
 ) => {
-  assertAction(target)
+  if (target.__reatom.reactive) {
+    throw new ReatomError('action expected')
+  }
 
   type ActionFrame = Frame<ActionState<Params, Payload>, Params, Payload>
 
@@ -59,7 +61,6 @@ export const ifCalled = <Params extends any[], Payload>(
       atom: target,
       pubs: [rootFrame],
       subs: [],
-      reactive: false,
       run,
     }
     rootFrame.state.store.set(target, targetFrame)

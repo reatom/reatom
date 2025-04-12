@@ -1,4 +1,4 @@
-import { AtomLike, Frame, isConnected, root, top } from './core/atom'
+import { AtomLike, Frame, isConnected, root, top } from './core'
 import { withCallHook, withChangeHook } from './mixins'
 import { isBrowser } from './utils'
 
@@ -36,8 +36,8 @@ export let getStackTrace = (acc = '', indent = '\n', frame = top()): string => {
 export let connectLogger = () => {
   let isNodeEnv = !isBrowser()
 
-  globalThis.__REATOM.push((target) => {
-    if (isSkip(target)) return {}
+  globalThis.__REATOM.push(<T extends AtomLike>(target: T): T => {
+    if (isSkip(target)) return target
 
     let title = `%c ${target.name}`
     let style = ''
@@ -54,7 +54,7 @@ export let connectLogger = () => {
     }
 
     return target.__reatom.reactive
-      ? withChangeHook((state, prevState) => {
+      ? withChangeHook<T>((state, prevState) => {
           console.groupCollapsed(`${title}${getSerial()}`, style)
           if (isNodeEnv) console.log(state)
           console.log('prev:', prevState)
@@ -64,7 +64,7 @@ export let connectLogger = () => {
           console.groupEnd()
           if (!isNodeEnv) console.log(state)
         })(target)
-      : withCallHook((payload, params) => {
+      : withCallHook<T>((payload, params) => {
           console.groupCollapsed(`${title}${getSerial()}`, style)
           if (isNodeEnv) console.log(payload)
           params.forEach((param, i) => console.log(`param ${i + 1}:`, param))

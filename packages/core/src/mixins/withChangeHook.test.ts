@@ -1,14 +1,19 @@
-import { expect, test, vi } from 'test'
-import { action, atom, computed } from '../core'
+import { expect, expectTypeOf, test, vi } from 'test'
+import { action, atom, computed, notify } from '../core'
 import { withChangeHook, withCallHook } from './withChangeHook'
-import { notify } from '../methods'
 
 test('atomChange', () => {
   const name = 'atomChange'
   const cb = vi.fn()
-  const a1 = atom(0, `${name}.a1`).mix(withChangeHook(cb))
-  const a2 = atom(0, `${name}.a2`).mix(withChangeHook(cb))
-  const a3 = computed(() => a2(), `${name}.a2`).mix(withChangeHook(cb))
+  const a1 = atom(0, `${name}.a1`).extend(
+    withChangeHook((state, prevState) => {
+      expectTypeOf(state).toBeNumber()
+      expectTypeOf(prevState).toBeNumber()
+      cb(state, prevState)
+    }),
+  )
+  const a2 = atom(0, `${name}.a2`).extend(withChangeHook(cb))
+  const a3 = computed(() => a2(), `${name}.a2`).extend(withChangeHook(cb))
 
   a1()
   notify()
@@ -38,7 +43,7 @@ test('atomChange', () => {
 test('actionCall', () => {
   const name = 'actionCall'
   const cb = vi.fn()
-  const sum = action((a: number, b: number) => a + b, `${name}.sum`).mix(
+  const sum = action((a: number, b: number) => a + b, `${name}.sum`).extend(
     withCallHook(cb),
   )
 

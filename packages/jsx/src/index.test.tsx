@@ -3,6 +3,7 @@ import {
   type Fn,
   atom,
   clearStack,
+  computed,
   isConnected,
   mockRandom,
   notify,
@@ -17,9 +18,9 @@ import { h, hf, mount, Bind, DEBUG, type JSX } from '.'
 
 clearStack()
 
-DEBUG.mix(withInit(() => false))
+DEBUG.extend(withInit(() => false))
 
-const parent = atom<HTMLElement>(null as any, 'parent').mix(
+const parent = atom<HTMLElement>(null as any, 'parent').extend(
   withInit(() => {
     const div = <div />
     window.document.body.appendChild(div)
@@ -77,7 +78,7 @@ test('children updates', () =>
     const element = (
       <div>
         Static one. {val}
-        {atom(() => (route() === 'a' ? a : b))}
+        {computed(() => (route() === 'a' ? a : b))}
       </div>
     )
 
@@ -219,7 +220,7 @@ test('fragment as child', () =>
 test('array children', () =>
   root.start(async () => {
     const n = atom(1)
-    const list = atom(() => (
+    const list = computed(() => (
       <>{...Array.from({ length: n() }, (_, i) => <li>{i + 1}</li>)}</>
     ))
 
@@ -694,12 +695,12 @@ test('render atom fragments', () =>
     const element = (
       <div>
         <p>0</p>
-        {atom(
+        {computed(
           () =>
             bool1Atom() ? (
               <>
                 <p>1</p>
-                {atom(
+                {computed(
                   () =>
                     bool2Atom() ? (
                       <>
@@ -840,7 +841,7 @@ test('linked list', () =>
     const list = reatomLinkedList((value: string) => (
       <>
         <span>{value}</span>
-        {atom(() => (a() ? <a /> : <br />), 'test')}
+        {computed(() => (a() ? <a /> : <br />), 'test')}
       </>
     ))
     list.create('1')
@@ -930,14 +931,27 @@ test('href property', () =>
     expectHtmlElementProperty('a', 'href', undefined, '', false, null)
     // @ts-expect-error TODO fix types
     expectHtmlElementProperty('a', 'href', null, '', false, null)
-    expectHtmlElementProperty('a', 'href', 'https://test.com/', 'https://test.com/', true, 'https://test.com/')
+    expectHtmlElementProperty(
+      'a',
+      'href',
+      'https://test.com/',
+      'https://test.com/',
+      true,
+      'https://test.com/',
+    )
   }))
 
 test('list property', () =>
   root.start(async () => {
     const element = <input list="list"></input>
     const list = <datalist id="list"></datalist>
-    mount(parent(), <div>{element}{list}</div>)
+    mount(
+      parent(),
+      <div>
+        {element}
+        {list}
+      </div>,
+    )
 
     expect(element.list).toBe(list)
     expect(element.hasAttribute('list')).toBe(true)
@@ -952,7 +966,13 @@ test('form property', () =>
   root.start(async () => {
     const element = <input form="form"></input>
     const form = <form id="form"></form>
-    mount(parent(), <div>{element}{form}</div>)
+    mount(
+      parent(),
+      <div>
+        {element}
+        {form}
+      </div>,
+    )
 
     expect(element.form).toBe(form)
     expect(element.hasAttribute('form')).toBe(true)

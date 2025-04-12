@@ -10,7 +10,6 @@ import {
 } from '../core'
 
 import { isObject, Fn, Rec } from '../utils'
-import { withInit } from '../mixins'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
@@ -354,19 +353,18 @@ export function reatomLinkedList<
   // for batching
   let STATE: null | LinkedList<LLNode<Node>> = null
 
-  const linkedList = atom(STATE!, name).mix(
-    withInit(() => {
-      try {
-        if ('initState' in restOptions)
-          return createLinkedListFromState(restOptions.initState ?? [])
-        else if ('initSnapshot' in restOptions)
-          return createLinkedListFromSnapshot(restOptions.initSnapshot ?? [])
-        else return createLinkedListFromState([])
-      } finally {
-        STATE = null
-      }
-    }),
-  )
+  const linkedList = atom(() => {
+    try {
+      if ('initState' in restOptions)
+        return createLinkedListFromState(restOptions.initState ?? [])
+      else if ('initSnapshot' in restOptions)
+        return createLinkedListFromSnapshot(restOptions.initSnapshot ?? [])
+      else return createLinkedListFromState([])
+    } finally {
+      STATE = null
+    }
+    return STATE!
+  }, name)
 
   const createLinkedListFromState = (
     initState: Node[],
@@ -645,10 +643,11 @@ export function reatomLinkedList<
       return mapList
     }, name)
 
-    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] = computed(
-      (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
-      `${name}.array`,
-    )
+    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] =
+      computed(
+        (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
+        `${name}.array`,
+      )
 
     return Object.assign(mapList, { array, __reatomLinkedList: true as const })
   }
@@ -735,7 +734,7 @@ export function reatomLinkedList<
 
     __reatomLinkedList: true as const,
   })
-  // .mix(readonly) TODO: fix errors because of this line in the tests
+  // .extend(readonly) TODO: fix errors because of this line in the tests
 }
 
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>
