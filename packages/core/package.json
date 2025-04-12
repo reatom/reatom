@@ -69,7 +69,7 @@
     "cellx": "latest",
     "dexnode": "^1.2.2",
     "effector": "latest",
-    "jotai": "latest",
+    "jotai": "^2.12.2",
     "mobx": "latest",
     "mol_wire_lib": "latest",
     "nanostores": "latest",
