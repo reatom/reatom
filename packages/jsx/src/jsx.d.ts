@@ -25,10 +25,8 @@ type ElementsAttributesAtomMaybe<T extends Record<keyof any, any>> = {
 export namespace JSX {
   type Element = HTMLElement | SVGElement
 
-  /** @todo Try replacing `Node | Element` with `ChildNode`. */
   type ElementPrimitiveChildren =
-    | Node
-    | Element
+    | ChildNode
     | (string & {})
     | number
     | boolean
@@ -61,7 +59,15 @@ export namespace JSX {
   }
 
   interface CssAttributes {
-    css?: string
+    css?: string | null | undefined
+    /**
+     * Custom properties.
+     * @example
+     * ```tsx
+     * // <div style="--size: 16px; font-size: var(--size);"></div>
+     * <div css:size="16px" css="font-size: var(--size);"></div>
+     * ```
+     */
     [css: `css:${string}`]: string | number | false | null | undefined
   }
 
@@ -204,103 +210,387 @@ export namespace JSX {
     innerHTML?: AtomMaybe<string>
     innerText?: AtomMaybe<string | number>
     textContent?: AtomMaybe<string | number>
-    'on:copy'?: EventHandler<T, ClipboardEvent>
-    'on:cut'?: EventHandler<T, ClipboardEvent>
-    'on:paste'?: EventHandler<T, ClipboardEvent>
-    'on:compositionend'?: EventHandler<T, CompositionEvent>
-    'on:compositionstart'?: EventHandler<T, CompositionEvent>
-    'on:compositionupdate'?: EventHandler<T, CompositionEvent>
-    'on:focusout'?: FocusEventHandler<T, FocusEvent>
-    'on:focusin'?: FocusEventHandler<T, FocusEvent>
-    'on:encrypted'?: EventHandler<T, Event>
-    'on:dragexit'?: EventHandler<T, DragEvent>
   }
   /**
    * @type {GlobalEventHandlers}
    */
   interface CustomEventHandlers<T> {
-    'on:abort'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Node/selectstart_event
+     */
+    'on:selectstart'?: EventHandler<T, Event>
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/afterscriptexecute_event
+     * @deprecated
+     */
+    'on:afterscriptexecute'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/animationcancel_event
+     */
+    'on:animationcancel'?: EventHandler<T, AnimationEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/animationend_event
+     */
     'on:animationend'?: EventHandler<T, AnimationEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/animationiteration_event
+     */
     'on:animationiteration'?: EventHandler<T, AnimationEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/animationstart_event
+     */
     'on:animationstart'?: EventHandler<T, AnimationEvent>
-    'on:auxclick'?: EventHandler<T, MouseEvent>
-    'on:beforeinput'?: InputEventHandler<T, InputEvent>
-    'on:blur'?: FocusEventHandler<T, FocusEvent>
-    'on:canplay'?: EventHandler<T, Event>
-    'on:canplaythrough'?: EventHandler<T, Event>
-    'on:change'?: ChangeEventHandler<T, Event>
-    'on:click'?: EventHandler<T, MouseEvent>
-    'on:contextmenu'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/auxclick_event
+     */
+    'on:auxclick'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/beforeinput_event
+     */
+    'on:beforeinput'?: EventHandler<T, InputEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/beforematch_event
+     */
+    'on:beforematch'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/beforescriptexecute_event
+     * @deprecated
+     */
+    'on:beforescriptexecute'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/beforexrselect_event
+     * @todo Replace to XRSessionEvent.
+     */
+    'on:beforexrselect'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/blur_event
+     */
+    'on:blur'?: EventHandler<T, FocusEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/click_event
+     */
+    'on:click'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/compositionend_event
+     */
+    'on:compositionend'?: EventHandler<T, CompositionEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/compositionstart_event
+     */
+    'on:compositionstart'?: EventHandler<T, CompositionEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/compositionupdate_event
+     */
+    'on:compositionupdate'?: EventHandler<T, CompositionEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/contentvisibilityautostatechange_event
+     */
+    'on:contentvisibilityautostatechange'?: EventHandler<T, ContentVisibilityAutoStateChangeEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/contextmenu_event
+     */
+    'on:contextmenu'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/copy_event
+     */
+    'on:copy'?: EventHandler<T, ClipboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/cut_event
+     */
+    'on:cut'?: EventHandler<T, ClipboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/dblclick_event
+     */
     'on:dblclick'?: EventHandler<T, MouseEvent>
-    'on:drag'?: EventHandler<T, DragEvent>
-    'on:dragend'?: EventHandler<T, DragEvent>
-    'on:dragenter'?: EventHandler<T, DragEvent>
-    'on:dragleave'?: EventHandler<T, DragEvent>
-    'on:dragover'?: EventHandler<T, DragEvent>
-    'on:dragstart'?: EventHandler<T, DragEvent>
-    'on:drop'?: EventHandler<T, DragEvent>
-    'on:durationchange'?: EventHandler<T, Event>
-    'on:emptied'?: EventHandler<T, Event>
-    'on:ended'?: EventHandler<T, Event>
-    'on:error'?: EventHandler<T, Event>
-    'on:focus'?: FocusEventHandler<T, FocusEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/DOMActivate_event
+     * @deprecated
+     */
+    'on:DOMActivate'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/DOMMouseScroll_event
+     * @deprecated
+     */
+    'on:DOMMouseScroll'?: EventHandler<T, WheelEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/focus_event
+     */
+    'on:focus'?: EventHandler<T, FocusEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/focusin_event
+     */
+    'on:focusin'?: EventHandler<T, FocusEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/focusout_event
+     */
+    'on:focusout'?: EventHandler<T, FocusEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/fullscreenchange_event
+     */
+    'on:fullscreenchange'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/fullscreenerror_event
+     */
+    'on:fullscreenerror'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/gesturechange_event
+     * @todo Replace to GestureEvent.
+     */
+    'on:gesturechange'?: EventHandler<T, UIEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/gestureend_event
+     * @todo Replace to GestureEvent.
+     */
+    'on:gestureend'?: EventHandler<T, UIEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/gesturestart_event
+     * @todo Replace to GestureEvent.
+     */
+    'on:gesturestart'?: EventHandler<T, UIEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/gotpointercapture_event
+     */
     'on:gotpointercapture'?: EventHandler<T, PointerEvent>
-    'on:input'?: InputEventHandler<T, InputEvent>
-    'on:invalid'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/input_event
+     */
+    'on:input'?: EventHandler<T, InputEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keydown_event
+     */
     'on:keydown'?: EventHandler<T, KeyboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keypress_event
+     * @deprecated
+     */
     'on:keypress'?: EventHandler<T, KeyboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/keyup_event
+     */
     'on:keyup'?: EventHandler<T, KeyboardEvent>
-    'on:load'?: EventHandler<T, Event>
-    'on:loadeddata'?: EventHandler<T, Event>
-    'on:loadedmetadata'?: EventHandler<T, Event>
-    'on:loadstart'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/lostpointercapture_event
+     */
     'on:lostpointercapture'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mousedown_event
+     */
     'on:mousedown'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseenter_event
+     */
     'on:mouseenter'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseleave_event
+     */
     'on:mouseleave'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mousemove_event
+     */
     'on:mousemove'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseout_event
+     */
     'on:mouseout'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseover_event
+     */
     'on:mouseover'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mouseup_event
+     */
     'on:mouseup'?: EventHandler<T, MouseEvent>
-    'on:pause'?: EventHandler<T, Event>
-    'on:play'?: EventHandler<T, Event>
-    'on:playing'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/mousewheel_event
+     * @deprecated
+     */
+    'on:mousewheel'?: EventHandler<T, WheelEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/MozMousePixelScroll_event
+     * @deprecated
+     */
+    'on:MozMousePixelScroll'?: EventHandler<T, WheelEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/paste_event
+     */
+    'on:paste'?: EventHandler<T, ClipboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointercancel_event
+     */
     'on:pointercancel'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerdown_event
+     */
     'on:pointerdown'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerenter_event
+     */
     'on:pointerenter'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerleave_event
+     */
     'on:pointerleave'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointermove_event
+     */
     'on:pointermove'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerout_event
+     */
     'on:pointerout'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerover_event
+     */
     'on:pointerover'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerrawupdate_event
+     */
+    'on:pointerrawupdate'?: EventHandler<T, PointerEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/pointerup_event
+     */
     'on:pointerup'?: EventHandler<T, PointerEvent>
-    'on:progress'?: EventHandler<T, Event>
-    'on:ratechange'?: EventHandler<T, Event>
-    'on:reset'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/scroll_event
+     */
     'on:scroll'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollend_event
+     */
     'on:scrollend'?: EventHandler<T, Event>
-    'on:seeked'?: EventHandler<T, Event>
-    'on:seeking'?: EventHandler<T, Event>
-    'on:select'?: EventHandler<T, UIEvent>
-    'on:stalled'?: EventHandler<T, Event>
-    'on:submit'?: EventHandler<
-      T,
-      Event & {
-        submitter: HTMLElement
-      }
-    >
-    'on:suspend'?: EventHandler<T, Event>
-    'on:timeupdate'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollsnapchange_event
+     * @todo Replace to SnapEvent.
+     */
+    'on:scrollsnapchange'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/scrollsnapchanging_event
+     * @todo Replace to SnapEvent.
+     */
+    'on:scrollsnapchanging'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/securitypolicyviolation_event
+     */
+    'on:securitypolicyviolation'?: EventHandler<T, SecurityPolicyViolationEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/touchcancel_event
+     */
     'on:touchcancel'?: EventHandler<T, TouchEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/touchend_event
+     */
     'on:touchend'?: EventHandler<T, TouchEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/touchmove_event
+     */
     'on:touchmove'?: EventHandler<T, TouchEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/touchstart_event
+     */
     'on:touchstart'?: EventHandler<T, TouchEvent>
-    'on:transitionstart'?: EventHandler<T, TransitionEvent>
-    'on:transitionend'?: EventHandler<T, TransitionEvent>
-    'on:transitionrun'?: EventHandler<T, TransitionEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/transitioncancel_event
+     */
     'on:transitioncancel'?: EventHandler<T, TransitionEvent>
-    'on:volumechange'?: EventHandler<T, Event>
-    'on:waiting'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionend_event
+     */
+    'on:transitionend'?: EventHandler<T, TransitionEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionrun_event
+     */
+    'on:transitionrun'?: EventHandler<T, TransitionEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionstart_event
+     */
+    'on:transitionstart'?: EventHandler<T, TransitionEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/webkitmouseforcechanged_event
+     */
+    'on:webkitmouseforcechanged'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/webkitmouseforcedown_event
+     */
+    'on:webkitmouseforcedown'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/webkitmouseforceup_event
+     */
+    'on:webkitmouseforceup'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/webkitmouseforcewillbegin_event
+     */
+    'on:webkitmouseforcewillbegin'?: EventHandler<T, MouseEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/wheel_event
+     */
     'on:wheel'?: EventHandler<T, WheelEvent>
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/beforetoggle_event
+     */
+    'on:beforetoggle'?: EventHandler<T, ToggleEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/change_event
+     */
+    'on:change'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/command_event
+     * @todo Replace to CommandEvent.
+     */
+    'on:command'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/copy_event
+     */
+    'on:copy'?: EventHandler<T, ClipboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/cut_event
+     */
+    'on:cut'?: EventHandler<T, ClipboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drag_event
+     */
+    'on:drag'?: EventHandler<T, DragEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragend_event
+     */
+    'on:dragend'?: EventHandler<T, DragEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragenter_event
+     */
+    'on:dragenter'?: EventHandler<T, DragEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragleave_event
+     */
+    'on:dragleave'?: EventHandler<T, DragEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragover_event
+     */
+    'on:dragover'?: EventHandler<T, DragEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dragstart_event
+     */
+    'on:dragstart'?: EventHandler<T, DragEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/drop_event
+     */
+    'on:drop'?: EventHandler<T, DragEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/error_event
+     */
+    'on:error'?: EventHandler<T, UIEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/load_event
+     */
+    'on:load'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/paste_event
+     */
+    'on:paste'?: EventHandler<T, ClipboardEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/toggle_event
+     */
+    'on:toggle'?: EventHandler<T, ToggleEvent>
   }
 
   /** Controls automatic capitalization in inputted text. */
@@ -314,7 +604,7 @@ export namespace JSX {
   // TODO add combinations
   /**
    * The autocomplete attribute provides a hint to the user agent specifying how to, or indeed whether to, prefill a form control.
-   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete
+   * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete#token_list_tokens
    */
   type HTMLAutocomplete =
     | 'additional-name'
@@ -356,8 +646,6 @@ export namespace JSX {
     | 'name'
     | 'new-password'
     | 'nickname'
-    | 'off'
-    | 'on'
     | 'one-time-code'
     | 'organization-title'
     | 'organization'
@@ -389,7 +677,7 @@ export namespace JSX {
     | 'multipart/form-data'
     | 'text/plain'
   type HTMLFormMethod = 'post' | 'get' | 'dialog'
-  type HTMLCrossorigin = 'anonymous' | 'use-credentials' | ''
+  type HTMLCrossorigin = 'anonymous' | 'use-credentials'
   type HTMLReferrerPolicy =
     | 'no-referrer'
     | 'no-referrer-when-downgrade'
@@ -428,6 +716,12 @@ export namespace JSX {
     | 'track'
     | 'video'
     | 'worker'
+  type HTMLTarget =
+    | '_blank'
+    | '_parent'
+    | '_self'
+    | '_top'
+    | '_unfencedTop'
 
   /**
    * All the WAI-ARIA 1.2 role attribute values from
@@ -586,53 +880,73 @@ export namespace JSX {
     'aria-activedescendant'?: string | null | undefined
     /**
      * Indicates whether assistive technologies will present all, or only parts of, the changed region based on the change notifications defined by the aria-relevant attribute.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaAtomic
+     * @alias ariaAtomic
      */
     'aria-atomic'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Indicates whether inputting text could trigger display of one or more predictions of the user's intended value for an input and specifies how predictions would be
      * presented if they are made.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaAutoComplete
+     * @alias ariaAutoComplete
      */
     'aria-autocomplete'?: 'none' | 'inline' | 'list' | 'both' | null | undefined
     /**
      * Defines a string value that labels the current element, which is intended to be converted into Braille.
      * @see aria-label
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaBrailleLabel
+     * @alias ariaBrailleLabel
      */
     'aria-braillelabel'?: string | null | undefined
     /**
      * Defines a human-readable, author-localized abbreviated description for the role of an element, which is intended to be converted into Braille.
      * @see aria-roledescription
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaBrailleRoleDescription
+     * @alias ariaBrailleRoleDescription
      */
     'aria-brailleroledescription'?: string | null | undefined
     /**
      * Indicates an element is being modified and that assistive technologies MAY want to wait until the modifications are complete before exposing them to the user.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaBusy
+     * @alias ariaBusy
      */
     'aria-busy'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Indicates the current "checked" state of checkboxes, radio buttons, and other widgets.
      * @see aria-pressed
      * @see aria-selected
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaChecked
+     * @alias ariaChecked
      */
     'aria-checked'?: boolean | 'false' | 'true' | 'mixed' | null | undefined
     /**
      * Defines the total number of columns in a table, grid, or treegrid.
      * @see aria-colindex
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaColCount
+     * @alias ariaColCount
      */
     'aria-colcount'?: `${number}` | number | null | undefined
     /**
      * Defines an element's column index or position with respect to the total number of columns within a table, grid, or treegrid.
      * @see aria-colcount
      * @see aria-colspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaColIndex
+     * @alias ariaColIndex
      */
     'aria-colindex'?: `${number}` | number | null | undefined
     /**
      * Defines a human readable text alternative of aria-colindex.
      * @see aria-rowindextext
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaColIndexText
+     * @alias ariaColIndexText
      */
     'aria-colindextext'?: string | null | undefined
     /**
      * Defines the number of columns spanned by a cell or gridcell within a table, grid, or treegrid.
      * @see aria-colindex
      * @see aria-rowspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaColSpan
+     * @alias ariaColSpan
      */
     'aria-colspan'?: `${number}` | number | null | undefined
     /**
@@ -642,6 +956,8 @@ export namespace JSX {
     'aria-controls'?: string | null | undefined
     /**
      * Indicates the element that represents the current item within a container or set of related elements.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaCurrent
+     * @alias ariaCurrent
      */
     'aria-current'?:
       | boolean
@@ -662,6 +978,8 @@ export namespace JSX {
     /**
      * Defines a string value that describes or annotates the current element.
      * @see aria-describedby
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaDescription
+     * @alias ariaDescription
      */
     'aria-description'?: string | null | undefined
     /**
@@ -673,6 +991,8 @@ export namespace JSX {
      * Indicates that the element is perceivable but disabled, so it is not editable or otherwise operable.
      * @see aria-hidden
      * @see aria-readonly
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaDisabled
+     * @alias ariaDisabled
      */
     'aria-disabled'?: boolean | 'false' | 'true' | null | undefined
     /**
@@ -688,6 +1008,8 @@ export namespace JSX {
     'aria-errormessage'?: string | null | undefined
     /**
      * Indicates whether the element, or another grouping element it controls, is currently expanded or collapsed.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaExpanded
+     * @alias ariaExpanded
      */
     'aria-expanded'?: boolean | 'false' | 'true' | null | undefined
     /**
@@ -702,6 +1024,8 @@ export namespace JSX {
     'aria-grabbed'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Indicates the availability and type of interactive popup element, such as menu or dialog, that can be triggered by an element.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaHasPopup
+     * @alias ariaHasPopup
      */
     'aria-haspopup'?:
       | boolean
@@ -717,6 +1041,8 @@ export namespace JSX {
     /**
      * Indicates whether the element is exposed to an accessibility API.
      * @see aria-disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaHidden
+     * @alias ariaHidden
      */
     'aria-hidden'?: boolean | 'false' | 'true' | null | undefined
     /**
@@ -726,11 +1052,15 @@ export namespace JSX {
     'aria-invalid'?: boolean | 'false' | 'true' | 'grammar' | 'spelling' | null | undefined
     /**
      * Indicates keyboard shortcuts that an author has implemented to activate or give focus to an element.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaKeyShortcuts
+     * @alias ariaKeyShortcuts
      */
     'aria-keyshortcuts'?: string | null | undefined
     /**
      * Defines a string value that labels the current element.
      * @see aria-labelledby
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaLabel
+     * @alias ariaLabel
      */
     'aria-label'?: string | null | undefined
     /**
@@ -740,26 +1070,38 @@ export namespace JSX {
     'aria-labelledby'?: string | null | undefined
     /**
      * Defines the hierarchical level of an element within a structure.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaLevel
+     * @alias ariaLevel
      */
     'aria-level'?: `${number}` | number | null | undefined
     /**
      * Indicates that an element will be updated, and describes the types of updates the user agents, assistive technologies, and user can expect from the live region.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaLive
+     * @alias ariaLive
      */
     'aria-live'?: 'off' | 'assertive' | 'polite' | null | undefined
     /**
      * Indicates whether an element is modal when displayed.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaModal
+     * @alias ariaModal
      */
     'aria-modal'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Indicates whether a text box accepts multiple lines of input or only a single line.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaMultiLine
+     * @alias ariaMultiLine
      */
     'aria-multiline'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Indicates that the user may select more than one item from the current selectable descendants.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaMultiSelectable
+     * @alias ariaMultiSelectable
      */
     'aria-multiselectable'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Indicates whether the element's orientation is horizontal, vertical, or unknown/ambiguous.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaOrientation
+     * @alias ariaOrientation
      */
     'aria-orientation'?: 'horizontal' | 'vertical' | null | undefined
     /**
@@ -771,27 +1113,37 @@ export namespace JSX {
     /**
      * Defines a short hint (a word or short phrase) intended to aid the user with data entry when the control has no value.
      * A hint could be a sample value or a brief description of the expected format.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaPlaceholder
+     * @alias ariaPlaceholder
      */
     'aria-placeholder'?: string | null | undefined
     /**
      * Defines an element's number or position in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM.
      * @see aria-setsize
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaPosInSet
+     * @alias ariaPosInSet
      */
     'aria-posinset'?: `${number}` | number | null | undefined
     /**
      * Indicates the current "pressed" state of toggle buttons.
      * @see aria-checked
      * @see aria-selected
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaPressed
+     * @alias ariaPressed
      */
     'aria-pressed'?: boolean | 'false' | 'true' | 'mixed' | null | undefined
     /**
      * Indicates that the element is not editable, but is otherwise operable.
      * @see aria-disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaReadOnly
+     * @alias ariaReadOnly
      */
     'aria-readonly'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Indicates what notifications the user agent will trigger when the accessibility tree within a live region is modified.
      * @see aria-atomic
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaRelevant
+     * @alias ariaRelevant
      */
     'aria-relevant'?:
       | 'additions'
@@ -808,66 +1160,96 @@ export namespace JSX {
       | undefined
     /**
      * Indicates that user input is required on the element before a form may be submitted.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaRequired
+     * @alias ariaRequired
      */
     'aria-required'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Defines a human-readable, author-localized description for the role of an element.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaRoleDescription
+     * @alias ariaRoleDescription
      */
     'aria-roledescription'?: string | null | undefined
     /**
      * Defines the total number of rows in a table, grid, or treegrid.
      * @see aria-rowindex
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaRowCount
+     * @alias ariaRowCount
      */
     'aria-rowcount'?: `${number}` | number | null | undefined
     /**
      * Defines an element's row index or position with respect to the total number of rows within a table, grid, or treegrid.
      * @see aria-rowcount
      * @see aria-rowspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaRowIndex
+     * @alias ariaRowIndex
      */
     'aria-rowindex'?: `${number}` | number | null | undefined
     /**
      * Defines a human readable text alternative of aria-rowindex.
      * @see aria-colindextext
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaRowIndexText
+     * @alias ariaRowIndexText
      */
     'aria-rowindextext'?: string | null | undefined
     /**
      * Defines the number of rows spanned by a cell or gridcell within a table, grid, or treegrid.
      * @see aria-rowindex
      * @see aria-colspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaRowSpan
+     * @alias ariaRowSpan
      */
     'aria-rowspan'?: `${number}` | number | null | undefined
     /**
      * Indicates the current "selected" state of various widgets.
      * @see aria-checked
      * @see aria-pressed
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaSelected
+     * @alias ariaSelected
      */
     'aria-selected'?: boolean | 'false' | 'true' | null | undefined
     /**
      * Defines the number of items in the current set of listitems or treeitems. Not required if all elements in the set are present in the DOM.
      * @see aria-posinset
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaSetSize
+     * @alias ariaSetSize
      */
     'aria-setsize'?: `${number}` | number | null | undefined
     /**
      * Indicates if items in a table or grid are sorted in ascending or descending order.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaSort
+     * @alias ariaSort
      */
     'aria-sort'?: 'none' | 'ascending' | 'descending' | 'other' | null | undefined
     /**
      * Defines the maximum allowed value for a range widget.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaValueMax
+     * @alias ariaValueMax
      */
     'aria-valuemax'?: `${number}` | number | null | undefined
     /**
      * Defines the minimum allowed value for a range widget.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaValueMin
+     * @alias ariaValueMin
      */
     'aria-valuemin'?: `${number}` | number | null | undefined
     /**
      * Defines the current value for a range widget.
      * @see aria-valuetext.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaValueNow
+     * @alias ariaValueNow
      */
     'aria-valuenow'?: `${number}` | number | null | undefined
     /**
      * Defines the human readable text alternative of aria-valuenow for a range widget.
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/ariaValueText
+     * @alias ariaValueText
      */
     'aria-valuetext'?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/role
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/ElementInternals/role
+     */
     role?: AriaRole | null | undefined
   }
 
@@ -899,42 +1281,109 @@ export namespace JSX {
       ElementProperties<T>,
       $Spread<T> {
     // [key: ClassKeys]: boolean;
-    accessKey?: string
-    class?: string | undefined
-    /** Alias for `class`. */
-    className?: string | undefined
-    contenteditable?: boolean | 'plaintext-only' | 'inherit'
-    contextmenu?: string
-    dir?: HTMLDir
-    draggable?: 'false' | 'true'
-    hidden?: boolean | 'hidden' | 'until-found'
-    id?: string
-    inert?: boolean
-    lang?: string
-    spellcheck?: boolean
-    style?: CSSProperties | string
-    tabindex?: number | string
-    title?: string
-    translate?: 'yes' | 'no'
-    about?: string
-    datatype?: string
-    inlist?: any
-    popover?: boolean | 'manual' | 'auto'
-    prefix?: string
-    property?: string
-    resource?: string
-    typeof?: string
-    vocab?: string
-    autocapitalize?: HTMLAutocapitalize
-    slot?: string
-    color?: string
-    itemprop?: string
-    itemscope?: boolean
-    itemtype?: string
-    itemid?: string
-    itemref?: string
-    part?: string
-    exportparts?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/data-*
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset
+     */
+    [`data-${string}`]: string | number | boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/accesskey
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/accessKey
+     * @alias accessKey
+     */
+    accesskey?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/anchor
+     */
+    anchor?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/autocapitalize
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autocapitalize
+     */
+    autocapitalize?: HTMLAutocapitalize | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/autocorrect
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autocorrect
+     * @todo Support for attribute values ​​'' | 'on' | 'off'.
+     */
+    autocorrect?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/autofocus
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autofocus
+     */
+    autofocus?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/class
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/className
+     * @alias className
+     */
+    class?: string | null | undefined
+    /**
+     * @alias class
+     */
+    className?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/contenteditable
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/contentEditable
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/isContentEditable
+     * @alias contentEditable
+     */
+    contenteditable?: boolean | '' | 'false' | 'true' | 'plaintext-only' | null | undefined
+    /**
+     * @deprecated https://github.com/whatwg/html/issues/2730
+     */
+    contextmenu?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/dir
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dir
+     */
+    dir?: HTMLDir | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/draggable
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/draggable
+     * @todo Support for attribute values 'false' | 'true'.
+     */
+    draggable?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/enterkeyhint
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/enterKeyHint
+     * @alias enterKeyHint
+     */
+    enterkeyhint?:
+      | 'enter'
+      | 'done'
+      | 'go'
+      | 'next'
+      | 'previous'
+      | 'search'
+      | 'send'
+      | null
+      | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/exportparts
+     */
+    exportparts?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/hidden
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/hidden
+     * @todo Support for attribute values '' | 'hidden'.
+     */
+    hidden?: boolean | 'until-found' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/id
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/id
+     */
+    id?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/inert
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/inert
+     */
+    inert?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/inputmode
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/inputMode
+     * @alias inputMode
+     */
     inputmode?:
       | 'none'
       | 'text'
@@ -944,188 +1393,933 @@ export namespace JSX {
       | 'numeric'
       | 'decimal'
       | 'search'
+      | null
+      | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/is
+     */
+    is?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/itemid
+     */
+    itemid?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/itemprop
+     */
+    itemprop?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/itemref
+     */
+    itemref?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/itemscope
+     */
+    itemscope?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/itemtype
+     */
+    itemtype?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/lang
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/lang
+     */
+    lang?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/part
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/part
+     */
+    part?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/popover
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/popover
+     */
+    popover?: 'auto' | 'hint' | 'manual' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/slot
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/slot
+     */
+    slot?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/spellcheck
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/spellcheck
+     * @todo Support for attribute values '' | 'false' | 'true'?
+     */
+    spellcheck?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/style
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/style
+     */
+    style?: CSSProperties | string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/tabindex
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/tabIndex
+     * @alias tabIndex
+     */
+    tabindex?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/title
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/title
+     */
+    title?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/translate
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/translate
+     * @todo Support for attribute values '' | 'no' | 'yes'?
+     */
+    translate?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/virtualkeyboardpolicy
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/virtualKeyboardPolicy
+     * @alias virtualKeyboardPolicy
+     */
+    virtualkeyboardpolicy?: boolean | '' | 'auto' | 'manual' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/writingsuggestions
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/writingSuggestions
+     * @alias writingSuggestions
+     */
+    writingsuggestions?: boolean | 'false' | 'true' | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/elementtiming
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/elementTiming
+     */
+    elementtiming?: string | null | undefined
+
+    // RDFa Attributes
+    about?: string | null | undefined
+    datatype?: string | null | undefined
+    inlist?: any | null | undefined
+    prefix?: string | null | undefined
+    property?: string | null | undefined
+    resource?: string | null | undefined
+    typeof?: string | null | undefined
+    vocab?: string | null | undefined
   }
   interface AnchorHTMLAttributes<T = HTMLElementTagNameMap['anchor']>
     extends HTMLAttributes<T> {
-    download?: string
-    href?: string
-    hreflang?: string
-    media?: string
-    ping?: string
-    referrerpolicy?: HTMLReferrerPolicy
-    rel?: string
-    target?: string
-    type?: string
-    referrerPolicy?: HTMLReferrerPolicy
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#attributionsrc
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/attributionSrc
+     * @alias attributionSrc
+     */
+    attributionsrc?: boolean | string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#download
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/download
+     */
+    download?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#href
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/href
+     */
+    href?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#hreflang
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/hreflang
+     */
+    hreflang?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#ping
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/ping
+     */
+    ping?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#referrerpolicy
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/referrerPolicy
+     * @alias referrerPolicy
+     */
+    referrerpolicy?: HTMLReferrerPolicy | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/relList
+     * @todo List all possible values.
+     */
+    rel?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#target
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/target
+     */
+    target?: HTMLTarget | (string & {}) | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/type
+     * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+     */
+    type?: string | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#charset
+     * @deprecated
+     */
+    charset?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#coords
+     * @deprecated
+     */
+    coords?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#name
+     * @deprecated
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#rev
+     * @deprecated
+     */
+    rev?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#shape
+     * @deprecated
+     */
+    shape?: string | null | undefined
   }
   interface AudioHTMLAttributes<T> extends MediaHTMLAttributes<T> {}
   interface AreaHTMLAttributes<T = HTMLElementTagNameMap['area']>
     extends HTMLAttributes<T> {
-    alt?: string
-    coords?: string
-    download?: string
-    href?: string
-    hreflang?: string
-    ping?: string
-    referrerpolicy?: HTMLReferrerPolicy
-    rel?: string
-    shape?: 'rect' | 'circle' | 'poly' | 'default'
-    target?: string
-    referrerPolicy?: HTMLReferrerPolicy
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#alt
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/alt
+     */
+    alt?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#coords
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/coords
+     */
+    coords?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#download
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/download
+     */
+    download?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#href
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/href
+     */
+    href?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#ping
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/ping
+     */
+    ping?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#referrerpolicy
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/referrerPolicy
+     * @alias referrerPolicy
+     */
+    referrerpolicy?: HTMLReferrerPolicy | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/relList
+     * @todo List all possible values.
+     */
+    rel?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#shape
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/shape
+     */
+    shape?: 'rect' | 'circle' | 'poly' | 'default' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#target
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/target
+     */
+    target?: HTMLTarget | (string & {}) | null | undefined
   }
   interface BaseHTMLAttributes<T = HTMLElementTagNameMap['base']>
     extends HTMLAttributes<T> {
-    href?: string
-    target?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/base#href
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLBaseElement/href
+     */
+    href?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/base#target
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLBaseElement/target
+     */
+    target?: HTMLTarget | (string & {}) | null | undefined
   }
   interface BlockquoteHTMLAttributes<T = HTMLElementTagNameMap['blockquote']>
     extends HTMLAttributes<T> {
-    cite?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/blockquote#cite
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLQuoteElement/cite
+     */
+    cite?: string | null | undefined
   }
   interface ButtonHTMLAttributes<T = HTMLElementTagNameMap['button']>
     extends HTMLAttributes<T> {
-    autofocus?: boolean
-    disabled?: boolean
-    form?: string
-    formaction?: string // | SerializableAttributeValue
-    formenctype?: HTMLFormEncType
-    formmethod?: HTMLFormMethod
-    formnovalidate?: boolean
-    formtarget?: string
-    popovertarget?: string
-    popovertargetaction?: 'hide' | 'show' | 'toggle'
-    name?: string
-    type?: 'submit' | 'reset' | 'button'
-    value?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#command
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/command
+     */
+    command?:
+      | 'show-modal'
+      | 'close'
+      | 'request-close'
+      | 'show-popover'
+      | 'hide-popover'
+      | 'toggle-popover'
+      | `--${string}`
+      | null
+      | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#command
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/commandForElement
+     * @alias commandForElement
+     */
+    commandfor?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#formaction
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/formAction
+     * @alias formAction
+     */
+    formaction?: string | null | undefined // | SerializableAttributeValue
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#formenctype
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/formEnctype
+     * @alias formEnctype
+     */
+    formenctype?: HTMLFormEncType | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#formmethod
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/formMethod
+     * @alias formMethod
+     */
+    formmethod?: HTMLFormMethod | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#formnovalidate
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/formNoValidate
+     * @alias formNoValidate
+     */
+    formnovalidate?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#formtarget
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/formTarget
+     * @alias formTarget
+     */
+    formtarget?: Omit<HTMLTarget, '_unfencedTop'> | (string & {}) | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#popovertarget
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/popoverTargetElement
+     * @alias popoverTargetElement
+     */
+    popovertarget?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#popovertargetaction
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/popoverTargetAction
+     * @alias popoverTargetAction
+     */
+    popovertargetaction?: 'hide' | 'show' | 'toggle' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/type
+     */
+    type?: 'submit' | 'reset' | 'button' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#value
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLButtonElement/value
+     */
+    value?: string | null | undefined
   }
   interface CanvasHTMLAttributes<T = HTMLElementTagNameMap['canvas']>
     extends HTMLAttributes<T> {
-    width?: number | string
-    height?: number | string
-  }
-  interface ColHTMLAttributes<T = HTMLElementTagNameMap['col']>
-    extends HTMLAttributes<T> {
-    span?: number | string
-    width?: number | string
-  }
-  interface ColgroupHTMLAttributes<T = HTMLElementTagNameMap['colgroup']>
-    extends HTMLAttributes<T> {
-    span?: number | string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/canvas#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/width
+     */
+    width?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/canvas#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/height
+     */
+    height?: `${number}` | number | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/contextlost_event
+     */
+    'on:contextlost'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/contextrestored_event
+     */
+    'on:contextrestored'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/webglcontextcreationerror_event
+     */
+    'on:webglcontextcreationerror'?: EventHandler<T, WebGLContextEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/webglcontextlost_event
+     */
+    'on:webglcontextlost'?: EventHandler<T, WebGLContextEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/webglcontextrestored_event
+     */
+    'on:webglcontextrestored'?: EventHandler<T, WebGLContextEvent>
   }
   interface DataHTMLAttributes<T = HTMLElementTagNameMap['data']>
     extends HTMLAttributes<T> {
-    value?: string | string[] | number
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/data#value
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLDataElement/value
+     */
+    value?: string | number | null | undefined
+  }
+  interface DelHTMLAttributes<T = HTMLElementTagNameMap['del']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/blockquote#cite
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLModElement/cite
+     */
+    cite?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/blockquote#datetime
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLModElement/dateTime
+     * @alias dateTime
+     */
+    datetime?: string | null | undefined
   }
   interface DetailsHtmlAttributes<T = HTMLElementTagNameMap['details']>
     extends HTMLAttributes<T> {
-    open?: boolean
-    ontoggle?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLDetailsElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/details#open
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLDetailsElement/open
+     */
+    open?: boolean | null | undefined
   }
   interface DialogHtmlAttributes<T = HTMLElementTagNameMap['dialog']>
     extends HTMLAttributes<T> {
-    open?: boolean
-    'on:close'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog#open
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/open
+     */
+    open?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/returnValue
+     */
+    returnValue?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/dialog#usage_notes
+     */
+    tabindex?: null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/cancel_event
+     */
     'on:cancel'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLDialogElement/close_event
+     */
+    'on:close'?: EventHandler<T, Event>
   }
   interface EmbedHTMLAttributes<T = HTMLElementTagNameMap['embed']>
     extends HTMLAttributes<T> {
-    height?: number | string
-    src?: string
-    type?: string
-    width?: number | string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/embed#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLEmbedElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/embed#src
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLEmbedElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/embed#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLEmbedElement/type
+     * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+     */
+    type?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/embed#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLEmbedElement/width
+     */
+    width?: `${number}` | number | null | undefined
+  }
+  interface FencedFrameHTMLAttributes<T = HTMLElementTagNameMap['embed']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/fencedframe#allow
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFencedFrameElement/allow
+     */
+    allow?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFencedFrameElement/config
+     */
+    config?: FencedFrameConfig | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/fencedframe#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFencedFrameElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/fencedframe#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFencedFrameElement/width
+     */
+    width?: `${number}` | number | null | undefined
   }
   interface FieldsetHTMLAttributes<T = HTMLElementTagNameMap['fieldset']>
     extends HTMLAttributes<T> {
-    disabled?: boolean
-    form?: string
-    name?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFieldSetElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/fieldset#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFieldSetElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/fieldset#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFieldSetElement/name
+     */
+    name?: string | null | undefined
   }
   interface FormHTMLAttributes<T = HTMLElementTagNameMap['form']>
     extends HTMLAttributes<T> {
-    'accept-charset'?: string
-    action?: string // | SerializableAttributeValue
-    autocomplete?: HTMLAutocomplete
-    encoding?: HTMLFormEncType
-    enctype?: HTMLFormEncType
-    method?: HTMLFormMethod
-    name?: string
-    novalidate?: boolean
-    target?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#accept-charset
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/acceptCharset
+     * @alias acceptCharset
+     */
+    'accept-charset'?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#action
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/action
+     */
+    action?: string | null | undefined // | SerializableAttributeValue
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/autocomplete
+     * @todo Should support for values boolean?
+     */
+    autocomplete?: '' | 'on' | 'off' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#enctype
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/encoding
+     * @alias enctype
+     */
+    encoding?: HTMLFormEncType | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#enctype
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/enctype
+     * @alias encoding
+     */
+    enctype?: HTMLFormEncType | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#method
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/method
+     */
+    method?: HTMLFormMethod | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#novalidate
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/noValidate
+     * @alias noValidate
+     */
+    novalidate?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/relList
+     * @todo List all possible values.
+     */
+    rel?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#target
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/target
+     */
+    target?: HTMLTarget | (string & {}) | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/formdata_event
+     */
+    'on:formdata'?: EventHandler<T, FormDataEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/reset_event
+     */
+    'on:reset'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/submit_event
+     */
+    'on:submit'?: EventHandler<T, SubmitEvent>
   }
   interface IframeHTMLAttributes<T = HTMLElementTagNameMap['iframe']>
     extends HTMLAttributes<T> {
-    allow?: string
-    allowfullscreen?: boolean
-    height?: number | string
-    loading?: 'eager' | 'lazy'
-    name?: string
-    referrerpolicy?: HTMLReferrerPolicy
-    sandbox?: HTMLIframeSandbox | string
-    src?: string
-    srcdoc?: string
-    width?: number | string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#allow
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/allow
+     */
+    allow?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#allowfullscreen
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/allowFullscreen
+     * @alias allowFullscreen
+     */
+    allowfullscreen?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#allowpaymentrequest
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/allowPaymentRequest
+     * @alias allowPaymentRequest
+     * @deprecated
+     */
+    allowpaymentrequest?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#browsingtopics
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/browsingTopics
+     * @alias browsingTopics
+     */
+    browsingtopics?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#credentialless
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/credentialless
+     */
+    credentialless?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#csp
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/csp
+     */
+    csp?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#loading
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/loading
+     */
+    loading?: 'eager' | 'lazy' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#referrerpolicy
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/referrerPolicy
+     * @alias referrerPolicy
+     */
+    referrerpolicy?: HTMLReferrerPolicy | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#sandbox
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/sandbox
+     */
+    sandbox?: HTMLIframeSandbox | string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#src
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#srcdoc
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/srcdoc
+     */
+    srcdoc?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/iframe#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLIFrameElement/width
+     */
+    width?: `${number}` | number | null | undefined
   }
   interface ImgHTMLAttributes<T = HTMLElementTagNameMap['img']>
     extends HTMLAttributes<T> {
-    alt?: string
-    crossorigin?: HTMLCrossorigin
-    decoding?: 'sync' | 'async' | 'auto'
-    height?: number | string
-    ismap?: boolean
-    loading?: 'eager' | 'lazy'
-    referrerpolicy?: HTMLReferrerPolicy
-    sizes?: string
-    src?: string
-    srcset?: string
-    usemap?: string
-    width?: number | string
-    elementtiming?: string
-    fetchpriority?: 'high' | 'low' | 'auto'
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/alt
+     */
+    alt?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#attributionsrc
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/attributionSrc
+     * @alias attributionSrc
+     */
+    attributionsrc?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/crossOrigin
+     * @alias crossOrigin
+     */
+    crossorigin?: HTMLCrossorigin | '' | boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#decoding
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/decoding
+     */
+    decoding?: 'sync' | 'async' | 'auto' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#fetchpriority
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority
+     * @alias fetchPriority
+     */
+    fetchpriority?: 'high' | 'low' | 'auto' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#ismap
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/isMap
+     * @alias isMap
+     */
+    ismap?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#loading
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/loading
+     */
+    loading?: 'eager' | 'lazy' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#referrerpolicy
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/referrerPolicy
+     * @alias referrerPolicy
+     */
+    referrerpolicy?: HTMLReferrerPolicy | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#sizes
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/sizes
+     */
+    sizes?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#src
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#srcset
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/srcset
+     */
+    srcset?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#usemap
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/useMap
+     */
+    usemap?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/img#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/width
+     */
+    width?: `${number}` | number | null | undefined
   }
   interface InputHTMLAttributes<T = HTMLElementTagNameMap['input']>
     extends HTMLAttributes<T> {
-    accept?: string
-    alt?: string
-    autocomplete?: HTMLAutocomplete
-    autocorrect?: 'on' | 'off'
-    autofocus?: boolean
-    capture?: boolean | string
-    checked?: boolean
-    crossorigin?: HTMLCrossorigin
-    disabled?: boolean
-    enterkeyhint?:
-      | 'enter'
-      | 'done'
-      | 'go'
-      | 'next'
-      | 'previous'
-      | 'search'
-      | 'send'
-    form?: string
-    formaction?: string // | SerializableAttributeValue
-    formenctype?: HTMLFormEncType
-    formmethod?: HTMLFormMethod
-    formnovalidate?: boolean
-    formtarget?: string
-    height?: number | string
-    incremental?: boolean
-    list?: string
-    max?: number | string
-    maxlength?: number | string
-    min?: number | string
-    minlength?: number | string
-    multiple?: boolean
-    name?: string
-    pattern?: string
-    placeholder?: string
-    readonly?: boolean
-    results?: number
-    required?: boolean
-    size?: number | string
-    src?: string
-    step?: number | string
-    type?: /** A push button with no default behavior displaying the value of the value attribute, empty by default. */
-    | 'button'
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/accept
+     */
+    accept?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#alt
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/alt
+     */
+    alt?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/autocomplete
+     * @todo Should support for values boolean?
+     */
+    autocomplete?: HTMLAutocomplete | '' | 'on' | 'off' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/capture
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/capture
+     * @todo Should support for values boolean?
+     */
+    capture?: '' | 'user' | 'environment' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#checked
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/checked
+     */
+    checked?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/dirname
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/dirName
+     * @alias dirName
+     */
+    dirname?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#formaction
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/formAction
+     * @alias formAction
+     */
+    formaction?: string | null | undefined // | SerializableAttributeValue
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#formenctype
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/formEnctype
+     * @alias formEnctype
+     */
+    formenctype?: HTMLFormEncType | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#formmethod
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/formMethod
+     * @alias formMethod
+     */
+    formmethod?: HTMLFormMethod | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#formnovalidate
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/formNoValidate
+     * @alias formNoValidate
+     */
+    formnovalidate?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#formtarget
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/formTarget
+     * @alias formTarget
+     */
+    formtarget?: Omit<HTMLTarget, '_unfencedTop'> | (string & {}) | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/indeterminate
+     */
+    indeterminate?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#incremental
+     */
+    incremental?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#list
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/list
+     * @todo Should support for values HTMLDataListElement?
+     */
+    list?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/max
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/max
+     */
+    max?: string | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/maxlength
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/maxLength
+     * @alias maxLength
+     */
+    maxlength?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/min
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/min
+     */
+    min?: string | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/minlength
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/minlength
+     * @alias minLength
+     */
+    minlength?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/multiple
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/multiple
+     */
+    multiple?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/pattern
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/pattern
+     */
+    pattern?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/placeholder
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/placeholder
+     */
+    placeholder?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#popovertarget
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/popoverTargetElement
+     * @alias popoverTargetElement
+     */
+    popovertarget?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#popovertargetaction
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/popoverTargetAction
+     * @alias popoverTargetAction
+     */
+    popovertargetaction?: 'hide' | 'show' | 'toggle' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/readonly
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/readOnly
+     * @alias readOnly
+     */
+    readonly?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#results
+     */
+    results?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/required
+     */
+    required?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/selectionEnd
+     */
+    selectionEnd?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/selectionStart
+     */
+    selectionStart?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/size
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/size
+     */
+    size?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#src
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/step
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/step
+     */
+    step?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/type
+     */
+    type?:
+      /** A push button with no default behavior displaying the value of the value attribute, empty by default. */
+      | 'button'
       /** A check box allowing single values to be selected/deselected. */
       | 'checkbox'
       /** A control for specifying a color; opening a color picker when active in supporting browsers. */
@@ -1168,8 +2362,52 @@ export namespace JSX {
       | 'url'
       /** A control for entering a date consisting of a week-year number and a week number with no time zone. */
       | 'week'
-    value?: string | string[] | number
-    width?: number | string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#value
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/value
+     */
+    value?: string[] | string | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/valueAsDate
+     * @todo Support for properties values null | undefined.
+     */
+    valueAsDate?: Date
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/valueAsNumber
+     * @todo Support for properties values null | undefined.
+     */
+    valueAsNumber?: `${number}` | number
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/width
+     */
+    width?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/input#webkitdirectory
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/webkitdirectory
+     */
+    webkitdirectory?: boolean | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/cancel_event
+     */
+    'on:cancel'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/invalid_event
+     */
+    'on:invalid'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/search_event
+     */
+    'on:search'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/select_event
+     */
+    'on:select'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/selectionchange_event
+     */
+    'on:selectionchange'?: EventHandler<T, Event>
 
     'model:value'?: Atom<string>
     'model:valueAsNumber'?: Atom<number>
@@ -1177,238 +2415,1297 @@ export namespace JSX {
   }
   interface InsHTMLAttributes<T = HTMLElementTagNameMap['ins']>
     extends HTMLAttributes<T> {
-    cite?: string
-    datetime?: string
+    /**
+      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ins#cite
+      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLModElement/cite
+      */
+    cite?: string | null | undefined
+    /**
+      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ins#datetime
+      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLModElement/dateTime
+      * @alias dateTime
+      */
+    datetime?: string | null | undefined
   }
+  /**
+   * @deprecated
+   */
   interface KeygenHTMLAttributes<T = HTMLElementTagNameMap['keygen']>
     extends HTMLAttributes<T> {
-    autofocus?: boolean
-    challenge?: string
-    disabled?: boolean
-    form?: string
-    keytype?: string
-    keyparams?: string
-    name?: string
+    challenge?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     */
+    disabled?: boolean | null | undefined
+    form?: string | null | undefined
+    keytype?: string | null | undefined
+    keyparams?: string | null | undefined
+    name?: string | null | undefined
   }
   interface LabelHTMLAttributes<T = HTMLElementTagNameMap['label']>
     extends HTMLAttributes<T> {
-    for?: string
-    form?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/for
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/htmlFor
+     * @alias htmlFor
+     * @todo Should support for values string[]?
+     */
+    for?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/label#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
   }
   interface LiHTMLAttributes<T = HTMLElementTagNameMap['li']>
     extends HTMLAttributes<T> {
-    value?: number | string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/li#value
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLIElement/value
+     */
+    value?: `${number}` | number | null | undefined
   }
   interface LinkHTMLAttributes<T = HTMLElementTagNameMap['link']>
     extends HTMLAttributes<T> {
-    as?: HTMLLinkAs
-    crossorigin?: HTMLCrossorigin
-    disabled?: boolean
-    fetchpriority?: 'high' | 'low' | 'auto'
-    href?: string
-    hreflang?: string
-    imagesizes?: string
-    imagesrcset?: string
-    integrity?: string
-    media?: string
-    referrerpolicy?: HTMLReferrerPolicy
-    rel?: string
-    sizes?: string
-    type?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#as
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/as
+     */
+    as?: HTMLLinkAs | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#blocking
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/blocking
+     */
+    blocking?: 'render' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/crossOrigin
+     * @alias crossOrigin
+     */
+    crossorigin?: HTMLCrossorigin | '' | boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#fetchpriority
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/fetchPriority
+     * @alias fetchPriority
+     */
+    fetchpriority?: 'high' | 'low' | 'auto' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#href
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/href
+     */
+    href?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#hreflang
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/hreflang
+     */
+    hreflang?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#imagesizes
+     */
+    imagesizes?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#imagesrcset
+     */
+    imagesrcset?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#integrity
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/integrity
+     */
+    integrity?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#media
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/media
+     */
+    media?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#referrerpolicy
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/referrerPolicy
+     * @alias referrerPolicy
+     */
+    referrerpolicy?: HTMLReferrerPolicy | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/rel
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/relList
+     * @todo List all possible values.
+     */
+    rel?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#sizes
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/sizes
+     */
+    sizes?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#title
+     */
+    title?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/type
+     * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+     */
+    type?: string | null | undefined
   }
   interface MapHTMLAttributes<T = HTMLElementTagNameMap['map']>
     extends HTMLAttributes<T> {
-    name?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/map#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMapElement/name
+     */
+    name?: string | null | undefined
   }
-  interface MediaHTMLAttributes<T = HTMLElementTagNameMap['media']>
+  interface MediaHTMLAttributes<T = HTMLElementTagNameMap['audio' | 'video']>
     extends HTMLAttributes<T> {
-    autoplay?: boolean
-    controls?: boolean
-    crossorigin?: HTMLCrossorigin
-    loop?: boolean
-    mediagroup?: string
-    muted?: boolean
-    preload?: 'none' | 'metadata' | 'auto' | ''
-    src?: string
-  }
-  interface MenuHTMLAttributes<T = HTMLElementTagNameMap['menu']>
-    extends HTMLAttributes<T> {
-    label?: string
-    type?: 'context' | 'toolbar'
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio#autoplay
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#autoplay
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/autoplay
+     */
+    autoplay?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio#controls
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#controls
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/controls
+     */
+    controls?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio#controlslist
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#controlslist
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/controlsList
+     * @alias controlsList
+     * @todo Should support for values ('nodownload' | 'nofullscreen' | 'noremoteplayback' | (string & {}))[]?
+     */
+    controlslist?:
+      | 'nodownload'
+      | 'nofullscreen'
+      | 'noremoteplayback'
+      | 'nodownload nofullscreen'
+      | 'nodownload noremoteplayback'
+      | 'nofullscreen noremoteplayback'
+      | 'nodownload nofullscreen noremoteplayback'
+      | (string & {})
+      | null
+      | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/crossOrigin
+     * @alias crossOrigin
+     */
+    crossorigin?: HTMLCrossorigin | '' | boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/currentTime
+     */
+    currentTime?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio#disableremoteplayback
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#disableremoteplayback
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/disableRemotePlayback
+     * @alias disableRemotePlayback
+     */
+    disableremoteplayback?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio#loop
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#loop
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/loop
+     */
+    loop?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/mediaGroup
+     * @deprecated
+     */
+    mediagroup?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio#muted
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#muted
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/muted
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/defaultMuted
+     */
+    muted?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/playbackRate
+     */
+    playbackRate?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/audio#preload
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#preload
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/preload
+     * @todo Should support for values boolean?
+     */
+    preload?: '' | 'none' | 'metadata' | 'auto' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/preservesPitch
+     */
+    preservesPitch?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/src#muted
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/src#muted
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/srcObject
+     */
+    srcObject?: MediaStream | MediaSource | Blob | File | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/volume
+     */
+    volume?: `${number}` | number | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/abort_event
+     */
+    'on:abort'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/canplay_event
+     */
+    'on:canplay'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/canplaythrough_event
+     */
+    'on:canplaythrough'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/durationchange_event
+     */
+    'on:durationchange'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/emptied_event
+     */
+    'on:emptied'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/encrypted_event
+     */
+    'on:encrypted'?: EventHandler<T, MediaEncryptedEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/ended_event
+     */
+    'on:ended'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/error_event
+     */
+    'on:error'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/loadeddata_event
+     */
+    'on:loadeddata'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/loadedmetadata_event
+     */
+    'on:loadedmetadata'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/loadstart_event
+     */
+    'on:loadstart'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/pause_event
+     */
+    'on:pause'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/play_event
+     */
+    'on:play'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/playing_event
+     */
+    'on:playing'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/progress_event
+     */
+    'on:progress'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/ratechange_event
+     */
+    'on:ratechange'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/seeked_event
+     */
+    'on:seeked'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/seeking_event
+     */
+    'on:seeking'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/stalled_event
+     */
+    'on:stalled'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/suspend_event
+     */
+    'on:suspend'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/timeupdate_event
+     */
+    'on:timeupdate'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/volumechange_event
+     */
+    'on:volumechange'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/waiting_event
+     */
+    'on:waiting'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/waitingforkey_event
+     */
+    'on:waitingforkey'?: EventHandler<T, Event>
   }
   interface MetaHTMLAttributes<T = HTMLElementTagNameMap['meta']>
     extends HTMLAttributes<T> {
-    charset?: string
-    content?: string
-    'http-equiv'?: string
-    name?: string
-    media?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#charset
+     */
+    charset?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#content
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMetaElement/content
+     */
+    content?: string[] | string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#http-equiv
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMetaElement/httpEquiv
+     */
+    'http-equiv'?:
+      | 'content-security-policy'
+      | 'content-type'
+      | 'default-style'
+      | 'x-ua-compatible'
+      | 'refresh'
+      | null
+      | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#media
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMetaElement/media
+     */
+    media?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMetaElement/name
+     */
+    name?:
+      | 'application-name'
+      | 'author'
+      | 'description'
+      | 'generator'
+      | 'keywords'
+      | 'referrer'
+      | 'theme-color'
+      | 'color-scheme'
+      | 'viewport'
+      | 'creator'
+      | 'googlebot'
+      | 'publisher'
+      | 'robots'
+      | 'application-title'
+      | (string & {})
+      | null
+      | undefined
   }
   interface MeterHTMLAttributes<T = HTMLElementTagNameMap['meter']>
     extends HTMLAttributes<T> {
-    form?: string
-    high?: number | string
-    low?: number | string
-    max?: number | string
-    min?: number | string
-    optimum?: number | string
-    value?: string | string[] | number
-  }
-  interface QuoteHTMLAttributes<T = HTMLElementTagNameMap['quote']>
-    extends HTMLAttributes<T> {
-    cite?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMeterElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter#high
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMeterElement/high
+     */
+    high?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter#low
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMeterElement/low
+     */
+    low?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/max
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMeterElement/max
+     */
+    max?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/min
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMeterElement/min
+     */
+    min?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter#optimum
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMeterElement/optimum
+     */
+    optimum?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meter#value
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMeterElement/value
+     */
+    value?: `${number}` | number | null | undefined
   }
   interface ObjectHTMLAttributes<T = HTMLElementTagNameMap['object']>
     extends HTMLAttributes<T> {
-    data?: string
-    form?: string
-    height?: number | string
-    name?: string
-    type?: string
-    usemap?: string
-    width?: number | string
-    useMap?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#archive
+     * @deprecated
+     */
+    archive?: string[] | string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#border
+     * @deprecated
+     */
+    border?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#classid
+     * @deprecated
+     */
+    classid?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#codebase
+     * @deprecated
+     */
+    codebase?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#codetype
+     * @deprecated
+     */
+    codetype?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#data
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/data
+     */
+    data?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#declare
+     * @deprecated
+     */
+    declare?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#standby
+     * @deprecated
+     */
+    standby?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/type
+     * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+     */
+    type?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#usemap
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/useMap
+     * @alias useMap
+     * @deprecated
+     */
+    usemap?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLObjectElement/width
+     */
+    width?: `${number}` | number | null | undefined
   }
   interface OlHTMLAttributes<T = HTMLElementTagNameMap['ol']>
     extends HTMLAttributes<T> {
-    reversed?: boolean
-    start?: number | string
-    type?: '1' | 'a' | 'A' | 'i' | 'I'
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ol#reversed
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOListElement/reversed
+     */
+    reversed?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ol#start
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOListElement/start
+     */
+    start?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ol#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOListElement/type
+     */
+    type?: '1' | 'a' | 'A' | 'i' | 'I' | null | undefined
   }
   interface OptgroupHTMLAttributes<T = HTMLElementTagNameMap['optgroup']>
     extends HTMLAttributes<T> {
-    disabled?: boolean
-    label?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptGroupElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/optgroup#label
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptGroupElement/label
+     */
+    label?: string | null | undefined
   }
   interface OptionHTMLAttributes<T = HTMLElementTagNameMap['option']>
     extends HTMLAttributes<T> {
-    disabled?: boolean
-    label?: string
-    selected?: boolean
-    value?: string | string[] | number
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptionElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/option#label
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptionElement/label
+     */
+    label?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/option#selected
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptionElement/selected
+     */
+    selected?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/option#value
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptionElement/value
+     */
+    value?: string[] | string | number | null | undefined
   }
   interface OutputHTMLAttributes<T = HTMLElementTagNameMap['output']>
     extends HTMLAttributes<T> {
-    form?: string
-    for?: string
-    name?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/output#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOutputElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/for
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOutputElement/htmlFor
+     * @alias htmlFor
+     * @todo Should support for values string[]?
+     */
+    for?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/output#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOutputElement/name
+     */
+    name?: string | null | undefined
   }
+  /**
+   * @deprecated
+   */
   interface ParamHTMLAttributes<T = HTMLElementTagNameMap['param']>
     extends HTMLAttributes<T> {
     name?: string
-    value?: string | string[] | number
+    value?: string[] | string | number
   }
   interface ProgressHTMLAttributes<T = HTMLElementTagNameMap['progress']>
     extends HTMLAttributes<T> {
-    max?: number | string
-    value?: string | string[] | number
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/max
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLProgressElement/max
+     */
+    max?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/progress#value
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLProgressElement/value
+     */
+    value?: `${number}` | number | null | undefined
+  }
+  interface QuoteHTMLAttributes<T = HTMLElementTagNameMap['quote']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/q#cite
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLQuoteElement/cite
+     */
+    cite?: string | null | undefined
   }
   interface ScriptHTMLAttributes<T = HTMLElementTagNameMap['script']>
     extends HTMLAttributes<T> {
-    async?: boolean
-    charset?: string
-    crossorigin?: HTMLCrossorigin
-    defer?: boolean
-    integrity?: string
-    nomodule?: boolean
-    nonce?: string
-    referrerpolicy?: HTMLReferrerPolicy
-    src?: string
-    type?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#async
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/async
+     */
+    async?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#attributionsrc
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/attributionSrc
+     * @alias attributionSrc
+     */
+    attributionsrc?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#blocking
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/blocking
+     */
+    blocking?: 'render' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#charset
+     * @deprecated
+     */
+    charset?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/crossorigin
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/crossOrigin
+     * @alias crossOrigin
+     */
+    crossorigin?: HTMLCrossorigin | '' | boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#defer
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/defer
+     */
+    defer?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#fetchpriority
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/fetchPriority
+     * @alias fetchPriority
+     */
+    fetchpriority?: 'high' | 'low' | 'auto' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#integrity
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/integrity
+     */
+    integrity?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#nomodule
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/noModule
+     * @alias noModule
+     */
+    nomodule?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/nonce
+     * @todo Should be global attribute?
+     */
+    nonce?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#referrerpolicy
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/referrerPolicy
+     * @alias referrerPolicy
+     */
+    referrerpolicy?: HTMLReferrerPolicy | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#src
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/script/type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLScriptElement/type
+     */
+    type?: 'importmap' | 'module' | 'speculationrules' | null | undefined
   }
   interface SelectHTMLAttributes<T = HTMLElementTagNameMap['select']>
     extends HTMLAttributes<T> {
-    autocomplete?: HTMLAutocomplete
-    autofocus?: boolean
-    disabled?: boolean
-    form?: string
-    multiple?: boolean
-    name?: string
-    required?: boolean
-    size?: number | string
-    value?: string | string[] | number
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/autocomplete
+     * @todo Should support for values boolean?
+     */
+    autocomplete?: HTMLAutocomplete | '' | 'on' | 'off' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/multiple
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/multiple
+     */
+    multiple?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/select#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/required
+     */
+    required?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/selectedIndex
+     */
+    selectedIndex?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/size
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/size
+     */
+    size?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/value
+     */
+    value?: string | number | null | undefined
   }
-  interface HTMLSlotElementAttributes<T = HTMLSlotElement>
+  interface HTMLSlotElementAttributes<T = HTMLElementTagNameMap['slot']>
     extends HTMLAttributes<T> {
-    name?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/slot#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSlotElement/name
+     */
+    name?: string | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSlotElement/slotchange_event
+     */
+    'on:slotchange'?: EventHandler<T, Event>
   }
   interface SourceHTMLAttributes<T = HTMLElementTagNameMap['source']>
     extends HTMLAttributes<T> {
-    media?: string
-    sizes?: string
-    src?: string
-    srcset?: string
-    type?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSourceElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source#media
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSourceElement/media
+     */
+    media?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source#sizes
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSourceElement/sizes
+     */
+    sizes?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source#src
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSourceElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source#srcset
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSourceElement/srcset
+     */
+    srcset?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSourceElement/type
+     * @see https://www.iana.org/assignments/media-types/media-types.xhtml
+     */
+    type?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/source#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSourceElement/width
+     */
+    width?: `${number}` | number | null | undefined
   }
   interface StyleHTMLAttributes<T = HTMLElementTagNameMap['style']>
     extends HTMLAttributes<T> {
-    media?: string
-    nonce?: string
-    scoped?: boolean
-    type?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/style#blocking
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLStyleElement/blocking
+     */
+    blocking?: 'render' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLStyleElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/style#media
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLStyleElement/media
+     */
+    media?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/nonce
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/nonce
+     * @todo Should be global attribute?
+     */
+    nonce?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/style#type
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLStyleElement/type
+     * @deprecated
+     */
+    type?: 'text/css' | null | undefined
   }
-  interface TdHTMLAttributes<T = HTMLElementTagNameMap['td']>
+  interface TableHTMLAttributes<T = HTMLElementTagNameMap['table']>
     extends HTMLAttributes<T> {
-    colspan?: number | string
-    headers?: string
-    rowspan?: number | string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#align
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/align
+     * @deprecated
+     */
+    align?: 'left' | 'center' | 'right' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#bgcolor
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/bgColor
+     * @alias bgColor
+     * @deprecated
+     */
+    bgcolor?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#border
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/border
+     * @deprecated
+     */
+    border?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#cellpadding
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/cellPadding
+     * @alias cellPadding
+     * @deprecated
+     */
+    cellpadding?: `${number}%` | `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#cellspacing
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/cellSpacing
+     * @alias cellSpacing
+     * @deprecated
+     */
+    cellspacing?: `${number}%` | `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#frame
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/frame
+     * @deprecated
+     */
+    frame?: 'void' | 'above' | 'below' | 'hsides' | 'vsides' | 'lhs' | 'rhs' | 'box' | 'border' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#rules
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/rules
+     * @deprecated
+     */
+    rules?: 'none' | 'groups' | 'rows' | 'cols' | 'all' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#summary
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/summary
+     * @deprecated
+     */
+    summary?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/table#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableElement/width
+     * @deprecated
+     */
+    width?: `${number}%` | `${number}` | number | null | undefined
+  }
+  interface TableSectionHTMLAttributes<T = HTMLElementTagNameMap['thead' | 'tbody' | 'tfoot']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/thead#align
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tbody#align
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tfoot#align
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableSectionElement/align
+     * @deprecated
+     */
+    align?: 'left' | 'center' | 'right' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/thead#bgcolor
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tbody#bgcolor
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tfoot#bgcolor
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableSectionElement/bgColor
+     * @alias bgColor
+     * @deprecated
+     */
+    bgcolor?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/thead#charn
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tbody#charn
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tfoot#char
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableSectionElement/ch
+     * @alias ch
+     * @deprecated
+     */
+    char?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/thead#charoff
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tbody#charoff
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tfoot#charoff
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableSectionElement/chOff
+     * @alias chOff
+     * @deprecated
+     */
+    charoff?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/thead#valign
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tbody#valign
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tfoot#valign
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableSectionElement/vAlign
+     * @alias vAlign
+     * @deprecated
+     */
+    valign?: 'top' | 'center' | 'middle' | 'bottom' | 'baseline' | null | undefined
+  }
+  interface TableCellHTMLAttributes<T = HTMLElementTagNameMap['td' | 'th']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#abbr
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#abbr
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/abbr
+     * @deprecated
+     */
+    abbr?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#align
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#align
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/align
+     * @deprecated
+     */
+    align?: 'left' | 'center' | 'right' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#axis
+     * @deprecated
+     * @todo Should support for values string[]?
+     */
+    axis?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#bgcolor
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#bgcolor
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/bgColor
+     * @alias bgColor
+     * @deprecated
+     */
+    bgcolor?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#charn
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#charn
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/ch
+     * @alias ch
+     * @deprecated
+     */
+    char?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#charoff
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#charoff
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/chOff
+     * @alias chOff
+     * @deprecated
+     */
+    charoff?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#colspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#colspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/colSpan
+     * @alias colSpan
+     */
+    colspan?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#headers
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#headers
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/headers
+     * @todo Should support for values string[]?
+     */
+    headers?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/height
+     * @deprecated
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/noWrap
+     * @deprecated
+     */
+    noWrap?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#scope
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#scope
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/scope
+     * @deprecated
+     */
+    scope?: 'col' | 'colgroup' | 'row' | 'rowgroup' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#rowspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#rowspan
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/rowSpan
+     * @alias rowSpan
+     */
+    rowspan?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#valign
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#valign
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/vAlign
+     * @alias vAlign
+     * @deprecated
+     */
+    valign?: 'top' | 'center' | 'middle' | 'bottom' | 'baseline' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/th#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableCellElement/width
+     * @deprecated
+     */
+    width?: `${number}` | number | null | undefined
+  }
+  interface TableColHTMLAttributes<T = HTMLElementTagNameMap['col' | 'colgroup']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/col#span
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/colgroup#span
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTableColElement/span
+     */
+    span?: `${number}` | number | null | undefined
+  }
+  interface TableRowHTMLAttributes<T = HTMLElementTagNameMap['tr']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr#align
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/TableRowHTMLAttributes/align
+     * @deprecated
+     */
+    align?: 'left' | 'center' | 'right' | 'justify' | 'char' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr#bgcolor
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/TableRowHTMLAttributes/bgColor
+     * @alias bgColor
+     * @deprecated
+     */
+    bgcolor?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr#charn
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/TableRowHTMLAttributes/ch
+     * @alias ch
+     * @deprecated
+     */
+    char?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr#charoff
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/TableRowHTMLAttributes/chOff
+     * @alias chOff
+     * @deprecated
+     */
+    charoff?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/tr#valign
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/TableRowHTMLAttributes/vAlign
+     * @alias vAlign
+     * @deprecated
+     */
+    valign?: 'top' | 'center' | 'middle' | 'bottom' | 'baseline' | null | undefined
   }
   interface TemplateHTMLAttributes<T extends HTMLTemplateElement>
     extends HTMLAttributes<T> {
-    content?: DocumentFragment
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTemplateElement/content
+     */
+    content?: DocumentFragment | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/template#shadowrootclonable
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTemplateElement/shadowRootClonable
+     * @alias shadowRootClonable
+     */
+    shadowrootclonable?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/template#shadowrootdelegatesfocus
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTemplateElement/shadowRootDelegatesFocus
+     * @alias shadowRootDelegatesFocus
+     */
+    shadowrootdelegatesfocus?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/template#shadowrootmode
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTemplateElement/shadowRootMode
+     * @alias shadowRootMode
+     */
+    shadowrootmode?: 'open' | 'closed' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/template#shadowrootserializable
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTemplateElement/shadowRootSerializable
+     * @alias shadowRootSerializable
+     */
+    shadowrootserializable?: boolean | null | undefined
   }
   interface TextareaHTMLAttributes<T = HTMLElementTagNameMap['textarea']>
     extends HTMLAttributes<T> {
-    autocomplete?: HTMLAutocomplete
-    autofocus?: boolean
-    cols?: number | string
-    dirname?: string
-    disabled?: boolean
-    enterkeyhint?:
-      | 'enter'
-      | 'done'
-      | 'go'
-      | 'next'
-      | 'previous'
-      | 'search'
-      | 'send'
-    form?: string
-    maxlength?: number | string
-    minlength?: number | string
-    name?: string
-    placeholder?: string
-    readonly?: boolean
-    required?: boolean
-    rows?: number | string
-    value?: string | string[] | number
-    wrap?: 'hard' | 'soft' | 'off'
-  }
-  interface ThHTMLAttributes<T = HTMLElementTagNameMap['th']>
-    extends HTMLAttributes<T> {
-    colspan?: number | string
-    headers?: string
-    rowspan?: number | string
-    colSpan?: number | string
-    rowSpan?: number | string
-    scope?: 'col' | 'row' | 'rowgroup' | 'colgroup'
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/autocomplete
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/autocomplete
+     * @todo Should support for values boolean?
+     */
+    autocomplete?: HTMLAutocomplete | '' | 'on' | 'off' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea#cols
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/cols
+     */
+    cols?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/dirname
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/dirName
+     * @alias dirName
+     */
+    dirname?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/disabled
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/disabled
+     */
+    disabled?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea#form
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/form
+     * @todo Should support for values HTMLFormElement?
+     */
+    form?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/maxlength
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/maxLength
+     * @alias maxLength
+     */
+    maxlength?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/minlength
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/minlength
+     * @alias minLength
+     */
+    minlength?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea#name
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/name
+     */
+    name?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/placeholder
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/placeholder
+     */
+    placeholder?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/readonly
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/readOnly
+     * @alias readOnly
+     */
+    readonly?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/required
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/required
+     */
+    required?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea#rows
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/rows
+     */
+    rows?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/selectionEnd
+     */
+    selectionEnd?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/selectionStart
+     */
+    selectionStart?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/value
+     */
+    value?: string | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/textarea#wrap
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/wrap
+     */
+    wrap?: 'hard' | 'soft' | 'off' | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/select_event
+     */
+    'on:select'?: EventHandler<T, Event>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/selectionchange_event
+     */
+    'on:selectionchange'?: EventHandler<T, Event>
   }
   interface TimeHTMLAttributes<T = HTMLElementTagNameMap['time']>
     extends HTMLAttributes<T> {
-    datetime?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/time#datetime
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTimeElement/dateTime
+     * @alias dateTime
+     */
+    datetime?: string | null | undefined
   }
   interface TrackHTMLAttributes<T = HTMLElementTagNameMap['track']>
     extends HTMLAttributes<T> {
-    default?: boolean
-    kind?: 'subtitles' | 'captions' | 'descriptions' | 'chapters' | 'metadata'
-    label?: string
-    src?: string
-    srclang?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track#default
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTrackElement/default
+     */
+    default?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track#kind
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTrackElement/kind
+     */
+    kind?: 'subtitles' | 'captions' | 'descriptions' | 'chapters' | 'metadata' | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track#label
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTrackElement/label
+     */
+    label?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track#src
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTrackElement/src
+     */
+    src?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/track#srclang
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTrackElement/srclang
+     */
+    srclang?: string | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTrackElement/cuechange_event
+     */
+    'on:cuechange'?: EventHandler<T, Event>
+  }
+  interface UlHTMLAttributes<T = HTMLElementTagNameMap['ul']>
+    extends HTMLAttributes<T> {
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ul#compact
+     * @deprecated
+     */
+    compact?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/ul#type
+     * @deprecated
+     */
+    type?: 'circle' | 'disc' | 'square' | 'triangle' | null | undefined
   }
   interface VideoHTMLAttributes<T> extends MediaHTMLAttributes<T> {
-    height?: number | string
-    playsinline?: boolean
-    poster?: string
-    width?: number | string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#disablepictureinpicture
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/disablePictureInPicture
+     * @alias disablePictureInPicture
+     */
+    disablepictureinpicture?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#height
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/height
+     */
+    height?: `${number}` | number | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#playsinline
+     * @alias playsInline
+     */
+    playsinline?: boolean | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#poster
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/poster
+     */
+    poster?: string | null | undefined
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/video#width
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/width
+     */
+    width?: `${number}` | number | null | undefined
+
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/enterpictureinpicture_event
+     */
+    'on:enterpictureinpicture'?: EventHandler<T, PictureInPictureEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/leavepictureinpicture_event
+     */
+    'on:leavepictureinpicture'?: EventHandler<T, PictureInPictureEvent>
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLVideoElement/resize_event
+     */
+    'on:resize'?: EventHandler<T, Event>
   }
 
   // #region SVG
@@ -1479,12 +3776,17 @@ export namespace JSX {
       StylePropertyAttributes {
     id?: string
     lang?: string
-    tabindex?: number | string
+    tabindex?: `${number}` | number | null | undefined
   }
   interface StylableSVGAttributes extends CssAttributes {
-    class?: string | undefined
-    /** Alias for `class`. */
-    className?: string | undefined
+    /**
+     * @alias className
+     */
+    class?: string | null | undefined
+    /**
+     * @alias class
+     */
+    className?: string | null | undefined
     style?: CSSProperties | string
   }
   interface TransformableSVGAttributes {
@@ -1514,9 +3816,9 @@ export namespace JSX {
     values?: string
     keyTimes?: string
     keySplines?: string
-    from?: number | string
-    to?: number | string
-    by?: number | string
+    from?: `${number}` | number | null | undefined
+    to?: `${number}` | number | null | undefined
+    by?: `${number}` | number | null | undefined
   }
   interface AnimationAdditionSVGAttributes {
     attributeName?: string
@@ -1542,11 +3844,14 @@ export namespace JSX {
       | 'hanging'
       | 'mathematical'
       | 'inherit'
-    'baseline-shift'?: number | string
+    'baseline-shift'?: `${number}` | number | null | undefined
     clip?: string
     'clip-path'?: string
     'clip-rule'?: 'nonzero' | 'evenodd' | 'inherit'
-    color?: string
+    /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Attribute/color
+     */
+    color?: string | null | undefined
     'color-interpolation'?: 'auto' | 'sRGB' | 'linearRGB' | 'inherit'
     'color-interpolation-filters'?: 'auto' | 'sRGB' | 'linearRGB' | 'inherit'
     'color-profile'?: string
@@ -1567,29 +3872,29 @@ export namespace JSX {
       | 'inherit'
     'enable-background'?: string
     fill?: string
-    'fill-opacity'?: number | string | 'inherit'
+    'fill-opacity'?: 'inherit' | `${number}` | number | null | undefined
     'fill-rule'?: 'nonzero' | 'evenodd' | 'inherit'
     filter?: string
     'flood-color'?: string
-    'flood-opacity'?: number | string | 'inherit'
+    'flood-opacity'?: 'inherit' | `${number}` | number | null | undefined
     'font-family'?: string
     'font-size'?: string
-    'font-size-adjust'?: number | string
+    'font-size-adjust'?: `${number}` | number | null | undefined
     'font-stretch'?: string
     'font-style'?: 'normal' | 'italic' | 'oblique' | 'inherit'
     'font-variant'?: string
-    'font-weight'?: number | string
+    'font-weight'?: `${number}` | number | null | undefined
     'glyph-orientation-horizontal'?: string
     'glyph-orientation-vertical'?: string
     'image-rendering'?: 'auto' | 'optimizeQuality' | 'optimizeSpeed' | 'inherit'
     kerning?: string
-    'letter-spacing'?: number | string
+    'letter-spacing'?: `${number}` | number | null | undefined
     'lighting-color'?: string
     'marker-end'?: string
     'marker-mid'?: string
     'marker-start'?: string
     mask?: string
-    opacity?: number | string | 'inherit'
+    opacity?: 'inherit' | `${number}` | number | null | undefined
     overflow?: 'visible' | 'hidden' | 'scroll' | 'auto' | 'inherit'
     pathLength?: string | number
     'pointer-events'?:
@@ -1612,10 +3917,10 @@ export namespace JSX {
       | 'geometricPrecision'
       | 'inherit'
     'stop-color'?: string
-    'stop-opacity'?: number | string | 'inherit'
+    'stop-opacity'?: 'inherit' | `${number}` | number | null | undefined
     stroke?: string
     'stroke-dasharray'?: string
-    'stroke-dashoffset'?: number | string
+    'stroke-dashoffset'?: `${number}` | number | null | undefined
     'stroke-linecap'?: 'butt' | 'round' | 'square' | 'inherit'
     'stroke-linejoin'?:
       | 'arcs'
@@ -1624,9 +3929,9 @@ export namespace JSX {
       | 'miter-clip'
       | 'round'
       | 'inherit'
-    'stroke-miterlimit'?: number | string | 'inherit'
-    'stroke-opacity'?: number | string | 'inherit'
-    'stroke-width'?: number | string
+    'stroke-miterlimit'?: 'inherit' | `${number}` | number | null | undefined
+    'stroke-opacity'?: 'inherit' | `${number}` | number | null | undefined
+    'stroke-width'?: `${number}` | number | null | undefined
     'text-anchor'?: 'start' | 'middle' | 'end' | 'inherit'
     'text-decoration'?:
       | 'none'
@@ -1643,7 +3948,7 @@ export namespace JSX {
       | 'inherit'
     'unicode-bidi'?: string
     visibility?: 'visible' | 'hidden' | 'collapse' | 'inherit'
-    'word-spacing'?: number | string
+    'word-spacing'?: `${number}` | number | null | undefined
     'writing-mode'?:
       | 'lr-tb'
       | 'rl-tb'
@@ -1674,10 +3979,10 @@ export namespace JSX {
   interface FilterPrimitiveElementSVGAttributes<T>
     extends CoreSVGAttributes<T>,
       Pick<PresentationSVGAttributes, 'color-interpolation-filters'> {
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
     result?: string
   }
   interface SingleInputFilterSVGAttributes {
@@ -1794,7 +4099,7 @@ export namespace JSX {
       AnimationAdditionSVGAttributes {
     path?: string
     keyPoints?: string
-    rotate?: number | string | 'auto' | 'auto-reverse'
+    rotate?: 'auto' | 'auto-reverse' | `${number}` | number | null | undefined
     origin?: 'default'
   }
   interface AnimateTransformSVGAttributes<T>
@@ -1811,9 +4116,9 @@ export namespace JSX {
       ConditionalProcessingSVGAttributes,
       StylableSVGAttributes,
       TransformableSVGAttributes {
-    cx?: number | string
-    cy?: number | string
-    r?: number | string
+    cx?: `${number}` | number | null | undefined
+    cy?: `${number}` | number | null | undefined
+    r?: `${number}` | number | null | undefined
   }
   interface ClipPathSVGAttributes<T>
     extends CoreSVGAttributes<T>,
@@ -1840,10 +4145,10 @@ export namespace JSX {
       ExternalResourceSVGAttributes,
       StylableSVGAttributes,
       TransformableSVGAttributes {
-    cx?: number | string
-    cy?: number | string
-    rx?: number | string
-    ry?: number | string
+    cx?: `${number}` | number | null | undefined
+    cy?: `${number}` | number | null | undefined
+    rx?: `${number}` | number | null | undefined
+    ry?: `${number}` | number | null | undefined
   }
   interface FeBlendSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
@@ -1867,23 +4172,23 @@ export namespace JSX {
       DoubleInputFilterSVGAttributes,
       StylableSVGAttributes {
     operator?: 'over' | 'in' | 'out' | 'atop' | 'xor' | 'arithmetic'
-    k1?: number | string
-    k2?: number | string
-    k3?: number | string
-    k4?: number | string
+    k1?: `${number}` | number | null | undefined
+    k2?: `${number}` | number | null | undefined
+    k3?: `${number}` | number | null | undefined
+    k4?: `${number}` | number | null | undefined
   }
   interface FeConvolveMatrixSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
       SingleInputFilterSVGAttributes,
       StylableSVGAttributes {
-    order?: number | string
+    order?: `${number}` | number | null | undefined
     kernelMatrix?: string
-    divisor?: number | string
-    bias?: number | string
-    targetX?: number | string
-    targetY?: number | string
+    divisor?: `${number}` | number | null | undefined
+    bias?: `${number}` | number | null | undefined
+    targetX?: `${number}` | number | null | undefined
+    targetY?: `${number}` | number | null | undefined
     edgeMode?: 'duplicate' | 'wrap' | 'none'
-    kernelUnitLength?: number | string
+    kernelUnitLength?: `${number}` | number | null | undefined
     preserveAlpha?: 'true' | 'false'
   }
   interface FeDiffuseLightingSVGAttributes<T>
@@ -1891,22 +4196,22 @@ export namespace JSX {
       SingleInputFilterSVGAttributes,
       StylableSVGAttributes,
       Pick<PresentationSVGAttributes, 'color' | 'lighting-color'> {
-    surfaceScale?: number | string
-    diffuseConstant?: number | string
-    kernelUnitLength?: number | string
+    surfaceScale?: `${number}` | number | null | undefined
+    diffuseConstant?: `${number}` | number | null | undefined
+    kernelUnitLength?: `${number}` | number | null | undefined
   }
   interface FeDisplacementMapSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
       DoubleInputFilterSVGAttributes,
       StylableSVGAttributes {
-    scale?: number | string
+    scale?: `${number}` | number | null | undefined
     xChannelSelector?: 'R' | 'G' | 'B' | 'A'
     yChannelSelector?: 'R' | 'G' | 'B' | 'A'
   }
   interface FeDistantLightSVGAttributes<T>
     extends LightSourceElementSVGAttributes<T> {
-    azimuth?: number | string
-    elevation?: number | string
+    azimuth?: `${number}` | number | null | undefined
+    elevation?: `${number}` | number | null | undefined
   }
   interface FeDropShadowSVGAttributes<T>
     extends CoreSVGAttributes<T>,
@@ -1916,9 +4221,9 @@ export namespace JSX {
         PresentationSVGAttributes,
         'color' | 'flood-color' | 'flood-opacity'
       > {
-    dx?: number | string
-    dy?: number | string
-    stdDeviation?: number | string
+    dx?: `${number}` | number | null | undefined
+    dy?: `${number}` | number | null | undefined
+    stdDeviation?: `${number}` | number | null | undefined
   }
   interface FeFloodSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
@@ -1930,17 +4235,17 @@ export namespace JSX {
   interface FeFuncSVGAttributes<T> extends CoreSVGAttributes<T> {
     type?: 'identity' | 'table' | 'discrete' | 'linear' | 'gamma'
     tableValues?: string
-    slope?: number | string
-    intercept?: number | string
-    amplitude?: number | string
-    exponent?: number | string
-    offset?: number | string
+    slope?: `${number}` | number | null | undefined
+    intercept?: `${number}` | number | null | undefined
+    amplitude?: `${number}` | number | null | undefined
+    exponent?: `${number}` | number | null | undefined
+    offset?: `${number}` | number | null | undefined
   }
   interface FeGaussianBlurSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
       SingleInputFilterSVGAttributes,
       StylableSVGAttributes {
-    stdDeviation?: number | string
+    stdDeviation?: `${number}` | number | null | undefined
   }
   interface FeImageSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
@@ -1960,20 +4265,20 @@ export namespace JSX {
       SingleInputFilterSVGAttributes,
       StylableSVGAttributes {
     operator?: 'erode' | 'dilate'
-    radius?: number | string
+    radius?: `${number}` | number | null | undefined
   }
   interface FeOffsetSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
       SingleInputFilterSVGAttributes,
       StylableSVGAttributes {
-    dx?: number | string
-    dy?: number | string
+    dx?: `${number}` | number | null | undefined
+    dy?: `${number}` | number | null | undefined
   }
   interface FePointLightSVGAttributes<T>
     extends LightSourceElementSVGAttributes<T> {
-    x?: number | string
-    y?: number | string
-    z?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    z?: `${number}` | number | null | undefined
   }
   interface FeSpecularLightingSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
@@ -1983,18 +4288,18 @@ export namespace JSX {
     surfaceScale?: string
     specularConstant?: string
     specularExponent?: string
-    kernelUnitLength?: number | string
+    kernelUnitLength?: `${number}` | number | null | undefined
   }
   interface FeSpotLightSVGAttributes<T>
     extends LightSourceElementSVGAttributes<T> {
-    x?: number | string
-    y?: number | string
-    z?: number | string
-    pointsAtX?: number | string
-    pointsAtY?: number | string
-    pointsAtZ?: number | string
-    specularExponent?: number | string
-    limitingConeAngle?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    z?: `${number}` | number | null | undefined
+    pointsAtX?: `${number}` | number | null | undefined
+    pointsAtY?: `${number}` | number | null | undefined
+    pointsAtZ?: `${number}` | number | null | undefined
+    specularExponent?: `${number}` | number | null | undefined
+    limitingConeAngle?: `${number}` | number | null | undefined
   }
   interface FeTileSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
@@ -2003,9 +4308,9 @@ export namespace JSX {
   interface FeTurbulanceSVGAttributes<T>
     extends FilterPrimitiveElementSVGAttributes<T>,
       StylableSVGAttributes {
-    baseFrequency?: number | string
-    numOctaves?: number | string
-    seed?: number | string
+    baseFrequency?: `${number}` | number | null | undefined
+    numOctaves?: `${number}` | number | null | undefined
+    seed?: `${number}` | number | null | undefined
     stitchTiles?: 'stitch' | 'noStitch'
     type?: 'fractalNoise' | 'turbulence'
   }
@@ -2015,11 +4320,11 @@ export namespace JSX {
       StylableSVGAttributes {
     filterUnits?: SVGUnits
     primitiveUnits?: SVGUnits
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
-    filterRes?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
+    filterRes?: `${number}` | number | null | undefined
   }
   interface ForeignObjectSVGAttributes<T>
     extends NewViewportSVGAttributes<T>,
@@ -2028,10 +4333,10 @@ export namespace JSX {
       StylableSVGAttributes,
       TransformableSVGAttributes,
       Pick<PresentationSVGAttributes, 'display' | 'visibility'> {
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
   }
   interface GSVGAttributes<T>
     extends ContainerElementSVGAttributes<T>,
@@ -2047,10 +4352,10 @@ export namespace JSX {
       StylableSVGAttributes,
       TransformableSVGAttributes,
       Pick<PresentationSVGAttributes, 'color-profile' | 'image-rendering'> {
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
     preserveAspectRatio?: ImagePreserveAspectRatio
     href?: string
   }
@@ -2065,17 +4370,17 @@ export namespace JSX {
         PresentationSVGAttributes,
         'marker-start' | 'marker-mid' | 'marker-end'
       > {
-    x1?: number | string
-    y1?: number | string
-    x2?: number | string
-    y2?: number | string
+    x1?: `${number}` | number | null | undefined
+    y1?: `${number}` | number | null | undefined
+    x2?: `${number}` | number | null | undefined
+    y2?: `${number}` | number | null | undefined
   }
   interface LinearGradientSVGAttributes<T>
     extends GradientElementSVGAttributes<T> {
-    x1?: number | string
-    x2?: number | string
-    y1?: number | string
-    y2?: number | string
+    x1?: `${number}` | number | null | undefined
+    x2?: `${number}` | number | null | undefined
+    y1?: `${number}` | number | null | undefined
+    y2?: `${number}` | number | null | undefined
   }
   interface MarkerSVGAttributes<T>
     extends ContainerElementSVGAttributes<T>,
@@ -2084,10 +4389,10 @@ export namespace JSX {
       FitToViewBoxSVGAttributes,
       Pick<PresentationSVGAttributes, 'overflow' | 'clip'> {
     markerUnits?: 'strokeWidth' | 'userSpaceOnUse'
-    refX?: number | string
-    refY?: number | string
-    markerWidth?: number | string
-    markerHeight?: number | string
+    refX?: `${number}` | number | null | undefined
+    refY?: `${number}` | number | null | undefined
+    markerWidth?: `${number}` | number | null | undefined
+    markerHeight?: `${number}` | number | null | undefined
     orient?: string
   }
   interface MaskSVGAttributes<T>
@@ -2097,10 +4402,10 @@ export namespace JSX {
       StylableSVGAttributes {
     maskUnits?: SVGUnits
     maskContentUnits?: SVGUnits
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
   }
   interface MetadataSVGAttributes<T> extends CoreSVGAttributes<T> {}
   interface MPathSVGAttributes<T> extends CoreSVGAttributes<T> {}
@@ -2116,7 +4421,7 @@ export namespace JSX {
         'marker-start' | 'marker-mid' | 'marker-end'
       > {
     d?: string
-    pathLength?: number | string
+    pathLength?: `${number}` | number | null | undefined
   }
   interface PatternSVGAttributes<T>
     extends ContainerElementSVGAttributes<T>,
@@ -2125,10 +4430,10 @@ export namespace JSX {
       StylableSVGAttributes,
       FitToViewBoxSVGAttributes,
       Pick<PresentationSVGAttributes, 'overflow' | 'clip'> {
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
     patternUnits?: SVGUnits
     patternContentUnits?: SVGUnits
     patternTransform?: string
@@ -2162,11 +4467,11 @@ export namespace JSX {
   }
   interface RadialGradientSVGAttributes<T>
     extends GradientElementSVGAttributes<T> {
-    cx?: number | string
-    cy?: number | string
-    r?: number | string
-    fx?: number | string
-    fy?: number | string
+    cx?: `${number}` | number | null | undefined
+    cy?: `${number}` | number | null | undefined
+    r?: `${number}` | number | null | undefined
+    fx?: `${number}` | number | null | undefined
+    fy?: `${number}` | number | null | undefined
   }
   interface RectSVGAttributes<T>
     extends GraphicsElementSVGAttributes<T>,
@@ -2175,12 +4480,12 @@ export namespace JSX {
       ExternalResourceSVGAttributes,
       StylableSVGAttributes,
       TransformableSVGAttributes {
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
-    rx?: number | string
-    ry?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
+    rx?: `${number}` | number | null | undefined
+    ry?: `${number}` | number | null | undefined
   }
   interface SetSVGAttributes<T>
     extends CoreSVGAttributes<T>,
@@ -2190,7 +4495,7 @@ export namespace JSX {
     extends CoreSVGAttributes<T>,
       StylableSVGAttributes,
       Pick<PresentationSVGAttributes, 'color' | 'stop-color' | 'stop-opacity'> {
-    offset?: number | string
+    offset?: `${number}` | number | null | undefined
   }
   interface SvgSVGAttributes<T>
     extends ContainerElementSVGAttributes<T>,
@@ -2203,10 +4508,10 @@ export namespace JSX {
       PresentationSVGAttributes {
     version?: string
     baseProfile?: string
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
     contentScriptType?: string
     contentStyleType?: string
     xmlns?: string
@@ -2224,14 +4529,14 @@ export namespace JSX {
       ExternalResourceSVGAttributes,
       StylableSVGAttributes,
       FitToViewBoxSVGAttributes {
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
     preserveAspectRatio?: SVGPreserveAspectRatio
-    refX?: number | string
-    refY?: number | string
+    refX?: `${number}` | number | null | undefined
+    refY?: `${number}` | number | null | undefined
     viewBox?: string
-    x?: number | string
-    y?: number | string
   }
   interface TextSVGAttributes<T>
     extends TextContentElementSVGAttributes<T>,
@@ -2241,12 +4546,12 @@ export namespace JSX {
       StylableSVGAttributes,
       TransformableSVGAttributes,
       Pick<PresentationSVGAttributes, 'writing-mode' | 'text-rendering'> {
-    x?: number | string
-    y?: number | string
-    dx?: number | string
-    dy?: number | string
-    rotate?: number | string
-    textLength?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    dx?: `${number}` | number | null | undefined
+    dy?: `${number}` | number | null | undefined
+    rotate?: `${number}` | number | null | undefined
+    textLength?: `${number}` | number | null | undefined
     lengthAdjust?: 'spacing' | 'spacingAndGlyphs'
   }
   interface TextPathSVGAttributes<T>
@@ -2258,7 +4563,7 @@ export namespace JSX {
         PresentationSVGAttributes,
         'alignment-baseline' | 'baseline-shift' | 'display' | 'visibility'
       > {
-    startOffset?: number | string
+    startOffset?: `${number}` | number | null | undefined
     method?: 'align' | 'stretch'
     spacing?: 'auto' | 'exact'
     href?: string
@@ -2272,12 +4577,12 @@ export namespace JSX {
         PresentationSVGAttributes,
         'alignment-baseline' | 'baseline-shift' | 'display' | 'visibility'
       > {
-    x?: number | string
-    y?: number | string
-    dx?: number | string
-    dy?: number | string
-    rotate?: number | string
-    textLength?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    dx?: `${number}` | number | null | undefined
+    dy?: `${number}` | number | null | undefined
+    rotate?: `${number}` | number | null | undefined
+    textLength?: `${number}` | number | null | undefined
     lengthAdjust?: 'spacing' | 'spacingAndGlyphs'
   }
   /**
@@ -2291,10 +4596,10 @@ export namespace JSX {
       PresentationSVGAttributes,
       ExternalResourceSVGAttributes,
       TransformableSVGAttributes {
-    x?: number | string
-    y?: number | string
-    width?: number | string
-    height?: number | string
+    x?: `${number}` | number | null | undefined
+    y?: `${number}` | number | null | undefined
+    width?: `${number}` | number | null | undefined
+    height?: `${number}` | number | null | undefined
     href?: string
   }
   interface ViewSVGAttributes<T>
@@ -2395,8 +4700,8 @@ export namespace JSX {
     caption: HTMLAttributes<HTMLElementTagNameMap['caption']>
     cite: HTMLAttributes<HTMLElementTagNameMap['cite']>
     code: HTMLAttributes<HTMLElementTagNameMap['code']>
-    col: ColHTMLAttributes<HTMLElementTagNameMap['col']>
-    colgroup: ColgroupHTMLAttributes<HTMLElementTagNameMap['colgroup']>
+    col: TableColHTMLAttributes<HTMLElementTagNameMap['col']>
+    colgroup: TableColHTMLAttributes<HTMLElementTagNameMap['colgroup']>
     data: DataHTMLAttributes<HTMLElementTagNameMap['data']>
     datalist: HTMLAttributes<HTMLElementTagNameMap['datalist']>
     dd: HTMLAttributes<HTMLElementTagNameMap['dd']>
@@ -2409,6 +4714,7 @@ export namespace JSX {
     dt: HTMLAttributes<HTMLElementTagNameMap['dt']>
     em: HTMLAttributes<HTMLElementTagNameMap['em']>
     embed: EmbedHTMLAttributes<HTMLElementTagNameMap['embed']>
+    fencedframe: FencedFrameHTMLAttributes<HTMLElementTagNameMap['fencedframe']>
     fieldset: FieldsetHTMLAttributes<HTMLElementTagNameMap['fieldset']>
     figcaption: HTMLAttributes<HTMLElementTagNameMap['figcaption']>
     figure: HTMLAttributes<HTMLElementTagNameMap['figure']>
@@ -2438,7 +4744,7 @@ export namespace JSX {
     main: HTMLAttributes<HTMLElementTagNameMap['main']>
     map: MapHTMLAttributes<HTMLElementTagNameMap['map']>
     mark: HTMLAttributes<HTMLElementTagNameMap['mark']>
-    menu: MenuHTMLAttributes<HTMLElementTagNameMap['menu']>
+    menu: HTMLAttributes<HTMLElementTagNameMap['menu']>
     meta: MetaHTMLAttributes<HTMLElementTagNameMap['meta']>
     meter: MeterHTMLAttributes<HTMLElementTagNameMap['meter']>
     nav: HTMLAttributes<HTMLElementTagNameMap['nav']>
@@ -2462,7 +4768,8 @@ export namespace JSX {
     search: HTMLAttributes<HTMLElementTagNameMap['search']>
     section: HTMLAttributes<HTMLElementTagNameMap['section']>
     select: SelectHTMLAttributes<HTMLElementTagNameMap['select']>
-    slot: HTMLSlotElementAttributes
+    // selectedcontent: CssAttributes | StylePropertyAttributes
+    slot: HTMLSlotElementAttributes<HTMLElementTagNameMap['slot']>
     small: HTMLAttributes<HTMLElementTagNameMap['small']>
     source: SourceHTMLAttributes<HTMLElementTagNameMap['source']>
     span: HTMLAttributes<HTMLElementTagNameMap['span']>
@@ -2471,32 +4778,38 @@ export namespace JSX {
     sub: HTMLAttributes<HTMLElementTagNameMap['sub']>
     summary: HTMLAttributes<HTMLElementTagNameMap['summary']>
     sup: HTMLAttributes<HTMLElementTagNameMap['sup']>
-    table: HTMLAttributes<HTMLElementTagNameMap['table']>
-    tbody: HTMLAttributes<HTMLElementTagNameMap['tbody']>
-    td: TdHTMLAttributes<HTMLElementTagNameMap['td']>
+    table: TableHTMLAttributes<HTMLElementTagNameMap['table']>
+    tbody: TableSectionHTMLAttributes<HTMLElementTagNameMap['tbody']>
+    td: TableCellHTMLAttributes<HTMLElementTagNameMap['td']>
     template: TemplateHTMLAttributes<HTMLElementTagNameMap['template']>
     textarea: TextareaHTMLAttributes<HTMLElementTagNameMap['textarea']>
-    tfoot: HTMLAttributes<HTMLElementTagNameMap['tfoot']>
-    th: ThHTMLAttributes<HTMLElementTagNameMap['th']>
-    thead: HTMLAttributes<HTMLElementTagNameMap['thead']>
+    tfoot: TableSectionHTMLAttributes<HTMLElementTagNameMap['tfoot']>
+    th: TableCellHTMLAttributes<HTMLElementTagNameMap['th']>
+    thead: TableSectionHTMLAttributes<HTMLElementTagNameMap['thead']>
     time: TimeHTMLAttributes<HTMLElementTagNameMap['time']>
     title: HTMLAttributes<HTMLElementTagNameMap['title']>
-    tr: HTMLAttributes<HTMLElementTagNameMap['tr']>
+    tr: TableRowHTMLAttributes<HTMLElementTagNameMap['tr']>
     track: TrackHTMLAttributes<HTMLElementTagNameMap['track']>
     u: HTMLAttributes<HTMLElementTagNameMap['u']>
-    ul: HTMLAttributes<HTMLElementTagNameMap['ul']>
+    ul: UlHTMLAttributes<HTMLElementTagNameMap['ul']>
     var: HTMLAttributes<HTMLElementTagNameMap['var']>
     video: VideoHTMLAttributes<HTMLElementTagNameMap['video']>
     wbr: HTMLAttributes<HTMLElementTagNameMap['wbr']>
   }
   /**
    * @type {HTMLElementDeprecatedTagNameMap}
+   * @deprecated
    */
   interface HTMLElementDeprecatedTags {
+    /** @deprecated */
     big: HTMLAttributes<HTMLElement>
+    /** @deprecated */
     keygen: KeygenHTMLAttributes<HTMLElement>
+    /** @deprecated */
     menuitem: HTMLAttributes<HTMLElement>
+    /** @deprecated */
     noindex: HTMLAttributes<HTMLElement>
+    /** @deprecated */
     param: ParamHTMLAttributes<HTMLParamElement>
   }
 
