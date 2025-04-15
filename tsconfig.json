@@ -18,7 +18,8 @@
     "useDefineForClassFields": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "rewriteRelativeImportExtensions": true
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": "."
   },
   "exclude": ["node_modules", "build"]
 }

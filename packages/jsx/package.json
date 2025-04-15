@@ -4,7 +4,7 @@
   "publishConfig": {
     "tag": "alpha"
   },
-  "private": true,
+  "private": false,
   "sideEffects": false,
   "description": "Reatom for jsx",
   "exports": {
@@ -28,15 +28,13 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "npm run build",
     "build": "yoctobundle && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch=true"
   },
   "dependencies": {
-    "@reatom/core": ">=3.6.0",
-    "@reatom/primitives": "^3.5.0",
-    "@reatom/utils": "^3.5.0",
+    "@reatom/core": "alpha",
     "csstype": "^3.1.2"
   },
   "devDependencies": {

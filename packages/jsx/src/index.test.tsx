@@ -19,14 +19,12 @@ clearStack()
 
 DEBUG.extend(withInit(() => false))
 
-const parent = atom<HTMLElement>(null as any, 'parent').extend(
-  withInit(() => {
-    const div = <div />
-    window.document.body.appendChild(div)
+const parent = atom(() => {
+  const div = <div />
+  window.document.body.appendChild(div)
 
-    return div
-  }),
-)
+  return div
+}, 'parent')
 
 test('static props & children', () =>
   context.start(async () => {
