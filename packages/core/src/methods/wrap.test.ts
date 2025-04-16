@@ -37,7 +37,7 @@ test('async frame stack', async () => {
 
       computed(() => {
         try {
-          logs.push(a0() + getTrace())
+          logs.push(a0() + ' ' + getTrace())
         } catch (error) {
           reject(error)
         }
@@ -46,9 +46,9 @@ test('async frame stack', async () => {
   )
 
   expect(logs).toEqual([
-    '0 < log < a0',
-    '2 < log < a0 < loop < a2 < a1 < a0',
-    '4 < log < a0 < loop < a2 < a1 < a0 < loop < a2 < a1 < a0',
+    "0 ─ log ─ a0",
+    "2 ─ log ─ a0 ─ loop ─ a2 ─ a1 ─ a0",
+    "4 ─ log ─ a0 ─ loop ─ a2 ─ a1 ─ a0 ─ loop ─ a2 ─ a1 ─ a0",
   ])
 
   expect(context().pubs).toEqual([null])

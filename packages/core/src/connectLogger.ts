@@ -24,18 +24,29 @@ export let getStackTrace = (
   steps = acc && ' '.repeat(acc.length),
   frame = top(),
 ): string => {
-  if (acc.length > 1000) throw new Error('RECURSION')
+  if (acc.length > 200) return acc + ' [...]'
 
-  let name = ` < ${frame.atom.name}${getSerial(frame)}`
+  let name = `─ ${frame.atom.name}${getSerial(frame)}`
   acc += name
   steps += ' '.repeat(name.length)
 
-  let nextPub = false
-  for (const pub of frame.pubs) {
-    if (pub === null || pub.atom === context) continue
-    if (nextPub) acc += `\n\n${steps}`
-    nextPub = true
-    acc += getStackTrace('', steps, pub)
+  let lines = frame.pubs.flatMap((pub) => {
+    if (pub === null || pub.atom === context) return []
+    return [getStackTrace('', steps, pub)]
+  })
+  if (lines.length === 1) {
+    acc += ' ' + lines[0]
+  } else if (lines.length > 1) {
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i]!
+      if (i === 0) {
+        acc += ' ┬'
+      } else {
+        acc += steps + '  │' + '\n'
+        acc += steps + (i === lines.length - 1 ? '  └' : '  ├')
+      }
+      acc += line + '\n'
+    }
   }
 
   return acc
@@ -44,14 +55,17 @@ export let getStackTrace = (
 let logStackTrace = () => {
   console.log('stack:')
   console.log(
-    top().pubs.reduce(
-      (acc, frame) =>
-        acc +
-        (frame === null || frame.atom === context
-          ? ''
-          : getStackTrace('', '', frame) + '\n\n'),
-      '',
-    ),
+    '└' +
+      top()
+        .pubs.reduce(
+          (acc, frame) =>
+            acc +
+            (frame === null || frame.atom === context
+              ? ''
+              : getStackTrace('', '', frame) + '\n\n'),
+          '',
+        )
+        .slice(1),
   )
 }
 

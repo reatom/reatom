@@ -32,9 +32,9 @@ test('action cause stack', () => {
   act(1)
   notify()
 
-  expect(logData).toBe(' < log < a2 < a1 < act')
+  expect(logData).toBe('─ log ─ a2 ─ a1 ─ act')
   expect(getTrace(_read(log)!).replaceAll('\n', ' ')).toBe(
-    ' < log < a2 < a1 < act',
+    '─ log ─ a2 ─ a1 ─ act',
   )
 })
 
