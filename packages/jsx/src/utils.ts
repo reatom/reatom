@@ -1,4 +1,4 @@
-import { atom, type AtomLike, isObject, named } from '@reatom/core'
+import { type AtomLike, computed, type Computed, isObject, named } from '@reatom/core'
 
 type Primitive = string | number | boolean | null | undefined
 type MaybeGetter<T = unknown> = T | (() => T)
@@ -11,9 +11,8 @@ export type ClassNameValue = MaybeGetter<
   | (() => ClassNameValue)
 >
 
-// TODO: Pass the atom name as the second argument.
-export let cn = (value: ClassNameValue, name = named('classNameAtom')): AtomLike<string> =>
-  atom(() => parseClasses(value), name)
+export let cn = (value: ClassNameValue, name = named('classNameAtom')): Computed<string> =>
+  computed(() => parseClasses(value), name)
 
 let parseClasses = (value: ClassNameValue): string => {
   let className = ''
