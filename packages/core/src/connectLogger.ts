@@ -1,6 +1,6 @@
 import { AtomLike, Frame, isConnected, context, top } from './core'
 import { withCallHook, withChangeHook } from './mixins'
-import { isBrowser } from './utils'
+import { Fn, isBrowser } from './utils'
 
 let isSkip = (target: AtomLike) =>
   target.name.startsWith('_') || /\._/.test(target.name)
@@ -53,7 +53,7 @@ let prepareFrameStack = (frame: Frame): Node => {
 }
 
 export let concatTree = (acc: string, steps: string, node: Node): string => {
-  if (steps.length > 200) return acc + ' [...]'
+  // if (steps.length > 200) return acc + ' [...]'
 
   let { name, children } = node
   acc += name
@@ -98,25 +98,28 @@ export let connectLogger = () => {
       style = `${color}font-size: 12px; font-weight: 600; padding: 0.15em;  padding-right: 1ch;`
     }
 
+    let logStack = (payload: any, cb: Fn) => {
+      console.groupCollapsed(`${title}${getSerial()}`, style)
+      if (isNodeEnv) console.log(payload)
+      cb()
+      console.log('stack:')
+      console.log(getStackTrace())
+      if (!isNodeEnv) console.log('frame:', top())
+      console.groupEnd()
+      if (!isNodeEnv) console.log(payload)
+    }
+
     return target.__reatom.reactive
       ? withChangeHook<T>((state, prevState) => {
-          console.groupCollapsed(`${title}${getSerial()}`, style)
-          if (isNodeEnv) console.log(state)
-          console.log('prev:', prevState)
-          console.log('stack:\n', getStackTrace())
-          console.log('connected:', isConnected(target))
-          if (!isNodeEnv) console.log('frame:', top())
-          console.groupEnd()
-          if (!isNodeEnv) console.log(state)
+          logStack(state, () => {
+            console.log('prev:', prevState)
+            console.log('connected:', isConnected(target))
+          })
         })(target)
       : withCallHook<T>((payload, params) => {
-          console.groupCollapsed(`${title}${getSerial()}`, style)
-          if (isNodeEnv) console.log(payload)
-          params.forEach((param, i) => console.log(`param ${i + 1}:`, param))
-          console.log('stack:\n', getStackTrace())
-          if (!isNodeEnv) console.log('frame:', top())
-          console.groupEnd()
-          if (!isNodeEnv) console.log(payload)
+          logStack(payload, () => {
+            params.forEach((param, i) => console.log(`param ${i + 1}:`, param))
+          })
         })(target)
   })
 }
