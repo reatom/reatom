@@ -1,4 +1,4 @@
-import { _read, action, atom, computed, root } from '../core'
+import { _read, action, atom, computed, context } from '../core'
 import { expect, test, vi } from 'test'
 import { ifChanged, ifCalled } from './ifChanged'
 import { sleep } from '../utils'

@@ -328,6 +328,27 @@ const testComputers = setupComputersTest({
 
     return (i) => (entry.value = i)
   },
+  async alien({ listener, startCreation, endCreation }) {
+    const { signal, computed, effect } = await import('alien-signals')
+
+    startCreation()
+
+    const entry = signal(0)
+    const a = computed(() => entry())
+    const b = computed(() => a() + 1)
+    const c = computed(() => a() + 1)
+    const d = computed(() => b() + c())
+    const e = computed(() => d() + 1)
+    const f = computed(() => d() + e())
+    const g = computed(() => d() + e())
+    const h = computed(() => f() + g())
+
+    effect(() => listener(h()))
+
+    endCreation()
+
+    return entry
+  },
   // async 'reatom-v1'({ listener, startCreation, endCreation }) {
   //   const { declareAction, declareAtom, map, combine, createStore } =
   //     await import('reatom-v1')
@@ -376,7 +397,7 @@ const testComputers = setupComputersTest({
   //   return (i) => store.dispatch(a.entry(i))
   // },
   async reatom({ listener, startCreation, endCreation }) {
-    const { atom, computed, root, wrap, notify, clearStack } = await import('./build')
+    const { atom, computed, context, wrap, notify, clearStack } = await import('./build')
 
     startCreation()
 
@@ -392,7 +413,7 @@ const testComputers = setupComputersTest({
     const g = computed(() => d() + e(), 'g')
     const h = computed(() => f() + g(), 'h')
 
-    return root.start(() => {
+    return context.start(() => {
       h.subscribe(listener)
 
       endCreation()

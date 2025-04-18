@@ -1,4 +1,4 @@
-import { AtomLike, Ext, root, top, withMiddleware } from '../core'
+import { AtomLike, Ext, context, top, withMiddleware } from '../core'
 
 export let withInit = <T>(init: T | ((state: T) => T)): Ext<AtomLike<T>> => {
   let key = {} // Symbol(`${target.name}.init`)
@@ -6,9 +6,9 @@ export let withInit = <T>(init: T | ((state: T) => T)): Ext<AtomLike<T>> => {
   return withMiddleware(
     () =>
       function initHook(next, ...params) {
-        let context = root().state.context.init
-        if (!context.has(key)) {
-          context.set(key, null)
+        let meta = context().state.meta.init
+        if (!meta.has(key)) {
+          meta.set(key, null)
           let frame = top()
           frame.state =
             typeof init === 'function'

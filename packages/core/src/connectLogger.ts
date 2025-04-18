@@ -1,36 +1,85 @@
-import { AtomLike, Frame, isConnected, root, top } from './core'
+import { AtomLike, Frame, isConnected, context, top } from './core'
 import { withCallHook, withChangeHook } from './mixins'
-import { isBrowser } from './utils'
+import { Fn, isBrowser } from './utils'
 
 let isSkip = (target: AtomLike) =>
   target.name.startsWith('_') || /\._/.test(target.name)
 
 let serialCount = 0
-let serialNumbers = new WeakMap<Frame, number>()
+let serialNumbers = new WeakMap<Frame, string>()
 
 let getSerial = (frame = top()) => {
   if (isSkip(frame.atom)) return ''
 
   let serial = serialNumbers.get(frame)
   if (serial === undefined) {
-    serialNumbers.set(frame, (serial = ++serialCount))
+    let next = ++serialCount
+    serialNumbers.set(
+      frame,
+      (serial = next + (next < 1e4 ? '' : (next - 1e4).toString(32))),
+    )
   }
 
-  return ` [#${serial}]`
+  return `[#${serial}]`
 }
 
-export let getStackTrace = (acc = '', indent = '\n', frame = top()): string => {
-  if (acc.length > 500) throw new Error('RECURSION')
+type Node = { name: string; children: Node[]; pubs: Frame['pubs'] }
+// use BFS to touch duplicates as earlier as possible to reduce the log width
+let prepareFrameStack = (frame: Frame): Node => {
+  let node: Node = {
+    name: frame.atom.name + getSerial(frame),
+    children: [],
+    pubs: frame.pubs,
+  }
+  let queue = [node]
+  let touched = new Set<Frame>()
 
-  let cause = frame.pubs.find((pub: Frame | null) => pub && pub.atom !== root)
+  for (let i = 0; i < queue.length; i++) {
+    let node = queue[i]!
+    for (let i = 0; i < node.pubs.length; i++) {
+      let pub = node.pubs[i]!
+      if (pub !== null && pub.atom !== context) {
+        let child: Node = {
+          name: pub.atom.name + getSerial(pub),
+          children: [],
+          pubs: pub.pubs,
+        }
+        node.children.push(child)
+        if (!touched.has(pub)) {
+          touched.add(pub)
+          queue.push(child)
+        }
+      }
+    }
+  }
 
-  if (!cause) return acc ? acc : `${indent}<-- root`
+  return node
+}
 
-  return getStackTrace(
-    `${acc}${indent}<-- ${cause.atom.name}${getSerial(cause)}`,
-    indent,
-    cause,
-  )
+export let concatTree = (acc: string, steps: string, node: Node): string => {
+  // if (steps.length > 200) return acc + ' [...]'
+
+  let { name, children } = node
+  acc += name
+  steps += ' '.repeat(acc.length)
+
+  for (let i = 0; i < children.length; i++) {
+    let child = children[i]!
+    if (i === 0) {
+      let hasMore = children.length > 1
+      acc += concatTree(hasMore ? ' ┬─ ' : ' ─ ', steps, child)
+    } else {
+      let isLast = i === children.length - 1
+      acc += '\n' + steps + ' │\n' + steps
+      acc += concatTree(isLast ? ' └─ ' : ' ├─ ', steps, child)
+    }
+  }
+
+  return acc
+}
+
+export let getStackTrace = (acc = '─ ', steps = '', frame = top()): string => {
+  return concatTree(acc, steps, prepareFrameStack(frame))
 }
 
 export let connectLogger = () => {
@@ -53,25 +102,28 @@ export let connectLogger = () => {
       style = `${color}font-size: 12px; font-weight: 600; padding: 0.15em;  padding-right: 1ch;`
     }
 
+    let logStack = (payload: any, cb: Fn) => {
+      console.groupCollapsed(`${title}${getSerial()}`, style)
+      if (isNodeEnv) console.log(payload)
+      cb()
+      console.log('stack:')
+      console.log(getStackTrace())
+      if (!isNodeEnv) console.log('frame:', top())
+      console.groupEnd()
+      if (!isNodeEnv) console.log(payload)
+    }
+
     return target.__reatom.reactive
       ? withChangeHook<T>((state, prevState) => {
-          console.groupCollapsed(`${title}${getSerial()}`, style)
-          if (isNodeEnv) console.log(state)
-          console.log('prev:', prevState)
-          console.log('stack:', getStackTrace('', isNodeEnv ? ' ' : '\n'))
-          console.log('connected:', isConnected(target))
-          if (!isNodeEnv) console.log('frame:', top())
-          console.groupEnd()
-          if (!isNodeEnv) console.log(state)
+          logStack(state, () => {
+            console.log('prev:', prevState)
+            console.log('connected:', isConnected(target))
+          })
         })(target)
       : withCallHook<T>((payload, params) => {
-          console.groupCollapsed(`${title}${getSerial()}`, style)
-          if (isNodeEnv) console.log(payload)
-          params.forEach((param, i) => console.log(`param ${i + 1}:`, param))
-          console.log('stack:', getStackTrace('', isNodeEnv ? ' ' : '\n'))
-          if (!isNodeEnv) console.log('frame:', top())
-          console.groupEnd()
-          if (!isNodeEnv) console.log(payload)
+          logStack(payload, () => {
+            params.forEach((param, i) => console.log(`param ${i + 1}:`, param))
+          })
         })(target)
   })
 }

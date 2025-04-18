@@ -1,5 +1,5 @@
 import { Action, AtomLike, AtomState, ReatomError, top } from '.'
-import { Fn, OverloadParameters, Rec } from '../utils'
+import type { Fn, OverloadParameters, Rec } from '../utils'
 
 export interface Ext<
   Target extends AtomLike = AtomLike,

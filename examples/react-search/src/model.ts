@@ -1,37 +1,28 @@
 import {
   atom,
   computed,
+  ifChanged,
   sleep,
-  // withCache,
   withAsyncData,
-  withChangeHook,
-  // withErrorAtom,
-  // withRetry,
   withComputed,
   wrap,
-  // isInit,
 } from '@reatom/core'
-// import { withSearchParamsPersist } from '@reatom/url'
-// import { withLocalStorage } from '@reatom/persist-web-storage'
 
 export const search = atom('', 'search')
-// .mix(withSearchParamsPersist('search'))
 
-export const page = atom(1, 'page').actions(
-  // // reset the state on other filters change
-  // withComputed((state) => {
-  //   searchAtom()
-  //   // check the init to do not drop the persist state
-  //   return isInit() ? state : 1
-  // }),
-  // withSearchParamsPersist('page', (page) => Number(page || 1)),
-  (target) => ({
+export const page = atom(1, 'page')
+  .extend(
+    withComputed((state) => {
+      ifChanged(search, () => (state = 1))
+      return state
+    }),
+  )
+  .actions((target) => ({
     next: () => target((page) => page + 1),
     prev: () => target((page) => Math.max(1, page - 1)),
-  }),
-)
+  }))
 
-export const issuesResource = computed(async () => {
+export const issues = computed(async () => {
   const queryState = search()
   const pageState = page()
 
@@ -42,23 +33,11 @@ export const issuesResource = computed(async () => {
 
   const { items } = await api.searchIssues({
     query: queryState,
-    page: pageState /* signal */,
+    page: pageState,
+    /* signal, */
   })
   return items
-}, 'issues').extend(
-  withAsyncData(null, []),
-  // withCache({ length: 100, swr: false, withPersist: withLocalStorage }),
-  // withRetry({
-  //   onReject(_ctx, error, retries) {
-  //     if (error instanceof Error && error?.message.includes('rate limit')) {
-  //       // exponential backoff
-  //       return 5000 + 5000 * retries
-  //     }
-  //     // do not retry
-  //     return -1
-  //   },
-  // }),
-)
+}, 'issues').extend(withAsyncData(null, []))
 
 /*
 --- API GEN (kinda) ---

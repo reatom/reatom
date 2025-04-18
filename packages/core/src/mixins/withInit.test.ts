@@ -1,4 +1,4 @@
-import { atom, clearStack, root } from '../core'
+import { atom, clearStack, context } from '../core'
 import { expect, test, vi } from 'test'
 import { withInit } from './withInit'
 
@@ -22,8 +22,8 @@ test('init callback', () => {
   expect(init).toBeCalledTimes(1)
 })
 
-test('different roots', () => {
-  const name = 'initRoots'
+test('different contexts', () => {
+  const name = 'contexts'
   let i = 0
   const data = atom(0, `${name}.data`).extend(withInit(() => i++))
 
@@ -35,9 +35,9 @@ test('different roots', () => {
 
   expect(() => data()).toThrow()
 
-  expect(root.start(() => data())).toBe(1)
-  expect(root.start(() => data())).toBe(2)
-  root.start(() => {
+  expect(context.start(() => data())).toBe(1)
+  expect(context.start(() => data())).toBe(2)
+  context.start(() => {
     expect(data()).toBe(3)
     expect(data()).toBe(3)
     expect(data()).toBe(3)

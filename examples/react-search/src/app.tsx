@@ -1,29 +1,23 @@
-import { wrap } from '@reatom/core'
-import { reatomComponent } from '@reatom/npm-react'
-import { search, issuesResource, page } from './model'
+import { MantineProvider, ColorSchemeScript } from '@mantine/core';
+import { clearStack, context } from '@reatom/core';
+import { reatomContext } from '@reatom/react';
+import { MainAppShell } from './components/layout/AppShell';
+import { SearchPage } from './components/search';
+import { theme } from './theme';
 
-export const App = reatomComponent(
-  () => (
-    <main>
-      <input
-        value={search()}
-        onChange={wrap((e) => search(e.currentTarget.value))}
-        placeholder="Search"
-      />
-      <button disabled={!page()} onClick={wrap(page.prev)}>
-        {'<'}
-      </button>
-      {page()}
-      <button onClick={wrap(page.next)}>{'>'}</button>
-      {!issuesResource.ready() && 'Loading...'}
-      <ul>
-        {issuesResource.data().map(({ title }, i) => (
-          <li key={i}>{title}</li>
-        ))}
+clearStack()
 
-        {issuesResource.data().length === 0 && <i>found nothing</i>}
-      </ul>
-    </main>
-  ),
-  'App',
-)
+export function App() {
+  return (
+    <>
+      <ColorSchemeScript />
+      <MantineProvider theme={theme}>
+        <reatomContext.Provider value={context.start()}>
+          <MainAppShell>
+            <SearchPage />
+          </MainAppShell>
+        </reatomContext.Provider>
+      </MantineProvider>
+    </>
+  );
+}

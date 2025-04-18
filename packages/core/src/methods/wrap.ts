@@ -1,51 +1,45 @@
-import { assert, Fn } from '../utils'
-import { top, root, STACK, ReatomError } from '../core'
+import { assert, Fn, isAbort, noop } from '../utils'
+import { top, context, STACK, ReatomError } from '../core'
+import { abortVar } from './abort'
 
 export let wrap = <T extends Promise<any> | Fn>(
   target: T,
   frame = top(),
 ): T => {
-  let rootFrame = root()
-
   if (typeof target === 'function') {
     return function wrap(...params: any) {
-      assert(
-        STACK.length === 0 || STACK[0] === rootFrame,
-        'root collision',
-        ReatomError,
-      )
-
-      STACK.push(rootFrame, frame)
-      try {
-        return target(...params)
-      } finally {
-        STACK.pop()
-        STACK.pop()
-      }
+      return frame.run(target, ...params)
     } as T
   }
 
+  let contextFrame = context()
+
   assert(target instanceof Promise, 'target should be promise', ReatomError)
 
-  return new Promise(async (resolve, reject) => {
+  let promise = new Promise(async (resolve, reject) => {
     try {
       let value = await target
+
+      frame.run(() => abortVar.read()?.throwIfAborted())
+
       var seal = () => resolve(value)
     } catch (error) {
+      // prevent unhandled error for abort
+      if (isAbort(error)) promise.catch(noop)
       seal = () => reject(error)
     }
-    Promise.resolve().then(() => {
-      assert(
-        STACK.length === 0 || STACK[0] === rootFrame,
-        'root collision',
-        ReatomError,
-      )
-      STACK.push(rootFrame, frame)
+    queueMicrotask(() => {
+      // check context collision
+      frame.run(noop)
+
+      STACK.push(contextFrame, frame)
     })
     seal()
-    Promise.resolve().then(() => {
+    queueMicrotask(() => {
       STACK.pop()
       STACK.pop()
     })
-  }) as T
+  })
+
+  return promise as T
 }

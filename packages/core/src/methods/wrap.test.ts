@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { atom, computed, root } from '../core'
+import { atom, computed, context } from '../core'
 import { wrap } from './wrap'
 import { sleep } from '../utils'
 import { getStackTrace } from '../connectLogger'
@@ -8,9 +8,9 @@ import { getStackTrace } from '../connectLogger'
 test('async frame stack', async () => {
   const name = 'asyncStack'
   const getTrace = () =>
-    getStackTrace('', ' ')
+    getStackTrace()
       .replaceAll(`${name}.`, '')
-      .replace(/ \[\#\d\]/g, '')
+      .replace(/\[\#\d*\]/g, '')
 
   const a0 = atom(0, `${name}.a0`)
   const a1 = computed(() => {
@@ -37,7 +37,7 @@ test('async frame stack', async () => {
 
       computed(() => {
         try {
-          logs.push(a0() + getTrace())
+          logs.push(a0() + ' ' + getTrace())
         } catch (error) {
           reject(error)
         }
@@ -46,11 +46,11 @@ test('async frame stack', async () => {
   )
 
   expect(logs).toEqual([
-    '0 <-- a0',
-    '2 <-- a0 <-- loop <-- a2 <-- a1 <-- a0',
-    '4 <-- a0 <-- loop <-- a2 <-- a1 <-- a0 <-- loop <-- a2 <-- a1 <-- a0',
+    "0 ─ log ─ a0",
+    "2 ─ log ─ a0 ─ loop ─ a2 ─ a1 ─ a0",
+    "4 ─ log ─ a0 ─ loop ─ a2 ─ a1 ─ a0 ─ loop ─ a2 ─ a1 ─ a0",
   ])
 
-  expect(root().pubs).toEqual([null])
-  expect(root().subs.length).toBe(0)
+  expect(context().pubs).toEqual([null])
+  expect(context().subs.length).toBe(0)
 })

@@ -1,28 +1,33 @@
-import { Frame, root, top } from '../core'
+import { Frame, context, top } from '../core'
 import { assert, identity } from '../utils'
 
 export let findVar = <T>(
   cb: (frame: Frame) => undefined | T,
   frame = top(),
-  // @ts-expect-error
 ): undefined | T => {
   let result = cb(frame)
   if (result !== undefined) return result
 
   for (let i = 0; i < frame.pubs.length; i++) {
     let pub = frame.pubs[i]
-    if (pub) {
+    if (pub !== null && pub!.atom !== context) {
       let result = findVar(cb, pub)
       if (result !== undefined) return result
     }
   }
+
+  return undefined
 }
 
 export interface Variable<Params extends any[] = any[], Payload = any> {
   get(frame?: Frame): Payload
   set(...params: Params): Payload
   has(frame?: Frame): boolean
-  read(frame?: Frame): undefined | Payload
+  read<T = Payload>(
+    cb?: (value: undefined | Payload) => undefined | T,
+    frame?: Frame,
+    meta?: WeakMap<Frame, WeakMap<WeakKey, any>>,
+  ): undefined | T
 }
 
 /** Async Context Variable emulation
@@ -37,9 +42,12 @@ export let variable: {
 } = (set = identity) => {
   let key = {}
 
-  let read = (frame = top()) => {
-    let context = root().state.context.variable
-    let value = findVar((frame) => context.get(frame)?.get(key), frame)
+  let read: Variable['read'] = (
+    cb = identity,
+    frame = top(),
+    meta = context().state.meta.variable,
+  ) => {
+    let value = findVar((frame) => cb(meta.get(frame)?.get(key)), frame)
 
     return value
   }
@@ -47,7 +55,7 @@ export let variable: {
   return {
     read,
     get(frame?: Frame) {
-      let value = read(frame)
+      let value = read(identity, frame)
 
       assert(value !== undefined, 'Variable not found')
 
@@ -57,15 +65,15 @@ export let variable: {
       let frame = top()
       let value = set(...params)
       assert(value !== undefined, `Variable can't be undefined`)
-      let context = root().state.context.variable
-      let recs = context.get(frame)
-      if (!recs) context.set(frame, (recs = new WeakMap()))
+      let meta = context().state.meta.variable
+      let recs = meta.get(frame)
+      if (!recs) meta.set(frame, (recs = new WeakMap()))
       recs.set(key, value)
 
       return value
     },
     has(frame?: Frame) {
-      return read(frame) !== undefined
+      return read(identity, frame) !== undefined
     },
   }
 }

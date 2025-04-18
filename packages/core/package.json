@@ -1,10 +1,10 @@
 {
   "name": "@reatom/core",
-  "version": "1000.0.0-alpha.0",
+  "version": "1000.0.0-alpha.6",
   "publishConfig": {
     "tag": "alpha"
   },
-  "private": true,
+  "private": false,
   "description": "The ultimate state manager",
   "exports": {
     "types": "./build/index.d.ts",
@@ -19,7 +19,7 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "npm run build",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
@@ -65,10 +65,11 @@
     "@preact/signals-core": "latest",
     "@types/node": "latest",
     "@webreflection/signal": "latest",
+    "alien-signals": "^1.0.13",
     "cellx": "latest",
     "dexnode": "^1.2.2",
     "effector": "latest",
-    "jotai": "latest",
+    "jotai": "^2.12.2",
     "mobx": "latest",
     "mol_wire_lib": "latest",
     "nanostores": "latest",

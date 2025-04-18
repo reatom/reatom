@@ -9,11 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@reatom/devtools": "*",
-    "@reatom/framework": "^3.*.*",
-    "@reatom/npm-react": "^3.*.*",
-    "@reatom/persist-web-storage": "^3.*.*",
-    "@reatom/url": "^3.*.*",
+    "@mantine/core": "^7.6.1",
+    "@mantine/hooks": "^7.6.1",
+    "@reatom/core": "alpha",
+    "@reatom/react": "alpha",
+    "@tabler/icons-react": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

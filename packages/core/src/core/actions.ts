@@ -1,5 +1,5 @@
 import { Action, AtomLike, ReatomError, action } from './'
-import { Fn, Rec } from '../utils'
+import type { Fn, Rec } from '../utils'
 
 export type ActionsExtInfer<Methods extends Rec<Fn>> = {
   [K in keyof Methods]: Methods[K] extends (

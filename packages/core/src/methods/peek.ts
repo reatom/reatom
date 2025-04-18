@@ -1,3 +1,3 @@
-import { root, RootFrame } from '../core'
+import { context, ContextFrame } from '../core'
 
-export let peek: RootFrame['run'] = (cb, ...params) => root().run(cb, ...params)
+export let peek: ContextFrame['run'] = (cb, ...params) => context().run(cb, ...params)

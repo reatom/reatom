@@ -4,11 +4,11 @@ import {
   AtomState,
   ReatomError,
   Ext,
-  schedule,
+  enqueue,
   top,
   withMiddleware,
 } from '../core'
-import { noop, OverloadParameters, Unsubscribe } from '../utils'
+import { OverloadParameters, Unsubscribe } from '../utils'
 
 export let withChangeHook = <Target extends AtomLike>(
   cb: (
@@ -28,8 +28,7 @@ export let withChangeHook = <Target extends AtomLike>(
         let state = next(...params)
 
         if (!Object.is(prevState, state)) {
-          frame = top() // maybe changed after `next()`
-          schedule(() => cb(state, prevState), 'hook', frame).catch(noop)
+          enqueue(frame.run.bind(frame, cb, state, prevState), 'hook')
         }
         return state
       },

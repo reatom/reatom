@@ -20,8 +20,7 @@ import {
   isObject,
   atom,
   withInit,
-  root,
-  Action,
+  context,
 } from '@reatom/core'
 import type { AttributesAtomMaybe, JSX } from './jsx'
 
@@ -66,18 +65,86 @@ let name = ''
  * @see https://www.measurethat.net/Benchmarks/Show/7818
  */
 let propertiesAsAttributes = new Set([
-  'width',
+  /**
+   * Numeric attributes with a default value other than 0.
+   */
   'height',
-  'href',
-  'list',
+  'high',
+  'low',
+  'optimum',
+  'results',
+  'size',
+  'span',
+  'start',
+  'width',
+
+  /**
+   * Numeric properties with a default value other than 0.
+   */
+  // 'colspan',
+  // 'rowspan',
+  // 'maxlength',
+  // 'minlength',
+  // 'tabindex',
+
+  /**
+   * Properties with value HTMLElement.
+   */
   'form',
-  /** Default value in browsers is `-1` and an empty string is cast to `0` instead */
-  'tabIndex',
+  'list',
+
+  /**
+   * Setting the value to an empty string must be explicit.
+   */
   'download',
-  'rowSpan',
-  'colSpan',
+  'href',
   'role',
-  'popover',
+])
+/**
+ * @see https://developer.mozilla.org/en-US/docs/Glossary/Boolean/HTML
+ */
+let booleanAttributes = new Set([
+  'allowfullscreen',
+  'allowpaymentrequest',
+  'async',
+  'attributionsrc',
+  'autofocus',
+  'autoplay',
+  'browsingtopics',
+  'capture',
+  'checked',
+  'compact',
+  'controls',
+  'credentialless',
+  'crossorigin',
+  'declare',
+  'default',
+  'defer',
+  'disabled',
+  'disablepictureinpicture',
+  'disableremoteplayback',
+  'formnovalidate',
+  'hidden',
+  'inert',
+  'ismap',
+  'itemscope',
+  'loop',
+  'multiple',
+  'muted',
+  'nomodule',
+  'novalidate',
+  'open',
+  'playsinline',
+  'readonly',
+  'required',
+  'reversed',
+  'scoped',
+  'selected',
+  'shadowrootclonable',
+  'shadowrootdelegatesfocus',
+  'shadowrootserializable',
+  'virtualkeyboardpolicy',
+  'webkitdirectory',
 ])
 
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
@@ -173,9 +240,9 @@ let walkLinkedList = (
 
   // it's critical to not use not a last state, but the each state.
   const unSubscribe = list.subscribe(noop)
-  const rootFrame = root()
+  const rootFrame = context()
   const unChange = addChangeHook(list, (state) => {
-    if (rootFrame === root()) cb(state)
+    if (rootFrame === context()) cb(state)
   })
 
   let state = list()
@@ -308,6 +375,16 @@ let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
      * @see https://measurethat.net/Benchmarks/Show/31249
      */
     if (key === 'class') key = 'className'
+
+    /**
+     * @todo Support for properties values null | undefined.
+     * @example
+     * ```ts
+     * if (key === 'valueAsDate') element[key] = val
+     * else if (key === 'valueAsNumber') element[key] = key ?? NaN
+     * ```
+     */
+
     // @ts-ignore
     element[key] = val == null ? '' : val
   } else {
@@ -322,11 +399,9 @@ let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
      * amount of exceptions would cost too many bytes. On top of
      * that other frameworks generally stringify `false`.
      */
-    if (val == null || (val === false && key[4] !== '-')) {
-      element.removeAttribute(key)
-    } else {
-      element.setAttribute(key, key == 'popover' && val == true ? '' : val)
-    }
+    const isBool = booleanAttributes.has(key)
+    if (val == null || (isBool && val === false)) element.removeAttribute(key)
+    else element.setAttribute(key, isBool && val === true ? '' : val)
   }
 }
 

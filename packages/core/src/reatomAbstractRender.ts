@@ -1,12 +1,11 @@
-import { _read, atom, computed, root, STACK, type Frame } from './core'
-import { getPrevPubs } from './core/context'
-import { AbortAtom, reatomAbort, findVar, variable, wrap } from './methods'
+import { _read, atom, computed, type Frame, enqueue } from './core'
+import { getPrevPubs } from './methods/context'
+import { AbortAtom, abortVar, variable, wrap } from './methods'
 import { toAbortError, Unsubscribe } from './utils'
 
 export interface AbstractRender<Props, Result> {
   render: (props: Props) => { result: Result }
   mount: () => Unsubscribe
-  abort: AbortAtom
 }
 
 /** This is a low-level reatom renderer which helped to connect two different reactive systems.
@@ -15,9 +14,9 @@ export interface AbstractRender<Props, Result> {
  */
 export let reatomAbstractRender = <Props, Result>({
   frame,
-  render,
+  render: adapterRender,
   rerender,
-  mount,
+  mount: adapterMount,
   name,
 }: {
   frame: Frame
@@ -26,38 +25,33 @@ export let reatomAbstractRender = <Props, Result>({
   rerender: (param: { result: Exclude<Result, never> }) => any
   mount?: () => void
   name: string
-}): AbstractRender<Props, Result> => {
-  let rootFrame =
-    STACK.length !== 0
-      ? STACK[0]!
-      : findVar((frame) => (frame.atom === root ? frame : undefined), frame)!
+}): AbstractRender<Props, Result> =>
+  frame.run(() => {
+    let rendering = false
 
-  STACK.push(rootFrame, frame)
+    let changedVar = variable<boolean>()
 
-  let rendering = false
+    let _props = atom({} as Props, `${name}._props`)
 
-  let abort = reatomAbort(`${name}.abort`, frame)
+    let abortAtom: AbortAtom
 
-  let changedVar = variable<boolean>()
-
-  let propsAtom = atom({} as Props, `${name}._propsAtom`)
-
-  let renderAtom = computed(
-    (state?: { result: Result }): { result: Result } => {
+    let _render = computed((state?: { result: Result }): { result: Result } => {
       let pubs = getPrevPubs()
 
-      let props = propsAtom()
+      enqueue(() => (pubs.length = 1), 'cleanup')
+
+      let props = _props()
 
       if (rendering) {
-        abort.set()
-        return { result: render(props) }
+        abortAtom = abortVar.set(abortAtom ?? `${name}.abort`)
+        return { result: adapterRender(props) }
       }
 
       changedVar.set(true)
 
       // do not drop subscriptions from the render
       for (
-        // skip actualization pub and `propsAtom`
+        // skip actualization pub and `_props`
         let i = 2;
         i < pubs.length;
         i++
@@ -65,41 +59,34 @@ export let reatomAbstractRender = <Props, Result>({
         pubs[i]!.atom()
       }
 
+
       return { result: state?.result as Result }
-    },
-    `${name}._renderAtom`,
-  )
+    }, `${name}._render`)
 
-  let _render = (props: Props) => {
-    try {
-      STACK.push(rootFrame, frame)
-      rendering = true
-      propsAtom({ ...props })
-      return renderAtom()
-    } finally {
-      rendering = false
-      STACK.pop()
-      STACK.pop()
-    }
-  }
-
-  let _mount = wrap(() => {
-    mount?.()
-    let unsubscribe = renderAtom.subscribe((state) => {
-      if (changedVar.read()) {
-        changedVar.set(false)
-        rerender(state)
+    let render = frame.run.bind(frame, (props: Props) => {
+      try {
+        rendering = true
+        _props({ ...props })
+        return _render()
+      } finally {
+        rendering = false
       }
+    }) as (props: Props) => { result: Result }
+
+    let mount = wrap(() => {
+      adapterMount?.()
+      let unsubscribe = _render.subscribe((state) => {
+        if (changedVar.read()) {
+          changedVar.set(false)
+          rerender(state)
+        }
+      })
+
+      return wrap(() => {
+        unsubscribe()
+        abortAtom(toAbortError('unmount ' + name))
+      })
     })
 
-    return wrap(() => {
-      unsubscribe()
-      abort(toAbortError('unmount ' + name))
-    })
+    return { render, mount }
   })
-
-  STACK.pop()
-  STACK.pop()
-
-  return { render: _render, mount: _mount, abort }
-}

@@ -1,5 +1,5 @@
 import { test as viTest, vi, type Mock } from 'vitest'
-import { clearStack, root, AtomLike } from './core'
+import { clearStack, context, AtomLike } from './core'
 import { noop, type Unsubscribe } from './utils'
 
 clearStack()
@@ -7,7 +7,10 @@ clearStack()
 // TODO decorate chainable methods too
 export const test = Object.assign(
   (name: string, fn: () => void | Promise<void>) =>
-    viTest(name, () => root.start(fn)),
+    viTest(name, () => {
+      Reflect.defineProperty(fn, 'name', { value: name })
+      return context.start(fn)
+    }),
   viTest,
 ) as typeof viTest
 

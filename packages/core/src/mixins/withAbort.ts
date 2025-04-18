@@ -1,10 +1,9 @@
-import { Atom, atom, AtomLike, ReatomError, top } from '../core'
-import { AbortAtom, peek, reatomAbort } from '../methods'
+import { atom, AtomLike, ReatomError, top } from '../core'
+import { AbortAtom, abortVar } from '../methods'
 import { assert, Fn, toAbortError } from '../utils'
 
 export interface AbortExt {
   abort: (reason?: any) => void
-  _abortContainer: Atom<null | AbortAtom>
 }
 
 export interface AbortMix<Target extends AtomLike = AtomLike> {
@@ -21,22 +20,40 @@ export let withAbort = (
   )
 
   return (target) => {
+    // TODO replace with context meta
     let _abortContainer = atom<null | AbortAtom>(
       null,
       `${target.name}._abortContainer`,
     )
 
     let abortMiddleware = (next: Fn, ...params: any[]) => {
+      let prevAbort = _abortContainer()
+
       let prevState = top().state
-      let state = next(...params)
+      let state = prevState
+      let abort: AbortAtom
 
-      if (target.__reatom.reactive && Object.is(prevState, state)) return state
+      if (!prevAbort /* init */) {
+        // initiate in the current frame, not in the _abortContainer update callback
+        abort = abortVar.set(`${target.name}.abort`)
+        _abortContainer(() => abort)
+        state = next(...params)
+      } else {
+        // initiate in the current frame, not in the _abortContainer update callback
+        abort = abortVar.set(`${target.name}.abort`)
+        _abortContainer(() => abort)
 
-      peek(_abortContainer)?.(toAbortError(`${target.name} concurrent`))
+        state = next(...params)
 
-      // initiate in the current frame, not in the _abortContainer update callback
-      let abort = reatomAbort(`${target.name}.abort`)
-      _abortContainer(() => abort)!
+        if (target.__reatom.reactive && Object.is(prevState, state)) {
+          abortVar.set(prevAbort)
+          _abortContainer(() => prevAbort)
+
+          return state
+        }
+
+        prevAbort(toAbortError(`${target.name} concurrent`))
+      }
 
       let maybePromise = target.__reatom.reactive
         ? state
@@ -44,10 +61,7 @@ export let withAbort = (
 
       if (maybePromise instanceof Promise) {
         maybePromise = new Promise((res, rej) => {
-          maybePromise
-            .finally(abort.subscribe((error) => error != null && rej(error)))
-            .then(res)
-            .catch(rej)
+          maybePromise.finally(abort.subscribeAbort(rej)).then(res).catch(rej)
         })
 
         if (target.__reatom.reactive) {

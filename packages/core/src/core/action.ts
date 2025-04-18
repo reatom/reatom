@@ -1,16 +1,14 @@
 import {
-  _copy,
   AtomLike,
   isAtom,
   named,
   ReatomError,
-  RootFrame,
   STACK,
-  schedule,
+  enqueue,
   createAtom,
   AtomMeta,
 } from './'
-import { Fn } from '../utils'
+import type { Fn } from '../utils'
 
 /** Autoclearable array of processed events */
 export interface ActionState<Params extends any[] = any[], Payload = any>
@@ -24,13 +22,11 @@ export type GenericAction<T extends Fn> = T &
   Action<Parameters<T>, ReturnType<T>>
 
 let actionMiddleware = (next: Fn, ...params: any[]) => {
-  let rootFrame = STACK[0] as RootFrame
   let frame = STACK[STACK.length - 1]!
 
-  frame = _copy(rootFrame, frame, true)
-  frame.pubs[0] = STACK[STACK.length - 2]!
+  frame.pubs = [STACK[STACK.length - 2]!]
 
-  schedule(() => (frame.state = []), 'cleanup', null)
+  enqueue(() => (frame.state = []), 'cleanup')
 
   return (frame.state = [...frame.state, { params, payload: next(...params) }])
 }

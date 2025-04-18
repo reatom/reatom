@@ -1,4 +1,4 @@
-import { atom, computed, isAtom, notify } from '../core'
+import { atom, computed, isAtom, isConnected, notify } from '../core'
 import { test, expect, subscribe, vi } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 import { parseAtoms } from './parseAtoms'
@@ -197,11 +197,15 @@ test('should accept only initState and key optionally', () => {
     key: 'id',
   })
 
-  const track = subscribe(atom(() => [...list.map().keys()]))
+  const keys = computed(() => [...list.map().keys()])
+  const track = subscribe(keys)
 
-  expect(track.mock.lastCall?.[0]).toStrictEqual(['1', '2'])
+  expect(track).toBeCalledWith(['1', '2'])
+  expect(isConnected(list.map().get('1')!.id)).toBe(true)
 
-  list.map().get('1')?.id('0')
+  list.map().get('1')!.id('0')
   notify()
-  expect(track.mock.lastCall?.[0]).toStrictEqual(['0', '2'])
+  expect(parseAtoms(list)).toStrictEqual([{ id: '0' }, { id: '2' }])
+  expect(keys()).toStrictEqual(['0', '2'])
+  expect(track).toBeCalledWith(['0', '2'])
 })

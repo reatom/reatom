@@ -363,7 +363,6 @@ export function reatomLinkedList<
     } finally {
       STATE = null
     }
-    return STATE!
   }, name)
 
   const createLinkedListFromState = (
