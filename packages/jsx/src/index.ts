@@ -150,22 +150,23 @@ let booleanAttributes = new Set([
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
 
-let unsubscribesMap = new WeakMap<Node, Array<Fn>>()
+let unsubscribesMap = atom(() => new WeakMap<Node, Array<Fn>>(), 'unsubscribesMap')
 let unlink = (parent: Node, un: Unsubscribe) => {
+  let unsubscribes = unsubscribesMap()
   // check the connection in the next tick
   // to give the user (programmer) an ability
   // to put the created element in the dom
-  Promise.resolve().then(() => {
+  Promise.resolve().then(wrap(() => {
     if (!parent.isConnected) un()
     else {
       while (
         parent.parentElement &&
-        !unsubscribesMap.get(parent)?.push(() => parent.isConnected || un())
+        !unsubscribes.get(parent)?.push(() => parent.isConnected || un())
       ) {
         parent = parent.parentElement
       }
     }
-  })
+  }))
 }
 
 let walkLinkedList = (
@@ -313,7 +314,7 @@ let walkAtom = (
   let fragment = createLiveFragment(dom, anAtom.name)
   let un = anAtom.subscribe(fragment.__reatomFragment.update)
 
-  unsubscribesMap.set(fragment.__reatomFragment.start, [])
+  unsubscribesMap().set(fragment.__reatomFragment.start, [])
   unlink(fragment.__reatomFragment.start, un)
 
   return fragment
@@ -461,14 +462,14 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
     if (k !== 'children' && k !== 'element') {
       let prop = props[k]
       if (k === 'ref') {
-        wrap(Promise.resolve()).then(() => {
+        Promise.resolve().then(wrap(() => {
           let cleanup = prop(element)
           if (typeof cleanup === 'function') {
-            let list = unsubscribesMap.get(element)
-            if (!list) unsubscribesMap.set(element, (list = []))
+            let unsubscribes = unsubscribesMap()
+            if (!unsubscribes.has(element)) unsubscribes.set(element, [])
             unlink(element, () => cleanup(element))
           }
-        })
+        }))
       } else if (isAtom(prop) && !isAction(prop)) {
         if (k.startsWith('model:')) {
           let name = (k = k.slice(6)) as 'value' | 'valueAsNumber' | 'checked'
@@ -544,10 +545,12 @@ export let mount = (target: Element, child: Element): void => {
   // target.append(...[child].flat(Infinity))
   target.append(child)
 
+  let unsubscribes = unsubscribesMap()
   /**
    * @note The moved node creates two mutations: deletion then addition.
+   * @todo Call `observer.disconnect()` after unmounting the application.
    */
-  new dom.MutationObserver(
+  let observer = new dom.MutationObserver(
     wrap((mutationsList) => {
       let removedNodes = new Set<Node>()
 
@@ -566,12 +569,13 @@ export let mount = (target: Element, child: Element): void => {
         let walker = dom.document.createTreeWalker(removedNode, 1 | 128)
 
         do {
-          unsubscribesMap.get(walker.currentNode)?.forEach((fn) => fn())
-          unsubscribesMap.delete(walker.currentNode)
+          unsubscribes.get(walker.currentNode)?.forEach((un) => un())
+          unsubscribes.delete(walker.currentNode)
         } while (walker.nextNode())
       }
     }),
-  ).observe(target.parentElement!, {
+  )
+  observer.observe(target.parentElement!, {
     childList: true,
     subtree: true,
   })
