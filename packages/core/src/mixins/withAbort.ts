@@ -1,4 +1,4 @@
-import { atom, AtomLike, ReatomError, top } from '../core'
+import { AssignerExt, atom, ReatomError, top } from '../core'
 import { AbortAtom, abortVar } from '../methods'
 import { assert, Fn, toAbortError } from '../utils'
 
@@ -6,13 +6,9 @@ export interface AbortExt {
   abort: (reason?: any) => void
 }
 
-export interface AbortMix<Target extends AtomLike = AtomLike> {
-  <T extends Target>(target: T): T & AbortExt
-}
-
 export let withAbort = (
   strategy: 'last-in-win' | 'first-in-win' = 'last-in-win',
-): AbortMix => {
+): AssignerExt<AbortExt> => {
   assert(
     strategy === 'last-in-win',
     'only last-in-win strategy is supported',

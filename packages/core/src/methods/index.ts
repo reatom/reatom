@@ -1,6 +1,7 @@
 export * from './abort'
 export * from './ifChanged'
 export * from './isCausedBy'
+export * from './parseAtoms'
 export * from './peek'
 export * from './variable'
 export * from './wrap'

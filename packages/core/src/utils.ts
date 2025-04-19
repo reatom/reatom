@@ -56,20 +56,34 @@ export type PickValues<T, V> = {
   [K in PickValuesKeys<T, V>]: T[K]
 }
 
-export type OverloadParameters<T> = T extends {
-  (...params: infer Overload1Params): any
-  (...params: infer Overload2Params): any
-  (...params: infer Overload3Params): any
-  (...params: infer Overload4Params): any
-  (...params: infer Overload5Params): any
+export type Overloads<T> = T extends {
+  (...params: infer Overload1Params): infer Return1
+  (...params: infer Overload2Params): infer Return2
+  (...params: infer Overload3Params): infer Return3
+  (...params: infer Overload4Params): infer Return4
+  (...params: infer Overload5Params): infer Return5
 }
-  ?
-      | Overload1Params
-      | Overload2Params
-      | Overload3Params
-      | Overload4Params
-      | Overload5Params
+  ? (
+      ...params:
+        | Overload1Params
+        | Overload2Params
+        | Overload3Params
+        | Overload4Params
+        | Overload5Params
+    ) => Return1 | Return2 | Return3 | Return4 | Return5
   : never
+
+export type OverloadParameters<T> = Parameters<Overloads<T>>
+
+// type FFF1 = <T extends string | number>(value: T) => T
+// type FFF2 = {
+//   (value: string): string
+//   (value: number): number
+// }
+
+// type Test1 = Overloads<FFF1>
+// type Test2 = Overloads<FFF2>
+// type Test3 = Overloads<(value: number) => number>
 
 /** Throws `Error(message)` if `value` is falsy */
 export function assert(
@@ -192,7 +206,8 @@ export const assign: {
 } = Object.assign
 
 /** `Object.assign` which set an empty object to the first argument */
-export const merge: typeof assign = (...params: any[]) => Object.assign({}, ...params)
+export const merge: typeof assign = (...params: any[]) =>
+  Object.assign({}, ...params)
 
 export const keys: {
   <T extends object>(thing: T): Array<keyof T>

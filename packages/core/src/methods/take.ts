@@ -1,26 +1,31 @@
 import { action, AtomLike, computed, top } from '../core'
-import { Fn, identity, isAbort, noop } from '../utils'
+import { Fn, isAbort } from '../utils'
 import { abortVar } from './abort'
 import { ifCalled } from './ifChanged'
+import { wrap } from './wrap'
 
+let i = 0
+
+/** Wait some atom change or action call */
 export let take = <T>(
   target: AtomLike<any, any, T>,
   name?: string,
 ): Promise<Awaited<T>> => {
-  name &&= `${top().atom.name}.${name}`
+  name = `${top().atom.name}.take.${name || `#${++i}`}`
+
+  let log = wrap(action((_message: string, payload: any) => payload, name))
 
   let cleanups: Array<Fn> = []
-
-  // debug log
-  if (name) action(noop, name)()
 
   let abort = abortVar.read()
   if (!abort) {
     debugger
   }
-  abort ??= abortVar.set(name || `${top().atom.name}.take`)
+  abort ??= abortVar.set(name)
 
   let promise = new Promise<Awaited<T>>((res, rej) => {
+    log('start', target.name)
+
     cleanups.push(
       abort.subscribeAbort(rej),
       computed(async () => {
@@ -51,22 +56,21 @@ export let take = <T>(
           if (!cleanups.length) return
 
           if (isAbort(error)) return
+
           rej(error)
         }
-      }).subscribe(),
+      }, `${name}.computed`).subscribe(),
     )
   })
 
   promise
     .then((value) => {
       cleanups.forEach((fn) => fn())
-      // debug log
-      if (name) action(identity, `${name}.resolve`)(value)
+      log('resolve', value)
     })
     .catch((error) => {
       cleanups.forEach((fn) => fn())
-      // debug log
-      if (name) action(identity, `${name}.resolve`)(error)
+      log('reject', error)
     })
 
   return promise

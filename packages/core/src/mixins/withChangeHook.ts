@@ -15,14 +15,14 @@ export let withChangeHook = <Target extends AtomLike>(
     state: AtomState<Target>,
     prevState: undefined | AtomState<Target>,
   ) => void,
-): Ext<Target, Target> => {
+): Ext<Target> => {
   if (typeof cb !== 'function') {
     throw new ReatomError('function expected')
   }
 
   return withMiddleware<Target>(
     () =>
-      function changeHook(next, ...params) {
+      function withChangeHook(next, ...params) {
         let frame = top()
         let prevState = frame.state
         let state = next(...params)
@@ -39,59 +39,64 @@ export let addChangeHook = <T extends AtomLike>(
   target: T,
   cb: (state: AtomState<T>, prevState?: AtomState<T>) => void,
 ): Unsubscribe => {
-  let active = true
+  let { middlewares } = target.extend(withChangeHook(cb)).__reatom
 
-  target.extend(
-    withChangeHook((state, prevState) => {
-      if (active) {
-        cb(state, prevState)
-      }
-    }),
-  )
-
+  let hook = middlewares[middlewares.length - 1]!
   return () => {
-    active = false
+    let index = middlewares.indexOf(hook)
+    if (index !== -1) {
+      middlewares.splice(index, 1)
+    }
   }
 }
 
 export let withCallHook = <Target extends Action>(
   cb: (payload: ReturnType<Target>, params: OverloadParameters<Target>) => void,
-): Ext<Target, Target> => {
+): Ext<Target> => {
   if (typeof cb !== 'function') {
     throw new ReatomError('function expected')
   }
 
-  return (target) => {
+  return withMiddleware<Target>((target) => {
     if (target.__reatom.reactive) {
       throw new ReatomError('withCallHook can be used only with actions')
     }
 
-    return target.extend(
-      withChangeHook(function callHook(state, prevState) {
+    return function withChangeHook(next, ...params) {
+      let frame = top()
+      let prevState = frame.state
+      let state = next(...params)
+
+      if (!Object.is(prevState, state)) {
         for (let i = prevState?.length ?? 0; i < state.length; i++) {
           let { params, payload } = state[i]!
-          cb(payload, params as OverloadParameters<Target>)
+          enqueue(
+            frame.run.bind(
+              frame,
+              cb,
+              payload,
+              params as OverloadParameters<Target>,
+            ),
+            'hook',
+          )
         }
-      }),
-    )
-  }
+      }
+      return state
+    }
+  })
 }
 
 export let addCallHook = <Target extends Action>(
   target: Target,
   cb: (payload: ReturnType<Target>, params: OverloadParameters<Target>) => void,
 ): Unsubscribe => {
-  let active = true
+  let { middlewares } = target.extend(withCallHook(cb)).__reatom
 
-  target.extend(
-    withCallHook((payload, params) => {
-      if (active) {
-        cb(payload, params)
-      }
-    }),
-  )
-
+  let hook = middlewares[middlewares.length - 1]!
   return () => {
-    active = false
+    let index = middlewares.indexOf(hook)
+    if (index !== -1) {
+      middlewares.splice(index, 1)
+    }
   }
 }

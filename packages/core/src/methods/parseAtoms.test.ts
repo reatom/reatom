@@ -3,12 +3,12 @@ import {
   LL_NEXT,
   LL_PREV,
   reatomLinkedList,
-} from './reatomLinkedList'
+} from '../primitives/reatomLinkedList'
 
 import { test, describe, expect } from 'vitest'
 import { atom, computed } from '../core'
 import { parseAtoms } from './parseAtoms'
-import { reatomEnum } from './reatomEnum'
+import { reatomEnum } from '../primitives/reatomEnum'
 
 describe('runtime', () => {
   test('should return value', () => {
@@ -20,13 +20,9 @@ describe('runtime', () => {
   })
 
   test('should parse deep atoms', () => {
-    expect(
-      parseAtoms(computed(() => atom('deep'))),
-    ).toBe('deep')
+    expect(parseAtoms(computed(() => atom('deep')))).toBe('deep')
 
-    expect(
-      parseAtoms(computed(() => [atom(['deep'])])),
-    ).toEqual([['deep']])
+    expect(parseAtoms(computed(() => [atom(['deep'])]))).toEqual([['deep']])
   })
 
   test('should parse records', () => {
@@ -185,7 +181,6 @@ describe('runtime', () => {
 
 describe('types', () => {
   it('should return value', () => {
-
     expectTypeOf(parseAtoms('some bare value')).toEqualTypeOf<string>()
     expectTypeOf(parseAtoms(10)).toEqualTypeOf<number>()
     expectTypeOf(
@@ -197,9 +192,9 @@ describe('types', () => {
     expectTypeOf(
       parseAtoms(computed(() => atom('deep'))),
     ).toEqualTypeOf<string>()
-    expectTypeOf(
-      parseAtoms(computed(() => [atom(['deep'])])),
-    ).toEqualTypeOf<string[][]>()
+    expectTypeOf(parseAtoms(computed(() => [atom(['deep'])]))).toEqualTypeOf<
+      string[][]
+    >()
   })
 
   it('should parse records', () => {
@@ -290,11 +285,9 @@ describe('types', () => {
         str1: string
         bool: boolean
       }[]
-      [LL_PREV]: ToMatchTypeOf | null
-      [LL_NEXT]: ToMatchTypeOf | null
     }
 
-    expectTypeOf(test).toMatchTypeOf<ToMatchTypeOf[]>()
+    expectTypeOf(test).toExtend<ToMatchTypeOf[]>()
   })
 
   it('should parse File and other classes properly', () => {

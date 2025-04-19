@@ -1,7 +1,7 @@
 import { Action, AtomLike, ReatomError, action } from './'
 import type { Fn, Rec } from '../utils'
 
-export type ActionsExtInfer<Methods extends Rec<Fn>> = {
+export type ActionsExt<Methods extends Rec<Fn>> = {
   [K in keyof Methods]: Methods[K] extends (
     ...params: infer Params
   ) => infer Payload
@@ -10,18 +10,18 @@ export type ActionsExtInfer<Methods extends Rec<Fn>> = {
 }
 
 // TODO support method overloading
-export type ActionsExt<Target extends AtomLike> = {
+export type Actions<Target extends AtomLike> = {
   <Methods extends Rec<Fn>>(
     create: (target: Target) => Methods,
-  ): Target & ActionsExtInfer<Methods>
+  ): Target & ActionsExt<Methods>
 
-  <Methods extends Rec<Fn>>(methods: Methods): Target & ActionsExtInfer<Methods>
+  <Methods extends Rec<Fn>>(methods: Methods): Target & ActionsExt<Methods>
 }
 
 export function actions<Target extends AtomLike, Methods extends Rec<Fn>>(
   this: Target,
   options: Methods | ((target: Target) => Methods),
-): Target & ActionsExtInfer<Methods> {
+): ActionsExt<Methods> {
   let methods = typeof options === 'function' ? options(this) : options
   for (let key in methods) {
     if (key in this) {
@@ -34,5 +34,5 @@ export function actions<Target extends AtomLike, Methods extends Rec<Fn>>(
     this[key] = action(methods[key], `${this.name}.${key}`)
   }
 
-  return this as Target & ActionsExtInfer<Methods>
+  return this as ActionsExt<Methods>
 }

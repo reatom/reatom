@@ -3,12 +3,12 @@ import { ReatomError, top } from '../core'
 import { assert, isShallowEqual } from '../utils'
 
 export let withMemo =
-  <T extends AtomLike>(
+  <Target extends AtomLike>(
     isEqual: (
-      prevState: AtomState<T>,
-      nextState: AtomState<T>,
+      prevState: AtomState<Target>,
+      nextState: AtomState<Target>,
     ) => boolean = isShallowEqual,
-  ): Ext<T> =>
+  ): Ext<Target> =>
   (target) => {
     assert(
       target?.__reatom?.reactive === true,

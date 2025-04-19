@@ -1,4 +1,4 @@
-import { actions, type ActionsExt, Ext, extend, type Extend, enqueue } from './'
+import { actions, type Actions, Ext, extend, type Extend, enqueue } from './'
 import type { Fn, Unsubscribe } from '../utils'
 
 let identity = <T>(value: T): T => value
@@ -26,7 +26,7 @@ export interface AtomLike<
   (...params: Params): Payload
 
   /** Bind methods */
-  actions: ActionsExt<this>
+  actions: Actions<this>
 
   /** Extension system */
   extend: Extend<this>
@@ -90,11 +90,11 @@ export interface ContextMeta {
   init: WeakMap<WeakKey, any>
   variable: WeakMap<Frame, WeakMap<WeakKey, any>>
   // abort: WeakMap<Frame, AbortAtom>
-  pubs: WeakMap<
+  frames: WeakMap<
     Atom,
     {
-      prev: Frame['pubs']
-      next: Frame['pubs']
+      prev: null | Frame
+      next: Frame
     }
   >
   [key: string]: WeakMap<WeakKey, any>
@@ -651,7 +651,7 @@ context.start = (cb = top) => {
           init: new WeakMap(),
           variable: new WeakMap(),
           abort: new WeakMap(),
-          pubs: new WeakMap(),
+          frames: new WeakMap(),
         },
         hook: [],
         compute: [],

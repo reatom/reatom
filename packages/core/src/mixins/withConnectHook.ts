@@ -1,10 +1,7 @@
-import { AtomLike, Ext } from '../core'
+import { GenericExt } from '../core'
 
 export let withLifecycleHook =
-  <Target extends AtomLike>(
-    cb: () => void,
-    hookName: 'onConnect' | 'onDisconnect',
-  ): Ext<Target> =>
+  (cb: () => void, hookName: 'onConnect' | 'onDisconnect'): GenericExt =>
   (target) => {
     let name = `${target.name}.${hookName}`
     let prevHook = target.__reatom[hookName]
@@ -18,8 +15,8 @@ export let withLifecycleHook =
     return target
   }
 
-export let withConnectHook = (cb: () => void): Ext =>
+export let withConnectHook = (cb: () => void): GenericExt =>
   withLifecycleHook(cb, 'onConnect')
 
-export let withDisconnectHook = (cb: () => void): Ext =>
+export let withDisconnectHook = (cb: () => void): GenericExt =>
   withLifecycleHook(cb, 'onDisconnect')

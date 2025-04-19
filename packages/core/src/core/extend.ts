@@ -1,11 +1,19 @@
 import { Action, AtomLike, AtomState, isAtom, ReatomError, top } from '.'
 import type { Fn, OverloadParameters, Rec } from '../utils'
 
-export interface Ext<
+export interface Ext<Target extends AtomLike = AtomLike, Extension = Target> {
+  (target: Target): Extension
+}
+
+export interface GenericExt<Target extends AtomLike = AtomLike> {
+  <T extends Target>(target: T): T
+}
+
+export interface AssignerExt<
+  Methods extends Rec = {},
   Target extends AtomLike = AtomLike,
-  MixedTarget = Target | Rec,
 > {
-  (target: Target): MixedTarget
+  <T extends Target>(target: T): Methods
 }
 
 type Merge<
@@ -28,7 +36,7 @@ export interface Extend<This extends AtomLike> {
   /* prettier-ignore */ <T1, T2, T3, T4, T5, T6, T7, T8>(extension1: Ext<This, T1>, extension2: Ext<Merge<This, [T1]>, T2>, extension3: Ext<Merge<This, [T1, T2]>, T3>, extension4: Ext<Merge<This, [T1, T2, T3]>, T4>, extension5: Ext<Merge<This, [T1, T2, T3, T4]>, T5>, extension6: Ext<Merge<This, [T1, T2, T3, T4, T5]>, T6>, extension7: Ext<Merge<This, [T1, T2, T3, T4, T5, T6]>, T7>, extension8: Ext<Merge<This, [T1, T2, T3, T4, T5, T6, T7]>, T8>): Merge<This, [T1, T2, T3, T4, T5, T6, T7, T8]>
   /* prettier-ignore */ <T1, T2, T3, T4, T5, T6, T7, T8, T9>(extension1: Ext<This, T1>, extension2: Ext<Merge<This, [T1]>, T2>, extension3: Ext<Merge<This, [T1, T2]>, T3>, extension4: Ext<Merge<This, [T1, T2, T3]>, T4>, extension5: Ext<Merge<This, [T1, T2, T3, T4]>, T5>, extension6: Ext<Merge<This, [T1, T2, T3, T4, T5]>, T6>, extension7: Ext<Merge<This, [T1, T2, T3, T4, T5, T6]>, T7>, extension8: Ext<Merge<This, [T1, T2, T3, T4, T5, T6, T7]>, T8>, extension9: Ext<Merge<This, [T1, T2, T3, T4, T5, T6, T7, T8]>, T9>): Merge<This, [T1, T2, T3, T4, T5, T6, T7, T8, T9]>
   /* prettier-ignore */ <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(extension1: Ext<This, T1>, extension2: Ext<Merge<This, [T1]>, T2>, extension3: Ext<Merge<This, [T1, T2]>, T3>, extension4: Ext<Merge<This, [T1, T2, T3]>, T4>, extension5: Ext<Merge<This, [T1, T2, T3, T4]>, T5>, extension6: Ext<Merge<This, [T1, T2, T3, T4, T5]>, T6>, extension7: Ext<Merge<This, [T1, T2, T3, T4, T5, T6]>, T7>, extension8: Ext<Merge<This, [T1, T2, T3, T4, T5, T6, T7]>, T8>, extension9: Ext<Merge<This, [T1, T2, T3, T4, T5, T6, T7, T8]>, T9>, extension10: Ext<Merge<This, [T1, T2, T3, T4, T5, T6, T7, T8, T9]>, T10>): Merge<This, [T1, T2, T3, T4, T5, T6, T7, T8, T9, T10]>
-  <T extends Array<Ext>>(
+  <T extends Array<Ext<AtomLike, AtomLike | Rec>>>(
     ...extensions: T
   ): {
     extend_ERROR: 'To many overloads (separate it to a few `extend` calls) or some mixing has incompatible types'
@@ -41,42 +49,32 @@ export function extend<This extends AtomLike>(
 ) {
   for (let ext of extensions) {
     let result = ext(this)
-    if (this !== result && isAtom(result)) {
-      throw new ReatomError('extend can not change the atom')
+    if (this !== result) {
+      if (isAtom(result)) {
+        throw new ReatomError(
+          'extension can not change the atom reference, use middleware instead',
+        )
+      }
+      Object.assign(this, result)
     }
-    Object.assign(this, result)
   }
   return this
 }
 
-export interface AssignerExt<
-  Methods extends Rec = {},
-  Target extends AtomLike = AtomLike,
-> {
-  <T extends Target>(target: T): Methods
-}
+export type Middleware<Target extends AtomLike = AtomLike> = (
+  next: (...params: OverloadParameters<Target>) => AtomState<Target>,
+  ...params: OverloadParameters<Target>
+) => AtomState<Target>
 
 // @ts-expect-error
 export let withMiddleware: {
   <Target extends AtomLike>(
-    cb: (
-      target: Target,
-    ) => (
-      next: (...params: OverloadParameters<Target>) => AtomState<Target>,
-      ...params: OverloadParameters<Target>
-    ) => AtomState<Target>,
+    cb: (target: Target) => Middleware<Target>,
     tail?: boolean,
-  ): {
-    <T extends Target>(target: T): T
-  }
+  ): GenericExt<Target>
 
   <Target extends AtomLike, Result extends AtomLike = Target>(
-    cb: (
-      target: Target,
-    ) => (
-      next: (...params: OverloadParameters<Target>) => AtomState<Target>,
-      ...params: OverloadParameters<Target>
-    ) => AtomState<Target>,
+    cb: (target: Target) => Middleware<Target>,
     tail?: boolean,
   ): Ext<Target, Result>
 } =
@@ -97,12 +95,8 @@ export let withMiddleware: {
     return target
   }
 
-export type TapExt<Target extends AtomLike = AtomLike> = <T extends Target>(
-  target: T,
-) => T
-
 export let withTap: {
-  (cb: (target: AtomLike, state: any, prevState: any) => void): TapExt
+  (cb: (target: AtomLike, state: any, prevState: any) => void): GenericExt
 
   <Target extends AtomLike>(
     cb: (
@@ -110,17 +104,20 @@ export let withTap: {
       state: AtomState<Target>,
       prevState: AtomState<Target>,
     ) => void,
-  ): Ext<Target>
+  ): Ext<Target, Target>
 } = (cb: (target: AtomLike, state: any, prevState: any) => void) => {
   if (typeof cb !== 'function') {
     throw new ReatomError('function expected')
   }
-  return withMiddleware((target) => (next, ...params) => {
-    let { state } = top()
-    let nextState = next(...params)
-    cb(target, state, nextState)
-    return nextState
-  })
+  return withMiddleware(
+    (target) =>
+      function withTap(next, ...params) {
+        let { state } = top()
+        let nextState = next(...params)
+        cb(target, state, nextState)
+        return nextState
+      },
+  )
 }
 
 export interface ParamsExt<

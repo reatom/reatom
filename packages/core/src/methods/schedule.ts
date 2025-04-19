@@ -1,10 +1,7 @@
 import { enqueue, top } from '../core'
 
-export let schedule = <T>(
-  fn: () => T,
-  // queue: 'hook' | 'compute' | 'cleanup' | 'effect' = 'effect',
-  frame = top(),
-) => {
+/** Delay some work to the end of all computations */
+export let schedule = <T>(fn: () => T, frame = top()) => {
   let promise = new Promise((res, rej) =>
     enqueue(() => {
       try {

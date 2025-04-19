@@ -5,7 +5,7 @@ import {
   LinkedListLikeAtom,
   LL_PREV,
   LL_NEXT,
-} from './reatomLinkedList'
+} from '../primitives/reatomLinkedList'
 import { isRec, Rec } from '../utils'
 
 type Primitive = string | number | boolean | null | undefined

@@ -41,14 +41,14 @@ export let settled = <Result, Fallback = undefined>(
   return fallback as Fallback
 }
 
-export type SuspenseExt<State> = {
-  suspended: Computed<Awaited<State>>
+export type SuspenseExt<Target extends AtomLike> = {
+  suspended: Computed<Awaited<AtomState<Target>>>
 }
 
 export let withSuspense =
-  <T extends AtomLike & Partial<SuspenseExt<AtomState<T>>>>({
+  <T extends AtomLike & Partial<SuspenseExt<T>>>({
     preserve = false,
-  }: { preserve?: boolean } = {}): Ext<T, SuspenseExt<AtomState<T>>> =>
+  }: { preserve?: boolean } = {}): Ext<T, SuspenseExt<T>> =>
   (target) => ({
     suspended:
       target.suspended ??
@@ -90,6 +90,6 @@ export let withSuspense =
 
 export let suspense = <T>(target: AtomLike<T>): Awaited<T> =>
   ('suspended' in target
-    ? (target as AtomLike & SuspenseExt<T>)
+    ? (target as AtomLike & SuspenseExt<AtomLike<T>>)
     : target.extend(withSuspense())
   ).suspended()

@@ -1,6 +1,7 @@
 import { Frame, context, top } from '../core'
 import { assert, identity } from '../utils'
 
+/** @internal */
 export let findVar = <T>(
   cb: (frame: Frame) => undefined | T,
   frame = top(),

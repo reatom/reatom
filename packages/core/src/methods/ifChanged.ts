@@ -9,7 +9,7 @@ import {
   AtomState,
   ActionState,
 } from '../core'
-import { getPrevPubs } from './context'
+import { _getPrevFrame } from './context'
 import { assert } from '../utils'
 
 export const ifChanged = <T extends AtomLike>(
@@ -21,7 +21,7 @@ export const ifChanged = <T extends AtomLike>(
   }
 
   let frame = top()
-  let prevPubs = getPrevPubs(frame)
+  let prevPubs = _getPrevFrame(frame)?.pubs ?? [null]
   let prevTargetFrame = prevPubs[frame.pubs.length]
 
   target()
@@ -46,11 +46,13 @@ export const ifCalled = <Params extends any[], Payload>(
   type ActionFrame = Frame<ActionState<Params, Payload>, Params, Payload>
 
   let frame = top()
-  let prevPubs = getPrevPubs(frame)
+  let prevPubs = _getPrevFrame(frame)?.pubs ?? [null]
   let prevTargetFrame = prevPubs[frame.pubs.length] as undefined | ActionFrame
 
   let contextFrame = context()
-  let targetFrame = contextFrame.state.store.get(target) as undefined | ActionFrame
+  let targetFrame = contextFrame.state.store.get(target) as
+    | undefined
+    | ActionFrame
 
   assert(frame.atom.__reatom.reactive, 'invalid context', ReatomError)
 

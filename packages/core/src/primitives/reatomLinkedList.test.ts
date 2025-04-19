@@ -1,7 +1,7 @@
 import { atom, computed, isAtom, isConnected, notify } from '../core'
 import { test, expect, subscribe, vi } from 'test'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
-import { parseAtoms } from './parseAtoms'
+import { parseAtoms } from '../methods/parseAtoms'
 import { withChangeHook } from '../mixins'
 import { isCausedBy } from '../methods'
 
