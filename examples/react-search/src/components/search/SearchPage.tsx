@@ -1,49 +1,63 @@
-import { Container, Title, Text, Stack, LoadingOverlay } from '@mantine/core';
-import { reatomComponent } from '@reatom/react';
-import { SearchBar } from './SearchBar';
-import { IssueList } from './IssueList';
-import { Pagination } from './Pagination';
-import { issues } from '../../store/issues';
-import { searchQuery } from '../../store/search';
+import { Suspense, useEffect } from 'react'
+import { Container, Title, Text, Stack, LoadingOverlay } from '@mantine/core'
+import { reatomComponent } from '@reatom/react'
+import { SearchBar } from './SearchBar'
+import { IssueList } from './IssueList'
+import { Pagination } from './Pagination'
+import {
+  isIssuesLoading,
+  issuesResponse,
+  issuesError,
+  fetchIssues,
+  issuesFilters,
+} from './model'
 
 export const SearchPage = reatomComponent(() => {
-  const query = searchQuery();
-  const { data, ready, error } = issues;
-  const issuesData = data();
-  
+  const filters = issuesFilters()
+
+  useEffect(() => {
+    fetchIssues(filters)
+  }, [filters])
+
+  const { total_count } = issuesResponse()
+
   return (
     <Container size="xl">
-      <Title order={2} mb="lg">GitHub Issues Search</Title>
-      
+      <Title order={2} mb="lg">
+        GitHub Issues Search
+      </Title>
+
       <SearchBar />
-      
+
       <div style={{ position: 'relative', minHeight: '200px' }}>
-        <LoadingOverlay visible={!ready() && !!query} />
-        
-        {error() && (
-          <Text color="red" mt="md">
-            Error: {error()?.message || 'Unknown error'}
+        <LoadingOverlay visible={isIssuesLoading() && !!filters.query} />
+
+        {issuesError() && (
+          <Text c="red" mt="md">
+            Error: {issuesError()?.message || 'Unknown error'}
           </Text>
         )}
-        
-        {ready() && query && (
+
+        {!isIssuesLoading() && filters.query && (
           <Stack mt="lg" gap="md">
             <Text>
-              Found {issuesData.total_count.toLocaleString()} issues for "{query}"
+              Found {total_count.toLocaleString()} issues for "{filters.query}"
             </Text>
-            
-            <IssueList issues={issuesData.items} />
-            
+
+            <Suspense fallback={<LoadingOverlay visible />}>
+              <IssueList />
+            </Suspense>
+
             <Pagination />
           </Stack>
         )}
-        
-        {!query && (
-          <Text color="dimmed" ta="center" mt="xl">
+
+        {!filters.query && (
+          <Text c="dimmed" ta="center" mt="xl">
             Enter a search query to find GitHub issues
           </Text>
         )}
       </div>
     </Container>
-  );
-}, 'SearchPage');
+  )
+}, 'SearchPage')

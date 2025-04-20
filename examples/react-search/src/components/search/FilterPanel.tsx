@@ -1,29 +1,17 @@
-import { Paper, Group, Chip, MultiSelect, Select, TextInput } from '@mantine/core';
-import { wrap } from '@reatom/core';
-import { reatomComponent } from '@reatom/react';
-import { searchFilters } from '../../store';
-import { labelsDataAtom, languagesDataAtom } from '../../hooks'; // Updated import
-import React from 'react';
-import { atom } from '@reatom/core';
-
-const selectedLabelsAtom = atom<string[]>([], 'selectedLabels');
-const selectedLanguageAtom = atom<string | null>(null, 'selectedLanguage');
-
-interface Label {
-  id: number;
-  name: string;
-  color: string;
-}
+import {
+  Paper,
+  Group,
+  Chip,
+  MultiSelect,
+  Select,
+  TextInput,
+} from '@mantine/core'
+import { reatomComponent } from '@reatom/react'
+import { issuesFilters } from './model'
+import { IssueState, mockLabels, mockLanguages } from '../../api'
 
 export const FilterPanel = reatomComponent(() => {
-  const filters = searchFilters();
-  // const labels = useLabels(); // Remove this line
-  // const languages = useLanguages(); // Remove this line
-  const selectedLabels = selectedLabelsAtom();
-  const selectedLanguage = selectedLanguageAtom();
-
-  const labelsData = labelsDataAtom().map(label => ({ value: label.name, label: label.name, color: `#${label.color}` }));
-  const languagesData = languagesDataAtom().map(lang => ({ value: lang, label: lang }));
+  const filters = issuesFilters()
 
   return (
     <Paper p="md" withBorder mt="xs">
@@ -31,7 +19,9 @@ export const FilterPanel = reatomComponent(() => {
         <Chip.Group
           multiple={false}
           value={filters.state || 'all'}
-          onChange={wrap((value) => searchFilters({ ...filters, state: value as any }))}
+          onChange={(value) =>
+            issuesFilters({ ...filters, state: value as IssueState })
+          }
         >
           <Group>
             <Chip value="all">All</Chip>
@@ -45,23 +35,21 @@ export const FilterPanel = reatomComponent(() => {
         <MultiSelect
           label="Labels"
           placeholder="Select labels"
-          data={labelsData}
-          value={selectedLabels}
-          onChange={wrap((value) => {
-            selectedLabelsAtom(value);
-            searchFilters({ ...filters, labels: value });
-          })}
+          data={mockLabels.map(({ name }) => ({ value: name, label: name }))}
+          value={filters.labels || []}
+          onChange={(value) => {
+            issuesFilters({ ...filters, labels: value })
+          }}
         />
 
         <Select
           label="Language"
           placeholder="Select language"
-          data={languagesData}
-          value={selectedLanguage}
-          onChange={wrap((value) => {
-            selectedLanguageAtom(value);
-            searchFilters({ ...filters, language: value as any });
-          })}
+          data={mockLanguages.map((lang) => ({ value: lang, label: lang }))}
+          value={filters.language || ''}
+          onChange={(value) =>
+            issuesFilters({ ...filters, language: value || '' })
+          }
         />
       </Group>
 
@@ -70,16 +58,20 @@ export const FilterPanel = reatomComponent(() => {
           label="Author"
           placeholder="GitHub username"
           value={filters.author || ''}
-          onChange={wrap((e) => searchFilters({ ...filters, author: e.currentTarget.value }))}
+          onChange={(e) =>
+            issuesFilters({ ...filters, author: e.currentTarget.value })
+          }
         />
 
         <TextInput
           label="Assignee"
           placeholder="GitHub username"
           value={filters.assignee || ''}
-          onChange={wrap((e) => searchFilters({ ...filters, assignee: e.currentTarget.value }))}
+          onChange={(e) =>
+            issuesFilters({ ...filters, assignee: e.currentTarget.value })
+          }
         />
       </Group>
     </Paper>
-  );
-}, 'FilterPanel');
+  )
+}, 'FilterPanel')

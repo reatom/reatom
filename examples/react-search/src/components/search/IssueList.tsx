@@ -1,21 +1,19 @@
-import { reatomComponent } from '@reatom/react';
-import { Issue } from '../../api/types';
-import { IssueCard } from './IssueCard';
+import { reatomComponent } from '@reatom/react'
+import { IssueCard } from './IssueCard'
+import { issuesResponse } from './model'
 
-interface IssueListProps {
-  issues: Issue[];
-}
+export const IssueList = reatomComponent(() => {
+  const { items } = issuesResponse()
 
-export const IssueList = reatomComponent(({ issues }: IssueListProps) => {
-  if (issues.length === 0) {
-    return <p>No issues found.</p>;
+  if (items.length === 0) {
+    return <p>No issues found.</p>
   }
 
   return (
     <div>
-      {issues.map((issue) => (
+      {items.map((issue) => (
         <IssueCard key={issue.id} issue={issue} />
       ))}
     </div>
-  );
-}, 'IssueList');
+  )
+}, 'IssueList')
