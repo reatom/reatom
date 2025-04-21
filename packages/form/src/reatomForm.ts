@@ -14,7 +14,7 @@ import {
   isAtom,
 } from '@reatom/core';
 
-import { take } from '@reatom/effects';
+import { isCausedBy, take } from '@reatom/effects';
 
 import {
   type AsyncAction,
@@ -23,6 +23,7 @@ import {
   type AsyncStatusesAtom,
   reatomAsync,
   withAbort,
+  AsyncCtx,
 } from '@reatom/async';
 
 import {
@@ -31,6 +32,7 @@ import {
   LL_PREV,
   LinkedList,
   LinkedListAtom,
+  LinkedListLikeAtom,
   isLinkedListAtom,
   reatomLinkedList,
   withComputed,
@@ -158,17 +160,8 @@ export interface Form<T extends FormInitState> {
   validation: Atom<FieldValidation>;
 }
 
-export interface FormOptions<T extends FormInitState, State> {
+export interface BaseFormOptions {
   name?: string;
-
-  /** The callback to process valid form data */
-  onSubmit?: (ctx: Ctx, state: FormState<T>) => void | Promise<void>;
-
-  /** The callback to validate form fields. */
-  validate?: (ctx: Ctx, state: FormState<T>) => any;
-
-  /** The schema which supports StandardSchemaV1 specification to validate form fields. */
-  schema?: StandardSchemaV1<State>;
 
   /** Should reset the state after success submit? @default true */
   resetOnSubmit?: boolean;
@@ -199,20 +192,43 @@ export interface FormOptions<T extends FormInitState, State> {
   validateOnBlur?: boolean
 }
 
+export interface FormOptionsWithSchema<State> extends BaseFormOptions {
+	/** The callback to process valid form data, typed according to the schema */
+	onSubmit?: (ctx: AsyncCtx, state: State) => void | Promise<void>
+
+	/** The callback to validate form fields, typed according to the schema */
+	validate?: (ctx: Ctx, state: State) => any
+
+	/** The schema which supports StandardSchemaV1 specification to validate form fields. */
+	schema: StandardSchemaV1<State>
+}
+
+export interface FormOptionsWithoutSchema<T extends FormInitState> extends BaseFormOptions {
+	/** The callback to process valid form data, typed according to the raw form state */
+	onSubmit?: (ctx: AsyncCtx, state: FormState<T>) => void | Promise<void>
+
+	/** The callback to validate form fields, typed according to the raw form state */
+	validate?: (ctx: Ctx, state: FormState<T>) => any
+
+	/** Schema is explicitly disallowed or undefined in this variant */
+	schema?: undefined
+}
+
 const reatomFormFields = <T extends FormInitState>(
   initState: T,
   options: {
     name: string,
-    defaultFieldOptions?: FieldOptions
+    onFieldResolved?: (field: FieldAtom) => void
   }
 ): FormFields<T> => {
-  const { name, defaultFieldOptions } = options;
+  const { name, onFieldResolved } = options;
   const fields = Array.isArray(initState)
     ? ([] as FormFields<T>)
     : ({} as FormFields<T>);
 
   const createFieldElement = (element: FormInitStateElement, name: string): FormFieldElement => {
     if (isAtom(element)) {
+      onFieldResolved?.(element)
       return element
     }
     else if (isObject(element) && !(element instanceof Date)) {
@@ -222,7 +238,10 @@ const reatomFormFields = <T extends FormInitState>(
       else if (isFieldArray(element)) {
         let id = 0;
         const linkedListAtom = reatomLinkedList({
-          create: (ctx, param) => createFieldElement(element.create(ctx, param), `${name}.${++id}`),
+          create: (ctx, param) => {
+            const itemName = `${name}.${++id}`;
+            return createFieldElement(element.create(ctx, param, itemName), itemName)
+          },
           initSnapshot: element.initState.map(state => ([state] as const))
         }, name);
 
@@ -245,19 +264,23 @@ const reatomFormFields = <T extends FormInitState>(
         });
       }
       else if ('initState' in element) {
-        return reatomField(element.initState, {
-          name,
-          ...defaultFieldOptions,
-          ...(element as FieldOptions),
-        });
+				const field = reatomField(element.initState, {
+					name,
+					...(element as FieldOptions),
+				})
+
+				onFieldResolved?.(field)
+				return field
       }
       else {
         // @ts-expect-error bad keys type inference
-        return reatomFormFields(element, { name, defaultFieldOptions })
+        return reatomFormFields(element, { name, onFieldResolved })
       }
     }
     else {
-      return reatomField(element, { name, ...defaultFieldOptions })
+      const field = reatomField(element, { name })
+      onFieldResolved?.(field)
+      return field
     }
   }
 
@@ -319,8 +342,52 @@ const computeFieldArraysList = <T extends FormInitState>(
   return acc;
 };
 
+export const reatomFieldsSet = <T extends FormInitState>(
+	fields: FormFields<T>,
+	name = __count('fieldsSet'),
+) => {
+	const fieldsList = atom(ctx => computeFieldsList(ctx, fields), `${name}.fieldsList`);
+
+	const focus = atom((ctx, state = fieldInitFocus) => {
+		const formFocus = { ...fieldInitFocus };
+
+		for (const field of ctx.spy(fieldsList)) {
+			const { active, dirty, touched } = ctx.spy(field.focus);
+			formFocus.active ||= active;
+			formFocus.dirty ||= dirty;
+			formFocus.touched ||= touched;
+		}
+
+		return isShallowEqual(formFocus, state) ? state : formFocus;
+	}, `${name}.focus`);
+
+	const validation = atom((ctx, state = fieldInitValidation) => {
+		const formValid = { ...fieldInitValidation };
+		formValid.triggered = true;
+
+		for (const field of ctx.spy(fieldsList)) {
+			const { triggered, validating, error } = ctx.spy(field.validation);
+
+			formValid.triggered &&= triggered;
+			formValid.validating ||= validating;
+			formValid.error ||= error;
+		}
+
+		return isShallowEqual(formValid, state) ? state : formValid;
+	}, `${name}.validation`);
+
+	const fieldsState = atom(ctx => parseAtoms(ctx, fields), `${name}.fieldsState`);
+
+	return {
+		fields,
+		fieldsState,
+		focus,
+		validation,
+	};
+};
+
 interface FormFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement> {
-  create: (ctx: Ctx, param: Param) => Node,
+  create: (ctx: Ctx, param: Param, name: string) => Node,
   initState: Array<Param>;
   __fieldArray: true;
 }
@@ -330,12 +397,12 @@ function createFieldArray<Param extends FormInitStateElement>(
 ): FormFieldArray<Param, Param>;
 
 function createFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement>(
-  create: ((ctx: Ctx, params: Param) => Node)
+  create: ((ctx: Ctx, params: Param, name: string) => Node)
 ): FormFieldArray<Param, Node>;
 
 function createFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement>(
   options: {
-    create: (ctx: Ctx, param: Param) => Node
+    create: (ctx: Ctx, param: Param, name: string) => Node
     initState?: Array<Param>,
   }
 ): FormFieldArray<Param, Node>;
@@ -343,9 +410,9 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
 function createFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement>(
   options:
     | Array<Param>
-    | ((ctx: Ctx, params: Param) => Node)
+    | ((ctx: Ctx, params: Param, name: string) => Node)
     | {
-      create: (ctx: Ctx, param: Param) => Node
+      create: (ctx: Ctx, param: Param, name: string) => Node
       initState?: Array<Param>,
     }
 ): FormFieldArray<Param, Node> {
@@ -371,6 +438,7 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
 const isFieldArray = (value: any): value is FormFieldArray<any> => value?.__fieldArray;
 
 export { createFieldArray as fieldArray };
+export type ArrayFieldItem<T> = T extends LinkedListLikeAtom ? AtomState<T['array']>[number] : never;
 
 const resolveFieldByPath = <T extends FormInitState>(
   ctx: Ctx,
@@ -405,13 +473,20 @@ const resolveFieldByPath = <T extends FormInitState>(
   }
 }
 
-export const reatomForm = <
-  T extends FormInitState,
-  SchemaState extends DeepExtractLLNode<FormState<T>>
->(
-  initState: T,
-  options: string | FormOptions<T, SchemaState> = {},
-): Form<T> => {
+export function reatomForm<T extends FormInitState, SchemaState>(
+	initState: T | ((name: string) => T),
+	options: FormOptionsWithSchema<SchemaState>
+): Form<T>
+
+export function reatomForm<T extends FormInitState>(
+	initState: T | ((name: string) => T),
+	options?: string | FormOptionsWithoutSchema<T>
+): Form<T>
+
+export function reatomForm<T extends FormInitState, SchemaState>(
+	initState: T | ((name: string) => T),
+	options: string | FormOptionsWithSchema<SchemaState> | FormOptionsWithoutSchema<T> = {},
+): Form<T> {
   const {
     name = __count('form'),
     onSubmit,
@@ -423,54 +498,43 @@ export const reatomForm = <
     keepErrorOnChange = !validateOnChange,
     schema,
   } = typeof options === 'string'
-      ? ({ name: options } as FormOptions<T, SchemaState>)
+      ? ({ name: options })
       : options;
 
-  const fields = reatomFormFields(initState instanceof Function ? initState(createFieldArray) : initState, {
-    name: `${name}.fields`,
-    defaultFieldOptions: {
-      validateOnBlur,
-      validateOnChange,
-      keepErrorDuringValidating,
-      keepErrorOnChange
-    }
-  });
+  const defaultFieldOptions = {
+    validateOnBlur,
+    validateOnChange,
+    keepErrorDuringValidating,
+    keepErrorOnChange
+  };
 
-  const fieldsState = atom(
-    (ctx) => parseAtoms(ctx, fields),
-    `${name}.fieldsState`,
-  );
+  const fields = reatomFormFields(initState instanceof Function ? initState(name) : initState, {
+    name: `${name}.fields`,
+    onFieldResolved: (field) => {
+			field.__defaults.validateOnChange ??= defaultFieldOptions.validateOnChange;
+			field.__defaults.validateOnBlur ??= defaultFieldOptions.validateOnBlur;
+			field.__defaults.keepErrorDuringValidating ??= defaultFieldOptions.keepErrorDuringValidating;
+			field.__defaults.keepErrorOnChange ??= defaultFieldOptions.keepErrorOnChange;
+
+			if (schema) {
+				field.__defaults.shouldValidate = true;
+
+				field.validation.trigger.onCall((ctx) => {
+					if (!ctx.get(field.validation).error && !isCausedBy(ctx, submit))
+						checkSchemaValidation(ctx, field);
+				});
+			}
+		},
+  });
+  
+  const {
+    fieldsState,
+    focus,
+    validation
+  } = reatomFieldsSet(fields, name);
 
   const fieldsList = atom(ctx => computeFieldsList(ctx, fields), `${name}.fieldsList`);
   const fieldArraysList = atom(ctx => computeFieldArraysList(ctx, fields), `${name}.fieldArraysList`);
-
-  const focus = atom((ctx, state = fieldInitFocus) => {
-    const formFocus = { ...fieldInitFocus };
-
-    for (const field of ctx.spy(fieldsList)) {
-      const { active, dirty, touched } = ctx.spy(field.focus);
-      formFocus.active ||= active;
-      formFocus.dirty ||= dirty;
-      formFocus.touched ||= touched;
-    }
-
-    return isShallowEqual(formFocus, state) ? state : formFocus;
-  }, `${name}.focus`);
-
-  const validation = atom((ctx, state = fieldInitValidation) => {
-    const formValid = { ...fieldInitValidation };
-    formValid.triggered = true;
-
-    for (const field of ctx.spy(fieldsList)) {
-      const { triggered, validating, error } = ctx.spy(field.validation);
-
-      formValid.triggered &&= triggered;
-      formValid.validating ||= validating;
-      formValid.error ||= error;
-    }
-
-    return isShallowEqual(formValid, state) ? state : formValid;
-  }, `${name}.validation`);
 
   const submitted = atom(false, `${name}.submitted`);
 
@@ -510,30 +574,34 @@ export const reatomForm = <
     reinitState(ctx, initState, fields);
   }, `${name}.init`);
 
-  const checkSchemaValidation = async (ctx: Ctx, state: FormState<T>) => {
-    if (!schema)
-      return null;
+	const checkSchemaValidation = action(async (ctx: Ctx, triggerOnlyFor?: Atom) => {
+		const state = ctx.get(fieldsState);
+		if (!schema)
+			throw new Error('Triggering schema validation without schema');
 
-    const validation = schema['~standard'].validate(state);
-    const result = validation instanceof Promise ? await ctx.schedule(() => validation) : validation;
+		const validation = schema['~standard'].validate(state);
+		const result = validation instanceof Promise ? await ctx.schedule(() => validation) : validation;
 
-    if (result.issues?.length) {
-      for (const issue of result.issues) {
-        const field = resolveFieldByPath(ctx, issue.path, fields);
-        if (!field)
-          continue;
+		if (result.issues?.length) {
+			for (const issue of result.issues) {
+				const field = resolveFieldByPath(ctx, issue.path, fields);
+				if (!field || (triggerOnlyFor && triggerOnlyFor !== field))
+					continue;
 
-        field.validation.merge(ctx, {
-          error: issue.message,
-          meta: undefined,
-          triggered: true,
-          validating: false,
-        })
-      }
-    }
+				field.validation.merge(ctx, {
+					error: issue.message,
+					meta: undefined,
+					triggered: true,
+					validating: false,
+				});
 
-    return result;
-  }
+				if (triggerOnlyFor)
+					break;
+			}
+		}
+
+		return result;
+	}, `${name}.checkSchemaValidation`);
 
   const submit = reatomAsync(async (ctx) => {
     ctx.get(() => {
@@ -554,18 +622,25 @@ export const reatomForm = <
 
     if (error) throw new Error(error);
 
-    const state = ctx.get(fieldsState);
+    let state: any
 
+		if (schema) {
+			const schemaValidationResult = await ctx.schedule(() => checkSchemaValidation(ctx));
+			if (!('value' in schemaValidationResult))
+				throw new Error(schemaValidationResult.issues[0]?.message ?? 'Unknown schema error');
+
+			state = schemaValidationResult.value;
+		}
+		else {
+			state = ctx.get(fieldsState);
+		}
+    
     if (validate) {
       const promise = validate(ctx, state);
       if (promise instanceof Promise) {
         await ctx.schedule(() => promise);
       }
     }
-
-    const schemaValidationResult = await checkSchemaValidation(ctx, state);
-    if (schemaValidationResult && schemaValidationResult.issues?.length)
-      throw new Error(schemaValidationResult.issues[0]!.message);
 
     if (onSubmit) await ctx.schedule(() => onSubmit(ctx, state));
 
@@ -584,16 +659,6 @@ export const reatomForm = <
     withErrorAtom(undefined, { resetTrigger: 'onFulfill' }),
     (submit) => Object.assign(submit, { error: submit.errorAtom }),
   );
-
-  if(validateOnChange) {
-    fieldsState.onChange((ctx, state) => {
-      const changeCause = ctx.cause?.cause;
-      const fieldArrayProtos = new Set(ctx.get(fieldArraysList).map(fieldArray => fieldArray.array.__reatom));
-
-      if(changeCause && !fieldArrayProtos.has(changeCause.proto))
-        checkSchemaValidation(ctx, state);
-    })
-  }
 
   return {
     fields,

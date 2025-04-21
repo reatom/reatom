@@ -1,5 +1,5 @@
 import { type Action, type Atom, type AtomMut, AtomState, type Ctx, CtxSpy, __count, action, atom } from '@reatom/core'
-import { __thenReatomed, abortCauseContext, withAbortableSchedule } from '@reatom/effects'
+import { __thenReatomed, abortCauseContext, isCausedBy, withAbortableSchedule } from '@reatom/effects'
 import { type RecordAtom, reatomRecord } from '@reatom/primitives'
 import { isDeepEqual, noop, toAbortError } from '@reatom/utils'
 
@@ -65,6 +65,31 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
 
   /** Atom with the "value" data, computed by the `fromState` option */
   value: Atom<Value>
+
+  /**
+   * Defines the reset behavior of the validation state during async validation.
+   * @default false
+   */
+  keepErrorDuringValidating: Atom<boolean>
+
+  /**
+   * Defines the reset behavior of the validation state on field change.
+   * Useful if the validation is triggered on blur or submit only.
+   * @default !validateOnChange
+   */
+  keepErrorOnChange: Atom<boolean>
+
+  /**
+   * Defines if the validation should be triggered with every field change.
+   * @default false
+   */
+  validateOnChange: Atom<boolean>
+
+  /**
+   * Defines if the validation should be triggered on the field blur.
+   * @default false
+   */
+  validateOnBlur: Atom<boolean>
 
 	/** @internal */
 	__defaults: {
@@ -190,7 +215,7 @@ export const reatomField = <State, Value = State>(
     ...restOptions
   } = typeof options === 'string' ? ({ name: options } as FieldOptions<State, Value>) : options
 
-	const reactiveOptions = Object.assign(restOptions, { shouldValidate: false })
+	const reactiveOptions = Object.assign(restOptions, { shouldValidate: undefined })
 
 	const validateOnBlur = atom(false, `${name}.validateOnBlur`)
   validateOnBlur.__reatom.initState = () => reactiveOptions.validateOnBlur ?? false
@@ -346,7 +371,7 @@ export const reatomField = <State, Value = State>(
 	})
 
 	field.onChange((ctx) => {
-		if (ctx.get(validateOnChange))
+		if (ctx.get(validateOnChange) && !isCausedBy(ctx, reset))
 			validation.trigger(ctx)
 	})
 
@@ -362,6 +387,10 @@ export const reatomField = <State, Value = State>(
     reset,
     validation,
     value,
+    keepErrorDuringValidating,
+    keepErrorOnChange,
+    validateOnChange,
+    validateOnBlur,
     __defaults: reactiveOptions,
     __reatomField: true as const
   })

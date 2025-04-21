@@ -22,7 +22,7 @@ function App() {
 const root = createRoot(document.getElementById('root')!)
 root.render(<App />)
 
-const form = reatomForm({
+const form = reatomForm(name => ({
 	username: 'vlad',
 	addresses: [
 		{
@@ -32,14 +32,14 @@ const form = reatomForm({
 			tags: ['defaultTag', 'defaultTag2'],
 			phoneNumbers: fieldArray({
 				initState: Array<{ number: string, priority: boolean }>(),
-				create: (ctx, { number, priority }) => ({
+				create: (ctx, { number, priority }, name) => ({
 					number,
-					priority: reatomBoolean(priority).pipe(withField(priority))
+					priority: reatomBoolean(priority, `${name}.priority`).pipe(withField(priority))
 				})
 			})
 		}
 	],
-}, {
+}), {
 	validateOnChange: true,
 	schema: z.object({
 		username: z.string().min(3, 'min length 3'),

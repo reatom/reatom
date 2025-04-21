@@ -363,6 +363,27 @@ describe('init array with reset', () => {
 		expect(ctx.get(secondNestedItem.priority)).toEqual(true)
 	})
 })
+
+test('form should correctly initialize field options', async () => {
+	const ctx = createCtx()
+
+	const form = reatomForm({
+		age: 12,
+		email: 'test',
+		fieldWithDefault: { initState: '', validateOnChange: false }
+	}, {
+		validateOnChange: true,
+		validateOnBlur: true,
+		keepErrorDuringValidating: true,
+		keepErrorOnChange: true,
+	})
+
+	expect(ctx.get(form.fields.age.validateOnChange)).toBe(true)
+	expect(ctx.get(form.fields.email.validateOnBlur)).toBe(true)
+	expect(ctx.get(form.fields.email.keepErrorDuringValidating)).toBe(true)
+	expect(ctx.get(form.fields.fieldWithDefault.keepErrorOnChange)).toBe(true)
+	expect(ctx.get(form.fields.fieldWithDefault.validateOnChange)).toBe(false)
+})
 	
 test('validating through form schema and placing errors to corresponding fields', async () => {
 	const ctx = createCtx()
