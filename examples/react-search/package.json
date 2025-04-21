@@ -11,8 +11,8 @@
   "dependencies": {
     "@mantine/core": "^7.17.4",
     "@mantine/hooks": "^7.17.4",
-    "@reatom/core": "^1000.0.0-alpha.10",
-    "@reatom/react": "^1000.0.0-alpha.3",
+    "@reatom/core": "alpha",
+    "@reatom/react": "alpha",
     "@tabler/icons-react": "^3.31.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
