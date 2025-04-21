@@ -5,7 +5,6 @@ import {
   clearStack,
   computed,
   isConnected,
-  notify,
   reatomLinkedList,
   context,
   sleep,
@@ -125,9 +124,7 @@ test('dynamic children', () =>
         {after}
       </div>,
     )
-    // TODO since the element is not mounted, then on the next tick the unsubscribe from the atom occurs. See `unlink`.
-    // await wrap(sleep())
-    notify()
+    await wrap(sleep())
     expect((element as HTMLDivElement).innerText).toBe('beforeinnerafter')
 
     before('before...')
@@ -136,7 +133,7 @@ test('dynamic children', () =>
   }))
 
 test('spreads', () =>
-  context.start(() => {
+  context.start(async () => {
     const clickTrack = vi.fn()
     const props = atom({
       id: '1',
@@ -147,6 +144,7 @@ test('spreads', () =>
     const element = (<div $spread={props} />) as HTMLDivElement
 
     mount(parent(), element)
+    await wrap(sleep())
 
     expect(element.id).toBe('1')
     expect(element.getAttribute('b')).toBe('2')
@@ -155,7 +153,7 @@ test('spreads', () =>
     expect(clickTrack.mock.calls.length).toBe(1)
   }))
 
-test('multiple renden shared element', () =>
+test('multiple render shared element', () =>
   context.start(async () => {
     const valueAtom = atom('abc', 'value')
     const element = <p>{valueAtom}</p>
@@ -193,7 +191,7 @@ test('multiple renden shared element', () =>
     valueAtom('ghi')
     await wrap(sleep())
     expect(app.innerHTML).toBe(
-      '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->def<!--value--></p></div><!----><!--child-->',
+      '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->ghi<!--value--></p></div><!----><!--child-->',
     )
   }))
 
@@ -371,9 +369,9 @@ test('update skipped atom', () =>
 test('render HTMLElement atom', () =>
   context.start(async () => {
     const htmlAtom = atom(<div>div</div>, 'html')
-
     const element = <div>{htmlAtom}</div>
 
+    mount(parent(), element)
     await wrap(sleep())
     expect(element.innerHTML).toBe('<!--html--><div>div</div><!--html-->')
   }))
@@ -381,9 +379,9 @@ test('render HTMLElement atom', () =>
 test('render SVGElement atom', () =>
   context.start(async () => {
     const svgAtom = atom(<svg:svg>svg</svg:svg>, 'svg')
-
     const element = <div>{svgAtom}</div>
 
+    mount(parent(), element)
     await wrap(sleep())
     expect(element.innerHTML).toBe('<!--svg--><svg>svg</svg><!--svg-->')
   }))
@@ -1039,4 +1037,64 @@ test('custom stylesheet for css property', () =>
     expect(stylesheet()).toEqual(sheet)
     expect(stylesheet().cssRules.length).toBe(1)
     expect(element.computedStyleMap().get('display').toString(), 'flex')
+  }))
+
+test('element subscribes to atom when mounted to DOM', () =>
+  context.start(async () => {
+    const valueAtom = atom('aaa')
+    const element = <div class={valueAtom}></div>
+
+    mount(parent(), element)
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(true)
+    expect(element.className).toBe('aaa')
+
+    valueAtom('bbb')
+    await wrap(sleep())
+    parent().append(element)
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(true)
+    expect(element.className).toBe('bbb')
+  }))
+
+test('element unsubscribes from atom when removed from DOM', () =>
+  context.start(async () => {
+    const valueAtom = atom('aaa')
+    const element = <div class={valueAtom}></div>
+
+    await wrap(sleep())
+    expect(isConnected(valueAtom)).toBe(false)
+    expect(element.className).toBe('')
+
+    mount(parent(), element)
+    await wrap(sleep())
+    element.remove()
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(false)
+    expect(element.className).toBe('aaa')
+
+    valueAtom('bbb')
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(false)
+    expect(element.className).toBe('aaa')
+  }))
+
+test('preserves atom connection when moved within DOM', () =>
+  context.start(async () => {
+    const valueAtom = atom('aaa')
+    const element = <div class={valueAtom}></div>
+
+    mount(parent(), element)
+    await wrap(sleep())
+    parent().parentElement.append(element)
+    await wrap(sleep())
+    valueAtom('bbb')
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(true)
+    expect(element.className).toBe('bbb')
   }))

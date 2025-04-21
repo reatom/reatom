@@ -3,7 +3,6 @@ import {
   assert,
   type AtomLike,
   type Atom,
-  type Fn,
   isAtom,
   type Rec,
   type Unsubscribe,
@@ -58,6 +57,25 @@ let styles: Rec<string> = {}
  */
 export let stylesheet = atom(() => DOM().document.head.appendChild(DOM().document.createElement('style')).sheet!, 'jsx.stylesheet')
 let name = ''
+
+interface Meta {
+  subscribes: (() => Unsubscribe)[]
+  unsubscribes: Unsubscribe[]
+  mount: ((element: Node) => ((element: Node) => void) | undefined) | undefined
+  unmount: ((element: Node) => void) | undefined
+}
+let metaSymbol = atom(() => Symbol())
+let ensureMeta = (node: Node): Meta => {
+  return ((node as any)[metaSymbol()] ??= {
+    subscribes: [],
+    unsubscribes: [],
+    mount: undefined,
+    unmount: undefined,
+  })
+}
+let unlink = (node: Node, subscribe: () => () => void) => {
+  ensureMeta(node).subscribes.push(subscribe)
+}
 
 /**
  * @see https://github.com/preactjs/preact/blob/d16a34e275e31afd6738a9f82b5ba2fb9dbf032b/src/diff/props.js#L107
@@ -149,25 +167,6 @@ let booleanAttributes = new Set([
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
 
-let unsubscribesMap = atom(() => new WeakMap<Node, Array<Fn>>(), 'unsubscribesMap')
-let unlink = (parent: Node, un: Unsubscribe) => {
-  let unsubscribes = unsubscribesMap()
-  // check the connection in the next tick
-  // to give the user (programmer) an ability
-  // to put the created element in the dom
-  Promise.resolve().then(wrap(() => {
-    if (!parent.isConnected) un()
-    else {
-      while (
-        parent.parentElement &&
-        !unsubscribes.get(parent)?.push(() => parent.isConnected || un())
-      ) {
-        parent = parent.parentElement
-      }
-    }
-  }))
-}
-
 let walkLinkedList = (
   dom: DomApis,
   el: JSX.Element,
@@ -238,21 +237,23 @@ let walkLinkedList = (
     lastVersion = state.version
   }
 
-  // it's critical to not use not a last state, but the each state.
-  const unSubscribe = list.subscribe(noop)
-  const rootFrame = context()
-  const unChange = addChangeHook(list, (state) => {
-    if (rootFrame === context()) cb(state)
+  unlink(el, () => {
+    // it's critical to not use not a last state, but the each state.
+    let unSubscribe = list.subscribe(noop)
+    let rootFrame = context()
+    let unChange = addChangeHook(list, (state) => {
+      if (rootFrame === context()) cb(state)
+    })
+
+    return () => {
+      unSubscribe()
+      unChange()
+    }
   })
 
   let state = list()
   // check if change hook wasn't called by initialization
   if (lastVersion === -1) cb(state)
-
-  unlink(el, () => {
-    unSubscribe()
-    unChange()
-  })
 }
 
 interface LiveDocumentFragment extends DocumentFragment {
@@ -277,7 +278,7 @@ let throwNativeFragment = (element: JSX.Element) => {
 }
 
 let createLiveFragment = (dom: DomApis, name: string): LiveDocumentFragment => {
-  let fragment = dom.document.createDocumentFragment()
+  let fragment = dom.document.createDocumentFragment() as LiveDocumentFragment
   let start = dom.document.createComment(name)
   let end = start.cloneNode() as Comment
   fragment.append(start, end)
@@ -297,13 +298,13 @@ let createLiveFragment = (dom: DomApis, name: string): LiveDocumentFragment => {
     }
   }
 
-  return Object.assign(fragment, {
-    __reatomFragment: {
-      start,
-      end,
-      update,
-    },
-  })
+  fragment.__reatomFragment = {
+    start,
+    end,
+    update,
+  }
+
+  return fragment
 }
 
 let walkAtom = (
@@ -311,10 +312,11 @@ let walkAtom = (
   anAtom: AtomLike<JSX.ElementPrimitiveChildren>,
 ): DocumentFragment => {
   let fragment = createLiveFragment(dom, anAtom.name)
-  let un = anAtom.subscribe(fragment.__reatomFragment.update)
 
-  unsubscribesMap().set(fragment.__reatomFragment.start, [])
-  unlink(fragment.__reatomFragment.start, un)
+  unlink(
+    fragment.__reatomFragment.start,
+    () => anAtom.subscribe(fragment.__reatomFragment.update),
+  )
 
   return fragment
 }
@@ -399,7 +401,7 @@ let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
      * amount of exceptions would cost too many bytes. On top of
      * that other frameworks generally stringify `false`.
      */
-    const isBool = booleanAttributes.has(key)
+    let isBool = booleanAttributes.has(key)
     if (val == null || (isBool && val === false)) element.removeAttribute(key)
     else element.setAttribute(key, isBool && val === true ? '' : val)
   }
@@ -461,14 +463,7 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
     if (k !== 'children' && k !== 'element') {
       let prop = props[k]
       if (k === 'ref') {
-        Promise.resolve().then(wrap(() => {
-          let cleanup = prop(element)
-          if (typeof cleanup === 'function') {
-            let unsubscribes = unsubscribesMap()
-            if (!unsubscribes.has(element)) unsubscribes.set(element, [])
-            unlink(element, () => cleanup(element))
-          }
-        }))
+        ensureMeta(element).mount = () => prop(element)
       } else if (isAtom(prop) && !isAction(prop)) {
         if (k.startsWith('model:')) {
           let name = (k = k.slice(6)) as 'value' | 'valueAsNumber' | 'checked'
@@ -489,16 +484,9 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
           k = 'prop:' + k
         }
 
-        let un: undefined | Unsubscribe
-        un = prop.subscribe((v) =>
-          !un || element.isConnected
-            ? k === '$spread'
-              ? Object.entries(v).forEach(([k, v]) => set(dom, element, k, v))
-              : set(dom, element, k, v)
-            : un(),
-        )
-
-        unlink(element, un)
+        unlink(element, () => prop.subscribe(k === '$spread'
+          ? (v) => Object.entries(v).forEach(([k, v]) => set(dom, element, k, v))
+          : (v) => set(dom, element, k, v)))
       } else {
         set(dom, element, k, prop)
       }
@@ -540,37 +528,43 @@ export let hf = () => {}
 
 export let mount = (target: Element, child: Element): void => {
   let dom = DOM()
-  // TODO fix
-  // target.append(...[child].flat(Infinity))
-  target.append(child)
+  let symbol = metaSymbol()
 
-  let unsubscribes = unsubscribesMap()
   /**
    * @note The moved node creates two mutations: deletion then addition.
+   * @todo Moving an node in the DOM unsubscribes and resubscribes to atoms.
    * @todo Call `observer.disconnect()` after unmounting the application.
    */
   let observer = new dom.MutationObserver(
     wrap((mutationsList) => {
-      let removedNodes = new Set<Node>()
-
       for (let mutation of mutationsList) {
-        // @ts-ignore TODO
-        for (let node of mutation.removedNodes) removedNodes.add(node)
-        // @ts-ignore TODO
-        for (let node of mutation.addedNodes) removedNodes.delete(node)
-      }
-
-      for (let removedNode of removedNodes) {
-        /**
-         * @see https://stackoverflow.com/a/64551276
-         * @note A custom NodeFilter function slows down performance by 1.5 times.
-         */
-        let walker = dom.document.createTreeWalker(removedNode, 1 | 128)
-
-        do {
-          unsubscribes.get(walker.currentNode)?.forEach((un) => un())
-          unsubscribes.delete(walker.currentNode)
-        } while (walker.nextNode())
+        mutation.addedNodes.forEach((addedNode) => {
+          let iterator = dom.document.createNodeIterator(addedNode, 1 | 128)
+          while (iterator.nextNode()) {
+            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            meta?.subscribes.forEach((subscribe) => meta.unsubscribes.push(subscribe()))
+          }
+          while (iterator.previousNode()) {
+            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            if (meta) {
+              let unmount = meta.mount?.(iterator.referenceNode)
+              if (typeof unmount === 'function') meta.unmount = unmount
+            }
+          }
+        })
+        mutation.removedNodes.forEach((removedNode) => {
+          let iterator = dom.document.createNodeIterator(removedNode, 1 | 128)
+          while (iterator.nextNode()) {
+            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            if (meta) {
+              if (meta.unsubscribes.length > 0) {
+                meta.unsubscribes.forEach((unsubscribe) => unsubscribe())
+                meta.unsubscribes = []
+              }
+              meta.unmount?.(iterator.referenceNode)
+            }
+          }
+        })
       }
     }),
   )
@@ -578,6 +572,10 @@ export let mount = (target: Element, child: Element): void => {
     childList: true,
     subtree: true,
   })
+
+  // TODO fix
+  // target.append(...[child].flat(Infinity))
+  target.append(child)
 }
 
 /**

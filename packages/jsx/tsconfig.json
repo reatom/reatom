@@ -3,6 +3,7 @@
   "compilerOptions": {
     "rootDir": "src",
     "declarationMap": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "jsx": "preserve",
     "jsxFactory": "h",
     "jsxFragmentFactory": "hf",
