@@ -8,7 +8,7 @@ An **EXPERIMENTAL** JSX runtime for describing dynamic DOM UIs with Reatom.
 - Only 1kb runtime script (excluding the tiny core package).
 - Built-in CSS management with a simple API and efficient CSS variables usage.
 
-[![Try it out in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/artalar/reatom/tree/v3/examples/reatom-jsx)
+[![Try it out in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/artalar/reatom/tree/v1000/examples/reatom-jsx)
 
 ## Installation
 
@@ -59,35 +59,42 @@ import { h } from '@reatom/jsx'
 
 ## Example
 
-> Advanced example with dynamic entities you can find here: https://github.com/artalar/reatom/tree/v3/examples/reatom-jsx
+> Advanced example with dynamic entities you can find here: https://github.com/artalar/reatom/tree/v1000/examples/reatom-jsx
 
 Define a component:
 
 ```ts
 import { atom, action } from '@reatom/core'
 
-export const inputAtom = atom('')
-const onInput = action((ctx, event) =>
-  inputAtom(ctx, event.currentTarget.value),
-)
-export const Input = () => <input value={inputAtom} on:input={onInput} />
+export const input = atom('')
+// Event handlers shouldn't be wrapped, Reatom take care of it
+const onInput = (event: Event & { currentTarget: HTMLInputElement }) =>
+  input(event.currentTarget.value)
+
+export const Input = () => <input value={input} on:input={onInput} />
 ```
 
 Render it:
 
 ```tsx
-import { connectLogger } from '@reatom/framework'
-import { ctx, mount } from '@reatom/jsx'
+import { connectLogger, context, clearStack } from '@reatom/framework'
+import { mount } from '@reatom/jsx'
 import { App } from './App'
 
+// Disable default global context to enforce explicit context usage (recommended)
+clearStack()
+
+// Create a root context for the application
+const rootContext = context.start()
+
 if (import.meta.env.MODE === 'development') {
-  connectLogger(ctx)
+  // Connect logger to the specific context
+  connectLogger(rootContext)
 }
 
+// Mount the app within the created context
 mount(document.getElementById('app')!, <App />)
 ```
-
-You can create `ctx` manually and use it to create a scoped render instance with `reatomJsx`.
 
 ## Reference
 
@@ -106,15 +113,15 @@ The `children` prop specifies the inner content of an element, which can be one 
 
 ### Handling events
 
-Use `on:*` props to add event handlers. Passed functions are automatically bound to a relevant `Ctx` value: `on:input={(ctx, event) => setValue(ctx, event.currentTarget.value)}`.
+Use `on:*` props to add event handlers. Functions interacting with Reatom state or actions are wrapped (`wrap`) automatically and you don't need to do it: `on:input={(event) => setValue(event.currentTarget.value)}`.
 
 ### Models
 
 For simple `AtomMut` bindings to the native input you can use `model:value` syntax, where "value" could be: `value`, `valueAsNumber`, `checked`.
 
 ```tsx
-export const inputAtom = atom('')
-export const Input = () => <input model:value={inputAtom} />
+export const input = atom('')
+export const Input = () => <input model:value={input} />
 ```
 
 By the way, you can safely create any needed resources inside a component body, as it calls only once when it created.
@@ -135,16 +142,16 @@ Object-valued `style` prop applies styles granularly: `style={{top: 0, display: 
 Incorrect:
 
 ```tsx
-<div style={atom((ctx) => (ctx.spy(bool) ? { top: 0 } : { bottom: 0 }))}></div>
+<div style={computed(() => (bool() ? { top: 0 } : { bottom: 0 }))}></div>
 ```
 
 Correct:
 
 ```tsx
 <div
-  style={atom((ctx) => ctx.spy(bool)
-    ? ({top: 0; bottom: undefined})
-    : ({top: undefined; bottom: 0}))}
+  style={computed(() =>
+    bool() ? { top: 0, bottom: undefined } : { top: undefined, bottom: 0 },
+  )}
 ></div>
 ```
 
@@ -170,26 +177,26 @@ cn('my-class') // Atom<'my-class'>
 cn(['first', atom('second')]) // Atom<'first second'>
 
 /** The `active` class will be determined by the truthiness of the data property `isActiveAtom`. */
-cn({ active: isActiveAtom }) // Atom<'active' | ''>
+cn({ active: isActiveAtom }) // Computed<'active' | ''>
 
-cn((ctx) => (ctx.spy(isActiveAtom) ? 'active' : undefined)) // Atom<'active' | ''>
+cn(computed(() => (isActiveAtom() ? 'active' : undefined))) // Computed<'active' | ''>
 ```
 
 The `cn` function supports various complex data combinations, making it easier to declaratively describe classes for complex UI components.
 
 ```ts
 const Button = (props) => {
-  /** @example Atom<'button button--size-medium button--theme-primary button--is-active'> */
-  const classNameAtom = cn((ctx) => [
+  /** @example Computed<'button button--size-medium button--theme-primary button--is-active'> */
+  const classNameAtom = cn(computed(() => [
     'button',
     `button--size-${props.size}`,
     `button--theme-${props.theme}`,
     {
-      'button--is-disabled': props.isDisabled,
+      'button--is-disabled': props.isDisabled(),
       'button--is-active':
-        ctx.spy(props.isActive) && !ctx.spy(props.isDisabled),
+        props.isActive() && !props.isDisabled(),
     },
-  ])
+  ]))
 
   return <button class={classNameAtom}>{props.children}</button>
 }
@@ -204,7 +211,7 @@ We have a minimal, intuitive, and efficient styling engine tightly integrated wi
 ```tsx
 export const HeaderInput = () => {
   const input = atom('')
-  const size = atom((ctx) => ctx.spy(input).length)
+  const size = computed(() => input().length)
   return (
     <input
       model:value={input}
@@ -222,14 +229,14 @@ Under the hood, it will create a unique class name and will be converted to this
 ```tsx
 export const HeaderInput = () => {
   const input = atom('')
-  const size = atom((ctx) => ctx.spy(input).length)
+  const size = computed(() => input().length)
   return (
     <input
       className={createAndInsertClass(`
         font-size: calc(1em + var(--size) * 0.1em);
       `)}
-      style={atom((ctx) => ({
-        '--size': ctx.spy(size),
+      style={computed(() => ({
+        '--size': size(),
       }))}
     />
   )
@@ -253,14 +260,16 @@ const list = atom([
   <li>1</li>,
   <li>2</li>,
 ])
-const add = action((ctx) => list(ctx, (state) => [
+// Use the atom's update method directly or create an action
+const add = action(() => list((state) => [
   ...state,
   <li>{state.length + 1}</li>,
 ]))
 
 <div>
   <button on:click={add}>Add</button>
-  {atom((ctx) => <ul>{ctx.spy(list)}</ul>)}
+  {/* Use computed for derived views */}
+  {computed(() => <ul>{list().map(item => item)}</ul>)}
 </div>
 ```
 
@@ -321,8 +330,8 @@ In Reatom, there is no concept of "rerender" like React. Instead, we have a spec
 
 ```tsx
 <div
-  $spread={atom((ctx) =>
-    ctx.spy(valid)
+  $spread={computed(() =>
+    valid()
       ? { disabled: true, readonly: true }
       : { disabled: false, readonly: false },
   )}
@@ -372,9 +381,10 @@ The `ref` property is used to create and track references to DOM elements, allow
 
 ```tsx
 <button
-  ref={(ctx: Ctx, el: HTMLButtonElement) => {
+  ref={(el: HTMLButtonElement) => {
     el.focus()
-    return (ctx: Ctx, el: HTMLButtonElement) => el.blur()
+    // The cleanup function receives the element as an argument
+    return (el: HTMLButtonElement) => el.blur()
   }}
 ></button>
 ```
@@ -383,15 +393,17 @@ Mounting and unmounting functions are called in order from child to parent.
 
 ```tsx
 <div
-  ref={(ctx: Ctx, el: HTMLDivElement) => {
+  ref={(el: HTMLDivElement) => {
     console.log('mount', 'parent')
-    return () => console.log('unmount', 'parent')
+    // The cleanup function receives the element as an argument
+    return (el: HTMLDivElement) => console.log('unmount', 'parent')
   }}
 >
   <span
-    ref={(ctx: Ctx, el: HTMLSpanElement) => {
+    ref={(el: HTMLSpanElement) => {
       console.log('mount', 'child')
-      return () => console.log('unmount', 'child')
+      // The cleanup function receives the element as an argument
+      return (el: HTMLSpanElement) => console.log('unmount', 'child')
     }}
   ></span>
 </div>
@@ -405,40 +417,6 @@ mount parent
 unmount child
 unmount parent
 ```
-
-<!-- ### Lifecycle
-
-In Reatom, every atom has lifecycle events to which you can subscribe with `onConnect`/`onDisconnect` functions. By default, components don't have an atom associated with them, but you may wrap the component code in an atom manually to achieve the same result:
-
-```tsx
-import { onConnect, onDisconnect } from '@reatom/hooks'
-
-const MyWidget = () => {
-  const lifecycle = atom((ctx) => <div>Something inside</div>)
-
-  onConnect(lifecycle, (ctx) => console.log('component connected'))
-  onDisconnect(lifecycle, (ctx) => console.log('component disconnected'))
-
-  return lifecycle
-}
-```
-
-Because the pattern used above is somewhat verbose, `@reatom/jsx` has a built-in convenience component called `Lifecycle` that creates an atom for you:
-
-```tsx
-import { Lifecycle } from '@reatom/jsx'
-
-const MyWidget = () => {
-  return (
-    <Lifecycle
-      onConnect={(ctx) => console.log('component connected')}
-      onDisconnect={(ctx) => console.log('component disconnected')}
-    >
-      Something inside
-    </Lifecycle>
-  )
-}
-``` -->
 
 ## Utilities
 
@@ -469,7 +447,7 @@ const MyComponent = () => {
   return (
     <Bind
       element={container}
-      class={atom((ctx) => (ctx.spy(visible) ? 'active' : 'disabled'))}
+      class={computed(() => (visible() ? 'active' : 'disabled'))}
     />
   )
 }
@@ -501,19 +479,24 @@ To type an event handler you have a few options, see below.
 
 ```tsx
 export const Form = () => {
-  const handleSubmit = action((ctx, event: Event) => {
+  const handleSubmit = (event: Event) => {
     event.preventDefault()
-  })
+    // Potentially call a Reatom action here
+  }
 
-  const handleInput: JSX.InputEventHandler = action((ctx, event) => {
-    event.currentTarget.valueAsNumber // HTMLInputElement.valueAsNumber: number
-  })
+  // Define the handler logic
+  const handleInput = (event: JSX.InputEvent) => {
+    const value = event.currentTarget.valueAsNumber // HTMLInputElement.valueAsNumber: number
+    // Update an atom or call an action with the value
+    // someAtom(value)
+  }
 
-  const handleSelect: JSX.EventHandler<HTMLSelectElement> = action(
-    (ctx, event) => {
-      event.currentTarget.value // HTMLSelectElement.value: string
-    },
-  )
+  // Define the handler logic
+  const handleSelect = (event: JSX.TargetedEvent<HTMLSelectElement>) => {
+    const value = event.currentTarget.value // HTMLSelectElement.value: string
+    // Update an atom or call an action with the value
+    // anotherAtom(value)
+  }
 
   return (
     <form on:submit={handleSubmit}>
