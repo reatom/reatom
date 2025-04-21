@@ -65,6 +65,15 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
 
   /** Atom with the "value" data, computed by the `fromState` option */
   value: Atom<Value>
+
+	/** @internal */
+	__defaults: {
+		keepErrorDuringValidating?: boolean
+		keepErrorOnChange?: boolean
+		validateOnChange?: boolean
+		validateOnBlur?: boolean
+		shouldValidate?: boolean
+	};
 }
 
 export type FieldValidateOption<State = any, Value = State> = (
@@ -178,11 +187,25 @@ export const reatomField = <State, Value = State>(
     toState = (ctx, value) => value as unknown as State,
     validate: validateFn,
     contract,
-    validateOnBlur = false,
-    validateOnChange = false,
-    keepErrorDuringValidating = false,
-    keepErrorOnChange = !validateOnChange,
+    ...restOptions
   } = typeof options === 'string' ? ({ name: options } as FieldOptions<State, Value>) : options
+
+	const reactiveOptions = Object.assign(restOptions, { shouldValidate: false })
+
+	const validateOnBlur = atom(false, `${name}.validateOnBlur`)
+  validateOnBlur.__reatom.initState = () => reactiveOptions.validateOnBlur ?? false
+
+	const validateOnChange = atom(false, `${name}.validateOnChange`)
+  validateOnChange.__reatom.initState = () => reactiveOptions.validateOnChange ?? false
+
+	const keepErrorDuringValidating = atom(false, `${name}.keepErrorDuringValidating`)
+  keepErrorDuringValidating.__reatom.initState = () => reactiveOptions.keepErrorDuringValidating ?? false
+
+	const keepErrorOnChange = atom(false, `${name}.keepErrorOnChange`)
+  keepErrorOnChange.__reatom.initState = (ctx) => reactiveOptions.keepErrorOnChange ?? !ctx.get(validateOnChange)
+
+	const shouldValidate = atom(false, `${name}.shouldValidate`)
+  shouldValidate.__reatom.initState = () => reactiveOptions.shouldValidate ?? !!(validateFn || contract)
 
   const initState = atom(_initState, `${name}.initState`)
 
@@ -206,16 +229,19 @@ export const reatomField = <State, Value = State>(
   }, `${name}.focus.out`)
 
   const validation = reatomRecord(
-    validateFn || contract ? fieldInitValidation : fieldInitValidationLess,
+    fieldInitValidationLess,
     `${name}.validation`,
   ) as This['validation']
 
-  if (validateFn || contract) {
-    // @ts-expect-error the original computed state can't be typed properly
-    validation.__reatom.computer = (ctx, state: FieldValidation) => {
-      ctx.spy(value)
-      return state.triggered ? { ...state, triggered: false } : state
-    }
+  validation.__reatom.initState = ctx => ctx.get(shouldValidate) ? fieldInitValidation : fieldInitValidationLess
+
+  // @ts-expect-error the original computed state can't be typed properly
+  validation.__reatom.computer = (ctx, state: FieldValidation) => {
+    if (!ctx.spy(shouldValidate))
+			return state
+
+    ctx.spy(value)
+    return state.triggered ? { ...state, triggered: false } : state
   }
 
   const validationController = atom(new AbortController(), `${name}._validationController`)
@@ -226,7 +252,7 @@ export const reatomField = <State, Value = State>(
     const validationValue = ctx.get(validation)
 
     if (validationValue.triggered) return validationValue
-    if (!validateFn && !contract) {
+    if (!ctx.get(shouldValidate)) {
       return validation.merge(ctx, { triggered: true })
     }
 
@@ -278,7 +304,7 @@ export const reatomField = <State, Value = State>(
       ).catch(noop)
 
       return validation.merge(ctx, {
-        error: keepErrorDuringValidating ? validationValue.error : undefined,
+        error: ctx.get(keepErrorDuringValidating) ? validationValue.error : undefined,
         meta: undefined,
         triggered: true,
         validating: true,
@@ -311,20 +337,23 @@ export const reatomField = <State, Value = State>(
     ctx.get(validationController).abort(toAbortError('reset'))
   }, `${name}.reset`)
 
-  if (!keepErrorOnChange) {
-    field.onChange((ctx) => {
-      validation(ctx, fieldInitValidation)
-      ctx.get(validationController).abort(toAbortError('change'))
-    })
-  }
+	field.onChange((ctx) => {
+		if (ctx.get(keepErrorOnChange))
+			return
 
-  if (validateOnChange) {
-    field.onChange((ctx) => validation.trigger(ctx))
-  }
+		validation(ctx, fieldInitValidation)
+		ctx.get(validationController).abort(toAbortError('change'))
+	})
 
-  if (validateOnBlur) {
-    focus.out.onCall((ctx) => validation.trigger(ctx))
-  }
+	field.onChange((ctx) => {
+		if (ctx.get(validateOnChange))
+			validation.trigger(ctx)
+	})
+
+	focus.out.onCall((ctx) => {
+		if (ctx.get(validateOnBlur))
+			validation.trigger(ctx)
+	})
 
   return Object.assign(field, {
     change,
@@ -333,7 +362,7 @@ export const reatomField = <State, Value = State>(
     reset,
     validation,
     value,
-
+    __defaults: reactiveOptions,
     __reatomField: true as const
   })
 }
