@@ -10,7 +10,6 @@ import {
   __count,
   action,
   atom,
-  createCtx,
   isAtom,
 } from '@reatom/core';
 
@@ -475,12 +474,17 @@ const resolveFieldByPath = <T extends FormInitState>(
 
 export function reatomForm<T extends FormInitState, SchemaState>(
 	initState: T | ((name: string) => T),
-	options: FormOptionsWithSchema<SchemaState>
+	optionsWithSchema: FormOptionsWithSchema<SchemaState>
 ): Form<T>
 
 export function reatomForm<T extends FormInitState>(
 	initState: T | ((name: string) => T),
-	options?: string | FormOptionsWithoutSchema<T>
+	options?: FormOptionsWithoutSchema<T>
+): Form<T>
+
+export function reatomForm<T extends FormInitState>(
+	initState: T | ((name: string) => T),
+	name?: string
 ): Form<T>
 
 export function reatomForm<T extends FormInitState, SchemaState>(

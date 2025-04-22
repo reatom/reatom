@@ -73,9 +73,13 @@ test(`toState and fromState`, async () => {
 
 test(`withField`, async () => {
   const ctx = createCtx()
-  const field = reatomEnum(['lel', 'kek', 'shmek'], 'fieldAtom').pipe(withField('lel'));
+  const field = reatomEnum(['lel', 'kek', 'shmek'], 'fieldAtom').pipe(withField());
 
-  field.setLel(ctx);
+  expect(ctx.get(field)).toBe('lel');
+  field.setKek(ctx);
+  expect(ctx.get(field)).toBe('kek');
+
+  field.reset(ctx);
   expect(ctx.get(field)).toBe('lel');
 
   expect(field.value.__reatom.name).toBe('fieldAtom.value');

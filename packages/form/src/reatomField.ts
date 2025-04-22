@@ -91,7 +91,7 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
    */
   validateOnBlur: Atom<boolean>
 
-	/** @internal */
+	/** @internal @deprecated */
 	__defaults: {
 		keepErrorDuringValidating?: boolean
 		keepErrorOnChange?: boolean
@@ -232,10 +232,12 @@ export const reatomField = <State, Value = State>(
 	const shouldValidate = atom(false, `${name}.shouldValidate`)
   shouldValidate.__reatom.initState = () => reactiveOptions.shouldValidate ?? !!(validateFn || contract)
 
+  const field = _stateAtom ?? atom(_initState, `${name}.field`)
   const initState = atom(_initState, `${name}.initState`)
-
-  const field = _stateAtom ?? atom(_initState, `${name}.field`);
-
+  // TODO: make sure it's ok to copy initState of other atom. 
+  // We need to extract initial state from `field` atom here and pass it to `initState` atom
+  initState.__reatom.initState = field.__reatom.initState
+  
   const value: This['value'] = atom((ctx) => fromState(ctx, ctx.spy(field)), `${name}.value`)
 
   const focus = reatomRecord(fieldInitFocus, `${name}.focus`) as This['focus']
@@ -397,12 +399,11 @@ export const reatomField = <State, Value = State>(
 }
 
 export const withField = <T extends AtomMut, Value = AtomState<T>>(
-  _initState: AtomState<T>,
   options: Omit<FieldOptions<AtomState<T>, Value>, 'name'> = {}
 ): ((anAtom: T) => T & FieldAtom<AtomState<T>, Value>) => {
   return (anAtom: T) => Object.assign(
     anAtom,
-    reatomField(_initState, { name: anAtom.__reatom.name, ...options }, anAtom)
+    reatomField(null as AtomState<T>, { name: anAtom.__reatom.name, ...options }, anAtom)
   );
 }
 

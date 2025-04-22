@@ -34,7 +34,7 @@ const form = reatomForm(name => ({
 				initState: Array<{ number: string, priority: boolean }>(),
 				create: (ctx, { number, priority }, name) => ({
 					number,
-					priority: reatomBoolean(priority, `${name}.priority`).pipe(withField(priority))
+					priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
 				})
 			})
 		}

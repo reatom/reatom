@@ -239,7 +239,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 						initState: Array<{ number: string, priority: boolean }>(),
 						create: (ctx, { number, priority }) => ({
 							number,
-							priority: reatomBoolean(priority).pipe(withField(priority))
+							priority: reatomBoolean(priority).pipe(withField())
 						})
 					}),
 				}
