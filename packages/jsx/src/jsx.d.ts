@@ -722,6 +722,59 @@ export namespace JSX {
     | '_self'
     | '_top'
     | '_unfencedTop'
+  type HTMLAnchorRel =
+    | 'alternate'
+    | 'author'
+    | 'bookmark'
+    | 'external'
+    | 'help'
+    | 'license'
+    | 'me'
+    | 'next'
+    | 'nofollow'
+    | 'noopener'
+    | 'noreferrer'
+    | 'opener'
+    | 'prev'
+    | 'privacy-policy'
+    | 'search'
+    | 'tag'
+    | 'terms-of-service'
+  type HTMLLinkRel =
+    | 'alternate'
+    | 'author'
+    | 'canonical'
+    | 'compression-dictionary'
+    | 'dns-prefetch'
+    | 'expect'
+    | 'help'
+    | 'icon'
+    | 'license'
+    | 'manifest'
+    | 'me'
+    | 'modulepreload'
+    | 'next'
+    | 'pingback'
+    | 'preconnect'
+    | 'prefetch'
+    | 'preload'
+    | 'prerender'
+    | 'prev'
+    | 'privacy-policy'
+    | 'search'
+    | 'stylesheet'
+    | 'terms-of-service'
+  type HTMLFormRel =
+    | 'external'
+    | 'help'
+    | 'license'
+    | 'next'
+    | 'nofollow'
+    | 'noopener'
+    | 'noreferrer'
+    | 'opener'
+    | 'prev'
+    | 'search'
 
   /**
    * All the WAI-ARIA 1.2 role attribute values from
@@ -1534,9 +1587,9 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/relList
-     * @todo List all possible values.
+     * @todo Should support for values HTMLAnchorRel[]?
      */
-    rel?: string | null | undefined
+    rel?: HTMLAnchorRel | (string & {}) | null | undefined
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/a#target
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAnchorElement/target
@@ -1613,9 +1666,9 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/relList
-     * @todo List all possible values.
+     * @todo Should support for values HTMLAnchorRel[]?
      */
-    rel?: string | null | undefined
+    rel?: HTMLAnchorRel | (string & {}) | null | undefined
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/area#shape
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLAreaElement/shape
@@ -1949,9 +2002,9 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/relList
-     * @todo List all possible values.
+     * @todo Should support for values HTMLFormRel[]?
      */
-    rel?: string | null | undefined
+    rel?: HTMLFormRel | (string & {}) | null | undefined
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/form#target
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/target
@@ -2445,10 +2498,10 @@ export namespace JSX {
   interface LabelHTMLAttributes<T = HTMLElementTagNameMap['label']>
     extends HTMLAttributes<T> {
     /**
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/label#for
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/for
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLabelElement/htmlFor
      * @alias htmlFor
-     * @todo Should support for values string[]?
      */
     for?: string | null | undefined
     /**
@@ -2533,9 +2586,9 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/rel
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/relList
-     * @todo List all possible values.
+     * @todo Should support for values HTMLLinkRel[]?
      */
-    rel?: string | null | undefined
+    rel?: HTMLLinkRel | (string & {}) | null | undefined
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/link#sizes
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLLinkElement/sizes
@@ -2764,7 +2817,7 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#content
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMetaElement/content
      */
-    content?: string[] | string | null | undefined
+    content?: string | null | undefined
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/meta#http-equiv
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLMetaElement/httpEquiv
@@ -2848,9 +2901,10 @@ export namespace JSX {
     extends HTMLAttributes<T> {
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#archive
+     * @todo Should support for values string[]?
      * @deprecated
      */
-    archive?: string[] | string | null | undefined
+    archive?: string | null | undefined
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/object#border
      * @deprecated
@@ -2973,7 +3027,7 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/option#value
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLOptionElement/value
      */
-    value?: string[] | string | number | null | undefined
+    value?: string | number | null | undefined
   }
   interface OutputHTMLAttributes<T = HTMLElementTagNameMap['output']>
     extends HTMLAttributes<T> {
@@ -3002,7 +3056,7 @@ export namespace JSX {
   interface ParamHTMLAttributes<T = HTMLElementTagNameMap['param']>
     extends HTMLAttributes<T> {
     name?: string
-    value?: string[] | string | number
+    value?: string | number
   }
   interface ProgressHTMLAttributes<T = HTMLElementTagNameMap['progress']>
     extends HTMLAttributes<T> {
@@ -3355,8 +3409,8 @@ export namespace JSX {
     align?: 'left' | 'center' | 'right' | null | undefined
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/td#axis
-     * @deprecated
      * @todo Should support for values string[]?
+     * @deprecated
      */
     axis?: string | null | undefined
     /**
