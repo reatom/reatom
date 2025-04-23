@@ -21,7 +21,7 @@ import { reatomForm, reatomField } from '@reatom/form'
 export const nameField = reatomField('', 'nameField')
 export const passwordField = reatomField('', {
   name: 'passwordField',
-  validate(ctx, { state }) {
+  validate({ state }) {
     if (state.length < 6)
       throw new Error('The password should have at least six characters.')
   },
@@ -34,9 +34,9 @@ export const loginForm = reatomForm(
     password: passwordField
   },
   {
-    async onSubmit(ctx, state) {
-      //                ^? ParseAtoms<typeof loginForm.fields>
-      const user = await api.login(ctx, {
+    async onSubmit(state) {
+      //           ^? ParseAtoms<typeof loginForm.fields>
+      const user = await api.login({
         name: state.username,
         password: state.password,
       })
@@ -76,8 +76,8 @@ const userForm = reatomForm({
       })
     )
   }),
-  async onSubmit(ctx, state) {
-    //                ^? z.infer<typeof schema>
+  async onSubmit(state) {
+    //           ^? z.infer<typeof schema>
   }
 })
 ```
@@ -109,7 +109,7 @@ const form = reatomForm({
   username: { 
     initState: '', 
     validateOnChange: true,
-    validate: (ctx, { state }) => {
+    validate: ({ state }) => {
       if (state.length < 3) throw new Error('Too short')
     }
   },
@@ -318,7 +318,7 @@ const form = reatomForm({
   // Using initState and create
   phoneNumbers: fieldArray({
     initState: [{ number: '123-456-7890', priority: false }],
-    create: (ctx, { number, priority }, name) => ({
+    create: ({ number, priority }, name) => ({
       number: { initState: number, validateOnChange: true },
       priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
     })
@@ -338,16 +338,16 @@ const contactForm = reatomForm({
 })
 
 // Add a new email field
-contactForm.fields.emails.create(ctx, '')
+contactForm.fields.emails.create('')
 
 // Access the array of email fields
-const emailFields = ctx.get(contactForm.fields.emails.array)
+const emailFields = contactForm.fields.emails.array()
 
 // Remove a specific email field
-contactForm.fields.emails.remove(ctx, emailFields[0])
+contactForm.fields.emails.remove(emailFields[0])
 
 // Clear all email fields
-contactForm.fields.emails.clear(ctx)
+contactForm.fields.emails.clear()
 ```
 
 ### Complex Array Fields
@@ -362,7 +362,7 @@ const contactForm = reatomForm({
   name: '',
   phoneNumbers: fieldArray({
     initState: new Array<{ number: string, priority: boolean }>(),
-    create: (ctx, { number, priority }, name) => ({
+    create: ({ number, priority }, name) => ({
       number,
       priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
     })
@@ -370,7 +370,7 @@ const contactForm = reatomForm({
 })
 
 // Add a new phone number
-contactForm.fields.phoneNumbers.create(ctx, { 
+contactForm.fields.phoneNumbers.create({ 
   number: '123-456-7890', 
   priority: false 
 })
@@ -395,6 +395,6 @@ const userForm = reatomForm({
 })
 
 // Access nested fields
-const addresses = ctx.get(userForm.fields.addresses.array)
-const firstAddressTags = ctx.get(addresses[0].tags.array)
+const addresses = userForm.fields.addresses.array()
+const firstAddressTags = addresses[0]?.tags.array()
 ```

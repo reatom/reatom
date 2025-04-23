@@ -1,6 +1,9 @@
 {
   "name": "@reatom/form",
-  "version": "3.3.2",
+  "version": "1000.0.0-alpha.1",
+  "publishConfig": {
+    "tag": "alpha"
+  },
   "private": false,
   "sideEffects": false,
   "description": "Reatom for form",
@@ -22,17 +25,12 @@
   "scripts": {
     "sandbox": "vite",
     "prepublishOnly": "npm run build && npm run test",
-    "build": "microbundle -f esm,cjs",
+    "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/async": "^3.10.1",
-    "@reatom/core": "^3.1.21",
-    "@reatom/effects": "^3.6.0",
-    "@reatom/hooks": "^3.1.0",
-    "@reatom/primitives": "^3.1.0",
-    "@reatom/utils": "^3.7.0"
+    "@reatom/core": "alpha"
   },
   "author": "artalar",
   "license": "MIT",
@@ -50,6 +48,10 @@
   ],
   "devDependencies": {
     "@standard-schema/spec": "^1.0.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "vite": "^6.3.2",
     "zod": "^3.24.1"
   }
 }

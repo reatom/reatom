@@ -1,30 +1,28 @@
 import { test, expect, vi } from 'vitest'
-import { createCtx } from '@reatom/core'
-import { reatomField, withField } from '.'
-import { reatomEnum } from '@reatom/primitives';
+import { addCallHook, notify, reatomEnum, sleep, wrap } from '@reatom/core'
+import { fieldInitValidation, reatomField, withField, } from '.'
 
 test(`validateOnChange`, async () => {
-  const ctx = createCtx();
   const field = reatomField('', { name: 'fieldAtom', validateOnChange: true });
   const changeFn = vi.fn();
-  field.validation.trigger.onCall(() => changeFn());
+  addCallHook(field.validation.trigger, changeFn);
 
-  field.change(ctx, 'value');
+  field.change('value');
+  notify();
   expect(changeFn).toHaveBeenCalledTimes(1);
 })
 
 test(`validateOnBlur`, async () => {
-  const ctx = createCtx();
   const field = reatomField('', { name: 'fieldAtom', validateOnBlur: true });
   const blurFn = vi.fn();
-  field.validation.trigger.onCall(() => blurFn());
+  addCallHook(field.validation.trigger, blurFn);
 
-  field.focus.out(ctx);
+  field.focus.out();
+  notify();
   expect(blurFn).toHaveBeenCalledTimes(1);
 })
 
 test(`keepErrorOnChange`, async () => {
-  const ctx = createCtx()
   const validate = () => {
     throw new Error('validation error');
   }
@@ -41,46 +39,114 @@ test(`keepErrorOnChange`, async () => {
     keepErrorOnChange: false
   })
 
-  fieldWithKeep.validation.trigger(ctx)
-  fieldWithoutKeep.validation.trigger(ctx)
+  fieldWithKeep.validation.trigger()
+  fieldWithoutKeep.validation.trigger()
+  notify();
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBe('validation error')
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBe('validation error')
+  fieldWithKeep.change('new value')
+  fieldWithoutKeep.change('new value')
+  notify();
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBeUndefined()
+})
 
-  fieldWithKeep.change(ctx, 'new value')
-  fieldWithoutKeep.change(ctx, 'new value')
+test(`keepErrorDuringValidating`, async () => {
+  const validate = async () => {
+    await sleep()
+    throw new Error('validation error');
+  }
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBeUndefined()
+  const fieldWithKeep = reatomField('', {
+    name: 'fieldKeep',
+    validate,
+    keepErrorDuringValidating: true
+  })
+
+  const fieldWithoutKeep = reatomField('', {
+    name: 'fieldNoKeep',
+    validate,
+    keepErrorDuringValidating: false
+  })
+
+  fieldWithKeep.validation.trigger()
+  fieldWithoutKeep.validation.trigger()
+  await wrap(sleep());
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBe('validation error')
+
+  fieldWithKeep.change('new value')
+  fieldWithoutKeep.change('new value')
+
+  fieldWithKeep.validation.trigger()
+  fieldWithoutKeep.validation.trigger()
+  notify();
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBeUndefined()
 })
 
 test(`toState and fromState`, async () => {
-  const ctx = createCtx()
   const label = 'label';
 
   const field = reatomField({ label, value: 1337 }, {
     name: 'fieldAtom',
-    fromState: (ctx, state) => state.value,
-    toState: (ctx, value) => ({ label, value }),
+    fromState: (state) => state.value,
+    toState: (value) => ({ label, value }),
   });
 
-  field(ctx, { label, value: 1000 });
-  expect(ctx.get(field.value)).toEqual(1000);
+  field({ label, value: 1000 });
+  expect(field.value()).toEqual(1000);
 
-  field.change(ctx, 2000);
-  expect(ctx.get(field)).toEqual({ label, value: 2000 });
+  field.change(2000);
+  expect(field()).toEqual({ label, value: 2000 });
 })
 
-test(`withField`, async () => {
-  const ctx = createCtx()
-  const field = reatomEnum(['lel', 'kek', 'shmek'], 'fieldAtom').pipe(withField());
+test(`validation concurrency`, async () => {
+  const field = reatomField(123, {
+    validate: async ({ value }) => {
+      await sleep();
 
-  expect(ctx.get(field)).toBe('lel');
-  field.setKek(ctx);
-  expect(ctx.get(field)).toBe('kek');
+      if(value === 0xDEADBEEF)
+        throw new Error('validation error');
+    }
+  });
 
-  field.reset(ctx);
-  expect(ctx.get(field)).toBe('lel');
+  field.validation.trigger();
+  expect(field.validation()).toMatchObject({ validating: true, triggered: true, error: undefined });
+  field.change(1);
+  notify();
+  expect(field.validation()).toMatchObject(fieldInitValidation);
 
-  expect(field.value.__reatom.name).toBe('fieldAtom.value');
+  field.validation.trigger();
+  expect(field.validation()).toMatchObject({ validating: true, triggered: true, error: undefined });
+  field.reset();
+  expect(field.validation()).toMatchObject(fieldInitValidation);
+  
+  field.validateOnChange(true);
+  notify();
+
+  field.change(1);
+  field.change(0xDEADBEEF);
+  field.change(3);
+  notify();
+  expect(field.validation()).toMatchObject({ validating: true, triggered: true, error: undefined });
+
+  await wrap(sleep());
+
+  expect(field.validation()).toMatchObject({ validating: false, triggered: true, error: undefined });
+  expect(field.value()).toBe(3);
+})
+
+test(`withField and initState derivation`, async () => {
+  const field = reatomEnum(['lel', 'kek', 'shmek'], 'fieldAtom').extend(withField());
+
+  expect(field()).toBe('lel');
+  field.setKek();
+  expect(field()).toBe('kek');
+
+  field.reset();
+  expect(field()).toBe('lel');
+
+  expect(field.value.name).toBe('fieldAtom.value');
 })

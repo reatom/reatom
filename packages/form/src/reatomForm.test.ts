@@ -1,70 +1,67 @@
 import { test, expect, describe } from 'vitest'
-import { createCtx } from '@reatom/core'
+import { notify, reatomBoolean } from '@reatom/core'
 import { fieldArray, reatomField, reatomForm, withField } from '.'
-import { reatomBoolean } from '@reatom/primitives';
 import { z } from 'zod';
 
 test(`adding and removing fields`, async () => {
-	const ctx = createCtx();
 	const form = reatomForm({
 		field: reatomField('initial', 'fieldAtom'),
 		list: fieldArray({
 			initState: ['initial'],
-			create: (ctx, param) => reatomField(param, 'fieldAtom')
+			create: (param) => reatomField(param, 'fieldAtom')
 		}),
 	});
 
-	expect(ctx.get(form.fields.field)).toBe('initial');
-	expect(ctx.get(form.fields.list).size).toBe(1);
+	expect(form.fields.field()).toBe('initial');
+	expect(form.fields.list().size).toBe(1);
 
-	form.fields.list.create(ctx, 'initial');
-	expect(ctx.get(form.fields.list).size).toBe(2);
+	form.fields.list.create('initial');
+	expect(form.fields.list().size).toBe(2);
 
-	form.fields.list.clear(ctx);
-	expect(ctx.get(form.fields.list).size).toBe(0);
+	form.fields.list.clear();
+	expect(form.fields.list().size).toBe(0);
 })
 
 test('focus states', () => {
-	const ctx = createCtx()
 	const form = reatomForm({
 		field1: { initState: '', validate: () => { } },
 		field2: { initState: '', validate: () => { } },
 		list: fieldArray({
 			initState: ['initial'],
-			create: (ctx, param) => reatomField(param, 'fieldAtom')
+			create: (param) => reatomField(param, 'fieldAtom')
 		}),
 	});
 
-	form.fields.field1.change(ctx, 'value')
-	form.fields.field2.change(ctx, 'value')
+	form.fields.field1.change('value')
+	form.fields.field2.change('value')
 
-	expect(ctx.get(form.focus)).toEqual({
+	expect(form.focus()).toEqual({
 		active: false,
 		dirty: true,
 		touched: true,
 	})
 
-	form.fields.field1.focus.in(ctx)
-	expect(ctx.get(form.focus).active).toBe(true)
+	form.fields.field1.focus.in()
+	expect(form.focus().active).toBe(true)
 
-	form.fields.field1.focus.out(ctx)
-	expect(ctx.get(form.focus).active).toBe(false)
-	expect(ctx.get(form.focus).touched).toBe(true)
+	form.fields.field1.focus.out()
+	expect(form.focus().active).toBe(false)
+	expect(form.focus().touched).toBe(true)
 
-	form.reset(ctx);
+	form.reset();
 
-	const list = ctx.get(form.fields.list.array);
-	list[0]?.change(ctx, 'value');
+	const list = form.fields.list.array();
+	list[0]?.change('value');
 
-	expect(ctx.get(form.focus)).toEqual({
+	expect(form.focus()).toEqual({
 		active: false,
 		dirty: true,
 		touched: true,
 	})
 
-	form.fields.list.clear(ctx);
+	form.fields.list.clear();
 
-	expect(ctx.get(form.focus)).toEqual({
+	expect(form.focus()).toEqual({
 		active: false,
 		dirty: false,
 		touched: false,
@@ -72,8 +69,6 @@ test('focus states', () => {
 })
 
 test('validation states', async () => {
-	const ctx = createCtx()
-
 	const contract = (value: string) => {
 		if (value === 'errorValue')
 			throw new Error('Contract error')
@@ -93,44 +88,45 @@ test('validation states', async () => {
 
 	const { field1, field2, rest } = form.fields
 
-	field1.change(ctx, 'value')
-	field2.change(ctx, 'value')
+	field1.change('value')
+	field2.change('value')
 
-	expect(ctx.get(form.validation)).toEqual({
+	expect(form.validation()).toEqual({
 		error: undefined,
 		meta: undefined,
-		triggered: true,
+		triggered: false,
 		validating: false,
 	})
 
-	field2.change(ctx, 'errorValue')
+	field2.change('errorValue')
+	notify()
 
-	expect(ctx.get(form.validation)).toEqual({
+	expect(form.validation()).toEqual({
 		error: 'Contract error',
 		meta: undefined,
 		triggered: true,
 		validating: false,
 	})
 
-	field2.reset(ctx);
+	field2.reset();
 
-	await form.submit(ctx).catch(() => { })
-	expect(ctx.get(form.submit.error)?.message).toBe('Form validation error')
+	await form.submit().catch(() => { })
+	expect(form.submit.error()?.message).toBe('Form validation error')
 
-	const fieldNoValidationTrigger = rest.create(ctx, '');
-	fieldNoValidationTrigger.change(ctx, 'value');
+	const fieldNoValidationTrigger = rest.create('');
+	fieldNoValidationTrigger.change('value');
 
-	expect(ctx.get(form.validation)).toEqual({
+	expect(form.validation()).toEqual({
 		error: undefined,
 		meta: undefined,
 		triggered: true,
 		validating: false,
 	})
 
-	rest.clear(ctx);
-	field1.change(ctx, 'value')
+	rest.clear();
+	field1.change('value')
 
-	expect(ctx.get(form.validation)).toEqual({
+	expect(form.validation()).toEqual({
 		error: undefined,
 		meta: undefined,
 		triggered: true,
@@ -139,29 +135,26 @@ test('validation states', async () => {
 })
 
 test('default options for fields', async () => {
-	const ctx = createCtx()
 	const form = reatomForm({
 		field: { initState: 'initial', validate: () => { } },
 		array: fieldArray(['one', 'two', 'free']),
-	}, {
-		validateOnChange: true
 	});
 
 	const { field, array } = form.fields;
 
-	field.change(ctx, 'value');
+	field.change('value');
 
-	expect(ctx.get(field.validation)).toEqual({
+	expect(field.validation()).toEqual({
 		error: undefined,
 		meta: undefined,
-		triggered: true,
+		triggered: false,
 		validating: false,
 	})
 
-	ctx.get(array.array).forEach(field => {
-		field.change(ctx, 'value');
+	array.array().forEach(field => {
+		field.change('value');
 
-		expect(ctx.get(field.validation)).toEqual({
+		expect(field.validation()).toEqual({
 			error: undefined,
 			meta: undefined,
 			triggered: true,
@@ -172,26 +165,24 @@ test('default options for fields', async () => {
 
 describe('fieldArray and array literals as a fieldArray', () => {
 	test('flat array literals', () => {
-		const ctx = createCtx()
 		const form = reatomForm({
 			array: ['hey']
 		})
 
 		const arrayField = form.fields.array;
-		expect(ctx.get(arrayField.array).length).toBe(1);
+		expect(arrayField.array().length).toBe(1);
 
-		const field = ctx.get(arrayField.array)[0]!;
-		expect(ctx.get(field.value)).toBe('hey');
+		const field = arrayField.array()[0]!;
+		expect(field.value()).toBe('hey');
 
-		arrayField.create(ctx, 'new');
-		expect(ctx.get(arrayField.array).length).toBe(2);
+		arrayField.create('new');
+		expect(arrayField.array().length).toBe(2);
 
-		const newField = ctx.get(arrayField.array)[1]!;
-		expect(ctx.get(newField.value)).toBe('new');
+		const newField = arrayField.array()[1]!;
+		expect(newField.value()).toBe('new');
 	})
 
 	test('nested array literals and using fieldArray deep inside', () => {
-		const ctx = createCtx()
 		const form = reatomForm({
 			nestedArray: [
 				{
@@ -202,32 +193,30 @@ describe('fieldArray and array literals as a fieldArray', () => {
 			]
 		})
 
-		const nestedArray = ctx.get(form.fields.nestedArray.array);
+		const nestedArray = form.fields.nestedArray.array();
 		expect(nestedArray.length).toBe(1);
 
 		const array = nestedArray[0]!.array.array;
-		expect(ctx.get(array).length).toBe(1);
+		expect(array().length).toBe(1);
 
-		expect(ctx.get(ctx.get(array)[0]!.value)).toBe('hey');
+		expect(array()[0]!.value()).toBe('hey');
 
-		nestedArray[0]!.array.create(ctx, 'new');
-		expect(ctx.get(array).length).toBe(2);
+		nestedArray[0]!.array.create('new');
+		expect(array().length).toBe(2);
 
-		expect(ctx.get(ctx.get(array)[1]!.value)).toBe('new');
+		expect(array()[1]!.value()).toBe('new');
 
 		const emptyArray = nestedArray[0]!.emptyArray.array;
-		expect(ctx.get(emptyArray).length).toBe(0);
+		expect(emptyArray().length).toBe(0);
 
 		const emptyArrayExplicit = nestedArray[0]!.emptyArrayExplicit.array;
-		expect(ctx.get(emptyArrayExplicit).length).toBe(0);
+		expect(emptyArrayExplicit().length).toBe(0);
 
-		nestedArray[0]!.emptyArray.create(ctx, 'new');
-		expect(ctx.get(emptyArray).length).toBe(1);
+		nestedArray[0]!.emptyArray.create('new');
+		expect(emptyArray().length).toBe(1);
 	})
 
 	test('nested array literals and fieldArray in initState', () => {
-		const ctx = createCtx()
-
 		const form = reatomForm({		
 			addresses: [
 				{
@@ -237,27 +226,26 @@ describe('fieldArray and array literals as a fieldArray', () => {
 					tags: ['defaultTag', 'defaultTag2'],
 					phoneNumbers: fieldArray({
 						initState: Array<{ number: string, priority: boolean }>(),
-						create: (ctx, { number, priority }) => ({
+						create: ({ number, priority }) => ({
 							number,
-							priority: reatomBoolean(priority).pipe(withField())
+							priority: reatomBoolean(priority).extend(withField())
 						})
 					}),
 				}
 			]
 		});
 
-		const addresses = ctx.get(form.fields.addresses.array);
+		const addresses = form.fields.addresses.array();
 		const phoneNumbers = addresses[0]!.phoneNumbers;
-		expect(ctx.get(phoneNumbers.array).length).toBe(0);
+		expect(phoneNumbers.array().length).toBe(0);
 
-		phoneNumbers.create(ctx, { number: '778899', priority: true });
-		expect(ctx.get(phoneNumbers.array).length).toBe(1);
+		phoneNumbers.create({ number: '778899', priority: true });
+		expect(phoneNumbers.array().length).toBe(1);
 
 	})
 })
 
 test('reset', () => {
-	const ctx = createCtx()
 	const form = reatomForm({
 		field: { initState: 'initial', validate: () => { } },
 	}, {
@@ -267,20 +255,20 @@ test('reset', () => {
 
 	const { field } = form.fields;
 
-	field.change(ctx, 'value')
-	field.focus.in(ctx)
-	field.focus.out(ctx)
-	field.validation.trigger(ctx)
+	field.change('value')
+	field.focus.in()
+	field.focus.out()
+	field.validation.trigger()
 
-	form.reset(ctx)
+	form.reset()
 
-	expect(ctx.get(field)).toBe('initial')
-	expect(ctx.get(field.focus)).toEqual({
+	expect(field()).toBe('initial')
+	expect(field.focus()).toEqual({
 		active: false,
 		dirty: false,
 		touched: false,
 	})
-	expect(ctx.get(field.validation)).toEqual({
+	expect(field.validation()).toEqual({
 		error: undefined,
 		meta: undefined,
 		triggered: false,
@@ -290,7 +278,6 @@ test('reset', () => {
 
 describe('init array with reset', () => {
 	test('flat fields with array', () => {
-		const ctx = createCtx()
 		const form = reatomForm({
 			dummy: 1,
 			list: [
@@ -301,26 +288,27 @@ describe('init array with reset', () => {
 			]
 		})
 
-		form.reset(ctx, { list: [] })
+		console.log(form.fields.list.array()[0]?.arr.name)
 
-		expect(ctx.get(form.fields.list.array).length).toEqual(0)
+		form.reset({ list: [] })
 
-		form.fields.dummy.change(ctx, 2);
+		expect(form.fields.list.array().length).toEqual(0)
 
-		form.reset(ctx, { 
+		form.fields.dummy.change(2);
+
+		form.reset({ 
 			list: [
 				{ kek: 'lel', arr: ['1'] }
 			] 
 		})
 
-		expect(ctx.get(form.fields.list.array).length).toEqual(1)
-		expect(ctx.get(ctx.get(ctx.get(form.fields.list.array)[0]!.arr.array)[0]!.value)).toEqual('1')
-		expect(ctx.get(form.fields.dummy)).toEqual(1)
+		expect(form.fields.dummy.value()).toEqual(1)
+		expect(form.fields.list.array().length).toEqual(1)
+		expect(form.fields.list.array()[0]!.arr.array()[0]!.value()).toEqual('1')
+		expect(form.fields.dummy()).toEqual(1)
 	})
 
 	test('nested fields with array', () => {
-		const ctx = createCtx()
-
 		const form = reatomForm({
 			list: [
 				{
@@ -331,7 +319,7 @@ describe('init array with reset', () => {
 			]
 		})
 
-		form.reset(ctx, {
+		form.reset({
 			list: [
 				{
 					nestedList: []
@@ -345,28 +333,26 @@ describe('init array with reset', () => {
 			]
 		})
 
-		const listArray = ctx.get(form.fields.list.array)
+		const listArray = form.fields.list.array()
 		expect(listArray.length).toEqual(2)
 
-		const firstItemNestedList = ctx.get(listArray[0]!.nestedList.array)
+		const firstItemNestedList = listArray[0]!.nestedList.array()
 		expect(firstItemNestedList.length).toEqual(0)
 
-		const secondItemNestedList = ctx.get(listArray[1]!.nestedList.array)
+		const secondItemNestedList = listArray[1]!.nestedList.array()
 		expect(secondItemNestedList.length).toEqual(2)
 
 		const firstNestedItem = secondItemNestedList[0]!
-		expect(ctx.get(firstNestedItem.number)).toEqual('321')
-		expect(ctx.get(firstNestedItem.priority)).toEqual(false)
+		expect(firstNestedItem.number()).toEqual('321')
+		expect(firstNestedItem.priority()).toEqual(false)
 
 		const secondNestedItem = secondItemNestedList[1]!
-		expect(ctx.get(secondNestedItem.number)).toEqual('456')
-		expect(ctx.get(secondNestedItem.priority)).toEqual(true)
+		expect(secondNestedItem.number()).toEqual('456')
+		expect(secondNestedItem.priority()).toEqual(true)
 	})
 })
 
 test('form should correctly initialize field options', async () => {
-	const ctx = createCtx()
-
 	const form = reatomForm({
 		age: 12,
 		email: 'test',
@@ -378,16 +364,14 @@ test('form should correctly initialize field options', async () => {
 		keepErrorOnChange: true,
 	})
 
-	expect(ctx.get(form.fields.age.validateOnChange)).toBe(true)
-	expect(ctx.get(form.fields.email.validateOnBlur)).toBe(true)
-	expect(ctx.get(form.fields.email.keepErrorDuringValidating)).toBe(true)
-	expect(ctx.get(form.fields.fieldWithDefault.keepErrorOnChange)).toBe(true)
-	expect(ctx.get(form.fields.fieldWithDefault.validateOnChange)).toBe(false)
+	expect(form.fields.age.validateOnChange()).toBe(true)
+	expect(form.fields.email.validateOnBlur()).toBe(true)
+	expect(form.fields.email.keepErrorDuringValidating()).toBe(true)
+	expect(form.fields.fieldWithDefault.keepErrorOnChange()).toBe(true)
+	expect(form.fields.fieldWithDefault.validateOnChange()).toBe(false)
 })
 	
 test('validating through form schema and placing errors to corresponding fields', async () => {
-	const ctx = createCtx()
-
 	const form = reatomForm({
 		age: 12,
 		email: 'test',
@@ -400,10 +384,32 @@ test('validating through form schema and placing errors to corresponding fields'
 		})
 	});
 	
-	form.submit(ctx);
+	form.submit();
 
-	expect(ctx.get(form.fields.age.validation).error).toBeTruthy();
-	expect(ctx.get(form.fields.email.validation).error).toBeTruthy();
-	expect(ctx.get(ctx.get(form.fields.items.array)[0]!.validation).error).toBeTruthy();
-	expect(ctx.get(ctx.get(form.fields.items.array)[1]!.validation).error).toBeFalsy();
+	expect(form.fields.age.validation().error).toBeTruthy();
+	expect(form.fields.email.validation().error).toBeTruthy();
+	expect(form.fields.items.array()[0]!.validation().error).toBeTruthy();
+	expect(form.fields.items.array()[1]!.validation().error).toBeFalsy();
+})
+
+test('triggering schema validation only for one field', async () => {
+	const form = reatomForm({
+		age: 12,
+		email: 'test',
+		items: ['', 'valid']
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			age: z.number().min(18, 'must be minimum 18'),
+			email: z.string().email(),
+			items: z.array(z.string().min(1))
+		})
+	});
+
+	expect(form.validation().error).toBeFalsy();
+
+	form.fields.age.change(17);
+	notify()
+	expect(form.validation().error).toBe('must be minimum 18');
+	expect(form.fields.age.validation().error).toBe('must be minimum 18');
 })

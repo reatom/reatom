@@ -1,6 +1,6 @@
-import { useAction, useAtom } from "@reatom/npm-react";
-import { ChangeEvent, HTMLInputTypeAttribute, useCallback } from "react";
+import { ChangeEvent, HTMLInputTypeAttribute, useCallback, useSyncExternalStore } from "react";
 import { FieldValidation, FieldAtom } from "../src";
+import { wrap } from "@reatom/core";
 
 type UseFormFieldReturn<State, Value = State> = FieldValidation & {
 	getInputProps: () => {
@@ -16,11 +16,11 @@ export function useFormField<State, Value>(
 	model: FieldAtom<State, Value>, type?: Exclude<'checkbox', string>): UseFormFieldReturn<State, Value>;
 
 export function useFormField<State, Value>(model: FieldAtom<State, Value>, type: HTMLInputTypeAttribute = 'text') {
-	const change = useAction(model.change);
-	const focus = useAction(model.focus.in);
-	const blur = useAction(model.focus.out);
-	const [validation] = useAtom(model.validation);
-	const [value] = useAtom(model.value);
+	const change = wrap(model.change);
+	const focus = wrap(model.focus.in);
+	const blur = wrap(model.focus.out);
+	const value = useSyncExternalStore(model.value.subscribe, model.value);
+	const validation = useSyncExternalStore(model.validation.subscribe, model.validation);
 
 	const onBlur = useCallback(() => blur(), [blur]);
 	const onFocus = useCallback(() => focus(), [focus]);

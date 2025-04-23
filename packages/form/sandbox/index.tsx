@@ -1,28 +1,20 @@
-import { AtomState, createCtx } from "@reatom/core";
-import { connectLogger } from "@reatom/logger"
-import { reatomContext, useAction, useAtom } from "@reatom/npm-react"
-import { fieldArray, FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
-import { LinkedListLikeAtom, reatomBoolean } from "@reatom/primitives";
-import { PropsWithChildren } from 'react';
+import { ArrayFieldItem, fieldArray, FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
+import { reatomBoolean, connectLogger, wrap } from "@reatom/core";
 import { createRoot } from "react-dom/client";
+import { PropsWithChildren, useSyncExternalStore } from 'react';
 import { useFormField } from "./use-form-field";
 import { z } from "zod";
 
-const ctx = createCtx();
-connectLogger(ctx);
+connectLogger();
 
 function App() {
-	return (
-		<reatomContext.Provider value={ctx}>
-			<Form />
-		</reatomContext.Provider>
-	)
+	return <Form />
 }
 
 const root = createRoot(document.getElementById('root')!)
 root.render(<App />)
 
-const form = reatomForm(name => ({
+const form = reatomForm({
 	username: 'vlad',
 	addresses: [
 		{
@@ -32,14 +24,14 @@ const form = reatomForm(name => ({
 			tags: ['defaultTag', 'defaultTag2'],
 			phoneNumbers: fieldArray({
 				initState: Array<{ number: string, priority: boolean }>(),
-				create: (ctx, { number, priority }, name) => ({
+				create: ({ number, priority }, name) => ({
 					number,
-					priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
+					priority: reatomBoolean(priority, `${name}.priority`).extend(withField())
 				})
 			})
 		}
 	],
-}), {
+}, {
 	validateOnChange: true,
 	schema: z.object({
 		username: z.string().min(3, 'min length 3'),
@@ -63,7 +55,7 @@ const form = reatomForm(name => ({
 const vStack = { display: 'flex', flexDirection: 'column', gap: '1rem' } as const;
 
 function Form() {
-	const submit = useAction(form.submit);
+	const submit = wrap(form.submit);
 	const usernameField = useFormField(form.fields.username);
 
 	return (
@@ -91,9 +83,13 @@ function Form() {
 }
 
 function AddressesField() {
-	const [fieldArray] = useAtom(form.fields.addresses.array);
-	const createField = useAction(form.fields.addresses.create);
-	const removeField = useAction(form.fields.addresses.remove);
+	const fieldArray = useSyncExternalStore(
+		form.fields.addresses.array.subscribe, 
+		form.fields.addresses.array
+	);
+	
+	const createField = wrap(form.fields.addresses.create);
+	const removeField = wrap(form.fields.addresses.remove);
 
 	const appendField = () => {
 		createField({
@@ -126,9 +122,7 @@ function AddressesField() {
 	)
 }
 
-type ArrayFieldTypeOf<T> = T extends LinkedListLikeAtom ? AtomState<T['array']>[number] : never
-
-type AddressFieldType = ArrayFieldTypeOf<typeof form.fields.addresses>;
+type AddressFieldType = ArrayFieldItem<typeof form.fields.addresses>;
 
 function AddressField({ model }: { model: AddressFieldType }) {
 	const countryField = useFormField(model.country);
@@ -159,16 +153,16 @@ function AddressField({ model }: { model: AddressFieldType }) {
 }
 
 function TagsField({ model }: { model: FormFieldArrayAtom<string, string> }) {
-	const [fieldArray] = useAtom(model.array);
-	const createField = useAction(model.create);
-	const removeField = useAction(model.remove);
+	const fieldArray = useSyncExternalStore(model.array.subscribe, model.array);
+	const createField = wrap(model.create);
+	const removeField = wrap(model.remove);
 
 	return (
 		<div style={{ display: 'flex', alignItems: 'start', gap: '0.5rem', flexWrap: 'wrap' }}>
 			Tags
-			{fieldArray.map((field, index) => (
+			{fieldArray.map((field) => (
 				<TagField
-					key={field.__reatom.name}
+					key={field.name}
 					model={field}
 				>
 					<button type='button' onClick={() => removeField(field)}>-</button>
@@ -200,9 +194,9 @@ function TagField({ model, children }: PropsWithChildren<{ model: FieldAtom<stri
 }
 
 function PhoneNumbersField({ model }: { model: AddressFieldType['phoneNumbers'] }) {
-	const [fieldArray] = useAtom(model.array);
-	const createField = useAction(model.create);
-	const removeField = useAction(model.remove);
+	const fieldArray = useSyncExternalStore(model.array.subscribe, model.array);
+	const createField = wrap(model.create);
+	const removeField = wrap(model.remove);
 
 	return (
 		<div style={{ ...vStack, gap: '0.5rem', border: '1px solid black', padding: '0.5rem' }}>
@@ -224,7 +218,7 @@ function PhoneNumbersField({ model }: { model: AddressFieldType['phoneNumbers'] 
 	)
 }
 
-type PhoneNumberFieldType = ArrayFieldTypeOf<AddressFieldType['phoneNumbers']>
+type PhoneNumberFieldType = ArrayFieldItem<AddressFieldType['phoneNumbers']>
 
 function PhoneNumberField({ model, children }: PropsWithChildren<{ model: PhoneNumberFieldType }>) {
 	const numberField = useFormField(model.number);
@@ -251,8 +245,8 @@ function FieldError({ error }: { error: string | undefined }) {
 }
 
 function FieldsState() {
-	const [fieldsState] = useAtom(form.fieldsState);
-	const reset = useAction(form.reset);
+	const fieldsState = useSyncExternalStore(form.fieldsState.subscribe, form.fieldsState);
+	const reset = wrap(form.reset);
 
 	const resetToEmptyState = () => {
 		reset({ addresses: [], username: '' });

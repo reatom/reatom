@@ -11,7 +11,7 @@ export let withComputed = <Target extends AtomLike>(
   withMiddleware(
     () =>
       function withComputed(next, ...params) {
-        let state = next(params)
+        let state = next(...params)
         return computed(state)
       },
     false,
