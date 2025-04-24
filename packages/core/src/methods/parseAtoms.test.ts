@@ -1,9 +1,5 @@
 import { it, expectTypeOf } from 'vitest'
-import {
-  LL_NEXT,
-  LL_PREV,
-  reatomLinkedList,
-} from '../primitives/reatomLinkedList'
+import { reatomLinkedList } from '../primitives/reatomLinkedList'
 
 import { test, describe, expect } from 'vitest'
 import { atom, computed } from '../core'
@@ -271,6 +267,9 @@ describe('types', () => {
           type: reatomEnum(['A', 'B', 'C']),
           str1: atom(''),
           bool: atom(false),
+          nestedLinkedList: reatomLinkedList((value: number) => (
+            reatomEnum(['A', 'B', 'C'])
+          )),
         }),
       ]),
     }))
@@ -284,6 +283,7 @@ describe('types', () => {
         type: 'A' | 'B' | 'C'
         str1: string
         bool: boolean
+        nestedLinkedList: ("A" | "B" | "C")[]
       }[]
     }
 

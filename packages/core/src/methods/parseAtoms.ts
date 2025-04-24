@@ -3,8 +3,7 @@ import {
   isLinkedListAtom,
   LinkedList,
   LinkedListLikeAtom,
-  LL_PREV,
-  LL_NEXT,
+  LLNode,
 } from '../primitives/reatomLinkedList'
 import { isRec, Rec } from '../utils'
 
@@ -14,8 +13,8 @@ type Builtin = Date | RegExp | Function
 export type ParseAtoms<T> = T extends Action
   ? T
   : T extends LinkedListLikeAtom<infer T>
-    ? T extends LinkedList<infer T>
-      ? Array<ParseAtoms<Omit<T, typeof LL_PREV | typeof LL_NEXT>>>
+    ? T extends LinkedList<LLNode<infer T>>
+      ? Array<ParseAtoms<T>>
       : never
     : T extends Atom<infer T>
       ? ParseAtoms<T>
