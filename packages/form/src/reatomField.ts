@@ -17,7 +17,8 @@ import {
   isDeepEqual,
   withAbort,
   abortVar,
-  wrap
+  wrap,
+  AbortExt
 } from '@reatom/core'
 
 import { toError } from './utils'
@@ -57,9 +58,7 @@ export interface FocusAtom extends RecordAtom<FieldFocus> {
 
 export interface ValidationAtom extends RecordAtom<FieldValidation> {
   /** Action to trigger field validation. */
-  trigger: Action<[], FieldValidation> & {
-    abort: (reason?: string) => void
-  }
+  trigger: Action<[], FieldValidation> & AbortExt
 }
 
 export interface FieldLikeAtom<State = any> extends Atom<State> {
@@ -209,11 +208,23 @@ export const fieldInitValidationLess: FieldValidation = {
   validating: false,
 }
 
-export const reatomField = <State, Value = State>(
+export function reatomField<State, Value = State>(
+  _initState: State,
+  options: string | FieldOptions<State, Value>,
+): FieldAtom<State, Value>;
+
+/** @internal */
+export function reatomField<State, A extends Atom<State>, Value = State>(
+  _initState: State,
+  options: string | FieldOptions<State, Value>,
+  stateAtom: A
+): A & FieldAtom<State, Value>;
+
+export function reatomField <State, Value = State>(
   _initState: State,
   options: string | FieldOptions<State, Value> = {},
-  _stateAtom?: Atom<State>
-): FieldAtom<State, Value> => {
+  stateAtom?: Atom<State>
+): FieldAtom<State, Value> {
   interface This extends FieldAtom<State, Value> { }
 
   const {
@@ -247,7 +258,7 @@ export const reatomField = <State, Value = State>(
     target => ({ value: computed(() => target() ?? !!(validateFn || contract), `${target.name}.value`) })
   )
 
-  const field = _stateAtom ?? atom(_initState, `${name}.field`)
+  const field = stateAtom ?? atom(_initState, `${name}.field`)
   const initState = atom(_initState, `${name}.initState`)
   // TODO: make sure it's ok to copy initState of other atom. 
   // We need to extract initial state from `field` atom here and pass it to `initState` atom
@@ -416,10 +427,7 @@ export const reatomField = <State, Value = State>(
 export const withField = <T extends Atom, Value = AtomState<T>>(
   options: Omit<FieldOptions<AtomState<T>, Value>, 'name'> = {}
 ): ((anAtom: T) => T & FieldAtom<AtomState<T>, Value>) => {
-  return (anAtom: T) => Object.assign(
-    anAtom,
-    reatomField(null as AtomState<T>, { name: anAtom.name, ...options }, anAtom)
-  );
+  return (anAtom: T) => reatomField(null as AtomState<T>, { name: anAtom.name, ...options }, anAtom)
 }
 
 export const isFieldAtom = (thing: any): thing is FieldLikeAtom => thing?.__reatomField === true

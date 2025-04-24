@@ -422,7 +422,7 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
 
 const isFieldArray = (value: any): value is FormFieldArray<any> => value?.__fieldArray;
 
-export { createFieldArray as fieldArray };
+export { createFieldArray as experimental_fieldArray };
 export type ArrayFieldItem<T> = T extends LinkedListLikeAtom<infer _Node> ? AtomState<T['array']>[number] : never;
 
 const resolveFieldByPath = <T extends FormInitState>(

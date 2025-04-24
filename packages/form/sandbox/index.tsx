@@ -1,4 +1,4 @@
-import { ArrayFieldItem, fieldArray, FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
+import { ArrayFieldItem, experimental_fieldArray, FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
 import { reatomBoolean, connectLogger, wrap } from "@reatom/core";
 import { createRoot } from "react-dom/client";
 import { PropsWithChildren, useSyncExternalStore } from 'react';
@@ -22,7 +22,7 @@ const form = reatomForm({
 			street: 'my street',
 			city: 'my city',
 			tags: ['defaultTag', 'defaultTag2'],
-			phoneNumbers: fieldArray({
+			phoneNumbers: experimental_fieldArray({
 				initState: Array<{ number: string, priority: boolean }>(),
 				create: ({ number, priority }, name) => ({
 					number,

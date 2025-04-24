@@ -28,21 +28,19 @@ export const passwordField = reatomField('', {
 })
 
 // Create a form with the fields
-export const loginForm = reatomForm(
-  {
-    username: nameField,
-    password: passwordField
+export const loginForm = reatomForm({
+  username: nameField,
+  password: passwordField
+}, {
+  name: 'form',
+  async onSubmit(state) {
+    //           ^? ParseAtoms<typeof loginForm.fields>
+    const user = await api.login({
+      name: state.username,
+      password: state.password,
+    })
   },
-  {
-    async onSubmit(state) {
-      //           ^? ParseAtoms<typeof loginForm.fields>
-      const user = await api.login({
-        name: state.username,
-        password: state.password,
-      })
-    },
-  }
-)
+})
 ```
 
 ### Form with Schema Validation
@@ -64,6 +62,7 @@ const userForm = reatomForm({
     }
   ])
 }, {
+  name: 'form',
   // Schema validation using zod
   schema: z.object({
     username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -98,7 +97,7 @@ const form = reatomForm({
   age: 25, // Number field
   isActive: true, // Boolean field
   birthDate: new Date(), // Date field
-})
+}, 'form')
 ```
 
 2. **Field Options Object**:
@@ -117,19 +116,19 @@ const form = reatomForm({
     initState: 25, 
     validateOnBlur: true 
   }
-})
+}, 'form')
 ```
 
 3. **Existing `reatomField` Instances**:
 
 ```ts
-const usernameField = reatomField('', 'usernameField')
+const usernameField = reatomField('', 'usernameField').extend(withLocalStorage())
 const ageField = reatomField(25, 'ageField')
 
 const form = reatomForm({
   username: usernameField,
   age: ageField
-})
+}, 'form')
 ```
 You are free to attach existing fields to the form. However, note that in this case, the fields will not receive naming scoped to the form domain. 
 For better debbuging experience, it is recommended to initialize fields directly within the form's field tree, initializing the name similar to how it is done in factories. 
@@ -141,7 +140,7 @@ import { reatomForm, reatomField } from '@reatom/form'
 const form = reatomForm(name => ({
   username: reatomField('', `${name}.username`),
   password: reatomField('', `${name}.password`),
-}))
+}), 'form')
 ```
 
 4. **Atoms Extended with `withField`**:
@@ -153,7 +152,7 @@ import { withField } from '@reatom/form'
 
 const form = reatomForm(name => ({
   active: reatomBoolean(false, `${name}.active`).pipe(withField())
-}))
+}), 'form')
 ```
 
 ## Form API
@@ -287,7 +286,7 @@ const form = reatomForm({
   phones: [
     { initState: '123-456-7890', validateOnChange: true }
   ]
-})
+}, 'form')
 ```
 
 2. **Empty Array with Type Information**:
@@ -296,7 +295,7 @@ const form = reatomForm({
   // Empty array with correct type information
   emails: new Array<string>(),
   contacts: new Array<{ name: string, phone: string }>()
-})
+}, 'form')
 ```
 
 3. **Using fieldArray Function**:
@@ -307,7 +306,7 @@ const form = reatomForm({
   
   // Array with default values
   emails: fieldArray(['default@example.com']),
-})
+}, 'form')
 ```
 
 4. **Complex Array Field Factory**:
@@ -323,7 +322,7 @@ const form = reatomForm({
       priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
     })
   }),
-})
+}, 'form')
 ```
 
 ### Basic Array Field Operations
@@ -335,7 +334,7 @@ import { reatomForm, fieldArray } from '@reatom/form'
 const contactForm = reatomForm({
   name: '',
   emails: fieldArray(['']) // Simple array of string fields
-})
+}, 'form')
 
 // Add a new email field
 contactForm.fields.emails.create('')
@@ -367,7 +366,7 @@ const contactForm = reatomForm({
       priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
     })
   })
-})
+}, 'form')
 
 // Add a new phone number
 contactForm.fields.phoneNumbers.create({ 
@@ -392,7 +391,7 @@ const userForm = reatomForm({
       tags: fieldArray(['home'])
     }
   ])
-})
+}, 'form')
 
 // Access nested fields
 const addresses = userForm.fields.addresses.array()

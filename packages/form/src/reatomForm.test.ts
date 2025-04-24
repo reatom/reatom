@@ -1,12 +1,12 @@
 import { test, expect, describe } from 'vitest'
 import { notify, reatomBoolean } from '@reatom/core'
-import { fieldArray, reatomField, reatomForm, withField } from '.'
+import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
 import { z } from 'zod';
 
 test(`adding and removing fields`, async () => {
 	const form = reatomForm({
 		field: reatomField('initial', 'fieldAtom'),
-		list: fieldArray({
+		list: experimental_fieldArray({
 			initState: ['initial'],
 			create: (param) => reatomField(param, 'fieldAtom')
 		}),
@@ -26,7 +26,7 @@ test('focus states', () => {
 	const form = reatomForm({
 		field1: { initState: '', validate: () => { } },
 		field2: { initState: '', validate: () => { } },
-		list: fieldArray({
+		list: experimental_fieldArray({
 			initState: ['initial'],
 			create: (param) => reatomField(param, 'fieldAtom')
 		}),
@@ -77,7 +77,7 @@ test('validation states', async () => {
 	const form = reatomForm({
 		field1: { initState: '', contract, validateOnChange: true },
 		field2: { initState: '', contract, validateOnChange: true },
-		rest: fieldArray<string>([])
+		rest: experimental_fieldArray<string>([])
 	}, {
 		name: 'testForm',
 		onSubmit: () => { },
@@ -137,7 +137,7 @@ test('validation states', async () => {
 test('default options for fields', async () => {
 	const form = reatomForm({
 		field: { initState: 'initial', validate: () => { } },
-		array: fieldArray(['one', 'two', 'free']),
+		array: experimental_fieldArray(['one', 'two', 'free']),
 	});
 
 	const { field, array } = form.fields;
@@ -188,7 +188,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 				{
 					array: ['hey'],
 					emptyArray: new Array<string>(),
-					emptyArrayExplicit: fieldArray<string>([])
+					emptyArrayExplicit: experimental_fieldArray<string>([])
 				}
 			]
 		})
@@ -224,7 +224,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 					street: '',
 					city: '',
 					tags: ['defaultTag', 'defaultTag2'],
-					phoneNumbers: fieldArray({
+					phoneNumbers: experimental_fieldArray({
 						initState: Array<{ number: string, priority: boolean }>(),
 						create: ({ number, priority }) => ({
 							number,
