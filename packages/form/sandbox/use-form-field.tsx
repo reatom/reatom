@@ -1,21 +1,47 @@
-import { ChangeEvent, HTMLInputTypeAttribute, useCallback, useSyncExternalStore } from "react";
+import { ChangeEvent, useCallback, useSyncExternalStore } from "react";
 import { FieldValidation, FieldAtom } from "../src";
 import { wrap } from "@reatom/core";
 
-type UseFormFieldReturn<State, Value = State> = FieldValidation & {
-	getInputProps: () => {
+type BaseGetInputProps = {
+	onBlur: () => void;
+	onFocus: () => void;
+}
+
+type UseStringFormFieldReturn = FieldValidation & {
+	getInputProps: () => BaseGetInputProps & {
 		value: string;
-		onBlur: () => void;
-		onFocus: () => void;
-		onChange: (evOrVal: ChangeEvent<{ value: Value; } | { checked: Value; }> | Value) => void;
-	};
-};
+		onChange: (ev: ChangeEvent<{ value: string }>) => void
+	}
+}
 
-export function useFormField(model: FieldAtom<boolean>, type: 'checkbox'): UseFormFieldReturn<boolean>;
-export function useFormField<State, Value>(
-	model: FieldAtom<State, Value>, type?: Exclude<'checkbox', string>): UseFormFieldReturn<State, Value>;
+type UseCheckboxFormFieldReturn = FieldValidation & {
+	getInputProps: () => BaseGetInputProps & {
+		checked: boolean;
+		onChange: (ev: ChangeEvent<{ checked: boolean }>) => void
+	}
+}
 
-export function useFormField<State, Value>(model: FieldAtom<State, Value>, type: HTMLInputTypeAttribute = 'text') {
+type UseGenericFormFieldReturn<State, Value = State> = FieldValidation & {
+	getInputProps: () => BaseGetInputProps & {
+		value: State;
+		onChange: (newState: Value) => void
+	}
+}
+type InputType = 'checkbox' | 'text';
+
+export function useFormField<State, Value>(model: FieldAtom<State, Value>): UseGenericFormFieldReturn<State, Value>;
+export function useFormField(model: FieldAtom<boolean>, type: 'checkbox'): UseCheckboxFormFieldReturn;
+// @ts-expect-error idk
+export function useFormField(model: FieldAtom<string>, type: 'text'): UseStringFormFieldReturn;
+
+type UseFormFieldReturn<State, Value = State> =
+	| UseGenericFormFieldReturn<State, Value>
+	| UseCheckboxFormFieldReturn
+	| UseStringFormFieldReturn
+
+export function useFormField<State, Value = State>(
+	model: FieldAtom, type?: InputType
+): UseFormFieldReturn<State, Value> {	
 	const change = wrap(model.change);
 	const focus = wrap(model.focus.in);
 	const blur = wrap(model.focus.out);
@@ -37,7 +63,7 @@ export function useFormField<State, Value>(model: FieldAtom<State, Value>, type:
 	}, [change, type]);
 
 	const getInputProps = useCallback(() => ({
-		value: String(value),
+		value,
 		onChange,
 		onBlur,
 		onFocus,

@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest'
-import { notify, reatomBoolean } from '@reatom/core'
+import { notify, reatomBoolean, sleep } from '@reatom/core'
 import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
 import { z } from 'zod';
 
@@ -74,9 +74,16 @@ test('validation states', async () => {
 			throw new Error('Contract error')
 	}
 
+	const validate = async ({ value }: { value: string }) => {
+		await sleep()
+		if (value === 'errorValue')
+			throw new Error('Contract error')
+	}
+
 	const form = reatomForm({
 		field1: { initState: '', contract, validateOnChange: true },
 		field2: { initState: '', contract, validateOnChange: true },
+		field3: { initState: '', validate, validateOnChange: true },
 		rest: experimental_fieldArray<string>([])
 	}, {
 		name: 'testForm',
@@ -86,7 +93,7 @@ test('validation states', async () => {
 		},
 	})
 
-	const { field1, field2, rest } = form.fields
+	const { field1, field2, field3, rest } = form.fields
 
 	field1.change('value')
 	field2.change('value')
@@ -104,14 +111,31 @@ test('validation states', async () => {
 	expect(form.validation()).toEqual({
 		error: 'Contract error',
 		meta: undefined,
-		triggered: true,
+		triggered: false,
 		validating: false,
+	})
+
+	field3.change('hey')
+	notify()
+
+	expect(form.validation()).toEqual({
+		error: 'Contract error',
+		meta: undefined,
+		triggered: true,
+		validating: true,
 	})
 
 	field2.reset();
 
 	await form.submit().catch(() => { })
 	expect(form.submit.error()?.message).toBe('Form validation error')
+
+	expect(form.validation()).toEqual({
+		error: undefined,
+		meta: undefined,
+		triggered: true,
+		validating: false,
+	})
 
 	const fieldNoValidationTrigger = rest.create('');
 	fieldNoValidationTrigger.change('value');
@@ -288,8 +312,6 @@ describe('init array with reset', () => {
 			]
 		})
 
-		console.log(form.fields.list.array()[0]?.arr.name)
-
 		form.reset({ list: [] })
 
 		expect(form.fields.list.array().length).toEqual(0)
@@ -385,6 +407,7 @@ test('validating through form schema and placing errors to corresponding fields'
 	});
 	
 	form.submit();
+	notify();
 
 	expect(form.fields.age.validation().error).toBeTruthy();
 	expect(form.fields.email.validation().error).toBeTruthy();

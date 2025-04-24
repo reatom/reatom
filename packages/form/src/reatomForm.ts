@@ -21,16 +21,13 @@ import {
   type ParseAtoms,
   entries,
   isObject,
-  isShallowEqual,
   computed,
   withCallHook,
   take,
   wrap,
-  notify,
   withAbort,
-  ifCalled,
   withAsync,
-  createAtom
+  withMemo
 } from '@reatom/core';
 
 import {
@@ -71,7 +68,7 @@ type FormInitStateElement =
   | { [key: string]: FormInitStateElement }
 
 export type FormInitState = {
-  [key: string]: FormInitStateElement | FormInitState 
+  [key: string]: FormInitStateElement | FormInitState
 };
 
 type ExtractFieldArray<T> = {
@@ -187,25 +184,25 @@ export interface BaseFormOptions {
 }
 
 export interface FormOptionsWithSchema<State> extends BaseFormOptions {
-	/** The callback to process valid form data, typed according to the schema */
-	onSubmit?: (state: State) => void | Promise<void>
+  /** The callback to process valid form data, typed according to the schema */
+  onSubmit?: (state: State) => void | Promise<void>
 
-	/** The callback to validate form fields, typed according to the schema */
-	validate?: (state: State) => any
+  /** The callback to validate form fields, typed according to the schema */
+  validate?: (state: State) => any
 
-	/** The schema which supports StandardSchemaV1 specification to validate form fields. */
-	schema: StandardSchemaV1<State>
+  /** The schema which supports StandardSchemaV1 specification to validate form fields. */
+  schema: StandardSchemaV1<State>
 }
 
 export interface FormOptionsWithoutSchema<T extends FormInitState> extends BaseFormOptions {
-	/** The callback to process valid form data, typed according to the raw form state */
-	onSubmit?: (state: FormState<T>) => void | Promise<void>
+  /** The callback to process valid form data, typed according to the raw form state */
+  onSubmit?: (state: FormState<T>) => void | Promise<void>
 
-	/** The callback to validate form fields, typed according to the raw form state */
-	validate?: (state: FormState<T>) => any
+  /** The callback to validate form fields, typed according to the raw form state */
+  validate?: (state: FormState<T>) => any
 
-	/** Schema is explicitly disallowed or undefined in this variant */
-	schema?: undefined
+  /** Schema is explicitly disallowed or undefined in this variant */
+  schema?: undefined
 }
 
 const reatomFormFields = <T extends FormInitState>(
@@ -250,13 +247,13 @@ const reatomFormFields = <T extends FormInitState>(
         });
       }
       else if ('initState' in element) {
-				const field = reatomField(element.initState, {
-					name,
-					...(element as FieldOptions),
-				})
+        const field = reatomField(element.initState, {
+          name,
+          ...(element as FieldOptions),
+        })
 
-				onFieldResolved?.(field)
-				return field
+        onFieldResolved?.(field)
+        return field
       }
       else {
         return reatomFormFields(element, { name, onFieldResolved })
@@ -288,7 +285,7 @@ const computeFieldsList = <T extends FormInitState>(
       const elements = element.array();
       elements.forEach(e => computeElement(e, acc))
     }
-    else if (isFieldAtom(element)) 
+    else if (isFieldAtom(element))
       acc.push(element);
     else if (isObject(element))
       computeFieldsList(element, acc);
@@ -328,47 +325,47 @@ const computeFieldArraysList = <T extends FormInitState>(
 };
 
 export const reatomFieldsSet = <T extends FormInitState>(
-	fields: FormFields<T>,
-	name = named('fieldsSet'),
+  fields: FormFields<T>,
+  name = named('fieldsSet'),
 ) => {
-	const fieldsList = computed(() => computeFieldsList(fields), `${name}.fieldsList`);
+  const fieldsList = computed(() => computeFieldsList(fields), `${name}.fieldsList`);
 
-	const focus = computed((state = fieldInitFocus) => {
-		const formFocus = { ...fieldInitFocus };
+  const focus = computed(() => {
+    const focus = { ...fieldInitFocus };
 
-		for (const field of fieldsList()) {
-			const { active, dirty, touched } = field.focus();
-			formFocus.active ||= active;
-			formFocus.dirty ||= dirty;
-			formFocus.touched ||= touched;
-		}
+    for (const field of fieldsList()) {
+      const { active, dirty, touched } = field.focus();
+      focus.active ||= active;
+      focus.dirty ||= dirty;
+      focus.touched ||= touched;
+    }
 
-		return isShallowEqual(formFocus, state) ? state : formFocus;
-	}, `${name}.focus`);
+    return focus;
+  }, `${name}.focus`).extend(withMemo());
 
-	const validation = computed((state = fieldInitValidation) => {
-		const formValid = { ...fieldInitValidation };
-		formValid.triggered = true;
+  const validation = computed(() => {
+    const validation = { ...fieldInitValidation };
+    validation.triggered = true;
 
-		for (const field of fieldsList()) {
-			const { triggered, validating, error } = field.validation();
+    for (const field of fieldsList()) {
+      const { triggered, validating, error } = field.validation();
 
-			formValid.triggered &&= triggered;
-			formValid.validating ||= validating;
-			formValid.error ||= error;
-		}
+      validation.triggered &&= triggered;
+      validation.validating ||= validating;
+      validation.error ||= error;
+    }
 
-		return isShallowEqual(formValid, state) ? state : formValid;
-	}, `${name}.validation`);
+    return validation;
+  }, `${name}.validation`).extend(withMemo());
 
-	const fieldsState = computed(() => parseAtoms(fields), `${name}.fieldsState`);
+  const fieldsState = computed(() => parseAtoms(fields), `${name}.fieldsState`);
 
-	return {
-		fields,
-		fieldsState,
-		focus,
-		validation,
-	};
+  return {
+    fields,
+    fieldsState,
+    focus,
+    validation,
+  };
 };
 
 interface FormFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement> {
@@ -458,23 +455,23 @@ const resolveFieldByPath = <T extends FormInitState>(
 }
 
 export function reatomForm<T extends FormInitState, SchemaState>(
-	initState: T | ((name: string) => T),
-	optionsWithSchema: FormOptionsWithSchema<SchemaState>
+  initState: T | ((name: string) => T),
+  optionsWithSchema: FormOptionsWithSchema<SchemaState>
 ): Form<T>
 
 export function reatomForm<T extends FormInitState>(
-	initState: T | ((name: string) => T),
-	options?: FormOptionsWithoutSchema<T>
+  initState: T | ((name: string) => T),
+  options?: FormOptionsWithoutSchema<T>
 ): Form<T>
 
 export function reatomForm<T extends FormInitState>(
-	initState: T | ((name: string) => T),
-	name?: string
+  initState: T | ((name: string) => T),
+  name?: string
 ): Form<T>
 
 export function reatomForm<T extends FormInitState, SchemaState>(
-	initState: T | ((name: string) => T),
-	options: string | FormOptionsWithSchema<SchemaState> | FormOptionsWithoutSchema<T> = {},
+  initState: T | ((name: string) => T),
+  options: string | FormOptionsWithSchema<SchemaState> | FormOptionsWithoutSchema<T> = {},
 ): Form<T> {
   const {
     name = named('form'),
@@ -490,22 +487,22 @@ export function reatomForm<T extends FormInitState, SchemaState>(
       ? ({ name: options })
       : options;
 
-  const fields = reatomFormFields(initState instanceof Function ? initState(name) : initState, {
+  const fields = reatomFormFields(typeof initState == 'function' ? initState(name) : initState, {
     name: `${name}.fields`,
     onFieldResolved: (field) => {
-      if(field.validateOnChange() === undefined) 
+      if (field.validateOnChange() === undefined)
         field.validateOnChange(validateOnChange);
 
-      if(field.validateOnBlur() === undefined) 
+      if (field.validateOnBlur() === undefined)
         field.validateOnBlur(validateOnBlur);
 
-      if(field.keepErrorDuringValidating() === undefined)
+      if (field.keepErrorDuringValidating() === undefined)
         field.keepErrorDuringValidating(keepErrorDuringValidating);
 
-      if(field.keepErrorOnChange() === undefined)
+      if (field.keepErrorOnChange() === undefined)
         field.keepErrorOnChange(keepErrorOnChange);
 
-			if (schema) {
+      if (schema) {
         field.shouldValidate(true);
 
         field.validation.trigger.extend(
@@ -514,10 +511,10 @@ export function reatomForm<T extends FormInitState, SchemaState>(
               checkSchemaValidation(field);
           })
         )
-			}
-		},
+      }
+    },
   });
-  
+
   const {
     fieldsState,
     focus,
@@ -539,7 +536,7 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     submitted(false);
     submit.error.reset();
 
-    if(!isCausedBy(submit))
+    if (!isCausedBy(submit))
       submit.abort(`${name}.reset`);
   }, `${name}.reset`);
 
@@ -567,34 +564,34 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     reinitState(initState, fields);
   }, `${name}.init`);
 
-	const checkSchemaValidation = action(async (triggerOnlyFor?: Atom) => {
+  const checkSchemaValidation = action(async (triggerOnlyFor?: Atom) => {
     if (!schema)
-			throw new Error('Triggering schema validation without schema');
-    
+      throw new Error('Triggering schema validation without schema');
+
     const state = fieldsState();
-		const validation = schema['~standard'].validate(state);
-		const result = validation instanceof Promise ? await wrap(validation) : validation;
+    const validation = schema['~standard'].validate(state);
+    const result = validation instanceof Promise ? await wrap(validation) : validation;
 
-		if (result.issues?.length) {
-			for (const issue of result.issues) {
-				const field = resolveFieldByPath(issue.path, fields);
-				if (!field || (triggerOnlyFor && triggerOnlyFor !== field))
-					continue;
+    if (result.issues?.length) {
+      for (const issue of result.issues) {
+        const field = resolveFieldByPath(issue.path, fields);
+        if (!field || (triggerOnlyFor && triggerOnlyFor !== field))
+          continue;
 
-				field.validation.merge({
-					error: issue.message,
-					meta: undefined,
-					triggered: true,
-					validating: false,
-				});
+        field.validation.merge({
+          error: issue.message,
+          meta: undefined,
+          triggered: true,
+          validating: false,
+        });
 
-				if (triggerOnlyFor)
-					break;
-			}
-		}
+        if (triggerOnlyFor)
+          break;
+      }
+    }
 
-		return result;
-	}, `${name}.checkSchemaValidation`);
+    return result;
+  }, `${name}.checkSchemaValidation`);
 
   const submit = action(async () => {
     for (const field of fieldsList()) {
@@ -602,12 +599,10 @@ export function reatomForm<T extends FormInitState, SchemaState>(
         field.validation.trigger();
     }
 
-    notify();
-
-    if(validation().validating) {
+    if (validation().validating) {
       await wrap(
         (async () => {
-          while(validation().validating)
+          while (validation().validating)
             await take(validation, `${name}.onSubmit.validationTake`)
         })()
       )
@@ -618,17 +613,17 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 
     let state: any
 
-		if (schema) {
-			const schemaValidationResult = await wrap(checkSchemaValidation());
-			if (!('value' in schemaValidationResult))
-				throw new Error(schemaValidationResult.issues[0]?.message ?? 'Unknown schema error');
+    if (schema) {
+      const schemaValidationResult = await wrap(checkSchemaValidation());
+      if (!('value' in schemaValidationResult))
+        throw new Error(schemaValidationResult.issues[0]?.message ?? 'Unknown schema error');
 
-			state = schemaValidationResult.value;
-		}
-		else {
-			state = fieldsState();
-		}
-    
+      state = schemaValidationResult.value;
+    }
+    else {
+      state = fieldsState();
+    }
+
     if (validate) {
       const promise = validate(state);
       if (promise instanceof Promise)
@@ -646,29 +641,13 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     if (resetOnSubmit)
       reset();
   }, `${name}.onSubmit`).extend(
-    withAsync(),
-    withAbort(),
-    target => {
-      const error = createAtom<Error | undefined>({
-        initState: undefined,
-        computed: (state) => {
-          ifCalled(target.onFulfill, () => {
-            state = undefined;
-          })
-          ifCalled(target.onReject, ({ error }) => {
-            state = error;
-          })
-          return state;
-        }
-      }, `${target.name}.error`).actions((target) => ({
-        reset: () => target(undefined)
-      }))
-
-      target.onFulfill.extend(withCallHook(() => error()))
-      target.onReject.extend(withCallHook(() => error()))
-
-      return { error }
-    }
+    withAsync({ resetError: 'onFulfill' }),
+    (target) => ({ 
+      error: target.error.actions(target => ({ 
+        reset: () => target(undefined) 
+      })) 
+    }),
+    withAbort()
   );
 
   return {

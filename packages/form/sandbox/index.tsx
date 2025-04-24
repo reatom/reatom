@@ -56,7 +56,7 @@ const vStack = { display: 'flex', flexDirection: 'column', gap: '1rem' } as cons
 
 function Form() {
 	const submit = wrap(form.submit);
-	const usernameField = useFormField(form.fields.username);
+	const usernameField = useFormField(form.fields.username, 'text');
 
 	return (
 		<div
@@ -125,9 +125,9 @@ function AddressesField() {
 type AddressFieldType = ArrayFieldItem<typeof form.fields.addresses>;
 
 function AddressField({ model }: { model: AddressFieldType }) {
-	const countryField = useFormField(model.country);
-	const streetField = useFormField(model.street);
-	const cityField = useFormField(model.city);
+	const countryField = useFormField(model.country , 'text');
+	const streetField = useFormField(model.street, 'text');
+	const cityField = useFormField(model.city, 'text');
 
 	return (
 		<div style={{ ...vStack, gap: '0.5rem', border: '1px solid black', padding: '0.5rem' }}>
@@ -177,7 +177,7 @@ function TagsField({ model }: { model: FormFieldArrayAtom<string, string> }) {
 }
 
 function TagField({ model, children }: PropsWithChildren<{ model: FieldAtom<string> }>) {
-	const field = useFormField(model);
+	const field = useFormField(model, 'text');
 
 	return (
 		<div
@@ -221,7 +221,7 @@ function PhoneNumbersField({ model }: { model: AddressFieldType['phoneNumbers'] 
 type PhoneNumberFieldType = ArrayFieldItem<AddressFieldType['phoneNumbers']>
 
 function PhoneNumberField({ model, children }: PropsWithChildren<{ model: PhoneNumberFieldType }>) {
-	const numberField = useFormField(model.number);
+	const numberField = useFormField(model.number, 'text');
 	const priorityField = useFormField(model.priority, 'checkbox');
 
 	return (
