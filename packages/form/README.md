@@ -155,116 +155,6 @@ const form = reatomForm(name => ({
 }), 'form')
 ```
 
-## Form API
-
-The form created with `reatomForm` has the following properties:
-
-- `fields`: Object containing all the fields created for this form.
-- `fieldsState`: Atom with the state of the form, computed from all the fields.
-- `focus`: Atom with focus state of the form, computed from all the fields.
-- `init`: Action to initialize the form with a partial state.
-- `reset`: Action to reset the state, the value, the validation, and the focus states.
-- `submit`: Submit async handler. It checks the validation of all the fields, calls the form's `validate` options handler, and then the `onSubmit` options handler.
-- `submitted`: Atom indicating if the form has been submitted.
-- `validation`: Atom with validation state of the form, computed from all the fields.
-
-### Form Options
-
-- `name`: The name of the form (optional, auto-generated if not provided).
-- `onSubmit`: The callback to process valid form data.
-- `resetOnSubmit`: Should reset the state after successful submit? (default: `true`).
-- `validate`: The callback to validate form fields.
-- `schema`: A schema for validation (supports StandardSchemaV1 specification, like Zod, Valibot, etc).
-- `validateOnChange`: Defines if validation should be triggered with every field change by default for all fields (default: `false`).
-- `validateOnBlur`: Defines if validation should be triggered on field blur by default for all fields (default: `false`).
-- `keepErrorDuringValidating`: Defines the default reset behavior of the validation state during async validation for all fields (default: `false`).
-- `keepErrorOnChange`: Defines the default reset behavior of the validation state on field change for all fields (default: `!validateOnChange`).
-
-### Form Validation Behavior
-
-The `form.submit` call triggers the validation process of all related fields. If a schema is provided, it will be used to validate the form state. After that, the validation function from the options will be called. If there are no validation errors, the `onSubmit` callback in the options is called.
-
-You can track the submitting process in progress using `form.submit.statusesAtom`.
-
-## Field API
-
-A field created with `reatomField` is an atom, and you can change it like a regular atom by calling it with the new value or reducer callback.
-
-The field stores "state" data. However, there is an additional `value` atom that stores "value" data, which could be a different kind of state related to the UI. For example, for a select field, you might want to store the `string` "state" and `{ value: string, label: string }` "value," which will be used in the "Select" UI component.
-
-Here is the list of all additional properties and methods:
-
-- `initState`: The initial state of the field.
-- `focus`: Record atom with all related focus statuses:
-  - `active`: The field is focused.
-  - `dirty`: The field's state is not equal to the initial state.
-  - `touched`: The field has gained and lost focus at some point.
-- `validation`: Record atom with all related validation statuses:
-  - `error`: The field validation error text, undefined if the field is valid.
-  - `meta`: Additional validation metadata.
-  - `triggered`: The validation actuality status.
-  - `validating`: The field async validation status.
-- `value`: Atom with the "value" data, computed by the `fromState` option.
-- `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
-- `focus.in`: Action for handling field focus.
-- `focus.out`: Action for handling field blur.
-- `reset`: Action to reset the state, the value, the validation, and the focus.
-- `validation.trigger`: Action to trigger field validation.
-- `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation.
-- `keepErrorOnChange`: Defines the reset behavior of the validation state on field change.
-- `validateOnChange`: Defines if the validation should be triggered with every field change.
-- `validateOnBlur`: Defines if the validation should be triggered on the field blur.
-
-By combining these statuses you can derive additional meta information:
-
-- `!touched && active` - the field got focus for the first time
-- `touched && active` - the field got focus again
-
-### Field Options
-
-- `name`: The name of the field (optional, auto-generated if not provided).
-- `filter`: The optional callback to filter "value" changes (from the 'change' action). It should return 'false' to skip the update. By default, it always returns `true`.
-- `fromState`: The optional callback to compute the "value" data from the "state" data. By default, it returns the "state" data without any transformations.
-- `isDirty`: The optional callback used to determine whether the "value" has changed. Accepts context, the new value and the old value. By default, it utilizes `isDeepEqual` from reatom/utils.
-- `toState`: The optional callback to transform the "state" data from the "value" data from the `change` action. By default, it returns the "value" data without any transformations.
-- `validate`: The optional callback to validate the field.
-- `contract`: The optional callback to validate field contract.
-- `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation (default: `false`).
-- `keepErrorOnChange`: Defines the reset behavior of the validation state on field change (default: `!validateOnChange`).
-- `validateOnBlur`: Defines if the validation should be triggered on the field blur (default: `false`).
-- `validateOnChange`: Defines if the validation should be triggered with every field change (default: `false`).
-
-### Field Validation Behavior
-
-You can set a validation function and manage validation triggers using the options. The validation flow works as follows:
-
-1. When validation is triggered, the system checks if a validation function exists
-2. If no validation function exists, the field is marked as valid
-3. If a validation function exists, it is executed
-4. If the validator throws an error, the field is marked as invalid with the error message
-5. If the validator returns a promise (async validation):
-   - The field is marked as validating
-   - If `keepErrorDuringValidating` is true, the previous error is preserved during validation
-   - If `keepErrorDuringValidating` is false, the error is cleared during validation
-   - When the promise resolves, the field is marked as valid
-   - When the promise rejects, the field is marked as invalid with the error message
-
-```mermaid
-flowchart TB
-    trigger([Validation triggered])
-    trigger --> hasfunction{Has validation function?}
-    hasfunction --> |Yes| validate{Validate}
-    hasfunction --> |No| valid[error: undefined, valid: true, validating: false]
-    validate --> |Validator threw| invalid["return {error: string, valid: true, validating: false}"]
-    validate --> |Validator returned a promise| promise[Promise]
-    validate --> |Validator returned any other value| valid
-    promise --> |Pending| keepErrorDuringValidating{keepErrorDuringValidating}
-    keepErrorDuringValidating --> |true| keepErrorDuringValidatingTrue["set {error: previousError, valid: true, validating: true}"]
-    keepErrorDuringValidating --> |false| keepErrorDuringValidatingFalse["set {error: undefined, valid: true, validating: true}"]
-    promise --> |Fulfilled| valid
-    promise --> |Rejected| invalid
-```
-
 ## Array Fields
 
 The `fieldArray` function allows you to create dynamic arrays of fields that can be added, removed, and manipulated.
@@ -396,4 +286,158 @@ const userForm = reatomForm({
 // Access nested fields
 const addresses = userForm.fields.addresses.array()
 const firstAddressTags = addresses[0]?.tags.array()
+```
+
+## Fields sets
+
+Field sets allow you to group related fields together and manage them as a single unit. This is useful for organizing complex forms into logical sections, such as steps in a multi-step form, or for tracking the combined state of multiple fields without creating a full form.
+
+### Creating and Using Field Sets in Multi-step Forms
+
+A common use case for field sets is creating multi-step forms where each step has its own validation and state management:
+
+```ts
+import { reatomForm, reatomFieldSet } from '@reatom/form'
+import { computed } from '@reatom/core'
+
+const checkoutForm = reatomForm({
+  personal: {
+    firstName: '',
+    lastName: '',
+    email: {
+      initState: '',
+      validate: ({ state }) => invariant(state.includes('@'), 'Invalid email format')
+    }
+  },
+  shipping: {
+    address: '',
+    city: '',
+    zipCode: {
+      initState: '',
+      validate: ({ state }) => invariant(/^\d{5}$/.test(state), 'Invalid zip code format')
+    }
+  }
+}, 'checkoutForm')
+
+// Create field sets for each step
+const personalInfoSet = reatomFieldSet(checkoutForm.fields.personalInfo, 'checkoutForm.personalInfoSet')
+const shippingInfoSet = reatomFieldSet(checkoutForm.fields.shippingInfo, 'checkoutForm.shippingInfoSet')
+```
+
+Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
+
+- `fieldsState`: The combined state of all fields in the set
+- `validation`: The combined validation status of all fields in the set
+- `focus`: The combined focus status of all fields in the set
+
+Field sets are particularly useful for multi-step forms because they allow you to validate each step independently before allowing the user to proceed to the next step.
+
+## Form API
+
+The form created with `reatomForm` has the following properties:
+
+- `fields`: Object containing all the fields created for this form.
+- `fieldsState`: Atom with the state of the form, computed from all the fields.
+- `focus`: Atom with focus state of the form, computed from all the fields.
+- `init`: Action to initialize the form with a partial state.
+- `reset`: Action to reset the state, the value, the validation, and the focus states.
+- `submit`: Submit async handler. It checks the validation of all the fields, calls the form's `validate` options handler, and then the `onSubmit` options handler.
+- `submitted`: Atom indicating if the form has been submitted.
+- `validation`: Atom with validation state of the form, computed from all the fields.
+
+### Form Options
+
+- `name`: The name of the form (optional, auto-generated if not provided).
+- `onSubmit`: The callback to process valid form data.
+- `resetOnSubmit`: Should reset the state after successful submit? (default: `true`).
+- `validate`: The callback to validate form fields.
+- `schema`: A schema for validation (supports StandardSchemaV1 specification, like Zod, Valibot, etc).
+- `validateOnChange`: Defines if validation should be triggered with every field change by default for all fields (default: `false`).
+- `validateOnBlur`: Defines if validation should be triggered on field blur by default for all fields (default: `false`).
+- `keepErrorDuringValidating`: Defines the default reset behavior of the validation state during async validation for all fields (default: `false`).
+- `keepErrorOnChange`: Defines the default reset behavior of the validation state on field change for all fields (default: `!validateOnChange`).
+
+### Form Validation Behavior
+
+The `form.submit` call triggers the validation process of all related fields. If a schema is provided, it will be used to validate the form state. After that, the validation function from the options will be called. If there are no validation errors, the `onSubmit` callback in the options is called.
+
+You can track the submitting process in progress using `form.submit.statusesAtom`.
+
+## Field API
+
+A field created with `reatomField` is an atom, and you can change it like a regular atom by calling it with the new value or reducer callback.
+
+The field stores "state" data. However, there is an additional `value` atom that stores "value" data, which could be a different kind of state related to the UI. For example, for a select field, you might want to store the `string` "state" and `{ value: string, label: string }` "value," which will be used in the "Select" UI component.
+
+Here is the list of all additional properties and methods:
+
+- `initState`: The initial state of the field.
+- `focus`: Record atom with all related focus statuses:
+  - `active`: The field is focused.
+  - `dirty`: The field's state is not equal to the initial state.
+  - `touched`: The field has gained and lost focus at some point.
+- `validation`: Record atom with all related validation statuses:
+  - `error`: The field validation error text, undefined if the field is valid.
+  - `meta`: Additional validation metadata.
+  - `triggered`: The validation actuality status.
+  - `validating`: The field async validation status.
+- `value`: Atom with the "value" data, computed by the `fromState` option.
+- `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
+- `focus.in`: Action for handling field focus.
+- `focus.out`: Action for handling field blur.
+- `reset`: Action to reset the state, the value, the validation, and the focus.
+- `validation.trigger`: Action to trigger field validation.
+- `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation.
+- `keepErrorOnChange`: Defines the reset behavior of the validation state on field change.
+- `validateOnChange`: Defines if the validation should be triggered with every field change.
+- `validateOnBlur`: Defines if the validation should be triggered on the field blur.
+
+By combining these statuses you can derive additional meta information:
+
+- `!touched && active` - the field got focus for the first time
+- `touched && active` - the field got focus again
+
+### Field Options
+
+- `name`: The name of the field (optional, auto-generated if not provided).
+- `filter`: The optional callback to filter "value" changes (from the 'change' action). It should return 'false' to skip the update. By default, it always returns `true`.
+- `fromState`: The optional callback to compute the "value" data from the "state" data. By default, it returns the "state" data without any transformations.
+- `isDirty`: The optional callback used to determine whether the "value" has changed. Accepts context, the new value and the old value. By default, it utilizes `isDeepEqual` from reatom/utils.
+- `toState`: The optional callback to transform the "state" data from the "value" data from the `change` action. By default, it returns the "value" data without any transformations.
+- `validate`: The optional callback to validate the field.
+- `contract`: The optional callback to validate field contract.
+- `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation (default: `false`).
+- `keepErrorOnChange`: Defines the reset behavior of the validation state on field change (default: `!validateOnChange`).
+- `validateOnBlur`: Defines if the validation should be triggered on the field blur (default: `false`).
+- `validateOnChange`: Defines if the validation should be triggered with every field change (default: `false`).
+
+### Field Validation Behavior
+
+You can set a validation function and manage validation triggers using the options. The validation flow works as follows:
+
+1. When validation is triggered, the system checks if a validation function exists
+2. If no validation function exists, the field is marked as valid
+3. If a validation function exists, it is executed
+4. If the validator throws an error, the field is marked as invalid with the error message
+5. If the validator returns a promise (async validation):
+   - The field is marked as validating
+   - If `keepErrorDuringValidating` is true, the previous error is preserved during validation
+   - If `keepErrorDuringValidating` is false, the error is cleared during validation
+   - When the promise resolves, the field is marked as valid
+   - When the promise rejects, the field is marked as invalid with the error message
+
+```mermaid
+flowchart TB
+    trigger([Validation triggered])
+    trigger --> hasfunction{Has validation function?}
+    hasfunction --> |Yes| validate{Validate}
+    hasfunction --> |No| valid[error: undefined, valid: true, validating: false]
+    validate --> |Validator threw| invalid["return {error: string, valid: true, validating: false}"]
+    validate --> |Validator returned a promise| promise[Promise]
+    validate --> |Validator returned any other value| valid
+    promise --> |Pending| keepErrorDuringValidating{keepErrorDuringValidating}
+    keepErrorDuringValidating --> |true| keepErrorDuringValidatingTrue["set {error: previousError, valid: true, validating: true}"]
+    keepErrorDuringValidating --> |false| keepErrorDuringValidatingFalse["set {error: undefined, valid: true, validating: true}"]
+    promise --> |Fulfilled| valid
+    promise --> |Rejected| invalid
 ```

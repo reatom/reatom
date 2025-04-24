@@ -10,14 +10,11 @@ import {
   isAtom,
   isCausedBy,
   LLNode,
-  LL_NEXT,
-  LL_PREV,
   LinkedList,
   LinkedListAtom,
   LinkedListLikeAtom,
   isLinkedListAtom,
   reatomLinkedList,
-  parseAtoms,
   type ParseAtoms,
   entries,
   isObject,
@@ -26,16 +23,13 @@ import {
   take,
   wrap,
   withAbort,
-  withAsync,
-  withMemo
+  withAsync
 } from '@reatom/core';
 
 import {
   type FieldAtom,
   type FieldFocus,
   type FieldValidation,
-  fieldInitFocus,
-  fieldInitValidation,
   reatomField,
   type FieldOptions,
   FieldLikeAtom,
@@ -43,6 +37,7 @@ import {
 } from './reatomField';
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { reatomFieldSet } from './reatomFieldSet';
 
 export interface FormFieldOptions<State = any, Value = State>
   extends FieldOptions<State, Value> {
@@ -81,7 +76,7 @@ export type FormFieldArrayAtom<Param, Node extends FormInitStateElement = FormIn
     initState: Atom<LinkedList<LLNode<FormFieldElement<Node>>>>
   }
 
-type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> =
+export type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> =
   T extends FieldLikeAtom
   ? T
   : T extends Date
@@ -113,15 +108,8 @@ export type FormState<T extends FormInitState = FormInitState> = ParseAtoms<
 export type DeepPartial<T, Skip = never> = {
   [K in keyof T]?: T[K] extends Skip ? T[K] : T[K] extends Rec ? DeepPartial<T[K], Skip> : T[K];
 };
-
-type DeepExtractLLNode<T> = {
-  [K in keyof T]: T[K] extends Array<infer LLNode>
-  ? Array<DeepExtractLLNode<Omit<LLNode, typeof LL_NEXT | typeof LL_PREV>>>
-  : T[K]
-}
-
 export type FormPartialState<T extends FormInitState = FormInitState> =
-  DeepPartial<DeepExtractLLNode<FormState<T>>, Array<unknown>>;
+  DeepPartial<FormState<T>, Array<unknown>>;
 
 export interface SubmitAction extends Action<[], Promise<void>> {
   error: Computed<Error | undefined>;
@@ -273,32 +261,6 @@ const reatomFormFields = <T extends FormInitState>(
   return fields;
 };
 
-const computeFieldsList = <T extends FormInitState>(
-  fields: FormFields<T>,
-  acc: Array<FieldAtom> = []
-): Array<FieldAtom> => {
-  const computeElement = (
-    element: FormFieldElement,
-    acc: Array<FieldAtom> = [],
-  ) => {
-    if (isLinkedListAtom(element)) {
-      const elements = element.array();
-      elements.forEach(e => computeElement(e, acc))
-    }
-    else if (isFieldAtom(element))
-      acc.push(element);
-    else if (isObject(element))
-      computeFieldsList(element, acc);
-
-    return acc;
-  }
-
-  for (const [_, field] of entries(fields))
-    acc.push(...computeElement(field));
-
-  return acc;
-};
-
 const computeFieldArraysList = <T extends FormInitState>(
   fields: FormFields<T>,
   acc: Array<FormFieldArrayAtom<unknown>> = []
@@ -322,50 +284,6 @@ const computeFieldArraysList = <T extends FormInitState>(
   }
 
   return acc;
-};
-
-export const reatomFieldsSet = <T extends FormInitState>(
-  fields: FormFields<T>,
-  name = named('fieldsSet'),
-) => {
-  const fieldsList = computed(() => computeFieldsList(fields), `${name}.fieldsList`);
-
-  const focus = computed(() => {
-    const focus = { ...fieldInitFocus };
-
-    for (const field of fieldsList()) {
-      const { active, dirty, touched } = field.focus();
-      focus.active ||= active;
-      focus.dirty ||= dirty;
-      focus.touched ||= touched;
-    }
-
-    return focus;
-  }, `${name}.focus`).extend(withMemo());
-
-  const validation = computed(() => {
-    const validation = { ...fieldInitValidation };
-    validation.triggered = true;
-
-    for (const field of fieldsList()) {
-      const { triggered, validating, error } = field.validation();
-
-      validation.triggered &&= triggered;
-      validation.validating ||= validating;
-      validation.error ||= error;
-    }
-
-    return validation;
-  }, `${name}.validation`).extend(withMemo());
-
-  const fieldsState = computed(() => parseAtoms(fields), `${name}.fieldsState`);
-
-  return {
-    fields,
-    fieldsState,
-    focus,
-    validation,
-  };
 };
 
 interface FormFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement> {
@@ -516,12 +434,12 @@ export function reatomForm<T extends FormInitState, SchemaState>(
   });
 
   const {
+    fieldsList,
     fieldsState,
     focus,
     validation
-  } = reatomFieldsSet(fields, name);
+  } = reatomFieldSet(fields, name);
 
-  const fieldsList = computed(() => computeFieldsList(fields), `${name}.fieldsList`);
   const fieldArraysList = computed(() => computeFieldArraysList(fields), `${name}.fieldArraysList`);
 
   const submitted = atom(false, `${name}.submitted`);

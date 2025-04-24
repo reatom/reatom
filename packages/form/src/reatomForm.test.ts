@@ -315,9 +315,7 @@ describe('init array with reset', () => {
 		form.reset({ list: [] })
 
 		expect(form.fields.list.array().length).toEqual(0)
-
-		form.fields.dummy.change(2);
-
+		
 		form.reset({ 
 			list: [
 				{ kek: 'lel', arr: ['1'] }
