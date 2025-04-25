@@ -113,3 +113,30 @@ describe('read value', () => {
   bench('state', () => {valueState})
   bench('atom', () => {valueAtom()})
 })
+
+describe('object loops', () => {
+  const obj = {
+    'aria-label': 'label',
+    'on:click': () => {},
+    checked: false,
+    class: 'hello',
+    value: 123,
+  }
+  const fn = (key: any, value: any) => `${key}: ${value};`
+
+  bench('for..in', () => {
+    for (let key in obj) fn(key, obj[key])
+  })
+  bench('for..of + Object.keys', () => {
+    for (let key of Object.keys(obj)) fn(key, obj[key])
+  })
+  bench('for..of + Object.entries', () => {
+    for (let [key, val] of Object.entries(obj)) fn(key, val)
+  })
+  bench('forEach + Object.keys', () => {
+    Object.keys(obj).forEach((key) => fn(key, obj[key]))
+  })
+  bench('forEach + Object.entries', () => {
+    Object.entries(obj).forEach(([key, val]) => fn(key, val))
+  })
+})

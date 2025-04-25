@@ -11,6 +11,8 @@ export type ClassNameValue = MaybeGetter<
   | (() => ClassNameValue)
 >
 
+// @see https://github.com/JedWatson/classnames
+// @see https://vuejs.org/guide/essentials/class-and-style.html#binding-html-classes
 export let cn = (value: ClassNameValue, name = named('classNameAtom')): Computed<string> =>
   computed(() => parseClasses(value), name)
 

@@ -167,6 +167,26 @@ let booleanAttributes = new Set([
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
 
+/**
+ * @todo Explore adding elements to a DocumentFragment before adding them to a Document.
+ * @see https://www.measurethat.net/Benchmarks/Show/13274
+ */
+let walk = (
+  dom: DomApis,
+  el: JSX.Element,
+  child: JSX.DOMAttributes<JSX.Element>['children'],
+) => {
+  if (Array.isArray(child)) {
+    for (let i = 0; i < child.length; i++) walk(dom, el, child[i])
+  } else if (isLinkedListAtom(child)) {
+    walkLinkedList(dom, el, child as any)
+  } else if (isAtom(child)) {
+    el.append(walkAtom(dom, child))
+  } else if (!isSkipped(child)) {
+    el.append(child as Node | string)
+  }
+}
+
 let walkLinkedList = (
   dom: DomApis,
   el: JSX.Element,
@@ -459,63 +479,37 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
 
   if ('children' in props) children = props.children
 
-  for (let k in props) {
-    if (k !== 'children' && k !== 'element') {
-      let prop = props[k]
-      if (k === 'ref') {
-        ensureMeta(element).mount = () => prop(element)
-      } else if (isAtom(prop) && !isAction(prop)) {
-        if (k.startsWith('model:')) {
-          let name = (k = k.slice(6)) as 'value' | 'valueAsNumber' | 'checked'
-          set(dom, element, 'on:input', (event: any) => {
-            ;(prop as Atom)(
-              name === 'valueAsNumber'
-                ? +event.target.value
-                : event.target[name],
-            )
-          })
-          if (k === 'valueAsNumber') {
-            k = 'value'
+  for (let key in props) {
+    if (key !== 'children' && key !== 'element') {
+      let value = props[key]
+      if (key === 'ref') {
+        ensureMeta(element).mount = () => value(element)
+      } else if (isAtom(value) && !isAction(value)) {
+        if (key.startsWith('model:')) {
+          let k = key = key.slice(6) as 'value' | 'valueAsNumber' | 'checked'
+          let listener = key === 'valueAsNumber'
+            ? (event: any) => value(+event.target.value)
+            : (event: any) => value(event.target[k])
+          set(dom, element, 'on:input', listener)
+          if (key === 'valueAsNumber') {
+            key = 'value'
             set(dom, element, 'type', 'number')
-          }
-          if (k === 'checked') {
+          } else if (key === 'checked') {
             set(dom, element, 'type', 'checkbox')
           }
-          k = 'prop:' + k
+          key = 'prop:' + key
         }
 
-        unlink(element, () => prop.subscribe(k === '$spread'
-          ? (v) => Object.entries(v).forEach(([k, v]) => set(dom, element, k, v))
-          : (v) => set(dom, element, k, v)))
+        unlink(element, () => value.subscribe(key === '$spread'
+          ? (val) => {for (let k in val) set(dom, element, k, val[k])}
+          : (val) => set(dom, element, key, val)))
       } else {
-        set(dom, element, k, prop)
+        set(dom, element, key, value)
       }
     }
   }
 
-  /**
-   * @todo Explore adding elements to a DocumentFragment before adding them to a Document.
-   * @see https://www.measurethat.net/Benchmarks/Show/13274
-   */
-  let walk = (child: JSX.DOMAttributes<JSX.Element>['children']) => {
-    if (Array.isArray(child)) {
-      for (let i = 0; i < child.length; i++) walk(child[i])
-    } else if (isLinkedListAtom(child)) {
-      walkLinkedList(
-        dom,
-        element,
-        child as LinkedListLikeAtom<LinkedList<LLNode<any>>>,
-      )
-    } else if (isAtom(child)) {
-      element.append(walkAtom(dom, child))
-    } else if (!isSkipped(child)) {
-      element.append(child as Node | string)
-    }
-  }
-
-  for (let i = 0; i < children.length; i++) {
-    walk(children[i])
-  }
+  walk(dom, element, children)
 
   return element
 }
