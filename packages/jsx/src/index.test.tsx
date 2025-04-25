@@ -609,6 +609,22 @@ test('class and className attribute', () =>
     expect(ref2.hasAttribute('class')).toBe(true)
   }))
 
+test('class handles complex correctly', () =>
+  context.start(async () => {
+    const isBAtom = atom(true)
+    const stringAtom = atom('d')
+    const element = <div class={() => ['a', { b: isBAtom }, ['c'], stringAtom, () => 'e']}></div>
+
+    mount(parent(), element)
+    await wrap(sleep())
+    expect(element.className).toBe('a b c d e')
+
+    isBAtom(false)
+    stringAtom('dd')
+    await wrap(sleep())
+    expect(element.className).toBe('a c dd e')
+  }))
+
 test('ref mount and unmount callbacks order', () =>
   context.start(async () => {
     const order: number[] = []

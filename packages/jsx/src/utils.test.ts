@@ -1,30 +1,30 @@
 import { test, expect, describe } from 'vitest'
 import { atom, clearStack, context } from '@reatom/core'
-import { cn } from './utils'
+import { reatomClassName } from './utils'
 
 clearStack()
 
 describe('parseClasses', () => {
   test('handles falsy correctly', () =>
     context.start(() => {
-      expect(cn('')()).toBe('')
-      expect(cn(0)()).toBe('')
-      expect(cn(1)()).toBe('')
-      expect(cn(NaN)()).toBe('')
-      expect(cn(false)()).toBe('')
-      expect(cn(true)()).toBe('')
-      expect(cn(null)()).toBe('')
-      expect(cn(undefined)()).toBe('')
-      expect(cn({})()).toBe('')
-      expect(cn([])()).toBe('')
-      expect(cn(atom(undefined))()).toBe('')
-      expect(cn(() => undefined)()).toBe('')
+      expect(reatomClassName('')()).toBe('')
+      expect(reatomClassName(0)()).toBe('')
+      expect(reatomClassName(1)()).toBe('')
+      expect(reatomClassName(NaN)()).toBe('')
+      expect(reatomClassName(false)()).toBe('')
+      expect(reatomClassName(true)()).toBe('')
+      expect(reatomClassName(null)()).toBe('')
+      expect(reatomClassName(undefined)()).toBe('')
+      expect(reatomClassName({})()).toBe('')
+      expect(reatomClassName([])()).toBe('')
+      expect(reatomClassName(atom(undefined))()).toBe('')
+      expect(reatomClassName(() => undefined)()).toBe('')
     }))
 
   test('handles falsy object correctly', () =>
     context.start(() => {
       expect(
-        cn({
+        reatomClassName({
           a: '',
           b: 0,
           c: NaN,
@@ -40,7 +40,7 @@ describe('parseClasses', () => {
   test('handles falsy array correctly', () =>
     context.start(() => {
       expect(
-        cn([
+        reatomClassName([
           '',
           0,
           1,
@@ -60,7 +60,7 @@ describe('parseClasses', () => {
   test('handles object correctly', () =>
     context.start(() => {
       expect(
-        cn({
+        reatomClassName({
           '': true,
           a: 'a',
           b: 1,
@@ -75,24 +75,24 @@ describe('parseClasses', () => {
 
   test('handles deep array correctly', () =>
     context.start(() => {
-      expect(cn(['a', ['b', ['c']]])()).toBe('a b c')
+      expect(reatomClassName(['a', ['b', ['c']]])()).toBe('a b c')
     }))
 
   test('handles deep atom correctly', () =>
     context.start(() => {
-      expect(cn(atom(() => atom(() => atom('a'))))()).toBe('a')
+      expect(reatomClassName(atom(() => atom(() => atom('a'))))()).toBe('a')
     }))
 
   test('handles deep getter correctly', () =>
     context.start(() => {
-      expect(cn(() => () => () => 'a')()).toBe('a')
+      expect(reatomClassName(() => () => () => 'a')()).toBe('a')
     }))
 
   test('handles complex correctly', () =>
     context.start(() => {
       const isBAtom = atom(true)
       const stringAtom = atom('d')
-      const classNameAtom = cn(() =>
+      const classNameAtom = reatomClassName(() =>
         atom(() => ['a', { b: isBAtom }, ['c'], stringAtom, () => 'e']),
       )
 

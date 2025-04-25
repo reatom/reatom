@@ -11,6 +11,9 @@ import {
   LinkedList,
   LLNode,
 } from '@reatom/core'
+import {
+  ClassNameValue,
+} from './utils'
 
 // TODO write it manually to improve perf
 type AttributesAtomMaybe<T extends Record<keyof any, any>> = {
@@ -1370,11 +1373,11 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/API/Element/className
      * @alias className
      */
-    class?: string | null | undefined
+    class?: ClassNameValue
     /**
      * @alias class
      */
-    className?: string | null | undefined
+    className?: ClassNameValue
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/contenteditable
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/contentEditable
@@ -3836,11 +3839,11 @@ export namespace JSX {
     /**
      * @alias className
      */
-    class?: string | null | undefined
+    class?: ClassNameValue
     /**
      * @alias class
      */
-    className?: string | null | undefined
+    className?: ClassNameValue
     style?: CSSProperties | string
   }
   interface TransformableSVGAttributes {

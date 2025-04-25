@@ -21,6 +21,7 @@ import {
   context,
 } from '@reatom/core'
 import type { AttributesAtomMaybe, JSX } from './jsx'
+import { reatomClassName } from './utils'
 
 declare type JSXElement = JSX.Element
 
@@ -30,7 +31,7 @@ export type FC<Props = {}> = (
 
 export type { JSXElement, JSX }
 
-export { type ClassNameValue, cn } from './utils'
+export { type ClassNameValue, reatomClassName } from './utils'
 
 type DomApis = Pick<
   typeof window,
@@ -484,6 +485,12 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       let value = props[key]
       if (key === 'ref') {
         ensureMeta(element).mount = () => value(element)
+      } else if (key === 'class' || key === 'className') {
+        if (typeof value === 'object' || typeof value === 'function') {
+          unlink(element, () => reatomClassName(value).subscribe((val) => set(dom, element, key, val)))
+        } else {
+          set(dom, element, key, typeof value === 'string' ? value : undefined)
+        }
       } else if (isAtom(value) && !isAction(value)) {
         if (key.startsWith('model:')) {
           let k = key = key.slice(6) as 'value' | 'valueAsNumber' | 'checked'
