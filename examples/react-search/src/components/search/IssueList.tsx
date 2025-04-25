@@ -1,9 +1,9 @@
 import { reatomComponent } from '@reatom/react'
 import { IssueCard } from './IssueCard'
-import { issuesResponse } from './model'
+import { issuesResource } from './model'
 
 export const IssueList = reatomComponent(() => {
-  const { items } = issuesResponse()
+  const items = issuesResource.data()?.items ?? []
 
   if (items.length === 0) {
     return <p>No issues found.</p>

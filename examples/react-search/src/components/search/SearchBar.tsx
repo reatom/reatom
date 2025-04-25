@@ -1,11 +1,14 @@
 import { TextInput, Group, Select } from '@mantine/core'
 import { IconSearch } from '@tabler/icons-react'
 import { reatomComponent } from '@reatom/react'
-import { issuesFilters } from './model'
+import { wrap } from '@reatom/core'
+import { issueQuery, issueSort, issueDirection } from './model'
 import { IssueSort, SortDirection } from '../../api'
 
 export const SearchBar = reatomComponent(() => {
-  const filters = issuesFilters()
+  const query = issueQuery()
+  const sort = issueSort()
+  const direction = issueDirection()
 
   return (
     <>
@@ -13,13 +16,8 @@ export const SearchBar = reatomComponent(() => {
         <TextInput
           placeholder="Search GitHub issues..."
           leftSection={<IconSearch size={16} />}
-          value={filters.query}
-          onChange={(e) =>
-            issuesFilters((state) => ({
-              ...state,
-              query: e.currentTarget.value,
-            }))
-          }
+          value={query}
+          onChange={wrap((e) => issueQuery(e.currentTarget.value))}
           style={{ flex: 1 }}
         />
 
@@ -30,10 +28,8 @@ export const SearchBar = reatomComponent(() => {
             { value: 'updated', label: 'Updated date' },
             { value: 'comments', label: 'Comments' },
           ]}
-          value={filters.sort}
-          onChange={(value) =>
-            issuesFilters({ ...filters, sort: value as IssueSort })
-          }
+          value={sort}
+          onChange={wrap((value) => issueSort(value as IssueSort))}
           clearable
         />
 
@@ -43,10 +39,8 @@ export const SearchBar = reatomComponent(() => {
             { value: 'desc', label: 'Descending' },
             { value: 'asc', label: 'Ascending' },
           ]}
-          value={filters.direction}
-          onChange={(value) =>
-            issuesFilters({ ...filters, direction: value as SortDirection })
-          }
+          value={direction}
+          onChange={wrap((value) => issueDirection(value as SortDirection))}
         />
       </Group>
     </>

@@ -5,17 +5,17 @@ import {
   Text,
 } from '@mantine/core'
 import { reatomComponent } from '@reatom/react'
-import { isIssuesLoading, issuesFilters, issuesResponse } from './model'
+import { wrap } from '@reatom/core'
+import { isIssuesLoading, issuesResource, issuePage, issuePerPage } from './model'
 
 export const Pagination = reatomComponent(() => {
-  const filters = issuesFilters()
-  const { total_count } = issuesResponse()
-  const perPage = filters.perPage ?? 10
-  const currentPage = filters.page ?? 1
+  const total_count = issuesResource.data()?.total_count ?? 0
+  const perPage = issuePerPage() ?? 10
+  const currentPage = issuePage() ?? 1
 
   const totalPages = Math.min(Math.ceil(total_count / perPage), 100) // GitHub API limit
 
-  if (!isIssuesLoading() || total_count === 0) return null
+  if (isIssuesLoading() || total_count === 0) return null
 
   return (
     <Group justify="space-between" mt="xl">
@@ -33,20 +33,17 @@ export const Pagination = reatomComponent(() => {
             { value: '50', label: '50' },
           ]}
           value={perPage.toString()}
-          onChange={(value) =>
-            issuesFilters({
-              ...filters,
-              perPage: parseInt(value || '10'),
-              page: 1, // Reset to first page when changing items per page
-            })
-          }
+          onChange={wrap((value) => {
+            issuePerPage(parseInt(value || '10'))
+            issuePage(1) // Reset to first page when changing items per page
+          })}
           style={{ width: 80 }}
         />
 
         <MantinePagination
           total={totalPages}
           value={currentPage}
-          onChange={(page) => issuesFilters({ ...filters, page })}
+          onChange={wrap((page) => issuePage(page))}
         />
       </Group>
     </Group>

@@ -7,21 +7,30 @@ import {
   TextInput,
 } from '@mantine/core'
 import { reatomComponent } from '@reatom/react'
-import { issuesFilters } from './model'
+import { wrap } from '@reatom/core'
+import {
+  issueState,
+  issueLabels,
+  issueLanguage,
+  issueAuthor,
+  issueAssignee,
+} from './model'
 import { IssueState, mockLabels, mockLanguages } from '../../api'
 
 export const FilterPanel = reatomComponent(() => {
-  const filters = issuesFilters()
+  const state = issueState()
+  const labels = issueLabels()
+  const language = issueLanguage()
+  const author = issueAuthor()
+  const assignee = issueAssignee()
 
   return (
     <Paper p="md" withBorder mt="xs">
       <Group mb="md">
         <Chip.Group
           multiple={false}
-          value={filters.state || 'all'}
-          onChange={(value) =>
-            issuesFilters({ ...filters, state: value as IssueState })
-          }
+          value={state || 'all'}
+          onChange={wrap((value) => issueState(value as IssueState))}
         >
           <Group>
             <Chip value="all">All</Chip>
@@ -36,20 +45,16 @@ export const FilterPanel = reatomComponent(() => {
           label="Labels"
           placeholder="Select labels"
           data={mockLabels.map(({ name }) => ({ value: name, label: name }))}
-          value={filters.labels || []}
-          onChange={(value) => {
-            issuesFilters({ ...filters, labels: value })
-          }}
+          value={labels || []}
+          onChange={wrap((value) => issueLabels(value))}
         />
 
         <Select
           label="Language"
           placeholder="Select language"
           data={mockLanguages.map((lang) => ({ value: lang, label: lang }))}
-          value={filters.language || ''}
-          onChange={(value) =>
-            issuesFilters({ ...filters, language: value || '' })
-          }
+          value={language || ''}
+          onChange={wrap((value) => issueLanguage(value || ''))}
         />
       </Group>
 
@@ -57,19 +62,15 @@ export const FilterPanel = reatomComponent(() => {
         <TextInput
           label="Author"
           placeholder="GitHub username"
-          value={filters.author || ''}
-          onChange={(e) =>
-            issuesFilters({ ...filters, author: e.currentTarget.value })
-          }
+          value={author || ''}
+          onChange={wrap((e) => issueAuthor(e.currentTarget.value))}
         />
 
         <TextInput
           label="Assignee"
           placeholder="GitHub username"
-          value={filters.assignee || ''}
-          onChange={(e) =>
-            issuesFilters({ ...filters, assignee: e.currentTarget.value })
-          }
+          value={assignee || ''}
+          onChange={wrap((e) => issueAssignee(e.currentTarget.value))}
         />
       </Group>
     </Paper>

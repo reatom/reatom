@@ -1,54 +1,55 @@
-import { atom, action } from '@reatom/core'
-import { searchIssues, IssuesResponse, SearchFilters } from '../../api'
+import { atom, wrap, computed, sleep, withAsyncData } from '@reatom/core'
+import { searchIssues, SearchFilters } from '../../api'
 
-const filtersInitState: SearchFilters = {
-  query: '',
-  state: 'open',
-  labels: [],
-  language: '',
-  author: '',
-  assignee: '',
-  mentions: '',
-  sort: 'updated',
-  direction: 'asc',
-  since: '', // ISO date string
-  page: 0,
-  perPage: 10,
-}
-
-export const issuesFilters = atom(filtersInitState, 'issuesFilters')
-
-export const isIssuesLoading = atom(false, 'isIssuesLoading')
-
-export const issuesResponse = atom<IssuesResponse>(
-  {
-    items: [],
-    total_count: 0,
-    incomplete_results: false,
-  },
-  'issuesResponse',
+export const issueQuery = atom('', 'issueQuery')
+export const issueState = atom('open' as SearchFilters['state'], 'issueState')
+export const issueLabels = atom([] as SearchFilters['labels'], 'issueLabels')
+export const issueLanguage = atom('', 'issueLanguage')
+export const issueAuthor = atom('', 'issueAuthor')
+export const issueAssignee = atom('', 'issueAssignee')
+export const issueMentions = atom('', 'issueMentions')
+export const issueSort = atom('updated' as SearchFilters['sort'], 'issueSort')
+export const issueDirection = atom(
+  'asc' as SearchFilters['direction'],
+  'issueDirection',
 )
-export const issuesError = atom<null | Error>(null, 'issuesError')
+export const issueSince = atom('', 'issueSince')
+export const issuePage = atom(0, 'issuePage')
+export const issuePerPage = atom(10, 'issuePerPage')
 
-export const fetchIssues = action(async (filters: SearchFilters) => {
-  try {
-    if (!filters.query) {
-      issuesResponse({
-        items: [],
-        total_count: 0,
-        incomplete_results: false,
-      })
-      return
+export const issuesResource = computed(async () => {
+  const query = issueQuery()
+
+  if (!query) {
+    return {
+      items: [],
+      total_count: 0,
+      incomplete_results: false,
     }
-
-    isIssuesLoading(true)
-
-    const data = await searchIssues(filters)
-
-    issuesResponse(data)
-  } catch (error) {
-    issuesError(error instanceof Error ? error : new Error(String(error)))
-  } finally {
-    isIssuesLoading(false)
   }
-}, 'fetchIssues')
+
+  await wrap(sleep(250))
+
+  const filters = {
+    query,
+    state: issueState(),
+    labels: issueLabels(),
+    language: issueLanguage(),
+    author: issueAuthor(),
+    assignee: issueAssignee(),
+    mentions: issueMentions(),
+    sort: issueSort(),
+    direction: issueDirection(),
+    since: issueSince(),
+    page: issuePage(),
+    perPage: issuePerPage(),
+  }
+
+  return searchIssues(filters)
+}, 'issuesResource').extend(withAsyncData())
+
+export const isIssuesLoading = computed(
+  () => !issuesResource.ready(),
+  'isIssuesLoading',
+)
+export const issuesError = issuesResource.error

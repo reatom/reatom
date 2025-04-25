@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react'
+import { Suspense } from 'react'
 import { Container, Title, Text, Stack, LoadingOverlay } from '@mantine/core'
 import { reatomComponent } from '@reatom/react'
 import { SearchBar } from './SearchBar'
@@ -6,20 +6,17 @@ import { IssueList } from './IssueList'
 import { Pagination } from './Pagination'
 import {
   isIssuesLoading,
-  issuesResponse,
+  issuesResource,
   issuesError,
-  fetchIssues,
-  issuesFilters,
+  issueQuery,
 } from './model'
 
 export const SearchPage = reatomComponent(() => {
-  const filters = issuesFilters()
+  const query = issueQuery()
 
-  useEffect(() => {
-    fetchIssues(filters)
-  }, [filters])
+  const issuesData = issuesResource.data()
 
-  const { total_count } = issuesResponse()
+  const total_count = issuesData?.total_count ?? 0
 
   return (
     <Container size="xl">
@@ -30,7 +27,7 @@ export const SearchPage = reatomComponent(() => {
       <SearchBar />
 
       <div style={{ position: 'relative', minHeight: '200px' }}>
-        <LoadingOverlay visible={isIssuesLoading() && !!filters.query} />
+        <LoadingOverlay visible={isIssuesLoading() && !!query} />
 
         {issuesError() && (
           <Text c="red" mt="md">
@@ -38,10 +35,10 @@ export const SearchPage = reatomComponent(() => {
           </Text>
         )}
 
-        {!isIssuesLoading() && filters.query && (
+        {!isIssuesLoading() && query && (
           <Stack mt="lg" gap="md">
             <Text>
-              Found {total_count.toLocaleString()} issues for "{filters.query}"
+              Found {total_count.toLocaleString()} issues for "{query}"
             </Text>
 
             <Suspense fallback={<LoadingOverlay visible />}>
@@ -52,7 +49,7 @@ export const SearchPage = reatomComponent(() => {
           </Stack>
         )}
 
-        {!filters.query && (
+        {!query && (
           <Text c="dimmed" ta="center" mt="xl">
             Enter a search query to find GitHub issues
           </Text>
