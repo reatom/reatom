@@ -44,10 +44,13 @@ test('scope propagation for atoms', async () => {
   const param = atom(0)
   const paramVar = variable<number>()
   const resource = computed(async () => param()).extend(
-    withAsyncData(null, { param: -1, paramVar: -1 }, (param) => ({
-      param,
-      paramVar: paramVar.get(),
-    })),
+    withAsyncData({
+      initState: { param: -1, paramVar: -1 },
+      mapPayload: (param) => ({
+        param,
+        paramVar: paramVar.get(),
+      }),
+    }),
   )
   const update = action((value: number) => {
     param(value)

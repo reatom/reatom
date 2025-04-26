@@ -14,75 +14,88 @@ export interface AsyncDataExt<
   data: Atom<State>
 }
 
-// @ts-ignore TODO
-export let withAsyncData: {
-  <Err = Error, EmptyErr = undefined>(
-    options?: null | AsyncOptions<Err, EmptyErr>,
-  ): {
-    <T extends AtomLike>(
-      target: T,
-    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
-      ? T & AsyncDataExt<Params, Payload, undefined | Payload, Err | EmptyErr>
-      : never
-  }
+export interface AsyncDataOptions<
+  State = any,
+  Params extends any[] = any[],
+  Payload = any,
+  Err = Error,
+  EmptyErr = undefined,
+> extends AsyncOptions<Err, EmptyErr> {
+  initState?: State
+  mapPayload?: (payload: Payload, params: Params, state: State) => State
+}
 
-  <State, Err = Error, EmptyErr = undefined>(
-    options: null | AsyncOptions<Err, EmptyErr>,
-    initState: State,
-  ): {
-    <T extends AtomLike>(
-      target: T,
-    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
-      ? T & AsyncDataExt<Params, Payload, State | Payload, Err | EmptyErr>
-      : never
-  }
+export function withAsyncData<Err = Error, EmptyErr = undefined>(
+  options?: AsyncOptions<Err, EmptyErr>,
+): <T extends AtomLike>(
+  target: T,
+) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
+  ? AsyncDataExt<Params, Payload, undefined | Payload, Err | EmptyErr>
+  : never
 
-  <Payload, Err = Error, EmptyErr = undefined>(
-    options: null | AsyncOptions<Err, EmptyErr>,
-    initState: Payload,
-  ): {
-    <T extends AtomLike<any, any, Promise<Payload>>>(
-      target: T,
-    ): T extends AtomLike<any, infer Params>
-      ? T & AsyncDataExt<Params, Payload, Payload, Err | EmptyErr>
-      : never
-  }
+export function withAsyncData<
+  T extends AtomLike,
+  Err = Error,
+  EmptyErr = undefined,
+>(
+  options: AsyncOptions<Err, EmptyErr> &
+    (T extends AtomLike<any, infer Params, Promise<infer Payload>>
+      ? {
+          initState: Payload
+          mapPayload?: (
+            payload: Payload,
+            params: Params,
+            state: Payload,
+          ) => Payload
+        }
+      : never),
+): (
+  target: T,
+) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
+  ? AsyncDataExt<Params, Payload, Payload, Err | EmptyErr>
+  : never
 
-  <State, T extends AtomLike, Err = Error, EmptyErr = undefined>(
-    options: null | AsyncOptions<Err, EmptyErr>,
-    initState: State,
-    map: T extends AtomLike<any, infer Params, Promise<infer Payload>>
-      ? (payload: Payload, params: Params, state: State) => State
-      : never,
-  ): {
-    (
-      target: T,
-    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
-      ? T & AsyncDataExt<Params, Payload, State, Err | EmptyErr>
-      : never
-  }
+export function withAsyncData<
+  State,
+  T extends AtomLike,
+  Err = Error,
+  EmptyErr = undefined,
+>(
+  options: AsyncOptions<Err, EmptyErr> & {
+    initState: State
+  },
+): (
+  target: T,
+) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
+  ? AsyncDataExt<Params, Payload, State | Payload, Err | EmptyErr>
+  : never
 
-  <T extends AtomLike, Err = Error, EmptyErr = undefined>(
-    options: null | AsyncOptions<Err, EmptyErr>,
-    initState: Awaited<ReturnType<T>>,
-    map: T extends AtomLike<any, infer Params, Promise<infer Payload>>
-      ? (payload: Payload, params: Params, state: Payload) => Payload
-      : never,
-  ): {
-    (
-      target: T,
-    ): T extends AtomLike<any, infer Params, Promise<infer Payload>>
-      ? T & AsyncDataExt<Params, Payload, Payload, Err | EmptyErr>
+export function withAsyncData<
+  State,
+  T extends AtomLike,
+  Err = Error,
+  EmptyErr = undefined,
+>(
+  options: AsyncOptions<Err, EmptyErr> & {
+    initState: State
+    mapPayload?: [State] extends [infer State]
+      ? T extends AtomLike<any, infer Params, Promise<infer Payload>>
+        ? (payload: Payload, params: Params, state: State) => State
+        : never
       : never
-  }
-} =
-  (
-    options: null | AsyncOptions<any, any>,
-    initState: any,
-    map: (payload: any, params: any, state: any) => any = identity,
-  ) =>
-  (target: AtomLike<Promise<any>>) => {
-    let asyncTarget = target.extend(withAbort(), withAsync(options))
+  },
+): (
+  target: T,
+) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
+  ? AsyncDataExt<Params, Payload, State, Err | EmptyErr>
+  : never
+
+export function withAsyncData(
+  options: AsyncDataOptions = {},
+): (target: AtomLike<any, any[], Promise<any>>) => any {
+  const { initState, mapPayload = identity, ...asyncOptions } = options
+  return (target: AtomLike<Promise<any>>) => {
+    let asyncTarget = target.extend(withAbort(), withAsync(asyncOptions))
 
     let data = createAtom(
       {
@@ -91,7 +104,7 @@ export let withAsyncData: {
         computed(state) {
           if (target.__reatom.reactive) target().catch(noop)
           ifCalled(asyncTarget.onFulfill, ({ payload, params }) => {
-            state = map(payload, params, state)
+            state = mapPayload(payload, params, state)
           })
           return state
         },
@@ -103,5 +116,6 @@ export let withAsyncData: {
 
     asyncTarget.onFulfill.extend(withCallHook(() => data()))
 
-    return Object.assign(asyncTarget, { data })
+    return { data }
   }
+}

@@ -1,3 +1,3 @@
-export * from './event'
+export * from './onEvent'
 export * from './fetch'
-export * from './online'
+export * from './onLineAtom'

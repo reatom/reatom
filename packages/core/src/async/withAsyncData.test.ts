@@ -10,7 +10,10 @@ test('withAsyncData for action', async () => {
   const fetch = action(
     async (param: number) => param + 1,
     `${name}.fetch`,
-  ).extend(withAsyncData(null))
+  ).extend(withAsyncData())
+
+  expectTypeOf(fetch.data).toExtend<Atom<undefined | number>>()
+
   const onFulfill = vi.fn()
   fetch.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
@@ -35,10 +38,19 @@ test('withAsyncData for action with mappings', async () => {
     async (param: number) => param + 1,
     `${name}.fetch`,
   ).extend(
-    withAsyncData(null, new Array<number>(), (payload, _params, _state) => [
-      payload,
-    ]),
+    withAsyncData({
+      initState: new Array<number>(),
+      mapPayload: (payload, _params, _state) => {
+        expectTypeOf(payload).toBeNumber()
+        expectTypeOf(_params).toEqualTypeOf<[number]>()
+        expectTypeOf(_state).toEqualTypeOf<number[]>()
+
+        return [payload]
+      },
+    }),
   )
+
+  expectTypeOf(fetch.data).toExtend<Atom<number[]>>()
 
   expect(fetch.data()).toEqual([])
 
@@ -52,7 +64,7 @@ test('withAsyncData for atom', async () => {
   const name = 'atomAsyncData'
   const param = atom(0, `${name}.param`)
   const resource = computed(async () => param() + 1, `${name}.resource`).extend(
-    withAsyncData(null),
+    withAsyncData(),
   )
   const onFulfill = vi.fn()
   resource.onFulfill.extend(withCallHook((payload) => onFulfill(payload)))
@@ -68,12 +80,13 @@ test('withAsyncData for atom', async () => {
 })
 
 test('withAsyncData for atom with mappings', async () => {
-  const name = 'atomAtomDataMap'
+  const name = 'atomAsyncDataMap'
   const param = atom(1, `${name}.param`)
   const resource = computed(async () => param() + 1, `${name}.resource`).extend(
-    withAsyncData(null, new Array<number>(), (payload, _params, _state) => [
-      payload,
-    ]),
+    withAsyncData({
+      initState: new Array<number>(),
+      mapPayload: (payload, _params, _state) => [payload],
+    }),
   )
 
   expect(resource.data()).toEqual([])
@@ -83,28 +96,29 @@ test('withAsyncData for atom with mappings', async () => {
   expect(resource.data()).toEqual([2])
 })
 
-test('withAsyncData atom concurrent', async () => {
-  const name = 'actionAtomDataMap'
-  const param = atom(0, `${name}.param`)
-  const resource = computed(async () => {
-    let paramState = param()
+test('withAsyncData action concurrent', async () => {
+  const name = 'actionAsyncDataConcurrency'
+  const fetch = action(async (param: number) => {
     await wrap(sleep())
-    return paramState + 1
-  }, `${name}.resource`).extend(withAsyncData(null, 0))
+    return param + 1
+  }, `${name}.resource`).extend(withAsyncData({ initState: 0 }))
+
+  expectTypeOf(fetch.data).toExtend<Atom<number>>()
+
   const onFulfill = vi.fn()
-  resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
+  fetch.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
-  const track = subscribe(resource.data)
+  const track = subscribe(fetch.data)
 
-  param((s) => s + 1)
-  param((s) => s + 1)
+  fetch(1)
+  fetch(2)
   await wrap(Promise.resolve())
-  param((s) => s + 1)
+  fetch(3)
 
-  await wrap(resource().catch(noop))
-  expect(resource.pending()).toBe(0)
-  expect(resource.ready()).toBe(true)
-  expect(resource.data()).toBe(4)
+  await wrap(sleep())
+  expect(fetch.pending()).toBe(0)
+  expect(fetch.ready()).toBe(true)
+  expect(fetch.data()).toBe(4)
   expect(track).toBeCalledTimes(2)
   expect(track).toBeCalledWith(4)
   expect(onFulfill).toBeCalledTimes(1)
@@ -112,13 +126,16 @@ test('withAsyncData atom concurrent', async () => {
 })
 
 test('withAsyncData atom concurrent', async () => {
-  const name = 'actionAtomDataMap'
+  const name = 'atomAsyncDataConcurrency'
   const param = atom(0, `${name}.param`)
   const resource = computed(async () => {
     let paramState = param()
     await wrap(sleep(10))
     return paramState + 1
-  }, `${name}.resource`).extend(withAsyncData(null, 0))
+  }, `${name}.resource`).extend(withAsyncData({ initState: 0 }))
+
+  expectTypeOf(resource.data).toExtend<Atom<number>>()
+
   const onFulfill = vi.fn()
   resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
@@ -155,14 +172,14 @@ test('withAsyncData for atom error handling', async () => {
     if (shouldFail) throw new Error(errorMessage)
     return 'Success'
   }, `${name}.resource`).extend(
-    withAsyncData(
-      {
-        parseError: (thing) =>
-          thing instanceof Error ? thing.message : String(thing),
-      },
-      null,
-    ),
+    withAsyncData({
+      parseError: (thing) =>
+        thing instanceof Error ? thing.message : String(thing),
+      initState: null,
+    }),
   )
+
+  expectTypeOf(resource.data).toExtend<Atom<null | string>>()
 
   const onReject = vi.fn()
   resource.onReject.extend(withCallHook((call) => onReject(call)))

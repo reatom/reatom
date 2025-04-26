@@ -74,6 +74,7 @@ export interface AbortVar
   throwIfAborted(): void
   subscribeAbort(cb: (error: AbortError) => void): undefined | Unsubscribe
   getController(): undefined | AbortController
+  abort(reason?: unknown): void
 }
 
 /** This creates abort atom strongly coupled to the current frame,
@@ -101,6 +102,9 @@ export let abortVar: AbortVar = Object.assign(
     )
   }),
   {
+    abort(reason?: any) {
+      abortVar.read()?.(reason)
+    },
     throwIfAborted() {
       abortVar.read()?.throwIfAborted()
     },
