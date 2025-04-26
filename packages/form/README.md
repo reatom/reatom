@@ -377,26 +377,31 @@ Here is the list of all additional properties and methods:
   - `active`: The field is focused.
   - `dirty`: The field's state is not equal to the initial state.
   - `touched`: The field has gained and lost focus at some point.
+  - `in`: Action for handling field focus.
+  - `out`: Action for handling field blur.
 - `validation`: Record atom with all related validation statuses:
   - `error`: The field validation error text, undefined if the field is valid.
   - `meta`: Additional validation metadata.
   - `triggered`: The validation actuality status.
   - `validating`: The field async validation status.
+  - `trigger`: Action to trigger field validation.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
-- `focus.in`: Action for handling field focus.
-- `focus.out`: Action for handling field blur.
 - `reset`: Action to reset the state, the value, the validation, and the focus.
-- `validation.trigger`: Action to trigger field validation.
-- `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation.
-- `keepErrorOnChange`: Defines the reset behavior of the validation state on field change.
-- `validateOnChange`: Defines if the validation should be triggered with every field change.
-- `validateOnBlur`: Defines if the validation should be triggered on the field blur.
+- `disabled`: Atom that defines if the field is disabled.
+- `keepErrorDuringValidating`: Atom that defines the reset behavior of the validation state during async validation.
+- `keepErrorOnChange`: Atom that defines the reset behavior of the validation state on field change.
+- `validateOnChange`: Atom that defines if the validation should be triggered with every field change.
+- `validateOnBlur`: Atom that defines if the validation should be triggered on the field blur.
 
 By combining these statuses you can derive additional meta information:
 
 - `!touched && active` - the field got focus for the first time
 - `touched && active` - the field got focus again
+
+### Disabled Fields Behavior
+
+When fields are disabled, they no longer automatically trigger their own validation. In field sets, these disabled fields are excluded from the `validation` and `focus` computations, meaning they are not considered in the validation process according to the schema. This ensures that disabled fields do not affect the validation status of the form or field set they belong to.
 
 ### Field Options
 
@@ -407,6 +412,7 @@ By combining these statuses you can derive additional meta information:
 - `toState`: The optional callback to transform the "state" data from the "value" data from the `change` action. By default, it returns the "value" data without any transformations.
 - `validate`: The optional callback to validate the field.
 - `contract`: The optional callback to validate field contract.
+- `disabled`: Defines if the field is disabled by default.
 - `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation (default: `false`).
 - `keepErrorOnChange`: Defines the reset behavior of the validation state on field change (default: `!validateOnChange`).
 - `validateOnBlur`: Defines if the validation should be triggered on the field blur (default: `false`).
