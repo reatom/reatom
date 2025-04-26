@@ -69,6 +69,9 @@ export const reatomFieldSet = <T extends FormInitState>(
     const focus = { ...fieldInitFocus };
 
     for (const field of fieldsList()) {
+      if(field.disabled())
+        continue;
+
       const { active, dirty, touched } = field.focus();
       focus.active ||= active;
       focus.dirty ||= dirty;
@@ -83,6 +86,9 @@ export const reatomFieldSet = <T extends FormInitState>(
     validation.triggered = true;
 
     for (const field of fieldsList()) {
+      if(field.disabled())
+        continue;
+      
       const { triggered, validating, error } = field.validation();
 
       validation.triggered &&= triggered;

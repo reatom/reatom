@@ -422,6 +422,9 @@ export function reatomForm<T extends FormInitState, SchemaState>(
         if (!field || (triggerOnlyFor && triggerOnlyFor !== field))
           continue;
 
+        if(field.disabled())
+          continue;
+
         field.validation.merge({
           error: issue.message,
           meta: undefined,

@@ -158,6 +158,32 @@ test('validation states', async () => {
 	})
 })
 
+test('validation and focus states with disabled fields', async () => {
+	const contract = (value: string) => {
+		if (value === 'errorValue')
+			throw new Error('Contract error')
+	}
+
+	const form = reatomForm({
+		field1: { initState: '', contract, validateOnChange: true },
+	}, 'testForm')
+
+	form.fields.field1.change('errorValue');
+	notify();
+	expect(form.validation()).toMatchObject({ error: 'Contract error', triggered: true });
+	expect(form.focus()).toMatchObject({ touched: true, dirty: true });
+
+	form.fields.field1.disabled(true);
+	notify();
+	expect(form.validation()).toMatchObject({ error: undefined, triggered: true });
+	expect(form.focus()).toMatchObject({ touched: false, dirty: false })
+
+	form.fields.field1.disabled(false);
+	notify();
+	expect(form.validation()).toMatchObject({ error: 'Contract error', triggered: true });
+	expect(form.focus()).toMatchObject({ touched: true, dirty: true });
+})
+
 test('default options for fields', async () => {
 	const form = reatomForm({
 		field: { initState: 'initial', validate: () => { } },

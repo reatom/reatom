@@ -18,7 +18,9 @@ import {
   withAbort,
   abortVar,
   wrap,
-  AbortExt
+  AbortExt,
+  BooleanAtom,
+  reatomBoolean
 } from '@reatom/core'
 
 import { toError } from './utils'
@@ -83,6 +85,9 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
 
   /** Atom with the "value" data, computed by the `fromState` option */
   value: Computed<Value>
+
+  /** Atom that defines if the field is disabled */
+  disabled: BooleanAtom
 
   /**
    * Defines the reset behavior of the validation state during async validation.
@@ -163,6 +168,12 @@ export interface FieldOptions<State = any, Value = State> {
   contract?: (state: State) => unknown
 
   /**
+   * Defines if the field is disabled by default.
+   * @default false
+   */
+  disabled?: boolean
+
+  /**
    * Defines the reset behavior of the validation state during async validation.
    * @default false
    */
@@ -220,7 +231,7 @@ export function reatomField<State, A extends Atom<State>, Value = State>(
   stateAtom: A
 ): A & FieldAtom<State, Value>;
 
-export function reatomField <State, Value = State>(
+export function reatomField<State, Value = State>(
   _initState: State,
   options: string | FieldOptions<State, Value> = {},
   stateAtom?: Atom<State>
@@ -258,6 +269,13 @@ export function reatomField <State, Value = State>(
     target => ({ value: computed(() => target() ?? !!(validateFn || contract), `${target.name}.value`) })
   )
 
+  const disabled = reatomBoolean(restOptions.disabled ?? false, `${name}.disabled`).extend(
+    withChangeHook((status) => {
+      if(!status)
+        validation.trigger()
+    })
+  )
+
   const field = stateAtom ?? atom(_initState, `${name}.field`)
   const initState = atom(_initState, `${name}.initState`)
   // TODO: make sure it's ok to copy initState of other atom. 
@@ -278,7 +296,7 @@ export function reatomField <State, Value = State>(
           : { validating: false, triggered: false, error: undefined }
       ) 
 
-      if (validateOnChange.value())
+      if (!disabled() && validateOnChange.value())
         validation.trigger()
     }),
   )
@@ -301,7 +319,7 @@ export function reatomField <State, Value = State>(
     focus.merge({ active: false, touched: true })
   }, `${name}.focus.out`).extend(
     withCallHook(() => {
-      if (validateOnBlur.value())
+      if (!disabled() && validateOnBlur.value())
         validation.trigger()
     })
   )
@@ -315,7 +333,10 @@ export function reatomField <State, Value = State>(
     withInit(() => shouldValidate.value() ? fieldInitValidation : fieldInitValidationLess),
     withComputed((state) => {
       if(!shouldValidate.value()) 
-        return state
+        return fieldInitValidationLess
+
+      if(disabled())
+        return fieldInitValidation
 
       value()
       return state.triggered ? { ...state, triggered: false } : state
@@ -414,6 +435,7 @@ export function reatomField <State, Value = State>(
     reset,
     validation,
     value,
+    disabled,
     keepErrorDuringValidating,
     keepErrorOnChange,
     validateOnChange,

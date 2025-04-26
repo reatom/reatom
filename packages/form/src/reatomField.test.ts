@@ -86,6 +86,28 @@ test(`keepErrorDuringValidating`, async () => {
   expect(fieldWithoutKeep.validation().error).toBeUndefined()
 })
 
+test(`disabled state`, async () => {
+  const field = reatomField('', { 
+    validateOnChange: true,
+    contract: (value) => {
+      if (value == 'errorValue')
+        throw new Error('validation error');
+    }
+  });
+
+  field.change('errorValue');
+  notify();
+  expect(field.validation().error).toBe('validation error');
+
+  field.disabled(true);
+  notify();
+  expect(field.validation()).toMatchObject(fieldInitValidation);
+
+  field.disabled(false);
+  notify();
+  expect(field.validation().error).toBe('validation error');
+})
+
 test(`toState and fromState`, async () => {
   const label = 'label';
 
@@ -107,7 +129,7 @@ test(`validation concurrency`, async () => {
     validate: async ({ value }) => {
       await sleep();
 
-      if(value === 0xDEADBEEF)
+      if (value === 0xDEADBEEF)
         throw new Error('validation error');
     }
   });
@@ -122,7 +144,7 @@ test(`validation concurrency`, async () => {
   expect(field.validation()).toMatchObject({ validating: true, triggered: true, error: undefined });
   field.reset();
   expect(field.validation()).toMatchObject(fieldInitValidation);
-  
+
   field.validateOnChange(true);
   notify();
 
