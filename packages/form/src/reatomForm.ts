@@ -16,9 +16,7 @@ import {
   isLinkedListAtom,
   reatomLinkedList,
   type ParseAtoms,
-  entries,
   isObject,
-  computed,
   withCallHook,
   take,
   wrap,
@@ -28,8 +26,6 @@ import {
 
 import {
   type FieldAtom,
-  type FieldFocus,
-  type FieldValidation,
   reatomField,
   type FieldOptions,
   FieldLikeAtom,
@@ -37,7 +33,7 @@ import {
 } from './reatomField';
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { reatomFieldSet } from './reatomFieldSet';
+import { FieldSet, reatomFieldSet } from './reatomFieldSet';
 
 export interface FormFieldOptions<State = any, Value = State>
   extends FieldOptions<State, Value> {
@@ -54,8 +50,6 @@ type FormInitStateElement =
   | symbol
   | bigint
   | Date
-  // TODO contract as parsing method
-  // | ((state: any) => any)
   | FieldAtom
   | FormFieldOptions
   | FormFieldArray<any>
@@ -70,7 +64,7 @@ type ExtractFieldArray<T> = {
   [K in keyof T]: T[K] extends FormFieldArray<infer Param, infer _Node> ? Param[] : ExtractFieldArray<T[K]>
 }
 
-export type FormFieldArrayAtom<Param, Node extends FormInitStateElement = FormInitStateElement>
+export type FormFieldArrayAtom<Param = any, Node extends FormInitStateElement = FormInitStateElement>
   = LinkedListAtom<[ExtractFieldArray<Param>], FormFieldElement<Node>> & {
     reset: Action<[], AtomState<FormFieldArrayAtom<Param, Node>>>
     initState: Atom<LinkedList<LLNode<FormFieldElement<Node>>>>
@@ -115,28 +109,12 @@ export interface SubmitAction extends Action<[], Promise<void>> {
   error: Computed<Error | undefined>;
 }
 
-export interface Form<T extends FormInitState> {
-  /** Fields from the init state */
-  fields: FormFields<T>;
-
-  /** Atom with the state of the form, computed from all the fields in `fieldsList` */
-  fieldsState: Computed<FormState<T>>;
-
-  /** Atom with focus state of the form, computed from all the fields in `fieldsList` */
-  focus: Computed<FieldFocus>;
-
-  init: Action<[initState: FormPartialState<T>], void>;
-
-  /** Action to reset the state, the value, the validation, and the focus states. */
-  reset: Action<[initState?: FormPartialState<T>], void>;
-
+export interface Form<T extends FormInitState> extends FieldSet<T> {
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
   submit: SubmitAction;
 
+  /** Atom with submitted state of the form */
   submitted: Computed<boolean>;
-
-  /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
-  validation: Computed<FieldValidation>;
 }
 
 export interface BaseFormOptions {
@@ -259,31 +237,6 @@ const reatomFormFields = <T extends FormInitState>(
     fields[key] = createFieldElement(value, `${name}.${key}`);
   }
   return fields;
-};
-
-const computeFieldArraysList = <T extends FormInitState>(
-  fields: FormFields<T>,
-  acc: Array<FormFieldArrayAtom<unknown>> = []
-) => {
-  const computeElement = (
-    element: FormFieldElement,
-    acc: Array<FormFieldArrayAtom<unknown>> = [],
-  ) => {
-    if (isLinkedListAtom(element)) {
-      acc.push(element as FormFieldArrayAtom<unknown>);
-      element.array().forEach(e => computeElement(e, acc));
-    }
-    else if (!isAtom(element))
-      computeFieldArraysList(element, acc)
-
-    return acc;
-  }
-
-  for (const [_, field] of entries(fields)) {
-    acc.push(...computeElement(field));
-  }
-
-  return acc;
 };
 
 interface FormFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement> {
@@ -435,52 +388,25 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 
   const {
     fieldsList,
+    fieldArraysList,
     fieldsState,
     focus,
-    validation
+    validation,
+    init,
+    reset
   } = reatomFieldSet(fields, name);
-
-  const fieldArraysList = computed(() => computeFieldArraysList(fields), `${name}.fieldArraysList`);
 
   const submitted = atom(false, `${name}.submitted`);
 
-  const reset = action((initState?: FormPartialState<T>) => {
-    if (initState)
-      reinitState(initState, fields);
+  reset.extend(
+    withCallHook(() => {
+      submitted(false);
+      submit.error.reset();
 
-    fieldArraysList().forEach((fieldArray) => fieldArray.reset());
-    fieldsList().forEach((fieldAtom) => fieldAtom.reset());
-
-    submitted(false);
-    submit.error.reset();
-
-    if (!isCausedBy(submit))
-      submit.abort(`${name}.reset`);
-  }, `${name}.reset`);
-
-  const reinitState = (initState: FormPartialState<T>, fields: FormFields) => {
-    for (const [key, value] of Object.entries(initState as Rec)) {
-      if (isLinkedListAtom(fields[key])) {
-        // @ts-expect-error bad type for initiate
-        fields[key].initState(fields[key].initiateFromSnapshot(value.map(v => [v])));
-      }
-      else if (
-        isObject(value) &&
-        !(value instanceof Date) &&
-        key in fields &&
-        !isAtom(fields[key])
-      ) {
-        reinitState(value, fields[key] as unknown as FormFields);
-      }
-      else if (isAtom(fields[key])) {
-        fields[key].initState(value);
-      }
-    }
-  };
-
-  const init = action((initState: FormPartialState<T>) => {
-    reinitState(initState, fields);
-  }, `${name}.init`);
+      if (!isCausedBy(submit))
+        submit.abort(`${name}.reset`);
+    })
+  )
 
   const checkSchemaValidation = action(async (triggerOnlyFor?: Atom) => {
     if (!schema)
@@ -560,16 +486,18 @@ export function reatomForm<T extends FormInitState, SchemaState>(
       reset();
   }, `${name}.onSubmit`).extend(
     withAsync({ resetError: 'onFulfill' }),
-    (target) => ({ 
-      error: target.error.actions(target => ({ 
-        reset: () => target(undefined) 
-      })) 
+    (target) => ({
+      error: target.error.actions(target => ({
+        reset: () => target(undefined)
+      }))
     }),
     withAbort()
   );
 
   return {
     fields,
+    fieldsList,
+    fieldArraysList,
     fieldsState,
     focus,
     init,
