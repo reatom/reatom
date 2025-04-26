@@ -329,8 +329,9 @@ Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
 - `fieldsState`: The combined state of all fields in the set
 - `validation`: The combined validation status of all fields in the set
 - `focus`: The combined focus status of all fields in the set
+- Other methods like `reset`, `init` and properties as in the forms
 
-Field sets are particularly useful for multi-step forms because they allow you to validate each step independently before allowing the user to proceed to the next step.
+Field sets are particularly useful for multi-step forms because they allow you to validate each step independently before allowing the user to proceed to the next step, or for reactive calculations for groups of fields.
 
 ## Form API
 
