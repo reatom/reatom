@@ -102,7 +102,7 @@ This library implements a common TypeScript JSX factory that creates and configu
 
 By default, props passed to the JSX factory are set as attributes. Add `attr:` prefix to the name to set element attribute. Add `prop:` prefix to the name to set element property.
 
-For all kinds of properties you can pass a primitive value or an atom with a primitive value.
+For all kinds of properties, you can pass a primitive value, an atom, or a function (getter) that returns a primitive value. When a function is passed, the property will reactively update whenever the function's return value changes (if it depends on atoms).
 
 The `children` prop specifies the inner content of an element, which can be one of the following:
 

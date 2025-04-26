@@ -19,6 +19,7 @@ import {
   isObject,
   atom,
   context,
+  computed,
 } from '@reatom/core'
 import type { AttributesAtomMaybe, JSX } from './jsx'
 
@@ -503,6 +504,9 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
         unlink(element, () => value.subscribe(key === '$spread'
           ? (val) => {for (let k in val) set(dom, element, k, val[k])}
           : (val) => set(dom, element, key, val)))
+      } else if (typeof value === 'function') {
+        unlink(element, () => computed(value, `${name}.${element.nodeName.toLowerCase()}._${key}`)
+          .subscribe((val) => set(dom, element, key, val)))
       } else {
         set(dom, element, key, value)
       }

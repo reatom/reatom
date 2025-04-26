@@ -5,16 +5,21 @@ Respectfully copied from https://github.com/ryansolid/dom-expressions/blob/ae71a
 import * as csstype from 'csstype'
 import {
   AtomLike,
-  AtomMaybe,
   Atom,
   LinkedListLikeAtom,
   LinkedList,
   LLNode,
+  Fn,
 } from '@reatom/core'
+
+type AtomMaybe<T = any> = T | AtomLike<T>
+type AtomOrGetterMaybe<T = any> = T | AtomLike<T> | (() => T)
 
 // TODO write it manually to improve perf
 type AttributesAtomMaybe<T extends Record<keyof any, any>> = {
-  [K in keyof T]: T[K] | AtomLike<T[K]>
+  [K in keyof T]: K extends `${'on' | 'model'}:${string}`
+    ? T[K]
+    : AtomOrGetterMaybe<T[K]>
 }
 
 // TODO write it manually to improve perf
@@ -183,12 +188,12 @@ export namespace JSX {
       : never // it isn't a function
   }
   type PropAttributes = {
-    [Key in keyof ExplicitProperties as `prop:${Key}`]?: AtomMaybe<
+    [Key in keyof ExplicitProperties as `prop:${Key}`]?: AtomOrGetterMaybe<
       ExplicitProperties[Key]
     >
   }
   type AttrAttributes = {
-    [Key in keyof ExplicitAttributes as `attr:${Key}`]?: AtomMaybe<
+    [Key in keyof ExplicitAttributes as `attr:${Key}`]?: AtomOrGetterMaybe<
       ExplicitAttributes[Key]
     >
   }
@@ -207,9 +212,9 @@ export namespace JSX {
       OnAttributes<T>,
       CustomEventHandlers<T> {
     children?: ElementChildren | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
-    innerHTML?: AtomMaybe<string>
-    innerText?: AtomMaybe<string | number>
-    textContent?: AtomMaybe<string | number>
+    innerHTML?: string | null | undefined
+    innerText?: string | number | null | undefined
+    textContent?: string | number | null | undefined
   }
   /**
    * @type {GlobalEventHandlers}

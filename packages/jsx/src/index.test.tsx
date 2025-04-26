@@ -63,6 +63,21 @@ test('dynamic props', () =>
     expect(element.getAttribute('atr')).toBe('atr1')
   }))
 
+test.only('getter props', () =>
+  context.start(async () => {
+    const val = atom('val', 'val')
+    const getter = () => val() + ' ' + val()
+    const element = <div id={getter} />
+
+    mount(parent(), element)
+    await wrap(sleep())
+    expect(element.id).toBe(getter())
+
+    val('val1')
+    await wrap(sleep())
+    expect(element.id).toBe(getter())
+  }))
+
 test('children updates', () =>
   context.start(async () => {
     const val = atom('foo', 'val')

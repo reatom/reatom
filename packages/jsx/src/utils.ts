@@ -1,9 +1,9 @@
 import { type AtomLike, computed, type Computed, isObject, named } from '@reatom/core'
 
 type Primitive = string | number | boolean | null | undefined
-type MaybeGetter<T = unknown> = T | (() => T)
+type GetterMaybe<T = any> = T | (() => T)
 
-export type ClassNameValue = MaybeGetter<
+export type ClassNameValue = GetterMaybe<
   | Primitive
   | Array<ClassNameValue>
   | AtomLike<ClassNameValue>
