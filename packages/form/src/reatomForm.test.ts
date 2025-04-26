@@ -184,6 +184,32 @@ test('validation and focus states with disabled fields', async () => {
 	expect(form.focus()).toMatchObject({ touched: true, dirty: true });
 })
 
+test('validation states with disabled fields and defined schema', async () => {
+	const formWithSchema = reatomForm({
+		field1: '',
+	}, {
+		validateOnChange: true,
+		schema: z.object({ 
+			field1: z.string().refine(value => value !== 'errorValue', 'Schema contract error') 
+		})
+	})
+
+	const targetField = formWithSchema.fields.field1;
+
+	targetField.change('errorValue');
+	notify();
+	expect(formWithSchema.validation()).toMatchObject({ error: 'Schema contract error' });
+
+	targetField.change('validValue');
+	notify();
+	expect(formWithSchema.validation()).toMatchObject({ error: undefined });
+
+	targetField.disabled(true);
+	targetField.change('errorValue');
+	notify();
+	expect(formWithSchema.validation()).toMatchObject({ error: undefined });
+})
+
 test('default options for fields', async () => {
 	const form = reatomForm({
 		field: { initState: 'initial', validate: () => { } },
