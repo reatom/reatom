@@ -425,12 +425,7 @@ export function reatomForm<T extends FormInitState, SchemaState>(
         if(field.disabled())
           continue;
 
-        field.validation.merge({
-          error: issue.message,
-          meta: undefined,
-          triggered: true,
-          validating: false,
-        });
+        field.validation.setError(issue.message)
 
         if (triggerOnlyFor)
           break;

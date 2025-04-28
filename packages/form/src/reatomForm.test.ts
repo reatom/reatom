@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest'
-import { notify, reatomBoolean, sleep } from '@reatom/core'
+import { notify, reatomBoolean, sleep, wrap } from '@reatom/core'
 import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
 import { z } from 'zod';
 
@@ -127,7 +127,7 @@ test('validation states', async () => {
 
 	field2.reset();
 
-	await form.submit().catch(() => { })
+	await wrap(form.submit().catch(() => { }))
 	expect(form.submit.error()?.message).toBe('Form validation error')
 
 	expect(form.validation()).toEqual({
@@ -484,5 +484,30 @@ test('triggering schema validation only for one field', async () => {
 	form.fields.age.change(17);
 	notify()
 	expect(form.validation().error).toBe('must be minimum 18');
+	expect(form.fields.age.validation().error).toBe('must be minimum 18');
+})
+
+test('concurrent field validation with schema', async () => {
+	const form = reatomForm({
+		age: { 
+			initState: 12, 
+			validate: async () => { 
+				await sleep();
+				throw new Error('validation error')
+			},
+		}
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			age: z.number().min(18, 'must be minimum 18'),
+		})
+	});
+
+	form.fields.age.change(10);
+	notify();
+
+	expect(form.fields.age.validation().error).toBe('must be minimum 18');
+	await wrap(sleep());
+
 	expect(form.fields.age.validation().error).toBe('must be minimum 18');
 })
