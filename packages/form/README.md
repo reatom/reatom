@@ -385,6 +385,7 @@ Here is the list of all additional properties and methods:
   - `triggered`: The validation actuality status.
   - `validating`: The field async validation status.
   - `trigger`: Action to trigger field validation.
+  - `setError`: Action to set an error for the field.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
 - `reset`: Action to reset the state, the value, the validation, and the focus.
