@@ -1,5 +1,5 @@
-import { Frame, context, top } from '../core'
-import { assert, identity } from '../utils'
+import { Frame, action, context, named, top } from '../core'
+import { assert, Fn, identity } from '../utils'
 
 /** @internal */
 export let findVar = <T>(
@@ -31,18 +31,26 @@ export interface Variable<Params extends any[] = any[], Payload = any> {
     frame?: Frame,
     meta?: WeakMap<Frame, WeakMap<WeakKey, any>>,
   ): undefined | T
+  run<T>(value: Payload, fn: () => T): T
 }
 
 /** Async Context Variable emulation
  * @link https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextvariable
  */
 export let variable: {
-  <T>(): Variable<[T], T>
+  <T>(name?: string): Variable<[T], T>
 
   <Params extends any[], Payload>(
     set: (...params: Params) => Payload,
+    name?: string,
   ): Variable<Params, Payload>
-} = (set = identity) => {
+} = (...options: [string?] | [Fn, string?]) => {
+  if (typeof options[0] !== 'function') {
+    // @ts-expect-error
+    options.unshift(identity)
+  }
+  let [set, name = named('var')] = options as [Fn, string?]
+
   let key = {}
 
   let read: Variable['read'] = (
@@ -55,6 +63,13 @@ export let variable: {
     return value
   }
 
+  let write = (value: any, frame = top()) => {
+    let meta = context().state.meta.variable
+    let recs = meta.get(frame)
+    if (!recs) meta.set(frame, (recs = new WeakMap()))
+    recs.set(key, value)
+  }
+
   return {
     get(frame?: Frame) {
       let value = read(identity, frame)
@@ -64,13 +79,9 @@ export let variable: {
       return value
     },
     set(...params: [any, ...any[]]) {
-      let frame = top()
       let value = set(...params)
-      assert(value !== undefined, `Variable can't be undefined`)
-      let meta = context().state.meta.variable
-      let recs = meta.get(frame)
-      if (!recs) meta.set(frame, (recs = new WeakMap()))
-      recs.set(key, value)
+
+      write(value)
 
       return value
     },
@@ -81,5 +92,12 @@ export let variable: {
       return context().state.meta.variable.get(frame)?.get(key)
     },
     read,
+    run(value: any, cb: Fn) {
+      return action((value) => {
+        write(value)
+
+        return cb()
+      }, name)(value)
+    },
   }
 }
