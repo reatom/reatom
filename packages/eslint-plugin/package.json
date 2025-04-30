@@ -1,10 +1,10 @@
 {
   "name": "@reatom/eslint-plugin",
-  "version": "1000.0.0-alpha.1",
+  "version": "1000.0.0-alpha.2",
   "publishConfig": {
     "tag": "alpha"
   },
-  "private": true,
+  "private": false,
   "sideEffects": false,
   "description": "Reatom-specific ESLint rules",
   "exports": {
