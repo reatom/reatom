@@ -8,10 +8,11 @@ import {
   isAction,
   top,
 } from '../core'
-import { isCausedBy, Variable, variable } from '.'
+import { Variable, variable } from './variable'
 import { Fn, isAbort } from '../utils'
 import { AsyncExt } from '../async'
 import { withCallHook } from '../mixins'
+import { isCausedBy } from './isCausedBy'
 
 type Rollbacks = Array<Fn>
 
@@ -82,7 +83,7 @@ export let reatomTransaction = (): TransactionVariable => {
                 !Object.is(prevState, nextState) &&
                 !isCausedBy(transactionVar.rollback)
               ) {
-                let rollbacks = transactionVar.set(transactionVar.read())
+                let rollbacks = transactionVar.set(transactionVar.find())
                 rollbacks.push(() => target(prevState))
               }
               return nextState
@@ -94,7 +95,7 @@ export let reatomTransaction = (): TransactionVariable => {
 
       rollback: action<[error?: any], void>(() => {
         transactionVar
-          .read()
+          .find()
           ?.splice(0)
           .reverse()
           .forEach((rollback) => rollback())

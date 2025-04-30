@@ -184,7 +184,7 @@ export let abortVar: AbortVar = Object.assign(
           if (state !== null) return state
 
           return (
-            abortVar.read((maybeAbortAtom) => maybeAbortAtom?.(), frame) ?? null
+            abortVar.find((maybeAbortAtom) => maybeAbortAtom?.(), frame) ?? null
           )
         },
       },
@@ -196,16 +196,16 @@ export let abortVar: AbortVar = Object.assign(
   }),
   {
     abort(reason?: any) {
-      abortVar.read()?.(reason)
+      abortVar.find()?.(reason)
     },
     throwIfAborted() {
-      abortVar.read()?.throwIfAborted()
+      abortVar.find()?.throwIfAborted()
     },
     subscribeAbort(cb: (error: AbortError) => void) {
-      return abortVar.read()?.subscribeAbort(cb)
+      return abortVar.find()?.subscribeAbort(cb)
     },
     getController() {
-      return abortVar.read()?.getController()
+      return abortVar.find()?.getController()
     },
   },
 )

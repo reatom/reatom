@@ -62,6 +62,18 @@ const setCounter = action((value: number) => {
 // ✅ GOOD: Update atoms directly for simple cases.
 counter(10)
 ```
+```ts
+// Todo example: Managing a list of todos using atoms and actions
+
+const todos = atom<Todo[]>([], 'todos')
+
+const addTodo = action((todo: Todo) => {
+  todos(prev => [...prev, todo])
+}, 'addTodo')
+
+// Count of todos
+const todoCount = computed(() => todos().length, 'todoCount')
+```
 
 **Use `action` when:**
 
@@ -109,15 +121,6 @@ email('bob@example.com')
 
 - **Always name atoms/actions:** Use the second argument (`atom(0, 'myName')`).
 - **Descriptive names:** Use regular variable/function names (e.g., `counter`, `fetchData`). Do NOT include "Atom" or "Action" in the name itself.
-- **Factory functions:** Name custom atom/action creators starting with `reatom*` (e.g., `reatomTimer`). Pass the variable name down for internal naming:
-  ```ts
-  const reatomTimer = (name: string) => {
-    const count = atom(0, `${name}.count`) // Use passed name
-    // ... other logic
-    return { count /* ... */ }
-  }
-  const myTimer = reatomTimer('myTimer')
-  ```
 
 ### 3. Context Preservation with `wrap()`
 
@@ -204,7 +207,7 @@ Use extensions for handling async states (loading, error).
   }, 'userData').extend(withAsyncData()) // `undefined` is the initial data state
 
   userData.data() // Atom<YourDataType | undefined>: Stores the fetched data
-  userData.pending() // Atom<boolean>: true while fetching
+  userData.ready() // Atom<boolean>: true while fetching
   userData.error() // Atom<undefined | Error>: Stores fetch error
   ```
 
@@ -228,34 +231,6 @@ Add reusable functionality or related logic.
   ```
 
 - **`.extend()`:** Apply pre-built (`withAsync`, `withMemo`, `withInit`, etc.) or custom extensions.
-
-  ```ts
-  const withLogger = <T extends AtomLike>(prefix: string): Ext<T, T> => {
-    // Always use withMiddleware for behavior extensions
-    return withMiddleware((target) => {
-      // Return a middleware function
-      return (next, ...params) => {
-        console.log(`${prefix} [${target.name}] Before:`, params)
-        const result = next(...params)
-        console.log(`${prefix} [${target.name}] After:`, result)
-        return result
-      }
-    })
-  }
-
-  const withReset =
-    <T extends AtomLike>(
-      defaultValue: AtomState<T>,
-    ): Ext<T> & { reset: Action } =>
-    (target) => ({
-      reset: action(() => target(defaultValue), `${target.name}.reset`),
-    })
-
-  const counter = atom(0, 'counter').extend(
-    withReset(0), // Adds counter.reset()
-    withLogger({ prefix: 'COUNTER' }), // Adds logging middleware
-  )
-  ```
 
 ### 8. Framework Integration (React)
 
@@ -288,14 +263,11 @@ const UserProfile = reatomComponent<{ className?: string }>(({ className }) => {
 - **`.subscribe(callback)`**: Method on atoms/actions to listen for changes. Returns unsubscribe fn.
 - **`.extend(extension)`**: Method on atoms/actions to apply extensions.
 - **`.actions(builderFn)`**: Method on atoms to add related actions.
-- **`withAsync()`**: Extension for async action state tracking (pending, error).
-- **`withAsyncData({initialState?}?)`**: Extension for async computed data fetching (data, pending, error, cancellation).
-- **`take(target, name?)`**: Await next update/call within async context (use `wrap(take(target))`).
+- **`withAsync()`**: Extension for async action state tracking (ready, error).
+- **`withAsyncData({ initialState? }?)`**: Extension for async computed data fetching (data, ready, error, cancellation).
+- **`take(target, name?)`**: Await next update/call within async context (use `wrap(take(sendData))`).
 - **`onEvent(target, eventName, callback?)`**: Handle DOM/WebSocket events safely.
 - **`connectLogger()`**: Enables debug logging.
-- **`clearStack()`**: Disables default context.
-- **`context.start(fn)`**: Runs `fn` in a new isolated context.
 - **`reatomComponent` (React)**: Creates a reactive React component.
-- **Atomization Helpers**: `reatomArray`, `reatomBoolean`, `reatomEnum`, `reatomMap`, `reatomNumber`, `reatomRecord`, `reatomSet`, `reatomString`, `reatomLinkedList`.
 
 _(Full API Reference omitted for brevity - refer to official documentation or source code for exhaustive list)_

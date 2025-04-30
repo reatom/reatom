@@ -20,7 +20,9 @@ export let withAbort = (
     let abortMiddleware = (next: Fn, ...params: any[]) => {
       let frame = top()
       let prevFrame = _getPrevFrame(frame)
-      let prevAbort = prevFrame && abortVar.current(prevFrame)
+      let prevAbort =
+        prevFrame &&
+        abortVar.find((maybeAbort) => maybeAbort ?? null, prevFrame)
 
       let prevState = frame.state
       let state = prevState
@@ -75,11 +77,13 @@ export let withAbort = (
 
     target.__reatom.middlewares.push(abortMiddleware)
 
-    let abort = (reason?: any) => {
-      let frame = context().state.store.get(target)
-      if (frame) abortVar.current(frame)?.(reason)
+    return {
+      abort(reason?: any) {
+        let frame = context().state.store.get(target)
+        if (frame) {
+          abortVar.find((maybeAbort) => maybeAbort ?? null, frame)?.(reason)
+        }
+      },
     }
-
-    return Object.assign(target, { abort })
   }
 }

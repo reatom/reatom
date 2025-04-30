@@ -47,7 +47,7 @@ export let take = <T>(
 
   let cleanups: Array<Fn> = []
 
-  let abort = abortVar.read()
+  let abort = abortVar.find()
 
   let promise = new Promise<Awaited<T>>((res, rej) => {
     log('start', target.name)

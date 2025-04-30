@@ -195,7 +195,7 @@ test('withAsyncData for atom error handling', async () => {
   expect(resource.ready()).toBe(true)
   expect(resource.error()).toBe(errorMessage)
   expect(onReject).toHaveBeenCalledWith({
-    error: new Error(errorMessage),
+    error: errorMessage,
     params: [true],
   })
   expect(onFulfill).not.toHaveBeenCalled()

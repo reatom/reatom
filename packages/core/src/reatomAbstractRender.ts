@@ -132,7 +132,7 @@ export let reatomAbstractRender = <Props, Result>({
     let mount = wrap(() => {
       adapterMount?.()
       let unsubscribe = _render.subscribe((state) => {
-        if (changedVar.read()) {
+        if (changedVar.find()) {
           changedVar.set(false)
           rerender(state)
         }

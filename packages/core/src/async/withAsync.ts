@@ -151,7 +151,9 @@ export let withAsync: {
       return onSettle({ payload, params }) as any // TODO
     }, `${target.name}.onFulfill`)
     let onReject: AsyncExt['onReject'] = action((err, params) => {
-      if (!isAbort(err)) error(err = parseError(err))
+      if (!isAbort(err)) {
+        error(err = parseError(err))
+      }
       return onSettle({ error: err, params }) as any // TODO
     }, `${target.name}.onReject`)
     let onSettle: AsyncExt['onSettle'] = action((call) => {

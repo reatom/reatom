@@ -1,32 +1,5 @@
-import { Frame, action, context, named, top } from '../core'
+import { Frame, ReatomError, action, context, named, top } from '../core'
 import { assert, Fn, identity } from '../utils'
-
-/**
- * Traverses the frame tree to find a variable matching the provided callback
- *
- * @internal - This is an internal utility not intended for direct use
- * @template T - The type of value to find
- * @param {(frame: Frame) => undefined | T} cb - Callback that processes each frame and returns a value if found
- * @param {Frame} [frame=top()] - Starting frame for the search (defaults to current top frame)
- * @returns {undefined | T} The found value or undefined
- */
-export let findVar = <T>(
-  cb: (frame: Frame) => undefined | T,
-  frame = top(),
-): undefined | T => {
-  let result = cb(frame)
-  if (result !== undefined) return result
-
-  for (let i = 0; i < frame.pubs.length; i++) {
-    let pub = frame.pubs[i]
-    if (pub !== null && pub!.atom !== context) {
-      let result = findVar(cb, pub)
-      if (result !== undefined) return result
-    }
-  }
-
-  return undefined
-}
 
 /**
  * Interface for context variables in Reatom
@@ -47,7 +20,7 @@ export interface Variable<Params extends any[] = any[], Payload = any> {
    * @throws {Error} If the variable is not found in the frame tree
    */
   get(frame?: Frame): Payload
-  
+
   /**
    * Sets a new value for the variable
    *
@@ -55,40 +28,30 @@ export interface Variable<Params extends any[] = any[], Payload = any> {
    * @returns {Payload} The new value
    */
   set(...params: Params): Payload
-  
+
   /**
-   * Checks if the variable exists in the current context
+   * Checks if the variable exists in the current stack
    *
    * @param {Frame} [frame] - Optional frame to check (defaults to current top frame)
    * @returns {boolean} True if the variable exists in the context
    */
   has(frame?: Frame): boolean
-  
+
   /**
-   * Gets the current value without assertion (may return undefined)
-   *
-   * @param {Frame} [frame] - Optional frame to check (defaults to current top frame)
-   * @returns {undefined | Payload} The current value or undefined if not found
-   */
-  current(frame?: Frame): undefined | Payload
-  
-  /**
-   * Reads and optionally transforms the variable's value
+   * Traverses the frame tree to find and map the variable value.
    *
    * @template T - Return type of the callback
    * @param {(value: undefined | Payload) => undefined | T} [cb] - Optional transformation callback
    * @param {Frame} [frame] - Optional frame to check (defaults to current top frame)
-   * @param {WeakMap<Frame, WeakMap<WeakKey, any>>} [meta] - Variable metadata
    * @returns {undefined | T} The transformed value or undefined if not found
    */
-  read<T = Payload>(
+  find<T = Payload>(
     cb?: (value: undefined | Payload) => undefined | T,
     frame?: Frame,
-    meta?: WeakMap<Frame, WeakMap<WeakKey, any>>,
   ): undefined | T
-  
+
   /**
-   * Runs a function with a temporary variable value
+   * Runs a function with new variable value
    *
    * @template T - Return type of the function
    * @param {Payload} value - The temporary value to set
@@ -151,17 +114,30 @@ export let variable: {
 
   let key = {}
 
-  let read: Variable['read'] = (
-    cb = identity,
+  let find = <T>(
+    cb: (payload: undefined | unknown) => undefined | T = (payload) =>
+      payload as undefined | T,
     frame = top(),
     meta = context().state.meta.variable,
-  ) => {
-    let value = findVar((frame) => cb(meta.get(frame)?.get(key)), frame)
+  ): undefined | T => {
+    let result = cb(meta.get(frame)?.get(key))
+    if (result !== undefined) return result
 
-    return value
+    for (let i = 0; i < frame.pubs.length; i++) {
+      let pub = frame.pubs[i]
+      if (pub !== null && pub!.atom !== context) {
+        let result = find(cb, pub, meta)
+        if (result !== undefined) return result
+      }
+    }
+
+    return undefined
   }
 
   let write = (value: any, frame = top()) => {
+    if (value === undefined) {
+      throw new ReatomError('Variable value cannot be undefined')
+    }
     let meta = context().state.meta.variable
     let recs = meta.get(frame)
     if (!recs) meta.set(frame, (recs = new WeakMap()))
@@ -176,7 +152,7 @@ export let variable: {
 
   return {
     get(frame?: Frame) {
-      let value = read(identity, frame)
+      let value = find(identity, frame)
 
       assert(value !== undefined, 'Variable not found')
 
@@ -190,12 +166,9 @@ export let variable: {
       return value
     },
     has(frame?: Frame) {
-      return read(identity, frame) !== undefined
+      return find(identity, frame) !== undefined
     },
-    current(frame = top()) {
-      return context().state.meta.variable.get(frame)?.get(key)
-    },
-    read,
+    find,
     run,
   }
 }

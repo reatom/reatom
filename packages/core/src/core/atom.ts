@@ -15,36 +15,36 @@ export interface AtomMeta {
    * Set to false for actions or the context atom.
    */
   readonly reactive: boolean
-  
+
   /**
    * The initial state of the atom.
    */
   readonly initState: any
-  
+
   /**
    * Array of middleware functions that intercept and potentially transform atom operations.
    */
   readonly middlewares: Array<(next: Fn, ...params: any[]) => any>
-  
+
   /**
    * @internal
    * Flag used to prevent recursion cycles during atom processing.
    * DO NOT USE outside atom.ts
    */
   processing: boolean
-  
+
   /**
    * @internal
    * Flag used to prevent unwanted dependency linking in middlewares.
    * DO NOT USE outside atom.ts
    */
   linking: boolean
-  
+
   /**
    * Function called when the atom gains its first subscriber.
    */
   onConnect: undefined | Fn
-  
+
   /**
    * Function called when the atom loses its last subscriber.
    */
@@ -117,7 +117,7 @@ export interface Atom<State = any> extends AtomLike<State, []> {
    * @returns The new state value
    */
   (update: (state: State) => State): State
-  
+
   /**
    * Set the atom's state to a new value
    * @param newState - The new state value
@@ -219,7 +219,7 @@ export interface Store extends WeakMap<Atom, Frame> {
   get<State, Params extends any[], Payload>(
     target: AtomLike<State, Params, Payload>,
   ): undefined | Frame<State, Params, Payload>
-  
+
   /**
    * Set the frame for an atom in the current context.
    *
@@ -253,9 +253,9 @@ export interface ContextMeta {
    * Maps frames to their associated variable maps.
    */
   variable: WeakMap<Frame, WeakMap<WeakKey, any>>
-  
+
   // abort: WeakMap<Frame, AbortAtom>
-  
+
   /**
    * Maps atoms to their previous and next frames for tracking frame transitions.
    */
@@ -266,12 +266,12 @@ export interface ContextMeta {
       next: Frame
     }
   >
-  
+
   /**
    * Cache for memoized selectors, keyed by source function.
    */
   select: WeakMap<AtomLike, Record<FunctionSource, AtomLike>>
-  
+
   /**
    * Additional metadata entries that can be dynamically added.
    */
@@ -289,33 +289,33 @@ export interface Context {
    * Store that maps atoms to their frames in this context.
    */
   store: Store
-  
+
   /**
    * @internal
    * Additional metadata for this context.
    */
   meta: ContextMeta
-  
+
   /**
    * Queue for hook callbacks to be executed.
    */
   hook: Queue
-  
+
   /**
    * Queue for computation callbacks to be executed.
    */
   compute: Queue
-  
+
   /**
    * Queue for cleanup callbacks to be executed.
    */
   cleanup: Queue
-  
+
   /**
    * Queue for effect callbacks to be executed.
    */
   effect: Queue
-  
+
   /**
    * Add a callback to a specific queue for later execution.
    *
@@ -342,7 +342,7 @@ export interface ContextAtom extends AtomLike<Context, [], ContextFrame> {
    * @returns The result of the callback
    */
   start<T>(cb: () => T): T
-  
+
   /**
    * Start a new isolated context.
    *
@@ -564,6 +564,51 @@ declare global {
 if (globalThis.__REATOM) throw new ReatomError('package duplication')
 globalThis.__REATOM = []
 
+export function _isPubsChanged(
+  contextFrame: ContextFrame,
+  frame: Frame,
+  pubs: Frame['pubs'],
+  from: number,
+) {
+  // use current frame to reduce `copy` operations, reset pubs **temporally**
+  let framePubs = frame.pubs
+  frame.pubs = [null]
+
+  for (let i = from; i < pubs.length; i++) {
+    let { error: pubError, state: pubState, atom: pubAtom } = pubs[i]!
+    let pubFreshState = pubState
+    let pubFreshError = pubError
+
+    // try to reduce extra atom calls
+    let pubFrame = contextFrame.state.store.get(pubAtom)!
+    if (
+      pubFrame.pubs.length === 1 ||
+      (pubFrame.pubs[0] !== null && pubFrame.subs.length !== 0)
+    ) {
+      pubFreshState = pubFrame.state
+      pubFreshError = pubFrame.error
+    } else {
+      try {
+        pubFreshState = pubAtom()
+      } catch (error) {
+        // we should give an ability to handle errors in computer by a user himself
+        pubFreshError = error as Frame['error']
+      }
+    }
+
+    if (
+      !Object.is(pubState, pubFreshState) ||
+      !Object.is(pubError, pubFreshError)
+    ) {
+      return true
+    }
+  }
+  // restore pubs!
+  frame.pubs = framePubs
+
+  return false
+}
+
 /** The hurt of atom internal logic*/
 function atomMiddleware(next: Fn) {
   let contextFrame = STACK[0]!
@@ -585,8 +630,7 @@ function atomMiddleware(next: Fn) {
     newState = frame.state =
       typeof update === 'function' ? update(state) : update
     frame.error = null
-    pubs = frame.pubs
-    pubs[0] = STACK[STACK.length - 2]!
+    frame.pubs[0] = STACK[STACK.length - 2]!
   }
 
   let invalid =
@@ -597,45 +641,7 @@ function atomMiddleware(next: Fn) {
         : // computed without dependencies should rerun only after direct state change
           push && !Object.is(state, frame.state)))
 
-  // pubs invalidation check to memoize the computed
-  if (invalid && dependent) {
-    invalid = false
-    // use current frame to reduce `copy` operations, reset pubs **temporally**
-    frame.pubs = [null]
-    for (let i = 1; i < pubs.length; i++) {
-      let { error: pubError, state: pubState, atom: pubAtom } = pubs[i]!
-      let pubFreshState = pubState
-      let pubFreshError = pubError
-
-      // try to reduce extra atom calls
-      let pubFrame = contextFrame.state.store.get(pubAtom)!
-      if (
-        pubFrame.pubs.length === 1 ||
-        (pubFrame.pubs[0] !== null && pubFrame.subs.length !== 0)
-      ) {
-        pubFreshState = pubFrame.state
-        pubFreshError = pubFrame.error
-      } else {
-        try {
-          pubFreshState = pubAtom()
-        } catch (error) {
-          // we should give an ability to handle errors in computer by a user himself
-          pubFreshError = error as Frame['error']
-        }
-      }
-
-      if (
-        !Object.is(pubState, pubFreshState) ||
-        !Object.is(pubError, pubFreshError)
-      ) {
-        invalid = true
-      }
-    }
-    // restore pubs!
-    frame.pubs = pubs
-  }
-
-  if (invalid) {
+  if (invalid && (!dependent || _isPubsChanged(contextFrame, frame, pubs, 1))) {
     frame.pubs = [null]
     try {
       frame.atom.__reatom.linking = true

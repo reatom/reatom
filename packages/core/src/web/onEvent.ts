@@ -54,7 +54,7 @@ export const onEvent: {
 
   target.addEventListener(type, listener)
 
-  let unAbort = abortVar.read()?.subscribeAbort(un)
+  let unAbort = abortVar.find()?.subscribeAbort(un)
 
   return un
 }

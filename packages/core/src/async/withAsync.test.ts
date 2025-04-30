@@ -68,7 +68,7 @@ test('withAsync for action error handling', async () => {
   expect(fetch.error()).instanceOf(Error)
   expect(fetch.error()?.message).toBe('TEST')
   expect(onReject).toHaveBeenCalledWith({
-    error: 'TEST',
+    error: new Error('TEST'),
     params: [true],
   })
   expect(onFulfill).not.toHaveBeenCalled()

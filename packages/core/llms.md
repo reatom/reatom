@@ -193,7 +193,7 @@ Use extensions for handling async states (loading, error).
     await wrap(api.submitForm(formData))
   }, 'sendForm').extend(withAsync())
 
-  sendForm.pending() // Atom<boolean>: true while action is running
+  sendForm.ready() // Atom<boolean>: true while action is running
   sendForm.error() // Atom<undefined | Error>: Stores rejection error
   // sendForm.onFulfill() / onReject() / onSettle() - Actions called on state changes
   ```
@@ -211,7 +211,7 @@ Use extensions for handling async states (loading, error).
   }, 'userData').extend(withAsyncData()) // `undefined` is the initial data state
 
   userData.data() // Atom<YourDataType | undefined>: Stores the fetched data
-  userData.pending() // Atom<boolean>: true while fetching
+  userData.ready() // Atom<boolean>: true while fetching
   userData.error() // Atom<undefined | Error>: Stores fetch error
   ```
 
@@ -551,8 +551,8 @@ root.render(
 - **`.subscribe(callback)`**: Method on atoms/actions to listen for changes. Returns unsubscribe fn.
 - **`.extend(extension)`**: Method on atoms/actions to apply extensions.
 - **`.actions(builderFn)`**: Method on atoms to add related actions.
-- **`withAsync()`**: Extension for async action state tracking (pending, error).
-- **`withAsyncData({ initialState? }?)`**: Extension for async computed data fetching (data, pending, error, cancellation).
+- **`withAsync()`**: Extension for async action state tracking (ready, error).
+- **`withAsyncData({ initialState? }?)`**: Extension for async computed data fetching (data, ready, error, cancellation).
 - **`take(target, name?)`**: Await next update/call within async context (use `wrap(take(target))`).
 - **`onEvent(target, eventName, callback?)`**: Handle DOM/WebSocket events safely.
 - **`connectLogger()`**: Enables debug logging.
