@@ -5,7 +5,6 @@ import {
   AtomMut,
   AtomState,
   type Ctx,
-  CtxSpy,
   type Rec,
   __count,
   action,
@@ -27,8 +26,6 @@ import {
 
 import {
   LLNode,
-  LL_NEXT,
-  LL_PREV,
   LinkedList,
   LinkedListAtom,
   LinkedListLikeAtom,
@@ -37,21 +34,19 @@ import {
   withComputed,
 } from '@reatom/primitives';
 
-import { parseAtoms, withReset, type ParseAtoms } from '@reatom/lens';
-import { entries, isObject, isShallowEqual } from '@reatom/utils';
+import { type ParseAtoms } from '@reatom/lens';
+import { isObject } from '@reatom/utils';
 
 import {
   type FieldAtom,
-  type FieldFocus,
-  type FieldValidation,
-  fieldInitFocus,
-  fieldInitValidation,
   reatomField,
   type FieldOptions,
   FieldLikeAtom,
 } from './reatomField';
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
+import { withInit } from '@reatom/hooks';
+import { FieldSet, reatomFieldsSet } from './reatomFieldSet';
 
 export interface FormFieldOptions<State = any, Value = State>
   extends FieldOptions<State, Value> {
@@ -82,13 +77,13 @@ type ExtractFieldArray<T> = {
   [K in keyof T]: T[K] extends FormFieldArray<infer Param, infer Node> ? Param[] : ExtractFieldArray<T[K]>
 }
 
-export type FormFieldArrayAtom<Param, Node extends FormInitStateElement = FormInitStateElement>
+export type FormFieldArrayAtom<Param = any, Node extends FormInitStateElement = FormInitStateElement>
   = LinkedListAtom<[ExtractFieldArray<Param>], FormFieldElement<Node>> & {
     reset: Action<[], AtomState<FormFieldArrayAtom<Param, Node>>>
     initState: AtomMut<LinkedList<LLNode<FormFieldElement<Node>>>>
   }
 
-type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> =
+export type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> =
   T extends FieldLikeAtom
   ? T
   : T extends Date
@@ -121,42 +116,20 @@ export type DeepPartial<T, Skip = never> = {
   [K in keyof T]?: T[K] extends Skip ? T[K] : T[K] extends Rec ? DeepPartial<T[K], Skip> : T[K];
 };
 
-type DeepExtractLLNode<T> = {
-  [K in keyof T]: T[K] extends Array<infer LLNode>
-  ? Array<DeepExtractLLNode<Omit<LLNode, typeof LL_NEXT | typeof LL_PREV>>>
-  : T[K]
-}
-
 export type FormPartialState<T extends FormInitState = FormInitState> =
-  DeepPartial<DeepExtractLLNode<FormState<T>>, Array<unknown>>;
+  DeepPartial<FormState<T>, Array<unknown>>;
 
 export interface SubmitAction extends AsyncAction<[], void> {
   error: Atom<Error | undefined>;
   statusesAtom: AsyncStatusesAtom;
 }
 
-export interface Form<T extends FormInitState> {
-  /** Fields from the init state */
-  fields: FormFields<T>;
-
-  /** Atom with the state of the form, computed from all the fields in `fieldsList` */
-  fieldsState: Atom<FormState<T>>;
-
-  /** Atom with focus state of the form, computed from all the fields in `fieldsList` */
-  focus: Atom<FieldFocus>;
-
-  init: Action<[initState: FormPartialState<T>], void>;
-
-  /** Action to reset the state, the value, the validation, and the focus states. */
-  reset: Action<[initState?: FormPartialState<T>], void>;
-
+export interface Form<T extends FormInitState> extends FieldSet<T> {
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
   submit: SubmitAction;
 
+  /** Atom with submitted state of the form */
   submitted: Atom<boolean>;
-
-  /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
-  validation: Atom<FieldValidation>;
 }
 
 export interface BaseFormOptions {
@@ -290,101 +263,6 @@ const reatomFormFields = <T extends FormInitState>(
   return fields;
 };
 
-const computeFieldsList = <T extends FormInitState>(
-  ctx: CtxSpy,
-  fields: FormFields<T>,
-  acc: Array<FieldAtom> = []
-): Array<FieldAtom> => {
-  const computeElement = (
-    element: FormFieldElement,
-    acc: Array<FieldAtom> = [],
-  ) => {
-    if (isLinkedListAtom(element)) {
-      const elements = ctx.spy(element.array);
-      elements.forEach(e => computeElement(e, acc))
-    }
-    else if (isAtom(element)) acc.push(element);
-    else computeFieldsList(ctx, element, acc);
-
-    return acc;
-  }
-
-  for (const [_, field] of entries(fields))
-    acc.push(...computeElement(field));
-
-  return acc;
-};
-
-const computeFieldArraysList = <T extends FormInitState>(
-  ctx: CtxSpy,
-  fields: FormFields<T>,
-  acc: Array<FormFieldArrayAtom<unknown>> = []
-) => {
-  const computeElement = (
-    element: FormFieldElement,
-    acc: Array<FormFieldArrayAtom<unknown>> = [],
-  ) => {
-    if (isLinkedListAtom(element)) {
-      acc.push(element as FormFieldArrayAtom<unknown>);
-      ctx.spy(element.array).forEach(e => computeElement(e, acc));
-    }
-    else if (!isAtom(element))
-      computeFieldArraysList(ctx, element, acc)
-
-    return acc;
-  }
-
-  for (const [_, field] of entries(fields)) {
-    acc.push(...computeElement(field));
-  }
-
-  return acc;
-};
-
-export const reatomFieldsSet = <T extends FormInitState>(
-	fields: FormFields<T>,
-	name = __count('fieldsSet'),
-) => {
-	const fieldsList = atom(ctx => computeFieldsList(ctx, fields), `${name}.fieldsList`);
-
-	const focus = atom((ctx, state = fieldInitFocus) => {
-		const formFocus = { ...fieldInitFocus };
-
-		for (const field of ctx.spy(fieldsList)) {
-			const { active, dirty, touched } = ctx.spy(field.focus);
-			formFocus.active ||= active;
-			formFocus.dirty ||= dirty;
-			formFocus.touched ||= touched;
-		}
-
-		return isShallowEqual(formFocus, state) ? state : formFocus;
-	}, `${name}.focus`);
-
-	const validation = atom((ctx, state = fieldInitValidation) => {
-		const formValid = { ...fieldInitValidation };
-		formValid.triggered = true;
-
-		for (const field of ctx.spy(fieldsList)) {
-			const { triggered, validating, error } = ctx.spy(field.validation);
-
-			formValid.triggered &&= triggered;
-			formValid.validating ||= validating;
-			formValid.error ||= error;
-		}
-
-		return isShallowEqual(formValid, state) ? state : formValid;
-	}, `${name}.validation`);
-
-	const fieldsState = atom(ctx => parseAtoms(ctx, fields), `${name}.fieldsState`);
-
-	return {
-		fields,
-		fieldsState,
-		focus,
-		validation,
-	};
-};
-
 interface FormFieldArray<Param, Node extends FormInitStateElement = FormInitStateElement> {
   create: (ctx: Ctx, param: Param, name: string) => Node,
   initState: Array<Param>;
@@ -436,7 +314,7 @@ function createFieldArray<Param, Node extends FormInitStateElement = FormInitSta
 
 const isFieldArray = (value: any): value is FormFieldArray<any> => value?.__fieldArray;
 
-export { createFieldArray as fieldArray };
+export { createFieldArray as experimental_fieldArray };
 export type ArrayFieldItem<T> = T extends LinkedListLikeAtom ? AtomState<T['array']>[number] : never;
 
 const resolveFieldByPath = <T extends FormInitState>(
@@ -505,24 +383,24 @@ export function reatomForm<T extends FormInitState, SchemaState>(
       ? ({ name: options })
       : options;
 
-  const defaultFieldOptions = {
-    validateOnBlur,
-    validateOnChange,
-    keepErrorDuringValidating,
-    keepErrorOnChange
-  };
-
   const fields = reatomFormFields(initState instanceof Function ? initState(name) : initState, {
     name: `${name}.fields`,
     onFieldResolved: (field) => {
-			field.__defaults.validateOnChange ??= defaultFieldOptions.validateOnChange;
-			field.__defaults.validateOnBlur ??= defaultFieldOptions.validateOnBlur;
-			field.__defaults.keepErrorDuringValidating ??= defaultFieldOptions.keepErrorDuringValidating;
-			field.__defaults.keepErrorOnChange ??= defaultFieldOptions.keepErrorOnChange;
+      field.options.pipe(
+        withInit((ctx, init) => {
+          const options = init(ctx);
+
+          return {
+            validateOnChange: options.validateOnChange ?? validateOnChange,
+            validateOnBlur: options.validateOnBlur ?? validateOnBlur,
+            keepErrorDuringValidating: options.keepErrorDuringValidating ?? keepErrorDuringValidating,
+            keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
+            shouldValidate: !!schema || options.shouldValidate
+          }
+        })
+      )
 
 			if (schema) {
-				field.__defaults.shouldValidate = true;
-
 				field.validation.trigger.onCall((ctx) => {
 					if (!ctx.get(field.validation).error && !isCausedBy(ctx, submit))
 						checkSchemaValidation(ctx, field);
@@ -532,51 +410,22 @@ export function reatomForm<T extends FormInitState, SchemaState>(
   });
   
   const {
+    fieldsList,
+    fieldArraysList,
     fieldsState,
     focus,
-    validation
+    validation,
+    reset,
+    init
   } = reatomFieldsSet(fields, name);
 
-  const fieldsList = atom(ctx => computeFieldsList(ctx, fields), `${name}.fieldsList`);
-  const fieldArraysList = atom(ctx => computeFieldArraysList(ctx, fields), `${name}.fieldArraysList`);
-
-  const submitted = atom(false, `${name}.submitted`);
-
-  const reset = action((ctx, initState?: FormPartialState<T>) => {
-    if (initState)
-      reinitState(ctx, initState, fields);
-
-    ctx.get(fieldArraysList).forEach((fieldArray) => fieldArray.reset(ctx));
-    ctx.get(fieldsList).forEach((fieldAtom) => fieldAtom.reset(ctx));
-
+  reset.onCall((ctx) => {
     submitted(ctx, false);
     submit.errorAtom.reset(ctx);
     submit.abort(ctx, `${name}.reset`);
-  }, `${name}.reset`);
+  })
 
-  const reinitState = (ctx: Ctx, initState: FormPartialState<T>, fields: FormFields) => {
-    for (const [key, value] of Object.entries(initState as Rec)) {
-      if (isLinkedListAtom(fields[key])) {
-        // @ts-expect-error bad type for initiate
-        fields[key].initState(ctx, fields[key].initiate(ctx, value.map(v => [v])));
-      }
-      else if (
-        isObject(value) &&
-        !(value instanceof Date) &&
-        key in fields &&
-        !isAtom(fields[key])
-      ) {
-        reinitState(ctx, value, fields[key] as unknown as FormFields);
-      }
-      else if (isAtom(fields[key])) {
-        fields[key].initState(ctx, value);
-      }
-    }
-  };
-
-  const init = action((ctx, initState: FormPartialState<T>) => {
-    reinitState(ctx, initState, fields);
-  }, `${name}.init`);
+  const submitted = atom(false, `${name}.submitted`);
 
 	const checkSchemaValidation = action(async (ctx: Ctx, triggerOnlyFor?: Atom) => {
 		const state = ctx.get(fieldsState);
@@ -592,12 +441,10 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 				if (!field || (triggerOnlyFor && triggerOnlyFor !== field))
 					continue;
 
-				field.validation.merge(ctx, {
-					error: issue.message,
-					meta: undefined,
-					triggered: true,
-					validating: false,
-				});
+        if (ctx.get(field.disabled))
+          continue;
+
+        field.validation.setError(ctx, issue.message)
 
 				if (triggerOnlyFor)
 					break;
@@ -666,12 +513,14 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 
   return {
     fields,
+    fieldsList,
+    fieldArraysList,
     fieldsState,
     focus,
     init,
     reset,
     submit,
     submitted,
-    validation,
+    validation
   };
 };

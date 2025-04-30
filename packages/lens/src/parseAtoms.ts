@@ -3,6 +3,7 @@ import {
   isLinkedListAtom,
   LinkedList,
   LinkedListLikeAtom,
+  LLNode,
 } from '@reatom/primitives'
 import { isRec } from '@reatom/utils'
 
@@ -12,7 +13,7 @@ type Builtin = Date | RegExp | Function
 export type ParseAtoms<T> = T extends Action
   ? T
   : T extends LinkedListLikeAtom<infer T>
-  ? T extends LinkedList<infer T>
+  ? T extends LinkedList<LLNode<infer T>>
   ? Array<ParseAtoms<T>>
   : never
   : T extends Atom<infer T>

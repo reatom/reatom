@@ -1,7 +1,7 @@
 import { AtomState, createCtx } from "@reatom/core";
 import { connectLogger } from "@reatom/logger"
 import { reatomContext, useAction, useAtom } from "@reatom/npm-react"
-import { fieldArray, FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
+import { experimental_fieldArray, FieldAtom, FormFieldArrayAtom, reatomForm, withField } from "../src";
 import { LinkedListLikeAtom, reatomBoolean } from "@reatom/primitives";
 import { PropsWithChildren } from 'react';
 import { createRoot } from "react-dom/client";
@@ -30,7 +30,7 @@ const form = reatomForm(name => ({
 			street: 'my street',
 			city: 'my city',
 			tags: ['defaultTag', 'defaultTag2'],
-			phoneNumbers: fieldArray({
+			phoneNumbers: experimental_fieldArray({
 				initState: Array<{ number: string, priority: boolean }>(),
 				create: (ctx, { number, priority }, name) => ({
 					number,

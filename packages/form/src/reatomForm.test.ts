@@ -1,14 +1,15 @@
 import { test, expect, describe } from 'vitest'
-import { createCtx } from '@reatom/core'
-import { fieldArray, reatomField, reatomForm, withField } from '.'
+import { createCtx, Ctx } from '@reatom/core'
+import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
 import { reatomBoolean } from '@reatom/primitives';
 import { z } from 'zod';
+import { sleep } from '@reatom/utils';
 
 test(`adding and removing fields`, async () => {
 	const ctx = createCtx();
 	const form = reatomForm({
 		field: reatomField('initial', 'fieldAtom'),
-		list: fieldArray({
+		list: experimental_fieldArray({
 			initState: ['initial'],
 			create: (ctx, param) => reatomField(param, 'fieldAtom')
 		}),
@@ -29,7 +30,7 @@ test('focus states', () => {
 	const form = reatomForm({
 		field1: { initState: '', validate: () => { } },
 		field2: { initState: '', validate: () => { } },
-		list: fieldArray({
+		list: experimental_fieldArray({
 			initState: ['initial'],
 			create: (ctx, param) => reatomField(param, 'fieldAtom')
 		}),
@@ -79,10 +80,17 @@ test('validation states', async () => {
 			throw new Error('Contract error')
 	}
 
+	const validate = async (ctx: Ctx, { value }: { value: string }) => {
+		await sleep()
+		if (value === 'errorValue')
+			throw new Error('Contract error')
+	}
+
 	const form = reatomForm({
 		field1: { initState: '', contract, validateOnChange: true },
 		field2: { initState: '', contract, validateOnChange: true },
-		rest: fieldArray<string>([])
+		field3: { initState: '', validate, validateOnChange: true },
+		rest: experimental_fieldArray<string>([])
 	}, {
 		name: 'testForm',
 		onSubmit: () => { },
@@ -91,7 +99,7 @@ test('validation states', async () => {
 		},
 	})
 
-	const { field1, field2, rest } = form.fields
+	const { field1, field2, field3, rest } = form.fields
 
 	field1.change(ctx, 'value')
 	field2.change(ctx, 'value')
@@ -99,7 +107,7 @@ test('validation states', async () => {
 	expect(ctx.get(form.validation)).toEqual({
 		error: undefined,
 		meta: undefined,
-		triggered: true,
+		triggered: false,
 		validating: false,
 	})
 
@@ -108,14 +116,30 @@ test('validation states', async () => {
 	expect(ctx.get(form.validation)).toEqual({
 		error: 'Contract error',
 		meta: undefined,
-		triggered: true,
+		triggered: false,
 		validating: false,
+	})
+
+	field3.change(ctx, 'hey')
+
+	expect(ctx.get(form.validation)).toEqual({
+		error: 'Contract error',
+		meta: undefined,
+		triggered: true,
+		validating: true,
 	})
 
 	field2.reset(ctx);
 
 	await form.submit(ctx).catch(() => { })
 	expect(ctx.get(form.submit.error)?.message).toBe('Form validation error')
+
+	expect(ctx.get(form.validation)).toEqual({
+		error: undefined,
+		meta: undefined,
+		triggered: true,
+		validating: false,
+	})
 
 	const fieldNoValidationTrigger = rest.create(ctx, '');
 	fieldNoValidationTrigger.change(ctx, 'value');
@@ -138,11 +162,61 @@ test('validation states', async () => {
 	})
 })
 
+test('validation and focus states with disabled fields', async () => {
+	const ctx = createCtx()
+
+	const contract = (value: string) => {
+		if (value === 'errorValue')
+			throw new Error('Contract error')
+	}
+
+	const form = reatomForm({
+		field1: { initState: '', contract, validateOnChange: true },
+	}, 'testForm')
+
+	form.fields.field1.change(ctx, 'errorValue');
+	expect(ctx.get(form.validation)).toMatchObject({ error: 'Contract error', triggered: true });
+	expect(ctx.get(form.focus)).toMatchObject({ touched: true, dirty: true });
+
+	form.fields.field1.disabled(ctx, true);
+	expect(ctx.get(form.validation)).toMatchObject({ error: undefined, triggered: true });
+	expect(ctx.get(form.focus)).toMatchObject({ touched: false, dirty: false })
+
+	form.fields.field1.disabled(ctx, false);
+	expect(ctx.get(form.validation)).toMatchObject({ error: 'Contract error', triggered: true });
+	expect(ctx.get(form.focus)).toMatchObject({ touched: true, dirty: true });
+})
+
+test('validation states with disabled fields and defined schema', async () => {
+	const ctx = createCtx()
+
+	const formWithSchema = reatomForm({
+		field1: '',
+	}, {
+		validateOnChange: true,
+		schema: z.object({ 
+			field1: z.string().refine(value => value !== 'errorValue', 'Schema contract error') 
+		})
+	})
+
+	const targetField = formWithSchema.fields.field1;
+
+	targetField.change(ctx,'errorValue');
+	expect(ctx.get(formWithSchema.validation)).toMatchObject({ error: 'Schema contract error' });
+
+	targetField.change(ctx,'validValue');
+	expect(ctx.get(formWithSchema.validation)).toMatchObject({ error: undefined });
+
+	targetField.disabled(ctx,true);
+	targetField.change(ctx, 'errorValue');
+	expect(ctx.get(formWithSchema.validation)).toMatchObject({ error: undefined });
+})
+
 test('default options for fields', async () => {
 	const ctx = createCtx()
 	const form = reatomForm({
 		field: { initState: 'initial', validate: () => { } },
-		array: fieldArray(['one', 'two', 'free']),
+		array: experimental_fieldArray(['one', 'two', 'free']),
 	}, {
 		validateOnChange: true
 	});
@@ -197,7 +271,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 				{
 					array: ['hey'],
 					emptyArray: new Array<string>(),
-					emptyArrayExplicit: fieldArray<string>([])
+					emptyArrayExplicit: experimental_fieldArray<string>([])
 				}
 			]
 		})
@@ -235,7 +309,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 					street: '',
 					city: '',
 					tags: ['defaultTag', 'defaultTag2'],
-					phoneNumbers: fieldArray({
+					phoneNumbers: experimental_fieldArray({
 						initState: Array<{ number: string, priority: boolean }>(),
 						create: (ctx, { number, priority }) => ({
 							number,
@@ -378,11 +452,11 @@ test('form should correctly initialize field options', async () => {
 		keepErrorOnChange: true,
 	})
 
-	expect(ctx.get(form.fields.age.validateOnChange)).toBe(true)
-	expect(ctx.get(form.fields.email.validateOnBlur)).toBe(true)
-	expect(ctx.get(form.fields.email.keepErrorDuringValidating)).toBe(true)
-	expect(ctx.get(form.fields.fieldWithDefault.keepErrorOnChange)).toBe(true)
-	expect(ctx.get(form.fields.fieldWithDefault.validateOnChange)).toBe(false)
+	expect(ctx.get(form.fields.age.options).validateOnChange).toBe(true)
+	expect(ctx.get(form.fields.email.options).validateOnBlur).toBe(true)
+	expect(ctx.get(form.fields.email.options).keepErrorDuringValidating).toBe(true)
+	expect(ctx.get(form.fields.fieldWithDefault.options).keepErrorOnChange).toBe(true)
+	expect(ctx.get(form.fields.fieldWithDefault.options).validateOnChange).toBe(false)
 })
 	
 test('validating through form schema and placing errors to corresponding fields', async () => {
@@ -406,4 +480,52 @@ test('validating through form schema and placing errors to corresponding fields'
 	expect(ctx.get(form.fields.email.validation).error).toBeTruthy();
 	expect(ctx.get(ctx.get(form.fields.items.array)[0]!.validation).error).toBeTruthy();
 	expect(ctx.get(ctx.get(form.fields.items.array)[1]!.validation).error).toBeFalsy();
+})
+
+test('triggering schema validation only for one field', async () => {
+	const ctx = createCtx()
+
+	const form = reatomForm({
+		age: 12,
+		email: 'test',
+		items: ['', 'valid']
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			age: z.number().min(18, 'must be minimum 18'),
+			email: z.string().email(),
+			items: z.array(z.string().min(1))
+		})
+	});
+
+	expect(ctx.get(form.validation).error).toBeFalsy();
+
+	form.fields.age.change(ctx, 17);
+	expect(ctx.get(form.validation).error).toBe('must be minimum 18');
+	expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18');
+})
+
+test('concurrent field validation with schema', async () => {
+	const ctx = createCtx()
+
+	const form = reatomForm({
+		age: { 
+			initState: 12, 
+			validate: async () => { 
+				await sleep();
+				throw new Error('validation error')
+			},
+		}
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			age: z.number().min(18, 'must be minimum 18'),
+		})
+	});
+
+	form.fields.age.change(ctx, 10);
+	expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18');
+	await sleep();
+
+	expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18');
 })

@@ -72,33 +72,35 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
   /** Atom that defines if the field is disabled */
   disabled: BooleanAtom
 
-  /**
-   * Defines the reset behavior of the validation state during async validation.
-   * @default false
-   */
-  keepErrorDuringValidating: AtomMut<boolean | undefined>
+  options: RecordAtom<{
+    /**
+     * Defines the reset behavior of the validation state during async validation.
+     * @default false
+     */
+    keepErrorDuringValidating: boolean | undefined
 
-  /**
-   * Defines the reset behavior of the validation state on field change.
-   * Useful if the validation is triggered on blur or submit only.
-   * @default !validateOnChange
-   */
-  keepErrorOnChange: AtomMut<boolean | undefined>
+    /**
+     * Defines the reset behavior of the validation state on field change.
+     * Useful if the validation is triggered on blur or submit only.
+     * @default !validateOnChange
+     */
+    keepErrorOnChange: boolean | undefined
 
-  /**
-   * Defines if the validation should be triggered with every field change.
-   * @default false
-   */
-  validateOnChange: AtomMut<boolean | undefined>
+    /**
+     * Defines if the validation should be triggered with every field change.
+     * @default false
+     */
+    validateOnChange: boolean | undefined
 
-  /**
-   * Defines if the validation should be triggered on the field blur.
-   * @default false
-   */
-  validateOnBlur: AtomMut<boolean | undefined>
+    /**
+     * Defines if the validation should be triggered on the field blur.
+     * @default false
+     */
+    validateOnBlur: boolean | undefined
 
-  /* @internal */
-  shouldValidate: AtomMut<boolean | undefined>
+    /* @internal */
+    shouldValidate: boolean | undefined
+  }>
 }
 
 export type FieldValidateOption<State = any, Value = State> = (
@@ -233,33 +235,31 @@ export function reatomField<State, Value = State>(
     ...restOptions
   } = typeof options === 'string' ? ({ name: options } as FieldOptions<State, Value>) : options
 
-	const validateOnBlur = atom(restOptions.validateOnBlur, `${name}.validateOnBlur`).pipe(
+  const fieldOptions = reatomRecord({
+    validateOnChange: restOptions.validateOnChange,
+    validateOnBlur: restOptions.validateOnBlur,
+    keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
+    keepErrorOnChange: restOptions.keepErrorOnChange,
+    shouldValidate: undefined as boolean | undefined
+  }).pipe(
     withAssign((target, name) => ({
-      value: atom((ctx) => ctx.spy(target) ?? false, `${name}.value`)
-    }))
-  )
-
-	const validateOnChange = atom(restOptions.validateOnChange, `${name}.validateOnChange`).pipe(
-    withAssign((target, name) => ({
-      value: atom((ctx) => ctx.spy(target) ?? false, `${name}.value`)
-    }))
-  )
-
-	const keepErrorDuringValidating = atom(restOptions.keepErrorDuringValidating, `${name}.keepErrorDuringValidating`).pipe(
-    withAssign((target, name) => ({
-      value: atom((ctx) => ctx.spy(target) ?? false, `${name}.value`)
-    }))
-  )
-
-	const keepErrorOnChange = atom(restOptions.keepErrorOnChange, `${name}.keepErrorOnChange`).pipe(
-    withAssign((target, name) => ({
-      value: atom((ctx) => ctx.spy(target) ?? !ctx.spy(validateOnChange.value), `${name}.value`)
-    }))
-  )
-
-	const shouldValidate = atom<boolean | undefined>(undefined, `${name}.shouldValidate`).pipe(
-    withAssign((target, name) => ({
-      value: atom((ctx) => ctx.spy(target) ?? !!(validateFn || contract), `${name}.value`)
+      value: atom((ctx) => {
+        const {
+          validateOnChange, 
+          validateOnBlur, 
+          keepErrorDuringValidating,
+          keepErrorOnChange,
+          shouldValidate
+        } = ctx.spy(target)
+        
+        return {
+          validateOnChange: validateOnChange ?? false,
+          validateOnBlur: validateOnBlur ?? false,
+          keepErrorDuringValidating: keepErrorDuringValidating ?? false,
+          keepErrorOnChange: keepErrorOnChange ?? !validateOnChange,
+          shouldValidate: shouldValidate ?? !!(validateFn || contract)
+        }
+      }, `${name}.value`)
     }))
   )
 
@@ -282,12 +282,12 @@ export function reatomField<State, Value = State>(
 		ctx.get(validationController).abort(toAbortError('change'))
 
     validation.merge(ctx,
-      ctx.get(keepErrorOnChange.value)
-        ? { validating: false, triggered: false }
-        : { validating: false, triggered: false, error: undefined }
+      ctx.get(fieldOptions.value).keepErrorOnChange
+        ? { validating: false }
+        : { validating: false, error: undefined }
     )
 
-    if (!ctx.get(disabled) && ctx.get(validateOnChange.value))
+    if (!ctx.get(disabled) && ctx.get(fieldOptions.value).validateOnChange)
 			validation.trigger(ctx)
 	})
 
@@ -311,7 +311,7 @@ export function reatomField<State, Value = State>(
   }
 
   focus.out.onCall((ctx) => {
-		if (!ctx.get(disabled) && ctx.get(validateOnBlur.value))
+		if (!ctx.get(disabled) && ctx.get(fieldOptions.value).validateOnBlur)
 			validation.trigger(ctx)
 	})
 
@@ -328,7 +328,7 @@ export function reatomField<State, Value = State>(
         const validationValue = ctx.get(target)
     
         if (validationValue.triggered) return validationValue
-        if (!ctx.get(shouldValidate.value)) {
+        if (!ctx.get(fieldOptions.value).shouldValidate) {
           return target.merge(ctx, { triggered: true })
         }
     
@@ -380,7 +380,7 @@ export function reatomField<State, Value = State>(
           ).catch(noop)
     
           return target.merge(ctx, {
-            error: ctx.get(keepErrorDuringValidating.value) ? validationValue.error : undefined,
+            error: ctx.get(fieldOptions.value).keepErrorDuringValidating ? validationValue.error : undefined,
             meta: undefined,
             triggered: true,
             validating: true,
@@ -407,11 +407,15 @@ export function reatomField<State, Value = State>(
     }))
   )
 
-  validation.__reatom.initState = ctx => ctx.get(shouldValidate.value) ? fieldInitValidation : fieldInitValidationLess
+  validation.__reatom.initState = ctx => (
+    ctx.get(fieldOptions.value).shouldValidate 
+      ? fieldInitValidation 
+      : fieldInitValidationLess
+  )
 
   // @ts-expect-error the original computed state can't be typed properly
   validation.__reatom.computer = (ctx, state: FieldValidation) => {
-    if (!ctx.spy(shouldValidate.value))
+    if (!ctx.spy(fieldOptions.value).shouldValidate)
 			return fieldInitValidationLess
 
     if(ctx.spy(disabled))
@@ -448,11 +452,7 @@ export function reatomField<State, Value = State>(
     validation,
     value,
     disabled,
-    keepErrorDuringValidating,
-    keepErrorOnChange,
-    validateOnChange,
-    validateOnBlur,
-    shouldValidate,
+    options: fieldOptions,
 
     __reatomField: true as const
   })

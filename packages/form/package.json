@@ -30,6 +30,16 @@
     "@reatom/utils": "^3.7.0"
   },
   "author": "artalar",
+  "maintainers": [
+    {
+      "name": "artalar",
+      "url": "https://github.com/artalar"
+    },
+    {
+      "name": "Xelson",
+      "url": "https://github.com/xelson"
+    }
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

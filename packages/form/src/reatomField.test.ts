@@ -57,7 +57,7 @@ test(`keepErrorOnChange`, async () => {
 
 test(`keepErrorDuringValidating`, async () => {
   const ctx = createCtx()
-  
+
   const validate = async () => {
     await sleep()
     throw new Error('validation error');
@@ -96,7 +96,7 @@ test(`keepErrorDuringValidating`, async () => {
 test(`disabled state`, async () => {
   const ctx = createCtx()
 
-  const field = reatomField('', { 
+  const field = reatomField('', {
     validateOnChange: true,
     contract: (value) => {
       if (value == 'errorValue')
@@ -153,7 +153,7 @@ test(`validation concurrency`, async () => {
   field.reset(ctx);
   expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation);
 
-  field.validateOnChange(ctx, true);
+  field.options.merge(ctx, { validateOnChange: true });
 
   field.change(ctx, 1);
   field.change(ctx, 0xDEADBEEF);

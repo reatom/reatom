@@ -28,21 +28,19 @@ export const passwordField = reatomField('', {
 })
 
 // Create a form with the fields
-export const loginForm = reatomForm(
-  {
-    username: nameField,
-    password: passwordField
+export const loginForm = reatomForm({
+  username: nameField,
+  password: passwordField
+}, {
+  name: 'form',
+  async onSubmit(ctx, state) {
+    //                ^? ParseAtoms<typeof loginForm.fields>
+    const user = await api.login({
+      name: state.username,
+      password: state.password,
+    })
   },
-  {
-    async onSubmit(ctx, state) {
-      //                ^? ParseAtoms<typeof loginForm.fields>
-      const user = await api.login(ctx, {
-        name: state.username,
-        password: state.password,
-      })
-    },
-  }
-)
+})
 ```
 
 ### Form with Schema Validation
@@ -64,6 +62,7 @@ const userForm = reatomForm({
     }
   ])
 }, {
+  name: 'form',
   // Schema validation using zod
   schema: z.object({
     username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -98,7 +97,7 @@ const form = reatomForm({
   age: 25, // Number field
   isActive: true, // Boolean field
   birthDate: new Date(), // Date field
-})
+}, 'form')
 ```
 
 2. **Field Options Object**:
@@ -109,7 +108,7 @@ const form = reatomForm({
   username: { 
     initState: '', 
     validateOnChange: true,
-    validate: (ctx, { state }) => {
+    validate: ({ state }) => {
       if (state.length < 3) throw new Error('Too short')
     }
   },
@@ -117,19 +116,19 @@ const form = reatomForm({
     initState: 25, 
     validateOnBlur: true 
   }
-})
+}, 'form')
 ```
 
 3. **Existing `reatomField` Instances**:
 
 ```ts
-const usernameField = reatomField('', 'usernameField')
+const usernameField = reatomField('', 'usernameField').extend(withLocalStorage())
 const ageField = reatomField(25, 'ageField')
 
 const form = reatomForm({
   username: usernameField,
   age: ageField
-})
+}, 'form')
 ```
 You are free to attach existing fields to the form. However, note that in this case, the fields will not receive naming scoped to the form domain. 
 For better debbuging experience, it is recommended to initialize fields directly within the form's field tree, initializing the name similar to how it is done in factories. 
@@ -141,7 +140,7 @@ import { reatomForm, reatomField } from '@reatom/form'
 const form = reatomForm(name => ({
   username: reatomField('', `${name}.username`),
   password: reatomField('', `${name}.password`),
-}))
+}), 'form')
 ```
 
 4. **Atoms Extended with `withField`**:
@@ -153,8 +152,186 @@ import { withField } from '@reatom/form'
 
 const form = reatomForm(name => ({
   active: reatomBoolean(false, `${name}.active`).pipe(withField())
-}))
+}), 'form')
 ```
+
+## Array Fields
+
+The `fieldArray` function allows you to create dynamic arrays of fields that can be added, removed, and manipulated.
+
+### Array Fields Initialization
+
+There are several ways to initialize array fields:
+
+1. **Simple Array Literals**:
+```ts
+const form = reatomForm({
+  // Empty array field
+  tags: [],
+  
+  // Array with default item as a string field
+  emails: ['default@example.com'],
+  
+  // Array with default item as a string field through options definition
+  phones: [
+    { initState: '123-456-7890', validateOnChange: true }
+  ]
+}, 'form')
+```
+
+2. **Empty Array with Type Information**:
+```ts
+const form = reatomForm({
+  // Empty array with correct type information
+  emails: new Array<string>(),
+  contacts: new Array<{ name: string, phone: string }>()
+}, 'form')
+```
+
+3. **Using fieldArray Function**:
+```ts
+const form = reatomForm({
+  // Empty array field
+  tags: fieldArray<string>([]),
+  
+  // Array with default values
+  emails: fieldArray(['default@example.com']),
+}, 'form')
+```
+
+4. **Complex Array Field Factory**:
+
+If you want to configure the rules for creating fields in an array field, you should define a factory function that describes how each new field in this array field will be created.
+```ts
+const form = reatomForm({
+  // Using initState and create
+  phoneNumbers: fieldArray({
+    initState: [{ number: '123-456-7890', priority: false }],
+    create: (ctx, { number, priority }, name) => ({
+      number: { initState: number, validateOnChange: true },
+      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
+    })
+  }),
+}, 'form')
+```
+
+### Basic Array Field Operations
+Since we use the "field as model" approach and each field is an object, we can achieve maximum type safety by working directly with objects. But the cherry on top is atomization, a principle used by array fields that allows maintaining a high-quality type-safe experience at any level of nesting in your forms.
+
+```ts
+import { reatomForm, fieldArray } from '@reatom/form'
+
+const contactForm = reatomForm({
+  name: '',
+  emails: fieldArray(['']) // Simple array of string fields
+}, 'form')
+
+// Add a new email field
+contactForm.fields.emails.create(ctx, '')
+
+// Access the array of email fields
+const emailFields = ctx.get(contactForm.fields.emails.array)
+
+// Remove a specific email field
+contactForm.fields.emails.remove(ctx, emailFields[0])
+
+// Clear all email fields
+contactForm.fields.emails.clear(ctx)
+```
+
+### Complex Array Fields
+You can create more complex array fields with custom structures:
+
+```ts
+import { reatomForm, fieldArray } from '@reatom/form'
+import { reatomBoolean } from '@reatom/primitives'
+import { withField } from '@reatom/form'
+
+const contactForm = reatomForm({
+  name: '',
+  phoneNumbers: fieldArray({
+    initState: new Array<{ number: string, priority: boolean }>(),
+    create: (ctx, { number, priority }, name) => ({
+      number,
+      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
+    })
+  })
+}, 'form')
+
+// Add a new phone number
+contactForm.fields.phoneNumbers.create(ctx, { 
+  number: '123-456-7890', 
+  priority: false 
+})
+```
+
+### Nested Array Fields
+
+You can also create nested array structures:
+
+```ts
+import { reatomForm, fieldArray } from '@reatom/form'
+
+const userForm = reatomForm({
+  name: '',
+  addresses: fieldArray([
+    {
+      street: '',
+      city: '',
+      tags: fieldArray(['home'])
+    }
+  ])
+}, 'form')
+
+// Access nested fields
+const addresses = ctx.get(userForm.fields.addresses.array)
+const firstAddressTags = ctx.get(addresses[0]?.tags.array)
+```
+
+## Fields sets
+
+Field sets allow you to group related fields together and manage them as a single unit. This is useful for organizing complex forms into logical sections, such as steps in a multi-step form, or for tracking the combined state of multiple fields without creating a full form.
+
+### Creating and Using Field Sets in Multi-step Forms
+
+A common use case for field sets is creating multi-step forms where each step has its own validation and state management:
+
+```ts
+import { reatomForm, reatomFieldSet } from '@reatom/form'
+import { computed } from '@reatom/core'
+
+const checkoutForm = reatomForm({
+  personal: {
+    firstName: '',
+    lastName: '',
+    email: {
+      initState: '',
+      validate: ({ state }) => invariant(state.includes('@'), 'Invalid email format')
+    }
+  },
+  shipping: {
+    address: '',
+    city: '',
+    zipCode: {
+      initState: '',
+      validate: ({ state }) => invariant(/^\d{5}$/.test(state), 'Invalid zip code format')
+    }
+  }
+}, 'checkoutForm')
+
+// Create field sets for each step
+const personalInfoSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.personalSet')
+const shippingInfoSet = reatomFieldSet(checkoutForm.fields.shipping, 'checkoutForm.shippingSet')
+```
+
+Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
+
+- `fieldsState`: The combined state of all fields in the set
+- `validation`: The combined validation status of all fields in the set
+- `focus`: The combined focus status of all fields in the set
+- Other methods like `reset`, `init` and properties as in the forms
+
+Field sets are particularly useful for multi-step forms because they allow you to validate each step independently before allowing the user to proceed to the next step, or for reactive calculations for groups of fields.
 
 ## Form API
 
@@ -200,26 +377,33 @@ Here is the list of all additional properties and methods:
   - `active`: The field is focused.
   - `dirty`: The field's state is not equal to the initial state.
   - `touched`: The field has gained and lost focus at some point.
+  - `in`: Action for handling field focus.
+  - `out`: Action for handling field blur.
 - `validation`: Record atom with all related validation statuses:
   - `error`: The field validation error text, undefined if the field is valid.
   - `meta`: Additional validation metadata.
   - `triggered`: The validation actuality status.
   - `validating`: The field async validation status.
+  - `trigger`: Action to trigger field validation.
+  - `setError`: Action to set an error for the field.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
-- `focus.in`: Action for handling field focus.
-- `focus.out`: Action for handling field blur.
 - `reset`: Action to reset the state, the value, the validation, and the focus.
-- `validation.trigger`: Action to trigger field validation.
-- `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation.
-- `keepErrorOnChange`: Defines the reset behavior of the validation state on field change.
-- `validateOnChange`: Defines if the validation should be triggered with every field change.
-- `validateOnBlur`: Defines if the validation should be triggered on the field blur.
+- `disabled`: Atom that defines if the field is disabled.
+- `options`: Record atom with all related field options:
+  - `keepErrorDuringValidating`: Value that defines the reset behavior of the validation state during async validation.
+  - `keepErrorOnChange`: Value that defines the reset behavior of the validation state on field change.
+  - `validateOnChange`: Value that defines if the validation should be triggered with every field change.
+  - `validateOnBlur`: Value that defines if the validation should be triggered on the field blur.
 
 By combining these statuses you can derive additional meta information:
 
 - `!touched && active` - the field got focus for the first time
 - `touched && active` - the field got focus again
+
+### Disabled Fields Behavior
+
+When fields are disabled, they no longer automatically trigger their own validation. In field sets, these disabled fields are excluded from the `validation` and `focus` computations, meaning they are not considered in the validation process according to the schema. This ensures that disabled fields do not affect the validation status of the form or field set they belong to.
 
 ### Field Options
 
@@ -230,6 +414,7 @@ By combining these statuses you can derive additional meta information:
 - `toState`: The optional callback to transform the "state" data from the "value" data from the `change` action. By default, it returns the "value" data without any transformations.
 - `validate`: The optional callback to validate the field.
 - `contract`: The optional callback to validate field contract.
+- `disabled`: Defines if the field is disabled by default.
 - `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation (default: `false`).
 - `keepErrorOnChange`: Defines the reset behavior of the validation state on field change (default: `!validateOnChange`).
 - `validateOnBlur`: Defines if the validation should be triggered on the field blur (default: `false`).
@@ -264,137 +449,4 @@ flowchart TB
     keepErrorDuringValidating --> |false| keepErrorDuringValidatingFalse["set {error: undefined, valid: true, validating: true}"]
     promise --> |Fulfilled| valid
     promise --> |Rejected| invalid
-```
-
-## Array Fields
-
-The `fieldArray` function allows you to create dynamic arrays of fields that can be added, removed, and manipulated.
-
-### Array Fields Initialization
-
-There are several ways to initialize array fields:
-
-1. **Simple Array Literals**:
-```ts
-const form = reatomForm({
-  // Empty array field
-  tags: [],
-  
-  // Array with default item as a string field
-  emails: ['default@example.com'],
-  
-  // Array with default item as a string field through options definition
-  phones: [
-    { initState: '123-456-7890', validateOnChange: true }
-  ]
-})
-```
-
-2. **Empty Array with Type Information**:
-```ts
-const form = reatomForm({
-  // Empty array with correct type information
-  emails: new Array<string>(),
-  contacts: new Array<{ name: string, phone: string }>()
-})
-```
-
-3. **Using fieldArray Function**:
-```ts
-const form = reatomForm({
-  // Empty array field
-  tags: fieldArray<string>([]),
-  
-  // Array with default values
-  emails: fieldArray(['default@example.com']),
-})
-```
-
-4. **Complex Array Field Factory**:
-
-If you want to configure the rules for creating fields in an array field, you should define a factory function that describes how each new field in this array field will be created.
-```ts
-const form = reatomForm({
-  // Using initState and create
-  phoneNumbers: fieldArray({
-    initState: [{ number: '123-456-7890', priority: false }],
-    create: (ctx, { number, priority }, name) => ({
-      number: { initState: number, validateOnChange: true },
-      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
-    })
-  }),
-})
-```
-
-### Basic Array Field Operations
-Since we use the "field as model" approach and each field is an object, we can achieve maximum type safety by working directly with objects. But the cherry on top is atomization, a principle used by array fields that allows maintaining a high-quality type-safe experience at any level of nesting in your forms.
-
-```ts
-import { reatomForm, fieldArray } from '@reatom/form'
-
-const contactForm = reatomForm({
-  name: '',
-  emails: fieldArray(['']) // Simple array of string fields
-})
-
-// Add a new email field
-contactForm.fields.emails.create(ctx, '')
-
-// Access the array of email fields
-const emailFields = ctx.get(contactForm.fields.emails.array)
-
-// Remove a specific email field
-contactForm.fields.emails.remove(ctx, emailFields[0])
-
-// Clear all email fields
-contactForm.fields.emails.clear(ctx)
-```
-
-### Complex Array Fields
-You can create more complex array fields with custom structures:
-
-```ts
-import { reatomForm, fieldArray } from '@reatom/form'
-import { reatomBoolean } from '@reatom/primitives'
-import { withField } from '@reatom/form'
-
-const contactForm = reatomForm({
-  name: '',
-  phoneNumbers: fieldArray({
-    initState: new Array<{ number: string, priority: boolean }>(),
-    create: (ctx, { number, priority }, name) => ({
-      number,
-      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
-    })
-  })
-})
-
-// Add a new phone number
-contactForm.fields.phoneNumbers.create(ctx, { 
-  number: '123-456-7890', 
-  priority: false 
-})
-```
-
-### Nested Array Fields
-
-You can also create nested array structures:
-
-```ts
-import { reatomForm, fieldArray } from '@reatom/form'
-
-const userForm = reatomForm({
-  name: '',
-  addresses: fieldArray([
-    {
-      street: '',
-      city: '',
-      tags: fieldArray(['home'])
-    }
-  ])
-})
-
-// Access nested fields
-const addresses = ctx.get(userForm.fields.addresses.array)
-const firstAddressTags = ctx.get(addresses[0].tags.array)
 ```
