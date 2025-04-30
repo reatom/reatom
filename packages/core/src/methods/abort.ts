@@ -23,7 +23,7 @@ export interface AbortMethods {
    * @throws {AbortError} If the atom is in aborted state
    */
   throwIfAborted(this: AbortAtom): void
-  
+
   /**
    * Subscribes a callback to be executed when the atom transitions to aborted state
    *
@@ -31,7 +31,7 @@ export interface AbortMethods {
    * @returns {Unsubscribe} Function to unsubscribe the callback
    */
   subscribeAbort(this: AbortAtom, cb: (error: AbortError) => void): Unsubscribe
-  
+
   /**
    * Creates and returns an AbortController connected to this abort atom
    *
@@ -64,50 +64,6 @@ export interface AbortAtom
   extends AtomLike<null | AbortError, [] | [reason: any]>,
     AbortMethods {}
 
-let abortMethods: AbortMethods = {
-  throwIfAborted() {
-    let error = this()
-    if (error != null) throw error
-  },
-  subscribeAbort(cb) {
-    return computed(() => {
-      let state = this()
-      if (state !== null) cb(state)
-    }, `${this.name}._subscribeAbort`).subscribe()
-  },
-  getController() {
-    let controller = Object.assign(new AbortController(), {
-      unsubscribe() {
-        controller.signal.removeEventListener('abort', listener)
-        unsubscribeAtom()
-      },
-    })
-
-    let listener = noop
-
-    let unsubscribeAtom = computed(
-      () => {
-        let error = this()
-        if (error) {
-          controller.abort(error)
-        }
-      },
-      named(`${this.name}._controller`),
-    ).subscribe()
-
-    if (controller.signal.aborted) unsubscribeAtom()
-    else {
-      listener = bind((error: any) => {
-        if (error !== this()) this(error)
-        controller.unsubscribe()
-      })
-      controller.signal.addEventListener('abort', listener)
-    }
-
-    return controller
-  },
-}
-
 /**
  * Interface for a global abort variable tied to the current frame
  *
@@ -122,7 +78,7 @@ export interface AbortVar
    * @throws {AbortError} If the current frame is aborted
    */
   throwIfAborted(): void
-  
+
   /**
    * Subscribes a callback to be executed when the current frame is aborted
    *
@@ -130,14 +86,14 @@ export interface AbortVar
    * @returns {undefined | Unsubscribe} Function to unsubscribe the callback or undefined if no abort atom available
    */
   subscribeAbort(cb: (error: AbortError) => void): undefined | Unsubscribe
-  
+
   /**
    * Creates and returns an AbortController connected to the current frame
    *
    * @returns {undefined | AbortController} An AbortController or undefined if no abort atom available
    */
   getController(): undefined | AbortController
-  
+
   /**
    * Aborts the current frame with an optional reason
    *
@@ -172,40 +128,85 @@ export interface AbortVar
  * fetch('/api/data', { signal: controller.signal })
  * ```
  */
-export let abortVar: AbortVar = Object.assign(
-  variable((option: string | AbortAtom): AbortAtom => {
-    if (isAtom(option)) return option
+export let abortVar: AbortVar = /* @__PURE__ */ (() =>
+  Object.assign(
+    variable((option: string | AbortAtom): AbortAtom => {
+      if (isAtom(option)) return option
 
-    let frame = top()
-    return createAtom<null | AbortError>(
-      {
-        initState: null,
-        computed: (state) => {
-          if (state !== null) return state
+      let frame = top()
+      return createAtom<null | AbortError>(
+        {
+          initState: null,
+          computed: (state) => {
+            if (state !== null) return state
 
-          return (
-            abortVar.find((maybeAbortAtom) => maybeAbortAtom?.(), frame) ?? null
-          )
+            return (
+              abortVar.find((maybeAbortAtom) => maybeAbortAtom?.(), frame) ??
+              null
+            )
+          },
         },
+        option,
+      ).extend(
+        withParams((value) => toAbortError(value || `${option} abort`)),
+        () =>
+          ({
+            throwIfAborted() {
+              let error = this()
+              if (error != null) throw error
+            },
+            subscribeAbort(cb) {
+              return computed(() => {
+                let state = this()
+                if (state !== null) cb(state)
+              }, `${this.name}._subscribeAbort`).subscribe()
+            },
+            getController() {
+              let controller = Object.assign(new AbortController(), {
+                unsubscribe() {
+                  controller.signal.removeEventListener('abort', listener)
+                  unsubscribeAtom()
+                },
+              })
+
+              let listener = noop
+
+              let unsubscribeAtom = computed(
+                () => {
+                  let error = this()
+                  if (error) {
+                    controller.abort(error)
+                  }
+                },
+                named(`${this.name}._controller`),
+              ).subscribe()
+
+              if (controller.signal.aborted) unsubscribeAtom()
+              else {
+                listener = bind((error: any) => {
+                  if (error !== this()) this(error)
+                  controller.unsubscribe()
+                })
+                controller.signal.addEventListener('abort', listener)
+              }
+
+              return controller
+            },
+          }) satisfies AbortMethods,
+      )
+    }),
+    {
+      abort(reason?: any) {
+        abortVar.find()?.(reason)
       },
-      option,
-    ).extend(
-      withParams((value) => toAbortError(value || `${option} abort`)),
-      () => abortMethods,
-    )
-  }),
-  {
-    abort(reason?: any) {
-      abortVar.find()?.(reason)
+      throwIfAborted() {
+        abortVar.find()?.throwIfAborted()
+      },
+      subscribeAbort(cb: (error: AbortError) => void) {
+        return abortVar.find()?.subscribeAbort(cb)
+      },
+      getController() {
+        return abortVar.find()?.getController()
+      },
     },
-    throwIfAborted() {
-      abortVar.find()?.throwIfAborted()
-    },
-    subscribeAbort(cb: (error: AbortError) => void) {
-      return abortVar.find()?.subscribeAbort(cb)
-    },
-    getController() {
-      return abortVar.find()?.getController()
-    },
-  },
-)
+  ))()

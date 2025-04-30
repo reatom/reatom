@@ -479,7 +479,7 @@ export const jsonClone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
 let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
   Math.floor(Math.random() * (max - min + 1)) + min
-  
+
 /**
  * Generates a random integer between min and max (inclusive).
  *
@@ -707,8 +707,8 @@ export const throwAbort = (
  * @param args - Optional arguments to pass to the handler function
  * @returns A timeout ID that can be used with clearTimeout
  */
-export const setTimeout: SetTimeout = Object.assign(
-  (...params: Parameters<SetTimeout>) => {
+export const setTimeout: SetTimeout = /* @__PURE__ */ (() =>
+  Object.assign((...params: Parameters<SetTimeout>) => {
     const intervalId = globalThis.setTimeout(...params)
     return typeof intervalId === 'number'
       ? intervalId
@@ -717,9 +717,7 @@ export const setTimeout: SetTimeout = Object.assign(
             return -1
           },
         })
-  },
-  globalThis.setTimeout,
-)
+  }, globalThis.setTimeout))()
 
 /**
  * Maximum safe integer value for setTimeout delay.

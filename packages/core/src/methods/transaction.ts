@@ -106,5 +106,6 @@ export let reatomTransaction = (): TransactionVariable => {
   return transactionVar
 }
 
-export let transactionVar = reatomTransaction()
-export let { withRollback, rollback } = transactionVar
+export let transactionVar = /* @__PURE__ */ reatomTransaction()
+export let withRollback = /* @__PURE__ */ (() => transactionVar.withRollback)()
+export let rollback = /* @__PURE__ */ (() => transactionVar.rollback)()

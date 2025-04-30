@@ -16,84 +16,87 @@ export interface FetchRequestInit<
   getResult?: (response: Response) => Result | Promise<Result>
 }
 
-export class FetchRequest<
-  Result = unknown,
-  Params extends any[] = any[],
-> extends Request {
-  static defaults = {
-    origin: globalThis.location?.toString(),
+export let FetchRequest = /* @__PURE__ */(() =>
+  class FetchRequest<
+    Result = unknown,
+    Params extends any[] = any[],
+  > extends Request {
+    static defaults = {
+      origin: globalThis.location?.toString(),
 
-    transport: globalThis.fetch,
+      transport: globalThis.fetch,
 
-    method: 'get',
+      method: 'get',
 
-    headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json' },
 
-    getResult(response) {
-      if (Math.floor(response.status / 100) - 2) {
-        throw new Error(`HTTP Error: ${response.statusText ?? response.status}`)
-      }
+      getResult(response) {
+        if (Math.floor(response.status / 100) - 2) {
+          throw new Error(
+            `HTTP Error: ${response.statusText ?? response.status}`,
+          )
+        }
 
-      const ct = response.headers.get('Content-Type')
+        const ct = response.headers.get('Content-Type')
 
-      if (ct !== 'application/json') {
-        throw new Error(
-          `Expected Content-Type to be "application/json", got "${ct}"`,
-        )
-      }
+        if (ct !== 'application/json') {
+          throw new Error(
+            `Expected Content-Type to be "application/json", got "${ct}"`,
+          )
+        }
 
-      return response.json()
-    },
+        return response.json()
+      },
 
-    getInit: () => ({}),
-  } satisfies FetchRequestInit
+      getInit: () => ({}),
+    } satisfies FetchRequestInit
 
-  init: Required<FetchRequestInit<Result, Params>>
+    init: Required<FetchRequestInit<Result, Params>>
 
-  constructor(init: FetchRequestInit<Result, Params>) {
-    init = Object.assign({}, FetchRequest.defaults, init, {
-      url: new URL(init.url ?? init.origin!, init.origin),
-    })
+    constructor(init: FetchRequestInit<Result, Params>) {
+      init = Object.assign({}, FetchRequest.defaults, init, {
+        url: new URL(init.url ?? init.origin!, init.origin),
+      })
 
-    // @ts-expect-error
-    super(init.url, init)
-    // @ts-expect-error
-    this.init = init
-  }
-
-  override clone(): this {
-    // @ts-expect-error
-    return new this.__proto__.constructor(this.init)
-  }
-
-  extends<Res = Result, P extends any[] = Params>(
-    init: FetchRequestInit<Res, P>,
-  ): FetchRequest<Res, P> {
-    return new FetchRequest<Res, P>({
-      ...this.init,
-      ...init,
-    } as FetchRequestInit<Res, P>)
-  }
-
-  fetch(...params: Params): Promise<Response> {
-    const { transport, getInit, getResult, ...init } = this.init
-
-    const url = new URL(init.url)
-
-    const { searchParams, body } = getInit(...params)
-
-    for (const [key, value] of new URLSearchParams(searchParams)) {
-      url.searchParams.set(key, value)
+      // @ts-expect-error
+      super(init.url, init)
+      // @ts-expect-error
+      this.init = init
     }
 
-    init.body =
-      body &&
-      typeof body === 'object' &&
-      Reflect.getPrototypeOf(body) &&
-      !Array.isArray(body)
-        ? (body as BodyInit)
-        : JSON.stringify(body)
+    override clone(): this {
+      // @ts-expect-error
+      return new this.__proto__.constructor(this.init)
+    }
 
-    return transport(url, init).then(getResult) as Promise<Response>
-  }
-}
+    extends<Res = Result, P extends any[] = Params>(
+      init: FetchRequestInit<Res, P>,
+    ): FetchRequest<Res, P> {
+      return new FetchRequest<Res, P>({
+        ...this.init,
+        ...init,
+      } as FetchRequestInit<Res, P>)
+    }
+
+    fetch(...params: Params): Promise<Response> {
+      const { transport, getInit, getResult, ...init } = this.init
+
+      const url = new URL(init.url)
+
+      const { searchParams, body } = getInit(...params)
+
+      for (const [key, value] of new URLSearchParams(searchParams)) {
+        url.searchParams.set(key, value)
+      }
+
+      init.body =
+        body &&
+        typeof body === 'object' &&
+        Reflect.getPrototypeOf(body) &&
+        !Array.isArray(body)
+          ? (body as BodyInit)
+          : JSON.stringify(body)
+
+      return transport(url, init).then(getResult) as Promise<Response>
+    }
+  })()

@@ -13,8 +13,8 @@ import { isObject, Fn, Rec } from '../utils'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
-export const LL_PREV = Symbol('Reatom linked list prev')
-export const LL_NEXT = Symbol('Reatom linked list next')
+export const LL_PREV = /* @__PURE__ */Symbol('Reatom linked list prev')
+export const LL_NEXT = /* @__PURE__ */Symbol('Reatom linked list next')
 
 /** Linked List is reusing the model reference to simplify the reference sharing and using it as a key of LL methods.
  * Btw, symbols works fine with serialization and will not add a garbage to an output.
