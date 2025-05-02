@@ -458,11 +458,11 @@ test('form should correctly initialize field options', async () => {
     },
   )
 
-  expect(form.fields.age.validateOnChange()).toBe(true)
-  expect(form.fields.email.validateOnBlur()).toBe(true)
-  expect(form.fields.email.keepErrorDuringValidating()).toBe(true)
-  expect(form.fields.fieldWithDefault.keepErrorOnChange()).toBe(true)
-  expect(form.fields.fieldWithDefault.validateOnChange()).toBe(false)
+  expect(form.fields.age.options().validateOnChange).toBe(true)
+  expect(form.fields.email.options().validateOnBlur).toBe(true)
+  expect(form.fields.email.options().keepErrorDuringValidating).toBe(true)
+  expect(form.fields.fieldWithDefault.options().keepErrorOnChange).toBe(true)
+  expect(form.fields.fieldWithDefault.options().validateOnChange).toBe(false)
 })
 
 test('validating through form schema and placing errors to corresponding fields', async () => {
@@ -481,7 +481,7 @@ test('validating through form schema and placing errors to corresponding fields'
     },
   )
 
-  form.submit().catch(noop)
+  await wrap(form.submit().catch(noop))
   notify()
 
   expect(form.fields.age.validation().error).toBeTruthy()
