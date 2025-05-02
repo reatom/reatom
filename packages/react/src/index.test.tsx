@@ -242,24 +242,20 @@ describe('reatomFactoryComponent', () => {
       // Factory component that creates its own local state
       const Counter = reatomFactoryComponent(
         (props: { initialCount: number }) => {
-          const countAtom = atom(props.initialCount, 'localCount').actions(
+          const count = atom(props.initialCount, 'localCount').actions(
             (target) => ({
               inc: () => target((prev) => prev + 1),
             }),
           )
 
-          return () => {
-            const count = countAtom()
-
-            return (
-              <div>
-                <div data-testid="count">{count}</div>
-                <button data-testid="increment" onClick={wrap(countAtom.inc)}>
-                  Increment
-                </button>
-              </div>
-            )
-          }
+          return () => (
+            <div>
+              <div data-testid="count">{count()}</div>
+              <button data-testid="increment" onClick={wrap(count.inc)}>
+                Increment
+              </button>
+            </div>
+          )
         },
         'Counter',
       )

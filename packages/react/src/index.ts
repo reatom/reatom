@@ -1,7 +1,6 @@
 import React from 'react'
 import {
   assert,
-  Fn,
   Frame,
   named,
   ReatomError,
@@ -9,12 +8,8 @@ import {
   Rec,
   STACK,
   wrap,
+  action,
 } from '@reatom/core'
-
-// useLayoutEffect will show warning if used during ssr, e.g. with Next.js
-// useIsomorphicEffect removes it by replacing useLayoutEffect with useEffect during ssr
-export let useIsomorphicEffect =
-  typeof document !== 'undefined' ? React.useLayoutEffect : React.useEffect
 
 // https://github.com/webpack/webpack/issues/12960#issuecomment-1086272918
 let {
@@ -43,6 +38,39 @@ export let useFrame = (): Frame => {
   )
 
   return frame
+}
+
+export const useWrap = <Params extends any[], Payload>(
+  callback: (...params: Params) => Payload,
+  name?: string,
+): ((...params: Params) => Payload) => {
+  let frame = useFrame()
+
+  let ref: {
+    stableFn: (...args: Params) => Payload
+    callback: (...args: Params) => Payload
+  } = React.useMemo(
+    () => ({
+      callback,
+      stableFn: wrap(
+        action(
+          (...params) => ref.callback(...params),
+          getComponentDebugName(name),
+        ),
+        frame,
+      ),
+    }),
+    [],
+  )
+
+  ;(
+    React.useInsertionEffect ??
+    (typeof document !== 'undefined' ? React.useLayoutEffect : React.useEffect)
+  )(() => {
+    ref.callback = callback
+  })
+
+  return ref.stableFn
 }
 
 export let isSuspense = (thing: unknown) =>
