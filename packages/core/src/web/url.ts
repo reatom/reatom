@@ -13,9 +13,11 @@ import {
   top,
   withMiddleware,
   withParams,
+
 } from '../core'
 import { ifChanged, peek } from '../methods'
 import { _getPrevFrame } from '../methods/context'
+
 import {
   AbortExt,
   withAbort,
@@ -23,7 +25,46 @@ import {
   withComputed,
   withInit,
 } from '../mixins'
+import { isShallowEqual, type Rec, type Plain } from '../'
 import { onEvent } from './onEvent'
+// Types and helpers adapted from router.ts
+type RoutePattern = `${'' | ':'}${string}${'' | '?'}`
+
+type _PathParams<Path extends string = string> =
+  Path extends `:${infer Param}/${infer Rest}`
+    ? { [key in Param]: string } & _PathParams<Rest>
+    : Path extends `:${infer Param}?`
+      ? { [key in Param]?: string }
+      : Path extends `:${infer Param}`
+        ? { [key in Param]: string }
+        : Path extends `${string}/${infer Rest}`
+          ? _PathParams<Rest>
+          : {}
+type PathParams<Path extends string = string> = Plain<_PathParams<Path>>
+
+export interface RouteAtom<Path extends string = string>
+  extends Computed<null | PathParams<Path>> {
+  go: Action<
+    Path extends `${string}:${string}`
+      ? [pathParams: PathParams<Path>, searchParams?: Rec, replace?: boolean]
+      : [pathParams?: void, searchParams?: Rec, replace?: boolean],
+    URL // Changed return type from void to URL
+  >
+
+  pattern: Path
+
+  path: (
+    params: Path extends `${string}:${string}` ? PathParams<Path> : void,
+  ) => string
+
+  exact: Computed<boolean>
+}
+
+const getPatternName = (part: string) => {
+  const start = part.startsWith(':') ? 1 : 0
+  const end = part.endsWith('?') ? -1 : undefined
+  return start || end ? part.slice(start, end) : part
+}
 
 /**
  * URL atom interface that extends the base Atom type.
@@ -82,6 +123,11 @@ export interface UrlAtom extends Atom<URL> {
    * @param replace Whether to replace the current history entry
    */
   syncFromSource: Action<[url: URL, replace?: boolean], URL>
+/**
+   * Create a computed atom representing a specific route pattern.
+   * @param pattern The route pattern (e.g., '/users/:userId')
+   */
+  route<Path extends string>(pattern: Path): RouteAtom<Path>
 }
 
 /**
@@ -238,6 +284,169 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
 
       syncFromSource(url: URL, replace?: boolean) {
         return urlAtom(url, replace)
+      },
+      route: <Path extends string>(pattern: Path): RouteAtom<Path> => {
+        const name = `urlAtom.route[${pattern}]`
+        const patternPaths = pattern.split('/').slice(1)
+        const patternPathsLength = patternPaths[patternPaths.length - 1]?.endsWith(
+          '?',
+        )
+          ? patternPaths.length - 1
+          : patternPaths.length
+
+        const pathFn = (
+          params: Path extends `${string}:${string}` ? PathParams<Path> : void,
+        ): string => {
+          let path = ''
+          const p = (params ?? {}) as Rec
+          for (const part of patternPaths) {
+            if (part.startsWith(':')) {
+              const paramName = getPatternName(part)
+              const isOptional = part.endsWith('?')
+              if (paramName in p) {
+                path += `/${p[paramName]}`
+              } else if (!isOptional) {
+                // TODO: Add better error handling/logging?
+                console.error(`Missing param "${paramName}" for route "${pattern}"`)
+                path += '/undefined' // Or throw?
+              }
+            } else {
+              path += `/${part}`
+            }
+          }
+          // Ensure root path ('/') is handled correctly when patternPaths is empty
+          return path || '/'
+        }
+
+        const routeAtom = computed<null | PathParams<Path>>(() => {
+          const currentUrl = target()
+          const currentPathname = currentUrl.pathname
+          // Handle root path explicitly
+          if (pattern === '/') {
+             return currentPathname === '/' ? ({} as PathParams<Path>) : null
+          }
+
+          const paths = currentPathname.slice(1).split('/')
+          // Handle case where pathname is '/' -> paths is ['']
+          if (paths.length === 1 && paths[0] === '' && patternPaths.length > 0) {
+             return null // Root URL ('/') cannot match non-root patterns
+          }
+          // Handle case where pattern is '/' but URL is not
+          if (patternPaths.length === 0 && paths.length > 0 && paths[0] !== '') {
+             return null
+          }
+
+          // Check if URL is potentially long enough for the non-optional part
+          if (paths.length < patternPathsLength) return null
+
+          const params = {} as Rec
+          let i = 0 // Use i to track matched segments count
+          for (; i < patternPaths.length; i++) {
+            const part = patternPaths[i]!
+            const paramName = getPatternName(part)
+            const pathSegment = paths[i]
+            const isOptional = part.endsWith('?')
+
+            // If pathSegment is undefined (we ran out of URL segments)
+            if (pathSegment === undefined) {
+              if (isOptional) {
+                // Optional segment missing, valid match up to this point
+                break
+              } else {
+                // Required segment missing, no match
+                return null
+              }
+            }
+
+            if (part.startsWith(':')) {
+              params[paramName] = pathSegment
+            } else if (paramName !== pathSegment) {
+              // Static segment mismatch
+              return null
+            }
+          }
+
+          // Check if we matched at least the required non-optional segments
+          if (i < patternPathsLength) {
+             return null
+          }
+
+          // Check if the URL path is longer than the matched pattern path
+          // This prevents prefix-only matches unless the pattern allows it implicitly (no check needed here)
+          // The `exact` atom handles the distinction between prefix and exact matches.
+          // If the loop finished, it means the pattern matches the start of the URL.
+          // However, for the state, we only return params if the URL isn't longer than the pattern allows.
+          const lastPatternSegmentIsOptional = patternPaths[patternPaths.length - 1]?.endsWith('?')
+          if (paths.length > patternPaths.length && !lastPatternSegmentIsOptional) {
+            // URL is longer than a non-optional pattern
+            return null
+          }
+          if (paths.length > patternPaths.length && lastPatternSegmentIsOptional && paths.length !== patternPathsLength) {
+             // URL is longer than an optional pattern allows (must be exactly patternPathsLength or patternPaths.length)
+             // This case might be redundant due to the loop logic, but kept for clarity.
+             // Actually, the loop handles this. If paths.length > patternPaths.length, the loop finishes at i = patternPaths.length.
+             // Let's simplify: if the loop finished (i >= patternPathsLength) and the URL isn't longer than the pattern allows, return params.
+          }
+
+          
+
+
+          return params as PathParams<Path>
+        }, name)
+
+        const exact = computed(
+          () => {
+            const params = routeAtom()
+            if (!params) return false
+            const currentPathname = target().pathname
+            // Handle root explicitly
+            if (pattern === '/') return currentPathname === '/'
+
+            const paths = currentPathname.slice(1).split('/')
+            // Handle case where pathname is '/' -> paths is ['']
+            if (paths.length === 1 && paths[0] === '') return false // Root URL only matches '/' pattern exactly
+
+            // Exact match requires the number of segments to match the pattern length
+            // (considering optional segment)
+            return (
+              paths.length === patternPaths.length ||
+              (paths.length === patternPathsLength &&
+                patternPaths[patternPaths.length - 1]?.endsWith('?'))
+            )
+          },
+          `${name}.exact`,
+        )
+
+        // Define go action with signature matching RouteAtom['go']
+        const go = action(
+          (
+            ...args: Path extends `${string}:${string}`
+              ? [pathParams: PathParams<Path>, searchParams?: Rec, replace?: boolean]
+              : [pathParams?: void, searchParams?: Rec, replace?: boolean]
+          ) => {
+            // Extract params, searchParams, replace based on args
+            const [paramsOrVoid, searchParams = {}, replace = false] = args;
+            // Cast params for pathFn call (needed because of conditional type)
+            const pathParams = paramsOrVoid as (Path extends `${string}:${string}` ? PathParams<Path> : void)
+            const newPath = pathFn(pathParams)
+            return target((url) => {
+              const newUrl = new URL(newPath, url)
+              Object.entries(searchParams).forEach(([key, value]) => {
+                newUrl.searchParams.set(key, String(value))
+              })
+              return newUrl
+            }, replace)
+          },
+          `${name}.go`,
+        )
+
+        // Augment the computed atom with methods
+        return Object.assign(routeAtom, {
+          go,
+          path: pathFn,
+          exact,
+          pattern,
+        }) as RouteAtom<Path>
       },
     })))()
 
