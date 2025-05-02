@@ -1086,7 +1086,13 @@ export let mock = <Params extends any[], Payload>(
   target: AtomLike<any, Params, Payload>,
   cb: (...params: Params) => Payload,
 ): Unsubscribe => {
-  let mockMiddleware = (_next: Fn, ...params: Params) => cb(...params)
+  let contextFrame = context()
+  let mockMiddleware = (next: Fn, ...params: Params) => {
+    // The user forgot to clean mocks in a prev test
+    if (contextFrame !== context()) return next(...params)
+
+    return cb(...params)
+  }
   target.__reatom.middlewares.push(mockMiddleware)
   return () => {
     let idx = target.__reatom.middlewares.indexOf(mockMiddleware)
