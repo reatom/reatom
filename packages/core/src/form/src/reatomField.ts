@@ -14,12 +14,13 @@ import {
   isCausedBy,
   isDeepEqual,
   withAbort,
-  abortVar,
   wrap,
   AbortExt,
   BooleanAtom,
   reatomBoolean,
   AtomLike,
+  withInit,
+  isAbort,
 } from '../../'
 
 import { toError } from './utils'
@@ -350,18 +351,17 @@ export function reatomField<State, Value = State>(
 
   const validation = reatomRecord(fieldInitValidationLess, `${name}.validation`)
     .extend(
-      // withInit(() =>
-      //   shouldValidate.value() ? fieldInitValidation : fieldInitValidationLess,
-      // ),
-      (target) => target,
-      // withComputed((state) => {
-      //   if (!shouldValidate.value()) return fieldInitValidationLess
+      withInit(() =>
+        shouldValidate.value() ? fieldInitValidation : fieldInitValidationLess,
+      ),
+      withComputed((state) => {
+        if (!shouldValidate.value()) return fieldInitValidationLess
 
-      //   if (disabled()) return fieldInitValidation
+        if (disabled()) return fieldInitValidation
 
-      //   value()
-      //   return state.triggered ? { ...state, triggered: false } : state
-      // }),
+        value()
+        return state.triggered ? { ...state, triggered: false } : state
+      }),
       (target) => ({
         trigger: action(() => {
           const validationValue = target()
@@ -387,31 +387,25 @@ export function reatomField<State, Value = State>(
           }
 
           if (promise instanceof Promise) {
-            promise
-              .then(
-                wrap(() => {
-                  if (abortVar.find()?.()) return
-
-                  target.merge({
-                    error: undefined,
-                    meta: undefined,
-                    triggered: true,
-                    validating: false,
-                  })
-                }),
-              )
-              .catch(
-                wrap((error) => {
-                  if (abortVar.find()?.()) return
-
-                  target.merge({
-                    error: toError(error),
-                    meta: undefined,
-                    triggered: true,
-                    validating: false,
-                  })
-                }),
-              )
+            ;(async () => {
+              try {
+                await wrap(promise)
+                target.merge({
+                  error: undefined,
+                  meta: undefined,
+                  triggered: true,
+                  validating: false,
+                })
+              } catch (error) {
+                if (isAbort(error)) return
+                target.merge({
+                  error: toError(error),
+                  meta: undefined,
+                  triggered: true,
+                  validating: false,
+                })
+              }
+            })()
 
             return target.merge({
               error: keepErrorDuringValidating.value()

@@ -468,8 +468,9 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     if (validation().validating) {
       await wrap(
         (async () => {
-          while (validation().validating)
-            await take(validation, `${name}.onSubmit.validationTake`)
+          while (validation().validating) {
+            await wrap(take(validation, 'validation'))
+          }
         })(),
       )
     }

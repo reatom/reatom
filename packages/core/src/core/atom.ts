@@ -660,7 +660,7 @@ function atomMiddleware(next: Fn) {
       let update = arguments[1]
 
       newState = frame.state =
-        typeof update === 'function' ? update(state) : update
+        typeof update === 'function' ? update(newState) : update
       frame.error = null
       frame.pubs[0] = STACK[STACK.length - 2]!
 

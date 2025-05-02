@@ -1,5 +1,5 @@
 import { test, expect, describe } from 'vitest'
-import { notify, reatomBoolean, sleep, wrap } from '../../'
+import { noop, notify, reatomBoolean, sleep, wrap } from '../../'
 import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
 import { z } from 'zod'
 
@@ -50,9 +50,14 @@ test('focus states', () => {
 
   form.reset()
 
-  const list = form.fields.list.array()
-  list[0]?.change('value')
+  const [arrField] = form.fields.list.array()
+  arrField!.change('value')
 
+  expect(arrField!.focus()).toEqual({
+    active: false,
+    dirty: true,
+    touched: true,
+  })
   expect(form.focus()).toEqual({
     active: false,
     dirty: true,
@@ -476,7 +481,7 @@ test('validating through form schema and placing errors to corresponding fields'
     },
   )
 
-  form.submit()
+  form.submit().catch(noop)
   notify()
 
   expect(form.fields.age.validation().error).toBeTruthy()
