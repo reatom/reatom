@@ -1065,3 +1065,31 @@ export let bind = <Params extends any[], Payload>(
   frame = top(),
 ): ((...params: Params) => Payload) =>
   frame.run.bind(frame, target) as (...params: Params) => Payload
+
+/**
+ * Mocks an atom or action for testing purposes.
+ *
+ * This function replaces the original behavior of an atom or action with a custom
+ * callback function for the duration of the mock. This is useful for isolating
+ * units of code during testing and controlling their behavior.
+ *
+ * @template Params - The parameter types of the target atom/action
+ * @template Payload - The return type of the target atom/action
+ * @param target - The atom or action to mock
+ * @param cb - The callback function to use as the mock implementation. It receives
+ *             the parameters passed to the mocked atom/action and should return
+ *             the desired payload.
+ * @returns A function that, when called, removes the mock and restores the original behavior.
+ */
+// TODO move to testing file / section
+export let mock = <Params extends any[], Payload>(
+  target: AtomLike<any, Params, Payload>,
+  cb: (...params: Params) => Payload,
+): Unsubscribe => {
+  let mockMiddleware = (_next: Fn, ...params: Params) => cb(...params)
+  target.__reatom.middlewares.push(mockMiddleware)
+  return () => {
+    let idx = target.__reatom.middlewares.indexOf(mockMiddleware)
+    if (idx !== -1) target.__reatom.middlewares.splice(idx, 1)
+  }
+}

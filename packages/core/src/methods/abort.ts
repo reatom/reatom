@@ -7,8 +7,10 @@ import {
   isAtom,
   bind,
   named,
+  action,
+  GenericAction,
 } from '../core'
-import { AbortError, noop, toAbortError, Unsubscribe } from '../utils'
+import { AbortError, Fn, noop, toAbortError, Unsubscribe } from '../utils'
 import { Variable, variable } from './variable'
 
 /**
@@ -125,7 +127,7 @@ export interface AbortVar
  *
  * // Get AbortController for fetch API
  * const controller = abortVar.getController()
- * fetch('/api/data', { signal: controller.signal })
+ * fetch('/api/data', { signal: controller?.signal })
  * ```
  */
 export let abortVar: AbortVar = /* @__PURE__ */ (() =>
@@ -210,3 +212,32 @@ export let abortVar: AbortVar = /* @__PURE__ */ (() =>
       },
     },
   ))()
+
+/**
+ * This utility allow you to start a function which will NOT follow the async abort context.
+ *
+ * @example If you want to start a fetch when the atom gets a subscription,
+ * but don't want to abort the fetch when the subscription is lost to save the data anyway.
+ *
+ * ```ts
+ * const some = atom('...').extend(
+ *   withConnectHook((target) => {
+ *     spawn(async () => {
+ *       // here `wrap` doesn't follow the connection abort
+ *       const data = await wrap(api.getSome())
+ *       some(data)
+ *     })
+ *   }),
+ * )
+ * ```
+ */
+export let spawn: GenericAction<
+  <Params extends any[], Payload>(
+    cb: (...params: Params) => Payload,
+    ...params: Params
+  ) => Payload
+> = action((cb: Fn, ...params: any[]): ReturnType<Fn> => {
+  let abort = abortVar.set('spawn')
+  abort(new AbortController())
+  return cb(...params)
+}, 'spawn')
