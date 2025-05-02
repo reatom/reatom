@@ -154,7 +154,7 @@ test(`validation concurrency`, async () => {
   field.reset()
   expect(field.validation()).toMatchObject(fieldInitValidation)
 
-  field.validateOnChange(true)
+  field.options.merge({ validateOnChange: true })
   notify()
 
   field.change(1)

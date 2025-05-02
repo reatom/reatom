@@ -389,21 +389,15 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     {
       name: `${name}.fields`,
       onFieldResolved: (field) => {
-        if (field.validateOnChange() === undefined)
-          field.validateOnChange(validateOnChange)
-
-        if (field.validateOnBlur() === undefined)
-          field.validateOnBlur(validateOnBlur)
-
-        if (field.keepErrorDuringValidating() === undefined)
-          field.keepErrorDuringValidating(keepErrorDuringValidating)
-
-        if (field.keepErrorOnChange() === undefined)
-          field.keepErrorOnChange(keepErrorOnChange)
+        field.options(options => ({
+          validateOnChange: options.validateOnChange ?? validateOnChange,
+          validateOnBlur: options.validateOnBlur ?? validateOnBlur,
+          keepErrorDuringValidating: options.keepErrorDuringValidating ?? keepErrorDuringValidating,
+          keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
+          shouldValidate: !!schema || options.shouldValidate
+        }))
 
         if (schema) {
-          field.shouldValidate(true)
-
           field.validation.trigger.extend(
             withCallHook(() => {
               if (!field.validation().error && !isCausedBy(submit))

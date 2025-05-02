@@ -21,6 +21,7 @@ import {
   AtomLike,
   withInit,
   isAbort,
+  RecordAtom,
 } from '../../'
 
 import { toError } from './utils'
@@ -93,33 +94,35 @@ export interface FieldAtom<State = any, Value = State>
   /** Atom that defines if the field is disabled */
   disabled: BooleanAtom
 
-  /**
-   * Defines the reset behavior of the validation state during async validation.
-   * @default false
-   */
-  keepErrorDuringValidating: Atom<boolean | undefined>
+  options: RecordAtom<{
+    /**
+     * Defines the reset behavior of the validation state during async validation.
+     * @default false
+     */
+    keepErrorDuringValidating: boolean | undefined
 
-  /**
-   * Defines the reset behavior of the validation state on field change.
-   * Useful if the validation is triggered on blur or submit only.
-   * @default !validateOnChange
-   */
-  keepErrorOnChange: Atom<boolean | undefined>
+    /**
+     * Defines the reset behavior of the validation state on field change.
+     * Useful if the validation is triggered on blur or submit only.
+     * @default !validateOnChange
+     */
+    keepErrorOnChange: boolean | undefined
 
-  /**
-   * Defines if the validation should be triggered with every field change.
-   * @default false
-   */
-  validateOnChange: Atom<boolean | undefined>
+    /**
+     * Defines if the validation should be triggered with every field change.
+     * @default false
+     */
+    validateOnChange: boolean | undefined
 
-  /**
-   * Defines if the validation should be triggered on the field blur.
-   * @default false
-   */
-  validateOnBlur: Atom<boolean | undefined>
+    /**
+     * Defines if the validation should be triggered on the field blur.
+     * @default false
+     */
+    validateOnBlur: boolean | undefined
 
-  /* @internal */
-  shouldValidate: Atom<boolean | undefined>
+    /* @internal */
+    shouldValidate: boolean | undefined
+  }>
 }
 
 export type FieldValidateOption<State = any, Value = State> = (meta: {
@@ -253,45 +256,30 @@ export function reatomField<State, Value = State>(
     ? ({ name: options } as FieldOptions<State, Value>)
     : options
 
-  const validateOnBlur = atom(
-    restOptions.validateOnBlur,
-    `${name}.validateOnBlur`,
-  ).extend((target) => ({
-    value: computed(() => target() ?? false, `${target.name}.value`),
-  }))
+  const fieldOptions = reatomRecord({
+    validateOnChange: restOptions.validateOnChange,
+    validateOnBlur: restOptions.validateOnBlur,
+    keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
+    keepErrorOnChange: restOptions.keepErrorOnChange,
+    shouldValidate: undefined as boolean | undefined
+  }).extend((target) => ({
+    value: computed(() => {
+      const {
+        validateOnChange, 
+        validateOnBlur, 
+        keepErrorDuringValidating,
+        keepErrorOnChange,
+        shouldValidate
+      } = target()
 
-  const validateOnChange = atom(
-    restOptions.validateOnChange,
-    `${name}.validateOnChange`,
-  ).extend((target) => ({
-    value: computed(() => target() ?? false, `${target.name}.value`),
-  }))
-
-  const keepErrorDuringValidating = atom(
-    restOptions.keepErrorDuringValidating,
-    `${name}.keepErrorDuringValidating`,
-  ).extend((target) => ({
-    value: computed(() => target() ?? false, `${target.name}.value`),
-  }))
-
-  const keepErrorOnChange = atom(
-    restOptions.keepErrorOnChange,
-    `${name}.keepErrorOnChange`,
-  ).extend((target) => ({
-    value: computed(
-      () => target() ?? !validateOnChange.value(),
-      `${target.name}.value`,
-    ),
-  }))
-
-  const shouldValidate = atom<boolean | undefined>(
-    undefined,
-    `${name}.shouldValidate`,
-  ).extend((target) => ({
-    value: computed(
-      () => target() ?? !!(validateFn || contract),
-      `${target.name}.value`,
-    ),
+      return {
+        validateOnChange: validateOnChange ?? false,
+        validateOnBlur: validateOnBlur ?? false,
+        keepErrorDuringValidating: keepErrorDuringValidating ?? false,
+        keepErrorOnChange: keepErrorOnChange ?? !validateOnChange,
+        shouldValidate: shouldValidate ?? !!(validateFn || contract)
+      }
+    }, `${target.name}.value`)
   }))
 
   const disabled = reatomBoolean(
@@ -316,13 +304,15 @@ export function reatomField<State, Value = State>(
 
       validation.trigger.abort('change')
 
+      const { keepErrorOnChange, validateOnChange } = fieldOptions.value()
+
       validation.merge(
-        keepErrorOnChange.value()
+        keepErrorOnChange
           ? { validating: false, triggered: false }
           : { validating: false, triggered: false, error: undefined },
       )
 
-      if (!disabled() && validateOnChange.value()) validation.trigger()
+      if (!disabled() && validateOnChange) validation.trigger()
     }),
   )
 
@@ -345,17 +335,17 @@ export function reatomField<State, Value = State>(
 
   focus.out.extend(
     withCallHook(() => {
-      if (!disabled() && validateOnBlur.value()) validation.trigger()
+      if (!disabled() && fieldOptions.value().validateOnBlur) validation.trigger()
     }),
   )
 
   const validation = reatomRecord(fieldInitValidationLess, `${name}.validation`)
     .extend(
       withInit(() =>
-        shouldValidate.value() ? fieldInitValidation : fieldInitValidationLess,
+        fieldOptions.value().shouldValidate ? fieldInitValidation : fieldInitValidationLess,
       ),
       withComputed((state) => {
-        if (!shouldValidate.value()) return fieldInitValidationLess
+        if (!fieldOptions.value().shouldValidate) return fieldInitValidationLess
 
         if (disabled()) return fieldInitValidation
 
@@ -368,7 +358,8 @@ export function reatomField<State, Value = State>(
 
           if (validationValue.triggered) return validationValue
 
-          if (!shouldValidate.value()) return target.merge({ triggered: true })
+          const { shouldValidate, keepErrorDuringValidating } = fieldOptions.value()
+          if (!shouldValidate) return target.merge({ triggered: true })
 
           let promise: any
           let message: undefined | string
@@ -408,7 +399,7 @@ export function reatomField<State, Value = State>(
             })()
 
             return target.merge({
-              error: keepErrorDuringValidating.value()
+              error: keepErrorDuringValidating
                 ? validationValue.error
                 : undefined,
               meta: undefined,
@@ -465,11 +456,7 @@ export function reatomField<State, Value = State>(
     validation,
     value,
     disabled,
-    keepErrorDuringValidating,
-    keepErrorOnChange,
-    validateOnChange,
-    validateOnBlur,
-    shouldValidate,
+    options: fieldOptions,
 
     __reatomField: true as const,
   })
