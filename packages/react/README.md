@@ -32,14 +32,24 @@ npm i @reatom/react
 
 > Read [the handbook](https://www.reatom.dev/handbook) first for production usage.
 
-## Use atom
+## Binding Atoms to Components
 
-### reatomComponent
+Reatom offers powerful ways to integrate state management directly into your React components, ensuring reactivity and proper lifecycle management.
 
-The main API to bind atoms and actions to a component lifetime is `reatomComponent`. It wraps your regular react component function to reatom reactive context. There is no additional rules or behavior, you can use any other hooks, accept props, return any valid `ReactNode`. But if you using any atoms, it will subscribe to it, just like in any computed atom, and rerender from by changes.
+### `reatomComponent`
+
+The primary API to bind atoms and actions to a component's lifetime is `reatomComponent`. It wraps your regular React component function, placing it within a Reatom reactive context.
+
+**Features:**
+
+- **Reactive Reads:** Simply call an atom (`myAtom()`) within the component function to read its value and subscribe to updates. The component will automatically re-render when the atom changes.
+- **Standard React:** Use any other React hooks (`useState`, `useEffect`, etc.), accept props, and return any valid `ReactNode` as usual.
+- **Context Preservation:** Event handlers should be wrapped with `wrap()` (e.g., `onClick={wrap(myAction)}`) to preserve the reactive context, especially for async operations or actions updating state.
+- **No Hooks Rules for Atoms:** Call and subscribe to atoms conditionally within your render logic without violating React's rules of hooks.
+- **Automatic Cleanup:** Integrates with Reatom's abort context. Effects or async operations triggered from within the component (using `wrap` or implicitly by actions) are automatically aborted if the component unmounts before completion, preventing race conditions and memory leaks.
 
 ```tsx
-import { atom } from '@reatom/core'
+import { atom, wrap } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
 export const page = atom(0, 'page').actions((target) => ({
@@ -47,43 +57,49 @@ export const page = atom(0, 'page').actions((target) => ({
   prev: () => target((state) => Math.max(0, state - 1)),
 }))
 
-export const Paging = reatomComponent(() => (
-  <span>
-    <button onClick={page.prev}>prev</button>
-    {page()}
-    <button onClick={page.next}>next</button>
-  </span>
-))
-```
+// Simple component reading and updating global state
+export const Paging = reatomComponent(
+  () => (
+    <span>
+      <button onClick={wrap(page.prev)}>prev</button> {/* Use wrap */}
+      {page()} {/* Read atom value */}
+      <button onClick={wrap(page.next)}>next</button> {/* Use wrap */}
+    </span>
+  ),
+  'Paging',
+) // Naming the component is crucial for debugging!
 
-You can describe props types in the generic, it can be any kind of values, regular string, JSON, and atoms too. For example, here is a controlled component with atom state. Also, you can use additional `wrap` method inside reatom component to bind an action to the component context and lifetime.
-
-```tsx
-import { wrap, type Atom } from '@reatom/core'
-import { reatomComponent } from '@reatom/react'
-
-type Props = {
-  atom: Atom<number>
-  onChange: Action
+// Component accepting props (including atoms)
+type CounterProps = {
+  label: string
+  count: Atom<number>
+  increment: Action<[], number>
 }
 
-export const Counter = reatomComponent<Props>(({ ctx, atom, onChange }) => (
-  <input type="number" value={atom()} onChange={wrap(onChange)} />
-))
-```
+export const Counter = reatomComponent<CounterProps>(
+  ({ label, count, increment }) => (
+    <div>
+      {label}: {count()}
+      <button onClick={wrap(increment)}> + </button>
+    </div>
+  ),
+  'Counter',
+)
 
-One of the most powerful features of `reatomComponent` is that you are not bound by react hooks rules, you could use call and subscribe atoms in any order, right in your template.
-
-```tsx
+// Conditional rendering based on atom values
 export const SomeList = reatomComponent(
   () =>
-    isLoadingAtom() ? (
+    isLoading() ? ( // Read atom conditionally
       <span>Loading...</span>
     ) : (
       <ul>
-        {listAtom().map((el) => (
-          <li>{el.text}</li>
-        ))}
+        {list().map(
+          (
+            el, // Read another atom
+          ) => (
+            <li key={el.id}>{el.text}</li>
+          ),
+        )}
       </ul>
     ),
   'SomeList',
@@ -92,11 +108,114 @@ export const SomeList = reatomComponent(
 
 Do not forget to put the component name to the second argument, it will increase your feature debug experience a lot!
 
-#### Unmount
+#### Unmount Behavior
 
-An important feature of `reatomComponent` is automatic resource management with default for Reatom abort in the cause context. You may be familiar with this concept from [withAbort](https://www.reatom.dev/guides/concurrent/). For example, it means if you will update an atom from the component and it will cause some async refetch and the component will unmount before the fetch end - the fetch will throw an abort error.
+A key feature of `reatomComponent` is its integration with Reatom's abort mechanism. When a `reatomComponent` unmounts:
 
-This increases the stability of your application as it reduces the amount of possible race conditions. But be aware that sometimes you may want to create a request that you don't want to abort even if the unmount occurs. For example, it might be an analytic event, in which case you should use [spawn](https://www.reatom.dev/guides/spawn).
+1.  Its associated reactive context is aborted.
+2.  Any pending async operations initiated within that context (e.g., `await wrap(fetch(...))`, `await wrap(sleep(...))`) are automatically cancelled.
+3.  Any active `effect` primitives created within its context are automatically cleaned up.
+
+This robust cleanup prevents common issues like trying to update state on unmounted components and avoids memory leaks from lingering subscriptions or timers. If you need an operation to _survive_ component unmount (e.g., analytics), use `spawn` from the core package.
+
+### `reatomFactoryComponent` (Recommended for Local State/Effects)
+
+While `reatomComponent` is great for reading atoms state, `reatomFactoryComponent` is the **recommended pattern** for components that need their own **local, encapsulated state and side effects**.
+
+It separates the component logic into two parts:
+
+1.  **Factory Function:** Runs **once** when the component instance is created. This is where you define local atoms, actions, and effects specific to this component instance. It receives the component's initial props.
+2.  **Render Function:** Runs on every render, just like a regular React component function. It has access to the atoms and actions created in the factory scope and the current props.
+
+**Benefits:**
+
+- **True Encapsulation:** Local state and effects are tied to the component instance, not shared globally.
+- **Lifecycle Management:** The factory scope provides a natural place for setup logic.
+- **Perfect for `effect`:** `effect` primitives created in the factory are automatically cleaned up when the component unmounts, making it ideal for managing local subscriptions, timers, animations, etc.
+- **Stable References:** Atoms, actions or any other functions created in the factory have stable references across renders.
+
+```tsx
+import { atom, action, effect, wrap, sleep } from '@reatom/core'
+import { reatomFactoryComponent } from '@reatom/react'
+
+// Example: A self-contained counter component
+const Counter = reatomFactoryComponent<{ initialCount: number; step?: number }>(
+  // 1. Factory Function (runs once per instance)
+  (initProps) => {
+    // Note that the props will not change in this initialization scope.
+    const step = initProps.step ?? 1
+    // Create local atom specific to this Counter instance
+    const count = atom(initProps.initialCount, 'localCount')
+    // Create local action
+    const increment = action(() => count((c) => c + step), 'increment')
+    const decrement = action(() => count((c) => c - step), 'decrement')
+
+    // Example: Log changes (effect cleans up automatically)
+    effect(() => {
+      const currentCount = count()
+      console.log(`Counter ${initProps.initialCount} changed to:`, currentCount)
+      // Cleanup function (optional, runs before next effect run or on unmount)
+      return () =>
+        console.log(
+          `Counter ${initProps.initialCount} leaving state:`,
+          currentCount,
+        )
+    }, 'logEffect')
+
+    // Return the render function
+    return (props) => (
+      <div>
+        Count (Initial: {props.initialCount}, Step: {props.step ?? 1}):{' '}
+        {count()}
+        <button onClick={wrap(decrement)}>-</button>
+        <button onClick={wrap(increment)}>+</button>
+      </div>
+    )
+  },
+  'Counter', // Name the factory component!
+)
+
+// Usage:
+// <Counter initialCount={10} />
+// <Counter initialCount={0} step={5} />
+```
+
+**Example: Using `effect` for Auto-Cleaning**
+
+`reatomFactoryComponent` combined with `effect` is excellent for managing resources that need cleanup. It is more powerful and precise primitive than `useEffect`, as it isn't coupled with rerenders.
+
+```tsx
+import { atom, effect, wrap, sleep, isAbort } from '@reatom/core'
+import { reatomFactoryComponent } from '@reatom/react'
+
+const IntervalLogger = reatomFactoryComponent<{ intervalMs: number }>(
+  ({ intervalMs }) => {
+    const tick = atom(0, 'tick')
+
+    // This effect runs a timer and cleans it up automatically on unmount
+    effect(async () => {
+      while (true) {
+        // sleep respects the abort context
+        await wrap(sleep(intervalMs))
+        tick((t) => t + 1)
+      }
+    }, 'intervalEffect')
+
+    return (props) => (
+      <div>
+        Interval ({props.intervalMs}ms) Ticks: {tick()}
+      </div>
+    )
+  },
+  'IntervalLogger',
+)
+
+// Usage:
+// <IntervalLogger intervalMs={1000} />
+// When this component unmounts, the interval stops automatically.
+```
+
+`reatomFactoryComponent` provides a robust and elegant way to build stateful, effectful components with automatic lifecycle management, leveraging the power of Reatom's core primitives like `atom` and `effect`.
 
 <!-- ### useAtom
 
@@ -161,7 +280,7 @@ import { activeAtom, goodsAtom } from '~/goods/model'
 
 export const GoodsItem = ({ idx }: { idx: number }) => {
   const [element] = useAtom(
-    (ctx) => (ctx.spy(activeAtom) === idx ? ctx.spy(listAtom)[idx] : null),
+    (ctx) => (ctx.spy(activeAtom) === idx ? ctx.spy(list)[idx] : null),
     [idx],
   )
 
@@ -531,20 +650,23 @@ const ctx = withBatching(createCtx())
 
 ## Setup context
 
-Optionally, you need to set up the main context once and wrap your application in a provider at the top level.
+Optionally, you need to set up the main context once and wrap your application in a provider at the top level. This is **required** if you have called `clearStack()` (recommended).
 
 ```jsx
-import { context, connectLogger } from '@reatom/framework'
+import { context, connectLogger, clearStack } from '@reatom/core'
 import { reatomContext } from '@reatom/react'
 import { Main } from './path/to/an/Main'
 
-const ctx = context.start()
+// Recommended: Disable default context for predictability
+clearStack()
+
+const rootFrame = context.start()
 if (import.meta.env.DEV) {
-  connectLogger(ctx)
+  rootFrame.run(connectLogger)
 }
 
 export const App = () => (
-  <reatomContext.Provider value={ctx}>
+  <reatomContext.Provider value={rootFrame}>
     <Main />
   </reatomContext.Provider>
 )

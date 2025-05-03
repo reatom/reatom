@@ -82,6 +82,49 @@ const unsubscribe = counter.subscribe((value) => {
 unsubscribe()
 ```
 
+### 5. `effect`: Auto-Clearable Side Effects
+
+Similar to `computed`, but designed for running side effects reactively. Crucially, `effect` automatically cleans up (aborts) when relative abort appears in the context (e.g., component unmount, abort signal). This makes it ideal for managing subscriptions, timers, or any effect tied to a specific lifecycle.
+
+```ts
+import { effect, atom, wrap, take, sleep, abortVar } from '@reatom/core'
+
+const dataAtom = atom(0, 'dataAtom')
+
+// Example: Polling data while active
+const pollingEffect = effect(async () => {
+  console.log('Effect started')
+  try {
+    while (true) {
+      // Fetch data or perform side effect
+      const newData = await wrap(fetchData())
+      dataAtom(newData)
+
+      // Wait for 5 seconds or until aborted
+      await wrap(sleep(5000))
+    }
+  } catch (error) {
+    if (isAbort(error)) {
+      console.log('Effect aborted and cleaned up')
+    } else {
+      console.error('Polling error:', error)
+    }
+  }
+}, 'pollingEffect')
+
+// To stop the effect manually (if needed outside of auto-cleanup):
+// pollingEffect()
+
+// In contexts like `reatomFactoryComponent` or `withConnectHook`,
+// the effect automatically stops when the context aborts.
+```
+
+**Use `effect` when:**
+
+1.  You need a side effect that reacts to atom changes (like `computed`).
+2.  The side effect needs automatic cleanup tied to a abort context (e.g., component lifecycle).
+3.  Managing subscriptions (WebSockets, event listeners) or intervals/timeouts that should stop automatically.
+
 ## Key Patterns & Best Practices
 
 ### 1. Atomization: Granular State
@@ -107,7 +150,7 @@ email('bob@example.com')
 
 ### 2. Naming Conventions
 
-- **Always name atoms/actions:** Use the second argument (`atom(0, 'myName')`).
+- **Always name atoms/actions/effects:** Use the second argument (`atom(0, 'myName')`, `effect(() => {}, 'myEffect')`).
 - **Descriptive names:** Use regular variable/function names (e.g., `counter`, `fetchData`). Do NOT include "Atom" or "Action" in the name itself.
 - **Factory functions:** Name custom atom/action creators starting with `reatom*` (e.g., `reatomTimer`). Pass the variable name down for internal naming:
   ```ts
@@ -180,7 +223,7 @@ action(() => {
 // <input onChange={wrap(e => myAtom(e.target.value))} />
 ```
 
-**Rule:** If an async operation (`await`, `.then`, `setTimeout`, event handler) eventually leads to a Reatom atom update/read or action call, the _final_ step interacting with Reatom OR the callback function itself must be wrapped.
+**Rule:** If an async operation (`await`, `.then`, `setTimeout`, event handler) eventually leads to a Reatom atom update/read or action/effect call, the _final_ step interacting with Reatom OR the callback function itself must be wrapped.
 
 ### 4. Async Operations (`withAsync`, `withAsyncData`)
 
@@ -215,7 +258,7 @@ Use extensions for handling async states (loading, error).
   userData.error() // Atom<undefined | Error>: Stores fetch error
   ```
 
-- **Auto-Cancellation:** `withAsyncData` (and `withAbort`) automatically cancels pending async operations if dependencies change, preventing race conditions and stale data.
+- **Auto-Cancellation:** `withAsyncData` (and `withAbort`, `effect`) automatically cancels pending async operations if dependencies change or the context is aborted, preventing race conditions and stale data.
 
 ### 5. Extensions (`.extend()`, `.actions()`)
 
@@ -266,7 +309,7 @@ Add reusable functionality or related logic.
 
 ### 6. `take`: Awaiting State/Action Updates
 
-Await the _next_ update of an atom or the _next_ call of an action within an async function (like `action` or `computed`). **Must use `wrap()`**.
+Await the _next_ update of an atom or the _next_ call of an action within an async function (like `action`, `computed`, or `effect`). **Must use `wrap()`**. Respects abort context.
 
 ```ts
 // Example: Wait for form validation before proceeding
@@ -291,7 +334,7 @@ const submitWhenValid = action(async () => {
 
 ### 7. `onEvent`: Handling DOM/WebSocket Events
 
-Safely handle events from sources like `HTMLElement` or `WebSocket`, respecting Reatom's abort context (e.g., within `withConnectHook` or async computed). Returns a promise (awaitable) or an unsubscribe function if a callback is provided.
+Safely handle events from sources like `HTMLElement` or `WebSocket`, respecting Reatom's abort context (e.g., within `withConnectHook`, `effect`, or async computed). Returns a promise (awaitable) or an unsubscribe function if a callback is provided.
 
 ```ts
 const reatomStock = (ticker) =>
@@ -335,9 +378,10 @@ pageContent(content)
 
 ### 8. Framework Integration (React)
 
-Use `reatomComponent` to create components that reactively read atoms. Hooks are allowed inside. **Do NOT create atoms inside render.**
+Use `reatomComponent` or `reatomFactoryComponent` to create components that reactively read atoms and manage effects. Hooks are allowed inside. **Do NOT create atoms inside render.**
 
 ```tsx
+// Simple reactive component
 const UserProfile = reatomComponent<{ className?: string }>(({ className }) => {
   const [t] = useTranslation()
   return (
@@ -351,9 +395,26 @@ const UserProfile = reatomComponent<{ className?: string }>(({ className }) => {
     </div>
   )
 })
+
+// Component with local state and effects (recommended pattern)
+const Timer = reatomFactoryComponent((props: { intervalMs: number }) => {
+  // Factory creates local state and effects
+  const count = atom(0, 'localTimerCount')
+  effect(async () => {
+    while(true) {
+      await wrap(sleep(props.intervalMs))
+      count(c => c + 1)
+    }
+  }, 'timerEffect') // Effect auto-cleans on unmount
+
+  // Return the render function
+  return () => (
+    <div>Timer ({props.intervalMs}ms): {count()}</div>
+  )
+}, 'Timer')
 ```
 
-> Note: do NOT create atoms inside render function, atom reference should be stable.
+> Note: do NOT create atoms inside the render function itself, only in the factory part of `reatomFactoryComponent` or outside the component. Atom references should be stable.
 
 ### Real-world Todo App Example
 
@@ -547,6 +608,7 @@ root.render(
 - **`atom(initState, name?)`**: Creates a mutable state atom.
 - **`computed(computeFn, name?)`**: Creates a derived, lazy atom.
 - **`action(effectFn, name?)`**: Creates a logic/side-effect container.
+- **`effect(effectFn, name?)`**: Creates a reactive, auto-clearable side-effect container. Returns an unsubscribe function.
 - **`wrap(fn)` / `wrap(promise)`**: Preserves reactive context. **ESSENTIAL**.
 - **`.subscribe(callback)`**: Method on atoms/actions to listen for changes. Returns unsubscribe fn.
 - **`.extend(extension)`**: Method on atoms/actions to apply extensions.
@@ -559,6 +621,7 @@ root.render(
 - **`clearStack()`**: Disables default context.
 - **`context.start(fn)`**: Runs `fn` in a new isolated context.
 - **`reatomComponent` (React)**: Creates a reactive React component.
+- **`reatomFactoryComponent` (React)**: Creates a reactive React component with a factory for local state/effects.
 - **Atomization Helpers**: `reatomArray`, `reatomBoolean`, `reatomEnum`, `reatomMap`, `reatomNumber`, `reatomRecord`, `reatomSet`, `reatomString`, `reatomLinkedList`.
 
 ## Migration from V3

@@ -203,6 +203,72 @@ counter(10)
 
 Actions provide structure, traceability, and enable powerful debugging and tooling integration.
 
+### ⚡ Effects: Reactive, Auto-Cleaning Side Effects
+
+`effect` is a powerful primitive similar to `computed`, but specifically designed for running side effects that need to react to state changes and **automatically clean themselves up**.
+
+When an `effect` is created within a reactive context (like inside `reatomFactoryComponent` or `withConnectHook`), it links its lifecycle to that context. If the context is aborted (e.g., component unmounts, dependencies change causing cancellation), the `effect`'s execution is automatically aborted, and any ongoing asynchronous operations within it (like `await wrap(sleep(...))` or `await wrap(take(...))`) are cancelled.
+
+```ts
+import { effect, atom, wrap, sleep, isAbort } from '@reatom/core'
+
+const isActive = atom(true, 'isActive')
+const data = atom(0, 'data')
+
+// Example: An effect that polls data every 5 seconds while isActive is true
+const polling = effect(async () => {
+  // Effect depends on `isActive`, will re-run/abort if it changes
+  if (!isActive()) {
+    console.log('Polling paused.')
+    return // Stop execution if not active
+  }
+
+  console.log('Polling started...')
+  try {
+    while (true) {
+      const fetchedData = await wrap(fetch('/api/poll'))
+      const jsonData = await wrap(fetchedData.json())
+      data(jsonData.value)
+
+      // Wait 5 seconds, but this wait can be aborted!
+      await wrap(sleep(5000))
+    }
+  } catch (error) {
+    if (isAbort(error)) {
+      // This is expected when isActive becomes false or context aborts
+      console.log('Polling aborted cleanly.')
+    } else {
+      // Handle unexpected errors
+      console.error('Polling error:', error)
+    }
+  } finally {
+    console.log('Polling effect cleanup phase.')
+    // Any manual cleanup needed *within* the effect loop can go here,
+    // but the effect itself stops automatically.
+  }
+}, 'pollingEffect')
+
+// To manually stop the effect (returns an unsubscribe function):
+// const stopPolling = polling; stopPolling()
+
+// If used in reatomFactoryComponent, it stops when the component unmounts.
+// If isActive becomes false, the current run aborts, and it won't restart
+// until isActive becomes true again.
+```
+
+**Why `effect` is Awesome:**
+
+-   **Automatic Cleanup:** Prevents memory leaks and resource exhaustion by automatically stopping timers, intervals, subscriptions, or pending requests when they are no longer needed.
+-   **Lifecycle Management:** Ties side effects directly to the lifecycle of their reactive scope.
+-   **Concurrency Control:** Integrates with Reatom's abort system, preventing race conditions from stale effects.
+-   **Declarative Effects:** Define effects that react to state changes, similar to `computed`, but for side effects.
+
+**Use `effect` when:**
+
+1.  You need a side effect that depends on atom values and should re-run when they change.
+2.  The side effect involves asynchronous operations (timers, fetches, subscriptions) that must be cleaned up automatically when the context ends or dependencies change significantly.
+3.  You want to manage resources like WebSocket connections or event listeners tied to a component's or atom's lifecycle.
+
 ## 🌱 Atomization: The Granular State Pattern
 
 Reatom strongly encourages **Atomization** – representing mutable properties within your data structures as individual atoms, while keeping readonly properties as plain values.
@@ -638,7 +704,7 @@ const fetchData = action(async () => {
 }, 'fetchData')
 ```
 
-**Rule of Thumb:** Wrap any function callback or promise that interacts with Reatom atoms/actions *after* an `await` or within a `.then()` block if that interaction needs to be part of the original reactive context (which is almost always the case).
+**Rule of Thumb:** Wrap any function callback or promise that interacts with Reatom atoms/actions/effects *after* an `await` or within a `.then()` block if that interaction needs to be part of the original reactive context (which is almost always the case).
 
 ### Async Extensions: `withAsync` & `withAsyncData`
 
@@ -711,9 +777,9 @@ userId('2') // Change dependency, triggers re-computation and fetch
 // userProfile.error() will hold error if fetch fails
 ```
 
-### ✨ Auto-Cancellation Power! (with `withAsyncData` / `withAbort`)
+### ✨ Auto-Cancellation Power! (with `withAsyncData` / `withAbort` / `effect`)
 
-A key feature when using `computed` with `withAsyncData` (or `withAbort`) is **automatic cancellation**.
+A key feature when using `computed` with `withAsyncData`, or using `effect`, is **automatic cancellation**.
 
 ```ts
 // Continuing the userProfile example...
@@ -740,7 +806,7 @@ Reatom handles the complexity, providing a clean, declarative, and robust way to
 
 The `take` function provides a simple yet powerful way to `await` the next update of an atom or the next call of an action within an async function or action. It acts as a shortcut for subscribing and immediately unsubscribing after the first event.
 
-Crucially, `take` respects Reatom's async context and abort signals. If the context is aborted (e.g., due to auto-cancellation in a `computed` using `withAsyncData`), `take` will throw an `AbortError`. This enables writing complex, redux-saga-like procedural logic using a clean, synchronous `async/await` style.
+Crucially, `take` respects Reatom's async context and abort signals. If the context is aborted (e.g., due to auto-cancellation in a `computed` using `withAsyncData` or an `effect`), `take` will throw an `AbortError`. This enables writing complex, redux-saga-like procedural logic using a clean, synchronous `async/await` style.
 
 **Example: Async Validation Loop**
 
@@ -843,11 +909,12 @@ const form = atom({ isDirty: false, isSubmitted: false }, 'form')
 
 Reatom offers excellent debugging capabilities.
 
-**1. Naming:** **Always name your atoms and actions!** Use the second argument:
+**1. Naming:** **Always name your atoms, actions, and effects!** Use the second argument:
 
 ```ts
 const search = atom('', 'search') // GOOD!
 const performSearch = action(async () => { /* ... */ }, 'performSearch') // GOOD!
+const myEffect = effect(() => { /* ... */ }, 'myEffect') // GOOD!
 ```
 
 **2. Logger:** Use `connectLogger` (usually in a separate setup file imported early) to log all state changes and action calls to the console with details like parameters, previous/next state, and timing.
@@ -962,29 +1029,42 @@ Reatom is framework-agnostic, with dedicated packages for popular UI libraries.
 
 ### React (`@reatom/react`)
 
-Use hooks (`useAtom`, `useAction`) or the `reatomComponent` HOC.
+Use `reatomComponent` HOC.
+**Recommended:** Use `reatomFactoryComponent` for components with local state or effects.
 
 ```tsx
-import { atom } from '@reatom/core'
-import { useAtom, reatomComponent } from '@reatom/react'
+import { atom, effect, sleep, wrap } from '@reatom/core'
+import { useAtom, reatomComponent, reatomFactoryComponent } from '@reatom/react'
 
 const counter = atom(0, 'counter').actions((target) => ({
   increment: () => target((s) => s + 1)
 }))
 
-// Hook-based component
-function CounterButton() {
-  // useAtom returns [value, updateFn] tuple
-  const [count, setCount] = useAtom(counter)
-  // Direct action usage (or use useAction(counter.increment))
-  return <button onClick={counter.increment}>Count: {count}</button>
-}
-
-// reatomComponent HOC - direct atom access in render
+// reatomComponent HOC - direct atom access in render (Good for simple display)
 const CounterDisplay = reatomComponent(() => {
   // Read atom value directly by calling it
   return <p>Current count: {counter()}</p>
 })
+
+// reatomFactoryComponent - Ideal for local state and effects
+const LocalTimer = reatomFactoryComponent((props: { label: string }) => {
+  // Factory runs once per instance, creating local state/effects
+  const localCount = atom(0, 'localCount')
+
+  // Effect automatically cleans up on unmount!
+  effect(async () => {
+    while (true) {
+      await wrap(sleep(1000))
+      localCount(c => c + 1)
+    }
+  }, 'timerEffect')
+
+  // Return the render function
+  return () => (
+    <div>{props.label}: {localCount()}</div>
+  )
+}, 'LocalTimer') // Name the factory component!
+
 
 // Context Provider (Essential if default context is disabled)
 import { reatomContext } from '@reatom/react'
@@ -995,6 +1075,7 @@ function App() {
     <reatomContext.Provider value={context.start()}>
       <CounterButton />
       <CounterDisplay />
+      <LocalTimer label="My Timer" />
     </reatomContext.Provider>
   )
 }
@@ -1046,13 +1127,14 @@ Check the specific adapter packages for detailed usage and features.
 
 ## 🎯 Best Practices
 
-1.  **🏷️ Name Everything:** Always provide the `name` (second argument) for `atom`, `computed`, and `action` for debugging. Use tools like `@reatom/eslint-plugin` for auto-naming.
+1.  **🏷️ Name Everything:** Always provide the `name` (second argument) for `atom`, `computed`, `action`, and `effect` for debugging. Use tools like `@reatom/eslint-plugin` for auto-naming.
 2.  **🌱 Use Atomization:** Break down complex state into smaller, independent atoms for mutable properties.
 3.  **✨ Prefer Computed:** Derive state using `computed` instead of calculating in components.
-4.  **🧩 Use Extensions:** Leverage built-in and custom extensions for cross-cutting concerns (async, persistence, logging, etc.).
-5.  **🔄 Preserve Context:** Always use `wrap()` around promises or callbacks interacting with Reatom after async operations.
-6.  **🧱 Group Logic:** Use `.actions()` or `.extend()` to colocate related logic with the primary atom/action it affects.
-7.  **🚫 Disable Default Context:** Call `clearStack()` at your application root to enforce explicit context management with `wrap()` and `root.start()`, preventing potential errors.
+4.  **⚡ Use `effect` for Auto-Cleaning:** Manage async operations or subscriptions needing automatic cleanup with `effect`, especially within `reatomFactoryComponent`.
+5.  **🧩 Use Extensions:** Leverage built-in and custom extensions for cross-cutting concerns (async, persistence, logging, etc.).
+6.  **🔄 Preserve Context:** Always use `wrap()` around promises or callbacks interacting with Reatom after async operations.
+7.  **🧱 Group Logic:** Use `.actions()` or `.extend()` to colocate related logic with the primary atom/action it affects.
+8.  **🚫 Disable Default Context:** Call `clearStack()` at your application root to enforce explicit context management with `wrap()` and `root.start()`, preventing potential errors.
 
 ## 🧪 Testing
 
@@ -1116,7 +1198,7 @@ test('fetchUser action updates state', async () =>
 If migrating from Reatom v2:
 
 1.  Remove all `ctx` parameters from atom and action calls/definitions.
-2.  Replace `ctx.schedule()` and manual effect management with `wrap()` for async operations and appropriate async extensions (`withAsync`, `withAsyncData`).
+2.  Replace `ctx.schedule()` and manual effect management with `wrap()` for async operations and appropriate async extensions (`withAsync`, `withAsyncData`) or `effect` for auto-cleaning effects.
 3.  Replace `onChange` and `onCall` with the new hook extensions (`withChangeHook`, `withCallHook`).
 4.  Remove the "Atom" suffix convention from variable names (e.g., `counterAtom` -> `counter`).
 5.  Replace `reatomAsync`, `reatomResource` with `action`/`computed` combined with `withAsync`/`withAsyncData`.
@@ -1128,7 +1210,7 @@ If migrating from Reatom v2:
 Reatom utilizes an implicit **Context System**, inspired by `zone.js` and Node.js `AsyncLocalStorage`. This system tracks the chain of causation for atom updates and action calls, enabling features like:
 
 1.  **SSR & Testing Isolation:** `root.start()` creates independent execution contexts, preventing state leakage between requests or tests.
-2.  **Async Operation Management:** Crucial for features like `withAbort` (used by `withAsyncData`) to correctly cancel operations tied to a specific trigger context.
+2.  **Async Operation Management:** Crucial for features like `withAbort` (used by `withAsyncData`) and `effect` to correctly cancel operations tied to a specific trigger context.
 3.  **Debugging:** Allows `connectLogger` and devtools to build accurate dependency graphs and stack traces for state changes.
 
 **How it Works:** Reatom maintains a pointer to the "current" execution context. Async operations can break this chain. `wrap()` explicitly tells Reatom to restore the correct context when the wrapped promise resolves or callback executes.
@@ -1187,6 +1269,7 @@ server.get('*', (req, res) => {
 -   `atom<T>(initialState: T | (() => T), name?: string): Atom<T>`: Creates a base state atom.
 -   `computed<T>(computer: () => T, name?: string): Computed<T>`: Creates a derived, lazy atom.
 -   `action<Params extends any[], Res>(fn: (...params: Params) => Res, name?: string): Action<Params, Res>`: Creates an action.
+-   `effect(fn: () => unknown, name?: string): () => void`: Creates a reactive, auto-cleaning effect. Returns an unsubscribe function.
 -   `wrap<T>(fnOrPromise): T | Promise<T>`: Preserves context across async boundaries.
 -   `root.start<T>(fn: () => T): T`: Runs a function in a new, isolated context.
 -   `clearStack()`: Disables the default global context.

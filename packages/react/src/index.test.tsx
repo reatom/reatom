@@ -10,6 +10,10 @@ import {
   wrap,
   rAF,
   take,
+  effect,
+  sleep,
+  action,
+  abortVar,
 } from '@reatom/core'
 import {
   reatomComponent,
@@ -289,6 +293,58 @@ describe('reatomFactoryComponent', () => {
       expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
         '6',
       )
+    }))
+
+  test('effects autocancel', () =>
+    context.start(async () => {
+      let event = action(() => {})
+      let pooling = 0
+
+      const Counter = reatomFactoryComponent(() => {
+        const count = atom(0, 'count')
+
+        effect(async () => {
+          while (true) {
+            await wrap(take(event))
+            count(++pooling)
+          }
+        })
+
+        return () => <div data-testid="count">{count()}</div>
+      }, 'Counter')
+
+      const active = atom(true, 'active')
+      const Controller = reatomComponent(
+        () => (active() ? <Counter /> : null),
+        'Controller',
+      )
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <Controller />
+        </reatomContext.Provider>,
+      )
+
+      const tickEvent = async () => {
+        event()
+        await wrap(sleep())
+        await wrap(tick())
+      }
+
+      await wrap(tick())
+      await wrap(tickEvent())
+      await wrap(tickEvent())
+      expect(pooling).toBe(2)
+      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
+        '2',
+      )
+
+      active(false)
+      await wrap(tick())
+      await wrap(tickEvent())
+      await wrap(tickEvent())
+      expect(pooling).toBe(2)
     }))
 })
 
