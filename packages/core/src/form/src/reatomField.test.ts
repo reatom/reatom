@@ -129,7 +129,7 @@ test(`toState and fromState`, async () => {
 test(`validation concurrency`, async () => {
   const field = reatomField(123, {
     validate: async ({ value }) => {
-      await sleep()
+      await sleep(5)
 
       if (value === 0xdeadbeef) throw new Error('validation error')
     },
@@ -158,7 +158,9 @@ test(`validation concurrency`, async () => {
   notify()
 
   field.change(1)
+  await wrap(sleep(1))
   field.change(0xdeadbeef)
+  await wrap(sleep(1))
   field.change(3)
   notify()
   expect(field.validation()).toMatchObject({
@@ -167,7 +169,7 @@ test(`validation concurrency`, async () => {
     error: undefined,
   })
 
-  await wrap(sleep())
+  await wrap(sleep(5))
 
   expect(field.validation()).toMatchObject({
     validating: false,
