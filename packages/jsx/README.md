@@ -338,6 +338,8 @@ Result:
 
 In Reatom, there is no concept of "rerender" like React. Instead, we have a special `$spread` prop that can be used to spread props reactively.
 
+> Note: To reset previously applied values, make sure to explicitly specify the new ones.
+
 ```tsx
 <div
   $spread={computed(() =>

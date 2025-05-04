@@ -76,7 +76,9 @@ let ensureMeta = (node: Node): Meta => {
   })
 }
 let unlink = (node: Node, subscribe: () => () => void) => {
-  ensureMeta(node).subscribes.push(subscribe)
+  let meta = ensureMeta(node)
+  meta.subscribes.push(subscribe)
+  if (node.isConnected) meta.unsubscribes.push(subscribe())
 }
 
 /**
@@ -343,79 +345,31 @@ let walkAtom = (
   return fragment
 }
 
-let patchStyleProperty = (
-  style: CSSStyleDeclaration,
-  key: string,
-  value: any,
-): void => {
-  if (value == null) style.removeProperty(key)
-  else style.setProperty(key, value)
-}
-
 let setProps = (dom: DomApis, element: JSX.Element, props: Rec) => {
   for (let key in props) {
-    if (key === 'children' || key === 'element') continue
-
     let value = props[key]
-    if (key === '$spread') {
-      /** @todo (val: AtomOrGetterMaybe<Rec>) */
-      let spread = (val: any) => setProps(dom, element, val)
-
-      /** @todo Show warning if isAction(value). */
-      if (isAtom(value) && !isAction(value)) {
-        unlink(element, () => value.subscribe(spread))
-      } else if (typeof value === 'function') {
-        unlink(element, () => computed(value, named(element, key)).subscribe(spread))
-      } else {
-        spread(value)
-      }
-    } else if (key === 'ref') {
-      /**
-       * @todo Show warning if isAtom(value) && !isAction(value).
-       * @todo Convert to named action.
-       */
-      ensureMeta(element).mount = () => value(element)
-    } else if (key.startsWith('on:')) {
-      key = key.slice(3)
-      set(dom, element, key, value)
-    } else if (key === 'class' || key === 'className') {
-      if (typeof value === 'object' || typeof value === 'function') {
-        unlink(element, () => reatomClassName(value).subscribe((val) => set(dom, element, key, val)))
-      } else {
-        set(dom, element, key, typeof value === 'string' ? value : undefined)
-      }
-    } else if (isAtom(value) && !isAction(value)) {
-      if (key.startsWith('model:')) {
-        let k = key = key.slice(6) as 'value' | 'valueAsNumber' | 'checked'
-        let listener = key === 'valueAsNumber'
-          ? (event: any) => value(+event.target.value)
-          : (event: any) => value(event.target[k])
-        set(dom, element, 'input', listener)
-        if (key === 'valueAsNumber') {
-          key = 'value'
-          set(dom, element, 'type', 'number')
-        } else if (key === 'checked') {
-          set(dom, element, 'type', 'checkbox')
-        }
-        key = 'prop:' + key
-      }
-
-      unlink(element, () => value.subscribe(key === '$spread'
-        ? (val) => {for (let k in val) set(dom, element, k, val[k])}
-        : (val) => set(dom, element, key, val)))
-    } else if (!key.startsWith('on:') && typeof value === 'function') {
-      unlink(element, () => computed(value, named(element, key))
-        .subscribe((val) => set(dom, element, key, val)))
-    } else {
-      set(dom, element, key, value)
-    }
+    setProp(dom, element, key, value)
   }
 }
 
-let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
+let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
+  if (key === 'children' || key === 'element') return
+
+  /**
+   * @todo Show warning if isAtom(value) && !isAction(value).
+   * @todo Convert to named action.
+   */
+  if (key === 'ref') {
+    ensureMeta(element).mount = () => value(element)
+    return
+  }
+
+  /**
+   * @todo Show warning if isAtom(value) && !isAction(value).
+   * @todo Remove previous event listener.
+   */
   if (key.startsWith('on:')) {
     key = key.slice(3)
-
     element.addEventListener(
       key,
       wrap(
@@ -423,13 +377,74 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
         action(value, named(element, key)),
       ),
     )
-  } else if (key.startsWith('css:')) {
-    patchStyleProperty(
+    return
+  }
+
+  /**
+   * @todo Show warning if isAction(value).
+   * @todo Revert previous value.
+   */
+  if (key === '$spread') {
+    let spread = (val: any) => setProps(dom, element, val)
+    if (isAtom(value) && !isAction(value)) {
+      unlink(element, () => value.subscribe(spread))
+    } else if (typeof value === 'function') {
+      unlink(element, () => computed(value, named(element, key)).subscribe(spread))
+    } else {
+      spread(value)
+    }
+    return
+  }
+
+  /** @todo Show warning if isAction(value). */
+  if (key.startsWith('model:')) {
+    key = key.slice(6) as 'value' | 'valueAsNumber' | 'checked'
+    if (key === 'value') {
+      setProp(dom, element, 'on:input', (event: any) => value(event.target[key]))
+      setProp(dom, element, key, value)
+    } else if (key === 'valueAsNumber') {
+      setProp(dom, element, 'on:input', (event: any) => value(+event.target.value))
+      setProp(dom, element, 'value', value)
+      setProp(dom, element, 'type', 'number')
+    } else if (key === 'checked') {
+      setProp(dom, element, 'on:input', (event: any) => value(event.target[key]))
+      setProp(dom, element, key, value)
+      setProp(dom, element, 'type', 'checkbox')
+    }
+    return
+  }
+
+  let setter = (val: any) => set(dom, element, key, val)
+
+  /** @todo Show warning if isAction(value). */
+  if (key === 'class' || key === 'className') {
+    if (typeof value === 'object' || typeof value === 'function') {
+      unlink(element, () => reatomClassName(value).subscribe(setter))
+    } else {
+      setter(typeof value === 'string' ? value : undefined)
+    }
+    return
+  }
+
+  /** @todo Show warning if isAction(value). */
+  if (isAtom(value) && !isAction(value)) {
+    unlink(element, () => value.subscribe(setter))
+  } else if (typeof value === 'function') {
+    unlink(element, () => computed(value, named(element, key)).subscribe(setter))
+  } else {
+    setter(value)
+  }
+}
+
+let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
+  if (key.startsWith('css:')) {
+    setStyleProp(
       element.style,
       '--' + key.slice(4),
       value == null ? value : String(value),
     )
   } else if (key === 'css') {
+    /** @todo Should support record? */
     let styleId = styles[value]
     if (!styleId) {
       styleId = styles[value] = '' + ++stylesCount
@@ -440,12 +455,12 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     element.setAttribute('data-reatom-style', styleId)
   } else if (key === 'style') {
     if (isObject(value)) {
-      for (let key in value) patchStyleProperty(element.style, key, value[key])
+      for (let key in value) setStyleProp(element.style, key, value[key])
     } else {
       for (let key in element.style) element.style.removeProperty(key)
     }
   } else if (key.startsWith('style:')) {
-    patchStyleProperty(element.style, key.slice(6), value)
+    setStyleProp(element.style, key.slice(6), value)
   } else if (key.startsWith('prop:')) {
     // @ts-expect-error
     element[key.slice(5)] = value
@@ -487,6 +502,15 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     if (value == null || (isBool && value === false)) element.removeAttribute(key)
     else element.setAttribute(key, isBool && value === true ? '' : value)
   }
+}
+
+let setStyleProp = (
+  style: CSSStyleDeclaration,
+  key: string,
+  value: any,
+): void => {
+  if (value == null) style.removeProperty(key)
+  else style.setProperty(key, value)
 }
 
 export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {

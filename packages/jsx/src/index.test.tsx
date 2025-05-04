@@ -154,6 +154,12 @@ test('spreads', () =>
       id: '1',
       'attr:b': '2',
       'on:click': clickTrack as Fn,
+      '$spread': {
+        class: () => ['aaa', atom('bbb')],
+        '$spread': {
+          'style:color': 'red',
+        },
+      },
     })
 
     const element = (<div $spread={props} />) as HTMLDivElement
@@ -163,9 +169,27 @@ test('spreads', () =>
 
     expect(element.id).toBe('1')
     expect(element.getAttribute('b')).toBe('2')
+    expect(element.getAttribute('class')).toBe('aaa bbb')
+    expect(element.getAttribute('style')).toBe('color: red;')
     expect(clickTrack.mock.calls.length).toBe(0)
     element.click()
     expect(clickTrack.mock.calls.length).toBe(1)
+  }))
+
+test.skip('spreads difference', () =>
+  context.start(async () => {
+    const props = atom<Partial<Record<'class' | 'id', string>>>({class: 'class'})
+    const element = (<div $spread={props} />) as HTMLDivElement
+
+    mount(parent(), element)
+    await wrap(sleep())
+    expect(element.className).toBe('class')
+    expect(element.id).toBe('')
+
+    props({id: 'id'})
+    await wrap(sleep())
+    expect(element.className).toBe('')
+    expect(element.id).toBe('id')
   }))
 
 test('multiple render shared element', () =>
