@@ -54,7 +54,7 @@ test(`keepErrorOnChange`, async () => {
 
 test(`keepErrorDuringValidating`, async () => {
   const validate = async () => {
-    await sleep()
+    await wrap(sleep())
     throw new Error('validation error')
   }
 
@@ -129,7 +129,7 @@ test(`toState and fromState`, async () => {
 test(`validation concurrency`, async () => {
   const field = reatomField(123, {
     validate: async ({ value }) => {
-      await sleep(5)
+      await wrap(sleep(5))
 
       if (value === 0xdeadbeef) throw new Error('validation error')
     },

@@ -350,14 +350,14 @@ Field sets are particularly useful for multi-step forms because they allow you t
 This recipe shows how to load form values from an API. It creates an async action that fetches data and resets the form with the retrieved values when the request completes. The `pending` atom can be used to show a loading state.
 
 ```ts
-import { reatomForm, action, withAsync, wrap } from '@reatom/core'
+import { reatomForm, computed, withAsync, wrap } from '@reatom/core'
 
 const profileForm = reatomForm({
   username: '',
   address: ''
 }, 'profileForm')
 
-const fetchFormValues = action(
+const fetchFormValues = computed(
   async () => {
     const response = await wrap(fetch('/api/profile'));
     return wrap(response.json());
@@ -369,7 +369,7 @@ fetchFormValues.onFulfill.extend(
   withCallHook(defaultValues => profileForm.reset(defaultValues))
 )
 
-fetchFormValues.pending() // Use this atom to show loading state
+fetchFormValues.ready() // Use this atom to show loading state
 ```
 
 ### Async validation debounce
@@ -377,13 +377,13 @@ fetchFormValues.pending() // Use this atom to show loading state
 This recipe implements debounced validation for a field. Thanks to reatom's concurrency mechanism, each new validation call automatically cancels the previous one. The field waits 300ms before making an API request to check if a username is already taken.
 
 ```ts
-import { reatomField, sleep, abortVar } from '@reatom/core'
+import { reatomField, sleep, abortVar, wrap } from '@reatom/core'
 
 const usernameField = reatomField('', {
   validate: async ({ value }) => {
-    await sleep(300);
-    const response = await fetch(`/api/usernames?username=${state}`, abortVar.getController());
-    const { taken } = await response.json();
+    wrap(await sleep(300));
+    const response = await wrap(fetch(`/api/usernames?username=${state}`, abortVar.getController()));
+    const { taken } = await wrap(response.json());
     invariant(!taken, 'This username already taken');
   }
 }, 'usernameField')
