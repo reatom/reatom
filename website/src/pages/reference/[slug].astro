@@ -1,0 +1,25 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { readmesPages } from '../../content'
+import { render } from 'astro:content'
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro'
+import { references } from '../../../references.config.ts'
+import { joinBy } from '../../util/join.ts'
+
+export const getStaticPaths = (() => {
+  return joinBy(references, readmesPages, (ref, readme) =>
+    Boolean(readme.filePath?.startsWith(ref.originalSelector)),
+  ).map(([ref, readme]) => ({
+    props: { readme, ref },
+    params: { slug: ref.slug },
+  }))
+}) satisfies GetStaticPaths
+
+const { readme, ref } = Astro.props
+
+const { Content } = await render(readme)
+---
+
+<StarlightPage frontmatter={{ title: ref.package.name }}>
+  <Content />
+</StarlightPage>
