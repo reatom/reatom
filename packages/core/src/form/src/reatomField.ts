@@ -308,8 +308,8 @@ export function reatomField<State, Value = State>(
 
       validation.merge(
         keepErrorOnChange
-          ? { validating: false, triggered: false }
-          : { validating: false, triggered: false, error: undefined },
+          ? { validating: false }
+          : { validating: false, error: undefined },
       )
 
       if (!disabled() && validateOnChange) validation.trigger()
