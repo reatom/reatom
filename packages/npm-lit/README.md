@@ -1,53 +1,130 @@
-# What is Lit?
+# @reatom/npm-lit
 
-Lit is a simple library for building fast, lightweight web components.
+Integration of Reatom with Lit for creating reactive web components.
 
-At Lit's core is a boilerplate-killing component base class that provides reactive state, scoped styles, and a declarative template system that's tiny, fast and expressive
+## About the package
 
-## About
+The package provides the following functions:
 
-Package provide 2 functions:
+- `withReatomElement` - mixin for creating Lit elements with Reatom support
+- `watch` - directive for tracking atom changes in templates
+- `html` and `svg` - wrappers over standard Lit functions with automatic atom support
 
-- setupCtx(ctx) - set context
-- withReatom(el: LitElement) - mixin for subscribes to atom changes
+## Installation
 
-```Javascript
-withReatom(LitElement)
+```bash
+npm install @reatom/npm-lit
 ```
 
-## Example
+## Usage Example
 
-```Javascript
-import { setupCtx, withReatom } from "@reatom/npm-lit";
-import { atom, action, createCtx } from "@reatom/core";
-import { LitElement, html } from "lit";
+```typescript
+import { atom, Atom, peek } from '@reatom/core'
+import { withReatomElement, watch } from '@reatom/npm-lit'
+import { LitElement, html } from 'lit'
 
-const ctx = createCtx();
-setupCtx(ctx);
+// Create atoms
+const timer = atom(0, 'timer')
+const count = atom(0, 'count').mix((target) => ({
+  increment: () => target((state) => state + 1)
+}))
 
-const count = atom(0);
-const text = atom('Empty');
-const countText = atom((ctx) => `Current count: ${ctx.spy(count)}`);
-const increment = action((ctx) => {
-  count(ctx, (v) => v + 1);
-});
+// Update timer every second
+setInterval(() => {
+  timer(state => state + 1)
+}, 1_000)
 
-setTimeout(() => text(ctx, 'Not Empty'), 5000)
-setInterval(() => increment(ctx), 1000);
+// Create a component that tracks render count
+const RenderCountElement = withReatomElement(
+  class RenderCountElement extends LitElement {
+    declare count: Atom<number>
 
+    override render() {
+      return html`<div>Render count: ${this.count()}</div>`
+    }
+  },
+)
 
-export class Test extends withReatom(LitElement) {
-  render() {
-    return html`<div>
-      TextAtom: ${this.ctx.spy(text)} <br />
-      Render: ${this.ctx.spy(countText)} <br />
-      <button @click="${() => increment(ctx)}">Inc</button>
-    </div>`;
+// Main component with reactivity
+const CounterElement = withReatomElement(
+  class CounterElement extends LitElement {
+    static override properties = { innerCount: { type: Number, state: true } }
+    declare innerCount: number
+
+    renderCount = atom(0)
+
+    private handleClick = () => {
+      this.innerCount++
+    }
+
+    constructor() {
+      super()
+      this.innerCount = 0
+    }
+
+    override render() {
+      return html`
+        <div>
+          <h1>Timer: ${watch(timer)}</h1>
+          <h3>Reatom Reactivity: ${watch(count)}</h3>
+          <h3>LitElement Reactivity: ${this.innerCount}</h3>
+
+          <button @click=${this.handleClick}>
+            Increment LitElement Reactivity
+          </button>
+          <button @click=${() => count.increment()}>
+            Increment Reatom Reactivity
+          </button>
+          <render-count .count=${this.renderCount}></render-count>
+        </div>
+      `
+    }
+
+    override updated() {
+      const v = peek(this.renderCount)
+      this.renderCount(v + 1)
+    }
+  },
+)
+
+// Register components
+customElements.define('counter-element', CounterElement)
+customElements.define('render-count', RenderCountElement)
+```
+
+## API
+
+### withReatomElement
+
+Mixin for creating Lit elements with Reatom support. Allows using atoms in components.
+
+```typescript
+const MyElement = withReatomElement(
+  class MyElement extends LitElement {
+    // ...
   }
-}
-
-if (!customElements.get("test-element")) {
-  customElements.define("test-element", Test);
-}
-
+)
 ```
+
+### watch
+
+Directive for tracking atom changes in templates.
+
+```typescript
+html`<div>${watch(myAtom)}</div>`
+```
+
+### html and svg
+
+Wrappers over standard Lit functions with automatic atom support.
+
+```typescript
+import { html, svg } from '@reatom/npm-lit'
+
+// Atoms are automatically tracked
+html`<div>${myAtom}</div>`
+```
+
+## License
+
+MIT

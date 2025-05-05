@@ -2,8 +2,6 @@ import {
   action,
   assert,
   type AtomLike,
-  type Atom,
-  type Fn,
   isAtom,
   type Rec,
   type Unsubscribe,
@@ -19,9 +17,11 @@ import {
   addChangeHook,
   isObject,
   atom,
-  withInit,
+  context,
+  computed,
 } from '@reatom/core'
 import type { AttributesAtomMaybe, JSX } from './jsx'
+import { reatomClassName } from './utils'
 
 declare type JSXElement = JSX.Element
 
@@ -31,7 +31,7 @@ export type FC<Props = {}> = (
 
 export type { JSXElement, JSX }
 
-export { type ClassNameValue, cn } from './utils'
+export { type ClassNameValue, reatomClassName } from './utils'
 
 type DomApis = Pick<
   typeof window,
@@ -50,53 +50,143 @@ export let DEBUG = atom(true, 'jsx.DEBUG')
 
 let stylesCount = 0
 let styles: Rec<string> = {}
-export let stylesheet = atom<HTMLElement>(null as any, 'jsx.stylesheet').mix(
-  withInit(
-    (state) =>
-      state ?? // could be initialized with different element
-      DOM().document.head.appendChild(DOM().document.createElement('style')),
-  ),
-)
+/**
+ * @note Create style tag for support oldest browser.
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/CSSStyleSheet
+ * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/adoptedStyleSheets
+ * @see https://measurethat.net/Benchmarks/Show/5920
+ */
+export let stylesheet = atom(() => DOM().document.head.appendChild(DOM().document.createElement('style')).sheet!, 'jsx.stylesheet')
 let name = ''
+let named = (element: Node, key: string) => `${name}.${element.nodeName.toLowerCase()}._${key}`
+
+interface Meta {
+  subscribes: (() => Unsubscribe)[]
+  unsubscribes: Unsubscribe[]
+  mount: ((element: Node) => ((element: Node) => void) | undefined) | undefined
+  unmount: ((element: Node) => void) | undefined
+}
+let metaSymbol = atom(() => Symbol())
+let ensureMeta = (node: Node): Meta => {
+  return ((node as any)[metaSymbol()] ??= {
+    subscribes: [],
+    unsubscribes: [],
+    mount: undefined,
+    unmount: undefined,
+  })
+}
+let unlink = (node: Node, subscribe: () => () => void) => {
+  ensureMeta(node).subscribes.push(subscribe)
+}
 
 /**
  * @see https://github.com/preactjs/preact/blob/d16a34e275e31afd6738a9f82b5ba2fb9dbf032b/src/diff/props.js#L107
  * @see https://www.measurethat.net/Benchmarks/Show/7818
  */
 let propertiesAsAttributes = new Set([
-  'width',
+  /**
+   * Numeric attributes with a default value other than 0.
+   */
   'height',
-  'href',
-  'list',
+  'high',
+  'low',
+  'optimum',
+  'results',
+  'size',
+  'span',
+  'start',
+  'width',
+
+  /**
+   * Numeric properties with a default value other than 0.
+   */
+  // 'colspan',
+  // 'rowspan',
+  // 'maxlength',
+  // 'minlength',
+  // 'tabindex',
+
+  /**
+   * Properties with value HTMLElement.
+   */
   'form',
-  /** Default value in browsers is `-1` and an empty string is cast to `0` instead */
-  'tabIndex',
+  'list',
+
+  /**
+   * Setting the value to an empty string must be explicit.
+   */
   'download',
-  'rowSpan',
-  'colSpan',
+  'href',
   'role',
-  'popover',
+])
+/**
+ * @see https://developer.mozilla.org/en-US/docs/Glossary/Boolean/HTML
+ */
+let booleanAttributes = new Set([
+  'allowfullscreen',
+  'allowpaymentrequest',
+  'async',
+  'attributionsrc',
+  'autofocus',
+  'autoplay',
+  'browsingtopics',
+  'capture',
+  'checked',
+  'compact',
+  'controls',
+  'credentialless',
+  'crossorigin',
+  'declare',
+  'default',
+  'defer',
+  'disabled',
+  'disablepictureinpicture',
+  'disableremoteplayback',
+  'formnovalidate',
+  'hidden',
+  'inert',
+  'ismap',
+  'itemscope',
+  'loop',
+  'multiple',
+  'muted',
+  'nomodule',
+  'novalidate',
+  'open',
+  'playsinline',
+  'readonly',
+  'required',
+  'reversed',
+  'scoped',
+  'selected',
+  'shadowrootclonable',
+  'shadowrootdelegatesfocus',
+  'shadowrootserializable',
+  'virtualkeyboardpolicy',
+  'webkitdirectory',
 ])
 
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
 
-let unsubscribesMap = new WeakMap<Node, Array<Fn>>()
-let unlink = (parent: Node, un: Unsubscribe) => {
-  // check the connection in the next tick
-  // to give the user (programmer) an ability
-  // to put the created element in the dom
-  Promise.resolve().then(() => {
-    if (!parent.isConnected) un()
-    else {
-      while (
-        parent.parentElement &&
-        !unsubscribesMap.get(parent)?.push(() => parent.isConnected || un())
-      ) {
-        parent = parent.parentElement
-      }
-    }
-  })
+/**
+ * @todo Explore adding elements to a DocumentFragment before adding them to a Document.
+ * @see https://www.measurethat.net/Benchmarks/Show/13274
+ */
+let walk = (
+  dom: DomApis,
+  el: JSX.Element,
+  child: JSX.DOMAttributes<JSX.Element>['children'],
+) => {
+  if (Array.isArray(child)) {
+    for (let i = 0; i < child.length; i++) walk(dom, el, child[i])
+  } else if (isLinkedListAtom(child)) {
+    walkLinkedList(dom, el, child as any)
+  } else if (isAtom(child)) {
+    el.append(walkAtom(dom, child as any))
+  } else if (!isSkipped(child)) {
+    el.append(child as Node | string)
+  }
 }
 
 let walkLinkedList = (
@@ -169,18 +259,23 @@ let walkLinkedList = (
     lastVersion = state.version
   }
 
-  // it's critical to not use not a last state, but the each state.
-  const unSubscribe = list.subscribe(noop)
-  const unChange = addChangeHook(list, cb)
+  unlink(el, () => {
+    // it's critical to not use not a last state, but the each state.
+    let unSubscribe = list.subscribe(noop)
+    let rootFrame = context()
+    let unChange = addChangeHook(list, (state) => {
+      if (rootFrame === context()) cb(state)
+    })
+
+    return () => {
+      unSubscribe()
+      unChange()
+    }
+  })
 
   let state = list()
-  // check if change hook wasn't called
+  // check if change hook wasn't called by initialization
   if (lastVersion === -1) cb(state)
-
-  unlink(el, () => {
-    unSubscribe()
-    unChange()
-  })
 }
 
 interface LiveDocumentFragment extends DocumentFragment {
@@ -205,7 +300,7 @@ let throwNativeFragment = (element: JSX.Element) => {
 }
 
 let createLiveFragment = (dom: DomApis, name: string): LiveDocumentFragment => {
-  let fragment = dom.document.createDocumentFragment()
+  let fragment = dom.document.createDocumentFragment() as LiveDocumentFragment
   let start = dom.document.createComment(name)
   let end = start.cloneNode() as Comment
   fragment.append(start, end)
@@ -225,13 +320,13 @@ let createLiveFragment = (dom: DomApis, name: string): LiveDocumentFragment => {
     }
   }
 
-  return Object.assign(fragment, {
-    __reatomFragment: {
-      start,
-      end,
-      update,
-    },
-  })
+  fragment.__reatomFragment = {
+    start,
+    end,
+    update,
+  }
+
+  return fragment
 }
 
 let walkAtom = (
@@ -239,10 +334,11 @@ let walkAtom = (
   anAtom: AtomLike<JSX.ElementPrimitiveChildren>,
 ): DocumentFragment => {
   let fragment = createLiveFragment(dom, anAtom.name)
-  let un = anAtom.subscribe(fragment.__reatomFragment.update)
 
-  unsubscribesMap.set(fragment.__reatomFragment.start, [])
-  unlink(fragment.__reatomFragment.start, un)
+  unlink(
+    fragment.__reatomFragment.start,
+    () => anAtom.subscribe(fragment.__reatomFragment.update),
+  )
 
   return fragment
 }
@@ -256,7 +352,67 @@ let patchStyleProperty = (
   else style.setProperty(key, value)
 }
 
-let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
+let setProps = (dom: DomApis, element: JSX.Element, props: Rec) => {
+  for (let key in props) {
+    if (key === 'children' || key === 'element') continue
+
+    let value = props[key]
+    if (key === '$spread') {
+      /** @todo (val: AtomOrGetterMaybe<Rec>) */
+      let spread = (val: any) => setProps(dom, element, val)
+
+      /** @todo Show warning if isAction(value). */
+      if (isAtom(value) && !isAction(value)) {
+        unlink(element, () => value.subscribe(spread))
+      } else if (typeof value === 'function') {
+        unlink(element, () => computed(value, named(element, key)).subscribe(spread))
+      } else {
+        spread(value)
+      }
+    } else if (key === 'ref') {
+      /**
+       * @todo Show warning if isAtom(value) && !isAction(value).
+       * @todo Convert to named action.
+       */
+      ensureMeta(element).mount = () => value(element)
+    } else if (key.startsWith('on:')) {
+      key = key.slice(3)
+      set(dom, element, key, value)
+    } else if (key === 'class' || key === 'className') {
+      if (typeof value === 'object' || typeof value === 'function') {
+        unlink(element, () => reatomClassName(value).subscribe((val) => set(dom, element, key, val)))
+      } else {
+        set(dom, element, key, typeof value === 'string' ? value : undefined)
+      }
+    } else if (isAtom(value) && !isAction(value)) {
+      if (key.startsWith('model:')) {
+        let k = key = key.slice(6) as 'value' | 'valueAsNumber' | 'checked'
+        let listener = key === 'valueAsNumber'
+          ? (event: any) => value(+event.target.value)
+          : (event: any) => value(event.target[k])
+        set(dom, element, 'input', listener)
+        if (key === 'valueAsNumber') {
+          key = 'value'
+          set(dom, element, 'type', 'number')
+        } else if (key === 'checked') {
+          set(dom, element, 'type', 'checkbox')
+        }
+        key = 'prop:' + key
+      }
+
+      unlink(element, () => value.subscribe(key === '$spread'
+        ? (val) => {for (let k in val) set(dom, element, k, val[k])}
+        : (val) => set(dom, element, key, val)))
+    } else if (!key.startsWith('on:') && typeof value === 'function') {
+      unlink(element, () => computed(value, named(element, key))
+        .subscribe((val) => set(dom, element, key, val)))
+    } else {
+      set(dom, element, key, value)
+    }
+  }
+}
+
+let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
   if (key.startsWith('on:')) {
     key = key.slice(3)
 
@@ -264,47 +420,57 @@ let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
       key,
       wrap(
         // only for logging purposes
-        action(val, `${name}.${element.nodeName.toLowerCase()}._${key}`),
+        action(value, named(element, key)),
       ),
     )
   } else if (key.startsWith('css:')) {
     patchStyleProperty(
       element.style,
       '--' + key.slice(4),
-      val == null ? val : String(val),
+      value == null ? value : String(value),
     )
   } else if (key === 'css') {
-    let styleId = styles[val]
+    let styleId = styles[value]
     if (!styleId) {
-      styleId = styles[val] = '' + ++stylesCount
-      stylesheet().innerText += `[data-reatom-style="${styleId}"]{${val}}\n`
+      styleId = styles[value] = '' + ++stylesCount
+      stylesheet().insertRule(`[data-reatom-style="${styleId}"]{${value}}`)
     }
 
     /** @see https://measurethat.net/Benchmarks/Show/11819 */
     element.setAttribute('data-reatom-style', styleId)
   } else if (key === 'style') {
-    if (isObject(val)) {
-      for (let key in val) patchStyleProperty(element.style, key, val[key])
+    if (isObject(value)) {
+      for (let key in value) patchStyleProperty(element.style, key, value[key])
     } else {
       for (let key in element.style) element.style.removeProperty(key)
     }
   } else if (key.startsWith('style:')) {
-    patchStyleProperty(element.style, key.slice(6), val)
+    patchStyleProperty(element.style, key.slice(6), value)
   } else if (key.startsWith('prop:')) {
     // @ts-expect-error
-    element[key.slice(5)] = val
+    element[key.slice(5)] = value
   } else if (
-    !propertiesAsAttributes.has(key)
-    && element instanceof dom.HTMLElement
-    && (key in element || key === 'class')
+    !propertiesAsAttributes.has(key) &&
+    element instanceof dom.HTMLElement &&
+    (key in element || key === 'class')
   ) {
     /**
      * @see https://measurethat.net/Benchmarks/Show/54
      * @see https://measurethat.net/Benchmarks/Show/31249
      */
     if (key === 'class') key = 'className'
+
+    /**
+     * @todo Support for properties values null | undefined.
+     * @example
+     * ```ts
+     * if (key === 'valueAsDate') element[key] = val
+     * else if (key === 'valueAsNumber') element[key] = key ?? NaN
+     * ```
+     */
+
     // @ts-ignore
-    element[key] = val == null ? '' : val
+    element[key] = value == null ? '' : value
   } else {
     if (key === 'className') key = 'class'
     else if (key.startsWith('attr:')) key = key.slice(5)
@@ -317,11 +483,9 @@ let set = (dom: DomApis, element: JSX.Element, key: string, val: any) => {
      * amount of exceptions would cost too many bytes. On top of
      * that other frameworks generally stringify `false`.
      */
-    if (val == null || (val === false && key[4] !== '-')) {
-      element.removeAttribute(key)
-    } else {
-      element.setAttribute(key, key == 'popover' && val == true ? '' : val)
-    }
+    let isBool = booleanAttributes.has(key)
+    if (value == null || (isBool && value === false)) element.removeAttribute(key)
+    else element.setAttribute(key, isBool && value === true ? '' : value)
   }
 }
 
@@ -377,77 +541,9 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
 
   if ('children' in props) children = props.children
 
-  for (let k in props) {
-    if (k !== 'children' && k !== 'element') {
-      let prop = props[k]
-      if (k === 'ref') {
-        wrap(Promise.resolve()).then(() => {
-          let cleanup = prop(element)
-          if (typeof cleanup === 'function') {
-            let list = unsubscribesMap.get(element)
-            if (!list) unsubscribesMap.set(element, (list = []))
-            unlink(element, () => cleanup(element))
-          }
-        })
-      } else if (isAtom(prop) && !isAction(prop)) {
-        if (k.startsWith('model:')) {
-          let name = (k = k.slice(6)) as 'value' | 'valueAsNumber' | 'checked'
-          set(dom, element, 'on:input', (event: any) => {
-            ;(prop as Atom)(
-              name === 'valueAsNumber'
-                ? +event.target.value
-                : event.target[name],
-            )
-          })
-          if (k === 'valueAsNumber') {
-            k = 'value'
-            set(dom, element, 'type', 'number')
-          }
-          if (k === 'checked') {
-            set(dom, element, 'type', 'checkbox')
-          }
-          k = 'prop:' + k
-        }
+  setProps(dom, element, props)
 
-        let un: undefined | Unsubscribe
-        un = prop.subscribe((v) =>
-          !un || element.isConnected
-            ? k === '$spread'
-              ? Object.entries(v).forEach(([k, v]) => set(dom, element, k, v))
-              : set(dom, element, k, v)
-            : un(),
-        )
-
-        unlink(element, un)
-      } else {
-        set(dom, element, k, prop)
-      }
-    }
-  }
-
-  /**
-   * @todo Explore adding elements to a DocumentFragment before adding them to a Document.
-   * @see https://www.measurethat.net/Benchmarks/Show/13274
-   */
-  let walk = (child: JSX.DOMAttributes<JSX.Element>['children']) => {
-    if (Array.isArray(child)) {
-      for (let i = 0; i < child.length; i++) walk(child[i])
-    } else if (isLinkedListAtom(child)) {
-      walkLinkedList(
-        dom,
-        element,
-        child as LinkedListLikeAtom<LinkedList<LLNode<any>>>,
-      )
-    } else if (isAtom(child)) {
-      element.append(walkAtom(dom, child))
-    } else if (!isSkipped(child)) {
-      element.append(child as Node | string)
-    }
-  }
-
-  for (let i = 0; i < children.length; i++) {
-    walk(children[i])
-  }
+  walk(dom, element, children)
 
   return element
 }
@@ -460,41 +556,54 @@ export let hf = () => {}
 
 export let mount = (target: Element, child: Element): void => {
   let dom = DOM()
-  // TODO fix
-  // target.append(...[child].flat(Infinity))
-  target.append(child)
+  let symbol = metaSymbol()
 
   /**
    * @note The moved node creates two mutations: deletion then addition.
+   * @todo Moving an node in the DOM unsubscribes and resubscribes to atoms.
+   * @todo Call `observer.disconnect()` after unmounting the application.
    */
-  new dom.MutationObserver(
+  let observer = new dom.MutationObserver(
     wrap((mutationsList) => {
-      let removedNodes = new Set<Node>()
-
       for (let mutation of mutationsList) {
-        // @ts-ignore TODO
-        for (let node of mutation.removedNodes) removedNodes.add(node)
-        // @ts-ignore TODO
-        for (let node of mutation.addedNodes) removedNodes.delete(node)
-      }
-
-      for (let removedNode of removedNodes) {
-        /**
-         * @see https://stackoverflow.com/a/64551276
-         * @note A custom NodeFilter function slows down performance by 1.5 times.
-         */
-        let walker = dom.document.createTreeWalker(removedNode, 1 | 128)
-
-        do {
-          unsubscribesMap.get(walker.currentNode)?.forEach((fn) => fn())
-          unsubscribesMap.delete(walker.currentNode)
-        } while (walker.nextNode())
+        mutation.addedNodes.forEach((addedNode) => {
+          let iterator = dom.document.createNodeIterator(addedNode, 1 | 128)
+          while (iterator.nextNode()) {
+            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            meta?.subscribes.forEach((subscribe) => meta.unsubscribes.push(subscribe()))
+          }
+          while (iterator.previousNode()) {
+            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            if (meta) {
+              let unmount = meta.mount?.(iterator.referenceNode)
+              if (typeof unmount === 'function') meta.unmount = unmount
+            }
+          }
+        })
+        mutation.removedNodes.forEach((removedNode) => {
+          let iterator = dom.document.createNodeIterator(removedNode, 1 | 128)
+          while (iterator.nextNode()) {
+            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            if (meta) {
+              if (meta.unsubscribes.length > 0) {
+                meta.unsubscribes.forEach((unsubscribe) => unsubscribe())
+                meta.unsubscribes = []
+              }
+              meta.unmount?.(iterator.referenceNode)
+            }
+          }
+        })
       }
     }),
-  ).observe(target.parentElement!, {
+  )
+  observer.observe(target.parentElement!, {
     childList: true,
     subtree: true,
   })
+
+  // TODO fix
+  // target.append(...[child].flat(Infinity))
+  target.append(child)
 }
 
 /**

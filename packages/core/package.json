@@ -1,7 +1,10 @@
 {
   "name": "@reatom/core",
-  "version": "3.10.1",
-  "private": true,
+  "version": "1000.0.0-alpha.17",
+  "publishConfig": {
+    "tag": "alpha"
+  },
+  "private": false,
   "description": "The ultimate state manager",
   "exports": {
     "types": "./build/index.d.ts",
@@ -16,10 +19,11 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "npm run test && npm run test:browser && npm run build",
     "build": "yoctobundle",
-    "test": "vitest run src/*",
-    "test:watch": "vitest src/*",
+    "test": "vitest run",
+    "test:browser": "vitest run --config=vitest.browser.config.ts",
+    "test:watch": "vitest",
     "deopt": "dexnode deopt.js",
     "bench_dynamic": "tsx bench_dynamic.ts",
     "bench_computed": "tsx bench_computed.ts",
@@ -60,12 +64,14 @@
     "@frp-ts/core": "latest",
     "@ngrx/store": "latest",
     "@preact/signals-core": "latest",
+    "@standard-schema/spec": "^1.0.0",
     "@types/node": "latest",
     "@webreflection/signal": "latest",
+    "alien-signals": "^1.0.13",
     "cellx": "latest",
     "dexnode": "^1.2.2",
     "effector": "latest",
-    "jotai": "latest",
+    "jotai": "^2.12.2",
     "mobx": "latest",
     "mol_wire_lib": "latest",
     "nanostores": "latest",
@@ -78,6 +84,7 @@
     "spred": "latest",
     "usignal": "latest",
     "whatsup": "latest",
-    "wonka": "latest"
+    "wonka": "latest",
+    "zod": "^3.24.3"
   }
 }

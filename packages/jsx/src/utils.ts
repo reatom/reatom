@@ -1,9 +1,9 @@
-import { atom, type AtomLike, isObject } from '@reatom/core'
+import { type AtomLike, computed, type Computed, isObject, named } from '@reatom/core'
 
 type Primitive = string | number | boolean | null | undefined
-type MaybeGetter<T = unknown> = T | (() => T)
+type GetterMaybe<T = any> = T | (() => T)
 
-export type ClassNameValue = MaybeGetter<
+export type ClassNameValue = GetterMaybe<
   | Primitive
   | Array<ClassNameValue>
   | AtomLike<ClassNameValue>
@@ -11,9 +11,10 @@ export type ClassNameValue = MaybeGetter<
   | (() => ClassNameValue)
 >
 
-// TODO: Pass the atom name as the second argument.
-export let cn = (value: ClassNameValue): AtomLike<string> =>
-  atom(() => parseClasses(value))
+// @see https://github.com/JedWatson/classnames
+// @see https://vuejs.org/guide/essentials/class-and-style.html#binding-html-classes
+export let reatomClassName = (value: ClassNameValue, name = named('classNameAtom')): Computed<string> =>
+  computed(() => parseClasses(value), name)
 
 let parseClasses = (value: ClassNameValue): string => {
   let className = ''

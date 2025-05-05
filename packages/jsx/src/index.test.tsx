@@ -3,33 +3,30 @@ import {
   type Fn,
   atom,
   clearStack,
+  computed,
   isConnected,
-  mockRandom,
-  notify,
   reatomLinkedList,
-  root,
+  context,
   sleep,
   withInit,
   wrap,
 } from '@reatom/core'
 
-import { h, hf, mount, Bind, DEBUG, type JSX } from '.'
+import { h, hf, mount, Bind, DEBUG, type JSX, stylesheet } from '.'
 
 clearStack()
 
-DEBUG.mix(withInit(() => false))
+DEBUG.extend(withInit(() => false))
 
-const parent = atom<HTMLElement>(null as any, 'parent').mix(
-  withInit(() => {
-    const div = <div />
-    window.document.body.appendChild(div)
+const parent = atom(() => {
+  const div = <div /> as HTMLElement
+  window.document.body.appendChild(div)
 
-    return div
-  }),
-)
+  return div
+}, 'parent')
 
 test('static props & children', () =>
-  root.start(async () => {
+  context.start(async () => {
     const element = <div id="some-id">Hello, world!</div>
 
     mount(parent(), element)
@@ -42,7 +39,7 @@ test('static props & children', () =>
   }))
 
 test('dynamic props', () =>
-  root.start(async () => {
+  context.start(async () => {
     const val = atom('val', 'val')
     const prp = atom('prp', 'prp')
     const atr = atom('atr', 'atr')
@@ -66,8 +63,23 @@ test('dynamic props', () =>
     expect(element.getAttribute('atr')).toBe('atr1')
   }))
 
+test('getter props', () =>
+  context.start(async () => {
+    const val = atom('val', 'val')
+    const getter = () => val() + ' ' + val()
+    const element = <div id={getter} />
+
+    mount(parent(), element)
+    await wrap(sleep())
+    expect(element.id).toBe(getter())
+
+    val('val1')
+    await wrap(sleep())
+    expect(element.id).toBe(getter())
+  }))
+
 test('children updates', () =>
-  root.start(async () => {
+  context.start(async () => {
     const val = atom('foo', 'val')
 
     const route = atom('a', 'route')
@@ -77,7 +89,7 @@ test('children updates', () =>
     const element = (
       <div>
         Static one. {val}
-        {atom(() => (route() === 'a' ? a : b))}
+        {computed(() => (route() === 'a' ? a : b))}
       </div>
     )
 
@@ -99,7 +111,7 @@ test('children updates', () =>
   }))
 
 test('dynamic children', () =>
-  root.start(async () => {
+  context.start(async () => {
     const children = atom(<div />)
 
     const element = <div>{children}</div>
@@ -127,9 +139,7 @@ test('dynamic children', () =>
         {after}
       </div>,
     )
-    // TODO since the element is not mounted, then on the next tick the unsubscribe from the atom occurs. See `unlink`.
-    // await wrap(sleep())
-    notify()
+    await wrap(sleep())
     expect((element as HTMLDivElement).innerText).toBe('beforeinnerafter')
 
     before('before...')
@@ -138,7 +148,7 @@ test('dynamic children', () =>
   }))
 
 test('spreads', () =>
-  root.start(() => {
+  context.start(async () => {
     const clickTrack = vi.fn()
     const props = atom({
       id: '1',
@@ -149,6 +159,7 @@ test('spreads', () =>
     const element = (<div $spread={props} />) as HTMLDivElement
 
     mount(parent(), element)
+    await wrap(sleep())
 
     expect(element.id).toBe('1')
     expect(element.getAttribute('b')).toBe('2')
@@ -157,8 +168,8 @@ test('spreads', () =>
     expect(clickTrack.mock.calls.length).toBe(1)
   }))
 
-test('multiple renden shared element', () =>
-  root.start(async () => {
+test('multiple render shared element', () =>
+  context.start(async () => {
     const valueAtom = atom('abc', 'value')
     const element = <p>{valueAtom}</p>
 
@@ -195,12 +206,12 @@ test('multiple renden shared element', () =>
     valueAtom('ghi')
     await wrap(sleep())
     expect(app.innerHTML).toBe(
-      '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->def<!--value--></p></div><!----><!--child-->',
+      '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->ghi<!--value--></p></div><!----><!--child-->',
     )
   }))
 
 test('fragment as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const child = (
       <>
         <div>foo</div>
@@ -217,9 +228,9 @@ test('fragment as child', () =>
   }))
 
 test('array children', () =>
-  root.start(async () => {
+  context.start(async () => {
     const n = atom(1)
-    const list = atom(() => (
+    const list = computed(() => (
       <>{...Array.from({ length: n() }, (_, i) => <li>{i + 1}</li>)}</>
     ))
 
@@ -243,7 +254,7 @@ test('array children', () =>
   }))
 
 test('linked list', () =>
-  root.start(async () => {
+  context.start(async () => {
     const list = reatomLinkedList((value: any) => atom(value))
     const jsxList = list.reatomMap((n) => <span>{n}</span>)
     const one = list.create(1)
@@ -274,7 +285,7 @@ test('linked list', () =>
   }))
 
 test('boolean as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const trueAtom = atom(true, 'true')
     const trueValue = true
     const falseAtom = atom(false, 'false')
@@ -298,7 +309,7 @@ test('boolean as child', () =>
   }))
 
 test('null as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const nullAtom = atom(null, 'null')
     const nullValue = null
 
@@ -316,7 +327,7 @@ test('null as child', () =>
   }))
 
 test('undefined as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const undefinedAtom = atom(undefined, 'undefined')
     const undefinedValue = undefined
 
@@ -334,7 +345,7 @@ test('undefined as child', () =>
   }))
 
 test('empty string as child', () =>
-  root.start(async () => {
+  context.start(async () => {
     const emptyStringAtom = atom('', 'emptyString')
     const emptyStringValue = ''
 
@@ -352,7 +363,7 @@ test('empty string as child', () =>
   }))
 
 test('update skipped atom', () =>
-  root.start(async () => {
+  context.start(async () => {
     const valueAtom = atom<number | undefined>(undefined, 'value')
 
     const element = <div>{valueAtom}</div>
@@ -371,39 +382,39 @@ test('update skipped atom', () =>
   }))
 
 test('render HTMLElement atom', () =>
-  root.start(async () => {
+  context.start(async () => {
     const htmlAtom = atom(<div>div</div>, 'html')
-
     const element = <div>{htmlAtom}</div>
 
+    mount(parent(), element)
     await wrap(sleep())
     expect(element.innerHTML).toBe('<!--html--><div>div</div><!--html-->')
   }))
 
 test('render SVGElement atom', () =>
-  root.start(async () => {
+  context.start(async () => {
     const svgAtom = atom(<svg:svg>svg</svg:svg>, 'svg')
-
     const element = <div>{svgAtom}</div>
 
+    mount(parent(), element)
     await wrap(sleep())
     expect(element.innerHTML).toBe('<!--svg--><svg>svg</svg><!--svg-->')
   }))
 
 test('custom component', () =>
-  root.start(async () => {
+  context.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     await wrap(sleep())
     expect(<Component />).toBeInstanceOf(window.HTMLElement)
-    expect(((<Component draggable="true" />) as HTMLElement).draggable).toBe(
+    expect(((<Component draggable />) as HTMLElement).draggable).toBe(
       true,
     )
     expect(((<Component>123</Component>) as HTMLElement).innerText).toBe('123')
   }))
 
 test('ref unmount callback', () =>
-  root.start(async () => {
+  context.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     let ref: null | HTMLElement = null
@@ -429,7 +440,7 @@ test('ref unmount callback', () =>
   }))
 
 test('child ref unmount callback', () =>
-  root.start(async () => {
+  context.start(async () => {
     const Component = (props: JSX.HTMLAttributes) => <div {...props} />
 
     let ref: null | HTMLElement = null
@@ -455,7 +466,7 @@ test('child ref unmount callback', () =>
   }))
 
 test('same arguments in ref mount and unmount hooks', () =>
-  root.start(async () => {
+  context.start(async () => {
     let mountElement: HTMLElement
     let unmountElement: HTMLElement
 
@@ -486,7 +497,7 @@ test('same arguments in ref mount and unmount hooks', () =>
   }))
 
 test('css property and class attribute', () =>
-  root.start(async () => {
+  context.start(async () => {
     const cls = 'class'
     const css = 'color: red;'
 
@@ -515,7 +526,7 @@ test('css property and class attribute', () =>
   }))
 
 test('css property generate class name', () =>
-  root.start(async () => {
+  context.start(async () => {
     const First = () => <div css="color: red;"></div> // same
     const Second = () => <div css="color: red;"></div> // same
     const Third = () => <div css="color: blue;"></div>
@@ -552,7 +563,7 @@ test('css property generate class name', () =>
   }))
 
 test('css custom property', () =>
-  root.start(async () => {
+  context.start(async () => {
     const colorAtom = atom('red' as string | undefined)
 
     const component = (
@@ -579,7 +590,7 @@ test('css custom property', () =>
   }))
 
 test('class and className attribute', () =>
-  root.start(async () => {
+  context.start(async () => {
     const classAtom = atom('' as string | undefined)
 
     const ref1 = <div class={classAtom}></div>
@@ -613,8 +624,24 @@ test('class and className attribute', () =>
     expect(ref2.hasAttribute('class')).toBe(true)
   }))
 
+test('class handles complex correctly', () =>
+  context.start(async () => {
+    const isBAtom = atom(true)
+    const stringAtom = atom('d')
+    const element = <div class={() => ['a', { b: isBAtom }, ['c'], stringAtom, () => 'e']}></div>
+
+    mount(parent(), element)
+    await wrap(sleep())
+    expect(element.className).toBe('a b c d e')
+
+    isBAtom(false)
+    stringAtom('dd')
+    await wrap(sleep())
+    expect(element.className).toBe('a c dd e')
+  }))
+
 test('ref mount and unmount callbacks order', () =>
-  root.start(async () => {
+  context.start(async () => {
     const order: number[] = []
 
     const createRef = (index: number) => {
@@ -643,12 +670,12 @@ test('ref mount and unmount callbacks order', () =>
   }))
 
 test('style object update', () =>
-  root.start(async () => {
+  context.start(async () => {
     const styleTopAtom = atom<JSX.StyleProperties['top']>('0')
     const styleRightAtom = atom<JSX.StyleProperties['right']>(undefined)
     const styleBottomAtom = atom<JSX.StyleProperties['bottom']>(null)
     const styleLeftAtom = atom<JSX.StyleProperties['left']>('0')
-    const styleAtom = atom<JSX.StyleProperties>(() => ({
+    const styleAtom = computed<JSX.StyleProperties>(() => ({
       top: styleTopAtom(),
       right: styleRightAtom(),
       bottom: styleBottomAtom(),
@@ -687,19 +714,19 @@ test('style object update', () =>
   }))
 
 test('render atom fragments', () =>
-  root.start(async () => {
+  context.start(async () => {
     const bool1Atom = atom(false)
     const bool2Atom = atom(false)
 
     const element = (
       <div>
         <p>0</p>
-        {atom(
+        {computed(
           () =>
             bool1Atom() ? (
               <>
                 <p>1</p>
-                {atom(
+                {computed(
                   () =>
                     bool2Atom() ? (
                       <>
@@ -770,7 +797,7 @@ test('render atom fragments', () =>
   }))
 
 test('Bind', () =>
-  root.start(async () => {
+  context.start(async () => {
     const div = (<div />) as HTMLDivElement
     const input = (<input />) as HTMLInputElement
     const svg = (<svg:svg />) as SVGSVGElement
@@ -816,7 +843,7 @@ test('Bind', () =>
   }))
 
 test('dynamic atom fragment', () =>
-  root.start(async () => {
+  context.start(async () => {
     const child = atom<JSX.HTMLAttributes['children']>(<span />, 'test')
 
     const container = <div>{child}</div>
@@ -835,12 +862,12 @@ test('dynamic atom fragment', () =>
   }))
 
 test('linked list', () =>
-  root.start(async () => {
+  context.start(async () => {
     const a = atom(true)
     const list = reatomLinkedList((value: string) => (
       <>
         <span>{value}</span>
-        {atom(() => (a() ? <a /> : <br />), 'test')}
+        {computed(() => (a() ? <a /> : <br />), 'test')}
       </>
     ))
     list.create('1')
@@ -896,9 +923,8 @@ const expectHtmlElementProperty = <
 }
 
 test('width property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('img', 'width', undefined, 0, false, null)
-    // @ts-expect-error TODO fix types
     expectHtmlElementProperty('img', 'width', null, 0, false, null)
     expectHtmlElementProperty('img', 'width', 1, 1, true, '1')
     expectHtmlElementProperty('img', 'width', '1', 1, true, '1')
@@ -906,9 +932,8 @@ test('width property', () =>
   }))
 
 test('height property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('img', 'height', undefined, 0, false, null)
-    // @ts-expect-error TODO fix types
     expectHtmlElementProperty('img', 'height', null, 0, false, null)
     expectHtmlElementProperty('img', 'height', 1, 1, true, '1')
     expectHtmlElementProperty('img', 'height', '1', 1, true, '1')
@@ -916,108 +941,97 @@ test('height property', () =>
   }))
 
 test('download property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('a', 'download', undefined, '', false, null)
-    // @ts-expect-error TODO fix types
     expectHtmlElementProperty('a', 'download', null, '', false, null)
-    // expectHtmlElementProperty('a', 'download', false, '', false, null)
-    // expectHtmlElementProperty('a', 'download', true, '', true, '')
     expectHtmlElementProperty('a', 'download', 'abc', 'abc', true, 'abc')
   }))
 
 test('href property', () =>
-  root.start(async () => {
+  context.start(async () => {
     expectHtmlElementProperty('a', 'href', undefined, '', false, null)
-    // @ts-expect-error TODO fix types
     expectHtmlElementProperty('a', 'href', null, '', false, null)
-    expectHtmlElementProperty('a', 'href', 'https://test.com/', 'https://test.com/', true, 'https://test.com/')
+    expectHtmlElementProperty(
+      'a',
+      'href',
+      'https://test.com/',
+      'https://test.com/',
+      true,
+      'https://test.com/',
+    )
+  }))
+
+test('role property', () =>
+  context.start(async () => {
+    expectHtmlElementProperty('div', 'role', undefined, null, false, null)
+    expectHtmlElementProperty('div', 'role', null, null, false, null)
+    expectHtmlElementProperty('div', 'role', 'alert', 'alert', true, 'alert')
   }))
 
 test('list property', () =>
-  root.start(async () => {
-    const element = <input list="list"></input>
-    const list = <datalist id="list"></datalist>
-    mount(parent(), <div>{element}{list}</div>)
+  context.start(async () => {
+    const element = <input list="list"></input> as HTMLInputElement
+    const list = <datalist id="list"></datalist> as HTMLDataListElement
+    mount(
+      parent(),
+      <div>
+        {element}
+        {list}
+      </div>,
+    )
 
     expect(element.list).toBe(list)
     expect(element.hasAttribute('list')).toBe(true)
     expect(element.getAttribute('list')).toBe('list')
 
     expectHtmlElementProperty('input', 'list', undefined, null, false, null)
-    // @ts-expect-error TODO fix types
     expectHtmlElementProperty('input', 'list', null, null, false, null)
   }))
 
 test('form property', () =>
-  root.start(async () => {
-    const element = <input form="form"></input>
-    const form = <form id="form"></form>
-    mount(parent(), <div>{element}{form}</div>)
+  context.start(async () => {
+    const element = <input form="form"></input> as HTMLInputElement
+    const form = <form id="form"></form> as HTMLFormElement
+    mount(
+      parent(),
+      <div>
+        {element}
+        {form}
+      </div>,
+    )
 
     expect(element.form).toBe(form)
     expect(element.hasAttribute('form')).toBe(true)
     expect(element.getAttribute('form')).toBe('form')
 
     expectHtmlElementProperty('input', 'form', undefined, null, false, null)
-    // @ts-expect-error TODO fix types
     expectHtmlElementProperty('input', 'form', null, null, false, null)
   }))
 
-test('tabIndex property', () =>
-  root.start(async () => {
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('div', 'tabIndex', undefined, -1, false, null)
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('div', 'tabIndex', null, -1, false, null)
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('div', 'tabIndex', 0, 0, true, '0')
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('div', 'tabIndex', '0', 0, true, '0')
-  }))
-
-test('rowSpan property', () =>
-  root.start(async () => {
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'rowSpan', undefined, 1, false, null)
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'rowSpan', null, 1, false, null)
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'rowSpan', 0, 0, true, '0')
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'rowSpan', -1, 1, true, '-1')
-  }))
-
-test('colSpan property', () =>
-  root.start(async () => {
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'colSpan', undefined, 1, false, null)
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'colSpan', null, 1, false, null)
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'colSpan', 1, 1, true, '1')
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('td', 'colSpan', 0, 1, true, '0')
-  }))
-
-test('role property', () =>
-  root.start(async () => {
-    expectHtmlElementProperty('div', 'role', undefined, null, false, null)
-    expectHtmlElementProperty('div', 'role', null, null, false, null)
-    expectHtmlElementProperty('div', 'role', 'alert', 'alert', true, 'alert')
-  }))
-
-test('popover property', () =>
-  root.start(async () => {
-    expectHtmlElementProperty('div', 'popover', undefined, null, false, null)
-    // @ts-expect-error TODO fix types
-    expectHtmlElementProperty('div', 'popover', null, null, false, null)
-    expectHtmlElementProperty('div', 'popover', false, null, false, null)
-    expectHtmlElementProperty('div', 'popover', true, 'auto', true, '')
-    expectHtmlElementProperty('div', 'popover', 'auto', 'auto', true, 'auto')
-  }))
+// test('tabIndex property', () =>
+//   context.start(async () => {
+//     expectHtmlElementProperty('div', 'tabIndex', undefined, -1, false, null)
+//     expectHtmlElementProperty('div', 'tabIndex', null, -1, false, null)
+//     expectHtmlElementProperty('div', 'tabIndex', 0, 0, true, '0')
+//     expectHtmlElementProperty('div', 'tabIndex', '0', 0, true, '0')
+//   }))
+// test('rowSpan property', () =>
+//   context.start(async () => {
+//     expectHtmlElementProperty('td', 'rowSpan', undefined, 1, false, null)
+//     expectHtmlElementProperty('td', 'rowSpan', null, 1, false, null)
+//     expectHtmlElementProperty('td', 'rowSpan', 0, 0, true, '0')
+//     expectHtmlElementProperty('td', 'rowSpan', -1, 1, true, '-1')
+//   }))
+// test('colSpan property', () =>
+//   context.start(async () => {
+//     expectHtmlElementProperty('td', 'colSpan', undefined, 1, false, null)
+//     expectHtmlElementProperty('td', 'colSpan', null, 1, false, null)
+//     expectHtmlElementProperty('td', 'colSpan', 1, 1, true, '1')
+//     expectHtmlElementProperty('td', 'colSpan', 0, 1, true, '0')
+//   }))
 
 test('aria attributes', () =>
-  root.start(async () => {
+  context.start(async () => {
     const expectAttribute = <
       Attr extends keyof JSX.AriaAttributes,
       Value extends JSX.AriaAttributes[Attr],
@@ -1038,4 +1052,80 @@ test('aria attributes', () =>
     expectAttribute('aria-checked', 'true')
     expectAttribute('aria-colcount', 1)
     expectAttribute('aria-colcount', '1')
+  }))
+
+test('custom stylesheet for css property', () =>
+  context.start(async () => {
+    const sheet = new CSSStyleSheet()
+    document.adoptedStyleSheets.push(sheet)
+    stylesheet(sheet)
+
+    const element = <div css="display:flex"></div>
+
+    mount(parent(), element)
+    await wrap(sleep())
+
+    expect(stylesheet()).toEqual(sheet)
+    expect(stylesheet().cssRules.length).toBe(1)
+    expect(element.computedStyleMap().get('display')!.toString(), 'flex')
+  }))
+
+test('element subscribes to atom when mounted to DOM', () =>
+  context.start(async () => {
+    const valueAtom = atom('aaa')
+    const element = <div class={valueAtom}></div>
+
+    mount(parent(), element)
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(true)
+    expect(element.className).toBe('aaa')
+
+    valueAtom('bbb')
+    await wrap(sleep())
+    parent().append(element)
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(true)
+    expect(element.className).toBe('bbb')
+  }))
+
+test('element unsubscribes from atom when removed from DOM', () =>
+  context.start(async () => {
+    const valueAtom = atom('aaa')
+    const element = <div class={valueAtom}></div>
+
+    await wrap(sleep())
+    expect(isConnected(valueAtom)).toBe(false)
+    expect(element.className).toBe('')
+
+    mount(parent(), element)
+    await wrap(sleep())
+    element.remove()
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(false)
+    expect(element.className).toBe('aaa')
+
+    valueAtom('bbb')
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(false)
+    expect(element.className).toBe('aaa')
+  }))
+
+test('preserves atom connection when moved within DOM', () =>
+  context.start(async () => {
+    const valueAtom = atom('aaa')
+    const element = <div class={valueAtom}></div>
+
+    mount(parent(), element)
+    await wrap(sleep())
+    parent().parentElement!.append(element)
+    await wrap(sleep())
+    valueAtom('bbb')
+    await wrap(sleep())
+
+    expect(isConnected(valueAtom)).toBe(true)
+    expect(element.className).toBe('bbb')
   }))

@@ -1,0 +1,89 @@
+import { Queue, bind, context } from './'
+import type { Fn } from '../utils'
+
+/**
+ * @internal
+ * Schedules a function to be executed in a specific queue of the current context.
+ *
+ * This is the core mechanism for scheduling reactive updates in Reatom. When an atom's
+ * state changes, tasks are queued to be executed afterwards in the appropriate order.
+ * If this is the first task being scheduled, a microtask is created to process the
+ * queues asynchronously.
+ *
+ * @param fn - The function to schedule for execution
+ * @param queue - The queue to add the function to ('hook', 'compute', 'cleanup', or 'effect')
+ */
+export let enqueue = (
+  fn: Fn,
+  queue: 'hook' | 'compute' | 'cleanup' | 'effect',
+): void => {
+  let contextFrame = context()
+
+  if (
+    contextFrame.state.hook.length === 0 &&
+    contextFrame.state.compute.length === 0 &&
+    contextFrame.state.cleanup.length === 0 &&
+    contextFrame.state.effect.length === 0
+  ) {
+    Promise.resolve().then(bind(notify, contextFrame))
+    //.catch(noop) // TODO ?
+  }
+
+  contextFrame.state.pushQueue(() => {
+    try {
+      fn()
+    } catch (error) {
+      console.error('Unhandled error in Reatom queue!')
+      console.log(error)
+    }
+  }, queue)
+}
+
+/**
+ * Creates an iterator function for a queue that returns items sequentially.
+ *
+ * @param queue - The queue to iterate over
+ * @param i - The starting index
+ * @returns A function that returns the next item in the queue or undefined when empty
+ * @internal
+ */
+let QueueIterator = (queue: Queue, i: number) => () =>
+  i < queue.length ? queue[i++] : undefined
+
+/**
+ * Processes all scheduled tasks in the current context's queues.
+ *
+ * This function is called automatically after tasks have been scheduled via `enqueue`.
+ * It processes tasks in the following priority order:
+ * 1. hook tasks
+ * 2. compute tasks
+ * 3. cleanup tasks
+ * 4. effect tasks
+ *
+ * The function resets priority after each task execution to ensure higher priority
+ * tasks (which may have been added during execution) are processed first.
+ */
+export let notify = () => {
+  let { state } = context()
+
+  let queues = [
+    QueueIterator(state.hook, 0),
+    QueueIterator(state.compute, 0),
+    QueueIterator(state.cleanup, 0),
+    QueueIterator(state.effect, 0),
+  ]
+
+  let priority = 0
+  while (priority < queues.length) {
+    let next = queues[priority++]!()
+    if (next !== undefined) {
+      priority = 0 // need to recheck queues after user code
+      next()
+    }
+  }
+
+  state.hook = []
+  state.compute = []
+  state.cleanup = []
+  state.effect = []
+}

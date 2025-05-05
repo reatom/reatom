@@ -1,24 +1,24 @@
-import { AtomLike, top } from '../core'
-import { initContext } from '../core/context'
-import { defineName, Fn } from '../utils'
+import { AtomLike, AtomState, Ext, context, top, withMiddleware } from '../core'
 
-export let withInit = <T>(
-  init: T | ((state: T) => T),
-): ((target: AtomLike<T>) => {}) => {
+export let withInit = <Target extends AtomLike>(
+  init: AtomState<Target> | ((state: AtomState<Target>) => AtomState<Target>),
+): Ext<Target> => {
   let key = {} // Symbol(`${target.name}.init`)
 
-  return (target) =>
-    defineName((next: Fn, ...params: any[]) => {
-      let context = initContext()
-      if (!context.has(key)) {
-        context.set(key, null)
-        let frame = top()
-        frame.state =
-          typeof init === 'function'
-            ? (init as (state: T) => T)(frame.state)
-            : init
-      }
+  return withMiddleware(
+    () =>
+      function withInit(next, ...params) {
+        let meta = context().state.meta.init
+        if (!meta.has(key)) {
+          meta.set(key, null)
+          let frame = top()
+          frame.state =
+            typeof init === 'function'
+              ? (init as (state: Target) => Target)(frame.state)
+              : init
+        }
 
-      return next(...params)
-    }, `${target.name}.init`)
+        return next(...params)
+      },
+  )
 }

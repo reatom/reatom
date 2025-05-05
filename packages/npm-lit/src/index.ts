@@ -1,96 +1,57 @@
-import type { Ctx, CtxSpy, Atom, Unsubscribe } from '@reatom/core'
-import { atom, throwReatomError } from '@reatom/core'
-import { nonNullable } from '@reatom/utils'
+import { top, Constructor, reatomAbstractRender, AbstractRender, Unsubscribe } from '@reatom/core'
 import { LitElement, PropertyValues } from 'lit'
 
-type Constructor<T> = new (...args: any[]) => T
+const __inner_update = Symbol('Inner update')
 
-const isShallowEqual = (a: unknown[], b: unknown[]) =>
-  a.length === b.length && a.every((el, i) => el === b[i])
 
-let ctx: Ctx
-
-/**
- * Set context for all classes wrapped by withReatom
- *
- * Call it once
- *
- * @param value {Ctx} - Reatom context
- */
-export const setupCtx = (value: Ctx): void => {
-  throwReatomError(ctx, 'Ctx is already set')
-  ctx = value
-}
-
-/**
- * Mixin subscribes for atoms used in component render
- *
- * @param superClass - LitElement extended class
- *
- * @returns class with ctx property
- */
-export const withReatom = <T extends Constructor<LitElement>>(
+export const withReatomElement = <T extends Constructor<LitElement>>(
   superClass: T,
-): T & Constructor<{ ctx: CtxSpy }> => {
-  return class ReatomLit extends superClass {
-    private unsub?: Unsubscribe
-    private deps: Array<Atom> = []
-    private depsListAtom = atom<Array<Atom>>([])
-    private depsTrackAtom = atom((ctx) =>
-      ctx.spy(this.depsListAtom).map(ctx.spy),
-    )
-    ctx?: CtxSpy
+): T => {
+  return class ReatomLitElement extends superClass {
+    private __changedProps?: PropertyValues
+    private __abstractRender: AbstractRender<unknown, unknown>
+    private __unmount?: Unsubscribe
+    
+    constructor(...args: any[]) {
+      super(...args)
 
-    private tryConnectCtx() {
-      if (this.ctx) {
-        return
-      }
-      this.ctx = {
-        ...ctx,
-        spy: (anAtom: any) => {
-          this.deps.push(anAtom)
-          return ctx.get(anAtom)
+      this.__abstractRender = reatomAbstractRender({
+        frame: top(),
+        render: () => super.render(),
+        rerender: () => {
+          return this.requestUpdate(__inner_update, 1)
         },
-      }
-    }
-
-    willUpdate(_changedProperties: PropertyValues) {
-      super.willUpdate(_changedProperties)
-      this.deps = []
-      this.tryConnectCtx()
-    }
-
-    updated(_changedProperties: PropertyValues) {
-      super.updated(_changedProperties)
-      if (!this.ctx) {
-        return
-      }
-      if (!isShallowEqual(this.deps, this.ctx.get(this.depsListAtom))) {
-        this.depsListAtom(this.ctx, this.deps)
-      }
-    }
-
-    connectedCallback() {
-      super.connectedCallback()
-      let prevDepsList = this.deps
-      this.tryConnectCtx()
-
-      const ctx = nonNullable(this.ctx, 'Ctx is no set')
-
-      this.unsub = ctx.subscribe(this.depsTrackAtom, () => {
-        const depsList = ctx.get(this.depsListAtom)
-        // skip updates from the deps change during render
-        if (isShallowEqual(prevDepsList, depsList)) {
-          this.requestUpdate()
-        } else {
-          prevDepsList = depsList
-        }
+        name: 'ReatomElement',
       })
     }
 
-    disconnectedCallback() {
-      super.disconnectedCallback()
-      this.unsub?.()
+    override render() {
+      return this.__abstractRender.render(this.__changedProps).result
     }
-  } as T & Constructor<{ ctx: CtxSpy }>
+
+    override shouldUpdate(_changedProperties: PropertyValues): boolean {
+      if (
+        _changedProperties.size === 1 &&
+        _changedProperties.has(__inner_update)
+      ) {
+        //return true
+      }
+      this.__changedProps = _changedProperties
+      return true
+    }
+
+    override connectedCallback(): void {
+      super.connectedCallback()
+      this.__unmount = this.__abstractRender.mount()
+      
+    }
+
+    override disconnectedCallback(): void {
+      super.disconnectedCallback()
+      this.__unmount?.()
+    }
+  }
 }
+
+export { html, svg } from './html.js'
+export { watch } from './watch.js'

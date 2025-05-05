@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'test'
 import { variable } from './variable'
-import { action, atom, root } from '../core'
-import { withAsyncData } from '../async/withAsync'
+import { action, atom, computed, context } from '../core'
+import { withAsyncData } from '../async'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
 
@@ -30,7 +30,7 @@ test('scope propagation for actions', async () => {
 })
 
 test('scope propagation for atoms', async () => {
-  const { state } = root()
+  const { state } = context()
   state.pushQueue = function (cb, queue) {
     this[queue].push(async () => {
       try {
@@ -43,11 +43,14 @@ test('scope propagation for atoms', async () => {
 
   const param = atom(0)
   const paramVar = variable<number>()
-  const resource = atom(async () => param()).mix(
-    withAsyncData({ param: -1, paramVar: -1 }, (param) => ({
-      param,
-      paramVar: paramVar.get(),
-    })),
+  const resource = computed(async () => param()).extend(
+    withAsyncData({
+      initState: { param: -1, paramVar: -1 },
+      mapPayload: (param) => ({
+        param,
+        paramVar: paramVar.get(),
+      }),
+    }),
   )
   const update = action((value: number) => {
     param(value)

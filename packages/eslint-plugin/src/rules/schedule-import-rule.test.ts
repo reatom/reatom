@@ -1,4 +1,4 @@
-import { scheduleImportRule } from './schedule-import-rule.ts'
+import { scheduleImportRule } from './schedule-import-rule'
 import { RuleTester } from 'eslint'
 
 const tester = new RuleTester(/* {

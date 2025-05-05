@@ -6,15 +6,15 @@ import {
   ReatomError,
   named,
   isAtom,
+  computed,
 } from '../core'
 
 import { isObject, Fn, Rec } from '../utils'
-import { withInit } from '../mixins'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
-export const LL_PREV = Symbol('Reatom linked list prev')
-export const LL_NEXT = Symbol('Reatom linked list next')
+export const LL_PREV = /* @__PURE__ */Symbol('Reatom linked list prev')
+export const LL_NEXT = /* @__PURE__ */Symbol('Reatom linked list next')
 
 /** Linked List is reusing the model reference to simplify the reference sharing and using it as a key of LL methods.
  * Btw, symbols works fine with serialization and will not add a garbage to an output.
@@ -353,19 +353,17 @@ export function reatomLinkedList<
   // for batching
   let STATE: null | LinkedList<LLNode<Node>> = null
 
-  const linkedList = atom(STATE!, name).mix(
-    withInit(() => {
-      try {
-        if ('initState' in restOptions)
-          return createLinkedListFromState(restOptions.initState ?? [])
-        else if ('initSnapshot' in restOptions)
-          return createLinkedListFromSnapshot(restOptions.initSnapshot ?? [])
-        else return createLinkedListFromState([])
-      } finally {
-        STATE = null
-      }
-    }),
-  )
+  const linkedList = atom(() => {
+    try {
+      if ('initState' in restOptions)
+        return createLinkedListFromState(restOptions.initState ?? [])
+      else if ('initSnapshot' in restOptions)
+        return createLinkedListFromSnapshot(restOptions.initSnapshot ?? [])
+      else return createLinkedListFromState([])
+    } finally {
+      STATE = null
+    }
+  }, name)
 
   const createLinkedListFromState = (
     initState: Node[],
@@ -507,13 +505,13 @@ export function reatomLinkedList<
     return null
   }
 
-  const array: LinkedListAtom<Params, Node, Key>['array'] = atom(
+  const array: LinkedListAtom<Params, Node, Key>['array'] = computed(
     (state: Array<LLNode<Node>> = []) => toArray(linkedList().head, state),
     `${name}.array`,
   )
 
   const map = key
-    ? (atom(
+    ? (computed(
         () =>
           new Map(
             // use array as it already memoized and simplifies the order tracking
@@ -545,7 +543,7 @@ export function reatomLinkedList<
 
     type State = LinkedListDerivedState<LLNode<Node>, LLNode<T>>
 
-    const mapList = atom((mapList?: State): State => {
+    const mapList = computed((mapList?: State): State => {
       if (STATE) {
         throw new ReatomError(
           `Can't compute the map of the linked list inside the batching.`,
@@ -644,10 +642,11 @@ export function reatomLinkedList<
       return mapList
     }, name)
 
-    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] = atom(
-      (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
-      `${name}.array`,
-    )
+    const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] =
+      computed(
+        (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
+        `${name}.array`,
+      )
 
     return Object.assign(mapList, { array, __reatomLinkedList: true as const })
   }
@@ -681,10 +680,10 @@ export function reatomLinkedList<
   //           )
   //         },
   //         named(`${name}._controllers`),
-  //       ).pipe(
-  //         withAssign((target) => ({
+  //       ).extend(
+  //         (target) => ({
   //           unsubscribe: ctx.subscribe(target, noop),
-  //         })),
+  //         }),
   //       ),
   //     {
   //       name: `${name}._controllers`,
@@ -734,7 +733,7 @@ export function reatomLinkedList<
 
     __reatomLinkedList: true as const,
   })
-  // .mix(readonly) TODO: fix errors because of this line in the tests
+  // .extend(readonly) TODO: fix errors because of this line in the tests
 }
 
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>

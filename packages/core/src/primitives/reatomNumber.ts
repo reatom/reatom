@@ -12,7 +12,7 @@ export const reatomNumber = (
   initState = 0,
   name = named('numberAtom'),
 ): NumberAtom =>
-  atom(initState, name).mix((target) => ({
+  atom(initState, name).actions((target) => ({
     increment: (by = 1) => target((prev) => prev + by),
     decrement: (by = 1) => target((prev) => prev - by),
     random: (min?: number, max?: number) => target(random(min, max)),

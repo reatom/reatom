@@ -5,9 +5,10 @@ import { resolve } from 'path'
 export default defineConfig({
   resolve: {
     alias: {
-      'test': resolve(__dirname, './src/test.ts')
-    }
+      test: resolve(__dirname, './src/test.ts'),
+    },
   },
+
   test: {
     include: ['./src/**/*.test.ts', './src/**/*.test-d.ts'],
     typecheck: {
@@ -15,7 +16,7 @@ export default defineConfig({
       tsconfig: './tsconfig.json',
       include: ['./src/**/*.test-d.ts'],
       ignoreSourceErrors: true,
-      allowJs: false
-    }
-  }
+      allowJs: false,
+    },
+  },
 })

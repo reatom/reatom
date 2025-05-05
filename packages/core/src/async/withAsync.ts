@@ -1,243 +1,241 @@
 import {
   action,
   Action,
-  Assigner,
-  atom,
   Atom,
   AtomLike,
+  computed,
   Computed,
+  createAtom,
   ReatomError,
+  context,
   top,
+  withMiddleware,
+  bind,
 } from '../core'
-import { ifCalled, ifChanged, schedule, wrap } from '../methods'
-import { withCallHook } from '../mixins'
-import { assert, Fn, identity, noop } from '../utils'
-import { withComputed } from '../mixins/withComputed'
+import { ifCalled, ifChanged } from '../methods'
+import { assert, Fn, isAbort } from '../utils'
 
-type AsyncMethods<Params extends any[] = any[], Payload = any, Error = any> = {
+/**
+ * Extension interface added by {@link withAsync} to atoms or actions that return promises.
+ * Provides utilities for tracking async state, handling errors, and responding to async events.
+ *
+ * @template Params - The parameter types of the original atom or action
+ * @template Payload - The resolved value type of the promise
+ * @template Error - The type of errors that can be caught
+ */
+export interface AsyncExt<
+  Params extends any[] = any[],
+  Payload = any,
+  Error = any,
+> {
+  /**
+   * Computed atom that indicates when no async operations are pending
+   * @returns Boolean indicating if all operations have completed (true) or some are still pending (false)
+   */
   ready: Computed<boolean>
+
+  /**
+   * Action that is called when the promise resolves successfully
+   * @param payload - The resolved value from the promise
+   * @param params - The original parameters passed to the atom/action
+   * @returns An object containing the payload and parameters
+   */
   onFulfill: Action<
     [payload: Payload, params: Params],
     { payload: Payload; params: Params }
   >
+
+  /**
+   * Action that is called when the promise rejects with an error
+   * @param error - The error thrown by the promise
+   * @param params - The original parameters passed to the atom/action
+   * @returns An object containing the error and parameters
+   */
   onReject: Action<
     [error: Error, params: Params],
     { error: Error; params: Params }
   >
+
+  /**
+   * Action called after either successful resolution or rejection
+   * @param result - Either a payload+params object or an error+params object
+   * @returns The same result object that was passed in
+   */
   onSettle: Action<
     [{ payload: Payload; params: Params } | { error: Error; params: Params }],
     { payload: Payload; params: Params } | { error: Error; params: Params }
   >
+
+  /**
+   * Computed atom tracking how many async operations are currently pending
+   * @returns Number of pending operations (0 when none are pending)
+   */
   pending: Computed<number>
+
+  /**
+   * Atom containing the most recent error or undefined if no error has occurred
+   */
+  error: Atom<undefined | Error>
 }
 
+/**
+ * Configuration options for the {@link withAsync} extension
+ *
+ * @template Err - The type of errors after parsing
+ * @template EmptyErr - The type of the empty error state (default: undefined)
+ */
+export type AsyncOptions<Err = Error, EmptyErr = undefined> = {
+  /**
+   * Function to transform raw errors into a specific error type
+   * @param error - The caught error of unknown type
+   * @returns A properly typed error object
+   */
+  parseError?: (error: unknown) => Err
+  
+  /**
+   * Initial/reset value for the error atom
+   */
+  emptyError?: EmptyErr
+  
+  /**
+   * When to reset the error state
+   * - 'onCall': Reset error when the async operation starts (default)
+   * - 'onFulfill': Reset error only when the operation succeeds
+   * - null: Never automatically reset errors
+   */
+  resetError?: null | 'onCall' | 'onFulfill'
+}
+
+/**
+ * Extension that adds async state tracking to atoms or actions that return promises.
+ * Manages pending state, errors, and provides lifecycle actions for async operations.
+ *
+ * This extension preserves Reatom context across async operations, ensuring that
+ * the async operation's results properly update Reatom state.
+ *
+ * @template Err - The type of errors after parsing
+ * @template EmptyErr - The type of the empty error state
+ * @param options - Configuration options for error handling
+ * @returns An extension function that can be applied to atoms or actions
+ *
+ * @example
+ * // Basic usage with an action:
+ * const fetchUser = action(async (userId: string) => {
+ *   const response = await wrap(fetch(`/api/users/${userId}`))
+ *   return await wrap(response.json())
+ * }, 'fetchUser').extend(withAsync())
+ *
+ * // Can then access:
+ * fetchUser.error()   // → latest error if any
+ * fetchUser.ready()   // → are all operations complete?
+ */
 export let withAsync: {
-  <T>(): {
-    <Params extends any[]>(
-      target: Action<Params, Promise<T>>,
-    ): AsyncMethods<Params, T>
-
-    <T extends AtomLike<Promise<T>>>(target: T): AsyncMethods<Array<unknown>, T>
-  }
-
-  // <Params extends any[], Payload>(): Assigner<
-  //   Action<Params, Promise<Payload>>,
-  //   AsyncMethods<Params, Payload>
-  // >
-  // <T extends Action<any, Promise<any>>>(): Assigner<
-  //   T,
-  //   AsyncMethods<Parameters<T>, Awaited<ReturnType<T>>>
-  // >
-  // (): <Params extends any[], Payload>(
-  //   target: Action<Params, Promise<Payload>>,
-  // ) => AsyncMethods<Params, Payload>
-
-  // <Payload>(): Assigner<
-  //   AtomLike<Promise<Payload>>,
-  //   AsyncMethods<Array<unknown>, Payload>
-  // >
-  // <T extends AtomLike<Promise<any>>>(): Assigner<
-  //   T,
-  //   AsyncMethods<Array<unknown>, Awaited<ReturnType<T>>>
-  // >
-  // (): <T extends AtomLike<Promise<any>>>(
-  //   target: T,
-  // ) => AsyncMethods<Array<unknown>, Awaited<ReturnType<T>>>
-} = () => (target: AtomLike<Promise<any>> | Action<any[], Promise<any>>) => {
-  let onFulfill: AsyncMethods['onFulfill'] = action((payload, params) => {
-    return onSettle({ payload, params }) as any // TODO
-  }, `${target.name}.onFulfill`)
-  let onReject: AsyncMethods['onReject'] = action((error, params) => {
-    return onSettle({ error, params }) as any // TODO
-  }, `${target.name}.onReject`)
-  let onSettle: AsyncMethods['onSettle'] = action((call) => {
-    pending((state) => state - 1)
-    ready()
-    return call
-  }, `${target.name}._onSettle`)
-
-  let pending = atom(0, `${target.name}._pending`)
-    // computed needed to ensure that `pending` (and `ready`) connection will connect the target
-    .mix(
-      withComputed((state) => {
-        if (target.__reatom.reactive) {
-          ifChanged(target, () => state++)
-        } else {
-          ifCalled(target as Action, () => state++)
-        }
-        return state
-      }),
-    )
-
-  let ready = atom(() => {
-    return pending() === 0
-  }, `${target.name}.ready`)
-
-  let touched = new WeakSet<Promise<any>>()
-
-  // @ts-expect-error TODO
-  target.mix(() => (next: Fn, ...params: any[]) => {
-    let state = next(...params)
-    let promise = state
-
-    if (target.__reatom.reactive) {
-      for (let pub of top().pubs) {
-        if (pub) params.push(pub.state)
-      }
-    } else {
-      promise = state.at(-1)?.payload
-    }
-
-    assert(promise instanceof Promise, 'promise expected', ReatomError)
-
-    if (touched.has(promise)) return state
-    touched.add(promise)
-
-    // schedule before `then` to step into microtasks before possible seal
-    // TODO add `top()`
-    schedule(ready, 'hook').catch(noop)
-
-    // outer promise handlers should tick after the async handlers
-    promise = promise.then(
-      wrap((payload) => onFulfill(payload, params)),
-      wrap((error) => onReject(error, params)),
-    )
-
-    if (!target.__reatom.reactive) {
-      state.at(-1)!.payload = promise
-    }
-
-    return state
-  })
-
-  return {
-    ready,
-    onFulfill,
-    onReject,
-    onSettle,
-    pending,
-  } as AsyncMethods
-}
-
-type AsyncDataMethods<Params extends any[], Payload, State> = AsyncMethods<
-  Params,
-  Payload
-> & {
-  data: Atom<State>
-}
-
-// @ts-ignore TODO
-export let withAsyncData: {
-  <Payload>(
-    initState: Payload,
-  ): Assigner<
-    AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<unknown>, Payload, Payload>
-  >
-  <Params extends any[], Payload>(
-    initState: Payload,
-  ): Assigner<
-    Action<Params, Promise<Payload>>,
-    AsyncDataMethods<Params, Payload, Payload>
-  >
-
-  <Params extends any[], Payload>(
-    initState: Payload,
-    map: (payload: Payload, params: Params, state: Payload) => Payload,
-  ): Assigner<
-    Action<Params, Promise<Payload>>,
-    AsyncDataMethods<Params, Payload, Payload>
-  >
-  <Payload>(
-    initState: Payload,
-    map: (payload: Payload, params: Array<unknown>, state: Payload) => Payload,
-  ): Assigner<
-    AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<unknown>, Payload, Payload>
-  >
-
-  <Params extends any[], Payload, State>(
-    initState: State,
-    map: (payload: Payload, params: Params, state: State) => State,
-  ): Assigner<
-    Action<Params, Promise<Payload>>,
-    AsyncDataMethods<Params, Payload, State>
-  >
-  <Payload, State>(
-    initState: State,
-    map: (payload: Payload, params: Array<unknown>, state: State) => State,
-  ): Assigner<
-    AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<unknown>, Payload, State>
-  >
-
-  <Params extends any[], Payload>(): Assigner<
-    Action<Params, Promise<Payload>>,
-    AsyncDataMethods<Params, Payload, Payload | undefined>
-  >
-
-  <Params extends any[], Payload, State>(
-    initState: State,
-  ): Assigner<
-    Action<Params, Promise<Payload>>,
-    AsyncDataMethods<Params, Payload, Payload | State>
-  >
-  <Payload, State>(
-    initState: State,
-  ): Assigner<
-    AtomLike<Promise<Payload>>,
-    AsyncDataMethods<Array<unknown>, Payload, Payload | State>
-  >
+  <Err = Error, EmptyErr = undefined>(
+    options?: null | AsyncOptions<Err, EmptyErr>,
+  ): <T extends AtomLike>(
+    target: T,
+  ) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
+    ? T & AsyncExt<Params, Payload, Err | EmptyErr>
+    : never
 } =
-  (
-    initState: any,
-    map: (payload: any, params: any, state: any) => any = identity,
-  ) =>
-  (target: AtomLike<Promise<any>> | Action<any[], Promise<any>>) => {
-    // let localAbort = atom<null | AbortError>(null, `${target.name}._abort`)
+  (options) =>
+  (target: AtomLike): any => {
+    let {
+      parseError = (e: any) => (e instanceof Error ? e : new Error(String(e))),
+      emptyError,
+      resetError = 'onCall',
+    } = options ?? {}
 
-    // target.__reatom.middlewares.push((next, ...a) => {
-    //   let abort = abortVar.read()
-    //   return next(...a)
-    // })
+    let onFulfill: AsyncExt['onFulfill'] = action((payload, params) => {
+      if (resetError === 'onFulfill') error(emptyError)
+      return onSettle({ payload, params }) as any // TODO
+    }, `${target.name}.onFulfill`)
+    let onReject: AsyncExt['onReject'] = action((err, params) => {
+      if (!isAbort(err)) {
+        error(err = parseError(err))
+      }
+      return onSettle({ error: err, params }) as any // TODO
+    }, `${target.name}.onReject`)
+    let onSettle: AsyncExt['onSettle'] = action((call) => {
+      pending((state) => state - 1)
+      return call
+    }, `${target.name}._onSettle`)
 
-    // @ts-ignore TODO
-    let asyncMethods = withAsync()(target)
-
-    let data = atom(initState, `${target.name}.data`).mix(
-      withComputed((state) => {
-        if (target.__reatom.reactive) target()
-        ifCalled(asyncMethods.onFulfill, ({ payload, params }) => {
-          state = map(payload, params, state)
-        })
-        return state
-      }),
-      () => ({
-        reset: () => data(initState),
-      }),
+    let pending = createAtom(
+      {
+        // computed needed to ensure that `pending` (and `ready`) connection will connect the target
+        // which is especially important for an atom target
+        computed(state = 0) {
+          if (target.__reatom.reactive) {
+            ifChanged(target, () => state++)
+          } else {
+            ifCalled(target as Action, () => state++)
+          }
+          return state
+        },
+      },
+      `${target.name}._pending`,
     )
 
-    asyncMethods.onFulfill.mix(withCallHook(() => data()))
+    let error = createAtom(
+      {
+        initState: emptyError as any,
+        computed: target.__reatom.reactive
+          ? (state) => {
+              target()
+              state
+            }
+          : undefined,
+      },
+      `${target.name}._error`,
+    )
 
-    return { ...asyncMethods, data }
+    let ready = computed(() => pending() === 0, `${target.name}.ready`)
+
+    let touched = new WeakSet<Promise<any>>()
+
+    let asyncMiddleware = (next: Fn, ...params: any[]) => {
+      // TODO should throw abort if the cause it rollback?
+      let state = next(...params)
+      let promise = state
+
+      let frame = top()
+
+      if (target.__reatom.reactive) {
+        for (let pub of frame.pubs) {
+          if (pub !== null && pub.atom !== context) params.push(pub.state)
+        }
+      } else {
+        promise = state.at(-1)?.payload
+      }
+
+      assert(promise instanceof Promise, 'promise expected', ReatomError)
+
+      if (touched.has(promise)) return state
+      touched.add(promise)
+
+      promise.then(
+        bind((payload) => onFulfill(payload, params), frame),
+        bind((error) => onReject(error, params), frame),
+      )
+
+      if (!target.__reatom.reactive) {
+        state.at(-1)!.payload = promise
+      }
+
+      pending()
+
+      if (resetError === 'onCall') error(emptyError)
+
+      return state
+    }
+
+    return Object.assign(target.extend(withMiddleware(() => asyncMiddleware)), {
+      ready,
+      onFulfill,
+      onReject,
+      onSettle,
+      pending,
+      error,
+    }) satisfies AtomLike & AsyncExt
   }

@@ -1,7 +1,6 @@
+
+import { action, notify, _read, atom, computed, Frame } from './'
 import { expect, test } from 'test'
-import { action } from './action'
-import { _read, atom, Frame } from './atom'
-import { notify } from '../methods'
 import { getStackTrace } from '../connectLogger'
 
 test('action', () => {
@@ -13,17 +12,19 @@ test('action', () => {
 test('action cause stack', () => {
   const name = 'actionCauseStack'
   const getTrace = (frame?: Frame) =>
-    getStackTrace('', frame).replaceAll(`${name}.`, '')
+    getStackTrace(undefined, undefined, frame)
+      .replaceAll(`${name}.`, '')
+      .replace(/\[\#\d*\]/g, '')
   const a1 = atom(0, `${name}.a1`)
-  const a2 = atom(() => a1(), `${name}.a2`)
+  const a2 = computed(() => a1(), `${name}.a2`)
   const act = action((number: number) => {
     return a1(number)
   }, `${name}.act`)
 
   let logData
-  const log = atom(() => {
+  const log = computed(() => {
     a2()
-    logData = getTrace().replaceAll('\n', ' ')
+    logData = getTrace()
   }, 'log')
   log.subscribe()
   logData = undefined
@@ -31,8 +32,10 @@ test('action cause stack', () => {
   act(1)
   notify()
 
-  expect(logData).toBe('<-- log <-- a2 <-- a1 <-- act')
-  expect(getTrace(_read(log)!).replaceAll('\n', ' ')).toBe('<-- log <-- a2 <-- a1 <-- act')
+  expect(logData).toBe('─ log ─ a2 ─ a1 ─ act')
+  expect(getTrace(_read(log)!).replaceAll('\n', ' ')).toBe(
+    '─ log ─ a2 ─ a1 ─ act',
+  )
 })
 
 test('actionState', () => {

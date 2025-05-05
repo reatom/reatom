@@ -1,30 +1,21 @@
-import { reatomComponent } from '@reatom/npm-react'
-import { search, issuesResource, page } from './model'
-import { wrap } from '@reatom/core'
+import { MantineProvider, ColorSchemeScript } from '@mantine/core'
+import { MainAppShell } from './components/layout/AppShell'
+import { SearchPage } from './components/search'
+import IssuePage from './components/issue/IssuePage'
+import { currentPageAtom } from './navigation/model'
+import { reatomComponent } from '@reatom/react'
 
 export const App = reatomComponent(() => {
-  // const isLoading = Boolean(ctx.spy(issuesResource.pendingAtom) || ctx.spy(issuesResource.retriesAtom))
-
+  const currentPage = currentPageAtom()
   return (
-    <main>
-      <input
-        value={search()}
-        onChange={wrap((e) => search(e.currentTarget.value))}
-        placeholder="Search"
-      />
-      <button disabled={!page()} onClick={wrap(page.prev)}>
-        {'<'}
-      </button>
-      {page()}
-      <button onClick={wrap(page.next)}>{'>'}</button>
-      {!issuesResource.ready() && 'Loading...'}
-      <ul>
-        {issuesResource.data().map(({ title }, i) => (
-          <li key={i}>{title}</li>
-        ))}
-
-        {issuesResource.data().length === 0 && <i>found nothing</i>}
-      </ul>
-    </main>
+    <>
+      <ColorSchemeScript />
+      <MantineProvider>
+        <MainAppShell>
+          {currentPage === 'search' && <SearchPage />}
+          {currentPage === 'issueDetail' && <IssuePage />}
+        </MainAppShell>
+      </MantineProvider>
+    </>
   )
-}, 'App')
+})
