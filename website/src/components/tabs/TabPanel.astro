@@ -1,0 +1,28 @@
+---
+import type { HTMLAttributes } from 'astro/types';
+
+export interface Props {
+	id: string;
+	initial?: boolean;
+}
+const { id, initial } = Astro.props;
+const attributes: HTMLAttributes<'div'> = initial ? { 'data-initial': 'true' } : {};
+---
+
+<div {id} {...attributes}>
+	<slot />
+</div>
+
+<style>
+	/*
+	These styles avoid layout shift on page load.
+	
+  TODO: use animation to show if js is never loaded
+  @see https://github.com/withastro/docs/issues/11611
+	*/
+
+	div:not([role='tabpanel'], [data-initial]) {
+    display: none;
+		/* animation: tab-panel-appear 1s steps(1, jump-end) forwards; */
+	}
+</style>
