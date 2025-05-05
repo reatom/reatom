@@ -52,7 +52,7 @@ export interface AssignerExt<
  * @template Extensions - Array of extension results to merge with the target
  * @internal
  */
-type Merge<
+export type Merge<
   Target extends AtomLike,
   Extensions extends Array<any>,
 > = Extensions extends []
