@@ -13,7 +13,6 @@ import {
   effect,
   sleep,
   action,
-  abortVar,
 } from '@reatom/core'
 import {
   reatomComponent,

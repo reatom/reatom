@@ -1,56 +1,32 @@
-Reatom adapter for [react](https://github.com/facebook/react).
-
-Note, that you don't require this adapter for simple usages, native `useSyncExternalStorage` will be enough!
-
-```tsx
-import { useSyncExternalStorage } from 'react'
-import { atom } from '@reatom/core'
-
-export const page = atom(0, 'page').actions((target) => ({
-  next: () => target((state) => state + 1),
-  prev: () => target((state) => Math.max(0, state - 1)),
-}))
-
-export const Paging = () => {
-  const state = useSyncExternalStorage(page.subscribe, page)
-
-  return (
-    <span>
-      <button onClick={page.prev}>prev</button>
-      {state}
-      <button onClick={page.next}>next</button>
-    </span>
-  )
-}
-```
+Reatom adapter for [preact](https://preactjs.com).
 
 ## Installation
 
 ```sh
-npm i @reatom/react
+npm i @reatom/preact
 ```
 
 > Read [the handbook](https://www.reatom.dev/handbook) first for production usage.
 
 ## Binding Atoms to Components
 
-Reatom offers powerful ways to integrate state management directly into your React components, ensuring reactivity and proper lifecycle management.
+Reatom offers powerful ways to integrate state management directly into your Preact components, ensuring reactivity and proper lifecycle management.
 
 ### `reatomComponent`
 
-The primary API to bind atoms and actions to a component's lifetime is `reatomComponent`. It wraps your regular React component function, placing it within a Reatom reactive context.
+The primary API to bind atoms and actions to a component's lifetime is `reatomComponent`. It wraps your regular Preact component function, placing it within a Reatom reactive context.
 
 **Features:**
 
 - **Reactive Reads:** Simply call an atom (`myAtom()`) within the component function to read its value and subscribe to updates. The component will automatically re-render when the atom changes.
-- **Standard React:** Use any other React hooks (`useState`, `useEffect`, etc.), accept props, and return any valid `ReactNode` as usual.
+- **Standard Preact:** Use any other Preact hooks (`useState`, `useEffect`, etc.), accept props, and return any valid `ReactNode` as usual.
 - **Context Preservation:** Event handlers should be wrapped with `wrap()` (e.g., `onClick={wrap(myAction)}`) to preserve the reactive context, especially for async operations or actions updating state.
-- **No Hooks Rules for Atoms:** Call and subscribe to atoms conditionally within your render logic without violating React's rules of hooks.
+- **No Hooks Rules for Atoms:** Call and subscribe to atoms conditionally within your render logic without violating Preact's rules of hooks.
 - **Automatic Cleanup:** Integrates with Reatom's abort context. Effects or async operations triggered from within the component (using `wrap` or implicitly by actions) are automatically aborted if the component unmounts before completion, preventing race conditions and memory leaks.
 
 ```tsx
 import { atom, wrap } from '@reatom/core'
-import { reatomComponent } from '@reatom/react'
+import { reatomComponent } from '@reatom/preact'
 
 export const page = atom(0, 'page').actions((target) => ({
   next: () => target((state) => state + 1),
@@ -125,7 +101,7 @@ While `reatomComponent` is great for reading atoms state, `reatomFactoryComponen
 It separates the component logic into two parts:
 
 1.  **Factory Function:** Runs **once** when the component instance is created. This is where you define local atoms, actions, and effects specific to this component instance. It receives the component's initial props.
-2.  **Render Function:** Runs on every render, just like a regular React component function. It has access to the atoms and actions created in the factory scope and the current props.
+2.  **Render Function:** Runs on every render, just like a regular Preact component function. It has access to the atoms and actions created in the factory scope and the current props.
 
 **Benefits:**
 
@@ -136,7 +112,7 @@ It separates the component logic into two parts:
 
 ```tsx
 import { atom, action, effect, wrap, sleep } from '@reatom/core'
-import { reatomFactoryComponent } from '@reatom/react'
+import { reatomFactoryComponent } from '@reatom/preact'
 
 // Example: A self-contained counter component
 const Counter = reatomFactoryComponent<{ initialCount: number; step?: number }>(
@@ -186,7 +162,7 @@ const Counter = reatomFactoryComponent<{ initialCount: number; step?: number }>(
 
 ```tsx
 import { atom, effect, wrap, sleep, isAbort } from '@reatom/core'
-import { reatomFactoryComponent } from '@reatom/react'
+import { reatomFactoryComponent } from '@reatom/preact'
 
 const IntervalLogger = reatomFactoryComponent<{ intervalMs: number }>(
   ({ intervalMs }) => {
@@ -225,7 +201,7 @@ In a component:
 
 ```tsx
 import { action, atom } from '@reatom/core'
-import { useAction, useAtom } from '@reatom/react'
+import { useAction, useAtom } from '@reatom/preact'
 
 // base mutable atom
 const inputAtom = atom('', 'inputAtom')
@@ -236,7 +212,7 @@ const greetingAtom = atom(
 )
 // action to do things
 const onChange = action(
-  (ctx, event: React.ChangeEvent<HTMLInputElement>) =>
+  (ctx, event: Preact.ChangeEvent<HTMLInputElement>) =>
     inputAtom(ctx, event.currentTarget.value),
   'onChange',
 )
@@ -262,7 +238,7 @@ We recommend to setup [logger](https://www.reatom.dev/package/logger) here.
 Another use case for the hook is describing additional computations inside a component (create temporal computed atom). It is possible to put a reducer function to `useState`, which will create a new computed atom (`setState` will be `undefined` in this case).
 
 ```ts
-import { useAtom } from '@reatom/react'
+import { useAtom } from '@reatom/preact'
 import { goodsAtom } from '~/goods/model'
 
 export const GoodsItem = ({ idx }: { idx: number }) => {
@@ -275,7 +251,7 @@ export const GoodsItem = ({ idx }: { idx: number }) => {
 The reducer function is just the same as in `atom` function. You could `spy` a few other atoms. It will be called only when the dependencies change, so you could use conditions and Reatom will optimize your dependencies and subscribes only to the necessary atoms.
 
 ```ts
-import { useAtom } from '@reatom/react'
+import { useAtom } from '@reatom/preact'
 import { activeAtom, goodsAtom } from '~/goods/model'
 
 export const GoodsItem = ({ idx }: { idx: number }) => {
@@ -332,9 +308,9 @@ What, why? In the example bellow we creating "inline" atoms, which will live onl
 
 ### Lazy reading
 
-[As react docs says](https://reactjs.org/docs/hooks-faq.html#how-to-read-an-often-changing-value-from-usecallback), sometimes you need a callback, which depends on often changed value, but you don't want to change a reference of this handler, to not broke memoization of children components which depends on the current. In this case, you could use atom and read it value lazily.
+[As preact docs says](https://reactjs.org/docs/hooks-faq.html#how-to-read-an-often-changing-value-from-usecallback), sometimes you need a callback, which depends on often changed value, but you don't want to change a reference of this handler, to not broke memoization of children components which depends on the current. In this case, you could use atom and read it value lazily.
 
-Here is a standard react code, `handleSubmit` reference is recreating on each `input` change and rerender.
+Here is a standard preact code, `handleSubmit` reference is recreating on each `input` change and rerender.
 
 ```js
 const [input, setInput] = useState('')
@@ -494,7 +470,7 @@ The most common use case for this hook is to synchronize some state from a props
 
 ```tsx
 import { action, atom } from '@reatom/core'
-import { useAction, useUpdate } from '@reatom/react'
+import { useAction, useUpdate } from '@reatom/preact'
 import Form from 'form-library'
 
 const formValuesAtom = atom({})
@@ -528,9 +504,9 @@ Here is a naive implementation:
 
 ```tsx
 export const Item = ({ itemAtom }) => {
-  const [value, setValue] = React.useState('')
+  const [value, setValue] = Preact.useState('')
 
-  React.useEffect(() => {
+  Preact.useEffect(() => {
     const cleanup = itemAtom.onChange((ctx, state) => setValue(state))
     // DO NOT FORGET TO RETURN THE CLEANUP
     return cleanup
@@ -546,7 +522,7 @@ Here is a simpler and more reliable implementation:
 
 ```tsx
 export const Item = ({ itemAtom }) => {
-  const [value, setValue] = React.useState(itemAtom)
+  const [value, setValue] = Preact.useState(itemAtom)
 
   useUpdate((ctx, state) => setValue(state), [itemAtom])
 
@@ -558,11 +534,11 @@ export const Item = ({ itemAtom }) => {
 
 ## Use atom promise
 
-If you have an atom with a promise and want to use its value directly, you could use `useAtomPromise`. This function relies on [React Suspense](https://react.dev/reference/react/Suspense) and throws the promise until it resolves. It can be useful with [reatomResource](https://www.reatom.dev/package/async/#reatomresource).
+If you have an atom with a promise and want to use its value directly, you could use `useAtomPromise`. This function relies on [Preact Suspense](https://preact.dev/reference/preact/Suspense) and throws the promise until it resolves. It can be useful with [reatomResource](https://www.reatom.dev/package/async/#reatomresource).
 
 ```tsx
 import { atom, reatomResource } from '@reatom/framework'
-import { useAtom, useAction, useAtomPromise } from '@reatom/react'
+import { useAtom, useAction, useAtomPromise } from '@reatom/preact'
 
 const pageAtom = atom(1, 'pageAtom')
 const listReaction = reatomResource(async (ctx) => {
@@ -598,7 +574,7 @@ export const List = () => {
 
 ## Use context creator
 
-Sometimes, you can only create `ctx` inside a React component, for example, in SSR. For that case, we have the `useCreateCtx` hook.
+Sometimes, you can only create `ctx` inside a Preact component, for example, in SSR. For that case, we have the `useCreateCtx` hook.
 
 ```tsx
 export const App = () => {
@@ -621,27 +597,27 @@ export const App = () => {
 
 - [Migration from RTK to Reatom](https://github.com/artalar/RTK-entities-basic-example/pull/1/files#diff-43162f68100a9b5eb2e58684c7b9a5dc7b004ba28fd8a4eb6461402ec3a3a6c6) (2 times less code, -8kB gzip)
 
-## Setup batching for old React
+## Setup batching for old Preact
 
-For React 16 and 17 you need to setup batching by yourself in the root of your app.
+For Preact 16 and 17 you need to setup batching by yourself in the root of your app.
 
-For `react-dom`:
+For `preact-dom`:
 
 ```js
-import { unstable_batchedUpdates } from 'react-dom'
+import { unstable_batchedUpdates } from 'preact-dom'
 import { createCtx } from '@reatom/core'
-import { setupBatch, withBatching } from '@reatom/react'
+import { setupBatch, withBatching } from '@reatom/preact'
 
 setupBatch(unstable_batchedUpdates)
 const ctx = withBatching(createCtx())
 ```
 
-For `react-native`:
+For `preact-native`:
 
 ```js
-import { unstable_batchedUpdates } from 'react-native'
+import { unstable_batchedUpdates } from 'preact-native'
 import { createCtx } from '@reatom/core'
-import { setupBatch } from '@reatom/react'
+import { setupBatch } from '@reatom/preact'
 
 setupBatch(unstable_batchedUpdates)
 const ctx = withBatching(createCtx())
@@ -654,7 +630,7 @@ Optionally, you need to set up the main context once and wrap your application i
 
 ```jsx
 import { context, connectLogger, clearStack } from '@reatom/core'
-import { reatomContext } from '@reatom/react'
+import { reatomContext } from '@reatom/preact'
 import { Main } from './path/to/an/Main'
 
 // Recommended: Disable default context for predictability
