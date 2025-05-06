@@ -1,27 +1,36 @@
 import { AsyncDirective, directive } from 'lit/async-directive.js'
-import type { Atom, Unsubscribe } from '@reatom/core'
+import { top } from '@reatom/core'
+import type { AtomLike, Frame, Unsubscribe } from '@reatom/core'
 
 import { noChange } from 'lit'
 
-class ResolvePromise extends AsyncDirective {
-  stateElement: Atom | undefined
-  unsub: Unsubscribe | undefined
-  reconnected() {
+class AtomDirective extends AsyncDirective {
+  target: AtomLike | undefined
+  frame: Frame | undefined
+
+  unsubscribe: Unsubscribe | undefined
+
+  override reconnected() {
     this.subscribe()
   }
-  disconnected() {
-    this.unsub?.()
-  }
-  subscribe() {
-    this.unsub = this.stateElement?.subscribe((v: unknown) => {
-      this.setValue(v)
-    })
+
+  override disconnected() {
+    this.unsubscribe?.()
   }
 
-  render(stateElement: Atom) {
-    if (this.stateElement !== stateElement) {
-      this.unsub?.()
-      this.stateElement = stateElement
+  subscribe() {
+    this.unsubscribe = this.frame?.run(() =>
+      this.target?.subscribe((v: unknown) => {
+        this.setValue(v)
+      }),
+    )
+  }
+
+  render(target: AtomLike, frame: Frame) {
+    if (this.target !== target) {
+      this.unsubscribe?.()
+      this.target = target
+      this.frame = frame
       if (this.isConnected) {
         this.subscribe()
       }
@@ -31,4 +40,7 @@ class ResolvePromise extends AsyncDirective {
   }
 }
 
-export const watch = directive(ResolvePromise)
+const watchDirective = directive(AtomDirective)
+
+export const watch = (target: AtomLike, frame = top()) =>
+  watchDirective(target, frame)

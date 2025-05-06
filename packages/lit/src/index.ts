@@ -1,4 +1,4 @@
-import { top, Constructor, reatomAbstractRender, AbstractRender, Unsubscribe } from '@reatom/core'
+import { top, Constructor, reatomAbstractRender, AbstractRender, Unsubscribe, Frame } from '@reatom/core'
 import { LitElement, PropertyValues } from 'lit'
 
 const __inner_update = Symbol('Inner update')
@@ -8,6 +8,7 @@ export const withReatomElement = <T extends Constructor<LitElement>>(
   superClass: T,
 ): T => {
   return class ReatomLitElement extends superClass {
+    private __frame: Frame
     private __changedProps?: PropertyValues
     private __abstractRender: AbstractRender<unknown, unknown>
     private __unmount?: Unsubscribe
@@ -15,8 +16,10 @@ export const withReatomElement = <T extends Constructor<LitElement>>(
     constructor(...args: any[]) {
       super(...args)
 
+      this.__frame = top()
+
       this.__abstractRender = reatomAbstractRender({
-        frame: top(),
+        frame: this.__frame,
         render: () => super.render(),
         rerender: () => {
           return this.requestUpdate(__inner_update, 1)
