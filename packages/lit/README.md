@@ -1,4 +1,4 @@
-# @reatom/npm-lit
+# @reatom/lit
 
 Integration of Reatom with Lit for creating reactive web components.
 
@@ -13,14 +13,14 @@ The package provides the following functions:
 ## Installation
 
 ```bash
-npm install @reatom/npm-lit
+npm install @reatom/lit
 ```
 
 ## Usage Example
 
 ```typescript
 import { atom, Atom, peek } from '@reatom/core'
-import { withReatomElement, watch } from '@reatom/npm-lit'
+import { withReatomElement, watch } from '@reatom/lit'
 import { LitElement, html } from 'lit'
 
 // Create atoms
@@ -119,7 +119,7 @@ html`<div>${watch(myAtom)}</div>`
 Wrappers over standard Lit functions with automatic atom support.
 
 ```typescript
-import { html, svg } from '@reatom/npm-lit'
+import { html, svg } from '@reatom/lit'
 
 // Atoms are automatically tracked
 html`<div>${myAtom}</div>`
