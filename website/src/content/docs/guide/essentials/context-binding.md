@@ -1,5 +1,0 @@
----
-title: Context binding
----
-
-> [!TODO]

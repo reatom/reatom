@@ -1,40 +1,66 @@
-import { group } from './config/sidebar.ts'
-import { makeSidebar } from './config/integrations/package-reference.ts'
+import { group } from './config/sidebar'
+import { makeSidebar } from './config/integrations/package-reference'
 
-import { references } from './references.config.ts'
+import { adapters } from './adapters.config'
 
 export const sidebar = [
-  group('Start', {
-    items: [
-      group('Getting started', {
-        items: ['guide/getting-started', 'guide/getting-started/quick-start'],
-      }),
-      group('Essentials', {
-        items: [
-          'guide/essentials/setup',
-          'guide/essentials/primitives',
-          'guide/essentials/debugging',
-          'guide/essentials/testing',
-          'guide/essentials/atomization',
-          'guide/essentials/async-atoms',
-          'guide/essentials/context-binding',
-        ],
-      }),
-      group('Advanced', {
-        autogenerate: {
-          directory: '/guide/advanced',
-        },
-      }),
-    ],
-  }),
+    group('Start', {
+      items: [
+        'start/setup',
+        'start/atoms',
+        'start/actions',
+        'start/async',
+        'start/forms',
+        'start/persist',
+        'start/routing',
+        'start/tooling',
+      ],
+    }),
 
-  group('Recipes', {
-    autogenerate: {
-      directory: 'recipes',
-    },
-  }),
+    group('Handbook', {
+      items: [
+        'handbook/history',
+        'handbook/extensions',
+        'handbook/lifecycle',
+        'handbook/async-context',
+      ],
+    }),
 
-  group('Reference', {
-    items: await makeSidebar(references, { prefix: 'reference' }),
-  }),
-]
+    group('Guides', {
+      items: [
+        'guides/concurrency',
+        'guides/atomization',
+        'guides/optimistic',
+        'guides/pooling',
+        'guides/dynamic-forms',
+        'guides/route-block',
+        'guides/SSR',
+        'guides/undo-redo',
+        'guides/sampling',
+        'guides/events',
+        'guides/transactions',
+      ],
+    }),
+
+    group('Adapters', {
+      items: [
+        'adapters/react',
+        'adapters/vue',
+        'adapters/svelte',
+        'adapters/solid',
+        'adapters/lit',
+        'adapters/preact',
+      ],
+    }),
+
+    group('Blog', {
+      autogenerate: {
+        directory: 'blog',
+      },
+    }),
+
+    group('Reference', {
+      items: await makeSidebar(adapters, { prefix: 'reference' }),
+    }),
+  ]
+}

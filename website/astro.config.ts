@@ -13,7 +13,7 @@ export default defineConfig({
     devServerFileWatcher([
       './config/**', // Custom plugins and integrations
       './astro.sidebar.ts', // Sidebar configuration file
-      './references.config.ts', // References configuration file
+      './adapters.config.ts', // References configuration file
     ]),
     starlight({
       sidebar,
