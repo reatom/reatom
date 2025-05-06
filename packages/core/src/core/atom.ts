@@ -4,7 +4,6 @@ import type { Fn, Unsubscribe } from '../utils'
 let identity = <T>(value: T): T => value
 
 /**
- * @internal
  * Metadata associated with an atom instance that controls its behavior and lifecycle.
  * This interface is used internally by the Reatom framework and should not be
  * accessed directly in application code.
@@ -95,7 +94,6 @@ export interface AtomLike<
   subscribe: (cb?: (state: State) => any) => Unsubscribe
 
   /**
-   * @internal
    * Reference to the atom's internal metadata.
    */
   __reatom: AtomMeta
@@ -922,11 +920,22 @@ export function computedParams(next: Fn) {
 export let computed = <State>(
   computed: (() => State) | ((state?: State) => State),
   name?: string,
-): Computed<State> =>
-  createAtom({ computed }, name).extend((target) => {
+): Computed<State> => {
+  assertFn(computed)
+
+  return createAtom({ computed }, name).extend((target) => {
     target.__reatom.middlewares.push(computedParams)
     return target
   })
+}
+
+/**
+ * Checks if the provided target is a READONLY computed atom
+ * @param target - The atom to check
+ * @returns boolean
+ */
+export let isComputed = (target: AtomLike): boolean =>
+  target.__reatom.middlewares.includes(computedParams)
 
 /**
  * Core context object that manages the reactive state context in Reatom.
