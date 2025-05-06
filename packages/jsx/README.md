@@ -179,7 +179,7 @@ reatomClassName(['first', atom('second')]) // Computed<'first second'>
 /** The `active` class will be determined by the truthiness of the data property `isActiveAtom`. */
 reatomClassName({ active: isActiveAtom }) // Computed<'active' | ''>
 
-reatomClassName(() => isActiveAtom() ? 'active' : undefined) // Computed<'active' | ''>
+reatomClassName(() => (isActiveAtom() ? 'active' : undefined)) // Computed<'active' | ''>
 ```
 
 The `reatomClassName` function supports various complex data combinations, making it easier to declaratively describe classes for complex UI components.
@@ -465,9 +465,13 @@ const MyComponent = () => {
 }
 ```
 
-### TypeScript
+## TypeScript
 
-To type your custom component props accepting general HTML attributes, for example for a `div` element, you should extend `JSX.HTMLAttributes`. However, if you want to define props for a specific HTML element you should use it name in the type name, like in the code below.
+To type your custom component props accepting general HTML attributes, for example for a `div` element, you should extend `JSX.HTMLAttributes`.
+
+## Typing props
+
+If you want to define props for a specific HTML element you should use it name in the type name, like in the code below.
 
 ```tsx
 import { type JSX } from '@reatom/jsx'
@@ -486,6 +490,8 @@ export const Input = ({ defaultValue, ...props }: InputProps) => {
   return <input {...props} />
 }
 ```
+
+## Typing events
 
 To type an event handler you have a few options, see below.
 
@@ -517,6 +523,61 @@ export const Form = () => {
     </form>
   )
 }
+```
+
+### Extending built-in JSX types
+
+You may have custom elements that you'd like to use in JSX, or you may wish to add additional attributes to all HTML elements to work with a particular library. To do this, you will need to extend the `IntrinsicElements` or `HTMLAttributes` interfaces, respectively, so that TypeScript is aware and can provide correct type information.
+
+#### Extending `IntrinsicElements`
+
+```tsx
+function MyComponent() {
+  return <loading-bar showing={true}></loading-bar>
+  //      ~~~~~~~~~~~
+  //   💥 Error! Property 'loading-bar' does not exist on type 'JSX.IntrinsicElements'.
+}
+```
+
+```tsx
+// global.d.ts
+
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'loading-bar': { showing: boolean }
+    }
+  }
+}
+
+// This empty export is important! It tells TS to treat this as a module
+export {}
+```
+
+#### Extending `HTMLAttributes`
+
+```tsx
+function MyComponent() {
+  return <div custom="foo"></div>
+  //          ~~~~~~
+  //       💥 Error! Type '{ custom: string; }' is not assignable to type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+  //                   Property 'custom' does not exist on type 'DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>'.
+}
+```
+
+```tsx
+// global.d.ts
+
+declare global {
+  namespace JSX {
+    interface HTMLAttributes {
+      custom?: string | undefined
+    }
+  }
+}
+
+// This empty export is important! It tells TS to treat this as a module
+export {}
 ```
 
 ## Limitations
