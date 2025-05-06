@@ -1,5 +1,5 @@
 import { top, named, context, computed, Computed } from '../core'
-import { Fn, isAbort, Unsubscribe } from '../utils'
+import { isAbort, Unsubscribe } from '../utils'
 import { abortVar } from './abort'
 
 export interface Effect<State> extends Computed<State> {

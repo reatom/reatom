@@ -146,7 +146,7 @@ export let reatomAbstractRender = <Props, Result>({
         unsubscribe()
         abortAtom(toAbortError('unmount ' + name))
       })
-    })
+    }, frame)
 
     return { render, mount }
   })
