@@ -9,23 +9,23 @@ Install the core Reatom package and the React adapter.
 
 ### Core Package
 ```bash
-npm install @reatom/core
+npm install @reatom/core@alpha
 # or
-yarn add @reatom/core
+yarn add @reatom/core@alpha
 ```
 
 ### React Adapter
 ```bash
-npm install @reatom/react
+npm install @reatom/react@alpha
 # or
-yarn add @reatom/react
+yarn add @reatom/react@alpha
 ```
 
 You can also install both at once:
 ```bash
-npm install @reatom/core @reatom/react
+npm install @reatom/core@alpha @reatom/react@alpha
 # or
-yarn add @reatom/core @reatom/react
+yarn add @reatom/core@alpha @reatom/react@alpha
 ```
 
 ## Usage Example
