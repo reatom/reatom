@@ -1,0 +1,10 @@
+{
+  "$schema": "https://typedoc-plugin-markdown.org/schema.json",
+  "excludeExternals": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "theme": "markdown",
+  "plugin": ["typedoc-plugin-markdown"],
+  "hideBreadcrumbs": true,
+  "hidePageHeader": true
+}

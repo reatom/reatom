@@ -1,0 +1,6 @@
+{
+  "$schema": "https://typedoc-plugin-markdown.org/schema.json",
+  "extends": ["../../typedoc.root.json"],
+  "tsconfig": "./typedoc.tsconfig.json",
+  "entryPoints": ["./src/index.ts"]
+}

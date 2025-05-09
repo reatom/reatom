@@ -19,11 +19,12 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run test && npm run test:browser && npm run build",
+    "prepublishOnly": "npm run test && npm run test:browser && npm run build && npm run build:docs:reference",
     "build": "yoctobundle",
     "test": "vitest run",
     "test:browser": "vitest run --config=vitest.browser.config.ts",
     "test:watch": "vitest",
+    "build:docs:reference": "generate-reatom-reference",
     "deopt": "dexnode deopt.js",
     "bench_dynamic": "tsx bench_dynamic.ts",
     "bench_computed": "tsx bench_computed.ts",
@@ -85,6 +86,7 @@
     "usignal": "latest",
     "whatsup": "latest",
     "wonka": "latest",
-    "zod": "^3.24.3"
+    "zod": "^3.24.3",
+    "@reatom-internal/reference-docs-generator": "^0.1.0"
   }
 }
