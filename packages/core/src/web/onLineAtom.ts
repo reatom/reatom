@@ -10,7 +10,7 @@ type OnlineAtom = Atom<boolean> & {
 }
 
 /**
- * @note https://issues.chromium.org/issues/338514113
+ * @see https://issues.chromium.org/issues/338514113
  */
 export let onLineAtom: OnlineAtom = /* @__PURE__ */ (() =>
   atom(() => navigator.onLine, 'onLine').extend(
