@@ -14,7 +14,8 @@
     "actualize-issue-templates": "npx tsx ./tools/actualize-issue-templates.ts"
   },
   "workspaces": [
-    "./packages/*"
+    "./packages/*",
+    "./tools/reference-docs-generator"
   ],
   "packageManager": "npm@10.0.0",
   "engines": {
