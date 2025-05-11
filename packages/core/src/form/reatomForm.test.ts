@@ -1,5 +1,5 @@
-import { test, expect, describe } from 'vitest'
-import { noop, notify, reatomBoolean, sleep, wrap } from '../../'
+import { test, expect, describe, vi } from 'vitest'
+import { noop, notify, reatomBoolean, sleep, withCallHook, wrap } from '../'
 import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
 import { z } from 'zod'
 
@@ -24,8 +24,8 @@ test(`adding and removing fields`, async () => {
 
 test('focus states', () => {
   const form = reatomForm({
-    field1: { initState: '', validate: () => {} },
-    field2: { initState: '', validate: () => {} },
+    field1: { initState: '', validate: () => { } },
+    field2: { initState: '', validate: () => { } },
     list: experimental_fieldArray({
       initState: ['initial'],
       create: (param) => reatomField(param, 'fieldAtom'),
@@ -92,7 +92,7 @@ test('validation states', async () => {
     },
     {
       name: 'testForm',
-      onSubmit: () => {},
+      onSubmit: () => { },
       validate: () => {
         throw new Error('Form validation error')
       },
@@ -133,7 +133,7 @@ test('validation states', async () => {
 
   field2.reset()
 
-  await wrap(form.submit().catch(() => {}))
+  await wrap(form.submit().catch(() => { }))
   expect(form.submit.error()?.message).toBe('Form validation error')
 
   expect(form.validation()).toEqual({
@@ -233,7 +233,7 @@ test('validation states with disabled fields and defined schema', async () => {
 
 test('default options for fields', async () => {
   const form = reatomForm({
-    field: { initState: 'initial', validate: () => {} },
+    field: { initState: 'initial', validate: () => { } },
     array: experimental_fieldArray(['one', 'two', 'free']),
   })
 
@@ -344,11 +344,11 @@ describe('fieldArray and array literals as a fieldArray', () => {
 test('reset', () => {
   const form = reatomForm(
     {
-      field: { initState: 'initial', validate: () => {} },
+      field: { initState: 'initial', validate: () => { } },
     },
     {
       name: 'testForm',
-      onSubmit: () => {},
+      onSubmit: () => { },
     },
   )
 
@@ -541,4 +541,29 @@ test('concurrent field validation with schema', async () => {
   await wrap(sleep())
 
   expect(form.fields.age.validation().error).toBe('must be minimum 18')
+})
+
+test('autofocus recipe', async () => {
+  const form = reatomForm({
+    email: '',
+    age: 12
+  }, {
+    schema: z.object({
+      email: z.string().email(),
+      age: z.number().min(18),
+    })
+  })
+  const focusFn = vi.fn();
+  form.fields.email.elementRef.set({ focus: focusFn });
+
+  form.submit.onReject.extend(
+    withCallHook(() => {
+      const errorField = form.fieldsList().find(field => !!field.validation().error);
+      errorField?.elementRef()?.focus();
+    })
+  )
+
+  await wrap(form.submit()).catch(noop);
+  expect(form.submit.error()).toBeInstanceOf(Error);
+  expect(focusFn).toBeCalled();
 })

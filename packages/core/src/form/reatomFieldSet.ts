@@ -11,7 +11,7 @@ import {
   isAtom,
   action,
   Rec,
-} from '../../'
+} from '../'
 
 import {
   type FieldAtom,

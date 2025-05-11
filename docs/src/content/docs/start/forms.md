@@ -443,6 +443,33 @@ const loginForm = reatomForm(name => ({
 })
 ```
 
+### Autofocus on error
+
+This recipe demonstrates how to automatically focus on the first field with a validation error after a form submission fails. This improves user experience by directing their attention to the field that needs correction.
+
+Each field has an `elementRef` property that can be used to store a reference to the DOM element associated with the field. The `elementRef` interface matches the `HTMLElement` interface, allowing you to call standard DOM methods like `focus()`.
+
+```ts
+const form = reatomForm({
+  email: '',
+  age: 12
+}, {
+  schema: z.object({
+    email: z.string().email(),
+    age: z.number().min(18),
+  })
+})
+
+form.submit.onReject.extend(
+  withCallHook(() => {
+    const errorField = form.fieldsList().find(field => !!field.validation().error);
+    errorField?.elementRef()?.focus();
+  })
+)
+```
+
+You can extend the `elementRef` type using interface augmentation if you need to store additional data or custom properties. This is particularly useful when working with custom input components that might have their own API beyond the standard HTMLElement interface.
+
 ## Form API
 
 The form created with `reatomForm` has the following properties:

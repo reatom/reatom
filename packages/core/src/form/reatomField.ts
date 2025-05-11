@@ -22,7 +22,7 @@ import {
   withInit,
   isAbort,
   RecordAtom,
-} from '../../'
+} from '../'
 
 import { toError } from './utils'
 
@@ -67,6 +67,10 @@ export interface ValidationAtom extends AtomLike<FieldValidation> {
   setError: Action<[error: string], FieldValidation>
 }
 
+export interface FieldElementRef {
+  focus: (options?: { preventScroll?: boolean }) => void;
+}
+
 export interface FieldLikeAtom<State = any> extends Atom<State> {
   __reatomField: true
 }
@@ -93,6 +97,9 @@ export interface FieldAtom<State = any, Value = State>
 
   /** Atom that defines if the field is disabled */
   disabled: BooleanAtom
+
+  /** Atom with the reference to the field element. */
+  elementRef: Atom<FieldElementRef | undefined | null>;
 
   options: RecordAtom<{
     /**
@@ -178,6 +185,11 @@ export interface FieldOptions<State = any, Value = State> {
   disabled?: boolean
 
   /**
+   * Defines a default element reference accosiated with the field.
+   */
+  elementRef?: FieldElementRef | null;
+
+  /**
    * Defines the reset behavior of the validation state during async validation.
    * @default false
    */
@@ -239,7 +251,7 @@ export function reatomField<State, Value = State>(
   options: string | FieldOptions<State, Value> = {},
   stateAtom?: Atom<State>,
 ): FieldAtom<State, Value> {
-  interface This extends FieldAtom<State, Value> {}
+  interface This extends FieldAtom<State, Value> { }
 
   const {
     filter = () => true,
@@ -251,8 +263,8 @@ export function reatomField<State, Value = State>(
     contract,
     ...restOptions
   } = typeof options === 'string'
-    ? ({ name: options } as FieldOptions<State, Value>)
-    : options
+      ? ({ name: options } as FieldOptions<State, Value>)
+      : options
 
   const fieldOptions = reatomRecord({
     validateOnChange: restOptions.validateOnChange,
@@ -263,8 +275,8 @@ export function reatomField<State, Value = State>(
   }).extend((target) => ({
     value: computed(() => {
       const {
-        validateOnChange, 
-        validateOnBlur, 
+        validateOnChange,
+        validateOnBlur,
         keepErrorDuringValidating,
         keepErrorOnChange,
         shouldValidate
@@ -288,6 +300,8 @@ export function reatomField<State, Value = State>(
       if (!status) validation.trigger()
     }),
   )
+
+  const elementRef = atom(restOptions.elementRef, `${name}.elementRef`)
 
   const field = stateAtom ?? atom(_initState, `${name}.field`)
   const initState = atom(_initState, `${name}.initState`)
@@ -454,6 +468,7 @@ export function reatomField<State, Value = State>(
     validation,
     value,
     disabled,
+    elementRef,
     options: fieldOptions,
 
     __reatomField: true as const,

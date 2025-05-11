@@ -22,7 +22,8 @@ import {
   wrap,
   withAbort,
   withAsync,
-} from '../../'
+  AsyncExt,
+} from '../'
 
 import {
   type FieldAtom,
@@ -114,9 +115,7 @@ export type DeepPartial<T, Skip = never> = {
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
-export interface SubmitAction extends Action<[], Promise<void>> {
-  error: Computed<Error | undefined>
-}
+export type SubmitAction = Action<[], Promise<void>> & AsyncExt<[], void, Error | undefined>
 
 export interface Form<T extends FormInitState> extends FieldSet<T> {
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */

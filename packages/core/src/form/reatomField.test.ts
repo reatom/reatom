@@ -1,5 +1,5 @@
 import { test, expect, vi } from 'vitest'
-import { addCallHook, notify, reatomEnum, sleep, wrap } from '../../'
+import { addCallHook, notify, reatomEnum, sleep, wrap } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
 
 test(`validateOnChange`, async () => {
