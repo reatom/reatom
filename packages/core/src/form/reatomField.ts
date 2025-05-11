@@ -99,7 +99,7 @@ export interface FieldAtom<State = any, Value = State>
   disabled: BooleanAtom
 
   /** Atom with the reference to the field element. */
-  elementRef: Atom<FieldElementRef | undefined | null>;
+  elementRef: Atom<FieldElementRef | undefined>;
 
   options: RecordAtom<{
     /**
@@ -187,7 +187,7 @@ export interface FieldOptions<State = any, Value = State> {
   /**
    * Defines a default element reference accosiated with the field.
    */
-  elementRef?: FieldElementRef | null;
+  elementRef?: FieldElementRef;
 
   /**
    * Defines the reset behavior of the validation state during async validation.
