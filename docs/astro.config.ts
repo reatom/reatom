@@ -28,6 +28,7 @@ export default defineConfig({
         MobileMenuFooter: './src/components/starlight/MobileMenuFooter.astro',
         Sidebar: './src/components/starlight/Sidebar.astro',
         PageTitle: './src/components/starlight/PageTitle.astro',
+        MarkdownContent: './src/components/MarkdownContent.astro',
       },
       title: 'Reatom',
       logo: {
