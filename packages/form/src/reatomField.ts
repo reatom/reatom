@@ -1,9 +1,10 @@
 import { type Action, type Atom, type AtomMut, AtomState, type Ctx, CtxSpy, __count, action, atom } from '@reatom/core'
-import { __thenReatomed, abortCauseContext, isCausedBy, withAbortableSchedule } from '@reatom/effects'
+import { __thenReatomed, abortCauseContext, getTopController, isCausedBy, withAbortableSchedule } from '@reatom/effects'
 import { BooleanAtom, type RecordAtom, reatomBoolean, reatomRecord, withAssign } from '@reatom/primitives'
 import { isDeepEqual, noop, toAbortError } from '@reatom/utils'
 
 import { toError } from './utils'
+import { AsyncCtx } from '@reatom/async'
 
 export interface FieldFocus {
   /** The field is focused. */
@@ -46,6 +47,10 @@ export interface ValidationAtom extends Atom<FieldValidation> {
   setError: Action<[error: string], FieldValidation>
 }
 
+export interface FieldElementRef {
+  focus: (options?: { preventScroll?: boolean }) => void;
+}
+
 export interface FieldLikeAtom<State = any> extends AtomMut<State> {
   __reatomField: true
 }
@@ -71,6 +76,9 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
 
   /** Atom that defines if the field is disabled */
   disabled: BooleanAtom
+
+  /** Atom with the reference to the field element. */
+  elementRef: AtomMut<FieldElementRef | undefined>;
 
   options: RecordAtom<{
     /**
@@ -104,7 +112,7 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
 }
 
 export type FieldValidateOption<State = any, Value = State> = (
-  ctx: Ctx,
+  ctx: AsyncCtx,
   meta: {
     state: State
     value: Value
@@ -158,6 +166,11 @@ export interface FieldOptions<State = any, Value = State> {
    * @default false
    */
   disabled?: boolean
+
+  /**
+   * Defines a default element reference accosiated with the field.
+   */
+  elementRef?: FieldElementRef;
 
   /**
    * Defines the reset behavior of the validation state during async validation.
@@ -269,6 +282,8 @@ export function reatomField<State, Value = State>(
       validation.trigger(ctx)
   })
 
+  const elementRef = atom(restOptions.elementRef, `${name}.elementRef`)
+
   const field = stateAtom ?? atom(_initState, `${name}.field`)
   const initState = atom(_initState, `${name}.initState`)
   // TODO: make sure it's ok to copy initState of other atom. 
@@ -345,7 +360,9 @@ export function reatomField<State, Value = State>(
     
         try {
           contract?.(state)
-          promise = validateFn?.(withAbortableSchedule(ctx), {
+          const asyncCtx = Object.assign(withAbortableSchedule(ctx), { controller });
+          
+          promise = validateFn?.(asyncCtx, {
             state,
             value: valueValue,
             focus: focusValue,
@@ -452,6 +469,7 @@ export function reatomField<State, Value = State>(
     validation,
     value,
     disabled,
+    elementRef,
     options: fieldOptions,
 
     __reatomField: true as const

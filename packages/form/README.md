@@ -216,7 +216,17 @@ const form = reatomForm({
 ```
 
 ### Basic Array Field Operations
-Since we use the "field as model" approach and each field is an object, we can achieve maximum type safety by working directly with objects. But the cherry on top is atomization, a principle used by array fields that allows maintaining a high-quality type-safe experience at any level of nesting in your forms.
+Since `fieldArray` is syntactic sugar over `reatomLinkedList`, it provides several methods to manipulate the array of fields:
+
+- `create(value)`: Adds a new field with the given value to the end of the array
+- `remove(field)`: Removes a specific field from the array
+- `clear()`: Removes all fields from the array
+- `array()`: Returns an array of all fields, which you should use to iterate over the fields
+- `swap(field1, field2)`: Swaps the positions of two fields in the array
+- `move(field, targetField)`: Moves a field to a position after the target field (use null to move to the beginning)
+- `find(predicate)`: Finds a field in the array that matches the predicate function
+
+When rendering field arrays in UI components, you should always use the `.array()` method to iterate over the fields.
 
 ```ts
 import { reatomForm, fieldArray } from '@reatom/form'
@@ -232,6 +242,12 @@ contactForm.fields.emails.create(ctx, '')
 // Access the array of email fields
 const emailFields = ctx.get(contactForm.fields.emails.array)
 
+// Iterate over the fields to render them
+// In React, this would look like:
+// {emailFields.map((emailField) => (
+//   <EmailFieldComponent key={emailField.name} field={emailField} />
+// ))}
+
 // Remove a specific email field
 contactForm.fields.emails.remove(ctx, emailFields[0])
 
@@ -239,13 +255,14 @@ contactForm.fields.emails.remove(ctx, emailFields[0])
 contactForm.fields.emails.clear(ctx)
 ```
 
+Since we use the "field as model" approach and each field is an object, we can achieve maximum type safety by working directly with objects. But the cherry on top is atomization, a principle used by array fields that allows maintaining a high-quality type-safe experience at any level of nesting in your forms.
+
 ### Complex Array Fields
 You can create more complex array fields with custom structures:
 
 ```ts
-import { reatomForm, fieldArray } from '@reatom/form'
+import { reatomForm, fieldArray, withField } from '@reatom/form'
 import { reatomBoolean } from '@reatom/primitives'
-import { withField } from '@reatom/form'
 
 const contactForm = reatomForm({
   name: '',
@@ -298,7 +315,6 @@ A common use case for field sets is creating multi-step forms where each step ha
 
 ```ts
 import { reatomForm, reatomFieldSet } from '@reatom/form'
-import { computed } from '@reatom/core'
 
 const checkoutForm = reatomForm({
   personal: {
@@ -320,8 +336,8 @@ const checkoutForm = reatomForm({
 }, 'checkoutForm')
 
 // Create field sets for each step
-const personalInfoSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.personalSet')
-const shippingInfoSet = reatomFieldSet(checkoutForm.fields.shipping, 'checkoutForm.shippingSet')
+const personalSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.personalSet')
+const shippingSet = reatomFieldSet(checkoutForm.fields.shipping, 'checkoutForm.shippingSet')
 ```
 
 Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
@@ -332,6 +348,133 @@ Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
 - Other methods like `reset`, `init` and properties as in the forms
 
 Field sets are particularly useful for multi-step forms because they allow you to validate each step independently before allowing the user to proceed to the next step, or for reactive calculations for groups of fields.
+
+## Recipes
+By composing form and reatom primitives, you can solve long-standing problems in forms as effectively as other libraries do through configuration.
+
+### Async default values
+
+This recipe shows how to load form values from an API. It creates an async resource that fetches data and resets the form with the retrieved values when the request completes. The `pendingAtom` atom can be used to show a loading state.
+
+```ts
+import { reatomForm } from '@reatom/form'
+import { reatomResource, withDataAtom } from '@reatom/async'
+
+const profileForm = reatomForm({
+  username: '',
+  address: ''
+}, 'profileForm')
+
+const fetchFormValues = reatomResource(
+  async (ctx) => {
+    const response = await ctx.schedule(() => fetch('/api/profile'));
+    return ctx.schedule(() => response.json());
+  },
+  'fetchFormValues'
+).pipe(
+  withDataAtom(null)
+)
+
+fetchFormValues.onFulfill.onCall((ctx, defaultValues) => {
+  if(defaultValues)
+    profileForm.reset(ctx, defaultValues)
+})
+
+fetchFormValues.pendingAtom // Use this atom to show loading state
+```
+
+### Async validation debounce
+
+This recipe implements debounced validation for a field. Thanks to reatom's concurrency mechanism, each new validation call automatically cancels the previous one. The field waits 300ms before making an API request to check if a username is already taken.
+
+```ts
+import { reatomField } from '@reatom/form'
+import { sleep } from '@reatom/framework'
+
+const usernameField = reatomField('', {
+  validate: async (ctx, { value }) => {
+    await ctx.schedule(() => sleep(300));
+    const response = await ctx.schedule(() => fetch(`/api/usernames?username=${state}`, ctx.controller));
+    const { taken } = await ctx.schedule(() => response.json());
+    invariant(!taken, 'This username already taken');
+  }
+}, 'usernameField')
+```
+
+The `ctx.controller` provides an AbortController that automatically cancels previous fetch requests when a new validation is triggered, preventing race conditions and unnecessary network requests.
+
+### Dependent validation
+
+There are two approaches to implement validation that depends on other fields.
+
+The first approach uses field-level validation. The `confirmPassword` field directly accesses the value of the `password` field to perform the comparison:
+
+```ts
+import { reatomForm, reatomField } from '@reatom/form'
+
+const loginForm = reatomForm(name => ({
+  username: reatomField('', `${name}.username`),
+  password: reatomField('', `${name}.password`),
+  confirmPassword: reatomField('', {
+    name: `${name}.confirmPassword`,
+    validate: (ctx, { value }) => {
+      if (ctx.get(loginForm.fields.password.value) != value)
+        throw new Error('Passwords do not match')
+    }
+  })
+}), 'loginForm')
+```
+
+The second approach uses schema-level validation with Zod. This centralizes validation logic in the schema and uses the `refine` method to add a custom validation rule:
+
+```ts
+import { reatomForm, reatomField } from '@reatom/form'
+import { z } from 'zod'
+
+const schema = z.object({
+  username: z.string(),
+  password: z.string(),
+  confirmPassword: z.string(),
+}).refine((values) => values.password === values.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
+});
+
+const loginForm = reatomForm(name => ({
+  username: reatomField('', `${name}.username`),
+  password: reatomField('', `${name}.password`),
+  confirmPassword: reatomField('', `${name}.confirmPassword`)
+}), {
+  name: 'loginForm',
+  schema
+})
+```
+
+### Autofocus on error
+
+This recipe demonstrates how to automatically focus on the first field with a validation error after a form submission fails. This improves user experience by directing their attention to the field that needs correction.
+
+Each field has an `elementRef` property that can be used to store a reference to the DOM element associated with the field. The `elementRef` interface matches the `HTMLElement` interface, allowing you to call standard DOM methods like `focus()`.
+
+```ts
+const form = reatomForm({
+  email: '',
+  age: 12
+}, {
+  schema: z.object({
+    email: z.string().email(),
+    age: z.number().min(18),
+  })
+})
+
+form.submit.onReject.onCall((ctx) => {
+  const errorField = ctx.get(form.fieldsList).find(field => !!ctx.get(field.validation).error);
+  if(errorField)
+    ctx.get(errorField.elementRef)?.focus();
+})
+```
+
+You can extend the `elementRef` type using interface augmentation if you need to store additional data or custom properties. This is particularly useful when working with custom input components that might have their own API beyond the standard HTMLElement interface.
 
 ## Form API
 
@@ -390,6 +533,7 @@ Here is the list of all additional properties and methods:
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
 - `reset`: Action to reset the state, the value, the validation, and the focus.
 - `disabled`: Atom that defines if the field is disabled.
+- `elementRef`: Atom with an element reference. Should be synchronized.
 - `options`: Record atom with all related field options:
   - `keepErrorDuringValidating`: Value that defines the reset behavior of the validation state during async validation.
   - `keepErrorOnChange`: Value that defines the reset behavior of the validation state on field change.
@@ -415,6 +559,7 @@ When fields are disabled, they no longer automatically trigger their own validat
 - `validate`: The optional callback to validate the field.
 - `contract`: The optional callback to validate field contract.
 - `disabled`: Defines if the field is disabled by default.
+- `elementRef`: Defines a default element reference accosiated with the field.
 - `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation (default: `false`).
 - `keepErrorOnChange`: Defines the reset behavior of the validation state on field change (default: `!validateOnChange`).
 - `validateOnBlur`: Defines if the validation should be triggered on the field blur (default: `false`).

@@ -1,9 +1,9 @@
-import { test, expect, describe } from 'vitest'
+import { test, expect, describe, vi } from 'vitest'
 import { createCtx, Ctx } from '@reatom/core'
 import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
 import { reatomBoolean } from '@reatom/primitives';
 import { z } from 'zod';
-import { sleep } from '@reatom/utils';
+import { noop, sleep } from '@reatom/utils';
 
 test(`adding and removing fields`, async () => {
 	const ctx = createCtx();
@@ -528,4 +528,30 @@ test('concurrent field validation with schema', async () => {
 	await sleep();
 
 	expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18');
+})
+
+test('autofocus recipe', async () => {
+	const ctx = createCtx()
+
+	const form = reatomForm({
+		email: '',
+		age: 12
+	}, {
+		schema: z.object({
+			email: z.string().email(),
+			age: z.number().min(18),
+		})
+	})
+	const focusFn = vi.fn();
+	form.fields.email.elementRef(ctx, { focus: focusFn });
+
+	form.submit.onReject.onCall((ctx) => {
+		const errorField = ctx.get(form.fieldsList).find(field => !!ctx.get(field.validation).error);
+		if(errorField)
+			ctx.get(errorField.elementRef)?.focus();
+	})
+
+	await form.submit(ctx).catch(noop);
+	expect(ctx.get(form.submit.error)).toBeInstanceOf(Error);
+	expect(focusFn).toBeCalled();
 })
