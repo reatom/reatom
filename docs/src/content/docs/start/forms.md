@@ -9,7 +9,7 @@ This is a general form library with a simple focus and validation management.
 
 The form API is designed for the best type-safety and flexibility. Instead of setting up the form state with a single object, each field is created separately, giving you the ability to fine-tune each field perfectly. As the field and its meta statuses are stored in atoms, you can easily combine them, define hooks, and effects to describe any logic you need.
 
-The cherry on the cake is dynamic field management. You don't need to use weird string APIs like `form.${index}.property`. Instead, you can simply have a list of fields using [atomization](https://www.reatom.dev/recipes/atomization/).
+The cherry on the cake is dynamic field management. You don't need to use weird string APIs like `form.${index}.property`. Instead, you can simply have a list of fields using [atomization](/handbook/atomization/).
 
 ## Usage
 
@@ -349,10 +349,11 @@ Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
 Field sets are particularly useful for multi-step forms because they allow you to validate each step independently before allowing the user to proceed to the next step, or for reactive calculations for groups of fields.
 
 ## Recipes
+By composing form and reatom primitives, you can solve long-standing problems in forms as effectively as other libraries do through configuration.
 
 ### Async default values
 
-This recipe shows how to load form values from an API. It creates an async action that fetches data and resets the form with the retrieved values when the request completes. The `pending` atom can be used to show a loading state.
+This recipe shows how to load form values from an API. It creates an async action that fetches data and resets the form with the retrieved values when the request completes. The `ready` atom can be used to show a loading state.
 
 ```ts
 import { reatomForm, computed, withAsync, wrap } from '@reatom/core'
@@ -411,7 +412,7 @@ const loginForm = reatomForm(name => ({
   confirmPassword: reatomField('', {
     name: `${name}.confirmPassword`,
     validate: ({ value }) => {
-      if (loginForm.fields.password != value)
+      if (loginForm.fields.password.value() != value)
         throw new Error('Passwords do not match')
     }
   })
@@ -527,6 +528,7 @@ Here is the list of all additional properties and methods:
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
 - `reset`: Action to reset the state, the value, the validation, and the focus.
 - `disabled`: Atom that defines if the field is disabled.
+- `elementRef`: Atom with an element reference. Should be synchronized with the actual DOM element.
 - `keepErrorDuringValidating`: Atom that defines the reset behavior of the validation state during async validation.
 - `keepErrorOnChange`: Atom that defines the reset behavior of the validation state on field change.
 - `validateOnChange`: Atom that defines if the validation should be triggered with every field change.
@@ -551,6 +553,7 @@ When fields are disabled, they no longer automatically trigger their own validat
 - `validate`: The optional callback to validate the field.
 - `contract`: The optional callback to validate field contract.
 - `disabled`: Defines if the field is disabled by default.
+- `elementRef`: Defines a default element reference accosiated with the field.
 - `keepErrorDuringValidating`: Defines the reset behavior of the validation state during async validation (default: `false`).
 - `keepErrorOnChange`: Defines the reset behavior of the validation state on field change (default: `!validateOnChange`).
 - `validateOnBlur`: Defines if the validation should be triggered on the field blur (default: `false`).
