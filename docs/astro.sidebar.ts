@@ -1,18 +1,15 @@
-import { group } from './config/sidebar'
-import { makeSidebar } from './config/integrations/package-reference'
+import type { StarlightIcon } from '@astrojs/starlight/types'
 
-import { adapters } from './adapters.config'
+import { group } from './config/sidebar.ts'
+import { makeSidebar } from './config/integrations/package-reference.ts'
+import { adapters, packages } from './astro.autogen.ts'
 
 export const sidebar = [
   group('Start', {
+    badge: icon('rocket'),
     items: [
       group('Essentials', {
-        items: [
-          'start/setup',
-          'start/atoms',
-          'start/actions',
-          'start/async',
-        ],
+        items: ['start/setup', 'start/atoms', 'start/actions', 'start/async'],
       }),
       group('Advanced', {
         items: [
@@ -26,6 +23,7 @@ export const sidebar = [
   }),
 
   group('Handbook', {
+    badge: icon('open-book'),
     items: [
       'handbook/history',
       'handbook/atomization',
@@ -37,12 +35,23 @@ export const sidebar = [
   }),
 
   group('Guides', {
+    badge: icon('puzzle'),
     autogenerate: {
       directory: 'guides',
     },
   }),
 
-  group('Adapters', {
-    items: await makeSidebar(adapters, { prefix: 'adapters' }),
+  group('Reference', {
+    badge: icon('information'),
+    items: [
+      ...await makeSidebar(packages, { prefix: 'package' }),
+      group('Adapters', {
+        items: await makeSidebar(adapters, { prefix: 'package' }),
+      }),
+    ],
   }),
 ]
+
+function icon(iconName: StarlightIcon) {
+  return iconName
+}

@@ -1,0 +1,25 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { packagesPages } from '../../../content'
+import { render } from 'astro:content'
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro'
+import { allPackages } from '../../../../astro.autogen.ts'
+import { joinBy } from '../../../util/join.ts'
+
+export const getStaticPaths = (() => {
+  return joinBy(allPackages, packagesPages, (ref, page) =>
+    page.id === ref.slug + ':referenceDocs',
+  ).map(([ref, page]) => ({
+    props: { page, ref },
+    params: { slug: ref.slug },
+  }))
+}) satisfies GetStaticPaths
+
+const { page, ref } = Astro.props
+
+const { Content, headings } = await render(page)
+---
+
+<StarlightPage frontmatter={{ title: ref.packageJson.name }} headings={headings} >
+  <Content />
+</StarlightPage>

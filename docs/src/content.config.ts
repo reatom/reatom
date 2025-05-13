@@ -1,14 +1,10 @@
 import { defineCollection } from 'astro:content'
 import { docsSchema } from '@astrojs/starlight/schema'
 import { docsLoader } from '@astrojs/starlight/loaders'
-import { glob } from 'astro/loaders'
+import { allPackages } from '../astro.autogen.js'
+import { loader } from '../config/integrations/package-reference.js'
 
 export const collections = {
   docs: defineCollection({ loader: docsLoader(), schema: docsSchema() }),
-  readmes: defineCollection({
-    loader: glob({
-      pattern: '*/README.md',
-      base: '../packages',
-    }),
-  }),
+  packages: defineCollection({ loader: loader(allPackages) }),
 }

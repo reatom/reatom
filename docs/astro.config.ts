@@ -3,8 +3,8 @@ import starlight from '@astrojs/starlight'
 import starlightLinksValidator from 'starlight-links-validator'
 import starlightLlmsTxt from 'starlight-llms-txt'
 import rehypeSlug from 'rehype-slug'
-import { sidebar } from './astro.sidebar'
-import { devServerFileWatcher } from './config/integrations/dev-server-file-watcher'
+import { sidebar } from './astro.sidebar.ts'
+import { devServerFileWatcher } from './config/integrations/dev-server-file-watcher.ts'
 
 // https://astro.build/config
 export default defineConfig({
@@ -14,7 +14,7 @@ export default defineConfig({
     devServerFileWatcher([
       './config/**', // Custom plugins and integrations
       './astro.sidebar.ts', // Sidebar configuration file
-      './adapters.config.ts', // References configuration file
+      './astro.autogen.ts', // References configuration file
     ]),
     starlight({
       sidebar,
