@@ -18,11 +18,11 @@ import {
   type ParseAtoms,
   isObject,
   withCallHook,
-  take,
   wrap,
   withAbort,
   withAsync,
   AsyncExt,
+  AbortExt,
 } from '../'
 
 import {
@@ -115,7 +115,10 @@ export type DeepPartial<T, Skip = never> = {
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
-export type SubmitAction = Action<[], Promise<void>> & AsyncExt<[], void, Error | undefined>
+export type SubmitAction = 
+  Action<[], Promise<void>> 
+  & AsyncExt<[], void, Error | undefined>
+  & AbortExt
 
 export interface Form<T extends FormInitState> extends FieldSet<T> {
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
@@ -455,19 +458,9 @@ export function reatomForm<T extends FormInitState, SchemaState>(
   }, `${name}.checkSchemaValidation`)
 
   const submit = action(async () => {
-    for (const field of fieldsList()) {
-      if (!field.validation().triggered) field.validation.trigger()
-    }
-
-    if (validation().validating) {
-      await wrap(
-        (async () => {
-          while (validation().validating) {
-            await wrap(take(validation, 'validation'))
-          }
-        })(),
-      )
-    }
+    const { validating } = validation.trigger();
+    if(validating)
+      await wrap(validating);
 
     const error = validation().error
     if (error) throw new Error(error)

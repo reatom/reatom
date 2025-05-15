@@ -108,7 +108,7 @@ test('validation states', async () => {
     error: undefined,
     meta: undefined,
     triggered: false,
-    validating: false,
+    validating: undefined,
   })
 
   field2.change('errorValue')
@@ -118,21 +118,21 @@ test('validation states', async () => {
     error: 'Contract error',
     meta: undefined,
     triggered: false,
-    validating: false,
+    validating: undefined,
   })
 
   field3.change('hey')
   notify()
 
-  expect(form.validation()).toEqual({
+  expect(form.validation()).toMatchObject({
     error: 'Contract error',
     meta: undefined,
     triggered: true,
-    validating: true,
   })
+  expect(form.validation().validating).toBeInstanceOf(Promise)
 
   field2.reset()
-
+  
   await wrap(form.submit().catch(() => { }))
   expect(form.submit.error()?.message).toBe('Form validation error')
 
@@ -140,7 +140,7 @@ test('validation states', async () => {
     error: undefined,
     meta: undefined,
     triggered: true,
-    validating: false,
+    validating: undefined,
   })
 
   const fieldNoValidationTrigger = rest.create('')
@@ -150,7 +150,7 @@ test('validation states', async () => {
     error: undefined,
     meta: undefined,
     triggered: true,
-    validating: false,
+    validating: undefined,
   })
 
   rest.clear()
@@ -160,7 +160,7 @@ test('validation states', async () => {
     error: undefined,
     meta: undefined,
     triggered: true,
-    validating: false,
+    validating: undefined,
   })
 })
 
@@ -245,7 +245,7 @@ test('default options for fields', async () => {
     error: undefined,
     meta: undefined,
     triggered: false,
-    validating: false,
+    validating: undefined,
   })
 
   array.array().forEach((field) => {
@@ -255,7 +255,7 @@ test('default options for fields', async () => {
       error: undefined,
       meta: undefined,
       triggered: true,
-      validating: false,
+      validating: undefined,
     })
   })
 })
@@ -371,7 +371,7 @@ test('reset', () => {
     error: undefined,
     meta: undefined,
     triggered: false,
-    validating: false,
+    validating: undefined,
   })
 })
 
@@ -566,4 +566,25 @@ test('autofocus recipe', async () => {
   await wrap(form.submit()).catch(noop);
   expect(form.submit.error()).toBeInstanceOf(Error);
   expect(focusFn).toBeCalled();
+})
+
+test('colorless validation trigger', async () => {
+  const form = reatomForm({
+    email: { 
+      initState: '', 
+      validate: ({ value }) => {
+        if(value === 'async_email')
+          return z.string().email().parseAsync(value) 
+        
+        return z.string().email().parse(value) 
+      }
+    },
+    age: 12
+  })
+
+  expect(form.validation.trigger().validating).toBe(undefined);
+  form.fields.email.change('async_email');
+  expect(form.validation.trigger().validating).toBeInstanceOf(Promise);
+  form.fields.email.change('another');
+  expect(form.validation.trigger().validating).toBe(undefined);
 })

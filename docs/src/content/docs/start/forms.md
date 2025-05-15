@@ -471,18 +471,25 @@ form.submit.onReject.extend(
 
 You can extend the `elementRef` type using interface augmentation if you need to store additional data or custom properties. This is particularly useful when working with custom input components that might have their own API beyond the standard HTMLElement interface.
 
-## Form API
+## Fieldset API
 
-The form created with `reatomForm` has the following properties:
+The form created with `reatomFieldSet` has the following properties:
 
 - `fields`: Object containing all the fields created for this form.
 - `fieldsState`: Atom with the state of the form, computed from all the fields.
 - `focus`: Atom with focus state of the form, computed from all the fields.
 - `init`: Action to initialize the form with a partial state.
 - `reset`: Action to reset the state, the value, the validation, and the focus states.
+- `validation`: Atom with validation state of the form, computed from all the fields.
+  - `trigger`: Action to trigger form validation. If there is at least one field in the set that has asynchronous validation, the `validating` property is expected to become a Promise, which will resolve when all nested validations are completed.
+
+## Form API
+
+`reatomForm` is a basically extension of fieldset, which provides submit and schema validation functionality.
+Thus, the `reatomForm` gets all the same properties as the `reatomFieldSet`, but with the addition of:
+
 - `submit`: Submit async handler. It checks the validation of all the fields, calls the form's `validate` options handler, and then the `onSubmit` options handler.
 - `submitted`: Atom indicating if the form has been submitted.
-- `validation`: Atom with validation state of the form, computed from all the fields.
 
 ### Form Options
 
@@ -521,7 +528,7 @@ Here is the list of all additional properties and methods:
   - `error`: The field validation error text, undefined if the field is valid.
   - `meta`: Additional validation metadata.
   - `triggered`: The validation actuality status.
-  - `validating`: The field async validation status.
+  - `validating`: If asynchronous validation is running, it returns a promise which will be resolved after the validation.
   - `trigger`: Action to trigger field validation.
   - `setError`: Action to set an error for the field.
 - `value`: Atom with the "value" data, computed by the `fromState` option.

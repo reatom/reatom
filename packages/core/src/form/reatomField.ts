@@ -48,7 +48,7 @@ export interface FieldValidation {
   triggered: boolean
 
   /** The field async validation status */
-  validating: boolean
+  validating: undefined | Promise<void>
 }
 
 export interface FocusAtom extends AtomLike<FieldFocus> {
@@ -225,14 +225,14 @@ export const fieldInitValidation: FieldValidation = {
   error: undefined,
   meta: undefined,
   triggered: false,
-  validating: false,
+  validating: undefined,
 }
 
 export const fieldInitValidationLess: FieldValidation = {
   error: undefined,
   meta: undefined,
   triggered: true,
-  validating: false,
+  validating: undefined,
 }
 
 export function reatomField<State, Value = State>(
@@ -320,8 +320,8 @@ export function reatomField<State, Value = State>(
 
       validation.merge(
         keepErrorOnChange
-          ? { validating: false }
-          : { validating: false, error: undefined },
+          ? { validating: undefined }
+          : { validating: undefined, error: undefined },
       )
 
       if (!disabled() && validateOnChange) validation.trigger()
@@ -390,14 +390,14 @@ export function reatomField<State, Value = State>(
           }
 
           if (promise instanceof Promise) {
-            ;(async () => {
+            const validationPromise = (async () => {
               try {
                 await wrap(promise)
                 target.merge({
                   error: undefined,
                   meta: undefined,
                   triggered: true,
-                  validating: false,
+                  validating: undefined,
                 })
               } catch (error) {
                 if (isAbort(error)) return
@@ -405,7 +405,7 @@ export function reatomField<State, Value = State>(
                   error: toError(error),
                   meta: undefined,
                   triggered: true,
-                  validating: false,
+                  validating: undefined,
                 })
               }
             })()
@@ -416,17 +416,17 @@ export function reatomField<State, Value = State>(
                 : undefined,
               meta: undefined,
               triggered: true,
-              validating: true,
+              validating: validationPromise,
             })
           }
 
           return target.merge({
-            validating: false,
+            validating: undefined,
             error: message,
             meta: undefined,
             triggered: true,
           })
-        }, `${target.name}.validation.trigger`).extend(withAbort()),
+        }, `${target.name}.trigger`).extend(withAbort()),
       }),
     )
     .actions((target) => ({
@@ -437,7 +437,7 @@ export function reatomField<State, Value = State>(
           error,
           meta: undefined,
           triggered: true,
-          validating: false,
+          validating: undefined,
         })
       },
     }))
