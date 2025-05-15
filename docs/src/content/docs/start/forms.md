@@ -402,7 +402,7 @@ There are two approaches to implement validation that depends on other fields.
 The first approach uses field-level validation. The `confirmPassword` field directly accesses the value of the `password` field to perform the comparison:
 
 ```ts
-import { reatomForm } from '@reatom/core'
+import { reatomForm, reatomField } from '@reatom/core'
 
 const loginForm = reatomForm(name => ({
   username: reatomField('', `${name}.username`),
@@ -474,7 +474,7 @@ You can extend the `elementRef` type using interface augmentation if you need to
 
 ## Fieldset API
 
-The form created with `reatomFieldSet` has the following properties:
+The fieldset created with `reatomFieldSet` has the following properties:
 
 - `fields`: Object containing all the fields created for this form.
 - `fieldsState`: Atom with the state of the form, computed from all the fields.
@@ -537,10 +537,11 @@ Here is the list of all additional properties and methods:
 - `reset`: Action to reset the state, the value, the validation, and the focus.
 - `disabled`: Atom that defines if the field is disabled.
 - `elementRef`: Atom with an element reference. Should be synchronized with the actual DOM element.
-- `keepErrorDuringValidating`: Atom that defines the reset behavior of the validation state during async validation.
-- `keepErrorOnChange`: Atom that defines the reset behavior of the validation state on field change.
-- `validateOnChange`: Atom that defines if the validation should be triggered with every field change.
-- `validateOnBlur`: Atom that defines if the validation should be triggered on the field blur.
+- `options`: Record atom with all related field options:
+  - `keepErrorDuringValidating`: Value that defines the reset behavior of the validation state during async validation.
+  - `keepErrorOnChange`: Value that defines the reset behavior of the validation state on field change.
+  - `validateOnChange`: Value that defines if the validation should be triggered with every field change.
+  - `validateOnBlur`: Value that defines if the validation should be triggered on the field blur.
 
 By combining these statuses you can derive additional meta information:
 
