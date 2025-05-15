@@ -146,8 +146,7 @@ const form = reatomForm(name => ({
 
 Also, you can extend existing smart atoms with the field functionality. In this case, the atom itself will become the state of the field, and any methods that mutate the extended atom will change the state of this field.
 ```ts
-import { reatomBoolean } from '@reatom/primitives'
-import { withField } from '@reatom/core'
+import { reatomForm, reatomBoolean, withField } from '@reatom/core'
 
 const form = reatomForm(name => ({
   active: reatomBoolean(false, `${name}.active`).pipe(withField())
@@ -260,8 +259,7 @@ Since we use the "field as model" approach and each field is an object, we can a
 You can create more complex array fields with custom structures:
 
 ```ts
-import { reatomForm, fieldArray, withField } from '@reatom/core'
-import { reatomBoolean } from '@reatom/primitives'
+import { reatomForm, fieldArray, withField, reatomBoolean } from '@reatom/core'
 
 const contactForm = reatomForm({
   name: '',
@@ -336,7 +334,7 @@ const checkoutForm = reatomForm({
 
 // Create field sets for each step
 const personalInfoSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.personalInfoSet')
-const shippingInfoSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.shippingInfoSet')
+const shippingInfoSet = reatomFieldSet(checkoutForm.fields.shipping, 'checkoutForm.shippingInfoSet')
 ```
 
 Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
@@ -356,7 +354,7 @@ By composing form and reatom primitives, you can solve long-standing problems in
 This recipe shows how to load form values from an API. It creates an async action that fetches data and resets the form with the retrieved values when the request completes. The `ready` atom can be used to show a loading state.
 
 ```ts
-import { reatomForm, computed, withAsync, wrap } from '@reatom/core'
+import { reatomForm, computed, withAsync, wrap, withCallHook } from '@reatom/core'
 
 const profileForm = reatomForm({
   username: '',
@@ -422,7 +420,7 @@ const loginForm = reatomForm(name => ({
 The second approach uses schema-level validation with Zod. This centralizes validation logic in the schema and uses the `refine` method to add a custom validation rule:
 
 ```ts
-import { reatomForm } from '@reatom/core'
+import { reatomForm, reatomField } from '@reatom/core'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -451,6 +449,9 @@ This recipe demonstrates how to automatically focus on the first field with a va
 Each field has an `elementRef` property that can be used to store a reference to the DOM element associated with the field. The `elementRef` interface matches the `HTMLElement` interface, allowing you to call standard DOM methods like `focus()`.
 
 ```ts
+import { reatomForm, withCallHook } from '@reatom/core'
+import { z } from 'zod'
+
 const form = reatomForm({
   email: '',
   age: 12
