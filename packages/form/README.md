@@ -148,7 +148,7 @@ const form = reatomForm(name => ({
 Also, you can extend existing smart atoms with the field functionality. In this case, the atom itself will become the state of the field, and any methods that mutate the extended atom will change the state of this field.
 ```ts
 import { reatomBoolean } from '@reatom/primitives'
-import { withField } from '@reatom/form'
+import { reatomForm, withField } from '@reatom/form'
 
 const form = reatomForm(name => ({
   active: reatomBoolean(false, `${name}.active`).pipe(withField())
@@ -457,6 +457,8 @@ This recipe demonstrates how to automatically focus on the first field with a va
 Each field has an `elementRef` property that can be used to store a reference to the DOM element associated with the field. The `elementRef` interface matches the `HTMLElement` interface, allowing you to call standard DOM methods like `focus()`.
 
 ```ts
+import { reatomForm } from '@reatom/form'
+import { z } from 'zod'
 const form = reatomForm({
   email: '',
   age: 12
@@ -476,18 +478,25 @@ form.submit.onReject.onCall((ctx) => {
 
 You can extend the `elementRef` type using interface augmentation if you need to store additional data or custom properties. This is particularly useful when working with custom input components that might have their own API beyond the standard HTMLElement interface.
 
-## Form API
+## Fieldset API
 
-The form created with `reatomForm` has the following properties:
+The fieldset created with `reatomFieldSet` has the following properties:
 
 - `fields`: Object containing all the fields created for this form.
 - `fieldsState`: Atom with the state of the form, computed from all the fields.
 - `focus`: Atom with focus state of the form, computed from all the fields.
 - `init`: Action to initialize the form with a partial state.
 - `reset`: Action to reset the state, the value, the validation, and the focus states.
+- `validation`: Atom with validation state of the form, computed from all the fields.
+  - `trigger`: Action to trigger form validation. If there is at least one field in the set that has asynchronous validation, the `validating` property is expected to become a Promise, which will resolve when all nested validations are completed.
+
+## Form API
+
+`reatomForm` is a basically extension of fieldset, which provides submit and schema validation functionality.
+Thus, the `reatomForm` gets all the same properties as the `reatomFieldSet`, but with the addition of:
+
 - `submit`: Submit async handler. It checks the validation of all the fields, calls the form's `validate` options handler, and then the `onSubmit` options handler.
 - `submitted`: Atom indicating if the form has been submitted.
-- `validation`: Atom with validation state of the form, computed from all the fields.
 
 ### Form Options
 
@@ -526,14 +535,14 @@ Here is the list of all additional properties and methods:
   - `error`: The field validation error text, undefined if the field is valid.
   - `meta`: Additional validation metadata.
   - `triggered`: The validation actuality status.
-  - `validating`: The field async validation status.
+  - `validating`: If asynchronous validation is running, it returns a promise which will be resolved after the validation.
   - `trigger`: Action to trigger field validation.
   - `setError`: Action to set an error for the field.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
 - `reset`: Action to reset the state, the value, the validation, and the focus.
 - `disabled`: Atom that defines if the field is disabled.
-- `elementRef`: Atom with an element reference. Should be synchronized.
+- `elementRef`: Atom with an element reference. Should be synchronized with the actual DOM element.
 - `options`: Record atom with all related field options:
   - `keepErrorDuringValidating`: Value that defines the reset behavior of the validation state during async validation.
   - `keepErrorOnChange`: Value that defines the reset behavior of the validation state on field change.

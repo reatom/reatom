@@ -108,7 +108,7 @@ test('validation states', async () => {
 		error: undefined,
 		meta: undefined,
 		triggered: false,
-		validating: false,
+		validating: undefined,
 	})
 
 	field2.change(ctx, 'errorValue')
@@ -117,17 +117,17 @@ test('validation states', async () => {
 		error: 'Contract error',
 		meta: undefined,
 		triggered: false,
-		validating: false,
+		validating: undefined,
 	})
 
 	field3.change(ctx, 'hey')
 
-	expect(ctx.get(form.validation)).toEqual({
+	expect(ctx.get(form.validation)).toMatchObject({
 		error: 'Contract error',
 		meta: undefined,
 		triggered: true,
-		validating: true,
 	})
+	expect(ctx.get(form.validation).validating).toBeInstanceOf(Promise);
 
 	field2.reset(ctx);
 
@@ -138,7 +138,7 @@ test('validation states', async () => {
 		error: undefined,
 		meta: undefined,
 		triggered: true,
-		validating: false,
+		validating: undefined,
 	})
 
 	const fieldNoValidationTrigger = rest.create(ctx, '');
@@ -148,7 +148,7 @@ test('validation states', async () => {
 		error: undefined,
 		meta: undefined,
 		triggered: true,
-		validating: false,
+		validating: undefined,
 	})
 
 	rest.clear(ctx);
@@ -158,7 +158,7 @@ test('validation states', async () => {
 		error: undefined,
 		meta: undefined,
 		triggered: true,
-		validating: false,
+		validating: undefined,
 	})
 })
 
@@ -229,7 +229,7 @@ test('default options for fields', async () => {
 		error: undefined,
 		meta: undefined,
 		triggered: true,
-		validating: false,
+		validating: undefined,
 	})
 
 	ctx.get(array.array).forEach(field => {
@@ -239,7 +239,7 @@ test('default options for fields', async () => {
 			error: undefined,
 			meta: undefined,
 			triggered: true,
-			validating: false,
+			validating: undefined,
 		})
 	});
 })
@@ -358,7 +358,7 @@ test('reset', () => {
 		error: undefined,
 		meta: undefined,
 		triggered: false,
-		validating: false,
+		validating: undefined,
 	})
 })
 
@@ -554,4 +554,25 @@ test('autofocus recipe', async () => {
 	await form.submit(ctx).catch(noop);
 	expect(ctx.get(form.submit.error)).toBeInstanceOf(Error);
 	expect(focusFn).toBeCalled();
+})
+
+test('colorless validation trigger', async () => {
+	const ctx = createCtx()
+	const form = reatomForm({
+		email: reatomField('', {
+			validate: (ctx, { value }) => {
+				if(value === 'async_email')
+					return z.string().email().parseAsync(value) 
+
+				return z.string().email().parse(value) 
+			}
+		}),
+		age: 12
+  	})
+
+  expect(form.validation.trigger(ctx).validating).toBe(undefined);
+  form.fields.email.change(ctx, 'async_email');
+  expect(form.validation.trigger(ctx).validating).toBeInstanceOf(Promise);
+  form.fields.email.change(ctx, 'another');
+  expect(form.validation.trigger(ctx).validating).toBe(undefined);
 })

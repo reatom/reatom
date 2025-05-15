@@ -455,22 +455,11 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 	}, `${name}.checkSchemaValidation`);
 
   const submit = reatomAsync(async (ctx) => {
-    ctx.get(() => {
-      for (const field of ctx.get(fieldsList)) {
-        if (!ctx.get(field.validation).triggered) {
-          field.validation.trigger(ctx);
-        }
-      }
-    });
-
-    if (ctx.get(validation).validating) {
-      await take(ctx, validation, (ctx, { validating }, skip) => {
-        if (validating) return skip;
-      });
-    }
+    const { validating } = validation.trigger(ctx);
+    if(validating)
+      await ctx.schedule(() => validating);
 
     const error = ctx.get(validation).error;
-
     if (error) throw new Error(error);
 
     let state: any

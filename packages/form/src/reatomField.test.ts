@@ -143,13 +143,15 @@ test(`validation concurrency`, async () => {
   });
 
   field.validation.trigger(ctx);
-  expect(ctx.get(field.validation)).toMatchObject({ validating: true, triggered: true, error: undefined });
+  expect(ctx.get(field.validation)).toMatchObject({ triggered: true, error: undefined });
+  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise);
   field.change(ctx, 1);
 
   expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation);
 
   field.validation.trigger(ctx);
-  expect(ctx.get(field.validation)).toMatchObject({ validating: true, triggered: true, error: undefined });
+  expect(ctx.get(field.validation)).toMatchObject({ triggered: true, error: undefined });
+  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise);
   field.reset(ctx);
   expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation);
 
@@ -159,11 +161,12 @@ test(`validation concurrency`, async () => {
   field.change(ctx, 0xDEADBEEF);
   field.change(ctx, 3);
 
-  expect(ctx.get(field.validation)).toMatchObject({ validating: true, triggered: true, error: undefined });
+  expect(ctx.get(field.validation)).toMatchObject({ triggered: true, error: undefined });
+  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise);
 
   await sleep();
 
-  expect(ctx.get(field.validation)).toMatchObject({ validating: false, triggered: true, error: undefined });
+  expect(ctx.get(field.validation)).toMatchObject({ validating: undefined, triggered: true, error: undefined });
   expect(ctx.get(field.value)).toBe(3);
 })
 

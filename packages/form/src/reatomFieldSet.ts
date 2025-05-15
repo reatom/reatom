@@ -1,6 +1,6 @@
 import { CtxSpy, isAtom, type Atom, type Action, __count, atom, action, type Ctx, type Rec } from '@reatom/core';
 import { parseAtoms } from '@reatom/lens';
-import { isLinkedListAtom } from '@reatom/primitives';
+import { isLinkedListAtom, withAssign } from '@reatom/primitives';
 import { entries, isShallowEqual, isObject } from '@reatom/utils';
 import { type FieldAtom, type FieldFocus, type FieldValidation, fieldInitFocus, fieldInitValidation } from './reatomField';
 import { FormInitState, FormFields, FormFieldElement, FormFieldArrayAtom, FormState, FormPartialState } from './reatomForm';
@@ -22,7 +22,9 @@ export interface FieldSet<T extends FormInitState> {
   focus: Atom<FieldFocus>;
 
   /** Atom with validation state of the fieldset, computed from all the fields in `fieldsList` */
-  validation: Atom<FieldValidation>;
+  validation: Atom<FieldValidation> & {
+    trigger: Action<[], FieldValidation>;
+  }
 
   /** Action to set initial values for each field or field array in the fieldset */
   init: Action<[initState: FormPartialState<T>], void>;
@@ -56,6 +58,7 @@ export const reatomFieldsSet = <T extends FormInitState>(
   }, `${name}.focus`);
 
   const validation = atom((ctx, state = fieldInitValidation) => {
+    const promises: Promise<void>[] = [];
     const validation = { ...fieldInitValidation };
     validation.triggered = true;
 
@@ -66,12 +69,29 @@ export const reatomFieldsSet = <T extends FormInitState>(
       const { triggered, validating, error } = ctx.spy(field.validation);
 
       validation.triggered &&= triggered;
-      validation.validating ||= validating;
       validation.error ||= error;
+
+      if(validating)
+        promises.push(validating)
     }
 
+    validation.validating = promises.length 
+      ? Promise.all(promises).then(() => undefined) 
+      : undefined
+
     return isShallowEqual(validation, state) ? state : validation;
-  }, `${name}.validation`);
+  }, `${name}.validation`).pipe(
+    withAssign((target, name) => ({
+      trigger: action((ctx) => {
+        for (const field of ctx.get(fieldsList)) {
+          if (!ctx.get(field.validation).triggered)
+            field.validation.trigger(ctx)
+        }
+
+        return ctx.get(target)
+      }, `${name}.trigger`),
+    })
+  ))
 
   const reinitState = (ctx: Ctx, initState: FormPartialState<T>, fields: FormFields) => {
     for (const [key, value] of Object.entries(initState as Rec)) {
