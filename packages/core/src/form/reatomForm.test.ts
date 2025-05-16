@@ -1,6 +1,6 @@
 import { test, expect, describe, vi } from 'vitest'
 import { noop, notify, reatomBoolean, sleep, withCallHook, wrap } from '../'
-import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
+import { experimental_fieldArray, reatomField, reatomFieldSet, reatomForm, withField } from '.'
 import { z } from 'zod'
 
 test(`adding and removing fields`, async () => {
@@ -568,7 +568,7 @@ test('autofocus recipe', async () => {
   expect(focusFn).toBeCalled();
 })
 
-test('colorless validation trigger', async () => {
+test('validation trigger', async () => {
   const form = reatomForm({
     email: { 
       initState: '', 
@@ -580,11 +580,25 @@ test('colorless validation trigger', async () => {
       }
     },
     age: 12
+  }, {
+    schema: z.object({
+      age: z.number().min(18),
+    })
   })
 
-  expect(form.validation.trigger().validating).toBe(undefined);
+  const fieldSet = reatomFieldSet(form.fields);
+
+  expect(fieldSet.validation.trigger().validating).toBe(undefined);
   form.fields.email.change('async_email');
-  expect(form.validation.trigger().validating).toBeInstanceOf(Promise);
+  expect(fieldSet.validation.trigger().validating).toBeInstanceOf(Promise);
   form.fields.email.change('another');
-  expect(form.validation.trigger().validating).toBe(undefined);
+  expect(fieldSet.validation.trigger().validating).toBe(undefined);
+
+  form.reset({ email: 'async_email' });
+  
+  const promise = wrap(form.validation.trigger().catch(() => null));
+  expect(fieldSet.validation.trigger().validating).toBeInstanceOf(Promise);
+  const result = await promise;
+  expect(form.fields.age.validation().error).toBeTruthy();
+  expect(result).toBeFalsy();
 })

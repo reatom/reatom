@@ -48,7 +48,7 @@ export interface FieldValidation {
   triggered: boolean
 
   /** The field async validation status */
-  validating: undefined | Promise<void>
+  validating: undefined | Promise<{ error: undefined | string }>
 }
 
 export interface FocusAtom extends AtomLike<FieldFocus> {
@@ -399,14 +399,17 @@ export function reatomField<State, Value = State>(
                   triggered: true,
                   validating: undefined,
                 })
+                return { error: undefined }
               } catch (error) {
-                if (isAbort(error)) return
+                if (isAbort(error)) return { error: target().error }
+                const validationError = toError(error)
                 target.merge({
-                  error: toError(error),
+                  error: validationError,
                   meta: undefined,
                   triggered: true,
                   validating: undefined,
                 })
+                return { error: validationError }
               }
             })()
 

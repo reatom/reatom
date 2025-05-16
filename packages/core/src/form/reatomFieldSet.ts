@@ -92,7 +92,7 @@ export const reatomFieldSet = <T extends FormInitState>(
   }, `${name}.focus`).extend(withMemo())
 
   const validation = computed(() => {
-    const promises: Promise<void>[] = [];
+    const promises: Promise<{ error: undefined | string }>[] = [];
     const validation = { ...fieldInitValidation }
     validation.triggered = true
 
@@ -109,7 +109,7 @@ export const reatomFieldSet = <T extends FormInitState>(
     }
 
     validation.validating = promises.length 
-      ? Promise.all(promises).then(() => undefined) 
+      ? Promise.all(promises).then(results => ({ error: results.find(r => !!r.error)?.error })) 
       : undefined
 
     return validation
