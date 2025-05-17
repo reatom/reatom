@@ -1,6 +1,6 @@
 import { test, expect, describe, vi } from 'vitest'
 import { createCtx, Ctx } from '@reatom/core'
-import { experimental_fieldArray, reatomField, reatomForm, withField } from '.'
+import { experimental_fieldArray, reatomField, reatomFieldSet, reatomForm, withField } from '.'
 import { reatomBoolean } from '@reatom/primitives';
 import { z } from 'zod';
 import { noop, sleep } from '@reatom/utils';
@@ -556,7 +556,7 @@ test('autofocus recipe', async () => {
 	expect(focusFn).toBeCalled();
 })
 
-test('colorless validation trigger', async () => {
+test('validation trigger', async () => {
 	const ctx = createCtx()
 	const form = reatomForm({
 		email: reatomField('', {
@@ -568,11 +568,25 @@ test('colorless validation trigger', async () => {
 			}
 		}),
 		age: 12
-  	})
+  	}, {
+		schema: z.object({
+			age: z.number().min(18),
+		})		
+	})
 
-  expect(form.validation.trigger(ctx).validating).toBe(undefined);
+	const fieldSet = reatomFieldSet(form.fields);
+
+  expect(fieldSet.validation.trigger(ctx).validating).toBe(undefined);
   form.fields.email.change(ctx, 'async_email');
-  expect(form.validation.trigger(ctx).validating).toBeInstanceOf(Promise);
+  expect(fieldSet.validation.trigger(ctx).validating).toBeInstanceOf(Promise);
   form.fields.email.change(ctx, 'another');
-  expect(form.validation.trigger(ctx).validating).toBe(undefined);
+  expect(fieldSet.validation.trigger(ctx).validating).toBe(undefined);
+
+  form.reset(ctx, { email: 'async_email' });
+
+  const promise = form.validation.trigger(ctx).catch(() => null);
+  expect(fieldSet.validation.trigger(ctx).validating).toBeInstanceOf(Promise);
+  const result = await promise;
+  expect(ctx.get(form.fields.age.validation).error).toBeTruthy();
+  expect(result).toBeFalsy();
 })

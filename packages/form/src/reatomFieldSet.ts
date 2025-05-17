@@ -33,9 +33,9 @@ export interface FieldSet<T extends FormInitState> {
   reset: Action<[initState?: FormPartialState<T>], void>;
 }
 
-export const reatomFieldsSet = <T extends FormInitState>(
+export const reatomFieldSet = <T extends FormInitState>(
   fields: FormFields<T>,
-  name = __count('fieldsSet')
+  name = __count('fieldSet')
 ): FieldSet<T> => {
   const fieldsList = atom(ctx => computeFieldsList(ctx, fields), `${name}.fieldsList`);
   const fieldArraysList = atom(ctx => computeFieldArraysList(ctx, fields), `${name}.fieldArraysList`);
@@ -58,7 +58,7 @@ export const reatomFieldsSet = <T extends FormInitState>(
   }, `${name}.focus`);
 
   const validation = atom((ctx, state = fieldInitValidation) => {
-    const promises: Promise<void>[] = [];
+    const promises: Promise<{ error: undefined | string }>[] = [];
     const validation = { ...fieldInitValidation };
     validation.triggered = true;
 
@@ -76,7 +76,7 @@ export const reatomFieldsSet = <T extends FormInitState>(
     }
 
     validation.validating = promises.length 
-      ? Promise.all(promises).then(() => undefined) 
+      ? Promise.all(promises).then(results => ({ error: results.find(r => !!r?.error)?.error }))
       : undefined
 
     return isShallowEqual(validation, state) ? state : validation;

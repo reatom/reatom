@@ -12,7 +12,7 @@ import {
   isAtom,
 } from '@reatom/core';
 
-import { isCausedBy, take } from '@reatom/effects';
+import { isCausedBy } from '@reatom/effects';
 
 import {
   type AsyncAction,
@@ -42,11 +42,12 @@ import {
   reatomField,
   type FieldOptions,
   FieldLikeAtom,
+  FieldValidation,
 } from './reatomField';
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { withInit } from '@reatom/hooks';
-import { FieldSet, reatomFieldsSet } from './reatomFieldSet';
+import { FieldSet, reatomFieldSet } from './reatomFieldSet';
 
 export interface FormFieldOptions<State = any, Value = State>
   extends FieldOptions<State, Value> {
@@ -124,7 +125,13 @@ export interface SubmitAction extends AsyncAction<[], void> {
   statusesAtom: AsyncStatusesAtom;
 }
 
-export interface Form<T extends FormInitState> extends FieldSet<T> {
+export interface Form<T extends FormInitState, SchemaState> extends Omit<FieldSet<T>, 'validation'> {
+  /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
+  validation: Atom<FieldValidation> & {
+    /** Action to trigger form validation. */
+    trigger: AsyncAction<[], Promise<undefined extends SchemaState ? FormState<T> : SchemaState>>
+  }
+
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
   submit: SubmitAction;
 
@@ -214,7 +221,7 @@ const reatomFormFields = <T extends FormInitState>(
             const itemName = `${name}.${++id}`;
             return createFieldElement(element.create(ctx, param, itemName), itemName)
           },
-          initSnapshot: element.initState.map(state => ([state] as const))
+          initSnapshot: element.initState.map(state => ([state] as [param: any]))
         }, name);
 
         const initState = atom<AtomState<typeof linkedListAtom> | null>(
@@ -353,22 +360,22 @@ const resolveFieldByPath = <T extends FormInitState>(
 export function reatomForm<T extends FormInitState, SchemaState>(
 	initState: T | ((name: string) => T),
 	optionsWithSchema: FormOptionsWithSchema<SchemaState>
-): Form<T>
+): Form<T, SchemaState>
 
 export function reatomForm<T extends FormInitState>(
 	initState: T | ((name: string) => T),
 	options?: FormOptionsWithoutSchema<T>
-): Form<T>
+): Form<T, undefined>
 
 export function reatomForm<T extends FormInitState>(
 	initState: T | ((name: string) => T),
 	name?: string
-): Form<T>
+): Form<T, undefined>
 
 export function reatomForm<T extends FormInitState, SchemaState>(
 	initState: T | ((name: string) => T),
 	options: string | FormOptionsWithSchema<SchemaState> | FormOptionsWithoutSchema<T> = {},
-): Form<T> {
+): Form<T, SchemaState> {
   const {
     name = __count('form'),
     onSubmit,
@@ -414,10 +421,10 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     fieldArraysList,
     fieldsState,
     focus,
-    validation,
+    validation: fieldsetValidation,
     reset,
     init
-  } = reatomFieldsSet(fields, name);
+  } = reatomFieldSet(fields, name);
 
   reset.onCall((ctx) => {
     submitted(ctx, false);
@@ -427,15 +434,15 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 
   const submitted = atom(false, `${name}.submitted`);
 
-	const checkSchemaValidation = action(async (ctx: Ctx, triggerOnlyFor?: Atom) => {
+	const checkSchemaValidation = action((ctx: Ctx, triggerOnlyFor?: Atom) => {
 		const state = ctx.get(fieldsState);
 		if (!schema)
 			throw new Error('Triggering schema validation without schema');
 
 		const validation = schema['~standard'].validate(state);
-		const result = validation instanceof Promise ? await ctx.schedule(() => validation) : validation;
 
-		if (result.issues?.length) {
+    const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
+      if (!result.issues?.length) return result;
 			for (const issue of result.issues) {
 				const field = resolveFieldByPath(ctx, issue.path, fields);
 				if (!field || (triggerOnlyFor && triggerOnlyFor !== field))
@@ -449,23 +456,23 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 				if (triggerOnlyFor)
 					break;
 			}
+      return result
 		}
 
-		return result;
+		return validation instanceof Promise ? validation.then(placeErrors) : placeErrors(validation)
 	}, `${name}.checkSchemaValidation`);
 
-  const submit = reatomAsync(async (ctx) => {
-    const { validating } = validation.trigger(ctx);
-    if(validating)
-      await ctx.schedule(() => validating);
+  const origValidationTrigger = fieldsetValidation.trigger;
+  const validationTrigger = reatomAsync(async (ctx) => {
+    const status = origValidationTrigger(ctx);
+    const { error } = status.validating ? await ctx.schedule(() => status.validating!) : status;
+    if (error) throw new Error(error)
 
-    const error = ctx.get(validation).error;
-    if (error) throw new Error(error);
-
-    let state: any
+     let state: any
 
 		if (schema) {
-			const schemaValidationResult = await ctx.schedule(() => checkSchemaValidation(ctx));
+      const promise = checkSchemaValidation(ctx);
+      const schemaValidationResult = promise instanceof Promise ? await ctx.schedule(() => promise) : promise;
 			if (!('value' in schemaValidationResult))
 				throw new Error(schemaValidationResult.issues[0]?.message ?? 'Unknown schema error');
 
@@ -482,6 +489,11 @@ export function reatomForm<T extends FormInitState, SchemaState>(
       }
     }
 
+    return state;
+  }, `${name}.validation.triggerExt`)
+
+  const submit = reatomAsync(async (ctx) => {
+    const state = await ctx.schedule(() => validationTrigger(ctx));
     if (onSubmit) await ctx.schedule(() => onSubmit(ctx, state));
 
     submitted(ctx, true);
@@ -499,6 +511,8 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     withErrorAtom(undefined, { resetTrigger: 'onFulfill' }),
     (submit) => Object.assign(submit, { error: submit.errorAtom }),
   );
+
+  const validation = Object.assign(fieldsetValidation, { trigger: validationTrigger });
 
   return {
     fields,

@@ -482,13 +482,13 @@ You can extend the `elementRef` type using interface augmentation if you need to
 
 The fieldset created with `reatomFieldSet` has the following properties:
 
-- `fields`: Object containing all the fields created for this form.
-- `fieldsState`: Atom with the state of the form, computed from all the fields.
-- `focus`: Atom with focus state of the form, computed from all the fields.
-- `init`: Action to initialize the form with a partial state.
+- `fields`: Object containing all the fields created for this fieldset.
+- `fieldsState`: Atom with the state of the fieldset, computed from all the fields.
+- `focus`: Atom with focus state of the fieldset, computed from all the fields.
+- `init`: Action to initialize the fieldset with a partial state.
 - `reset`: Action to reset the state, the value, the validation, and the focus states.
-- `validation`: Atom with validation state of the form, computed from all the fields.
-  - `trigger`: Action to trigger form validation. If there is at least one field in the set that has asynchronous validation, the `validating` property is expected to become a Promise, which will resolve when all nested validations are completed.
+- `validation`: Atom with validation state of the fieldset, computed from all the fields.
+  - `trigger`: Action to trigger fieldset validation. If there is at least one field in the set that has asynchronous validation, the `validating` property is expected to become a Promise, which will resolve when all nested validations are completed.
 
 ## Form API
 
@@ -497,6 +497,8 @@ Thus, the `reatomForm` gets all the same properties as the `reatomFieldSet`, but
 
 - `submit`: Submit async handler. It checks the validation of all the fields, calls the form's `validate` options handler, and then the `onSubmit` options handler.
 - `submitted`: Atom indicating if the form has been submitted.
+- `validation`: Atom with validation state of the form, computed from all the fields.
+  - `trigger`: Action to trigger form validation. Works like in fieldsets but it's always asynchronous, performs form validation via the `validate` function from the form options and finnaly returns schema validation result if it's defined
 
 ### Form Options
 
