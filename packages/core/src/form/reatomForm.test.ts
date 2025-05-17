@@ -1,6 +1,12 @@
+import {
+  experimental_fieldArray,
+  reatomField,
+  reatomFieldSet,
+  reatomForm,
+  withField,
+} from '.'
 import { test, expect, describe, vi } from 'vitest'
 import { noop, notify, reatomBoolean, sleep, withCallHook, wrap } from '../'
-import { experimental_fieldArray, reatomField, reatomFieldSet, reatomForm, withField } from '.'
 import { z } from 'zod'
 
 test(`adding and removing fields`, async () => {
@@ -24,8 +30,8 @@ test(`adding and removing fields`, async () => {
 
 test('focus states', () => {
   const form = reatomForm({
-    field1: { initState: '', validate: () => { } },
-    field2: { initState: '', validate: () => { } },
+    field1: { initState: '', validate: () => {} },
+    field2: { initState: '', validate: () => {} },
     list: experimental_fieldArray({
       initState: ['initial'],
       create: (param) => reatomField(param, 'fieldAtom'),
@@ -92,7 +98,7 @@ test('validation states', async () => {
     },
     {
       name: 'testForm',
-      onSubmit: () => { },
+      onSubmit: () => {},
       validate: () => {
         throw new Error('Form validation error')
       },
@@ -132,8 +138,8 @@ test('validation states', async () => {
   expect(form.validation().validating).toBeInstanceOf(Promise)
 
   field2.reset()
-  
-  await wrap(form.submit().catch(() => { }))
+
+  await wrap(form.submit().catch(() => {}))
   expect(form.submit.error()?.message).toBe('Form validation error')
 
   expect(form.validation()).toEqual({
@@ -233,7 +239,7 @@ test('validation states with disabled fields and defined schema', async () => {
 
 test('default options for fields', async () => {
   const form = reatomForm({
-    field: { initState: 'initial', validate: () => { } },
+    field: { initState: 'initial', validate: () => {} },
     array: experimental_fieldArray(['one', 'two', 'free']),
   })
 
@@ -344,11 +350,11 @@ describe('fieldArray and array literals as a fieldArray', () => {
 test('reset', () => {
   const form = reatomForm(
     {
-      field: { initState: 'initial', validate: () => { } },
+      field: { initState: 'initial', validate: () => {} },
     },
     {
       name: 'testForm',
-      onSubmit: () => { },
+      onSubmit: () => {},
     },
   )
 
@@ -544,61 +550,69 @@ test('concurrent field validation with schema', async () => {
 })
 
 test('autofocus recipe', async () => {
-  const form = reatomForm({
-    email: '',
-    age: 12
-  }, {
-    schema: z.object({
-      email: z.string().email(),
-      age: z.number().min(18),
-    })
-  })
-  const focusFn = vi.fn();
-  form.fields.email.elementRef.set({ focus: focusFn });
+  const form = reatomForm(
+    {
+      email: '',
+      age: 12,
+    },
+    {
+      schema: z.object({
+        email: z.string().email(),
+        age: z.number().min(18),
+      }),
+    },
+  )
+  const focusFn = vi.fn()
+  form.fields.email.elementRef.set({ focus: focusFn })
 
   form.submit.onReject.extend(
     withCallHook(() => {
-      const errorField = form.fieldsList().find(field => !!field.validation().error);
-      errorField?.elementRef()?.focus();
-    })
+      const errorField = form
+        .fieldsList()
+        .find((field) => !!field.validation().error)
+      errorField?.elementRef()?.focus()
+    }),
   )
 
-  await wrap(form.submit()).catch(noop);
-  expect(form.submit.error()).toBeInstanceOf(Error);
-  expect(focusFn).toBeCalled();
+  await wrap(form.submit()).catch(noop)
+  expect(form.submit.error()).toBeInstanceOf(Error)
+  expect(focusFn).toBeCalled()
 })
 
 test('validation trigger', async () => {
-  const form = reatomForm({
-    email: { 
-      initState: '', 
-      validate: ({ value }) => {
-        if(value === 'async_email')
-          return z.string().email().parseAsync(value) 
-        
-        return z.string().email().parse(value) 
-      }
+  const form = reatomForm(
+    {
+      email: {
+        initState: '',
+        validate: ({ value }) => {
+          if (value === 'async_email')
+            return z.string().email().parseAsync(value)
+
+          return z.string().email().parse(value)
+        },
+      },
+      age: 12,
     },
-    age: 12
-  }, {
-    schema: z.object({
-      age: z.number().min(18),
-    })
-  })
+    {
+      schema: z.object({
+        age: z.number().min(18),
+      }),
+    },
+  )
 
-  const fieldSet = reatomFieldSet(form.fields);
+  const fieldSet = reatomFieldSet(form.fields)
 
-  expect(fieldSet.validation.trigger().validating).toBe(undefined);
-  form.fields.email.change('async_email');
-  expect(fieldSet.validation.trigger().validating).toBeInstanceOf(Promise);
-  form.fields.email.change('another');
-  expect(fieldSet.validation.trigger().validating).toBe(undefined);
+  expect(fieldSet.validation.trigger().validating).toBe(undefined)
+  form.fields.email.change('async_email')
+  expect(fieldSet.validation.trigger().validating).toBeInstanceOf(Promise)
+  form.fields.email.change('another')
+  expect(fieldSet.validation.trigger().validating).toBe(undefined)
 
-  form.reset({ email: 'async_email' });
-  
-  const promise = wrap(form.validation.trigger().catch(() => null));
-  expect(fieldSet.validation.trigger().validating).toBeInstanceOf(Promise);
-  const result = await promise;
-  expect(form.fields.age.validation().error).toBeTruthy();
-  expect(result).toBeFalsy();
+  form.reset({ email: 'async_email' })
+
+  const promise = wrap(form.validation.trigger().catch(() => null))
+  expect(fieldSet.validation.trigger().validating).toBeInstanceOf(Promise)
+  const result = await promise
+  expect(form.fields.age.validation().error).toBeTruthy()
+  expect(result).toBeFalsy()
 })

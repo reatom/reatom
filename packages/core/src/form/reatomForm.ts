@@ -64,8 +64,8 @@ export type FormInitState = {
 
 type ExtractFieldArray<T> = {
   [K in keyof T]: T[K] extends FormFieldArray<infer Param, infer _Node>
-  ? Param[]
-  : ExtractFieldArray<T[K]>
+    ? Param[]
+    : ExtractFieldArray<T[K]>
 }
 
 export type FormFieldArrayAtom<
@@ -81,22 +81,22 @@ export type FormFieldElement<
 > = T extends FieldLikeAtom
   ? T
   : T extends Date
-  ? FieldAtom<T>
-  : T extends Array<infer Item>
-  ? Item extends FormInitStateElement
-  ? FormFieldArrayAtom<Item, Item>
-  : never
-  : T extends FormFieldArray<infer Param, infer Node>
-  ? FormFieldArrayAtom<Param, Node>
-  : T extends FieldOptions & { initState: infer State }
-  ? T extends FieldOptions<State, State>
-  ? FieldAtom<State>
-  : T extends FieldOptions<State, infer Value>
-  ? FieldAtom<State, Value>
-  : never
-  : T extends Rec
-  ? { [K in keyof T]: FormFieldElement<T[K]> }
-  : FieldAtom<T>
+    ? FieldAtom<T>
+    : T extends Array<infer Item>
+      ? Item extends FormInitStateElement
+        ? FormFieldArrayAtom<Item, Item>
+        : never
+      : T extends FormFieldArray<infer Param, infer Node>
+        ? FormFieldArrayAtom<Param, Node>
+        : T extends FieldOptions & { initState: infer State }
+          ? T extends FieldOptions<State, State>
+            ? FieldAtom<State>
+            : T extends FieldOptions<State, infer Value>
+              ? FieldAtom<State, Value>
+              : never
+          : T extends Rec
+            ? { [K in keyof T]: FormFieldElement<T[K]> }
+            : FieldAtom<T>
 
 export type FormFields<T extends FormInitState = FormInitState> = {
   [K in keyof T]: FormFieldElement<T[K]>
@@ -108,26 +108,29 @@ export type FormState<T extends FormInitState = FormInitState> = ParseAtoms<
 
 export type DeepPartial<T, Skip = never> = {
   [K in keyof T]?: T[K] extends Skip
-  ? T[K]
-  : T[K] extends Rec
-  ? DeepPartial<T[K], Skip>
-  : T[K]
+    ? T[K]
+    : T[K] extends Rec
+      ? DeepPartial<T[K], Skip>
+      : T[K]
 }
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
-export type SubmitAction =
-  Action<[], Promise<void>>
-  & AsyncExt<[], void, Error | undefined>
-  & AbortExt
+export type SubmitAction = Action<[], Promise<void>> &
+  AsyncExt<[], void, Error | undefined> &
+  AbortExt
 
-export interface Form<T extends FormInitState, SchemaState> extends Omit<FieldSet<T>, 'validation'> {
+export interface Form<T extends FormInitState, SchemaState>
+  extends Omit<FieldSet<T>, 'validation'> {
   /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
   validation: Computed<FieldValidation> & {
     /** Action to trigger form validation. */
-    trigger: Action<[], Promise<undefined extends SchemaState ? FormState<T> : SchemaState>> 
-      & AsyncExt<[], any, Error | undefined> 
-      & AbortExt
+    trigger: Action<
+      [],
+      Promise<undefined extends SchemaState ? FormState<T> : SchemaState>
+    > &
+      AsyncExt<[], any, Error | undefined> &
+      AbortExt
   }
 
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
@@ -303,18 +306,18 @@ function createFieldArray<
     | Array<Param>
     | ((params: Param, name: string) => Node)
     | {
-      create: (param: Param, name: string) => Node
-      initState?: Array<Param>
-    },
+        create: (param: Param, name: string) => Node
+        initState?: Array<Param>
+      },
 ): FormFieldArray<Param, Node> {
   const { create, initState = [] } =
     typeof options === 'function'
       ? { create: options }
       : Array.isArray(options)
         ? {
-          create: (param: Param) => param as unknown as Node,
-          initState: options,
-        }
+            create: (param: Param) => param as unknown as Node,
+            initState: options,
+          }
         : options
 
   return {
@@ -330,8 +333,8 @@ const isFieldArray = (value: any): value is FormFieldArray<any> =>
 export { createFieldArray as experimental_fieldArray }
 export type ArrayFieldItem<T> =
   T extends LinkedListLikeAtom<infer _Node>
-  ? AtomState<T['array']>[number]
-  : never
+    ? AtomState<T['array']>[number]
+    : never
 
 const resolveFieldByPath = <T extends FormInitState>(
   path: StandardSchemaV1.Issue['path'],
@@ -449,7 +452,7 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     const validation = schema['~standard'].validate(state)
 
     const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
-      if (!result.issues?.length) return result;
+      if (!result.issues?.length) return result
 
       for (const issue of result.issues) {
         const field = resolveFieldByPath(issue.path, fields)
@@ -461,23 +464,26 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 
         if (triggerOnlyFor) break
       }
-      return result;
+      return result
     }
 
-    return validation instanceof Promise ? validation.then(placeErrors) : placeErrors(validation)
+    return validation instanceof Promise
+      ? validation.then(placeErrors)
+      : placeErrors(validation)
   }, `${name}.checkSchemaValidation`)
 
-  const origValidationTrigger = fieldsetValidation.trigger;
+  const origValidationTrigger = fieldsetValidation.trigger
   const validationTrigger = action(async () => {
-    const status = origValidationTrigger();
-    const { error } = status.validating ? await wrap(status.validating) : status;
+    const status = origValidationTrigger()
+    const { error } = status.validating ? await wrap(status.validating) : status
     if (error) throw new Error(error)
 
     let state: any
 
     if (schema) {
-      const promise = checkSchemaValidation();
-      const schemaValidationResult = promise instanceof Promise ? await wrap(promise) : promise;
+      const promise = checkSchemaValidation()
+      const schemaValidationResult =
+        promise instanceof Promise ? await wrap(promise) : promise
       if (!('value' in schemaValidationResult))
         throw new Error(
           schemaValidationResult.issues[0]?.message ?? 'Unknown schema error',
@@ -493,14 +499,11 @@ export function reatomForm<T extends FormInitState, SchemaState>(
       if (promise instanceof Promise) await wrap(promise)
     }
 
-    return state;
-  }, `${name}.validation.triggerExt`).extend(
-    withAsync(),
-    withAbort(),
-  )
+    return state
+  }, `${name}.validation.triggerExt`).extend(withAsync(), withAbort())
 
   const submit = action(async () => {
-    const state = await wrap(validationTrigger());
+    const state = await wrap(validationTrigger())
 
     if (onSubmit) {
       const promise = onSubmit(state)
@@ -521,7 +524,9 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     withAbort(),
   )
 
-  const validation = Object.assign(fieldsetValidation, { trigger: validationTrigger });
+  const validation = Object.assign(fieldsetValidation, {
+    trigger: validationTrigger,
+  })
 
   return {
     fields,
