@@ -45,5 +45,8 @@ describe(`reatomMap`, () => {
 
     mapAtom = reatomMap()
     expect(mapAtom.size()).toBe(0)
+
+    mapAtom.setState(defaultMapEntries)
+    expect(mapAtom.size()).toBe(3)
   })
 })
