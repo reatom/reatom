@@ -24,7 +24,7 @@
     "test:watch": "vitest src/*"
   },
   "peerDependencies": {
-    "@reatom/core": "1000.0.0-alpha.24",
+    "@reatom/core": "1000.0.0-alpha.25",
     "react": ">=18.2.0"
   },
   "author": "artalar",

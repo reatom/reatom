@@ -24,7 +24,7 @@
     "test:watch": "vitest src/*"
   },
   "peerDependencies": {
-    "@reatom/core": "1000.0.0-alpha.24",
+    "@reatom/core": "1000.0.0-alpha.25",
     "vue": "^3.5.0"
   },
   "author": {

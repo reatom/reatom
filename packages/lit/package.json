@@ -27,7 +27,7 @@
   },
   "peerDependencies": {
     "lit": "^2.6.0",
-    "@reatom/core": "1000.0.0-alpha.24"
+    "@reatom/core": "1000.0.0-alpha.25"
   },
   "devDependencies": {
     "vite": "^5.0.0"

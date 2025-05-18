@@ -1,6 +1,6 @@
 {
   "name": "@reatom/core",
-  "version": "1000.0.0-alpha.24",
+  "version": "1000.0.0-alpha.25",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -53,12 +53,14 @@
   "files": [
     "/build"
   ],
+  "dependencies": {
+    "@standard-schema/spec": "^1.0.0"
+  },
   "devDependencies": {
     "@artalar/act": "latest",
     "@frp-ts/core": "latest",
     "@ngrx/store": "latest",
     "@preact/signals-core": "latest",
-    "@standard-schema/spec": "^1.0.0",
     "@types/node": "latest",
     "@webreflection/signal": "latest",
     "alien-signals": "^1.0.13",
