@@ -1,6 +1,7 @@
-import { test, expect, vi } from 'vitest'
-import { notify, ParseAtoms, parseAtoms } from '@reatom/core'
+import { type Atom, notify, type ParseAtoms, parseAtoms } from '@reatom/core'
+import { expect, expectTypeOf, test, vi } from 'vitest'
 import { z } from 'zod'
+
 import { reatomZod } from './'
 
 test('base API', async () => {
@@ -95,6 +96,48 @@ test('right values for pipeline', async () => {
   })
 
   expect(model.pipeline()).toBe(dateValue)
+
+  const date = new Date()
+  date.setFullYear(2000)
+  model.pipeline.set(date.toISOString())
+  expect(model.pipeline()).toBeInstanceOf(Date)
+  expect(model.pipeline().toISOString()).toBe(date.toISOString())
+})
+
+test('union', async () => {
+  const schema = z.union([z.number(), z.string()])
+
+  const model = reatomZod(schema)
+
+  expectTypeOf(model).toExtend<Atom<number | string>>()
+
+  expect(model()).toBe(0)
+
+  model.set('str')
+  expect(model()).toBe('str')
+
+  model.set(123)
+  expect(model()).toBe(123)
+})
+
+test('discriminated union', () => {
+  const schema = z.discriminatedUnion('type', [
+    z.object({ type: z.literal('a'), a: z.number() }),
+    z.object({ type: z.literal('b'), b: z.string() }),
+  ])
+
+  const model = reatomZod(schema, {
+    initState: { type: 'a', a: 42 },
+  })
+
+  expect(model().type).toBe('a')
+  // @ts-expect-error
+  expect(() => model.set({ type: 'b', a: 'test' })).toThrow()
+  model.set({ type: 'b', b: 'test' })
+
+  const state = model()
+  expect(state.type).toBe('b')
+  if (state.type === 'b') expect(state.b()).toBe('test')
 })
 
 test('right values for lazy', async () => {
@@ -129,4 +172,53 @@ test('should throw errors for mismatching contracts', async () => {
 
   expect(() => schema.n.set(-1)).toThrow()
   expect(() => schema.s.set('3333')).toThrow()
+})
+
+test('should process update callback', () => {
+  const schema = z.object({ n: z.number() })
+
+  const model = reatomZod(schema)
+
+  expect(model.n()).toBe(0)
+  model.n.set((s) => s + 1)
+  expect(model.n()).toBe(1)
+})
+
+test('optional', () => {
+  const schema = z.object({
+    optional: z.string().optional(),
+  })
+
+  const model = reatomZod(schema)
+
+  // TODO should it be undefined?
+  expect(model.optional()).toBe('')
+  model.optional.set('test')
+  expect(model.optional()).toBe('test')
+  model.optional.set(undefined)
+  expect(model.optional()).toBe(undefined)
+})
+
+test('date set overload', () => {
+  const schema = z.object({
+    date: z.date(),
+  })
+
+  const model = reatomZod(schema)
+  const dateObj = new Date(2000, 0, 1)
+
+  expect(model.date()).toBeInstanceOf(Date)
+  model.date.set(dateObj)
+  // expect(model.date()).toBe(dateObj)
+  expect(model.date().toISOString()).toBe(dateObj.toISOString())
+
+  const timestamp = dateObj.getTime()
+  model.date.set(timestamp)
+  expect(model.date()).toBeInstanceOf(Date)
+  expect(model.date().getTime()).toBe(timestamp)
+
+  const dateString = dateObj.toISOString()
+  model.date.set(dateString)
+  expect(model.date()).toBeInstanceOf(Date)
+  expect(model.date().toISOString()).toBe(dateString)
 })
