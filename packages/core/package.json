@@ -1,20 +1,25 @@
 {
   "name": "@reatom/core",
-  "version": "1000.0.0-alpha.25",
+  "version": "1000.0.0-alpha.26",
   "publishConfig": {
     "tag": "alpha"
   },
-  "private": true,
   "description": "The ultimate state manager",
-  "type": "module",
-  "exports": "./src/index.ts",
-  "sideEffects": true,
+  "exports": {
+    "types": "./build/index.d.ts",
+    "require": "./build/index.js",
+    "default": "./build/index.mjs"
+  },
+  "main": "build/index.js",
+  "module": "build/index.mjs",
+  "types": "build/index.d.ts",
+  "sideEffects": false,
   "browserslist": [
     "last 1 year"
   ],
   "scripts": {
-    "prePublish": "npm run build && cd dist",
-    "build": "tsc -p ./tsconfig.bundle.json && eslint src --fix && prettier src -w && npm run test && npm run test:browser && smartbundle",
+    "prepublishOnly": "tsc -p ./tsconfig.bundle.json && eslint src --fix && prettier src -w && npm run build",
+    "build": "npm run test && npm run test:browser && yoctobundle",
     "test": "vitest run",
     "test:browser": "vitest run --config=vitest.browser.config.ts",
     "test:watch": "vitest",
@@ -53,14 +58,12 @@
   "files": [
     "/build"
   ],
-  "dependencies": {
-    "@standard-schema/spec": "^1.0.0"
-  },
   "devDependencies": {
     "@artalar/act": "latest",
     "@frp-ts/core": "latest",
     "@ngrx/store": "latest",
     "@preact/signals-core": "latest",
+    "@standard-schema/spec": "^1.0.0",
     "@types/node": "latest",
     "@webreflection/signal": "latest",
     "alien-signals": "^1.0.13",
@@ -78,7 +81,6 @@
     "s-js": "latest",
     "solid-js": "latest",
     "spred": "latest",
-    "typescript": "^5.8.3",
     "usignal": "latest",
     "whatsup": "latest",
     "wonka": "latest",

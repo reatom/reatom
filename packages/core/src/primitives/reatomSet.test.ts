@@ -103,7 +103,7 @@ describe('reatomSet', () => {
     const b = reatomSet<number>()
     expect(b.size()).toBe(0)
 
-    b.set([1, 2]);
+    b.set([1, 2])
     expect(b.size()).toBe(2)
 
     b.set((prev) => {

@@ -1,4 +1,7 @@
-import { type Action, type Ext, withMiddleware, wrap } from '@reatom/core'
+import type { Action } from '../core'
+import type { Ext } from '../core'
+import { withMiddleware } from '../core'
+import { wrap } from '../methods'
 
 /**
  * Creates a mixin that retries an async action when it fails coz of a suspension

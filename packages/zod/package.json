@@ -1,20 +1,25 @@
 {
   "name": "@reatom/zod",
-  "version": "1000.0.0-alpha.4",
+  "version": "1000.0.0-alpha.5",
   "publishConfig": {
     "tag": "alpha"
   },
-  "private": true,
+  "sideEffects": false,
   "description": "Reatom for zod",
-  "type": "module",
-  "exports": "./src/index.ts",
-  "sideEffects": true,
+  "exports": {
+    "types": "./build/index.d.ts",
+    "require": "./build/index.js",
+    "default": "./build/index.mjs"
+  },
+  "main": "build/index.js",
+  "module": "build/index.module.js",
+  "types": "build/index.d.ts",
   "browserslist": [
     "last 1 year"
   ],
   "scripts": {
-    "prePublish": "npm run build && cd dist",
-    "build": "eslint src --fix && prettier src -w && npm run test && smartbundle",
+    "prepublishOnly": "eslint src --fix && prettier src -w && npm run build",
+    "build": "npm run test && yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
@@ -47,8 +52,5 @@
   ],
   "files": [
     "/build"
-  ],
-  "devDependencies": {
-    "typescript": "^5.8.3"
-  }
+  ]
 }

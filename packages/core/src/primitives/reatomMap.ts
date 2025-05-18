@@ -2,8 +2,11 @@ import type { Action, AtomLike } from '../core'
 import type { Computed } from '../core'
 import { action, atom, computed, named } from '../core'
 
-type StateInit<Key, Value> = Map<Key, Value> | ConstructorParameters<typeof Map<Key, Value>>[0];
-const createMap = <Key, Value>(init: StateInit<Key, Value>) => init instanceof Map ? init : new Map(init);
+type StateInit<Key, Value> =
+  | Map<Key, Value>
+  | ConstructorParameters<typeof Map<Key, Value>>[0]
+const createMap = <Key, Value>(init: StateInit<Key, Value>) =>
+  init instanceof Map ? init : new Map(init)
 
 export interface MapAtom<Key, Value> extends AtomLike<Map<Key, Value>, []> {
   /**
@@ -11,7 +14,9 @@ export interface MapAtom<Key, Value> extends AtomLike<Map<Key, Value>, []> {
    * @param update - Function that takes the current state and returns a new state
    * @returns The new state value
    */
-  setState(update: (state: Map<Key, Value>) => StateInit<Key, Value>): Map<Key, Value>
+  setState(
+    update: (state: Map<Key, Value>) => StateInit<Key, Value>,
+  ): Map<Key, Value>
 
   /**
    * Set the atom's state to a new value
@@ -39,7 +44,9 @@ export const reatomMap = <Key, Value>(
   return atom(atomInitState, name)
     .extend((target) => ({
       setState(
-        update: StateInit<Key, Value> | ((state: Map<Key, Value>) => StateInit<Key, Value>),
+        update:
+          | StateInit<Key, Value>
+          | ((state: Map<Key, Value>) => StateInit<Key, Value>),
       ) {
         if (typeof update === 'function') {
           update = update(target())

@@ -1,8 +1,9 @@
 import type { Action, Atom, Computed } from '../core'
 import { atom, computed, named, withParams } from '../core'
 
-type StateInit<Value> = Set<Value> | ConstructorParameters<typeof Set<Value>>[0];
-const createSet = <Value>(init: StateInit<Value>) => init instanceof Set ? init : new Set(init)
+type StateInit<Value> = Set<Value> | ConstructorParameters<typeof Set<Value>>[0]
+const createSet = <Value>(init: StateInit<Value>) =>
+  init instanceof Set ? init : new Set(init)
 
 export interface SetAtom<T> extends Atom<Set<T>, [newState: StateInit<T>]> {
   add: Action<[el: T], Set<T>>
@@ -20,9 +21,11 @@ export const reatomSet = <T>(
   const atomInitState = createSet(initState)
 
   return atom(atomInitState, name)
-    .extend(withParams((init: StateInit<T> | ((current: Set<T>) => Set<T>)) => (
-      typeof init === 'function' ? init : createSet(init)
-    )))
+    .extend(
+      withParams((init: StateInit<T> | ((current: Set<T>) => Set<T>)) =>
+        typeof init === 'function' ? init : createSet(init),
+      ),
+    )
     .actions((target) => ({
       add: (el: T) =>
         target.set((prev) => (prev.has(el) ? prev : new Set(prev).add(el))),
