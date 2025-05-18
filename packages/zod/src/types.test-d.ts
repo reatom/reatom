@@ -105,7 +105,7 @@ test('right types for pipeline', async () => {
   const model = reatomZod(pipelineSchema)
   type InferedSchema = z.infer<typeof pipelineSchema>
 
-  expectTypeOf(model).toEqualTypeOf<Atom<InferedSchema>>()
+  expectTypeOf(model).toEqualTypeOf<Atom<InferedSchema, [string | number | Date]>>()
 })
 
 test('right types for lazy', async () => {
@@ -123,10 +123,9 @@ test('right types for lazy', async () => {
   expectTypeOf(model.string).toEqualTypeOf<Atom<InferedSchema['string']>>()
 })
 
-// TODO @
-// test('union types', async () => {
-//   const schema = z.union([z.number(), z.string()])
-//   const model = reatomZod(schema)
+test('union types', async () => {
+  const schema = z.union([z.number(), z.string()])
+  const model = reatomZod(schema)
 
-//   expectTypeOf(model).toExtend<Atom<number | string>>()
-// })
+  expectTypeOf(model).toExtend<Atom<number | string>>()
+})
