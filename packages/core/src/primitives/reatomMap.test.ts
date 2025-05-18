@@ -45,5 +45,14 @@ describe(`reatomMap`, () => {
 
     mapAtom = reatomMap()
     expect(mapAtom.size()).toBe(0)
+
+    mapAtom.setState(defaultMapEntries)
+    expect(mapAtom.size()).toBe(3)
+
+    mapAtom.setState((prev) => {
+      expect(prev).toEqual(new Map(defaultMapEntries))
+      return [['key', 2]]
+    })
+    expect(mapAtom.size()).toBe(1)
   })
 })

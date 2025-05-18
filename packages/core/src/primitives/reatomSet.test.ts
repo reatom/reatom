@@ -100,7 +100,16 @@ describe('reatomSet', () => {
     const a = reatomSet(new Set([1, 2, 3]))
     expect(a.size()).toBe(3)
 
-    const b = reatomSet()
+    const b = reatomSet<number>()
     expect(b.size()).toBe(0)
+
+    b.set([1, 2]);
+    expect(b.size()).toBe(2)
+
+    b.set((prev) => {
+      expect(prev).toEqual(new Set([1, 2]))
+      return new Set([1, 2, 3])
+    })
+    expect(b.size()).toBe(3)
   })
 })
