@@ -11,6 +11,8 @@ import {
   isAtom,
   action,
   Rec,
+  AbortExt,
+  withAbort,
 } from '../'
 
 import {
@@ -48,7 +50,10 @@ export interface FieldSet<T extends FormInitState> {
   focus: Computed<FieldFocus>
 
   /** Atom with validation state of the fieldset, computed from all the fields in `fieldsList` */
-  validation: Computed<FieldValidation>
+  validation: Computed<FieldValidation> & {
+    /** Action to trigger fieldset validation. */
+    trigger: Action<[], FieldValidation> & AbortExt
+  }
 
   /** Action to set initial values for each field or field array in the fieldset */
   init: Action<[initState: FormPartialState<T>], void>
@@ -87,6 +92,7 @@ export const reatomFieldSet = <T extends FormInitState>(
   }, `${name}.focus`).extend(withMemo())
 
   const validation = computed(() => {
+    const promises: Promise<{ error: undefined | string }>[] = []
     const validation = { ...fieldInitValidation }
     validation.triggered = true
 
@@ -96,12 +102,27 @@ export const reatomFieldSet = <T extends FormInitState>(
       const { triggered, validating, error } = field.validation()
 
       validation.triggered &&= triggered
-      validation.validating ||= validating
       validation.error ||= error
+
+      if (validating) promises.push(validating)
     }
 
+    validation.validating = promises.length
+      ? Promise.all(promises).then((results) => ({
+          error: results.find((r) => !!r.error)?.error,
+        }))
+      : undefined
+
     return validation
-  }, `${name}.validation`).extend(withMemo())
+  }, `${name}.validation`).extend(withMemo(), (target) => ({
+    trigger: action(() => {
+      for (const field of fieldsList()) {
+        if (!field.validation().triggered) field.validation.trigger()
+      }
+
+      return target()
+    }, `${target.name}.trigger`).extend(withAbort()),
+  }))
 
   const reinitState = (initState: FormPartialState<T>, fields: FormFields) => {
     for (const [key, value] of Object.entries(initState as Rec)) {

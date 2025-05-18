@@ -146,8 +146,7 @@ const form = reatomForm(name => ({
 
 Also, you can extend existing smart atoms with the field functionality. In this case, the atom itself will become the state of the field, and any methods that mutate the extended atom will change the state of this field.
 ```ts
-import { reatomBoolean } from '@reatom/primitives'
-import { withField } from '@reatom/core'
+import { reatomForm, reatomBoolean, withField } from '@reatom/core'
 
 const form = reatomForm(name => ({
   active: reatomBoolean(false, `${name}.active`).pipe(withField())
@@ -260,8 +259,7 @@ Since we use the "field as model" approach and each field is an object, we can a
 You can create more complex array fields with custom structures:
 
 ```ts
-import { reatomForm, fieldArray, withField } from '@reatom/core'
-import { reatomBoolean } from '@reatom/primitives'
+import { reatomForm, fieldArray, withField, reatomBoolean } from '@reatom/core'
 
 const contactForm = reatomForm({
   name: '',
@@ -336,7 +334,7 @@ const checkoutForm = reatomForm({
 
 // Create field sets for each step
 const personalInfoSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.personalInfoSet')
-const shippingInfoSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.shippingInfoSet')
+const shippingInfoSet = reatomFieldSet(checkoutForm.fields.shipping, 'checkoutForm.shippingInfoSet')
 ```
 
 Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
@@ -356,7 +354,7 @@ By composing form and reatom primitives, you can solve long-standing problems in
 This recipe shows how to load form values from an API. It creates an async action that fetches data and resets the form with the retrieved values when the request completes. The `ready` atom can be used to show a loading state.
 
 ```ts
-import { reatomForm, computed, withAsync, wrap } from '@reatom/core'
+import { reatomForm, computed, withAsync, wrap, withCallHook } from '@reatom/core'
 
 const profileForm = reatomForm({
   username: '',
@@ -404,7 +402,7 @@ There are two approaches to implement validation that depends on other fields.
 The first approach uses field-level validation. The `confirmPassword` field directly accesses the value of the `password` field to perform the comparison:
 
 ```ts
-import { reatomForm } from '@reatom/core'
+import { reatomForm, reatomField } from '@reatom/core'
 
 const loginForm = reatomForm(name => ({
   username: reatomField('', `${name}.username`),
@@ -422,7 +420,7 @@ const loginForm = reatomForm(name => ({
 The second approach uses schema-level validation with Zod. This centralizes validation logic in the schema and uses the `refine` method to add a custom validation rule:
 
 ```ts
-import { reatomForm } from '@reatom/core'
+import { reatomForm, reatomField } from '@reatom/core'
 import { z } from 'zod'
 
 const schema = z.object({
@@ -451,6 +449,9 @@ This recipe demonstrates how to automatically focus on the first field with a va
 Each field has an `elementRef` property that can be used to store a reference to the DOM element associated with the field. The `elementRef` interface matches the `HTMLElement` interface, allowing you to call standard DOM methods like `focus()`.
 
 ```ts
+import { reatomForm, withCallHook } from '@reatom/core'
+import { z } from 'zod'
+
 const form = reatomForm({
   email: '',
   age: 12
@@ -471,18 +472,27 @@ form.submit.onReject.extend(
 
 You can extend the `elementRef` type using interface augmentation if you need to store additional data or custom properties. This is particularly useful when working with custom input components that might have their own API beyond the standard HTMLElement interface.
 
+## Fieldset API
+
+The fieldset created with `reatomFieldSet` has the following properties:
+
+- `fields`: Object containing all the fields created for this fieldset.
+- `fieldsState`: Atom with the state of the fieldset, computed from all the fields.
+- `focus`: Atom with focus state of the fieldset, computed from all the fields.
+- `init`: Action to initialize the fieldset with a partial state.
+- `reset`: Action to reset the state, the value, the validation, and the focus states.
+- `validation`: Atom with validation state of the fieldset, computed from all the fields.
+  - `trigger`: Action to trigger fieldset validation. If there is at least one field in the set that has asynchronous validation, the `validating` property is expected to become a Promise, which will resolve when all nested validations are completed.
+
 ## Form API
 
-The form created with `reatomForm` has the following properties:
+`reatomForm` is a basically extension of fieldset, which provides submit and schema validation functionality.
+Thus, the `reatomForm` gets all the same properties as the `reatomFieldSet`, but with the addition of:
 
-- `fields`: Object containing all the fields created for this form.
-- `fieldsState`: Atom with the state of the form, computed from all the fields.
-- `focus`: Atom with focus state of the form, computed from all the fields.
-- `init`: Action to initialize the form with a partial state.
-- `reset`: Action to reset the state, the value, the validation, and the focus states.
 - `submit`: Submit async handler. It checks the validation of all the fields, calls the form's `validate` options handler, and then the `onSubmit` options handler.
 - `submitted`: Atom indicating if the form has been submitted.
 - `validation`: Atom with validation state of the form, computed from all the fields.
+  - `trigger`: Action to trigger form validation. Works like in fieldsets but it's always asynchronous, performs form validation via the `validate` function from the form options and finnaly returns schema validation result if it's defined
 
 ### Form Options
 
@@ -521,7 +531,7 @@ Here is the list of all additional properties and methods:
   - `error`: The field validation error text, undefined if the field is valid.
   - `meta`: Additional validation metadata.
   - `triggered`: The validation actuality status.
-  - `validating`: The field async validation status.
+  - `validating`: If asynchronous validation is running, it returns a promise which will be resolved after the validation.
   - `trigger`: Action to trigger field validation.
   - `setError`: Action to set an error for the field.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
@@ -529,10 +539,11 @@ Here is the list of all additional properties and methods:
 - `reset`: Action to reset the state, the value, the validation, and the focus.
 - `disabled`: Atom that defines if the field is disabled.
 - `elementRef`: Atom with an element reference. Should be synchronized with the actual DOM element.
-- `keepErrorDuringValidating`: Atom that defines the reset behavior of the validation state during async validation.
-- `keepErrorOnChange`: Atom that defines the reset behavior of the validation state on field change.
-- `validateOnChange`: Atom that defines if the validation should be triggered with every field change.
-- `validateOnBlur`: Atom that defines if the validation should be triggered on the field blur.
+- `options`: Record atom with all related field options:
+  - `keepErrorDuringValidating`: Value that defines the reset behavior of the validation state during async validation.
+  - `keepErrorOnChange`: Value that defines the reset behavior of the validation state on field change.
+  - `validateOnChange`: Value that defines if the validation should be triggered with every field change.
+  - `validateOnBlur`: Value that defines if the validation should be triggered on the field blur.
 
 By combining these statuses you can derive additional meta information:
 

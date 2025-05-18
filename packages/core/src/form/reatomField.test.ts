@@ -137,20 +137,21 @@ test(`validation concurrency`, async () => {
 
   field.validation.trigger()
   expect(field.validation()).toMatchObject({
-    validating: true,
     triggered: true,
     error: undefined,
   })
+  expect(field.validation().validating).toBeInstanceOf(Promise)
+
   field.change(1)
   notify()
   expect(field.validation()).toMatchObject(fieldInitValidation)
 
   field.validation.trigger()
   expect(field.validation()).toMatchObject({
-    validating: true,
     triggered: true,
     error: undefined,
   })
+  expect(field.validation().validating).toBeInstanceOf(Promise)
   field.reset()
   expect(field.validation()).toMatchObject(fieldInitValidation)
 
@@ -164,15 +165,15 @@ test(`validation concurrency`, async () => {
   field.change(3)
   notify()
   expect(field.validation()).toMatchObject({
-    validating: true,
     triggered: true,
     error: undefined,
   })
+  expect(field.validation().validating).toBeInstanceOf(Promise)
 
   await wrap(sleep(5))
 
   expect(field.validation()).toMatchObject({
-    validating: false,
+    validating: undefined,
     triggered: true,
     error: undefined,
   })
