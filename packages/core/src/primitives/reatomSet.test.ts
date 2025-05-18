@@ -105,5 +105,11 @@ describe('reatomSet', () => {
 
     b.set([1, 2]);
     expect(b.size()).toBe(2)
+
+    b.set((prev) => {
+      expect(prev).toEqual(new Set([1, 2]))
+      return new Set([1, 2, 3])
+    })
+    expect(b.size()).toBe(3)
   })
 })

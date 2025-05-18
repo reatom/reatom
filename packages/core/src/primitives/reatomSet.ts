@@ -20,11 +20,9 @@ export const reatomSet = <T>(
   const atomInitState = createSet(initState)
 
   return atom(atomInitState, name)
-    .extend(withParams((init: StateInit<T> | ((current: Set<T>) => StateInit<T>)) => {
-      return typeof init === 'function'
-        ? (state: Set<T>) => createSet(init(state))
-        : createSet(init)
-    }))
+    .extend(withParams((init: StateInit<T> | ((current: Set<T>) => Set<T>)) => (
+      typeof init === 'function' ? init : createSet(init)
+    )))
     .actions((target) => ({
       add: (el: T) =>
         target.set((prev) => (prev.has(el) ? prev : new Set(prev).add(el))),
