@@ -1,6 +1,6 @@
 {
   "name": "@reatom/lens",
-  "version": "3.11.8",
+  "version": "3.12.0",
   "private": false,
   "sideEffects": false,
   "description": "FRP operators and other utilities for the Reatom state manager",
