@@ -118,11 +118,11 @@ export type DeepPartial<T, Skip = never> = {
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
-export type SubmitAction = Action<[], Promise<void>> &
-  AsyncExt<[], void, Error | undefined> &
+export type SubmitAction<Return> = Action<[], Promise<Return>> &
+  AsyncExt<[], Return, Error | undefined> &
   AbortExt
 
-export interface Form<T extends FormInitState, SchemaState>
+export interface Form<T extends FormInitState = FormInitState, SchemaState = any, SubmitReturn = void>
   extends Omit<FieldSet<T>, 'validation'> {
   /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
   validation: Computed<FieldValidation> & {
@@ -136,7 +136,7 @@ export interface Form<T extends FormInitState, SchemaState>
   }
 
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
-  submit: SubmitAction
+  submit: SubmitAction<SubmitReturn>
 
   /** Atom with submitted state of the form */
   submitted: Computed<boolean>
@@ -174,9 +174,9 @@ export interface BaseFormOptions {
   validateOnBlur?: boolean
 }
 
-export interface FormOptionsWithSchema<State> extends BaseFormOptions {
+export interface FormOptionsWithSchema<State, SubmitReturn> extends BaseFormOptions {
   /** The callback to process valid form data, typed according to the schema */
-  onSubmit?: (state: State) => void | Promise<void>
+  onSubmit?: (state: State) => SubmitReturn | Promise<SubmitReturn>
 
   /** The callback to validate form fields, typed according to the schema */
   validate?: (state: State) => any
@@ -185,10 +185,10 @@ export interface FormOptionsWithSchema<State> extends BaseFormOptions {
   schema: StandardSchemaV1<State>
 }
 
-export interface FormOptionsWithoutSchema<T extends FormInitState>
+export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn>
   extends BaseFormOptions {
   /** The callback to process valid form data, typed according to the raw form state */
-  onSubmit?: (state: FormState<T>) => void | Promise<void>
+  onSubmit?: (state: FormState<T>) => SubmitReturn | Promise<SubmitReturn>
 
   /** The callback to validate form fields, typed according to the raw form state */
   validate?: (state: FormState<T>) => any
@@ -366,28 +366,28 @@ const resolveFieldByPath = <T extends FormInitState>(
   }
 }
 
-export function reatomForm<T extends FormInitState, SchemaState>(
+export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   initState: T | ((name: string) => T),
-  optionsWithSchema: FormOptionsWithSchema<SchemaState>,
-): Form<T, SchemaState>
+  optionsWithSchema: FormOptionsWithSchema<SchemaState, SubmitReturn>,
+): Form<T, SchemaState, SubmitReturn>
 
-export function reatomForm<T extends FormInitState>(
+export function reatomForm<T extends FormInitState, SubmitReturn>(
   initState: T | ((name: string) => T),
-  options?: FormOptionsWithoutSchema<T>,
-): Form<T, undefined>
+  options?: FormOptionsWithoutSchema<T, SubmitReturn>,
+): Form<T, undefined, SubmitReturn>
 
 export function reatomForm<T extends FormInitState>(
   initState: T | ((name: string) => T),
   name?: string,
-): Form<T, undefined>
+): Form<T, undefined, void>
 
-export function reatomForm<T extends FormInitState, SchemaState>(
+export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   initState: T | ((name: string) => T),
   options:
     | string
-    | FormOptionsWithSchema<SchemaState>
-    | FormOptionsWithoutSchema<T> = {},
-): Form<T, SchemaState> {
+    | FormOptionsWithSchema<SchemaState, SubmitReturn>
+    | FormOptionsWithoutSchema<T, SubmitReturn> = {},
+): Form<T, SchemaState, SubmitReturn> {
   const {
     name = named('form'),
     onSubmit,
@@ -507,14 +507,17 @@ export function reatomForm<T extends FormInitState, SchemaState>(
   const submit = action(async () => {
     const state = await wrap(validationTrigger())
 
-    if (onSubmit) {
-      const promise = onSubmit(state)
-      if (promise instanceof Promise) await wrap(promise)
-    }
+    let result
 
+    if (onSubmit) {
+      result = onSubmit(state)
+      if (result instanceof Promise) result = await wrap(result)
+    }
+    
     submitted.set(true)
 
     if (resetOnSubmit) reset()
+    return result as SubmitReturn
   }, `${name}.onSubmit`).extend(
     withAsync({ resetError: 'onFulfill' }),
     (target) =>
