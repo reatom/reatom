@@ -182,7 +182,7 @@ export interface FormOptionsWithSchema<State, SubmitReturn> extends BaseFormOpti
   validate?: (state: State) => any
 
   /** The schema which supports StandardSchemaV1 specification to validate form fields. */
-  schema: StandardSchemaV1<State>
+  schema: StandardSchemaV1<unknown, State>
 }
 
 export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn>
