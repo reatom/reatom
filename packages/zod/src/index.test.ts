@@ -202,6 +202,7 @@ test('optional', () => {
 test('date set overload', () => {
   const schema = z.object({
     date: z.date(),
+    optionalDate: z.date().optional(),
   })
 
   const model = reatomZod(schema)
@@ -221,4 +222,11 @@ test('date set overload', () => {
   model.date.set(dateString)
   expect(model.date()).toBeInstanceOf(Date)
   expect(model.date().toISOString()).toBe(dateString)
+
+  model.optionalDate.set(dateObj)
+  expect(model.optionalDate()).toBeInstanceOf(Date)
+  expect(model.optionalDate()!.toISOString()).toBe(dateString)
+
+  model.optionalDate.set(undefined)
+  expect(model.optionalDate()).toBe(undefined)
 })
