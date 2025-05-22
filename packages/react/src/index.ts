@@ -1,14 +1,15 @@
 import React from 'react'
 import {
   assert,
-  Frame,
+  type Frame,
   named,
   ReatomError,
   reatomAbstractRender,
-  Rec,
+  type Rec,
   STACK,
   wrap,
   action,
+  top,
 } from '@reatom/core'
 
 // https://github.com/webpack/webpack/issues/12960#issuecomment-1086272918
@@ -126,4 +127,18 @@ export let reatomFactoryComponent = <Props extends Rec = {}>(
   init: (initProps: Props) => (props: Props) => React.ReactNode,
   name?: string,
 ): ((props: Props) => React.ReactNode) =>
-  reatomComponent((props) => React.useMemo(() => init(props), [])(props), name)
+  reatomComponent(
+    (props) =>
+      React.useMemo(() => {
+        const frame = top()
+        try {
+          // @ts-expect-error internals
+          frame.atom.__reatom.linking = false
+          return init(props)
+        } finally {
+          // @ts-expect-error internals
+          frame.atom.__reatom.linking = true
+        }
+      }, [])(props),
+    name,
+  )

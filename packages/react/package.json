@@ -1,6 +1,6 @@
 {
   "name": "@reatom/react",
-  "version": "1000.0.0-alpha.11",
+  "version": "1000.0.0-alpha.12",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -25,7 +25,8 @@
   },
   "peerDependencies": {
     "@reatom/core": "1000.0.0-alpha.26",
-    "react": ">=18.2.0"
+    "react": ">=18.2.0",
+    "react-dom": ">=18.2.0"
   },
   "author": "artalar",
   "license": "MIT",
@@ -42,7 +43,9 @@
   ],
   "devDependencies": {
     "@types/react": "^18.2.77",
+    "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.4.1",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   }
 }
