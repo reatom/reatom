@@ -209,7 +209,7 @@ export const getDefaultState = (
     }
 
     if (
-      def.typeName === z.ZodFirstPartyTypeKind.ZodMap &&
+      def.typeName === z.ZodFirstPartyTypeKind.ZodSet &&
       !(initState instanceof Set) &&
       typeof initState[Symbol.iterator] === 'function'
     ) {

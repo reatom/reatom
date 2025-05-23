@@ -7,9 +7,16 @@
   "sideEffects": false,
   "description": "Reatom for zod",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    ".": {
+      "types": "./build/index.d.ts",
+      "require": "./build/index.js",
+      "default": "./build/index.mjs"
+    },
+    "./v4": {
+      "types": "./build/v4.d.ts",
+      "require": "./build/v4.js",
+      "default": "./build/v4.mjs"
+    }
   },
   "main": "build/index.js",
   "module": "build/index.module.js",
@@ -25,13 +32,17 @@
   },
   "dependencies": {
     "@reatom/core": "1000.0.0-alpha.25",
-    "zod": "^3.24.4"
+    "zod": "^3.25.0"
   },
   "author": "artalar",
   "maintainers": [
     {
       "name": "artalar",
       "url": "https://github.com/artalar"
+    },
+    {
+      "name": "Xelson",
+      "url": "https://github.com/xelson"
     }
   ],
   "license": "MIT",
