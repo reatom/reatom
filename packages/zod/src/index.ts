@@ -99,7 +99,7 @@ export type ZodAtomization<T extends z.ZodFirstPartySchemaTypes, Union = never, 
                             : T extends z.ZodDate
                               ? Atom<(Date & Intersection) | Union, [Date | string | number]>
                               : T extends z.ZodArray<infer T>
-                                ? LinkedListAtom<[void | Partial<z.infer<T>>], ZodAtomization<T>> // FIXME Union
+                                ? LinkedListAtom<[void | Partial<z.infer<T>>], { value: ZodAtomization<T> }> // TODO Union and Intersection for LL
                                 : T extends z.ZodTuple<infer Tuple>
                                   ? Atom<(z.infer<Tuple[number]> & Intersection) | Union>
                                   : T extends z.ZodObject<infer Shape>
@@ -367,19 +367,20 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       // TODO @artalar generate a better name, instead of using `named`
       theAtom = reatomLinkedList(
         {
-          create: (itemInitState) =>
-            reatomZod(def.type, {
+          create: (itemInitState) => ({ 
+            value: reatomZod(def.type, {
               sync,
               initState: itemInitState,
               name: named(name),
             }),
-          initState: (state as any[] | undefined)?.map((itemInitState: any) =>
-            reatomZod(def.type, {
+          }),
+          initState: (state as any[] | undefined)?.map((itemInitState: any) => ({
+            value: reatomZod(def.type, {
               sync,
               initState: itemInitState,
               name: named(name),
-            }),
-          ),
+            })
+          }))
         },
         name,
       )
@@ -513,12 +514,18 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
 
   theAtom ??= atom(state, name)
 
+  // TODO: with withParams for reatomLinkedList
+  if(def.typeName !== z.ZodFirstPartyTypeKind.ZodArray) {
+    theAtom.extend(
+      withParams((payload) => {
+        return typeof payload === 'function'
+          ? (state: any) => parse(payload(state))
+          : parse(payload)
+      })
+    )
+  }
+
   theAtom.extend(
-    withParams((payload) => {
-      return typeof payload === 'function'
-        ? (state: any) => parse(payload(state))
-        : parse(payload)
-    }),
     withChangeHook(() => {
       if (isCausedBy(silentUpdate)) return
       sync?.()

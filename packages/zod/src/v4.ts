@@ -65,111 +65,109 @@ type DistributeIntersection<U, T> = U extends any ? U & T : never
 type OnlyStringKeys<T> = Exclude<T, number | symbol>
 
 // prettier-ignore
-export type ZodAtomization<T extends z.ZodFirstPartySchemaTypes, Union = never, Intersection = unknown> = T extends z.ZodAny
-  ? Atom<(any & Intersection) | Union>
+export type ZodAtomization<T extends z.core.$ZodType, Union = never, Intersection = unknown> = T extends z.ZodAny
+  ? Atom<any>
   : T extends z.core.$ZodBranded<infer T, infer Brand>
     ? ZodAtomization<T, Union, z.core.$brand<Brand> & Intersection>
-    : T extends z.ZodUnknown
+    : T extends z.core.$ZodUnknown
       ? Atom<(unknown & Intersection) | Union>
-      : T extends z.ZodAny
-        ? Atom<any>
-        : T extends z.ZodNever
-          ? never
-          : T extends z.ZodReadonly<infer Type>
-            ? (z.infer<Type> & Intersection) | Union
-            : T extends z.ZodUndefined
-              ? Atom<(undefined & Intersection) | Union>
-              : T extends z.ZodVoid
-                ? (undefined & Intersection) | Union
-                : T extends z.ZodNaN
-                  ? (number & Intersection) | Union
-                  : T extends z.ZodNull
-                    ? Atom<(null & Intersection) | Union>
-                    : T extends z.ZodLiteral<infer T>
-                      ? (T & Intersection) | Union
-                      : T extends z._ZodBoolean
+      : T extends z.core.$ZodNever
+        ? never
+        : T extends z.core.$ZodReadonly<infer Type>
+          ? (z.infer<Type> & Intersection) | Union
+          : T extends z.core.$ZodUndefined
+            ? Atom<(undefined & Intersection) | Union>
+            : T extends z.core.$ZodVoid
+              ? (undefined & Intersection) | Union
+              : T extends z.core.$ZodNaN
+                ? (number & Intersection) | Union
+                : T extends z.core.$ZodNull
+                  ? Atom<(null & Intersection) | Union>
+                  : T extends z.core.$ZodLiteral<infer T>
+                    ? (T & Intersection) | Union
+                    : T extends z.core.$ZodBoolean
+                      ? [Union] extends [never]
+                        ? BooleanAtom
+                        : Atom<(boolean & Intersection) | Union>
+                      : T extends z.core.$ZodNumber
                         ? [Union] extends [never]
-                          ? BooleanAtom
-                          : Atom<(boolean & Intersection) | Union>
-                        : T extends z._ZodNumber
-                          ? [Union] extends [never]
-                            ? NumberAtom
-                            : Atom<(number & Intersection) | Union>
-                          : T extends z._ZodBigInt
-                            ? Atom<(bigint & Intersection) | Union>
-                            : T extends z._ZodString
-                              ? Atom<(string & Intersection) | Union>
-                              : T extends z.ZodTemplateLiteral<infer Template>
-                                ? Atom<(Template & Intersection) | Union>
-                                : T extends z.ZodSymbol
-                                  ? Atom<(symbol & Intersection) | Union>
-                                  : T extends z._ZodDate
-                                    ? Atom<(Date & Intersection) | Union, [newState: Date | string | number]>
-                                    : T extends z.ZodArray<infer T>
-                                      ? LinkedListAtom<[void | Partial<z.infer<T>>], ZodAtomization<T>> // FIXME Union
-                                      : T extends z.ZodTuple<infer Tuple>
-                                        ? Atom<(z.infer<Tuple[number]> & Intersection) | Union>
-                                        : T extends z.ZodObject<infer Shape>
+                          ? NumberAtom
+                          : Atom<(number & Intersection) | Union>
+                        : T extends z.core.$ZodBigInt
+                          ? Atom<(bigint & Intersection) | Union>
+                          : T extends z.core.$ZodString
+                            ? Atom<(string & Intersection) | Union>
+                            : T extends z.core.$ZodTemplateLiteral<infer Template>
+                              ? Atom<(Template & Intersection) | Union>
+                              : T extends z.core.$ZodSymbol
+                                ? Atom<(symbol & Intersection) | Union>
+                                : T extends z.core.$ZodDate
+                                  ? Atom<(Date & Intersection) | Union, [newState: Date | string | number]>
+                                  : T extends z.core.$ZodArray<infer T>
+                                    ? LinkedListAtom<[param: z.infer<T>], { value: ZodAtomization<T>}> // TODO Union and Intersection for LL
+                                    : T extends z.core.$ZodTuple<infer Tuple>
+                                      ? Atom<(z.infer<Tuple[number]> & Intersection) | Union>
+                                      : T extends z.core.$ZodObject<infer Shape>
+                                        ? [Union] extends [never]
+                                          ? (Record<string, never> extends Shape ? Record<string, never> : {
+                                              [K in keyof Shape]: ZodAtomization<Shape[K]>;
+                                            }) & Intersection
+                                          : Atom<((Record<string, never> extends Shape ? Record<string, never> : { 
+                                              [K in keyof Shape]: ZodAtomization<Shape[K]> 
+                                            }) & Intersection) | Union>
+                                        : T extends z.core.$ZodRecord<infer KeyType, infer ValueType>
                                           ? [Union] extends [never]
-                                            ? (Record<string, never> extends Shape ? Record<string, never> : {
-                                                [K in keyof Shape]: ZodAtomization<Shape[K]>;
-                                              }) & Intersection
-                                            : Atom<((Record<string, never> extends Shape ? Record<string, never> : { 
-                                                [K in keyof Shape]: ZodAtomization<Shape[K]> 
-                                              }) & Intersection) | Union>
-                                          : T extends z.ZodRecord<infer KeyType, infer ValueType>
+                                            ? RecordAtom<Record<z.infer<KeyType>, ZodAtomization<ValueType>>>
+                                            : Atom<(Record<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
+                                          : T extends z.core.$ZodMap<infer KeyType, infer ValueType>
                                             ? [Union] extends [never]
-                                              ? RecordAtom<Record<z.infer<KeyType>, ZodAtomization<ValueType>>>
-                                              : Atom<(Record<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
-                                            : T extends z.ZodMap<infer KeyType, infer ValueType>
+                                              ? MapAtom<z.infer<KeyType>, ZodAtomization<ValueType>>
+                                              : Atom<(Map<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
+                                            : T extends z.core.$ZodSet<infer ValueType>
                                               ? [Union] extends [never]
-                                                ? MapAtom<z.infer<KeyType>, ZodAtomization<ValueType>>
-                                                : Atom<(Map<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
-                                              : T extends z.ZodSet<infer ValueType>
+                                                ? SetAtom<z.infer<ValueType>>
+                                                : Atom<(Set<z.infer<ValueType>> & Intersection) | Union>
+                                              : T extends z.core.$ZodEnum<infer Enum>
                                                 ? [Union] extends [never]
-                                                  ? SetAtom<z.infer<ValueType>>
-                                                  : Atom<(Set<z.infer<ValueType>> & Intersection) | Union>
-                                                : T extends z.ZodEnum<infer Enum>
-                                                  ? [Union] extends [never]
-                                                    ? EnumAtom<OnlyStringKeys<keyof Enum>>
-                                                    : Atom<(OnlyStringKeys<keyof Enum> & Intersection) | Union>
-                                                  : T extends z.ZodDefault<infer T>
+                                                  ? EnumAtom<OnlyStringKeys<keyof Enum>>
+                                                  : Atom<(OnlyStringKeys<keyof Enum> & Intersection) | Union>
+                                                : T extends z.core.$ZodDefault<infer T>
+                                                  ? ZodAtomization<T, Union extends undefined ? never : Union, Intersection>
+                                                  : T extends z.core.$ZodPrefault<infer T>
                                                     ? ZodAtomization<T, Union extends undefined ? never : Union, Intersection>
-                                                    : T extends z.ZodPrefault<infer T>
-                                                      ? ZodAtomization<T, Union extends undefined ? never : Union, Intersection>
-                                                      : T extends z.ZodTransform<infer Output, infer _Input>
-                                                        ? Atom<(Output & Intersection) | Union>
-                                                        : T extends z.ZodOptional<infer T>
-                                                          ? ZodAtomization<T, undefined | Union, Intersection>
-                                                          : T extends z.ZodCatch<infer T>
-                                                            ? ZodAtomization<T, Union, Intersection>
-                                                            : T extends z.ZodPipe<infer _T, infer Output>
-                                                              ? ZodAtomization<Output>
-                                                              : T extends z.ZodLazy<infer T>
-                                                                ? ZodAtomization<T>
-                                                                : T extends z.ZodNullable<infer T>
-                                                                  ? ZodAtomization<T, null | Union, Intersection>
-                                                                    : T extends z.ZodDiscriminatedUnion<infer T>
-                                                                    ? [Union] extends [never]
-                                                                      ? T extends Array<z.ZodObject<infer Shape>>
-                                                                        ? Computed<{
-                                                                            [K in keyof Shape]: ZodAtomization<Shape[K]>;
-                                                                          }> &
-                                                                            ({
-                                                                              set( value: { [K in keyof Shape]: z.infer<Shape[K]>; }): {
-                                                                                [K in keyof Shape]: ZodAtomization<Shape[K]>;
-                                                                              }
-                                                                            })
-                                                                        : unknown
+                                                    : T extends z.core.$ZodTransform<infer Output, infer _Input>
+                                                      ? Atom<(Output & Intersection) | Union>
+                                                      : T extends z.core.$ZodOptional<infer T>
+                                                        ? ZodAtomization<T, undefined | Union, Intersection>
+                                                        : T extends z.core.$ZodCatch<infer T>
+                                                          ? ZodAtomization<T, Union, Intersection>
+                                                          : T extends z.core.$ZodPipe<infer _T, infer Output>
+                                                            ? ZodAtomization<Output>
+                                                            : T extends z.core.$ZodLazy<infer T>
+                                                              ? ZodAtomization<T>
+                                                              : T extends z.core.$ZodNullable<infer T>
+                                                                ? ZodAtomization<T, null | Union, Intersection>
+                                                                  : T extends z.core.$ZodDiscriminatedUnion<infer T>
+                                                                  ? [Union] extends [never]
+                                                                    ? T extends Array<z.core.$ZodObject<infer Shape>>
+                                                                      ? Computed<{
+                                                                          [K in keyof Shape]: ZodAtomization<Shape[K]>;
+                                                                        }> &
+                                                                          ({
+                                                                            set( value: { [K in keyof Shape]: z.infer<Shape[K]>; }): {
+                                                                              [K in keyof Shape]: ZodAtomization<Shape[K]>;
+                                                                            }
+                                                                          })
                                                                       : unknown
-                                                                    : T extends z.ZodFile
-                                                                      ? Atom<(File & Intersection) | Union>
-                                                                      : T extends z.ZodCustom<infer Output>
-                                                                        ? Atom<(Output & Intersection) | Union>
-                                                                        : T extends z.ZodUnion<infer T>
-                                                                          ? Atom<DistributeIntersection<z.infer<T[number]>, Intersection> | Union>
-                                                                          // ? Atom<z.infer<T[number]> | Union>;
-                                                                          : T
+                                                                    : unknown
+                                                                  : T extends z.core.$ZodFile
+                                                                    ? Atom<(File & Intersection) | Union>
+                                                                    : T extends z.core.$ZodCustom<infer Output>
+                                                                      ? Atom<(Output & Intersection) | Union>
+                                                                      : T extends z.ZodUnion<infer T>
+                                                                        ? Atom<DistributeIntersection<z.infer<T[number]>, Intersection> | Union>
+                                                                        // ? Atom<z.infer<T[number]> | Union>;
+                                                                        : T
 
 type Primitive = null | undefined | string | number | boolean | symbol | bigint
 type BuiltIns = Primitive | Date | RegExp
@@ -391,19 +389,20 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       // TODO @artalar generate a better name, instead of using `named`
       theAtom = reatomLinkedList(
         {
-          create: (itemInitState) =>
-            reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
+          create: (itemInitState) => ({ 
+            value: reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
               sync,
               initState: itemInitState,
               name: named(name),
             }),
-          initState: (state as any[] | undefined)?.map((itemInitState: any) =>
-            reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
+          }),
+          initState: (state as any[] | undefined)?.map((itemInitState: any) => ({
+            value: reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
               sync,
               initState: itemInitState,
               name: named(name),
-            }),
-          ),
+            })
+          }))
         },
         name,
       )
@@ -549,12 +548,18 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
 
   theAtom ??= atom(state, name)
 
+  // TODO: with withParams for reatomLinkedList
+  if(def.type !== 'array') {
+    theAtom.extend(
+      withParams((payload) => {
+        return typeof payload === 'function'
+          ? (state: any) => parse(payload(state))
+          : parse(payload)
+      })
+    )
+  }
+
   theAtom.extend(
-    withParams((payload) => {
-      return typeof payload === 'function'
-        ? (state: any) => parse(payload(state))
-        : parse(payload)
-    }),
     withChangeHook(() => {
       if (isCausedBy(silentUpdate)) return
       sync?.()
