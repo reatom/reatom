@@ -1316,14 +1316,14 @@ server.get('*', (req, res) => {
 
 Join the vibrant Reatom community:
 
--   [GitHub Discussions](https://github.com/artalar/reatom/discussions) - Ask questions, share ideas.
--   [GitHub Issues](https://github.com/artalar/reatom/issues) - Report bugs, request features.
+-   [GitHub Discussions](https://github.com/reatom/reatom/discussions) - Ask questions, share ideas.
+-   [GitHub Issues](https://github.com/reatom/reatom/issues) - Report bugs, request features.
 -   [Discord](https://discord.gg/EPAKK5SNFh) - Chat with developers and the maintainer.
 -   [Twitter](https://twitter.com/reatomJS) - Stay updated with news and announcements.
 
 ## 🙏 Contributing
 
-Contributions are welcome! Whether it's bug reports, documentation improvements, or new features, please check out the [Contributing Guide](https://github.com/artalar/reatom/blob/v1000/CONTRIBUTING.md) to get started.
+Contributions are welcome! Whether it's bug reports, documentation improvements, or new features, please check out the [Contributing Guide](https://github.com/reatom/reatom/blob/v1000/CONTRIBUTING.md) to get started.
 
 ## FAQ
 

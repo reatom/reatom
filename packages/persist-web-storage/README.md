@@ -94,7 +94,7 @@ export const listResource = reatomResource(
 
 If you want to avoid flickering, all you have to do is add a small delay after the atom is connected. Subscribe / spy the data atom, wait the ready atom and then use the actual data.
 
-> [example](https://github.com/artalar/reatom/blob/v3/examples/react-persist-web/src/app.tsx)
+> [example](https://github.com/reatom/reatom/blob/v3/examples/react-persist-web/src/app.tsx)
 
 ```ts
 import { reatomResource, withCache, onConnect, sleep } from '@reatom/framework'

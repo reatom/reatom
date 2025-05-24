@@ -22,7 +22,7 @@ Before we start, you could find a lot of useful helpers to manage aborts in [rea
 
 <!-- The picture of a complex logic management could be represented like this:
 
-![image](https://github.com/artalar/reatom/assets/27290320/07caee50-e112-4bcb-b7cb-4387fa0cecdf) -->
+![image](https://github.com/reatom/reatom/assets/27290320/07caee50-e112-4bcb-b7cb-4387fa0cecdf) -->
 
 ## API
 
@@ -306,7 +306,7 @@ const b = await take(ctx, bAtom, undefined, 'b')
 
 Allow you to wait all dependent effects, event if they was called in the nested async effect or by [spawn](#spawn).
 
-For example, we have a routing logic for [SSR](https://github.com/artalar/reatom/tree/v3/examples/nextjs).
+For example, we have a routing logic for [SSR](https://github.com/reatom/reatom/tree/v3/examples/nextjs).
 
 ```ts
 // ~/features/some.ts

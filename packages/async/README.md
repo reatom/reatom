@@ -282,7 +282,7 @@ export const updateList = reatomAsync(
 )
 ```
 
-For more details of optimistic update check the story tests in [the sources](https://github.com/artalar/reatom/blob/v3/packages/async/src/index.story.test.ts) or in [the end of this doc](https://www.reatom.dev/package/async#story-test).
+For more details of optimistic update check the story tests in [the sources](https://github.com/reatom/reatom/blob/v3/packages/async/src/index.story.test.ts) or in [the end of this doc](https://www.reatom.dev/package/async#story-test).
 
 ### Custom dataAtom
 
@@ -862,7 +862,7 @@ onConnect(fetchList.dataAtom, (ctx) => {
 
 In this case, the `fetchList` could be called with parameters, and each new request will cancel the previous one. Also, when the user leaves the page and the `dataAtom` becomes disconnected, the last request will be canceled too.
 
-Check the real-world example in pooling example from [story tests below](https://www.reatom.dev/package/async#story-test) ([src](https://github.com/artalar/reatom/blob/v3/packages/async/src/index.story.test.ts)).
+Check the real-world example in pooling example from [story tests below](https://www.reatom.dev/package/async#story-test) ([src](https://github.com/reatom/reatom/blob/v3/packages/async/src/index.story.test.ts)).
 
 ## reatomResource
 

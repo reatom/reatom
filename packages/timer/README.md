@@ -1,4 +1,4 @@
-Timer model to manage some countdown. Useful for [classic pomodoro](https://github.com/artalar/reatom/tree/v3/examples/react-pomodoro) or any time-progress states, like [notifications](https://github.com/artalar/reatom/tree/v3/examples/react-notifications).
+Timer model to manage some countdown. Useful for [classic pomodoro](https://github.com/reatom/reatom/tree/v3/examples/react-pomodoro) or any time-progress states, like [notifications](https://github.com/reatom/reatom/tree/v3/examples/react-notifications).
 
 ```ts
 import { reatomTimer } from '@reatom/timer'
@@ -25,5 +25,5 @@ The timer itself contains the ms remaining to the end of the timer (`0` before s
 
 ## Examples
 
-- [classic pomodoro](https://github.com/artalar/reatom/tree/v3/examples/react-pomodoro)
-- [notifications progress](https://github.com/artalar/reatom/tree/v3/examples/react-notifications)
+- [classic pomodoro](https://github.com/reatom/reatom/tree/v3/examples/react-pomodoro)
+- [notifications progress](https://github.com/reatom/reatom/tree/v3/examples/react-notifications)
