@@ -522,6 +522,47 @@ test('triggering schema validation only for one field', async () => {
   expect(form.fields.age.validation().error).toBe('must be minimum 18')
 })
 
+test('correct handling of side errors from schema', async () => {
+  const INVARIANT_ERR_MSG = 'value "from" of should be less than "to" value';
+
+  const form = reatomForm({
+    from: 0,
+    to: 10
+  }, {
+    validateOnChange: true,
+    schema: z.object({
+      from: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+      to: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+    }).superRefine(({ from, to }, ctx) => {
+      if(from > to) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['from'],
+          message: INVARIANT_ERR_MSG,
+        })
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['to'],
+          message: INVARIANT_ERR_MSG
+        })
+      }
+    }),
+  })
+
+  form.fields.from.change(15)
+  notify()
+
+  expect(form.fields.to.validation().error).toBe(INVARIANT_ERR_MSG)
+  expect(form.fields.from.validation().error).toBe(INVARIANT_ERR_MSG)
+
+  form.fields.from.change(10)
+  notify()
+  form.fields.to.validation()
+
+  expect(form.fields.to.validation().error).toBeFalsy()
+  expect(form.fields.from.validation().error).toBeFalsy()
+})
+
 test('concurrent field validation with schema', async () => {
   const form = reatomForm(
     {
