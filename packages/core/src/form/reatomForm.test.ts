@@ -523,44 +523,44 @@ test('triggering schema validation only for one field', async () => {
 })
 
 test('correct handling of side errors from schema', async () => {
-  const INVARIANT_ERR_MSG = 'value "from" of should be less than "to" value';
+  const INVARIANT_ERR_MSG = 'value "min" of should be less than "max" value';
 
   const form = reatomForm({
-    from: 0,
-    to: 10
+    min: 0,
+    max: 10
   }, {
     validateOnChange: true,
     schema: z.object({
-      from: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
-      to: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
-    }).superRefine(({ from, to }, ctx) => {
-      if(from > to) {
+      min: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+      max: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+    }).superRefine(({ min, max }, ctx) => {
+      if(min > max) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['from'],
+          path: ['min'],
           message: INVARIANT_ERR_MSG,
         })
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['to'],
+          path: ['max'],
           message: INVARIANT_ERR_MSG
         })
       }
     }),
   })
 
-  form.fields.from.change(15)
+  form.fields.min.change(15)
   notify()
 
-  expect(form.fields.to.validation().error).toBe(INVARIANT_ERR_MSG)
-  expect(form.fields.from.validation().error).toBe(INVARIANT_ERR_MSG)
+  expect(form.fields.max.validation().error).toBe(INVARIANT_ERR_MSG)
+  expect(form.fields.min.validation().error).toBe(INVARIANT_ERR_MSG)
 
-  form.fields.from.change(10)
+  form.fields.min.change(10)
   notify()
-  form.fields.to.validation()
+  form.fields.max.validation()
 
-  expect(form.fields.to.validation().error).toBeFalsy()
-  expect(form.fields.from.validation().error).toBeFalsy()
+  expect(form.fields.max.validation().error).toBeFalsy()
+  expect(form.fields.min.validation().error).toBeFalsy()
 })
 
 test('concurrent field validation with schema', async () => {
