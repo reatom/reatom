@@ -40,7 +40,7 @@ export interface FieldFocus {
 }
 
 export interface FieldErrorBody<Meta = any> {
-  /** The message of the error useful for a user */
+  /** The message of the error useful for a user. */
   message: string
   /** The record with arbitrary information about the error like minimum chars, upper bound of a number, etc. */
   meta?: Rec<Meta>
@@ -63,7 +63,7 @@ export interface FieldValidation {
   /** The validation actuality status. */
   triggered: boolean
 
-  /** The field async validation status */
+  /** The field async validation status. */
   validating: undefined | Promise<{ errors: FieldError[] }>
 }
 
@@ -79,10 +79,10 @@ export interface ValidationAtom extends AtomLike<FieldValidation> {
   /** Action to trigger field validation. */
   trigger: Action<[], FieldValidation> & AbortExt
 
-  /** Action to prepend some errors to the field */
+  /** Action to prepend some errors to the field. */
   prependErrors: Action<[...error: FieldError[]], FieldValidation>
 
-  /** Action to clear all errors by passed sources */
+  /** Action to clear all errors by passed sources. */
   clearErrors: Action<[...sources: FieldErrorSource[]], FieldValidation>
 }
 
