@@ -43,14 +43,14 @@ test(`keepErrorOnChange`, async () => {
   fieldWithKeep.validation.trigger()
   fieldWithoutKeep.validation.trigger()
   notify()
-  expect(fieldWithKeep.validation().error).toBe('validation error')
-  expect(fieldWithoutKeep.validation().error).toBe('validation error')
+  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
+  expect(fieldWithoutKeep.validation().errors[0]?.message).toBe('validation error')
 
   fieldWithKeep.change('new value')
   fieldWithoutKeep.change('new value')
   notify()
-  expect(fieldWithKeep.validation().error).toBe('validation error')
-  expect(fieldWithoutKeep.validation().error).toBeUndefined()
+  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
+  expect(fieldWithoutKeep.validation().errors.length).toBeFalsy()
 })
 
 test(`keepErrorDuringValidating`, async () => {
@@ -74,8 +74,8 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger()
   fieldWithoutKeep.validation.trigger()
   await wrap(sleep())
-  expect(fieldWithKeep.validation().error).toBe('validation error')
-  expect(fieldWithoutKeep.validation().error).toBe('validation error')
+  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
+  expect(fieldWithoutKeep.validation().errors[0]?.message).toBe('validation error')
 
   fieldWithKeep.change('new value')
   fieldWithoutKeep.change('new value')
@@ -83,21 +83,19 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger()
   fieldWithoutKeep.validation.trigger()
   notify()
-  expect(fieldWithKeep.validation().error).toBe('validation error')
-  expect(fieldWithoutKeep.validation().error).toBeUndefined()
+  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
+  expect(fieldWithoutKeep.validation().errors.length).toBeFalsy()
 })
 
 test(`disabled state`, async () => {
   const field = reatomField('', {
     validateOnChange: true,
-    contract: (value) => {
-      if (value == 'errorValue') throw new Error('validation error')
-    },
+    validate: ({ state }) => state == 'errorValue' ? 'validation error' : undefined
   })
 
   field.change('errorValue')
   notify()
-  expect(field.validation().error).toBe('validation error')
+  expect(field.validation().errors[0]?.message).toBe('validation error')
 
   field.disabled.set(true)
   notify()
@@ -105,7 +103,7 @@ test(`disabled state`, async () => {
 
   field.disabled.set(false)
   notify()
-  expect(field.validation().error).toBe('validation error')
+  expect(field.validation().errors[0]?.message).toBe('validation error')
 })
 
 test(`toState and fromState`, async () => {
@@ -139,7 +137,7 @@ test(`validation concurrency`, async () => {
   field.validation.trigger()
   expect(field.validation()).toMatchObject({
     triggered: true,
-    error: undefined,
+    errors: [],
   })
   expect(field.validation().validating).toBeInstanceOf(Promise)
 
@@ -150,7 +148,7 @@ test(`validation concurrency`, async () => {
   field.validation.trigger()
   expect(field.validation()).toMatchObject({
     triggered: true,
-    error: undefined,
+    errors: [],
   })
   expect(field.validation().validating).toBeInstanceOf(Promise)
   field.reset()
@@ -167,7 +165,7 @@ test(`validation concurrency`, async () => {
   notify()
   expect(field.validation()).toMatchObject({
     triggered: true,
-    error: undefined,
+    errors: [],
   })
   expect(field.validation().validating).toBeInstanceOf(Promise)
 
@@ -176,7 +174,7 @@ test(`validation concurrency`, async () => {
   expect(field.validation()).toMatchObject({
     validating: undefined,
     triggered: true,
-    error: undefined,
+    errors: [],
   })
   expect(field.value()).toBe(3)
 })

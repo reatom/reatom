@@ -22,23 +22,20 @@ import {
   named,
   type ParseAtoms,
   reatomLinkedList,
-  reatomMap,
   type Rec,
   withAbort,
   withAsync,
   withCallHook,
-  withComputed,
   wrap,
 } from '../'
 import type { FieldLikeAtom } from './reatomField'
 import {
   type FieldAtom,
   type FieldOptions,
-  type FieldValidation,
   isFieldAtom,
   reatomField,
 } from './reatomField'
-import type { FieldSet } from './reatomFieldSet'
+import type { FieldSet, FieldSetValidation } from './reatomFieldSet'
 import { reatomFieldSet } from './reatomFieldSet'
 
 export interface FormFieldOptions<State = any, Value = State>
@@ -127,7 +124,7 @@ export type SubmitAction = Action<[], Promise<void>> &
 export interface Form<T extends FormInitState, SchemaState>
   extends Omit<FieldSet<T>, 'validation'> {
   /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
-  validation: Computed<FieldValidation> & {
+  validation: Computed<FieldSetValidation> & {
     /** Action to trigger form validation. */
     trigger: Action<
       [],
@@ -402,8 +399,6 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     schema,
   } = typeof options === 'string' ? { name: options } : options
 
-  const schemaErrors = reatomMap<FieldAtom, StandardSchemaV1.Issue[]>(undefined, `${name}.schemaError`)
-
   const fields = reatomFormFields(
     typeof initState == 'function' ? initState(name) : initState,
     {
@@ -421,21 +416,9 @@ export function reatomForm<T extends FormInitState, SchemaState>(
         if (schema) {
           field.validation.trigger.extend(
             withCallHook(() => {
-              if (!field.validation().error && !isCausedBy(submit))
+              if (!isCausedBy(submit))
                 checkSchemaValidation()
             }),
-          )
-
-          // const schemaError = computed(() => schemaErrors().get(field) ?? [], `${field.validation.name}.schemaError`)
-
-          field.validation.extend(
-            withComputed((state) => {
-              const issues = schemaErrors().get(field);
-              if (!issues?.length)
-                return state;
-
-              return { ...state, error: issues[0]!.message }
-            })
           )
         }
       },
@@ -470,31 +453,23 @@ export function reatomForm<T extends FormInitState, SchemaState>(
     const validation = schema['~standard'].validate(state)
 
     const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
-      const map = schemaErrors()
-      if (!result.issues) {
-        if (map.size)
-          schemaErrors.clear();
-      }
-      else {
-        const newMap = new Map(map)
+      const touched = new Set<FieldAtom>();
+       
+      if(result.issues) {
         for (const issue of result.issues) {
           const field = resolveFieldByPath(issue.path, fields)
           if (!field) continue
-
-          const issues = schemaErrors.getOrCreate(field, () => [])
-          issues.push(issue)
-
-          if (!newMap.has(field)) {
-            newMap.set(field, [issue])
-            field.validation.trigger.abort()
-          }
-          else {
-            newMap.get(field)?.push(issue)
-          }
+   
+          field.validation.prependErrors({ source: 'schema', message: issue.message })
+          touched.add(field)
         }
-        schemaErrors.setState(newMap)
       }
 
+      for(const field of fieldsList()) {
+        if(!touched.has(field) && field.validation().errors.find(e => e.source == 'schema'))
+          field.validation.clearErrors('schema')
+      }
+    
       return result
     }
 
@@ -506,8 +481,8 @@ export function reatomForm<T extends FormInitState, SchemaState>(
   const origValidationTrigger = fieldsetValidation.trigger
   const validationTrigger = action(async () => {
     const status = origValidationTrigger()
-    const { error } = status.validating ? await wrap(status.validating) : status
-    if (error) throw new Error(error)
+    const { errors } = status.validating ? await wrap(status.validating) : status
+    if (errors.length) throw new Error(errors[0]!.message)
 
     let state: any
 

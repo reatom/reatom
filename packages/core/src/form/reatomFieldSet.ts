@@ -11,11 +11,10 @@ import {
   withAbort,
   withMemo,
 } from '../'
-import type { FieldFocus, FieldValidation } from './reatomField'
+import type { FieldError, FieldFocus } from './reatomField'
 import {
   type FieldAtom,
   fieldInitFocus,
-  fieldInitValidation,
   isFieldAtom,
 } from './reatomField'
 import type {
@@ -26,6 +25,24 @@ import type {
   FormPartialState,
   FormState,
 } from './reatomForm'
+
+export interface FieldSetFieldError extends FieldError {
+  field: FieldAtom
+}
+
+export interface FieldSetValidation {
+  /** The list of field validation errors. */
+  errors: FieldSetFieldError[]
+
+  /** The field validation meta. */
+  meta: unknown | undefined
+
+  /** The validation actuality status. */
+  triggered: boolean
+
+  /** The field async validation status */
+  validating: undefined | Promise<{ errors: FieldSetFieldError[] }>
+}
 
 export interface FieldSet<T extends FormInitState> {
   /** Fields from the init state */
@@ -44,9 +61,9 @@ export interface FieldSet<T extends FormInitState> {
   focus: Computed<FieldFocus>
 
   /** Atom with validation state of the fieldset, computed from all the fields in `fieldsList` */
-  validation: Computed<FieldValidation> & {
+  validation: Computed<FieldSetValidation> & {
     /** Action to trigger fieldset validation. */
-    trigger: Action<[], FieldValidation> & AbortExt
+    trigger: Action<[], FieldSetValidation> & AbortExt
   }
 
   /** Action to set initial values for each field or field array in the fieldset */
@@ -86,25 +103,28 @@ export const reatomFieldSet = <T extends FormInitState>(
   }, `${name}.focus`).extend(withMemo())
 
   const validation = computed(() => {
-    const promises: Promise<{ error: undefined | string }>[] = []
-    const validation = { ...fieldInitValidation }
-    validation.triggered = true
+    const validationErrors: FieldSetFieldError[] = []
+    const promises: Promise<{ errors: FieldSetFieldError[] }>[] = []
+    const validation: FieldSetValidation = { 
+      errors: validationErrors,
+      validating: undefined,
+      triggered: true,
+      meta: undefined
+    } 
 
     for (const field of fieldsList()) {
       if (field.disabled()) continue
 
-      const { triggered, validating, error } = field.validation()
+      const { triggered, validating, errors } = field.validation()
 
       validation.triggered &&= triggered
-      validation.error ||= error
+      validationErrors.push(...errors.map(err => ({ ...err, field })))
 
-      if (validating) promises.push(validating)
+      if (validating) promises.push(validating.then(({ errors }) => ({ errors: errors.map(err => ({ ...err, field })) })))
     }
 
     validation.validating = promises.length
-      ? Promise.all(promises).then((results) => ({
-          error: results.find((r) => !!r.error)?.error,
-        }))
+      ? Promise.all(promises).then((results) => ({ errors: results.flatMap(e => e.errors) }))
       : undefined
 
     return validation
