@@ -1,0 +1,279 @@
+---
+import ShikiCodeBlock from './ShikiCodeBlock.astro'
+import { CODE_EXAMPLES } from './code-examples'
+---
+
+<!-- Code Example Section -->
+<section class="code-section" role="region" aria-labelledby="code-heading">
+  <div class="container">
+    <h2 id="code-heading" class="section-title">
+      <span class="title-main">Code Examples</span>
+      <span class="title-sub">
+        Explore different Reatom features • Hover over highlighted elements to
+        learn more
+      </span>
+    </h2>
+
+    <div class="tabs-container">
+      <!-- Tab Content (must come first for CSS selectors to work) -->
+      <div class="tab-content">
+        {
+          CODE_EXAMPLES.map((example, index) => (
+            <div id={example.id} class="tab-panel" role="tabpanel">
+              <ShikiCodeBlock
+                code={example.code}
+                annotations={example.annotations}
+                filename={`${example.id}.tsx`}
+                playgroundUrl="https://stackblitz.com/fork/reatom"
+              />
+            </div>
+          ))
+        }
+      </div>
+
+      <!-- Tab Navigation -->
+      <!-- Ordered after `.tab-content` for `~` selector -->
+      <nav class="tab-nav" role="tablist">
+        {
+          CODE_EXAMPLES.map((example, index) => (
+            <a
+              href={`#${example.id}`}
+              class="tab-btn"
+              role="tab"
+              aria-controls={example.id}
+              data-tab={example.id}
+            >
+              <span class="tab-title">{example.title}</span>
+              <span class="tab-desc">{example.description}</span>
+            </a>
+          ))
+        }
+      </nav>
+    </div>
+  </div>
+
+  <!-- Tooltip for annotations -->
+  <div class="code-tooltip" id="code-tooltip" role="tooltip"></div>
+</section>
+
+<style>
+  /* Main Section */
+  .code-section {
+    padding: 4rem 2rem;
+    background: #151134;
+    position: relative;
+  }
+
+  .container {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  /* Section Title */
+  .section-title {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .title-main {
+    display: block;
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, #4a90e2 0%, #ffd700 50%, #4a90e2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+
+  .title-sub {
+    display: block;
+    font-size: clamp(0.9rem, 2vw, 1.2rem);
+    color: #bbbbbb;
+    font-weight: 400;
+  }
+
+  .tabs-container {
+    display: flex;
+    flex-direction: column-reverse;
+  }
+
+  /* Tab Content */
+  .tab-content {
+    background: #1a1640;
+    border-radius: 0.5rem;
+    border: 1px solid #2a2660;
+    min-height: 500px;
+    position: relative;
+    margin-bottom: 2rem;
+  }
+
+  .tab-panel {
+    display: none;
+    padding: 1.5rem;
+  }
+  .tab-panel:target {
+    display: block;
+  }
+  .tab-content:not(:has(:target)) .tab-panel:first-child {
+    display: block;
+  }
+
+  /* Tab Navigation */
+  .tab-nav {
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  .tab-btn {
+    display: inline-block;
+    background: #1a1640;
+    border: 2px solid #2a2660;
+    padding: 1rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #ffffff;
+    min-width: 200px;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  .tab-btn:hover {
+    border-color: #ffd700;
+    background: #1f1a4a;
+  }
+
+  .tab-btn:focus {
+    outline: 2px solid #ffd700;
+    outline-offset: 2px;
+  }
+
+  .tab-title {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+  }
+
+  .tab-desc {
+    display: block;
+    font-size: 0.85rem;
+    color: #bbbbbb;
+    line-height: 1.3;
+  }
+
+  /* Highlight the active tab link */
+  .tab-content:has(#core:target) ~ .tab-nav .tab-btn[href='#core'],
+  .tab-content:has(#forms:target) ~ .tab-nav .tab-btn[href='#forms'],
+  .tab-content:has(#router:target) ~ .tab-nav .tab-btn[href='#router'] {
+    border-color: #ffd700;
+    background: #2a2660;
+    box-shadow: 0 0 0 1px #ffd700;
+
+    .tab-title {
+      color: #ffd700;
+    }
+    .tab-desc {
+      color: #e6e6e6;
+    }
+  }
+
+  /* Highlight the first tab when no target */
+  .tab-content:not(:has(:target)) ~ .tab-nav .tab-btn[href='#core'] {
+    border-color: #ffd700;
+    background: #2a2660;
+    box-shadow: 0 0 0 1px #ffd700;
+  }
+
+  /* Tooltip */
+  .code-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    max-width: 300px;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    line-height: 1.4;
+    /* Initial position off-screen to prevent flicker */
+    top: -9999px;
+    left: -9999px;
+  }
+
+  .code-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Arrow styles for floating-ui arrow middleware (if added later) */
+  .code-tooltip[data-popper-placement^='top'] > .tooltip-arrow {
+    bottom: -4px;
+  }
+
+  .code-tooltip[data-popper-placement^='bottom'] > .tooltip-arrow {
+    top: -4px;
+  }
+
+  .code-tooltip[data-popper-placement^='left'] > .tooltip-arrow {
+    right: -4px;
+  }
+
+  .code-tooltip[data-popper-placement^='right'] > .tooltip-arrow {
+    left: -4px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .code-section {
+      padding: 3rem 1rem;
+    }
+
+    .tab-nav {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .tab-btn {
+      min-width: 280px;
+      max-width: 100%;
+    }
+
+    .section-title {
+      margin-bottom: 2rem;
+    }
+
+    .code-tooltip {
+      max-width: 250px;
+      font-size: 0.8rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .tab-btn {
+      min-width: 250px;
+      padding: 0.8rem 1rem;
+    }
+
+    .tab-title {
+      font-size: 1rem;
+    }
+
+    .tab-desc {
+      font-size: 0.8rem;
+    }
+  }
+</style>

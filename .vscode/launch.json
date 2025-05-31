@@ -31,6 +31,36 @@
         "${workspaceFolder}/packages/core/**",
         "${workspaceFolder}/packages/testing/**"
       ]
-    }
-  ]
+    },
+    {
+      "name": "vitest core browser",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "vitest",
+      "program": "${file}",
+      "args": [
+        "--config=${workspaceFolder}/packages/core/vitest.browser.config.ts"
+      ],
+      "internalConsoleOptions": "openOnSessionStart",
+      "skipFiles": [
+        "<node_internals>/**",
+        "${workspaceFolder}/node_modules/**",
+        "${workspaceFolder}/packages/core/**",
+        "${workspaceFolder}/packages/testing/**"
+      ]
+    },
+    // {
+    //   "name": "Attach to Browser",
+    //   "type": "chrome",
+    //   "request": "attach",
+    //   "port": 9229
+    // }
+  ],
+  // "compounds": [
+  //   {
+  //     "name": "Debug Vitest Browser",
+  //     "configurations": ["vitest core browser", "Attach to Vitest Browser"],
+  //     "stopAll": true
+  //   }
+  // ]
 }

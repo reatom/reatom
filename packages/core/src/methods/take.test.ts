@@ -2,9 +2,10 @@ import { expect, test, vi } from 'test'
 
 import { withAsyncData } from '../async'
 import { action, atom, computed, notify } from '../core'
-import { identity, noop, sleep } from '../utils'
+import { identity, noop, sleep, throwAbort } from '../utils'
 import { take } from './take'
 import { wrap } from './wrap'
+import { withAbort } from '../mixins'
 
 test('take atom', async () => {
   const at = atom(0)
@@ -23,7 +24,8 @@ test('take action', async () => {
 test('take atom error', async () => {
   const at = atom(0)
 
-  setTimeout(
+  // NO await
+  sleep().then(
     wrap(() => {
       try {
         at.set(() => {
@@ -33,10 +35,33 @@ test('take atom error', async () => {
         // nothing
       }
     }),
-    0,
-    4,
   )
+
   expect(await take(at).catch(identity)).toBe(4)
+})
+
+test('should skip abort', async () => {
+  const name = 'skipAbort'
+  const param = atom(0, `${name}.param`)
+  const data = computed(async () => {
+    const result = param()
+    await wrap(sleep())
+    return result
+  }, `${name}.data`).extend(withAbort())
+  data.subscribe()
+
+  const TARGET = 3
+
+  let i = TARGET
+  while (i--) {
+    queueMicrotask(
+      wrap(() => {
+        param.set((state) => state + 1)
+      }),
+    )
+  }
+
+  expect(await take(data)).toBe(TARGET)
 })
 
 test('take concurrency', async () => {
@@ -65,4 +90,30 @@ test('take concurrency', async () => {
   some(1)
   await wrap(sleep())
   expect(track).toBeCalledTimes(1)
+})
+
+test('take filter', async () => {
+  const name = 'skipAbort'
+  const param = atom(0, `${name}.param`)
+  const data = computed(async () => {
+    return param()
+  }, `${name}.data`)
+  data.subscribe()
+
+  let i = 5
+  while (i--) {
+    sleep().then(
+      wrap(() => {
+        param.set((state) => state + 1)
+      }),
+    )
+  }
+
+  const three = await wrap(
+    take(data, (value) => (value === 3 ? value : throwAbort())),
+  )
+  expect(three).toBe(3)
+
+  const paramState = param()
+  expect(take(param, (value) => value)).toBe(paramState)
 })

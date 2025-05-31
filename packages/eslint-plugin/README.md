@@ -33,7 +33,7 @@ Add `@reatom` to `plugins` and specify `extends` or `rules` in your config.
 
 Here is an example of React + TypeScript + Prettier config with Reatom.
 
-> [ESLint setup commit](https://github.com/artalar/reatom-react-ts/commit/3632b01d6a58a35602d1c191e5d6b53a7717e747)
+> [ESLint setup commit](https://github.com/reatom/reatom-react-ts/commit/3632b01d6a58a35602d1c191e5d6b53a7717e747)
 
 ```json
 {

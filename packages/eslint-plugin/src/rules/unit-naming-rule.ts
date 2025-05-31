@@ -1,5 +1,5 @@
-import * as estree from 'estree'
-import { Rule } from 'eslint'
+import type * as estree from 'estree'
+import type { Rule } from 'eslint'
 import { patternNames, reatomFactoryPattern } from '../shared'
 
 type Domain =

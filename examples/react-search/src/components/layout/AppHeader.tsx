@@ -29,7 +29,7 @@ export function AppHeader({ opened, toggle }: AppHeaderProps) {
         <ActionIcon
           variant="default"
           component="a"
-          href="https://github.com/artalar/reatom"
+          href="https://github.com/reatom/reatom"
           target="_blank"
           title="GitHub repository"
         >

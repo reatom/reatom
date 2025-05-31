@@ -1,6 +1,9 @@
 {
   "name": null,
-  "version": "3.5.0",
+  "version": "1000.0.0-alpha.0",
+  "publishConfig": {
+    "tag": "alpha"
+  },
   "description": null,
   "private": false,
   "sideEffects": false,
@@ -16,24 +19,24 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": ">=3.5.0"
+    "@reatom/core": "alpha"
   },
   "author": null,
   "maintainers": null,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/artalar/reatom.git",
+    "url": "git+ssh://git@github.com/reatom/reatom.git",
     "directory": null
   },
   "bugs": {
-    "url": "https://github.com/artalar/reatom/issues"
+    "url": "https://github.com/reatom/reatom/issues"
   },
   "homepage": null,
   "keywords": [

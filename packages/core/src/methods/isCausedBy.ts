@@ -13,12 +13,10 @@ import { top } from '../core'
  * @returns {boolean} True if the target atom is part of the causal chain, false otherwise
  *
  * @example
- * ```ts
  * // Check if user atom changes caused the current computation
  * if (isCausedBy(userAtom)) {
  *   console.log('This computation was triggered by user state change');
  * }
- * ```
  */
 export let isCausedBy = (target: AtomLike, frame = top()): boolean =>
   frame.pubs.some(

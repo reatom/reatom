@@ -1,0 +1,433 @@
+---
+// Component for displaying user feedback testimonials
+---
+
+<section class="feedback-section">
+  <div class="container">
+    <div class="section-header">
+      <h2 class="section-title">What Developers Say</h2>
+      <p class="section-description">
+        Real feedback from developers using Reatom in production
+      </p>
+    </div>
+
+    <div class="feedback-grid">
+      <!-- Feedback Card 1 - Aetet -->
+      <div class="feedback-card">
+        <div class="feedback-header">
+          <div class="author-avatar">
+            <span class="author-initial">A</span>
+          </div>
+          <div class="author-info">
+            <h3 class="author-name">Aetet</h3>
+            <p class="author-role">Frontend Developer</p>
+          </div>
+        </div>
+        <div class="feedback-content">
+          <p>
+            "Used it for a small internal project. The approach felt unusual after working with Redux and MobX, but I decided to give it a chance. Using actions instead of reducers cuts out a lot of boilerplate. Computed atoms replace selectors nicely. I really like the auto type inference—it's a huge help during refactoring. <strong>Feels like magic, honestly.</strong>"
+          </p>
+          <p class="feedback-highlight">
+            "My advice for new adopters: spend 2–3 days exploring the library and getting a feel for the philosophy of atomization."
+          </p>
+        </div>
+        <div class="feedback-footer">
+          <div class="feedback-rating">
+            <span class="stars">★★★★★</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Card 2 - kasperskei -->
+      <div class="feedback-card">
+        <div class="feedback-header">
+          <div class="author-avatar">
+            <span class="author-initial">K</span>
+          </div>
+          <div class="author-info">
+            <h3 class="author-name">kasperskei</h3>
+            <p class="author-role">Senior Developer</p>
+          </div>
+        </div>
+        <div class="feedback-content">
+          <p>
+            "Reatom has been my primary tool for over a year now. Its flexible reactive primitives allow for concise, readable, and maintainable code, while offering maximum control with minimal effort. <strong>Perfect fit for interacting with external APIs.</strong>"
+          </p>
+          <p class="feedback-highlight">
+            "The integration with @reatom/jsx works exceptionally well for Telegram Mini Apps, browser extensions, and embedded widgets."
+          </p>
+        </div>
+        <div class="feedback-footer">
+          <div class="feedback-rating">
+            <span class="stars">★★★★★</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Card 3 - AgarkovRoman -->
+      <div class="feedback-card">
+        <div class="feedback-header">
+          <div class="author-avatar">
+            <span class="author-initial">R</span>
+          </div>
+          <div class="author-info">
+            <h3 class="author-name">AgarkovRoman</h3>
+            <p class="author-role">Full-Stack Developer</p>
+          </div>
+        </div>
+        <div class="feedback-content">
+          <p>
+            "One of the biggest strengths of Reatom is that it's not tied to any specific UI framework. This makes it easy to keep logic outside components, resulting in <strong>simpler components and more testable overall code.</strong>"
+          </p>
+          <p class="feedback-highlight">
+            "Some features that are quite tricky to implement with other libraries are surprisingly easy with Reatom. Incredibly powerful."
+          </p>
+        </div>
+        <div class="feedback-footer">
+          <div class="feedback-rating">
+            <span class="stars">★★★★★</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Card 4 - Empty Placeholder -->
+      <div class="feedback-card feedback-card-empty">
+        <div class="feedback-placeholder">
+          <div class="placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L13.09 8.26L20 9L13.09 9.74L12 16L10.91 9.74L4 9L10.91 8.26L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <h3>Your Feedback</h3>
+          <p>Share your experience with Reatom and help others discover its power.</p>
+          <a href="https://github.com/reatom/reatom/issues/1093" class="cta-link" target="_blank" rel="noopener noreferrer">
+            Leave Feedback
+            <svg viewBox="0 0 16 16" fill="currentColor">
+              <path d="M8.636 3.5a.5.5 0 0 0-.5.5v1.5H6.5a.5.5 0 0 0 0 1h1.636v1.5a.5.5 0 0 0 1 0V6.5H10.5a.5.5 0 0 0 0-1H9.136V4a.5.5 0 0 0-.5-.5Z"/>
+              <path d="M0 5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V5Zm2-1a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1H2Z"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Community Stats -->
+    <div class="community-stats">
+      <div class="stat-item">
+        <span class="stat-number">1.2k+</span>
+        <span class="stat-label">GitHub Stars</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">80+</span>
+        <span class="stat-label">Contributors</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">5+</span>
+        <span class="stat-label">Years Active</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">1000+</span>
+        <span class="stat-label">Happy Devs</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .feedback-section {
+    padding: 120px 0;
+    background: linear-gradient(135deg, #151134 0%, #1a1640 50%, #151134 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feedback-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(34, 197, 94, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .section-header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .section-title {
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #cbd5e1 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 24px;
+    line-height: 1.2;
+  }
+
+  .section-description {
+    font-size: 1.25rem;
+    color: #94a3b8;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .feedback-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+    margin-bottom: 80px;
+  }
+
+  @media (min-width: 768px) {
+    .feedback-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .feedback-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 32px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feedback-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06d6a0);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .feedback-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 32px 64px rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .feedback-card:hover::before {
+    opacity: 1;
+  }
+
+  .feedback-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .author-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 16px;
+    flex-shrink: 0;
+  }
+
+  .author-initial {
+    color: white;
+    font-weight: 600;
+    font-size: 1.125rem;
+  }
+
+  .author-name {
+    color: #f1f5f9;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .author-role {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin: 0;
+  }
+
+  .feedback-content {
+    margin-bottom: 24px;
+  }
+
+  .feedback-content p {
+    color: #e2e8f0;
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .feedback-content strong {
+    color: #f1f5f9;
+    font-weight: 600;
+  }
+
+  .feedback-highlight {
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 3px solid #3b82f6;
+    padding: 16px 20px;
+    border-radius: 0 8px 8px 0;
+    font-style: italic;
+    color: #cbd5e1 !important;
+  }
+
+  .feedback-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stars {
+    color: #fbbf24;
+    font-size: 1.125rem;
+  }
+
+  /* Empty Placeholder Card */
+  .feedback-card-empty {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(168, 85, 247, 0.1));
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
+  }
+
+  .feedback-placeholder {
+    text-align: center;
+    max-width: 240px;
+  }
+
+  .placeholder-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 20px;
+    color: #64748b;
+  }
+
+  .feedback-placeholder h3 {
+    color: #f1f5f9;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .feedback-placeholder p {
+    color: #94a3b8;
+    line-height: 1.5;
+    margin-bottom: 24px;
+  }
+
+  .cta-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+  }
+
+  .cta-link:hover {
+    color: #60a5fa;
+  }
+
+  .cta-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Community Stats */
+  .community-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 32px;
+    padding: 40px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  @media (min-width: 768px) {
+    .community-stats {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-number {
+    display: block;
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .stat-label {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Mobile Responsiveness */
+  @media (max-width: 767px) {
+    .feedback-section {
+      padding: 80px 0;
+    }
+
+    .container {
+      padding: 0 16px;
+    }
+
+    .section-header {
+      margin-bottom: 60px;
+    }
+
+    .feedback-grid {
+      grid-template-columns: 1fr;
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+
+    .feedback-card {
+      padding: 24px;
+    }
+
+    .community-stats {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+    }
+  }
+</style> 

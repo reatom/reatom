@@ -7,57 +7,44 @@ description: The history of Reatom
 
 - **Good primitive is more than a framework**
 - **Composition beats configuration**
-- **General semantic should be implicit, specific semantic should be explicit**
+- **Explicit specific semantic, implicit general semantic**
 
-## FAQ
+## Goal
 
-### Why immutability?
+The main goal of Reatom is to be the best universal state manager for any kind of application. We believe that UX is a pillar of a good app, and great UX is built from a set of complex local states, so Reatom is a tool to manage it properly.
 
-Immutable data is more predictable and easier to debug than mutable states and their wrappers.
-Reatom is specifically designed to focus on [simple debugging of asynchronous chains](/getting-started/debugging/) and offers [patterns](/recipes/atomization/) to achieve [excellent performance](#how-performant-reatom-is).
-
-### What LTS policy is used and what about bus factor?
+## Evolution
 
 Reatom is built for the long haul.
-We dropped our first Long Term Support (LTS) version (v1) in [December 2019](https://github.com/artalar/reatom/releases/tag/v1.0).
-In 2022, we introduced breaking changes with a new LTS (v3) version.
-Don't worry — we've got you covered with this [Migration guide](/compat/core-v1#migration-guide).
-We're not stopping our three years of solid support — it's ongoing with our [adapter package](/compat/core-v1).
-We hope this proves how committed we are to our users.
+We dropped our first Long Term Support (LTS) version (v1) in [December 2019](https://github.com/reatom/reatom/releases/tag/v1.0). And it was supported for a half of decade. We are always open to issues and PRs for older versions, if it will help you!
 
-Right now, our dev team consists of four people: [@artalar](https://github.com/artalar) and [@krulod](https://github.com/krulod) handle the core features, while [@BANOnotIT](https://github.com/BANOnotIT) and [@Akiyamka](https://github.com/Akiyamka) take care of documentation and issue management.
-We also have [many contributors](https://github.com/artalar/reatom/graphs/contributors) working on different packages.
+We have [a lot of contributors](https://github.com/reatom/reatom/graphs/contributors) working on different packages. We are trying to build a super stable and predictable ecosystem. To achieve this, we welcome you to put your package into our monorepo and check the [contribution](/contributing) guidelines.
 
-### What build target and browser support?
+Since the 1k version (`1000`), Reatom uses epoch-based versioning inspired by Antfu's post. The next epoch release (`2000`) will be in 2026-2027 and may include meaningful changes; the whole ecosystem will be migrated together with the core package. The classic major versions (`1001`, `1002`, `1042`) and other minor and patch versions follow standard SemVer and represent small changes in a general epoch context. `@alpha` tags denote pre-release versions.
 
-All our packages are set up using [Browserslist's "last 1 year" query](https://browsersl.ist/#q=last+1+year).
-To support older environments, you must handle the transpilation by yourself.
-Our builds come in two output formats: CJS (`exports.require`, `main`) and ESM (`exports.default`, `module`).
-For more details, check out the `package.json` file.
+## How performant Reatom is?
 
-### How performant Reatom is?
+Reatom has best possible performance according to its features! The more complex your application, the faster Reatom will be compared to competitors.
 
 Check out this [benchmark](https://github.com/artalar/reactive-computed-bench) for complex computations across different state managers.
-Remember that Reatom uses immutable data structures, operates in a separate context (DI-like), and maintains [atomicity](/handbook#data-consistency).
-That means the Reatom test covers more features than other state manager tests.
+Note that Reatom uses immutable data structures and operates in a separate async context, which bring a lot of features, which will take too many overhead with other set of tools. That means the Reatom test covers more features than other state manager tests
 Still, Reatom performs faster than MobX for mid-range numbers, which is pretty impressive.
 
 Also, remember to check out our [atomization guide](/recipes/atomization).
 
-### Limitations
+### Why not Proxy?
 
-No software is perfect, and Reatom is no exception. Here are some limitations you should be aware of:
+Proxy is a common pattern for working with signals, but it could be pretty messy in a scale. Atomization, as Reatom employs it, offers several advantages over Proxy-based reactivity:
 
-- **Immutable Data**: While immutable data structures are great, they can impact performance. In critical situations, think carefully about your data structures. The good news is you [don't have to use normalization](/recipes/atomization).
-- **Laziness**: Laziness is less obvious sometimes and might lead to missed updates. However, debugging a missing update is straightforward and often easier than dealing with hot observables' memory leaks and performance issues. We also have [hooks](/package/hooks) for hot linking.
-- **Error Handling**: Currently, you can't subscribe to errors from any dependency, but we're working on it. In [reatomAsync](/package/async), passed effects are wrapped in an error handler, allowing you to manage errors, but you need to wrap them explicitly.
-- **Asynchronous Transactions**: Asynchronous transactions are not supported yet, but they're in the works. This feature will simplify building optimistic UIs and improve UX significantly.
-- **Ecosystem and Utilities**: While we have many utilities and a growing ecosystem, our goal is to provide well-designed logic primitives. Reatom sits between a library and a framework, embracing procedural programming with minimal extra API and semantic overhead. Our defaults, such as immutability, laziness, transactions, and the separation of pure computations and effects, are designed to help you write better code.
+- **Explicit Reactivity**: With atomization, it's always clear what is reactive and what isn't - hover a property and you get a type-hint. Proxies can make reactivity implicit and harder to trace in your codebase.
+- **Simplified Debugging**: Mutable structures, often used with Proxies, are inherently more complex to debug, especially in asynchronous scenarios. Atomization, combined with Reatom's immutable approach, provides a clearer path for inspecting state changes and understanding data flow. You're also less likely to encounter situations requiring a `toJS`-like conversion (common in MobX) to inspect or pass data.
+- **Controlled Performance**: While a direct Proxy interface might seem lightweight, it still heavier than an atom function call. But the real performance challenge arises from the often-uncontrolled creation of reactive structures. Atomization gives you fine-grained control, allowing you to define reactive elements precisely where needed, avoiding unnecessary overhead.
 
-### Media
+Also, with `@reatom/zod`, you can create safer reactive structures even shorter than with Proxy.
+
+## Media
 
 - [en twitter](https://twitter.com/ReatomJS)
 - [en discord](https://discord.gg/EPAKK5SNFh)
-- [en github discussion](https://github.com/artalar/reatom/discussions)
+- [en github discussion](https://github.com/reatom/reatom/discussions)
 - [ru telegram](https://t.me/reatom_ru)
-- [ru youtube](https://www.youtube.com/playlist?list=PLXObawgXpIfxERCN8Lqd89wdsXeUHm9XU)

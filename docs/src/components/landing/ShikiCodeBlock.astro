@@ -1,0 +1,358 @@
+---
+import { createHighlighter } from 'shiki'
+
+interface Annotation {
+  pattern: string
+  note: string
+}
+
+interface Props {
+  code: string
+  annotations: Annotation[]
+  filename?: string
+  playgroundUrl?: string
+}
+
+const { code, annotations, filename = 'code.tsx', playgroundUrl } = Astro.props
+
+// Create highlighter at build time
+const highlighter = await createHighlighter({
+  themes: ['dracula'],
+  langs: ['tsx'],
+})
+
+// Generate decorations from annotations
+const decorations = annotations
+  .map((annotation, index) => {
+    const start = code.indexOf(annotation.pattern)
+    if (start === -1) {
+      console.warn(`Pattern "${annotation.pattern}" not found in code`)
+      return null
+    }
+
+    const end = start + annotation.pattern.length
+    return {
+      start,
+      end,
+      properties: {
+        class: `code-annotation annotation-${index}`,
+        'data-note': annotation.note,
+      },
+    }
+  })
+  .filter(
+    (decoration): decoration is NonNullable<typeof decoration> =>
+      decoration !== null,
+  )
+
+// Highlight the code with decorations
+const highlightedCode = highlighter.codeToHtml(code, {
+  lang: 'tsx',
+  theme: 'dracula',
+  decorations,
+})
+---
+
+<div class="shiki-code-wrapper">
+  <div class="shiki-editor">
+    <div class="shiki-editor-header">
+      <div class="editor-controls">
+        <span class="control-dot red"></span>
+        <span class="control-dot yellow"></span>
+        <span class="control-dot green"></span>
+      </div>
+      <div class="editor-title">{filename}</div>
+      <div class="editor-actions">
+        {
+          playgroundUrl && (
+            <a
+              href={playgroundUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="playground-link"
+              aria-label="Try this code in playground"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 20 20"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M10.8333 2.5L3.33333 11.6667H10L9.16667 17.5L16.6667 8.33333H10L10.8333 2.5Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+              Try in Playground
+            </a>
+          )
+        }
+      </div>
+    </div>
+    <div class="shiki-code-content" set:html={highlightedCode} />
+  </div>
+</div>
+
+<style>
+  /* Code Wrapper */
+  .shiki-code-wrapper {
+    position: relative;
+  }
+
+  .shiki-editor {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    border-radius: 16px;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 8px 32px rgba(74, 144, 226, 0.1);
+    transition: all 0.3s ease;
+  }
+
+  .shiki-editor:hover {
+    border-color: rgba(74, 144, 226, 0.5);
+    box-shadow:
+      0 24px 80px rgba(0, 0, 0, 0.5),
+      0 12px 40px rgba(74, 144, 226, 0.2);
+  }
+
+  /* Editor Header */
+  .shiki-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(74, 144, 226, 0.2);
+  }
+
+  .editor-controls {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .control-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .control-dot.red {
+    background: #ff5f57;
+  }
+  .control-dot.yellow {
+    background: #ffbd2e;
+  }
+  .control-dot.green {
+    background: #28ca42;
+  }
+
+  .editor-title {
+    font-size: 0.9rem;
+    color: #cccccc;
+    font-weight: 500;
+  }
+
+  .playground-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #4a90e2, #7bb3f0);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .playground-link:hover {
+    box-shadow: 0 4px 16px rgba(74, 144, 226, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .playground-link svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* Code Content */
+  .shiki-code-content {
+    padding: 1.5rem;
+    overflow-x: auto;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  /* Override Shiki styles for better readability */
+  .shiki-code-content :global(pre) {
+    background: transparent !important;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .shiki-code-content :global(code) {
+    font-family:
+      'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+    background: transparent !important;
+  }
+
+  /* Code Annotations */
+  .shiki-code-content :global(.code-annotation) {
+    position: relative;
+    cursor: pointer;
+    padding: 2px 4px;
+    margin: 0 1px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    display: inline;
+  }
+
+  /* Different colors for different annotation types */
+  .shiki-code-content :global(.annotation-0) {
+    background: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+  }
+
+  .shiki-code-content :global(.annotation-0:hover) {
+    background: rgba(255, 215, 0, 0.25);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+  }
+
+  .shiki-code-content :global(.annotation-1) {
+    background: rgba(80, 250, 123, 0.15);
+    border: 1px solid rgba(80, 250, 123, 0.3);
+  }
+
+  .shiki-code-content :global(.annotation-1:hover) {
+    background: rgba(80, 250, 123, 0.25);
+    box-shadow: 0 0 12px rgba(80, 250, 123, 0.4);
+  }
+
+  .shiki-code-content :global(.annotation-2) {
+    background: rgba(139, 233, 253, 0.15);
+    border: 1px solid rgba(139, 233, 253, 0.3);
+  }
+
+  .shiki-code-content :global(.annotation-2:hover) {
+    background: rgba(139, 233, 253, 0.25);
+    box-shadow: 0 0 12px rgba(139, 233, 253, 0.4);
+  }
+
+  .shiki-code-content :global(.annotation-3) {
+    background: rgba(255, 121, 198, 0.15);
+    border: 1px solid rgba(255, 121, 198, 0.3);
+  }
+
+  .shiki-code-content :global(.annotation-3:hover) {
+    background: rgba(255, 121, 198, 0.25);
+    box-shadow: 0 0 12px rgba(255, 121, 198, 0.4);
+  }
+
+  /* Additional annotation colors */
+  .shiki-code-content :global(.annotation-4) {
+    background: rgba(189, 147, 249, 0.15);
+    border: 1px solid rgba(189, 147, 249, 0.3);
+  }
+
+  .shiki-code-content :global(.annotation-4:hover) {
+    background: rgba(189, 147, 249, 0.25);
+    box-shadow: 0 0 12px rgba(189, 147, 249, 0.4);
+  }
+
+  .shiki-code-content :global(.annotation-5) {
+    background: rgba(255, 184, 108, 0.15);
+    border: 1px solid rgba(255, 184, 108, 0.3);
+  }
+
+  .shiki-code-content :global(.annotation-5:hover) {
+    background: rgba(255, 184, 108, 0.25);
+    box-shadow: 0 0 12px rgba(255, 184, 108, 0.4);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .shiki-code-content {
+      padding: 1rem;
+      font-size: 0.8rem;
+    }
+
+    .shiki-editor-header {
+      padding: 0.75rem 1rem;
+    }
+
+    .playground-link {
+      font-size: 0.75rem;
+      padding: 0.4rem 0.8rem;
+    }
+  }
+</style>
+
+<script>
+  async function handleTooltip() {
+    // Dynamic import for client-side use
+    const { computePosition, flip, shift, offset, autoUpdate } = await import('@floating-ui/dom')
+    
+    // from CodeExample.astro
+    const tooltip = document.getElementById('code-tooltip')
+    const annotations = document.querySelectorAll('.code-annotation')
+
+    if (!tooltip) return
+
+    let cleanup: (() => void) | null = null
+
+    annotations.forEach((annotation) => {
+      annotation.addEventListener('mouseenter', async (e) => {
+        const target = e.target as HTMLElement
+        if (!target) return
+
+        const note = target.getAttribute('data-note')
+        if (note) {
+          tooltip.textContent = note
+          tooltip.classList.add('visible')
+
+          // Clean up any existing autoUpdate
+          if (cleanup) {
+            cleanup()
+          }
+
+          // Set up autoUpdate for automatic positioning
+          cleanup = autoUpdate(target, tooltip, async () => {
+            const { x, y } = await computePosition(target, tooltip, {
+              placement: 'top',
+              middleware: [
+                offset(10),
+                flip(),
+                shift({ padding: 10 }),
+              ],
+            })
+
+            tooltip.style.left = `${x}px`
+            tooltip.style.top = `${y}px`
+          })
+        }
+      })
+
+      annotation.addEventListener('mouseleave', () => {
+        tooltip.classList.remove('visible')
+        
+        // Clean up autoUpdate when hiding tooltip
+        if (cleanup) {
+          cleanup()
+          cleanup = null
+        }
+      })
+    })
+  }
+
+  // Add interactive tooltip functionality
+  document.addEventListener('DOMContentLoaded', handleTooltip)
+</script>

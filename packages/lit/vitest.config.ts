@@ -11,7 +11,7 @@ export default defineConfig({
       screenshotFailures: false,
       instances: [
         {
-          name: 'chromium',
+          name: 'lit-chromium',
           browser: 'chromium',
         },
       ],

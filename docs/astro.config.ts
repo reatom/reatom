@@ -1,8 +1,8 @@
-import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
-import starlightLinksValidator from 'starlight-links-validator'
-import starlightLlmsTxt from 'starlight-llms-txt'
+import { defineConfig } from 'astro/config'
 import rehypeSlug from 'rehype-slug'
+import starlightLlmsTxt from 'starlight-llms-txt'
+
 import { sidebar } from './astro.sidebar'
 import { devServerFileWatcher } from './config/integrations/dev-server-file-watcher'
 
@@ -53,7 +53,7 @@ export default defineConfig({
         },
       ],
       editLink: {
-        baseUrl: 'https://github.com/artalar/reatom/edit/v3/docs/',
+        baseUrl: 'https://github.com/reatom/reatom/edit/v3/docs/',
       },
     }),
   ],

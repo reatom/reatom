@@ -1,27 +1,31 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
-import { createAtom, ReatomError, top } from '../core'
+import { createAtom, top } from '../core'
 import { wrap } from '../methods'
-import { assert } from '../utils'
 
-let SETTLED = new WeakMap<
-  Promise<any>,
-  { kind: 'pending' | 'fulfilled' | 'rejected'; value: any }
->()
+/** Internal suspense cache, do not use it directly, only for libraries! */
+export interface SuspenseRecord {
+  kind: 'pending' | 'fulfilled' | 'rejected'
+  value: any
+}
+
+/** Internal suspense cache, do not use it directly, only for libraries! */
+export let SUSPENSE = new WeakMap<Promise<any>, SuspenseRecord>()
+
 export let settled = <Result, Fallback = undefined>(
-  promise: Promise<Result>,
+  promise: Result | Promise<Result>,
   fallback?: Fallback,
 ): Result | Fallback => {
-  assert(promise instanceof Promise, 'promise expected', ReatomError)
+  if (promise instanceof Promise === false) return promise
 
-  let settled = SETTLED.get(promise)
+  let settled = SUSPENSE.get(promise)
   if (!settled) {
-    SETTLED.set(promise, (settled = { kind: 'pending', value: undefined }))
+    SUSPENSE.set(promise, (settled = { kind: 'pending', value: undefined }))
     promise
       .then((value) => {
-        SETTLED.set(promise, { kind: 'fulfilled', value })
+        SUSPENSE.set(promise, { kind: 'fulfilled', value })
       })
       .catch((error) => {
-        SETTLED.set(promise, { kind: 'rejected', value: error })
+        SUSPENSE.set(promise, { kind: 'rejected', value: error })
       })
   }
 
@@ -33,22 +37,20 @@ export let settled = <Result, Fallback = undefined>(
     throw settled.value
   }
 
-  // if (arguments.length === 2) {
-  //   return fallback as T
-  // } else {
-  //   throw promise
-  // }
   return fallback as Fallback
 }
 
-export type SuspenseExt<Target extends AtomLike> = {
-  suspended: Computed<Awaited<AtomState<Target>>>
+export type SuspenseExt<State> = {
+  suspended: Computed<Awaited<State>>
 }
 
 export let withSuspense =
-  <T extends AtomLike & Partial<SuspenseExt<T>>>({
+  <Target extends AtomLike & Partial<SuspenseExt<AtomState<Target>>>>({
     preserve = false,
-  }: { preserve?: boolean } = {}): Ext<T, SuspenseExt<T>> =>
+  }: { preserve?: boolean } = {}): Ext<
+    Target,
+    SuspenseExt<AtomState<Target>>
+  > =>
   (target) => ({
     suspended:
       target.suspended ??
@@ -88,8 +90,8 @@ export let withSuspense =
       ),
   })
 
-export let suspense = <T>(target: AtomLike<T>): Awaited<T> =>
+export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
   ('suspended' in target
-    ? (target as AtomLike & SuspenseExt<AtomLike<T>>)
+    ? (target as AtomLike & SuspenseExt<State>)
     : target.extend(withSuspense())
   ).suspended()

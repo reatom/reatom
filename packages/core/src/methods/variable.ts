@@ -77,7 +77,6 @@ export interface Variable<Params extends any[] = any[], Payload = any> {
  * @template Payload - The type of the stored value
  *
  * @example
- * ```ts
  * // Simple variable with string values
  * const currentUser = variable<string>('currentUser');
  *
@@ -98,7 +97,6 @@ export interface Variable<Params extends any[] = any[], Payload = any> {
  * }, 'userRole');
  *
  * userRole.set('admin', ['read', 'write', 'delete']);
- * ```
  */
 export let variable: {
   <T>(name?: string): Variable<[T], T>

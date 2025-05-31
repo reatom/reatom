@@ -55,7 +55,7 @@ export const Hello = reatomComponent(() => (
       type="text"
       value={input()}
       // Update the atom directly on change
-      onChange={(event) => input(event.currentTarget.value)}
+      onChange={(event) => input.set(event.currentTarget.value)}
       placeholder="Enter your name"
     />
     <h1>{greeting()}</h1> {/* Read the computed value */}
@@ -63,7 +63,7 @@ export const Hello = reatomComponent(() => (
 ))
 ```
 
-Notice the lack of boilerplate. Atoms are functions you call to read (`input()`) or write (`input('new value')`). Computed values update automatically when their dependencies change.
+Notice the lack of boilerplate. Atoms are functions you call to read (`input()`) or write (`input.set('new value')`). Computed values update automatically when their dependencies change.
 
 ## 🧠 Core Concepts
 
@@ -83,10 +83,10 @@ const counter = atom(0, 'counter')
 const currentValue = counter() // -> 0
 
 // Update the state with a new value
-counter(10) // State is now 10
+counter.set(10) // State is now 10
 
 // Update the state using an updater function
-counter((prevValue) => prevValue + 1) // State is now 11
+counter.set((prevValue) => prevValue + 1) // State is now 11
 ```
 
 **Naming atoms (the second argument) is highly recommended!** It significantly improves debugging by providing meaningful labels in logs and developer tools.
@@ -110,7 +110,7 @@ const totalCost = computed(() => {
 // Reading the computed value triggers calculation if dependencies changed
 console.log(totalCost()) // Logs "Calculating total cost..." -> 500
 
-price(110) // Update a dependency
+price.set(110) // Update a dependency
 
 // Calculation happens again only upon reading
 console.log(totalCost()) // Logs "Calculating total cost..." -> 550
@@ -128,12 +128,12 @@ const unsubscribe = counter.subscribe((newValue) => {
   console.log(`Counter updated to: ${newValue}`)
 })
 
-counter(12) // Logs: "Counter updated to: 12"
+counter.set(12) // Logs: "Counter updated to: 12"
 
 // Stop listening to changes
 unsubscribe()
 
-counter(13) // Nothing logged
+counter.set(13) // Nothing logged
 ```
 
 Subscriptions are essential for integrating Reatom state with UI frameworks or other parts of your application.
@@ -153,8 +153,8 @@ const error = atom<null | string>(null, 'error')
 
 // Action to fetch user data
 const fetchUser = action(async (userId: string) => {
-  isLoading(true)
-  error(null) // Reset error state
+  isLoading.set(true)
+  error.set(null) // Reset error state
 
   try {
     // `wrap` preserves Reatom's context across async boundaries (CRUCIAL!)
@@ -163,13 +163,13 @@ const fetchUser = action(async (userId: string) => {
       throw new Error(`API Error: ${response.statusText}`)
     }
     const data = await wrap(response.json())
-    userData(data) // Update state on success
+    userData.set(data) // Update state on success
     return data // Actions can return values
   } catch (err: any) {
-    error(err.message) // Update state on error
+    error.set(err.message) // Update state on error
     // Optionally re-throw or handle differently
   } finally {
-    isLoading(false) // Ensure loading state is reset
+    isLoading.set(false) // Ensure loading state is reset
   }
 }, 'fetchUser') // Naming actions is vital for debugging!
 
@@ -194,11 +194,11 @@ Avoid actions for simple, direct state updates. Use the atom's update function d
 
 ```ts
 // ❌ BAD: Overkill for simple updates
-const setCounter = action((value: number) => counter(value), 'setCounter')
+const setCounter = action((value: number) => counter.set(value), 'setCounter')
 setCounter(10)
 
 // ✅ GOOD: Direct, simple, efficient
-counter(10)
+counter.set(10)
 ```
 
 Actions provide structure, traceability, and enable powerful debugging and tooling integration.
@@ -228,7 +228,7 @@ const polling = effect(async () => {
     while (true) {
       const fetchedData = await wrap(fetch('/api/poll'))
       const jsonData = await wrap(fetchedData.json())
-      data(jsonData.value)
+      data.set(jsonData.value)
 
       // Wait 5 seconds, but this wait can be aborted!
       await wrap(sleep(5000))
@@ -298,8 +298,8 @@ const userEmail = atom('alice@example.com', 'userEmail')
 const user: User = { id: '1', name: userName, email: userEmail }
 
 // Now, updates are direct and highly efficient:
-userName('Alice B.') // Only `userName` atom updates. O(1) complexity!
-userEmail('new.email@example.com') // Only `userEmail` atom updates.
+userName.set('Alice B.') // Only `userName` atom updates. O(1) complexity!
+userEmail.set('new.email@example.com') // Only `userEmail` atom updates.
 
 // Reading values is still straightforward
 console.log(user.name()) // -> 'Alice B.'
@@ -326,9 +326,9 @@ Bundle related actions directly with the atom they primarily affect using the `.
 const counter = atom(0, 'counter')
   // Enhance the atom with related actions
   .actions((target) => ({
-    increment: (amount = 1) => target((prev) => prev + amount), // `target` refers to the atom itself
-    decrement: (amount = 1) => target((prev) => prev - amount),
-    reset: () => target(0),
+    increment: (amount = 1) => target.set((prev) => prev + amount), // `target` refers to the atom itself
+    decrement: (amount = 1) => target.set((prev) => prev - amount),
+    reset: () => target.set(0),
   }))
 
 // Use the attached actions directly:
@@ -353,7 +353,7 @@ const name = atom('Guest', 'name').extend(
   withReset('Guest') // Adds a `.reset()` action
 )
 
-name('Alice')
+name.set('Alice')
 console.log(name()) // -> 'Alice'
 
 name.reset() // Calls the action added by the extension
@@ -445,8 +445,8 @@ export const todos = reatomRecord<Todo>({}, 'todos')
 
       const startEditAction = action(() => {
         // Ensure only one item is edited at a time (optional logic)
-        Object.values(parseAtoms(target)).forEach(t => t.isEditing(false))
-        isEditingAtom(true)
+        Object.values(parseAtoms(target)).forEach(t => t.isEditing.set(false))
+        isEditingAtom.set(true)
       }, `${name}.startEdit`)
 
       const finishEditAction = action((newText: string) => {
@@ -454,9 +454,9 @@ export const todos = reatomRecord<Todo>({}, 'todos')
         if (!trimmed) {
           removeAction() // Remove if text is empty
         } else {
-          textAtom(trimmed)
+          textAtom.set(trimmed)
         }
-        isEditingAtom(false)
+        isEditingAtom.set(false)
       }, `${name}.finishEdit`)
 
 
@@ -473,7 +473,7 @@ export const todos = reatomRecord<Todo>({}, 'todos')
       }
 
       target.set(id, todo) // Add to the record
-      newTodoText('') // Clear input draft
+      newTodoText.set('') // Clear input draft
     },
 
     // Action to clear completed todos
@@ -490,7 +490,7 @@ export const todos = reatomRecord<Todo>({}, 'todos')
     toggleAll(forceState?: boolean) {
         const currentTodos = Object.values(parseAtoms(target))
         const shouldComplete = forceState ?? !currentTodos.every(t => t.completed())
-        currentTodos.forEach(t => t.completed(shouldComplete))
+        currentTodos.forEach(t => t.completed.set(shouldComplete))
     }
   }))
   // Add derived computed properties to the main todos atom
@@ -531,7 +531,7 @@ export const TodoApp = reatomComponent(() => {
           className="new-todo"
           placeholder="What needs to be done?"
           value={newTodoText()}
-          onChange={wrap((e) => newTodoText(e.target.value))} // wrap for context
+          onChange={wrap((e) => newTodoText.set(e.target.value))} // wrap for context
           onKeyDown={wrap(handleNewTodoKeyDown)} // wrap for context
           autoFocus
         />
@@ -573,8 +573,8 @@ const TodoItem = reatomComponent<{ task: Todo }>(({ task }) => {
 
   // Focus input when editing starts
   useEffect(() => {
-    if (task.isEditing() && editInputRef.current) {
-      editInputRef.current.focus()
+    if (task.isEditing()) {
+      editInputRef.current?.focus()
     }
   }, [task.isEditing()])
 
@@ -682,7 +682,7 @@ const fetchData = action(async () => {
   const data = await wrap(response.json()) // Wrap the promise transformation
 
   // Context is preserved, atom update works
-  dataAtom(data)
+  dataAtom.set(data)
 
   // --- OR ---
 
@@ -690,17 +690,17 @@ const fetchData = action(async () => {
     .then(res => res.json())
     .then(wrap((data) => { // Wrap the final callback
       // Context is preserved here too
-      dataAtom(data)
+      dataAtom.set(data)
     }))
 
   // ❌ BAD: Context lost after await without wrap
   // const response = await fetch('/api/data')
   // const data = await response.json()
-  // dataAtom(data) // This would likely throw a "context lost" error if default context is disabled
+  // dataAtom.set(data) // This would likely throw a "context lost" error if default context is disabled
 
   // ❌ BAD: Chaining after wrap breaks context
   // const response = await wrap(fetch('/api/data')).then(res => res.json()) // Context lost in .then()
-  // dataAtom(response) // Error
+  // dataAtom.set(response) // Error
 }, 'fetchData')
 ```
 
@@ -769,7 +769,7 @@ console.log('Loading:', !userProfile.ready()) // Computed<boolean> -> false init
 console.log('Error:', userProfile.error()) // Atom<undefined | Error> -> undefined initially
 
 // Trigger fetch by reading (if subscribed) or changing dependency
-userId('2') // Change dependency, triggers re-computation and fetch
+userId.set('2') // Change dependency, triggers re-computation and fetch
 
 // Access reactive states:
 // userProfile.data() will eventually hold user 2's data or null
@@ -784,12 +784,12 @@ A key feature when using `computed` with `withAsyncData`, or using `effect`, is 
 ```ts
 // Continuing the userProfile example...
 
-userId('3') // Request user 3
+userId.set('3') // Request user 3
 
 // If the fetch for user '2' was still in progress,
 // Reatom automatically ABORTS that fetch request!
 
-setTimeout(() => userId('4'), 50) // Quickly request user 4
+setTimeout(() => userId.set('4'), 50) // Quickly request user 4
 
 // Fetch for '3' is aborted, only fetch for '4' proceeds.
 ```
@@ -820,31 +820,31 @@ const formData = atom({ value: '', error: null }, 'formData')
 const validate = (data: { value: string }) => data.value.length > 3 ? null : 'Too short'
 
 export const submitWhenValid = action(async () => {
-  let error = validate(formData());
+  let error = validate(formData())
 
   // Loop until the error is null
   while (error) {
-    console.log('Validation failed:', error);
+    console.log('Validation failed:', error)
     // Update some error state if needed: formData.setError(error)
 
     // Wait for the *next* change in formData
-    console.log('Waiting for formData change...');
-    await wrap(take(formData)); // Use wrap to preserve context!
-    console.log('formData changed, re-validating...');
+    console.log('Waiting for formData change...')
+    await wrap(take(formData)) // Use wrap to preserve context!
+    console.log('formData changed, re-validating...')
 
     // Re-validate after the change
-    error = validate(formData());
+    error = validate(formData())
   }
 
-  console.log('Validation passed! Submitting...');
+  console.log('Validation passed! Submitting...')
   // Proceed with submission logic using formData()
-}, 'submitWhenValid');
+}, 'submitWhenValid')
 
 // Example usage:
 // submitWhenValid()
 // // In another place:
-// formData({ value: 'ab', error: 'Too short' }) // take resolves, loop continues
-// formData({ value: 'abcd', error: null }) // take resolves, loop exits, submission happens
+// formData.set({ value: 'ab', error: 'Too short' }) // take resolves, loop continues
+// formData.set({ value: 'abcd', error: null }) // take resolves, loop exits, submission happens
 ```
 
 **Example: Confirming Navigation**
@@ -868,32 +868,32 @@ const form = atom({ isDirty: false, isSubmitted: false }, 'form')
       // Block navigation transitions if form is dirty
       const unblock = historyAtom.block(async ({ retry }: { retry: () => void }) => {
         if (form().isDirty && !form().isSubmitted && !confirmModal.isOpen()) {
-          confirmModal.open("Leave page?", "You have unsaved changes. Are you sure?");
+          confirmModal.open("Leave page?", "You have unsaved changes. Are you sure?")
 
           // Wait for the modal's close action to be called
-          const confirmed = await wrap(take(confirmModal.close));
+          const confirmed = await wrap(take(confirmModal.close))
 
           if (confirmed) {
             // User confirmed, allow navigation
-            unblock(); // Stop blocking
-            retry(); // Retry the blocked navigation
+            unblock() // Stop blocking
+            retry() // Retry the blocked navigation
           } else {
             // User cancelled, stay on page
-            console.log('Navigation cancelled by user.');
+            console.log('Navigation cancelled by user.')
           }
         } else {
             // No unsaved changes or already submitted, allow navigation immediately
-            retry();
+            retry()
         }
-      });
+      })
 
       // Return cleanup function for when atom disconnects
-      return unblock;
+      return unblock
     })
-  );
+  )
 
 // Example usage:
-// form({ isDirty: true, isSubmitted: false }) // Mark form as dirty
+// form.set({ isDirty: true, isSubmitted: false }) // Mark form as dirty
 // // User tries to navigate away... historyAtom.block is called
 // // Modal opens...
 // // User clicks "Confirm" -> confirmModal.close(true) is called
@@ -971,14 +971,14 @@ const withReset = <TAtom extends Atom>(
   (target) => ({ // target is the atom being extended
     // Return the object to assign
     reset: action(
-      () => target(initialValue), // Action logic uses target and initialValue
+      () => target.set(initialValue), // Action logic uses target and initialValue
       `${target.name}.reset` // Auto-naming based on target
     ),
   })
 
 // Usage:
 const counter = atom(0, 'counter').extend(withReset(0))
-counter(10)
+counter.set(10)
 counter.reset() // Works! State is 0.
 ```
 
@@ -1005,7 +1005,7 @@ const withConsoleLog = <TTarget extends AtomLike>(): Ext<TTarget> =>
 
 // Usage:
 const message = atom('', 'message').extend(withConsoleLog())
-message('Hello') // Logs call and new state
+message.set('Hello') // Logs call and new state
 
 const greet = action((name: string) => `Hi, ${name}!`, 'greet').extend(withConsoleLog())
 greet('Reatom') // Logs call and return value
@@ -1037,7 +1037,7 @@ import { atom, effect, sleep, wrap } from '@reatom/core'
 import { useAtom, reatomComponent, reatomFactoryComponent } from '@reatom/react'
 
 const counter = atom(0, 'counter').actions((target) => ({
-  increment: () => target((s) => s + 1)
+  increment: () => target.set((s) => s + 1)
 }))
 
 // reatomComponent HOC - direct atom access in render (Good for simple display)
@@ -1055,7 +1055,7 @@ const LocalTimer = reatomFactoryComponent((props: { label: string }) => {
   effect(async () => {
     while (true) {
       await wrap(sleep(1000))
-      localCount(c => c + 1)
+      localCount.set(c => c + 1)
     }
   }, 'timerEffect')
 
@@ -1153,7 +1153,7 @@ test('counter increments correctly', () =>
   root.start(() => {
     // Arrange: Define atoms/actions within the context
     const counter = atom(0, 'testCounter')
-    const increment = action(() => counter((c) => c + 1), 'testIncrement')
+    const increment = action(() => counter.set((c) => c + 1), 'testIncrement')
 
     // Act
     increment()
@@ -1197,13 +1197,14 @@ test('fetchUser action updates state', async () =>
 
 If migrating from Reatom v2:
 
-1.  Remove all `ctx` parameters from atom and action calls/definitions.
-2.  Replace `ctx.schedule()` and manual effect management with `wrap()` for async operations and appropriate async extensions (`withAsync`, `withAsyncData`) or `effect` for auto-cleaning effects.
-3.  Replace `onChange` and `onCall` with the new hook extensions (`withChangeHook`, `withCallHook`).
-4.  Remove the "Atom" suffix convention from variable names (e.g., `counterAtom` -> `counter`).
-5.  Replace `reatomAsync`, `reatomResource` with `action`/`computed` combined with `withAsync`/`withAsyncData`.
-6.  Adopt the `root.start()` pattern for context isolation (SSR, testing) instead of `createCtx()`.
-7.  Consider calling `clearStack()` at app root to enforce `wrap()` usage.
+1.  Replace all atom setter calls from `atom(value)` to `atom.set(value)`.
+2.  Remove all `ctx` parameters from atom and action calls/definitions.
+3.  Replace `ctx.schedule()` and manual effect management with `wrap()` for async operations and appropriate async extensions (`withAsync`, `withAsyncData`) or `effect` for auto-cleaning effects.
+4.  Replace `onChange` and `onCall` with the new hook extensions (`withChangeHook`, `withCallHook`).
+5.  Remove the "Atom" suffix convention from variable names (e.g., `counterAtom` -> `counter`).
+6.  Replace `reatomAsync`, `reatomResource` with `action`/`computed` combined with `withAsync`/`withAsyncData`.
+7.  Adopt the `root.start()` pattern for context isolation (SSR, testing) instead of `createCtx()`.
+8.  Consider calling `clearStack()` at app root to enforce `wrap()` usage.
 
 ## 🧊 Context System Explained
 
@@ -1279,8 +1280,8 @@ server.get('*', (req, res) => {
 
 -   `Atom<T>`:
     -   `(): T`: Read value.
-    -   `(newState: T): T`: Set value.
-    -   `(updater: (prevState: T) => T): T`: Update via function.
+    -   `.set(newState: T): T`: Set value.
+    -   `.set(updater: (prevState: T) => T): T`: Update via function.
     -   `subscribe(cb): UnsubscribeFn`: Listen to changes.
     -   `extend(...extensions): EnhancedAtom`: Apply extensions.
     -   `actions(methodsFn): EnhancedAtom`: Add methods.
@@ -1316,14 +1317,14 @@ server.get('*', (req, res) => {
 
 Join the vibrant Reatom community:
 
--   [GitHub Discussions](https://github.com/artalar/reatom/discussions) - Ask questions, share ideas.
--   [GitHub Issues](https://github.com/artalar/reatom/issues) - Report bugs, request features.
+-   [GitHub Discussions](https://github.com/reatom/reatom/discussions) - Ask questions, share ideas.
+-   [GitHub Issues](https://github.com/reatom/reatom/issues) - Report bugs, request features.
 -   [Discord](https://discord.gg/EPAKK5SNFh) - Chat with developers and the maintainer.
 -   [Twitter](https://twitter.com/reatomJS) - Stay updated with news and announcements.
 
 ## 🙏 Contributing
 
-Contributions are welcome! Whether it's bug reports, documentation improvements, or new features, please check out the [Contributing Guide](https://github.com/artalar/reatom/blob/v1000/CONTRIBUTING.md) to get started.
+Contributions are welcome! Whether it's bug reports, documentation improvements, or new features, please check out the [Contributing Guide](https://github.com/reatom/reatom/blob/v1000/CONTRIBUTING.md) to get started.
 
 ## FAQ
 
@@ -1341,10 +1342,10 @@ const callback = atom<() => void>(() => {}, 'callback') // Initial empty functio
 const myHandler = () => console.log('Handled!')
 
 // ✅ Correct: Use an updater function that returns the function value
-callback(() => myHandler)
+callback.set(() => myHandler)
 
 // ❌ Incorrect: This treats myHandler as an updater function
-// callback(myHandler)
+// callback.set(myHandler)
 ```
 
 ### Why `wrap()` everywhere?

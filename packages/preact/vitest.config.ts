@@ -13,7 +13,7 @@ export default defineConfig({
       screenshotFailures: false,
       instances: [
         {
-          name: 'chromium',
+          name: 'preact-chromium',
           browser: 'chromium',
         },
       ],

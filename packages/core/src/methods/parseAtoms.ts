@@ -57,7 +57,6 @@ export type ParseAtoms<T> = T extends Action
  * @returns {ParseAtoms<Value>} A new value with all atoms replaced by their current states
  *
  * @example
- * ```ts
  * const user = {
  *   id: 42,
  *   name: atom('John', 'userName'),
@@ -69,7 +68,6 @@ export type ParseAtoms<T> = T extends Action
  *
  * // Results in: { id: 42, name: 'John', stats: { score: 100, badges: ['gold', 'silver'] }}
  * const plainUser = parseAtoms(user);
- * ```
  */
 export const parseAtoms = <Value>(value: Value): ParseAtoms<Value> => {
   if (isAction(value)) return value as ParseAtoms<Value>

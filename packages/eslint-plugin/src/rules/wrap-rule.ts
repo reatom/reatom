@@ -1,5 +1,5 @@
-import * as estree from 'estree'
-import { Rule } from 'eslint'
+import type * as estree from 'estree'
+import type { Rule } from 'eslint'
 import { reatomFactoryPattern } from '../shared'
 
 // List of functions whose callbacks must be wrapped

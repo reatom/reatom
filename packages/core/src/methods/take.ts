@@ -22,7 +22,6 @@ let i = 0
  * @returns A promise that resolves with the next value of the atom or action result
  *
  * @example
- * ```ts
  * // Wait for form validation before proceeding
  * const submitWhenValid = action(async () => {
  *   while (true) {
@@ -37,13 +36,36 @@ let i = 0
  *   }
  *   // Now formData is valid, proceed with submission...
  * })
- * ```
  */
-export let take = <T>(
-  target: AtomLike<any, any, T>,
+export function take<Return>(
+  target: AtomLike<any, any, Return>,
   name?: string,
-): Promise<Awaited<T>> => {
-  name = `${top().atom.name}.take${name ? `.${name}` : `#${++i}`}`
+): Promise<Awaited<Return>>
+/**
+ * Awaits the next update of the target AtomLike and maps the result.
+ * If the map function executes synchronously without throwing, its result is returned directly.
+ * Otherwise, a promise is returned.
+ * @template Return The type of the awaited value from the target.
+ * @template Result The type of the mapped result.
+ * @param target The AtomLike to await.
+ * @param map A function to map the awaited value.
+ * @param name Optional name for debugging.
+ * @returns The mapped result or a promise that resolves with the mapped result.
+ */
+export function take<Return, Result>(
+  target: AtomLike<any, any, Return>,
+  map: (value: Awaited<Return>) => Result,
+  name?: string,
+): Result | Promise<Result>
+export function take(
+  target: AtomLike,
+  mapOrName?: Fn | string,
+  name?: string,
+): unknown {
+  let map =
+    typeof mapOrName === 'function' ? mapOrName : ((name = mapOrName), null)
+
+  name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++i}`}`
 
   let log = bind(action((_message: string, payload: any) => payload, name))
 
@@ -51,12 +73,25 @@ export let take = <T>(
 
   let abort = abortVar.find()
 
-  let promise = new Promise<Awaited<T>>((res, rej) => {
+  let syncResult:
+    | null
+    | {
+        kind: 'fulfilled'
+        value: unknown
+      }
+    | {
+        kind: 'rejected'
+        value: unknown
+      } = null as any
+
+  let promise = new Promise<unknown>((res, rej) => {
     log('start', target.name)
 
     cleanups.push(
       abort?.subscribeAbort(rej) ?? noop,
       computed(async () => {
+        let isFirstCall = cleanups.length === 0
+
         try {
           let value: any
 
@@ -73,34 +108,48 @@ export let take = <T>(
             })
           }
 
-          // skip the first sync call
-          if (!cleanups.length) return
+          if (isFirstCall && !map) return
 
           if (value instanceof Promise) value = await value
 
+          if (map) value = map(value)
+
+          if (isFirstCall) {
+            syncResult = { kind: 'fulfilled', value }
+            log('resolve', value)
+          }
+
           res(value)
         } catch (error) {
-          // skip the first sync call
-          if (!cleanups.length) return
-
-          if (isAbort(error)) return
-
-          rej(error)
+          if (!isAbort(error)) {
+            if (isFirstCall) {
+              syncResult = { kind: 'rejected', value: error }
+              log('reject', error)
+            }
+            if (!isFirstCall || !map) rej(error)
+          }
         }
-      }, `${name}.computed`).subscribe(),
+      }, `${name}.computed`)
+        // TODO withAbort?
+        .subscribe(),
     )
   })
 
   promise
     .then((value) => {
       cleanups.forEach((fn) => fn())
-      log('resolve', value)
+      if (!syncResult) log('resolve', value)
     })
     .catch((error) => {
       if (isAbort(error)) promise.catch(noop)
       cleanups.forEach((fn) => fn())
-      log('reject', error)
+      if (!syncResult) log('reject', error)
     })
+
+  if (syncResult) {
+    if (syncResult.kind === 'fulfilled') return syncResult.value
+    if (syncResult.kind === 'rejected') throw syncResult.value
+  }
 
   return promise
 }

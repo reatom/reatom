@@ -10,6 +10,7 @@ export default defineConfig({
   },
 
   test: {
+    name: '@reatom/core',
     include: ['./src/**/*.test.ts', './src/**/*.test-d.ts'],
     typecheck: {
       enabled: true,

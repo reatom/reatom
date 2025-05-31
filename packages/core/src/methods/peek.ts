@@ -14,10 +14,8 @@ import { context } from '../core'
  * @returns {any} The result of the callback function
  *
  * @example
- * ```ts
  * // Read an atom's value without establishing a dependency
  * const currentCount = peek(() => counter());
  * console.log(`Current count is ${currentCount} (without subscribing)`);
- * ```
  */
 export let peek: Frame['run'] = (cb, ...params) => context().run(cb, ...params)

@@ -99,13 +99,11 @@ export interface Extend<This extends AtomLike> {
  * @returns The original atom/action with extensions applied
  *
  * @example
- * ```ts
  * // Extending an atom with reset capability
  * const counter = atom(0, 'counter').extend(
  *   withReset(0), // Adds counter.reset() method
  *   withLogger('COUNTER') // Adds logging middleware
  * )
- * ```
  */
 export function extend<This extends AtomLike>(
   this: This,
@@ -168,7 +166,6 @@ export type Middleware<Target extends AtomLike = AtomLike> = (
  * @returns An extension that applies the middleware when used with .extend()
  *
  * @example
- * ```ts
  * // Creating a logging middleware extension
  * const withLogger = (prefix: string) =>
  *   withMiddleware((target) => {
@@ -182,7 +179,6 @@ export type Middleware<Target extends AtomLike = AtomLike> = (
  *
  * // Using the middleware
  * const counter = atom(0).extend(withLogger('DEBUG'))
- * ```
  */
 // @ts-expect-error
 export let withMiddleware: {
@@ -224,13 +220,11 @@ export let withMiddleware: {
  * @returns An extension that can be applied to atoms or actions
  *
  * @example
- * ```ts
  * const counter = atom(0, 'counter').extend(
  *   withTap((target, state, prevState) => {
  *     console.log(`${target.name} changed from ${prevState} to ${state}`)
  *   })
  * )
- * ```
  */
 export let withTap: {
   (cb: (target: AtomLike, state: any, prevState: any) => void): GenericExt
@@ -296,7 +290,6 @@ export interface ParamsExt<
  * @returns An extension that applies the parameter transformation
  *
  * @example
- * ```ts
  * // Convert from any unit to meters
  * const length = atom(0, 'length').extend(
  *   withParams((value: number, unit: 'cm' | 'm' | 'km') => {
@@ -309,7 +302,6 @@ export interface ParamsExt<
  * )
  *
  * length(5, 'km') // Sets value to 5000 meters
- * ```
  */
 // @ts-ignore
 export let withParams: {

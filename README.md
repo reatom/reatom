@@ -262,14 +262,14 @@ Reatom is specifically designed to focus on [simple debugging of asynchronous ch
 ### What LTS policy is used and what about bus factor?
 
 Reatom is built for the long haul.
-We dropped our first Long Term Support (LTS) version (v1) in [December 2019](https://github.com/artalar/reatom/releases/tag/v1.0).
+We dropped our first Long Term Support (LTS) version (v1) in [December 2019](https://github.com/reatom/reatom/releases/tag/v1.0).
 In 2022, we introduced breaking changes with a new LTS (v3) version.
 Don't worry — we've got you covered with this [Migration guide](https://www.reatom.dev/compat/core-v1#migration-guide).
 We're not stopping our three years of solid support — it's ongoing with our [adapter package](https://www.reatom.dev/compat/core-v1).
 We hope this proves how committed we are to our users.
 
 Right now, our dev team consists of four people: [@artalar](https://github.com/artalar) and [@krulod](https://github.com/krulod) handle the core features, while [@BANOnotIT](https://github.com/BANOnotIT) and [@Akiyamka](https://github.com/Akiyamka) take care of documentation and issue management.
-We also have [many contributors](https://github.com/artalar/reatom/graphs/contributors) working on different packages.
+We also have [many contributors](https://github.com/reatom/reatom/graphs/contributors) working on different packages.
 
 ### What build target and browser support?
 
@@ -300,7 +300,7 @@ No software is perfect, and Reatom is no exception. Here are some limitations yo
 
 - [en twitter](https://twitter.com/ReatomJS)
 - [en discord](https://discord.gg/EPAKK5SNFh)
-- [en github discussion](https://github.com/artalar/reatom/discussions)
+- [en github discussion](https://github.com/reatom/reatom/discussions)
 - [ru telegram](https://t.me/reatom_ru)
 - [ru youtube](https://www.youtube.com/playlist?list=PLXObawgXpIfxERCN8Lqd89wdsXeUHm9XU)
 
@@ -320,7 +320,7 @@ https://www.patreon.com/artalar_dev
 
 ## Credits
 
-Software development in the 2020s is tough, and we really appreciate all the [contributors](https://github.com/artalar/reatom/graphs/contributors) and free software maintainers who make our lives easier.
+Software development in the 2020s is tough, and we really appreciate all the [contributors](https://github.com/reatom/reatom/graphs/contributors) and free software maintainers who make our lives easier.
 
 Special thanks to:
 

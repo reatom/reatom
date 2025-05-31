@@ -1,0 +1,522 @@
+---
+// History Section Component
+---
+
+<!-- History Section -->
+<section
+  class="history-section"
+  role="region"
+  aria-labelledby="history-heading"
+>
+  <div class="history-container">
+    <h2 id="history-heading" class="history-title">
+      <span class="history-title-main">Our Journey</span>
+    </h2>
+
+    <div class="history-table">
+      <!-- Header -->
+      <div class="table-header">
+        <div class="header-cell">Community Growth</div>
+        <div class="header-cell timeline-header">
+          <div class="timeline-line"></div>
+          Timeline
+        </div>
+        <div class="header-cell">Development Milestones</div>
+      </div>
+
+      <!-- Table Rows -->
+      <div class="table-row past">
+        <div class="cell community-cell">
+          <span class="commits">391 commits</span>
+          <span class="contributors">~12 contributors</span>
+        </div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2019</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Foundation</h4>
+          <p class="milestone-description">
+            combine a state and a selector into ACID atom
+          </p>
+        </div>
+      </div>
+
+      <div class="table-row past">
+        <div class="cell community-cell">
+          <span class="commits">152 commits</span>
+          <span class="contributors">~26 contributors</span>
+        </div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2021</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Architecture</h4>
+          <p class="milestone-description">touching OOP principles</p>
+        </div>
+      </div>
+
+      <div class="table-row past">
+        <div class="cell community-cell">
+          <span class="commits">462 commits</span>
+          <span class="contributors">~34 contributors</span>
+        </div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2022</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Process management</h4>
+          <p class="milestone-description">event - is a temporal state</p>
+        </div>
+      </div>
+
+      <div class="table-row past">
+        <div class="cell community-cell">
+          <span class="commits">690 commits</span>
+          <span class="contributors">~54 contributors</span>
+        </div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2023</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Async Context</h4>
+          <p class="milestone-description">discover async context</p>
+        </div>
+      </div>
+
+      <div class="table-row past">
+        <div class="cell community-cell">
+          <span class="commits">407 commits</span>
+          <span class="contributors">~72 contributors</span>
+        </div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2024</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Atomization</h4>
+          <p class="milestone-description">
+            contract-first reactivity, computed factory pattern
+          </p>
+        </div>
+      </div>
+
+      <div class="table-row current">
+        <div class="cell community-cell">
+          <span class="commits">345 commits</span>
+          <span class="contributors">~81 contributors</span>
+        </div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2025</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Stepping up the game</h4>
+          <p class="milestone-description">
+            async context ponyfill, errors reactivity, suspense, transactions
+          </p>
+        </div>
+      </div>
+
+      <div class="table-row future">
+        <div class="cell community-cell"></div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2025Q3</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Sync Engine</h4>
+          <p class="milestone-description">
+            sync-engine with CvRDTs and CmRDTs
+          </p>
+        </div>
+      </div>
+
+      <div class="table-row future">
+        <div class="cell community-cell"></div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2025Q4</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">Observability</h4>
+          <p class="milestone-description">OpenTelemetry integration</p>
+        </div>
+      </div>
+
+      <div class="table-row future">
+        <div class="cell community-cell"></div>
+        <div class="cell year-cell">
+          <div class="year-dot"></div>
+          <span class="year-label">2026</span>
+        </div>
+        <div class="cell milestone-cell">
+          <h4 class="milestone-title">UI Library</h4>
+          <p class="milestone-description">largest headless UI library</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* History Section */
+  .history-section {
+    position: relative;
+    padding: 8rem 2rem;
+    overflow: hidden;
+  }
+
+  .history-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 215, 0, 0.03) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  .history-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Section Title */
+  .history-title {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+
+  .history-title-main {
+    display: block;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 700;
+    background: linear-gradient(
+      135deg,
+      #4a90e2 0%,
+      #7bb3f0 25%,
+      #a8d5ff 50%,
+      #ffd700 75%,
+      #ffa500 100%
+    );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientText 8s ease infinite;
+    margin-bottom: 0.5rem;
+  }
+
+  .history-title-sub {
+    display: block;
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    font-weight: 400;
+    color: #bbbbbb;
+    opacity: 0.9;
+  }
+
+  @keyframes gradientText {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* History Table */
+  .history-table {
+    display: grid;
+    grid-template-columns: 300px 200px 1fr;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: 20px;
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+  }
+
+  /* Table Header */
+  .table-header {
+    display: contents;
+  }
+
+  .header-cell {
+    padding: 2rem 1.5rem;
+    background: rgba(255, 215, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffd700;
+    text-align: center;
+  }
+
+  .timeline-header {
+    position: relative;
+  }
+
+  .timeline-line {
+    position: absolute;
+    top: 100%;
+    left: calc(50% - 4rem);
+    transform: translateX(-50%);
+    width: 4px;
+    height: calc(100vh);
+    background: linear-gradient(
+      180deg,
+      #4a90e2 0%,
+      #ffd700 50%,
+      rgba(255, 215, 0, 0.3) 100%
+    );
+    border-radius: 2px;
+    z-index: 1;
+  }
+
+  /* Table Rows */
+  .table-row {
+    display: contents;
+    transition: all 0.3s ease;
+  }
+
+  .table-row:hover .cell {
+    background: rgba(255, 215, 0, 0.05);
+    border-color: rgba(255, 215, 0, 0.3);
+  }
+
+  .cell {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+  }
+
+  /* Community Cell */
+  .community-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    justify-content: center;
+    padding-left: 6rem;
+  }
+
+  .commits {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #4a90e2;
+  }
+
+  .contributors {
+    font-size: 0.9rem;
+    color: #cccccc;
+    opacity: 0.8;
+  }
+
+  /* Year Cell */
+  .year-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    position: relative;
+    z-index: 2;
+  }
+
+  .year-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 3px solid #151134;
+    transition: all 0.3s ease;
+  }
+
+  .table-row.past .year-dot {
+    background: #4a90e2;
+    box-shadow: 0 0 16px rgba(74, 144, 226, 0.6);
+  }
+
+  .table-row.current .year-dot {
+    background: #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+
+  .table-row.future .year-dot {
+    background: rgba(255, 215, 0, 0.3);
+    border-color: rgba(255, 215, 0, 0.5);
+    box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+  }
+
+  .year-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #cccccc;
+    transition: all 0.3s ease;
+  }
+
+  .table-row.current .year-label {
+    color: #ffd700;
+  }
+
+  .table-row.future .year-label {
+    color: #888888;
+  }
+
+  /* Milestone Cell */
+  .milestone-cell {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .milestone-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+  }
+
+  .table-row.current .milestone-title {
+    color: #ffd700;
+  }
+
+  .table-row.future .milestone-title {
+    color: #cccccc;
+    opacity: 0.8;
+  }
+
+  .milestone-description {
+    color: #bbbbbb;
+    line-height: 1.5;
+    font-size: 0.95rem;
+    margin: 0;
+  }
+
+  .table-row.future .milestone-description {
+    opacity: 0.7;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1200px) {
+    .history-table {
+      grid-template-columns: 280px 120px 1fr;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    .history-table {
+      grid-template-columns: 250px 100px 1fr;
+    }
+
+    .cell {
+      padding: 1rem;
+    }
+
+    .header-cell {
+      padding: 1.5rem 1rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .history-section {
+      padding: 4rem 1rem;
+    }
+
+    .history-table {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+
+    .table-header {
+      display: none;
+    }
+
+    .timeline-line {
+      display: none;
+    }
+
+    .table-row {
+      display: grid;
+      grid-template-columns: 1fr 80px 1fr;
+      gap: 1rem;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 215, 0, 0.1);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .cell {
+      padding: 0;
+      border: none;
+    }
+
+    .year-cell {
+      border-left: 1px solid rgba(255, 215, 0, 0.2);
+      border-right: 1px solid rgba(255, 215, 0, 0.2);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .table-row {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+
+    .year-cell {
+      border: none;
+      border-top: 1px solid rgba(255, 215, 0, 0.2);
+      border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+      padding: 1rem 0;
+    }
+  }
+
+  /* Accessibility */
+  .table-row:focus-within .cell {
+    outline: 2px solid #ffd700;
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode */
+  @media (prefers-contrast: high) {
+    .history-table {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #ffffff;
+    }
+
+    .milestone-title,
+    .commits {
+      color: #ffffff;
+    }
+
+    .milestone-description,
+    .contributors {
+      color: #ffffff;
+    }
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .table-row,
+    .cell,
+    .year-dot {
+      transition: none;
+    }
+
+    .history-title-main {
+      animation: none;
+    }
+  }
+</style>

@@ -18,8 +18,8 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "tsc -p ./tsconfig.bundle.json && eslint src --fix && prettier src -w && npm run build",
-    "build": "npm run test && npm run test:browser && yoctobundle",
+    "prepublishOnly": "tsc -p ./tsconfig.bundle.json && eslint src --fix && prettier src -w && pnpm run build",
+    "build": "pnpm run test && pnpm run test:browser && yoctobundle",
     "test": "vitest run",
     "test:browser": "vitest run --config=vitest.browser.config.ts",
     "test:watch": "vitest",
@@ -39,10 +39,10 @@
   "readme": "README.md",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/artalar/reatom.git"
+    "url": "git+ssh://git@github.com/reatom/reatom.git"
   },
   "bugs": {
-    "url": "https://github.com/artalar/reatom/issues"
+    "url": "https://github.com/reatom/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/core",
   "keywords": [
@@ -84,6 +84,6 @@
     "usignal": "latest",
     "whatsup": "latest",
     "wonka": "latest",
-    "zod": "^3.24.4"
+    "zod": "^3.25.17"
   }
 }

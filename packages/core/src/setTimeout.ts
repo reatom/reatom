@@ -10,7 +10,7 @@
  * `setTimeout` is referenced as a variable in the module scope would cause TypeScript
  * to add Node.js type references, potentially creating issues in non-Node environments.
  *
- * @see {@link https://github.com/artalar/reatom/issues/983} for the original issue and discussion
+ * @see {@link https://github.com/reatom/reatom/issues/983} for the original issue and discussion
  *
  * @example
  * // How to use this type

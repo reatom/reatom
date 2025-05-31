@@ -16,12 +16,10 @@ import { _getPrevFrame } from './context'
  * @throws {ReatomError} If target is not a reactive atom
  *
  * @example
- * ```ts
  * // Log when the user's name changes
  * ifChanged(userName, (newName, oldName) => {
  *   console.log(`Name changed from ${oldName} to ${newName}`);
  * });
- * ```
  */
 export const ifChanged = <T extends AtomLike>(
   target: T,
@@ -32,6 +30,7 @@ export const ifChanged = <T extends AtomLike>(
   }
 
   let frame = top()
+  assert(frame.atom.__reatom.linking, 'invalid context', ReatomError)
   let prevPubs = _getPrevFrame(frame)?.pubs ?? [null]
   let prevTargetFrame = prevPubs[frame.pubs.length]
 
@@ -59,12 +58,10 @@ export const ifChanged = <T extends AtomLike>(
  * @throws {ReatomError} If target is not an action or if not used in a reactive context
  *
  * @example
- * ```ts
  * // Log when a user is created
  * ifCalled(createUser, (user, params) => {
  *   console.log(`User created: ${user.name} with ID ${user.id}`);
  * });
- * ```
  */
 export const ifCalled = <Params extends any[], Payload>(
   target: Action<Params, Payload>,
@@ -77,12 +74,11 @@ export const ifCalled = <Params extends any[], Payload>(
   type ActionFrame = Frame<ActionState<Params, Payload>, Params, Payload>
 
   let frame = top()
+  assert(frame.atom.__reatom.linking, 'invalid context', ReatomError)
   let prevPubs = _getPrevFrame(frame)?.pubs ?? [null]
   let prevTargetFrame = prevPubs[frame.pubs.length] as undefined | ActionFrame
 
   let targetFrame = frame.root.store.get(target) as undefined | ActionFrame
-
-  assert(frame.atom.__reatom.reactive, 'invalid context', ReatomError)
 
   if (targetFrame === undefined) {
     targetFrame = {

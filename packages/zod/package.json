@@ -18,14 +18,14 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "eslint src --fix && prettier src -w && npm run build",
-    "build": "npm run test && yoctobundle",
+    "prepublishOnly": "eslint src --fix && prettier src -w && pnpm run build",
+    "build": "pnpm run test && yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": "1000.0.0-alpha.26",
-    "zod": "^3.24.4"
+    "@reatom/core": "workspace:alpha",
+    "zod": "^3.25.17"
   },
   "author": "artalar",
   "maintainers": [
@@ -37,10 +37,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/artalar/reatom.git"
+    "url": "git+ssh://git@github.com/reatom/reatom.git"
   },
   "bugs": {
-    "url": "https://github.com/artalar/reatom/issues"
+    "url": "https://github.com/reatom/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/zod",
   "keywords": [

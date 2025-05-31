@@ -1,7 +1,7 @@
 import type { Frame } from '../core'
-import { ReatomError, STACK, top } from '../core'
-import type { Fn, Overloads } from '../utils'
-import { assert, isAbort, noop } from '../utils'
+import { STACK, top } from '../core'
+import type { Fn } from '../utils'
+import { isAbort, noop } from '../utils'
 import { abortVar } from './abort'
 
 /**
@@ -24,7 +24,6 @@ import { abortVar } from './abort'
  * @returns A wrapped function or promise that preserves reactive context
  *
  * @example
- * ```ts
  * // Wrapping a function (e.g., an event handler)
  * button.addEventListener('click', wrap(() => {
  *   counter(prev => prev + 1) // Works, context preserved
@@ -36,7 +35,6 @@ import { abortVar } from './abort'
  *   const data = await wrap(response.json())
  *   results(data) // Works, context preserved
  * })
- * ```
  */
 export let wrap: {
   <Params extends any[], Payload>(
@@ -44,21 +42,21 @@ export let wrap: {
     frame?: Frame,
   ): (...params: Params) => Payload
 
-  <T extends Promise<any>>(target: T, frame?: Frame): T
-} = <T extends Promise<any> | Fn>(
+  <T>(target: T, frame?: Frame): Promise<Awaited<T>>
+} = <T>(
   target: T,
   frame = top(),
-): T extends Fn ? (Fn extends T ? T : Overloads<T>) : T => {
+): T extends Fn ? ReturnType<T> : Promise<Awaited<T>> => {
   if (typeof target === 'function') {
     abortVar.throwIfAborted()
 
     return function wrap(...params: any) {
       frame.run(() => abortVar.throwIfAborted())
-      return frame.run(target, ...params)
+      return frame.run(target as Fn, ...params)
     } as any
   }
 
-  assert(target instanceof Promise, 'target should be promise', ReatomError)
+  if (!(target instanceof Promise)) target = Promise.resolve(target) as T
 
   let aborted = false
   var promise = new Promise(async (resolve, reject) => {

@@ -19,7 +19,7 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
@@ -27,7 +27,7 @@
   },
   "peerDependencies": {
     "lit": "^2.6.0",
-    "@reatom/core": "1000.0.0-alpha.26"
+    "@reatom/core": "workspace:alpha"
   },
   "devDependencies": {
     "vite": "^5.0.0"
@@ -46,10 +46,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/artalar/reatom.git"
+    "url": "git+ssh://git@github.com/reatom/reatom.git"
   },
   "bugs": {
-    "url": "https://github.com/artalar/reatom/issues"
+    "url": "https://github.com/reatom/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/lit",
   "files": [

@@ -51,7 +51,6 @@ export let isAction = (target: unknown): target is Action =>
  * @returns An action instance that can be called with the specified parameters
  *
  * @example
- * ```ts
  * // Create an action that fetches data and updates state
  * const fetchUserData = action(async (userId: string) => {
  *   const response = await wrap(fetch(`/api/users/${userId}`))
@@ -66,7 +65,6 @@ export let isAction = (target: unknown): target is Action =>
  *
  * // Call the action
  * fetchUserData('user123')
- * ```
  */
 export let action: {
   <Params extends any[] = any[], Payload = any>(

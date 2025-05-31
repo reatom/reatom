@@ -10,7 +10,10 @@ export default defineConfig({
   },
 
   test: {
+    name: '@reatom/core-browser',
     include: ['./src/**/*.test.browser.ts'],
+    // inspectBrk: true,
+    // fileParallelism: false,
     browser: {
       enabled: true,
       provider: 'playwright',
@@ -18,7 +21,7 @@ export default defineConfig({
       screenshotFailures: false,
       instances: [
         {
-          name: 'chromium',
+          name: 'core-chromium',
           browser: 'chromium',
         },
       ],

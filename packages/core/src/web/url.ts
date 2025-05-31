@@ -1,4 +1,4 @@
-import { type Plain, type Rec } from '../'
+
 import type { Action, Atom, AtomState, Computed } from '../core'
 import {
   _enqueue,
@@ -17,83 +17,54 @@ import type { AbortExt } from '../mixins'
 import { withAbort, withChangeHook, withComputed, withInit } from '../mixins'
 import { onEvent } from './onEvent'
 
-type _PathParams<Path extends string = string> =
-  Path extends `:${infer Param}/${infer Rest}`
-    ? { [key in Param]: string } & _PathParams<Rest>
-    : Path extends `:${infer Param}?`
-      ? { [key in Param]?: string }
-      : Path extends `:${infer Param}`
-        ? { [key in Param]: string }
-        : Path extends `${string}/${infer Rest}`
-          ? _PathParams<Rest>
-          : {}
-type PathParams<Path extends string = string> = Plain<_PathParams<Path>>
 
-export interface RouteAtom<Path extends string = string>
-  extends Computed<null | PathParams<Path>> {
-  go: Action<
-    Path extends `${string}:${string}`
-      ? [pathParams: PathParams<Path>, searchParams?: Rec, replace?: boolean]
-      : [pathParams?: void, searchParams?: Rec, replace?: boolean],
-    URL // Changed return type from void to URL
-  >
 
-  pattern: Path
-
-  path: (
-    params: Path extends `${string}:${string}` ? PathParams<Path> : void,
-  ) => string
-
-  exact: Computed<boolean>
-}
-
-const getPatternName = (part: string) => {
-  const start = part.startsWith(':') ? 1 : 0
-  const end = part.endsWith('?') ? -1 : undefined
-  return start || end ? part.slice(start, end) : part
-}
-
-/**
- * URL atom interface that extends the base Atom type.
- */
+/** URL atom interface that extends the base Atom type. */
 export interface UrlAtom extends Atom<URL> {
   /**
    * Update the URL atom with a new URL.
+   *
    * @param url New URL to set
    * @param replace Whether to replace the current history entry
    */
-  (url: URL, replace?: boolean): URL
+  set(url: URL, replace?: boolean): URL
 
   /**
    * Update the URL with a function that receives the current URL.
+   *
    * @param update Function that takes current URL and returns new URL
    * @param replace Whether to replace the current history entry
    */
-  (update: (url: URL) => URL, replace?: boolean): URL
+  set(update: (url: URL) => URL, replace?: boolean): URL
 
   /**
    * Navigate to a new path.
+   *
    * @param path The path to navigate to
    * @param replace Whether to replace the current history entry
    */
   go: (path: string, replace?: boolean) => URL
 
   /**
-   * Create a computed atom that checks if the current path matches a given pattern.
+   * Create a computed atom that checks if the current path matches a given
+   * pattern.
+   *
    * @param path The path pattern to match against
    */
   match: (path: string) => Computed<boolean>
 
   /**
    * Whether to intercept link clicks for SPA navigation.
+   *
    * @default true
    */
   catchLinks: Atom<boolean>
 
   /**
-   * This initialize DOM subscriptions and returns the current URL.
-   * To prevent this action calling (in server on other environments without DOM),
-   * just call `urlAtom` with your custom URL before it will be reded in other places.
+   * This initialize DOM subscriptions and returns the current URL. To prevent
+   * this action calling (in server on other environments without DOM), just
+   * call `urlAtom` with your custom URL before it will be reded in other
+   * places.
    */
   init: Action<[], URL> & AbortExt
 
@@ -104,25 +75,20 @@ export interface UrlAtom extends Atom<URL> {
   sync: Atom<(url: URL, replace?: boolean) => void>
 
   /**
-   * For integrations use: put the new URL from the the source of truth to `urlAtom`,
-   * without syncing it back (calling callback in `sync` Atom).
+   * For integrations use: put the new URL from the the source of truth to
+   * `urlAtom`, without syncing it back (calling callback in `sync` Atom).
+   *
    * @param url The URL from the source
    * @param replace Whether to replace the current history entry
    */
   syncFromSource: Action<[url: URL, replace?: boolean], URL>
-  /**
-   * Create a computed atom representing a specific route pattern.
-   * @param pattern The route pattern (e.g., '/users/:userId')
-   */
-  route<Path extends string>(pattern: Path): RouteAtom<Path>
 }
 
-/**
- * Interface for the search parameters atom.
- */
+/** Interface for the search parameters atom. */
 export interface SearchParamsAtom extends Computed<Record<string, string>> {
   /**
    * Set a search parameter.
+   *
    * @param key Parameter name
    * @param value Parameter value
    * @param replace Whether to replace the current history entry
@@ -131,6 +97,7 @@ export interface SearchParamsAtom extends Computed<Record<string, string>> {
 
   /**
    * Delete a search parameter.
+   *
    * @param key Parameter name to delete
    * @param replace Whether to replace the current history entry
    */
@@ -138,19 +105,26 @@ export interface SearchParamsAtom extends Computed<Record<string, string>> {
 
   /**
    * Create an atom that synchronizes with a specific search parameter.
+   *
    * @param key Parameter name
    * @param parse Function to parse parameter string value to desired type
    */
   lens<T = string>(key: string, parse?: (value?: string) => T): Atom<T>
 
   /**
-   * Create an atom that synchronizes with a specific search parameter using advanced options.
+   * Create an atom that synchronizes with a specific search parameter using
+   * advanced options.
+   *
    * @param key Parameter name
    * @param options Configuration options for the lens
-   * @param options.parse Optional function to parse the parameter string value into the desired type
-   * @param options.serialize Optional function to serialize the value back into a string
-   * @param options.replace Optional boolean to specify if history entries should be replaced (default: false)
-   * @param options.path Optional path to limit the scope of synchronization to specific URL paths
+   * @param options.parse Optional function to parse the parameter string value
+   *   into the desired type
+   * @param options.serialize Optional function to serialize the value back into
+   *   a string
+   * @param options.replace Optional boolean to specify if history entries
+   *   should be replaced (default: false)
+   * @param options.path Optional path to limit the scope of synchronization to
+   *   specific URL paths
    * @param options.name Optional name of the created atom
    */
   lens<T = string>(
@@ -165,9 +139,8 @@ export interface SearchParamsAtom extends Computed<Record<string, string>> {
   ): Atom<T>
 }
 
-/**
- * Create the URL atom with the new Reatom API.
- */
+/** Create the URL atom with the new Reatom API. */
+// @ts-ignore TODO weird  pattern issue
 export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
   atom(null as any as URL, 'urlAtom')
     .extend(
@@ -254,6 +227,8 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
           },
           'urlAtom.sync',
         ),
+
+        pattern: '/',
       }),
     )
 
@@ -270,161 +245,7 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
       },
 
       syncFromSource(url: URL, replace?: boolean) {
-        return urlAtom(url, replace)
-      },
-      route: <Path extends string>(pattern: Path): RouteAtom<Path> => {
-        const name = `urlAtom.route[${pattern}]`
-        const patternPaths = pattern.split('/').slice(1)
-        const patternPathsLength = patternPaths[
-          patternPaths.length - 1
-        ]?.endsWith('?')
-          ? patternPaths.length - 1
-          : patternPaths.length
-
-        const pathFn = (
-          params: Path extends `${string}:${string}` ? PathParams<Path> : void,
-        ): string => {
-          let path = ''
-          const p = (params ?? {}) as Rec
-          for (const part of patternPaths) {
-            if (part.startsWith(':')) {
-              const paramName = getPatternName(part)
-              const isOptional = part.endsWith('?')
-              if (paramName in p) {
-                path += `/${p[paramName]}`
-              } else if (!isOptional) {
-                // TODO: Add better error handling/logging?
-                console.error(
-                  `Missing param "${paramName}" for route "${pattern}"`,
-                )
-                path += '/undefined' // Or throw?
-              }
-            } else {
-              path += `/${part}`
-            }
-          }
-          // Ensure root path ('/') is handled correctly when patternPaths is empty
-          return path || '/'
-        }
-
-        const routeAtom = computed<null | PathParams<Path>>(() => {
-          const currentUrl = target()
-          const currentPathname = currentUrl.pathname
-          // Handle root path explicitly
-          if (pattern === '/') {
-            // Root always matches as a prefix
-            return {} as PathParams<Path>
-          }
-
-          const paths = currentPathname.slice(1).split('/')
-          // Handle case where pathname is '/' -> paths is ['']
-          if (
-            paths.length === 1 &&
-            paths[0] === '' &&
-            patternPaths.length > 0
-          ) {
-            return null // Root URL ('/') cannot match non-root patterns
-          }
-
-          // Check if URL is potentially long enough for the non-optional part
-          if (paths.length < patternPathsLength) return null
-
-          const params = {} as Rec
-          let i = 0 // Use i to track matched segments count
-          for (; i < patternPaths.length; i++) {
-            const part = patternPaths[i]!
-            const paramName = getPatternName(part)
-            const pathSegment = paths[i]
-            const isOptional = part.endsWith('?')
-
-            // If pathSegment is undefined (we ran out of URL segments)
-            if (pathSegment === undefined) {
-              if (isOptional) {
-                // Optional segment missing, valid match up to this point
-                break
-              } else {
-                // Required segment missing, no match
-                return null
-              }
-            }
-
-            if (part.startsWith(':')) {
-              params[paramName] = pathSegment
-            } else if (paramName !== pathSegment) {
-              // Static segment mismatch
-              return null
-            }
-          }
-
-          // Check if we matched at least the required non-optional segments
-          if (i < patternPathsLength) {
-            return null
-          }
-
-          // If the loop finished, it means the pattern matches the start of the URL.
-          // The `exact` atom handles the distinction between prefix and exact matches.
-          // Return the collected params.
-
-          return params as PathParams<Path>
-        }, name)
-
-        const exact = computed(() => {
-          const params = routeAtom()
-          if (!params) return false
-          const currentPathname = target().pathname
-          // Handle root explicitly
-          if (pattern === '/') return currentPathname === '/'
-
-          const paths = currentPathname.slice(1).split('/')
-          // Handle case where pathname is '/' -> paths is ['']
-          if (paths.length === 1 && paths[0] === '') return false // Root URL only matches '/' pattern exactly
-
-          // Exact match requires the number of segments to match the pattern length
-          // (considering optional segment)
-          return (
-            paths.length === patternPaths.length ||
-            (paths.length === patternPathsLength &&
-              patternPaths[patternPaths.length - 1]?.endsWith('?'))
-          )
-        }, `${name}.exact`)
-
-        // Define go action with signature matching RouteAtom['go']
-        const go = action(
-          (
-            ...args: Path extends `${string}:${string}`
-              ? [
-                  pathParams: PathParams<Path>,
-                  searchParams?: Rec,
-                  replace?: boolean,
-                ]
-              : [pathParams?: void, searchParams?: Rec, replace?: boolean]
-          ) => {
-            // Extract params, searchParams, replace based on args
-            const [paramsOrVoid, searchParams = {}, replace = false] = args
-            // Cast params for pathFn call (needed because of conditional type)
-            const pathParams =
-              paramsOrVoid as Path extends `${string}:${string}`
-                ? PathParams<Path>
-                : void
-            const newPath = pathFn(pathParams)
-            return target.set((url) => {
-              const newUrl = new URL(newPath, url)
-              Object.entries(searchParams).forEach(([key, value]) => {
-                newUrl.searchParams.set(key, String(value))
-              })
-              return newUrl
-            }, replace)
-          },
-          `${name}.go`,
-        )
-
-        // Augment the computed atom with methods
-        return Object.assign(routeAtom, {
-          go,
-          path: pathFn,
-          exact,
-          pattern,
-        }) as RouteAtom<Path>
+        return urlAtom.set(url, replace)
       },
     })))()
 
@@ -433,9 +254,7 @@ const isSubpath = (currentPath: string, targetPath: string) =>
     ? `${currentPath}/`.startsWith(targetPath.slice(0, -1))
     : `${currentPath}/` === targetPath
 
-/**
- * Create an atom that represents search parameters from the URL.
- */
+/** Create an atom that represents search parameters from the URL. */
 export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
   computed(() => Object.fromEntries(urlAtom().searchParams), 'searchParamsAtom')
     .extend((target) =>
@@ -444,7 +263,7 @@ export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
           const url = urlAtom()
           const newUrl = new URL(url.href)
           newUrl.searchParams.set(key, value)
-          urlAtom(newUrl, replace)
+          urlAtom.set(newUrl, replace)
         }, 'searchParamsAtom.set'),
       }),
     )
@@ -453,7 +272,7 @@ export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
         const url = urlAtom()
         const newUrl = new URL(url.href)
         newUrl.searchParams.delete(key)
-        urlAtom(newUrl, replace)
+        urlAtom.set(newUrl, replace)
       },
     }))
     .extend(
@@ -489,10 +308,14 @@ export function withSearchParamsPersist<T = string>(
  *
  * @param key Parameter name
  * @param options Configuration options for the lens
- * @param options.parse Optional function to parse the parameter string value into the desired type
- * @param options.serialize Optional function to serialize the value back into a string
- * @param options.replace Optional boolean to specify if history entries should be replaced (default: false)
- * @param options.path Optional path to limit the scope of synchronization to specific URL paths
+ * @param options.parse Optional function to parse the parameter string value
+ *   into the desired type
+ * @param options.serialize Optional function to serialize the value back into a
+ *   string
+ * @param options.replace Optional boolean to specify if history entries should
+ *   be replaced (default: false)
+ * @param options.path Optional path to limit the scope of synchronization to
+ *   specific URL paths
  * @param options.name Optional name of the created atom
  */
 export function withSearchParamsPersist<T = string>(

@@ -1,12 +1,10 @@
-import { ESLint } from 'eslint'
-import { asyncRule } from './rules/async-rule'
+import type { ESLint } from 'eslint'
 import { unitNamingRule } from './rules/unit-naming-rule'
-import { scheduleImportRule } from './rules/schedule-import-rule'
+import { wrapRule } from './rules/wrap-rule'
 
 const rules = {
-  'unit-naming-rule': unitNamingRule,
-  'async-rule': asyncRule,
-  'schedule-import-rule': scheduleImportRule,
+  'naming-rule': unitNamingRule,
+  'wrap-rule': wrapRule,
 }
 
 export default {

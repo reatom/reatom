@@ -1,0 +1,1093 @@
+---
+// Features Section Component
+---
+
+<!-- Features Section -->
+<section
+  class="features-section"
+  role="region"
+  aria-labelledby="features-heading"
+>
+  <div class="features-container">
+    <h2 id="features-heading" class="features-title">
+      <span class="features-title-main">Powerful Features</span>
+      <span class="features-title-sub"
+        >Everything you need for modern web applications</span
+      >
+    </h2>
+
+    <div class="features-grid">
+      <!-- Signal Architecture -->
+      <article class="feature-card" aria-labelledby="signal-title">
+        <div class="feature-icon signal-icon">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient
+                id="signalGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" style="stop-color:#4A90E2"></stop>
+                <stop offset="100%" style="stop-color:#7BB3F0"></stop>
+              </linearGradient>
+            </defs>
+            <circle cx="15" cy="30" r="4" fill="url(#signalGrad)"></circle>
+            <circle cx="30" cy="20" r="4" fill="url(#signalGrad)"></circle>
+            <circle cx="45" cy="35" r="4" fill="url(#signalGrad)"></circle>
+            <circle cx="30" cy="45" r="4" fill="url(#signalGrad)"></circle>
+            <line
+              x1="15"
+              y1="30"
+              x2="30"
+              y2="20"
+              stroke="url(#signalGrad)"
+              stroke-width="2"></line>
+            <line
+              x1="30"
+              y1="20"
+              x2="45"
+              y2="35"
+              stroke="url(#signalGrad)"
+              stroke-width="2"></line>
+            <line
+              x1="30"
+              y1="20"
+              x2="30"
+              y2="45"
+              stroke="url(#signalGrad)"
+              stroke-width="2"></line>
+            <line
+              x1="15"
+              y1="30"
+              x2="30"
+              y2="45"
+              stroke="url(#signalGrad)"
+              stroke-width="2"></line>
+          </svg>
+        </div>
+        <h3 id="signal-title" class="feature-title">Signal Architecture</h3>
+        <p class="feature-subtitle">Modern reactive programming paradigm</p>
+        <p class="feature-description">
+          The feature of reactivity in Signals: <a href="https://github.com/tc39/proposal-signals" target="_blank" rel="noopener noreferrer" style="color: #ffd700; text-decoration: none;">TC39</a>
+        </p>
+      </article>
+
+      <!-- Small and Performant -->
+      <article class="feature-card" aria-labelledby="performance-title">
+        <div class="feature-icon performance-icon">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient
+                id="lightningGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" style="stop-color:#FFD700"></stop>
+                <stop offset="100%" style="stop-color:#FFA500"></stop>
+              </linearGradient>
+            </defs>
+            <path
+              d="M25 10 L35 10 L30 25 L40 25 L20 50 L25 35 L15 35 Z"
+              fill="url(#lightningGrad)"></path>
+            <path
+              d="M45 15 L50 15 L48 22 L52 22 L42 35 L45 28 L40 28 Z"
+              fill="url(#lightningGrad)"
+              opacity="0.7"></path>
+          </svg>
+        </div>
+        <h3 id="performance-title" class="feature-title">
+          Small and Performant
+        </h3>
+        <p class="feature-subtitle">
+          Minimal bundle size with maximum efficiency
+        </p>
+        <p class="feature-description">
+          Treeshaking, benchmarking, microoptimizations and thoughtful internal
+          architecture
+        </p>
+      </article>
+
+      <!-- Forms -->
+      <article class="feature-card forms-card" aria-labelledby="forms-title">
+        <!-- Animated Forms Background -->
+        <div class="forms-animated-bg">
+          <div class="floating-form-element form-field-1"></div>
+          <div class="floating-form-element form-field-2"></div>
+          <div class="floating-form-element form-field-3"></div>
+          <div class="floating-form-element form-checkmark"></div>
+          <div class="floating-form-element form-toggle"></div>
+        </div>
+        
+        <div class="feature-icon forms-icon">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient
+                id="formsGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" style="stop-color:#9B59B6"></stop>
+                <stop offset="100%" style="stop-color:#C39BD3"></stop>
+              </linearGradient>
+            </defs>
+            <rect
+              x="15"
+              y="10"
+              width="30"
+              height="40"
+              rx="3"
+              fill="none"
+              stroke="url(#formsGrad)"
+              stroke-width="2"></rect>
+            <rect x="20" y="18" width="20" height="3" fill="url(#formsGrad)"
+            ></rect>
+            <rect x="20" y="25" width="15" height="3" fill="url(#formsGrad)"
+            ></rect>
+            <rect x="20" y="32" width="18" height="3" fill="url(#formsGrad)"
+            ></rect>
+            <rect x="20" y="39" width="12" height="3" fill="url(#formsGrad)"
+            ></rect>
+          </svg>
+        </div>
+        <h3 id="forms-title" class="feature-title">Forms</h3>
+        <p class="feature-subtitle">Comprehensive form state management</p>
+        <p class="feature-description">
+          Most powerful validation system and best in class dynamic fields
+        </p>
+      </article>
+
+      <!-- Router -->
+      <article class="feature-card router-card" aria-labelledby="router-title">
+        <!-- Animated Router Background -->
+        <div class="router-animated-bg">
+          <svg class="router-network" viewBox="0 0 300 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="routerBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#E74C3C" opacity="0.3"></stop>
+                <stop offset="100%" style="stop-color:#F1948A" opacity="0.1"></stop>
+              </linearGradient>
+            </defs>
+            <circle class="router-node node-1" cx="50" cy="50" r="3" fill="#E74C3C" opacity="0.6">
+              <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle class="router-node node-2" cx="150" cy="30" r="3" fill="#E74C3C" opacity="0.4">
+              <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle class="router-node node-3" cx="250" cy="60" r="3" fill="#E74C3C" opacity="0.5">
+              <animate attributeName="opacity" values="0.5;0.9;0.5" dur="1.8s" repeatCount="indefinite"/>
+            </circle>
+            <circle class="router-node node-4" cx="80" cy="120" r="3" fill="#E74C3C" opacity="0.7">
+              <animate attributeName="opacity" values="0.7;1;0.7" dur="2.2s" repeatCount="indefinite"/>
+            </circle>
+            <circle class="router-node node-5" cx="200" cy="140" r="3" fill="#E74C3C" opacity="0.6">
+              <animate attributeName="opacity" values="0.6;0.9;0.6" dur="1.9s" repeatCount="indefinite"/>
+            </circle>
+            
+            <path class="router-path path-1" d="M50 50 Q100 20 150 30" stroke="#E74C3C" stroke-width="1" fill="none" opacity="0.3">
+              <animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/>
+            </path>
+            <path class="router-path path-2" d="M150 30 Q200 15 250 60" stroke="#E74C3C" stroke-width="1" fill="none" opacity="0.4">
+              <animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.7s" repeatCount="indefinite"/>
+            </path>
+            <path class="router-path path-3" d="M50 50 Q65 85 80 120" stroke="#E74C3C" stroke-width="1" fill="none" opacity="0.3">
+              <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2.4s" repeatCount="indefinite"/>
+            </path>
+            <path class="router-path path-4" d="M80 120 Q140 130 200 140" stroke="#E74C3C" stroke-width="1" fill="none" opacity="0.5">
+              <animate attributeName="opacity" values="0.5;0.9;0.5" dur="2.1s" repeatCount="indefinite"/>
+            </path>
+            <path class="router-path path-5" d="M200 140 Q225 100 250 60" stroke="#E74C3C" stroke-width="1" fill="none" opacity="0.4">
+              <animate attributeName="opacity" values="0.4;0.7;0.4" dur="2.8s" repeatCount="indefinite"/>
+            </path>
+          </svg>
+          
+          <div class="router-data-packet packet-1"></div>
+          <div class="router-data-packet packet-2"></div>
+          <div class="router-data-packet packet-3"></div>
+        </div>
+        
+        <div class="feature-icon router-icon">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient
+                id="routerGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" style="stop-color:#E74C3C"></stop>
+                <stop offset="100%" style="stop-color:#F1948A"></stop>
+              </linearGradient>
+            </defs>
+            <path
+              d="M10 30 Q30 10 50 30"
+              fill="none"
+              stroke="url(#routerGrad)"
+              stroke-width="3"></path>
+            <path
+              d="M10 30 Q30 50 50 30"
+              fill="none"
+              stroke="url(#routerGrad)"
+              stroke-width="3"></path>
+            <circle cx="10" cy="30" r="3" fill="url(#routerGrad)"></circle>
+            <circle cx="30" cy="20" r="3" fill="url(#routerGrad)"></circle>
+            <circle cx="30" cy="40" r="3" fill="url(#routerGrad)"></circle>
+            <circle cx="50" cy="30" r="3" fill="url(#routerGrad)"></circle>
+          </svg>
+        </div>
+        <h3 id="router-title" class="feature-title">Router</h3>
+        <p class="feature-subtitle">Dead simple mighty <strong>router</strong></p>
+        <p class="feature-description">
+          Cutting edge combine: async concurrency, typesafe params, suspense
+        </p>
+      </article>
+
+      <!-- Framework Agnostic -->
+      <article class="feature-card" aria-labelledby="framework-title">
+        <div class="feature-icon framework-icon">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient
+                id="frameworkGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" style="stop-color:#2ECC71"></stop>
+                <stop offset="100%" style="stop-color:#58D68D"></stop>
+              </linearGradient>
+            </defs>
+            <circle
+              cx="30"
+              cy="30"
+              r="8"
+              fill="none"
+              stroke="url(#frameworkGrad)"
+              stroke-width="2"></circle>
+            <circle cx="15" cy="15" r="4" fill="url(#frameworkGrad)"></circle>
+            <circle cx="45" cy="15" r="4" fill="url(#frameworkGrad)"></circle>
+            <circle cx="15" cy="45" r="4" fill="url(#frameworkGrad)"></circle>
+            <circle cx="45" cy="45" r="4" fill="url(#frameworkGrad)"></circle>
+            <line
+              x1="19"
+              y1="19"
+              x2="26"
+              y2="26"
+              stroke="url(#frameworkGrad)"
+              stroke-width="2"></line>
+            <line
+              x1="41"
+              y1="19"
+              x2="34"
+              y2="26"
+              stroke="url(#frameworkGrad)"
+              stroke-width="2"></line>
+            <line
+              x1="19"
+              y1="41"
+              x2="26"
+              y2="34"
+              stroke="url(#frameworkGrad)"
+              stroke-width="2"></line>
+            <line
+              x1="41"
+              y1="41"
+              x2="34"
+              y2="34"
+              stroke="url(#frameworkGrad)"
+              stroke-width="2"></line>
+          </svg>
+        </div>
+        <h3 id="framework-title" class="feature-title">
+          Framework Agnostic
+        </h3>
+        <p class="feature-subtitle">Framework agnostic</p>
+        <p class="feature-description">
+          Abstract and solid for simple testing and microfrontends
+        </p>
+      </article>
+
+      <!-- Debug -->
+      <article class="feature-card" aria-labelledby="debug-title">
+        <div class="feature-icon debug-icon">
+          <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient
+                id="debugGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" style="stop-color:#F39C12"></stop>
+                <stop offset="100%" style="stop-color:#F7DC6F"></stop>
+              </linearGradient>
+            </defs>
+            <rect
+              x="10"
+              y="15"
+              width="40"
+              height="30"
+              rx="3"
+              fill="none"
+              stroke="url(#debugGrad)"
+              stroke-width="2"></rect>
+            <path
+              d="M15 25 Q20 20 25 25 Q30 30 35 25 Q40 20 45 25"
+              fill="none"
+              stroke="url(#debugGrad)"
+              stroke-width="2"></path>
+            <path
+              d="M15 35 Q25 30 35 35 Q40 38 45 35"
+              fill="none"
+              stroke="url(#debugGrad)"
+              stroke-width="2"></path>
+            <circle cx="20" cy="25" r="1.5" fill="url(#debugGrad)"></circle>
+            <circle cx="30" cy="30" r="1.5" fill="url(#debugGrad)"></circle>
+            <circle cx="40" cy="25" r="1.5" fill="url(#debugGrad)"></circle>
+          </svg>
+        </div>
+        <h3 id="debug-title" class="feature-title">Debug</h3>
+        <p class="feature-subtitle">Devtools</p>
+        <p class="feature-description">mission control center for your app</p>
+      </article>
+
+      <!-- Ecosystem (spans 2 columns) -->
+      <article
+        class="feature-card ecosystem-card"
+        aria-labelledby="ecosystem-title"
+      >
+        <!-- Rotating Logo Background -->
+        <div class="ecosystem-rotating-logo">
+          <svg
+            viewBox="0 0 400 400"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="#151134"
+            stroke="#fff"
+            stroke-width="15px"
+          >
+            <circle cx="200" cy="200" r="200" fill="#fff" stroke-width="0"
+            ></circle>
+            <circle cx="200" cy="200" r="175" stroke-width="0"></circle>
+            <circle cx="180" cy="180" r="130"></circle>
+            <circle cx="215" cy="180" r="70"></circle>
+            <circle cx="150" cy="94" r="38"></circle>
+            <circle cx="100" cy="195" r="40"></circle>
+            <circle cx="165" cy="275" r="30"></circle>
+            <circle cx="250" cy="265" r="20"></circle>
+            <circle cx="57" cy="270" r="20"></circle>
+            <circle cx="215" cy="345" r="36"></circle>
+            <circle cx="310" cy="290" r="36"></circle>
+            <circle cx="345" cy="195" r="30"></circle>
+            <circle cx="321" cy="107" r="25"></circle>
+            <circle cx="260" cy="50" r="20"></circle>
+            <circle cx="120" cy="330" r="25"></circle>
+          </svg>
+        </div>
+        
+        <div class="feature-icon ecosystem-icon">
+          <svg viewBox="0 0 80 60" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient
+                id="ecosystemGrad"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="100%"
+              >
+                <stop offset="0%" style="stop-color:#8E44AD"></stop>
+                <stop offset="50%" style="stop-color:#3498DB"></stop>
+                <stop offset="100%" style="stop-color:#E74C3C"></stop>
+              </linearGradient>
+            </defs>
+            <circle cx="40" cy="30" r="6" fill="url(#ecosystemGrad)"></circle>
+            <circle
+              cx="20"
+              cy="15"
+              r="3"
+              fill="url(#ecosystemGrad)"
+              opacity="0.8"></circle>
+            <circle
+              cx="60"
+              cy="20"
+              r="4"
+              fill="url(#ecosystemGrad)"
+              opacity="0.7"></circle>
+            <circle
+              cx="15"
+              cy="40"
+              r="2.5"
+              fill="url(#ecosystemGrad)"
+              opacity="0.9"></circle>
+            <circle
+              cx="65"
+              cy="45"
+              r="3.5"
+              fill="url(#ecosystemGrad)"
+              opacity="0.6"></circle>
+            <circle
+              cx="25"
+              cy="50"
+              r="2"
+              fill="url(#ecosystemGrad)"
+              opacity="0.8"></circle>
+            <circle
+              cx="55"
+              cy="10"
+              r="2.5"
+              fill="url(#ecosystemGrad)"
+              opacity="0.7"></circle>
+            <circle
+              cx="70"
+              cy="30"
+              r="2"
+              fill="url(#ecosystemGrad)"
+              opacity="0.9"></circle>
+            <circle
+              cx="10"
+              cy="25"
+              r="1.5"
+              fill="url(#ecosystemGrad)"
+              opacity="0.6"></circle>
+          </svg>
+        </div>
+        <h3 id="ecosystem-title" class="feature-title">Ecosystem</h3>
+        <p class="feature-subtitle">Enormous ecosystem</p>
+        <p class="feature-description">
+          Incredible extension system and huge built-in set of tiny helpers
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Features Section */
+  .features-section {
+    position: relative;
+    padding: 8rem 2rem;
+    overflow: hidden;
+  }
+
+  .features-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      ellipse at center,
+      rgba(255, 215, 0, 0.05) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+
+  .features-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Features Title */
+  .features-title {
+    text-align: center;
+    margin-bottom: 4rem;
+  }
+
+  .features-title-main {
+    display: block;
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 700;
+    background: linear-gradient(
+      135deg,
+      #4a90e2 0%,
+      #7bb3f0 25%,
+      #a8d5ff 50%,
+      #ffd700 75%,
+      #ffa500 100%
+    );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientText 8s ease infinite;
+    margin-bottom: 0.5rem;
+  }
+
+  .features-title-sub {
+    display: block;
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
+    font-weight: 400;
+    color: #bbbbbb;
+    opacity: 0.9;
+  }
+
+  @keyframes gradientText {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Features Grid */
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+    align-items: start;
+  }
+
+  /* Feature Cards */
+  .feature-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 215, 0, 0.15);
+    border-radius: 20px;
+    padding: 2.5rem;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(20px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      0 2px 8px rgba(255, 215, 0, 0.1);
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 215, 0, 0.05) 0%,
+      transparent 50%,
+      rgba(74, 144, 226, 0.05) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+
+  .feature-card:hover::before {
+    opacity: 1;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(255, 215, 0, 0.4);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 8px 32px rgba(255, 215, 0, 0.2),
+      0 0 0 1px rgba(255, 215, 0, 0.1);
+  }
+
+  /* Ecosystem card spans 2 columns */
+  .ecosystem-card {
+    grid-column: span 2;
+    background: linear-gradient(
+      135deg,
+      rgba(142, 68, 173, 0.1) 0%,
+      rgba(52, 152, 219, 0.1) 50%,
+      rgba(231, 76, 60, 0.1) 100%
+    );
+    border: 1px solid rgba(142, 68, 173, 0.3);
+  }
+
+  .ecosystem-card:hover {
+    border-color: rgba(142, 68, 173, 0.6);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 8px 32px rgba(142, 68, 173, 0.3),
+      0 0 0 1px rgba(142, 68, 173, 0.2);
+  }
+
+  /* Forms card special styling */
+  .forms-card {
+    background: linear-gradient(
+      135deg,
+      rgba(155, 89, 182, 0.1) 0%,
+      rgba(195, 155, 211, 0.1) 100%
+    );
+    border: 1px solid rgba(155, 89, 182, 0.3);
+    overflow: hidden;
+  }
+
+  .forms-card:hover {
+    border-color: rgba(155, 89, 182, 0.6);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 8px 32px rgba(155, 89, 182, 0.3),
+      0 0 0 1px rgba(155, 89, 182, 0.2);
+  }
+
+  /* Router card special styling */
+  .router-card {
+    background: linear-gradient(
+      135deg,
+      rgba(231, 76, 60, 0.1) 0%,
+      rgba(241, 148, 138, 0.1) 100%
+    );
+    border: 1px solid rgba(231, 76, 60, 0.3);
+    overflow: hidden;
+  }
+
+  .router-card:hover {
+    border-color: rgba(231, 76, 60, 0.6);
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 8px 32px rgba(231, 76, 60, 0.3),
+      0 0 0 1px rgba(231, 76, 60, 0.2);
+  }
+
+  /* Forms Animated Background */
+  .forms-animated-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .floating-form-element {
+    position: absolute;
+    background: rgba(155, 89, 182, 0.2);
+    border: 1px solid rgba(155, 89, 182, 0.4);
+    border-radius: 4px;
+  }
+
+  .form-field-1 {
+    width: 60px;
+    height: 8px;
+    top: 20%;
+    right: 15%;
+    animation: floatForm1 6s ease-in-out infinite;
+  }
+
+  .form-field-2 {
+    width: 45px;
+    height: 8px;
+    top: 40%;
+    right: 25%;
+    animation: floatForm2 7s ease-in-out infinite reverse;
+  }
+
+  .form-field-3 {
+    width: 35px;
+    height: 8px;
+    top: 60%;
+    right: 20%;
+    animation: floatForm3 5.5s ease-in-out infinite;
+  }
+
+  .form-checkmark {
+    width: 12px;
+    height: 12px;
+    top: 75%;
+    right: 15%;
+    border-radius: 2px;
+    background: rgba(46, 204, 113, 0.3);
+    border-color: rgba(46, 204, 113, 0.5);
+    animation: floatForm1 8s ease-in-out infinite reverse;
+  }
+
+  .form-checkmark::after {
+    content: '✓';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(46, 204, 113, 0.8);
+    font-size: 8px;
+    font-weight: bold;
+  }
+
+  .form-toggle {
+    width: 20px;
+    height: 10px;
+    top: 30%;
+    right: 8%;
+    border-radius: 5px;
+    background: rgba(52, 152, 219, 0.3);
+    border-color: rgba(52, 152, 219, 0.5);
+    animation: floatForm2 6.5s ease-in-out infinite;
+  }
+
+  @keyframes floatForm1 {
+    0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+    25% { transform: translateY(-8px) translateX(4px); opacity: 0.6; }
+    50% { transform: translateY(-4px) translateX(-2px); opacity: 0.4; }
+    75% { transform: translateY(-12px) translateX(6px); opacity: 0.7; }
+  }
+
+  @keyframes floatForm2 {
+    0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.4; }
+    33% { transform: translateY(-6px) translateX(-4px); opacity: 0.7; }
+    66% { transform: translateY(-10px) translateX(3px); opacity: 0.5; }
+  }
+
+  @keyframes floatForm3 {
+    0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.3; }
+    50% { transform: translateY(-8px) translateX(-3px); opacity: 0.6; }
+  }
+
+  /* Router Animated Background */
+  .router-animated-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .router-network {
+    position: absolute;
+    top: -20%;
+    right: -30%;
+    width: 120%;
+    height: 120%;
+    opacity: 0.4;
+  }
+
+  .router-data-packet {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: #E74C3C;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(231, 76, 60, 0.6);
+  }
+
+  .packet-1 {
+    top: 25%;
+    right: 20%;
+    animation: routerPacket1 4s linear infinite;
+  }
+
+  .packet-2 {
+    top: 45%;
+    right: 30%;
+    animation: routerPacket2 5s linear infinite;
+    animation-delay: -1s;
+  }
+
+  .packet-3 {
+    top: 65%;
+    right: 15%;
+    animation: routerPacket3 3.5s linear infinite;
+    animation-delay: -2s;
+  }
+
+  @keyframes routerPacket1 {
+    0% { transform: translateX(0) translateY(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateX(-80px) translateY(30px); opacity: 0; }
+  }
+
+  @keyframes routerPacket2 {
+    0% { transform: translateX(0) translateY(0); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateX(-100px) translateY(-20px); opacity: 0; }
+  }
+
+  @keyframes routerPacket3 {
+    0% { transform: translateX(0) translateY(0); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateX(-60px) translateY(40px); opacity: 0; }
+  }
+
+  /* Feature Icons */
+  .feature-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+  }
+
+  .feature-icon svg {
+    width: 36px;
+    height: 36px;
+    transition: transform 0.3s ease;
+  }
+
+  .feature-card:hover .feature-icon {
+    transform: scale(1.1);
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.4);
+  }
+
+  .feature-card:hover .feature-icon svg {
+    transform: scale(1.1);
+  }
+
+  /* Ecosystem icon styling */
+  .ecosystem-icon {
+    background: rgba(142, 68, 173, 0.1);
+    border-color: rgba(142, 68, 173, 0.3);
+  }
+
+  .ecosystem-card:hover .ecosystem-icon {
+    background: rgba(142, 68, 173, 0.2);
+    border-color: rgba(142, 68, 173, 0.5);
+  }
+
+  .ecosystem-icon svg {
+    width: 48px;
+    height: 36px;
+  }
+
+  /* Ecosystem Rotating Logo */
+  .ecosystem-rotating-logo {
+    position: absolute;
+    top: -20%;
+    right: -40%;
+    width: 120%;
+    opacity: 0.03;
+    animation: rotate 60s linear infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .ecosystem-rotating-logo svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Feature Text */
+  .feature-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+    position: relative;
+    z-index: 1;
+  }
+
+  .feature-subtitle {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #ffd700;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+    position: relative;
+    z-index: 1;
+  }
+
+  .feature-description {
+    font-size: 1rem;
+    color: #bbbbbb;
+    line-height: 1.6;
+    opacity: 0.8;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Responsive Design for Features */
+  @media (max-width: 768px) {
+    .features-section {
+      padding: 4rem 1rem;
+    }
+
+    .features-grid {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+
+    .ecosystem-card {
+      grid-column: span 1;
+    }
+
+    .feature-card {
+      padding: 2rem;
+    }
+
+    .features-title {
+      margin-bottom: 3rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .features-section {
+      padding: 3rem 1rem;
+    }
+
+    .feature-card {
+      padding: 1.5rem;
+    }
+
+    .feature-icon {
+      width: 50px;
+      height: 50px;
+    }
+
+    .feature-icon svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .ecosystem-icon svg {
+      width: 40px;
+      height: 30px;
+    }
+
+    .feature-title {
+      font-size: 1.3rem;
+    }
+
+    .feature-subtitle {
+      font-size: 1rem;
+    }
+
+    .feature-description {
+      font-size: 0.9rem;
+    }
+  }
+
+  /* Accessibility for Features */
+  .feature-card:focus-within {
+    outline: 2px solid #ffd700;
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode for features */
+  @media (prefers-contrast: high) {
+    .feature-card {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #ffffff;
+    }
+
+    .feature-title {
+      color: #ffffff;
+    }
+
+    .feature-subtitle {
+      color: #ffd700;
+    }
+
+    .feature-description {
+      color: #ffffff;
+    }
+  }
+
+  /* Reduced motion for features */
+  @media (prefers-reduced-motion: reduce) {
+    .feature-card {
+      transition: none;
+    }
+
+    .feature-card:hover {
+      transform: none;
+    }
+
+    .feature-icon,
+    .feature-icon svg {
+      transition: none;
+    }
+
+    .feature-card:hover .feature-icon,
+    .feature-card:hover .feature-icon svg {
+      transform: none;
+    }
+
+    /* Disable form animations */
+    .floating-form-element {
+      animation: none;
+    }
+
+    /* Disable router animations */
+    .router-data-packet {
+      animation: none;
+    }
+
+    .router-network circle,
+    .router-network path {
+      animation: none;
+    }
+
+    .ecosystem-rotating-logo {
+      animation: none;
+    }
+  }
+</style>
+
+<script>
+  // Intersection Observer for animations
+  function initScrollAnimations() {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            ;(entry.target as HTMLElement).style.opacity = '1'
+            ;(entry.target as HTMLElement).style.transform = 'translateY(0)'
+          }
+        })
+      },
+      { threshold: 0.1 },
+    )
+
+    // Animate features section cards
+    document.querySelectorAll('.feature-card').forEach((card, index) => {
+      ;(card as HTMLElement).style.opacity = '0'
+      ;(card as HTMLElement).style.transform = 'translateY(30px)'
+      ;(card as HTMLElement).style.transition =
+        `opacity 0.4s ease ${index * 0.01}s, transform 0.4s ease ${index * 0.01}s`
+      observer.observe(card)
+    })
+
+    // Animate features title
+    const featuresTitle = document.querySelector('.features-title')
+    if (featuresTitle) {
+      ;(featuresTitle as HTMLElement).style.opacity = '0'
+      ;(featuresTitle as HTMLElement).style.transform = 'translateY(20px)'
+      ;(featuresTitle as HTMLElement).style.transition =
+        'opacity 0.4s ease, transform 0.4s ease'
+      observer.observe(featuresTitle)
+    }
+  }
+
+  // Initialize features animations
+  document.addEventListener('DOMContentLoaded', () => {
+    initScrollAnimations()
+  })
+</script>

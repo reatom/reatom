@@ -82,7 +82,7 @@ describe('select', () => {
     const odd = computed(() =>
       select(
         () => n(),
-        (_prev, next) => next % 2 === 0,
+        (next) => next % 2 === 0,
       ),
     )
 
@@ -145,4 +145,13 @@ describe('select', () => {
     data.set(4)
     expect(lastSumHistory()).toBe(7)
   })
+})
+
+const scroll = atom(0)
+const scrollThrottled = computed(() => {
+  const { state } = select(
+    () => ({ state: scroll(), time: Date.now() }),
+    (prev, next) => prev.time < Date.now() - 50,
+  )
+  return state
 })

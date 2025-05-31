@@ -3,7 +3,7 @@ import { expect, subscribe, test } from 'test'
 import { atom, computed, isConnected, notify } from '../core'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
-import { suspense } from './withSuspense'
+import { suspense, withSuspense } from './withSuspense'
 
 test('suspense', async () => {
   const name = 'suspense'
@@ -75,4 +75,12 @@ test('suspense reject propagation', async () => {
   await wrap(sleep())
   expect(calls).toBe(4)
   expect(track).toBeCalledWith(10)
+})
+
+test('withSuspense', async () => {
+  const name = 'withSuspense'
+  const param = atom(0, `${name}.param`)
+  const data = computed(async () => param(), `${name}.data`).extend(
+    withSuspense(),
+  )
 })

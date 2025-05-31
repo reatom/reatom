@@ -1,1 +1,117 @@
-React landing placeholder. <a href="/start/setup/">Go to docs</a>
+---
+// Reatom Landing Page - Refactored with Components
+import HeroSection from '../components/landing/HeroSection.astro'
+import FeaturesSection from '../components/landing/FeaturesSection.astro'
+import HistorySection from '../components/landing/HistorySection.astro'
+import FooterSection from '../components/landing/FooterSection.astro'
+import CodeExample from '../components/landing/CodeExample.astro'
+import FeedbackSection from '../components/landing/FeedbackSection.astro'
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reatom - State Managers for Any Kind of Apps</title>
+    <meta
+      name="description"
+      content="Lightest and simplest at start, extremely feature-rich for growth. Modern state management for React, Vue, and more."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Preload fonts for better performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- SVG Filter Definition for Paper Night Sky Effect -->
+    <svg width="0" height="0" style="position: absolute;">
+      <defs>
+        <filter id="filter">
+          <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="5" stitchTiles="stitch" result="NOISE"></feTurbulence>
+          <feDiffuseLighting lighting-color="#1B1B2A" surfaceScale="4" in="NOISE" result="DIFFUSE">
+            <feDistantLight azimuth="150" elevation="140"></feDistantLight>
+          </feDiffuseLighting>
+        </filter>
+      </defs>
+    </svg>
+
+    <!-- Background texture layer -->
+    <div class="background-texture"></div>
+
+    <HeroSection />
+    <FeaturesSection />
+    <CodeExample />
+    <HistorySection />
+    <FeedbackSection />
+    <FooterSection />
+
+    <style>
+      /* Reset and Base Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family:
+          'Inter',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        line-height: 1.6;
+        color: #cccccc;
+        background: #151134;
+        overflow-x: hidden;
+        position: relative;
+      }
+
+      .background-texture {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #151134;
+        filter: url(#filter);
+        z-index: -1;
+        pointer-events: none;
+      }
+    </style>
+
+    <script>
+      // Smooth scroll for anchor links
+      function initSmoothScroll() {
+        // document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        //   anchor.addEventListener('click', (e) => {
+        //     e.preventDefault()
+        //     const target = document.querySelector((anchor as HTMLAnchorElement).getAttribute('href') || '')
+        //     if (target) {
+        //       target.scrollIntoView({
+        //         behavior: 'smooth',
+        //         block: 'start',
+        //       })
+        //     }
+        //   })
+        // })
+      }
+
+      // Initialize smooth scroll
+      document.addEventListener('DOMContentLoaded', () => {
+        initSmoothScroll()
+      })
+    </script>
+  </body>
+</html>

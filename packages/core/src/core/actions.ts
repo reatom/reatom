@@ -60,7 +60,6 @@ export type Actions<Target extends AtomLike> = {
  * @throws {ReatomError} If a method name collides with an existing property on the target
  *
  * @example
- * ```ts
  * const counter = atom(0, 'counter').actions({
  *   increment: (amount = 1) => counter((prev) => prev + amount),
  *   decrement: (amount = 1) => counter((prev) => prev - amount),
@@ -69,7 +68,6 @@ export type Actions<Target extends AtomLike> = {
  *
  * counter.increment(5)  // Can now call these methods directly
  * counter.reset()
- * ```
  */
 export function actions<Target extends AtomLike, Methods extends Rec<Fn>>(
   this: Target,

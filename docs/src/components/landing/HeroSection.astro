@@ -1,0 +1,474 @@
+---
+// Hero Section Component
+---
+
+<!-- Hero Section -->
+<main class="hero-section" role="main">
+  <!-- Animated Background Elements -->
+  <div class="background-container">
+    <div class="texture-overlay"></div>
+    <div class="particles-container" id="particles"></div>
+    <div class="geometric-shapes">
+      <div class="logo-shape logo-1">
+        <svg
+          viewBox="0 0 400 400"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="#151134"
+          stroke="#fff"
+          stroke-width="15px"
+        >
+          <circle cx="200" cy="200" r="200" fill="#fff" stroke-width="0"
+          ></circle>
+          <circle cx="200" cy="200" r="175" stroke-width="0"></circle>
+          <circle cx="180" cy="180" r="130"></circle>
+          <circle cx="215" cy="180" r="70"></circle>
+          <circle cx="150" cy="94" r="38"></circle>
+          <circle cx="100" cy="195" r="40"></circle>
+          <circle cx="165" cy="275" r="30"></circle>
+          <circle cx="250" cy="265" r="20"></circle>
+          <circle cx="57" cy="270" r="20"></circle>
+          <circle cx="215" cy="345" r="36"></circle>
+          <circle cx="310" cy="290" r="36"></circle>
+          <circle cx="345" cy="195" r="30"></circle>
+          <circle cx="321" cy="107" r="25"></circle>
+          <circle cx="260" cy="50" r="20"></circle>
+          <circle cx="120" cy="330" r="25"></circle>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero Content -->
+  <div class="hero-content">
+    <div class="container">
+      <!-- Main Title with Gradient -->
+      <h1 class="hero-title">
+        <span class="title-line">Reatom</span>
+        <span class="title-subtitle">state manager for any app</span>
+      </h1>
+
+      <!-- Description with Gradient -->
+      <p class="hero-description">Start simple, grow easy</p>
+
+      <!-- Call-to-Action Buttons -->
+      <div class="cta-container">
+        <a
+          href="/start/setup"
+          class="cta-button cta-primary"
+          aria-label="Get started with Reatom documentation"
+        >
+          <span>Get Started</span>
+          <svg
+            class="cta-icon"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M4.16667 10H15.8333M15.8333 10L10.8333 5M15.8333 10L10.8333 15"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+        </a>
+
+        <a
+          href="https://stackblitz.com/fork/reatom"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="cta-button cta-secondary"
+          aria-label="Try Reatom on StackBlitz"
+        >
+          <span>Try Now</span>
+          <svg
+            class="cta-icon"
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M10.8333 2.5L3.33333 11.6667H10L9.16667 17.5L16.6667 8.33333H10L10.8333 2.5Z"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"></path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll Indicator -->
+  <div class="scroll-indicator">
+    <div class="scroll-arrow"></div>
+  </div>
+</main>
+
+<style>
+  /* Hero Section */
+  .hero-section {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Background Container */
+  .background-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+  }
+
+  /* Texture Overlay */
+  .texture-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    filter: url(#filter);
+    opacity: 0.3;
+    mix-blend-mode: overlay;
+  }
+
+  /* Geometric Shapes */
+  .geometric-shapes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .logo-shape {
+    position: absolute;
+    opacity: 0.3;
+    transition: opacity 0.3s ease;
+  }
+
+  .logo-shape svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .logo-1 {
+    width: 80%;
+    top: -50%;
+    left: -10%;
+    animation: rotate 30s linear infinite;
+    opacity: 0.01;
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* Hero Content */
+  .hero-content {
+    position: relative;
+    z-index: 10;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Hero Title */
+  .hero-title {
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(
+      135deg,
+      #4a90e2 0%,
+      #7bb3f0 25%,
+      #a8d5ff 50%,
+      #ffd700 75%,
+      #ffa500 100%
+    );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientText 8s ease infinite;
+    filter: url(#glow);
+  }
+
+  .title-line {
+    display: block;
+    font-size: 2em;
+  }
+
+  .title-subtitle {
+    display: block;
+    font-size: 0.4em;
+    font-weight: 500;
+    margin-top: 0.5rem;
+  }
+
+  @keyframes gradientText {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  /* Hero Description */
+  .hero-description {
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    font-weight: 400;
+    margin-bottom: 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    background: linear-gradient(135deg, #cccccc 0%, #e0e0e0 50%, #ffd700 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradientText 10s ease infinite;
+  }
+
+  /* CTA Container */
+  .cta-container {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 4rem;
+    flex-wrap: wrap;
+  }
+
+  /* CTA Buttons */
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+  }
+
+  .cta-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      45deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+
+  .cta-button:hover::before {
+    transform: translateX(100%);
+  }
+
+  .cta-primary {
+    background: linear-gradient(135deg, #ffd700, #ffa500);
+    color: #151134;
+    box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+  }
+
+  .cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(255, 215, 0, 0.4);
+  }
+
+  .cta-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #cccccc;
+    border-color: rgba(255, 215, 0, 0.3);
+    backdrop-filter: blur(10px);
+  }
+
+  .cta-secondary:hover {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.6);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(255, 215, 0, 0.2);
+  }
+
+  .cta-icon {
+    transition: transform 0.3s ease;
+  }
+
+  .cta-button:hover .cta-icon {
+    transform: translateX(4px);
+  }
+
+  /* Scroll Indicator */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+  }
+
+  .scroll-arrow {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #ffd700;
+    border-top: none;
+    border-left: none;
+    transform: rotate(45deg);
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+      transform: translateY(0) rotate(45deg);
+    }
+    40% {
+      transform: translateY(-10px) rotate(45deg);
+    }
+    60% {
+      transform: translateY(-5px) rotate(45deg);
+    }
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .hero-content {
+      padding: 1rem;
+    }
+
+    .cta-container {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .cta-button {
+      width: 100%;
+      max-width: 300px;
+      justify-content: center;
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .cta-secondary {
+      display: none;
+    }
+
+    .logo-1 {
+      top: 10%;
+      width: 120%;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .title-subtitle {
+      font-size: 0.35em;
+    }
+
+    .hero-description {
+      margin-bottom: 2rem;
+    }
+  }
+
+  /* Accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Focus styles for accessibility */
+  .cta-button:focus {
+    outline: 2px solid #ffd700;
+    outline-offset: 2px;
+  }
+
+  /* High contrast mode support */
+  @media (prefers-contrast: high) {
+    .hero-title,
+    .hero-description {
+      -webkit-text-fill-color: #ffffff;
+      background: none;
+    }
+
+    .cta-primary {
+      background: #ffd700;
+      color: #000000;
+    }
+
+    .cta-secondary {
+      background: transparent;
+      color: #ffffff;
+      border-color: #ffffff;
+    }
+  }
+</style>
+
+<script>
+  // Mouse movement parallax effect
+  function initParallax() {
+    const shapes = document.querySelectorAll('.logo-shape')
+
+    document.addEventListener('mousemove', (e) => {
+      const mouseX = e.clientX / window.innerWidth
+      const mouseY = e.clientY / window.innerHeight
+
+      shapes.forEach((shape, index) => {
+        const speed = (index + 1) * 0.5
+        const x = (mouseX - 0.5) * speed * 20
+        const y = (mouseY - 0.5) * speed * 20
+
+        ;(shape as HTMLElement).style.transform = `translate(${x}px, ${y}px)`
+      })
+    })
+  }
+
+  // Initialize hero animations and interactions
+  document.addEventListener('DOMContentLoaded', () => {
+    initParallax()
+  })
+
+  // Performance optimization: Reduce animations on low-end devices
+  if (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) {
+    document.documentElement.style.setProperty('--animation-duration', '0.5s')
+  }
+</script>

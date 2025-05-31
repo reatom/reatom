@@ -17,13 +17,11 @@ import { wrap } from '../methods'
  * @returns The same passed action
  *
  * @example
- * ```ts
  * const fetchUser = action(async () => {
  *   const id = user().id // `user` is a suspended atom
  *   const response = await fetch(`/api/users/${id}`)
  *   return response.json()
  * }).extend(withSuspenseRetry())
- * ```
  */
 export let withSuspenseRetry =
   <T extends Action<unknown[], Promise<unknown>>>(): Ext<T> =>

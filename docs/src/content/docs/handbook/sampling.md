@@ -349,7 +349,7 @@ For instance, you can wait for a form to become valid before proceeding:
 const formIsValid = atom(false, 'formIsValid');
 const submitAction = action(async () => {
   if (!formIsValid()) {
-    await wrap(take(formIsValid, (isValid) => isValid === true)); // Wait for formIsValid to be true
+    await wrap(take(formIsValid, (isValid) => isValid || throwAbort())); // Wait for formIsValid to be true
   }
   // Proceed with submission...
 }, 'submitAction');
@@ -357,9 +357,9 @@ const submitAction = action(async () => {
 
 `take` also supports conditional waiting by providing a filter function as its second argument, allowing you to wait for specific state conditions or action payloads.
 
-Furthermore, Reatom allows combining multiple `take` operations:
+<!-- Furthermore, Reatom allows combining multiple `take` operations:
 - `race({ key: take(target1), ... })`: Waits for the first of several events to occur.
-- `all([take(target1), take(target2)])`: Waits for all specified events to occur.
+- `all([take(target1), take(target2)])`: Waits for all specified events to occur. -->
 
 These patterns simplify building complex, multi-step processes that depend on various asynchronous events or state changes, such as form submissions with timeouts or loading multiple data sources in parallel.
 

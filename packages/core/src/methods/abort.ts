@@ -28,7 +28,8 @@ export interface AbortMethods {
   throwIfAborted(this: AbortAtom): void
 
   /**
-   * Subscribes a callback to be executed when the atom transitions to aborted state
+   * Subscribes a callback to be executed when the atom transitions to aborted
+   * state
    *
    * @param {(error: AbortError) => void} cb - Callback to execute when aborted
    * @returns {Unsubscribe} Function to unsubscribe the callback
@@ -38,7 +39,8 @@ export interface AbortMethods {
   /**
    * Creates and returns an AbortController connected to this abort atom
    *
-   * @returns {LazyAbortController} An AbortController that will be aborted when the atom is aborted
+   * @returns {LazyAbortController} An AbortController that will be aborted when
+   *   the atom is aborted
    */
   getController(this: AbortAtom): LazyAbortController
 }
@@ -46,22 +48,20 @@ export interface AbortMethods {
 /**
  * Extended AbortController with unsubscribe capability
  *
- * @interface LazyAbortController
  * @extends {AbortController}
+ * @interface LazyAbortController
  */
 export interface LazyAbortController extends AbortController {
-  /**
-   * Function to unsubscribe and clean up the controller
-   */
+  /** Function to unsubscribe and clean up the controller */
   unsubscribe: Unsubscribe
 }
 
 /**
  * Atom-like object that tracks abort state
  *
- * @interface AbortAtom
  * @extends {Atom<null | AbortError, [] | [reason: any]>}
  * @extends {AbortMethods}
+ * @interface AbortAtom
  */
 export interface AbortAtom
   extends Atom<null | AbortError, [] | [reason: any]>,
@@ -70,8 +70,8 @@ export interface AbortAtom
 /**
  * Interface for a global abort variable tied to the current frame
  *
- * @interface AbortVar
  * @extends {Variable<[option: string | AbortAtom], AbortAtom>}
+ * @interface AbortVar
  */
 export interface AbortVar
   extends Variable<[option: string | AbortAtom], AbortAtom> {
@@ -86,14 +86,16 @@ export interface AbortVar
    * Subscribes a callback to be executed when the current frame is aborted
    *
    * @param {(error: AbortError) => void} cb - Callback to execute when aborted
-   * @returns {undefined | Unsubscribe} Function to unsubscribe the callback or undefined if no abort atom available
+   * @returns {undefined | Unsubscribe} Function to unsubscribe the callback or
+   *   undefined if no abort atom available
    */
   subscribeAbort(cb: (error: AbortError) => void): undefined | Unsubscribe
 
   /**
    * Creates and returns an AbortController connected to the current frame
    *
-   * @returns {undefined | AbortController} An AbortController or undefined if no abort atom available
+   * @returns {undefined | AbortController} An AbortController or undefined if
+   *   no abort atom available
    */
   getController(): undefined | AbortController
 
@@ -108,28 +110,28 @@ export interface AbortVar
 /**
  * Global abort variable that creates abort atoms coupled to the current frame.
  *
- * The abortVar is computed from all other abort atoms in the current frame tree,
- * which allows for propagation of abortion signals through the computation hierarchy.
- * This is a critical component for cancellation handling in Reatom's async operations.
+ * The abortVar is computed from all other abort atoms in the current frame
+ * tree, which allows for propagation of abortion signals through the
+ * computation hierarchy. This is a critical component for cancellation handling
+ * in Reatom's async operations.
+ *
+ * @example
+ *   // Check if current operation is aborted
+ *   try {
+ *     abortVar.throwIfAborted()
+ *     // continue operation...
+ *   } catch (e) {
+ *     // Handle abortion
+ *   }
+ *
+ *   // Trigger abortion
+ *   abortVar.abort('Operation cancelled')
+ *
+ *   // Get AbortController for fetch API
+ *   const controller = abortVar.getController()
+ *   fetch('/api/data', { signal: controller?.signal })
  *
  * @type {AbortVar}
- * @example
- * ```ts
- * // Check if current operation is aborted
- * try {
- *   abortVar.throwIfAborted()
- *   // continue operation...
- * } catch (e) {
- *   // Handle abortion
- * }
- *
- * // Trigger abortion
- * abortVar.abort('Operation cancelled')
- *
- * // Get AbortController for fetch API
- * const controller = abortVar.getController()
- * fetch('/api/data', { signal: controller?.signal })
- * ```
  */
 export let abortVar: AbortVar = /* @__PURE__ */ (() =>
   Object.assign(
@@ -211,30 +213,30 @@ export let abortVar: AbortVar = /* @__PURE__ */ (() =>
   ))()
 
 /**
- * This utility allow you to start a function which will NOT follow the async abort context.
+ * This utility allow you to start a function which will NOT follow the async
+ * abort context.
  *
- * @example If you want to start a fetch when the atom gets a subscription,
- * but don't want to abort the fetch when the subscription is lost to save the data anyway.
- *
- * ```ts
- * const some = atom('...').extend(
- *   withConnectHook((target) => {
- *     spawn(async () => {
- *       // here `wrap` doesn't follow the connection abort
- *       const data = await wrap(api.getSome())
- *       some(data)
- *     })
- *   }),
- * )
- * ```
+ * @example
+ *   // If you want to start a fetch when the atom gets a subscription,
+ *   // but don't want to abort the fetch when the subscription is lost to save the data anyway.
+ *   const some = atom('...').extend(
+ *     withConnectHook((target) => {
+ *       spawn(async () => {
+ *         // here `wrap` doesn't follow the connection abort
+ *         const data = await wrap(api.getSome())
+ *         some(data)
+ *       })
+ *     }),
+ *   )
  */
 export let spawn: GenericAction<
   <Params extends any[], Payload>(
     cb: (...params: Params) => Payload,
     ...params: Params
   ) => Payload
-> = action((cb: Fn, ...params: any[]): ReturnType<Fn> => {
-  let abort = abortVar.set('spawn')
-  abort.set(new AbortController())
-  return cb(...params)
-}, 'spawn')
+> = /* @__PURE__ */ (() =>
+  action((cb: Fn, ...params: any[]): ReturnType<Fn> => {
+    let abort = abortVar.set('spawn')
+    abort.set(new AbortController())
+    return cb(...params)
+  }, 'spawn'))()

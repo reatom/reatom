@@ -478,10 +478,8 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     /**
      * @todo Support for properties values null | undefined.
      * @example
-     * ```ts
      * if (key === 'valueAsDate') element[key] = val
      * else if (key === 'valueAsNumber') element[key] = key ?? NaN
-     * ```
      */
 
     // @ts-ignore

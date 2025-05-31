@@ -8,7 +8,7 @@ npm i @reatom/npm-zod
 
 ## Usage
 
-You can find an example here: https://github.com/artalar/reatom/tree/v3/examples/react-table-atomization
+You can find an example here: https://github.com/reatom/reatom/tree/v3/examples/react-table-atomization
 
 ```ts
 import { parseAtoms } from '@reatom/framework'

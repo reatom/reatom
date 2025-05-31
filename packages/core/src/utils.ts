@@ -1,32 +1,34 @@
 import type { SetTimeout } from './setTimeout'
 
 /**
- * Generic function type representing any function that takes any parameters and returns any value.
- * Used throughout Reatom for typing function parameters and callbacks.
+ * Generic function type representing any function that takes any parameters and
+ * returns any value. Used throughout Reatom for typing function parameters and
+ * callbacks.
  */
 export interface Fn {
   (...params: any[]): any
 }
 
 /**
- * Type alias for Record<string, T> for brevity.
- * Represents an object with string keys and values of type T.
+ * Type alias for Record<string, T> for brevity. Represents an object with
+ * string keys and values of type T.
  *
  * @template T - The type of values in the record (defaults to any)
  */
 export type Rec<T = any> = Record<string, T>
 
 /**
- * Function interface for unsubscribing from subscriptions.
- * Used consistently throughout Reatom for cleanup functions.
+ * Function interface for unsubscribing from subscriptions. Used consistently
+ * throughout Reatom for cleanup functions.
  */
 export interface Unsubscribe {
   (): void
 }
 
 /**
- * Utility type that converts properties with undefined values to optional properties.
- * Makes properties with object or null values required, while making other properties optional.
+ * Utility type that converts properties with undefined values to optional
+ * properties. Makes properties with object or null values required, while
+ * making other properties optional.
  *
  * @template T - The object type to transform
  */
@@ -34,18 +36,20 @@ export type UndefinedToOptional<T extends object> = Partial<T> &
   PickValues<T, {} | null>
 
 /**
- * Union type of all JavaScript falsy values except for NaN.
- * Includes: false, 0, empty string, null, and undefined.
+ * Union type of all JavaScript falsy values except for NaN. Includes: false, 0,
+ * empty string, null, and undefined.
  *
  * @see https://stackoverflow.com/a/51390763
  */
 export type Falsy = false | 0 | '' | null | undefined
 
 /**
- * Removes named generics to produce a plain type representation.
- * Preserves function signatures and object structure while eliminating generic parameter names.
+ * Removes named generics to produce a plain type representation. Preserves
+ * function signatures and object structure while eliminating generic parameter
+ * names.
  *
- * This is useful for presenting cleaner types in documentation and error messages.
+ * This is useful for presenting cleaner types in documentation and error
+ * messages.
  *
  * @template Intersection - The type to convert to a plain representation
  */
@@ -64,8 +68,8 @@ export type Plain<Intersection> = Intersection extends (
       : Intersection
 
 /**
- * Creates a shallow clone type of T.
- * Useful for creating a new type that has the same shape but is a distinct type.
+ * Creates a shallow clone type of T. Useful for creating a new type that has
+ * the same shape but is a distinct type.
  *
  * @template T - The type to create a shallow clone of
  */
@@ -74,9 +78,11 @@ export type Shallow<T> = {
 } & {}
 
 /**
- * Represents a constructor function that can be instantiated with the new operator.
+ * Represents a constructor function that can be instantiated with the new
+ * operator.
  *
- * @template ReturnType - The type of object that will be created when instantiated
+ * @template ReturnType - The type of object that will be created when
+ *   instantiated
  */
 export interface Newable<ReturnType> {
   new (...params: any[]): ReturnType
@@ -90,7 +96,8 @@ export interface Newable<ReturnType> {
 export type Values<T> = T[keyof T]
 
 /**
- * Extracts keys from type T where the corresponding value does not extend type V.
+ * Extracts keys from type T where the corresponding value does not extend type
+ * V.
  *
  * @template T - The object type to extract keys from
  * @template V - The value type to exclude
@@ -100,7 +107,8 @@ export type OmitValuesKeys<T, V> = Values<{
 }>
 
 /**
- * Creates a type with all properties from T except those with values extending V.
+ * Creates a type with all properties from T except those with values extending
+ * V.
  *
  * @template T - The object type to filter properties from
  * @template V - The value type to exclude
@@ -130,8 +138,8 @@ export type PickValues<T, V> = {
 }
 
 /**
- * Flattens a function type with up to 5 overloads into a single function signature.
- * This creates a union of the parameter types and return types.
+ * Flattens a function type with up to 5 overloads into a single function
+ * signature. This creates a union of the parameter types and return types.
  *
  * Useful for generic type handling of overloaded functions.
  *
@@ -162,8 +170,8 @@ export type Overloads<T> = T extends {
 // : never
 
 /**
- * Extracts the parameters type from an overloaded function.
- * Returns a union of all possible parameter tuples.
+ * Extracts the parameters type from an overloaded function. Returns a union of
+ * all possible parameter tuples.
  *
  * @template T - The overloaded function type to extract parameters from
  */
@@ -180,13 +188,13 @@ export type OverloadParameters<T> = Parameters<Overloads<T>>
 // type Test3 = Overloads<(value: number) => number>
 
 /**
- * Asserts that a value is truthy, throwing an error if it's falsy.
- * This is a TypeScript type assertion function that helps with type narrowing.
+ * Asserts that a value is truthy, throwing an error if it's falsy. This is a
+ * TypeScript type assertion function that helps with type narrowing.
  *
  * @param value - The value to check
  * @param message - The error message to use if the assertion fails
- * @param ErrorConstructor - Optional custom error constructor to use (defaults to Error)
- *
+ * @param ErrorConstructor - Optional custom error constructor to use (defaults
+ *   to Error)
  * @throws {Error} Throws an error with the provided message if value is falsy
  */
 export function assert(
@@ -204,8 +212,8 @@ export function assert(
 export const noop: (...params: any[]) => any = () => {}
 
 /**
- * Identity function that returns the first argument unchanged.
- * Can accept additional parameters but ignores them.
+ * Identity function that returns the first argument unchanged. Can accept
+ * additional parameters but ignores them.
  *
  * @template T - The type of value being passed through
  * @param value - The value to return
@@ -227,8 +235,9 @@ export const identity = <T>(
 export const sleep = (ms = 0) => new Promise((r) => setTimeout(r, ms))
 
 /**
- * Type guard that checks if a value is an object (non-null and typeof 'object').
- * Provides advanced type narrowing to either the original object type or a generic object type.
+ * Type guard that checks if a value is an object (non-null and typeof
+ * 'object'). Provides advanced type narrowing to either the original object
+ * type or a generic object type.
  *
  * @template T - The type of value being checked
  * @param thing - The value to check
@@ -243,8 +252,9 @@ export const isObject = <T>(
   typeof thing === 'object' && thing !== null
 
 /**
- * Type guard that checks if a value is a plain object (a simple object literal or created with Object.create(null)).
- * Verifies that the object either has no prototype or its prototype is Object.prototype.
+ * Type guard that checks if a value is a plain object (a simple object literal
+ * or created with Object.create(null)). Verifies that the object either has no
+ * prototype or its prototype is Object.prototype.
  *
  * @param thing - The value to check
  * @returns True if the value is a plain object, false otherwise
@@ -261,15 +271,16 @@ export const isRec = (thing: unknown): thing is Record<string, unknown> => {
 // } = Object.is
 
 /**
- * Performs a shallow equality comparison between two values.
- * Handles primitives, objects, dates, regular expressions, arrays, maps, and sets.
+ * Performs a shallow equality comparison between two values. Handles
+ * primitives, objects, dates, regular expressions, arrays, maps, and sets.
  *
- * For iterables, compares each item in sequence for equality.
- * For objects, compares direct property values but not nested objects deeply.
+ * For iterables, compares each item in sequence for equality. For objects,
+ * compares direct property values but not nested objects deeply.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
- * @param is - Optional comparison function to use for individual values (defaults to Object.is)
+ * @param is - Optional comparison function to use for individual values
+ *   (defaults to Object.is)
  * @returns True if the values are shallowly equal, false otherwise
  */
 export const isShallowEqual = (a: any, b: any, is = Object.is) => {
@@ -318,11 +329,12 @@ export const isShallowEqual = (a: any, b: any, is = Object.is) => {
 }
 
 /**
- * Performs a deep equality comparison between two values.
- * Recursively compares nested objects and arrays while properly handling cyclic references.
+ * Performs a deep equality comparison between two values. Recursively compares
+ * nested objects and arrays while properly handling cyclic references.
  *
- * Handles primitives, objects, dates, regular expressions, arrays, maps, and sets.
- * Uses a WeakMap to track visited objects to avoid infinite recursion with circular references.
+ * Handles primitives, objects, dates, regular expressions, arrays, maps, and
+ * sets. Uses a WeakMap to track visited objects to avoid infinite recursion
+ * with circular references.
  *
  * @param a - First value to compare
  * @param b - Second value to compare
@@ -343,14 +355,15 @@ export const isDeepEqual = (a: any, b: any) => {
 }
 
 /**
- * Type utility for merging up to four types with proper type safety.
- * Properties from later types override properties from earlier types.
- * Preserves function signatures from T1 if it's a function type.
+ * Type utility for merging up to four types with proper type safety. Properties
+ * from later types override properties from earlier types. Preserves function
+ * signatures from T1 if it's a function type.
  *
  * @template T1 - First type to merge
  * @template T2 - Second type to merge, overrides T1 properties
  * @template T3 - Optional third type to merge, overrides T1 and T2 properties
- * @template T4 - Optional fourth type to merge, overrides T1, T2, and T3 properties
+ * @template T4 - Optional fourth type to merge, overrides T1, T2, and T3
+ *   properties
  */
 export type Assign<T1, T2, T3 = {}, T4 = {}> = Plain<
   (T1 extends (...params: infer I) => infer O ? (...params: I) => O : {}) &
@@ -361,15 +374,14 @@ export type Assign<T1, T2, T3 = {}, T4 = {}> = Plain<
 >
 
 /**
- * Type-safe version of Object.assign that properly handles type merging.
- * Unlike standard Object.assign typing, properties with the same name are replaced
+ * Type-safe version of Object.assign that properly handles type merging. Unlike
+ * standard Object.assign typing, properties with the same name are replaced
  * rather than becoming a union type.
  *
  * @template T1 - Type of the target object
  * @template T2 - Type of the first source object
  * @template T3 - Type of the optional second source object
  * @template T4 - Type of the optional third source object
- *
  * @returns A new object with merged properties
  */
 export const assign: {
@@ -385,13 +397,14 @@ export const assign: {
 
 /**
  * Creates a new object with merged properties from all provided objects.
- * Similar to Object.assign but always creates a new object rather than mutating the first argument.
- *
- * @returns A new object with all properties from the provided objects
+ * Similar to Object.assign but always creates a new object rather than mutating
+ * the first argument.
  *
  * @example
- * // Creates a new object: { a: 1, b: 2, c: 3 }
- * const obj = merge({ a: 1 }, { b: 2 }, { c: 3 });
+ *   // Creates a new object: { a: 1, b: 2, c: 3 }
+ *   const obj = merge({ a: 1 }, { b: 2 }, { c: 3 })
+ *
+ * @returns A new object with all properties from the provided objects
  */
 export const merge: typeof assign = (...params: any[]) =>
   Object.assign({}, ...params)
@@ -409,8 +422,8 @@ export const keys: {
 } = Object.keys
 
 /**
- * Type-safe version of Object.entries that preserves key and value type information.
- * Returns an array of key-value pairs with correct types.
+ * Type-safe version of Object.entries that preserves key and value type
+ * information. Returns an array of key-value pairs with correct types.
  *
  * @template T - The object type
  * @param thing - The object to get entries from
@@ -423,16 +436,16 @@ export const entries: {
 /**
  * Creates a new object with only the specified keys from the original object.
  *
+ * @example
+ *   const user = { id: 1, name: 'Alice', email: 'alice@example.com' }
+ *   const userInfo = pick(user, ['name', 'email'])
+ *   // Result: { name: 'Alice', email: 'alice@example.com' }
+ *
  * @template T - The source object type
  * @template K - The keys to pick from the object
  * @param target - The source object
  * @param keys - Array of keys to include in the result
  * @returns A new object containing only the specified keys and their values
- *
- * @example
- * const user = { id: 1, name: 'Alice', email: 'alice@example.com' };
- * const userInfo = pick(user, ['name', 'email']);
- * // Result: { name: 'Alice', email: 'alice@example.com' }
  */
 export const pick = <T, K extends keyof T>(
   target: T,
@@ -446,16 +459,16 @@ export const pick = <T, K extends keyof T>(
 /**
  * Creates a new object excluding the specified keys from the original object.
  *
+ * @example
+ *   const user = { id: 1, name: 'Alice', password: 'secret' }
+ *   const safeUser = omit(user, ['password'])
+ *   // Result: { id: 1, name: 'Alice' }
+ *
  * @template T - The source object type
  * @template K - The keys to omit from the object
  * @param target - The source object
  * @param keys - Array of keys to exclude from the result
  * @returns A new object containing all keys except the specified ones
- *
- * @example
- * const user = { id: 1, name: 'Alice', password: 'secret' };
- * const safeUser = omit(user, ['password']);
- * // Result: { id: 1, name: 'Alice' }
  */
 export const omit = <T, K extends keyof T>(
   target: T,
@@ -472,14 +485,13 @@ export const omit = <T, K extends keyof T>(
  * Creates a deep clone of a value using JSON serialization/deserialization.
  * This is a type-safe shortcut to `JSON.parse(JSON.stringify(value))`.
  *
- * Note: This has limitations with circular references, functions, symbols,
- * and special objects like Date (converts to string).
- * Consider using the native structuredClone when available.
+ * Note: This has limitations with circular references, functions, symbols, and
+ * special objects like Date (converts to string). Consider using the native
+ * structuredClone when available.
  *
  * @template T - The type of value being cloned
  * @param value - The value to clone
  * @returns A deep clone of the input value
- *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/structuredClone
  */
 export const jsonClone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
@@ -491,7 +503,8 @@ let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
  * Generates a random integer between min and max (inclusive).
  *
  * @param min - The minimum integer value (defaults to 0)
- * @param max - The maximum integer value (defaults to Number.MAX_SAFE_INTEGER - 1)
+ * @param max - The maximum integer value (defaults to Number.MAX_SAFE_INTEGER -
+ *   1)
  * @returns A random integer between min and max
  */
 export const random: typeof _random = (min, max) => _random(min, max)
@@ -500,14 +513,15 @@ export const random: typeof _random = (min, max) => _random(min, max)
  * Replaces the default random number generator with a custom implementation.
  * Useful for testing to provide deterministic "random" values.
  *
- * @param fn - The custom random function to use
- * @returns A restore function that reverts to the original random implementation when called
- *
  * @example
- * // Set up deterministic random values for testing
- * const restore = mockRandom(() => 42);
- * console.log(random()); // Always returns 42
- * restore(); // Back to normal random behavior
+ *   // Set up deterministic random values for testing
+ *   const restore = mockRandom(() => 42)
+ *   console.log(random()) // Always returns 42
+ *   restore() // Back to normal random behavior
+ *
+ * @param fn - The custom random function to use
+ * @returns A restore function that reverts to the original random
+ *   implementation when called
  */
 export const mockRandom = (fn: typeof random) => {
   const origin = _random
@@ -518,18 +532,18 @@ export const mockRandom = (fn: typeof random) => {
 }
 
 /**
- * Asserts that a value is not null or undefined.
- * Throws a TypeError if the value is null or undefined.
- * Also serves as a type guard to narrow the type to non-nullable.
+ * Asserts that a value is not null or undefined. Throws a TypeError if the
+ * value is null or undefined. Also serves as a type guard to narrow the type to
+ * non-nullable.
+ *
+ * @example
+ *   const name = nonNullable(user.name) // TypeScript knows name is not null or undefined
  *
  * @template T - The type of value to check
  * @param value - The value to check
  * @param message - Optional custom error message
  * @returns The input value if it's not null or undefined
  * @throws {TypeError} If the value is null or undefined
- *
- * @example
- * const name = nonNullable(user.name); // TypeScript knows name is not null or undefined
  */
 export const nonNullable = <T>(value: T, message?: string): NonNullable<T> => {
   if (value == null) {
@@ -543,10 +557,11 @@ const { toString: toStringArray } = []
 const visited = new WeakMap<{}, string>()
 
 /**
- * Converts any JavaScript value to a stable string representation.
- * Handles complex data structures and edge cases that JSON.stringify cannot manage.
+ * Converts any JavaScript value to a stable string representation. Handles
+ * complex data structures and edge cases that JSON.stringify cannot manage.
  *
  * Provides special handling for:
+ *
  * - Circular references
  * - Maps and Sets
  * - Symbols
@@ -554,18 +569,19 @@ const visited = new WeakMap<{}, string>()
  * - Custom class instances
  * - Regular objects (with sorted keys for stability)
  *
- * @param thing - The value to convert to a string
- * @param immutable - Whether to memoize results for complex objects (defaults to true)
- * @returns A string representation of the value
- *
  * @example
- * // Handles circular references
- * const obj = { name: 'test' };
- * obj.self = obj;
- * const key = toStringKey(obj); // No infinite recursion!
+ *   // Handles circular references
+ *   const obj = { name: 'test' }
+ *   obj.self = obj
+ *   const key = toStringKey(obj) // No infinite recursion!
  *
- * // Stable representation of objects (key order doesn't matter)
- * toStringKey({a: 1, b: 2}) === toStringKey({b: 2, a: 1}) // true
+ *   // Stable representation of objects (key order doesn't matter)
+ *   toStringKey({ a: 1, b: 2 }) === toStringKey({ b: 2, a: 1 }) // true
+ *
+ * @param thing - The value to convert to a string
+ * @param immutable - Whether to memoize results for complex objects (defaults
+ *   to true)
+ * @returns A string representation of the value
  */
 export const toStringKey = (thing: any, immutable = true): string => {
   var tag = typeof thing
@@ -622,8 +638,8 @@ export const toStringKey = (thing: any, immutable = true): string => {
 }
 
 /**
- * Interface extending DOMException for abort-specific error handling.
- * Used to represent errors triggered by AbortController signal aborts.
+ * Interface extending DOMException for abort-specific error handling. Used to
+ * represent errors triggered by AbortController signal aborts.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/AbortController
  */
@@ -633,12 +649,12 @@ export interface AbortError extends DOMException {
 
 let i = 0
 /**
- * Converts any value to an AbortError.
- * If the value is already an AbortError, it will be returned as is.
- * Otherwise, creates a new AbortError with appropriate information.
+ * Converts any value to an AbortError. If the value is already an AbortError,
+ * it will be returned as is. Otherwise, creates a new AbortError with
+ * appropriate information.
  *
- * Handles different environments by using DOMException when available
- * or falling back to regular Error with name set to 'AbortError'.
+ * Handles different environments by using DOMException when available or
+ * falling back to regular Error with name set to 'AbortError'.
  *
  * @param reason - The value to convert to an AbortError
  * @returns An AbortError instance
@@ -669,7 +685,8 @@ export const toAbortError = (reason: any): AbortError => {
  * Checks if an AbortController is aborted and throws an AbortError if it is.
  * Useful for quick abort checks at the beginning of async operations.
  *
- * @param controller - The AbortController to check (can be undefined, null or void)
+ * @param controller - The AbortController to check (can be undefined, null or
+ *   void)
  * @throws {AbortError} If the controller's signal is aborted
  */
 export const throwIfAborted = (controller?: void | null | AbortController) => {
@@ -688,15 +705,15 @@ export const isAbort = (thing: any): thing is AbortError =>
   thing instanceof Error && thing.name === 'AbortError'
 
 /**
- * Creates and throws an AbortError with the provided message.
- * Optionally aborts the provided controller with the same error.
+ * Creates and throws an AbortError with the provided message. Optionally aborts
+ * the provided controller with the same error.
  *
  * @param message - The error message
  * @param controller - Optional AbortController to abort
  * @throws {AbortError} Always throws the created AbortError
  */
 export const throwAbort = (
-  message: string,
+  message = '',
   controller?: AbortController,
 ): never => {
   const error = toAbortError(message)
@@ -705,9 +722,9 @@ export const throwAbort = (
 }
 
 /**
- * Enhanced version of the global setTimeout function.
- * Ensures consistent behavior across different environments by handling both numeric
- * and object timeout IDs. Adds a toJSON method to object timeout IDs for serialization.
+ * Enhanced version of the global setTimeout function. Ensures consistent
+ * behavior across different environments by handling both numeric and object
+ * timeout IDs. Adds a toJSON method to object timeout IDs for serialization.
  *
  * @param handler - The function to call after the timeout
  * @param timeout - The time in milliseconds to wait before calling the handler
@@ -727,25 +744,77 @@ export const setTimeout: SetTimeout = /* @__PURE__ */ (() =>
   }, globalThis.setTimeout))()
 
 /**
- * Maximum safe integer value for setTimeout delay.
- * Any timeout value larger than this may cause overflow issues in some browsers.
+ * Maximum safe integer value for setTimeout delay. Any timeout value larger
+ * than this may cause overflow issues in some browsers.
  *
  * @see https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#maximum_delay_value
  */
 export const MAX_SAFE_TIMEOUT = 2 ** 31 - 1
 
 /**
- * Represents a constructor function that can be instantiated with the new operator.
+ * Represents a constructor function that can be instantiated with the new
+ * operator.
  *
  * @template T - The type of object that will be created when instantiated
  */
 export type Constructor<T> = new (...args: any[]) => T
 
 /**
- * Detects whether the code is running in a browser environment.
- * Checks for the existence of window and document objects.
+ * Detects whether the code is running in a browser environment. Checks for the
+ * existence of window and document objects.
  *
  * @returns True if running in a browser environment, false otherwise
  */
 export const isBrowser = () =>
   typeof window === 'object' && typeof document === 'object'
+
+/**
+ * Creates a Promise and returns it along with its resolve and reject functions.
+ * This utility is similar to the upcoming `Promise.withResolvers()` static
+ * method. It allows for manual control over a Promise's settlement from outside
+ * its constructor.
+ *
+ * @example
+ *   const { promise, resolve, reject } = withResolvers<string>()
+ *
+ *   promise
+ *     .then((value) => console.log('Resolved:', value))
+ *     .catch((error) => console.error('Rejected:', error))
+ *
+ *   // Sometime later, or in a different part of the code:
+ *   if (Math.random() > 0.5) {
+ *     resolve('Success!')
+ *   } else {
+ *     reject(new Error('Failed!'))
+ *   }
+ *
+ * @template T - The type of the value the promise will resolve with.
+ * @property {Promise<T>} promise - The created Promise.
+ * @property {(value: T) => void} resolve - A function to resolve the promise
+ *   with a value of type T.
+ * @property {(reason?: any) => void} reject - A function to reject the promise
+ *   with an optional reason.
+ * @returns An object containing the `promise`, and its `resolve` and `reject`
+ *   functions.
+ */
+
+export const withResolvers = <T>(): {
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (reason?: any) => void
+} => {
+  let resolve: (value: T) => void
+  let reject: (reason?: any) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+
+  return {
+    promise,
+    // @ts-expect-error promise constructor is sync
+    resolve,
+    // @ts-expect-error promise constructor is sync
+    reject,
+  }
+}

@@ -9,7 +9,7 @@ export default defineConfig({
       screenshotFailures: false,
       instances: [
         {
-          name: 'chromium',
+          name: 'jsx-chromium',
           browser: 'chromium',
         },
       ],

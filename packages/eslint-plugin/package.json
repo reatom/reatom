@@ -15,11 +15,8 @@
   "main": "build/index.js",
   "module": "build/index.mjs",
   "types": "build/index.d.ts",
-  "browserslist": [
-    "node 16"
-  ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "tsx src/index.test.ts",
     "test:watch": "tsx watch src/index.test.ts"
@@ -46,24 +43,20 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/artalar/reatom.git"
+    "url": "git+ssh://git@github.com/reatom/reatom.git"
   },
   "bugs": {
-    "url": "https://github.com/artalar/reatom/issues"
+    "url": "https://github.com/reatom/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/eslint-plugin",
   "files": [
     "/build"
   ],
   "devDependencies": {
-    "@types/eslint": "^9.0.0",
-    "@typescript-eslint/rule-tester": "^8.32.0",
-    "eslint": "^9.21.0",
-    "eslint-plugin-eslint-plugin": "^6.4.0",
-    "eslint-plugin-node": "^11.1.0",
-    "typescript-eslint": "^8.29.0"
-  },
-  "dependencies": {
-    "@types/estree": "^1.0.6"
+    "@eslint/js": "^9.27.0",
+    "@types/eslint": "^9.6.1",
+    "@typescript-eslint/rule-tester": "^8.32.1",
+    "eslint": "^9.27.0",
+    "typescript-eslint": "^8.32.1"
   }
 }

@@ -1,4 +1,4 @@
-import type { Fn, Unsubscribe } from '../utils'
+import { type Fn, isAbort, type Unsubscribe } from '../utils'
 import type { Ext } from './'
 import { _enqueue, type Actions, actions, type Extend, extend } from './'
 
@@ -496,8 +496,12 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
   let rootFrame = top().root.frame
 
-  // prevent reactive tracking
-  rootFrame.run(this)
+  try {
+    // prevent reactive tracking
+    rootFrame.run(this)
+  } catch (error) {
+    if (!(error instanceof Promise) && !isAbort(error)) throw error
+  }
 
   let frame = rootFrame.state.store.get(this)
 
@@ -850,7 +854,6 @@ export let createAtom: {
  * @returns An atom instance containing the state
  *
  * @example
- * ```ts
  * // Create with initial value
  * const counter = atom(0, 'counter')
  *
@@ -862,7 +865,6 @@ export let createAtom: {
  *
  * // Update with a function
  * counter(prev => prev + 1) // Sets value to 6
- * ```
  */
 export let atom: {
   <T>(createState: () => T, name?: string): Atom<T>
@@ -889,13 +891,11 @@ export function computedParams(next: Fn) {
  * @returns A computed atom instance
  *
  * @example
- * ```ts
  * const counter = atom(5, 'counter')
  * const doubled = computed(() => counter() * 2, 'doubledCounter')
  *
  * // Reading triggers computation only if subscribed
  * const value = doubled() // -> 10
- * ```
  */
 export let computed = <State>(
   computed: (() => State) | ((state?: State) => State),

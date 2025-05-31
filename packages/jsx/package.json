@@ -27,13 +27,13 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "pnpm run build",
     "build": "yoctobundle && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch=true"
   },
   "peerDependencies": {
-    "@reatom/core": "1000.0.0-alpha.26"
+    "@reatom/core": "workspace:alpha"
   },
   "dependencies": {
     "csstype": "^3.1.2"
@@ -56,10 +56,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/artalar/reatom.git"
+    "url": "git+ssh://git@github.com/reatom/reatom.git"
   },
   "bugs": {
-    "url": "https://github.com/artalar/reatom/issues"
+    "url": "https://github.com/reatom/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/jsx",
   "files": [

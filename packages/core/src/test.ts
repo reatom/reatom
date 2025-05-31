@@ -31,7 +31,6 @@ export const silentQueuesErrors = () => {
  * @returns The result of the Vitest test execution
  *
  * @example
- * ```ts
  * import { test, expect } from '@reatom/core/test'
  * import { atom } from '@reatom/core'
  *
@@ -40,7 +39,6 @@ export const silentQueuesErrors = () => {
  *   counter.set(5)
  *   expect(counter()).toBe(5)
  * })
- * ```
  */
 export const test = Object.assign(
   (name: string, fn: () => void | Promise<void>) =>
@@ -63,7 +61,6 @@ export const test = Object.assign(
  * @returns A Vitest mock function with unsubscribe method attached
  *
  * @example
- * ```ts
  * import { test, expect, subscribe } from '@reatom/core/test'
  * import { atom } from '@reatom/core'
  *
@@ -79,7 +76,6 @@ export const test = Object.assign(
  *
  *   sub.unsubscribe() // Stop listening to updates
  * })
- * ```
  */
 export function subscribe<State, T extends (state: State) => any>(
   target: AtomLike<State>,
