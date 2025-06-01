@@ -1,32 +1,27 @@
-import {
-  CtxSpy,
-  isAtom,
-  type Atom,
-  type Action,
-  __count,
-  atom,
-  action,
-  type Ctx,
-  type Rec,
-} from '@reatom/core'
-import { parseAtoms } from '@reatom/lens'
-import { isLinkedListAtom, withAssign } from '@reatom/primitives'
-import { entries, isShallowEqual, isObject } from '@reatom/utils'
-import {
-  type FieldAtom,
-  type FieldFocus,
-  type FieldValidation,
-  fieldInitFocus,
-  fieldInitValidation,
-} from './reatomField'
-import {
-  FormInitState,
-  FormFields,
-  FormFieldElement,
-  FormFieldArrayAtom,
-  FormState,
-  FormPartialState,
-} from './reatomForm'
+import { CtxSpy, isAtom, type Atom, type Action, __count, atom, action, type Ctx, type Rec } from '@reatom/core';
+import { parseAtoms } from '@reatom/lens';
+import { isLinkedListAtom, withAssign } from '@reatom/primitives';
+import { entries, isShallowEqual, isObject } from '@reatom/utils';
+import { type FieldAtom, type FieldError, type FieldFocus, type FieldValidation, fieldInitFocus, fieldInitValidation } from './reatomField';
+import { FormInitState, FormFields, FormFieldElement, FormFieldArrayAtom, FormState, FormPartialState } from './reatomForm';
+
+export interface FieldSetFieldError extends FieldError {
+  field: FieldAtom
+}
+
+export interface FieldSetValidation {
+  /** The list of field validation errors. */
+  errors: FieldSetFieldError[]
+
+  /** The field validation meta. */
+  meta: unknown | undefined
+
+  /** The validation actuality status. */
+  triggered: boolean
+
+  /** The field async validation status */
+  validating: undefined | Promise<{ errors: FieldSetFieldError[] }>
+}
 
 export interface FieldSet<T extends FormInitState> {
   /** Fields from the init state */
@@ -45,8 +40,8 @@ export interface FieldSet<T extends FormInitState> {
   focus: Atom<FieldFocus>
 
   /** Atom with validation state of the fieldset, computed from all the fields in `fieldsList` */
-  validation: Atom<FieldValidation> & {
-    trigger: Action<[], FieldValidation>
+  validation: Atom<FieldSetValidation> & {
+    trigger: Action<[], FieldSetValidation>;
   }
 
   /** Action to set initial values for each field or field array in the fieldset */
@@ -88,29 +83,33 @@ export const reatomFieldSet = <T extends FormInitState>(
     return isShallowEqual(focus, state) ? state : focus
   }, `${name}.focus`)
 
-  const validation = atom((ctx, state = fieldInitValidation) => {
-    const promises: Promise<{ error: undefined | string }>[] = []
-    const validation = { ...fieldInitValidation }
-    validation.triggered = true
+  const validation = atom((ctx, state: FieldSetValidation | undefined = undefined) => {
+    const validationErrors: FieldSetFieldError[] = []
+    const promises: Promise<{ errors: FieldSetFieldError[] }>[] = []
+    const validation: FieldSetValidation = { 
+      errors: validationErrors,
+      validating: undefined,
+      triggered: true,
+      meta: undefined
+    } 
 
     for (const field of ctx.spy(fieldsList)) {
       if (ctx.spy(field.disabled)) continue
 
-      const { triggered, validating, error } = ctx.spy(field.validation)
+      const { triggered, validating, errors } = ctx.spy(field.validation);
 
-      validation.triggered &&= triggered
-      validation.error ||= error
+      validation.triggered &&= triggered;
+      validationErrors.push(...errors.map(err => ({ ...err, field })))
 
-      if (validating) promises.push(validating)
+      if(validating)
+        promises.push(validating.then(({ errors }) => ({ errors: errors.map(err => ({ ...err, field })) })))
     }
 
     validation.validating = promises.length
-      ? Promise.all(promises).then((results) => ({
-          error: results.find((r) => !!r?.error)?.error,
-        }))
+      ? Promise.all(promises).then((results) => ({ errors: results.flatMap(e => e.errors) }))
       : undefined
 
-    return isShallowEqual(validation, state) ? state : validation
+    return state && isShallowEqual(validation, state) ? state : validation;
   }, `${name}.validation`).pipe(
     withAssign((target, name) => ({
       trigger: action((ctx) => {

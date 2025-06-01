@@ -79,162 +79,134 @@ test('focus states', () => {
 })
 
 test('validation states', async () => {
-  const ctx = createCtx()
-
-  const contract = (value: string) => {
-    if (value === 'errorValue') throw new Error('Contract error')
-  }
+	const ctx = createCtx()
+	const contract = z.string().refine(v => v != 'errorValue', 'Contract error')
 
   const validate = async (ctx: Ctx, { value }: { value: string }) => {
     await sleep()
     if (value === 'errorValue') throw new Error('Contract error')
   }
 
-  const form = reatomForm(
-    {
-      field1: { initState: '', contract, validateOnChange: true },
-      field2: { initState: '', contract, validateOnChange: true },
-      field3: { initState: '', validate, validateOnChange: true },
-      rest: experimental_fieldArray<string>([]),
-    },
-    {
-      name: 'testForm',
-      onSubmit: () => {},
-      validate: () => {
-        throw new Error('Form validation error')
-      },
-    },
-  )
+	const form = reatomForm({
+		field1: { initState: '', validate: contract, validateOnChange: true },
+		field2: { initState: '', validate: contract, validateOnChange: true },
+		field3: { initState: '', validate, validateOnChange: true },
+		rest: experimental_fieldArray<string>([])
+	}, {
+		name: 'testForm',
+		onSubmit: () => { },
+		validate: () => {
+			throw new Error('Form validation error')
+		},
+	})
 
   const { field1, field2, field3, rest } = form.fields
 
   field1.change(ctx, 'value')
   field2.change(ctx, 'value')
 
-  expect(ctx.get(form.validation)).toEqual({
-    error: undefined,
-    meta: undefined,
-    triggered: false,
-    validating: undefined,
-  })
+	expect(ctx.get(form.validation)).toEqual({
+		errors: [],
+		meta: undefined,
+		triggered: false,
+		validating: undefined,
+	})
 
   field2.change(ctx, 'errorValue')
 
-  expect(ctx.get(form.validation)).toEqual({
-    error: 'Contract error',
-    meta: undefined,
-    triggered: false,
-    validating: undefined,
-  })
+	expect(ctx.get(form.validation)).toMatchObject({
+		errors: [{ message: 'Contract error' }],
+		meta: undefined,
+		triggered: false,
+		validating: undefined,
+	})
 
   field3.change(ctx, 'hey')
 
-  expect(ctx.get(form.validation)).toMatchObject({
-    error: 'Contract error',
-    meta: undefined,
-    triggered: true,
-  })
-  expect(ctx.get(form.validation).validating).toBeInstanceOf(Promise)
+	expect(ctx.get(form.validation)).toMatchObject({
+		errors: [{ message: 'Contract error' }],
+		meta: undefined,
+		triggered: true,
+	})
+	expect(ctx.get(form.validation).validating).toBeInstanceOf(Promise);
 
   field2.reset(ctx)
 
   await form.submit(ctx).catch(() => {})
   expect(ctx.get(form.submit.error)?.message).toBe('Form validation error')
 
-  expect(ctx.get(form.validation)).toEqual({
-    error: undefined,
-    meta: undefined,
-    triggered: true,
-    validating: undefined,
-  })
+	expect(ctx.get(form.validation)).toEqual({
+		errors: [],
+		meta: undefined,
+		triggered: true,
+		validating: undefined,
+	})
 
   const fieldNoValidationTrigger = rest.create(ctx, '')
   fieldNoValidationTrigger.change(ctx, 'value')
 
-  expect(ctx.get(form.validation)).toEqual({
-    error: undefined,
-    meta: undefined,
-    triggered: true,
-    validating: undefined,
-  })
+	expect(ctx.get(form.validation)).toEqual({
+		errors: [],
+		meta: undefined,
+		triggered: true,
+		validating: undefined,
+	})
 
   rest.clear(ctx)
   field1.change(ctx, 'value')
 
-  expect(ctx.get(form.validation)).toEqual({
-    error: undefined,
-    meta: undefined,
-    triggered: true,
-    validating: undefined,
-  })
+	expect(ctx.get(form.validation)).toEqual({
+		errors: [],
+		meta: undefined,
+		triggered: true,
+		validating: undefined,
+	})
 })
 
 test('validation and focus states with disabled fields', async () => {
-  const ctx = createCtx()
+	const ctx = createCtx()
+	const contract = z.string().refine(v => v != 'errorValue', 'Contract error')
 
-  const contract = (value: string) => {
-    if (value === 'errorValue') throw new Error('Contract error')
-  }
+	const form = reatomForm({
+		field1: { initState: '', validate: contract, validateOnChange: true },
+	}, 'testForm')
 
-  const form = reatomForm(
-    {
-      field1: { initState: '', contract, validateOnChange: true },
-    },
-    'testForm',
-  )
+	form.fields.field1.change(ctx, 'errorValue');
+	expect(ctx.get(form.validation)).toMatchObject({ errors: [{ message: 'Contract error' }], triggered: true });
+	expect(ctx.get(form.focus)).toMatchObject({ touched: true, dirty: true });
 
-  form.fields.field1.change(ctx, 'errorValue')
-  expect(ctx.get(form.validation)).toMatchObject({
-    error: 'Contract error',
-    triggered: true,
-  })
-  expect(ctx.get(form.focus)).toMatchObject({ touched: true, dirty: true })
+	form.fields.field1.disabled(ctx, true);
+	expect(ctx.get(form.validation)).toMatchObject({ errors: [], triggered: true });
+	expect(ctx.get(form.focus)).toMatchObject({ touched: false, dirty: false })
 
-  form.fields.field1.disabled(ctx, true)
-  expect(ctx.get(form.validation)).toMatchObject({
-    error: undefined,
-    triggered: true,
-  })
-  expect(ctx.get(form.focus)).toMatchObject({ touched: false, dirty: false })
-
-  form.fields.field1.disabled(ctx, false)
-  expect(ctx.get(form.validation)).toMatchObject({
-    error: 'Contract error',
-    triggered: true,
-  })
-  expect(ctx.get(form.focus)).toMatchObject({ touched: true, dirty: true })
+	form.fields.field1.disabled(ctx, false);
+	expect(ctx.get(form.validation)).toMatchObject({ errors: [{ message: 'Contract error' }], triggered: true });
+	expect(ctx.get(form.focus)).toMatchObject({ touched: true, dirty: true });
 })
 
 test('validation states with disabled fields and defined schema', async () => {
   const ctx = createCtx()
 
-  const formWithSchema = reatomForm(
-    {
-      field1: '',
-    },
-    {
-      validateOnChange: true,
-      schema: z.object({
-        field1: z
-          .string()
-          .refine((value) => value !== 'errorValue', 'Schema contract error'),
-      }),
-    },
-  )
+	const formWithSchema = reatomForm({
+		field1: '',
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			field1: z.string().refine(value => value !== 'errorValue', 'Schema contract error')
+		})
+	})
 
-  const targetField = formWithSchema.fields.field1
+	const targetField = formWithSchema.fields.field1;
 
-  targetField.change(ctx, 'errorValue')
-  expect(ctx.get(formWithSchema.validation)).toMatchObject({
-    error: 'Schema contract error',
-  })
+	targetField.change(ctx, 'errorValue');
+	expect(ctx.get(formWithSchema.validation)).toMatchObject({ errors: [{ message: 'Schema contract error' }] });
 
-  targetField.change(ctx, 'validValue')
-  expect(ctx.get(formWithSchema.validation)).toMatchObject({ error: undefined })
+	targetField.change(ctx, 'validValue');
+	expect(ctx.get(formWithSchema.validation)).toMatchObject({ errors: [] });
 
-  targetField.disabled(ctx, true)
-  targetField.change(ctx, 'errorValue')
-  expect(ctx.get(formWithSchema.validation)).toMatchObject({ error: undefined })
+	targetField.disabled(ctx, true);
+	targetField.change(ctx, 'errorValue');
+	expect(ctx.get(formWithSchema.validation)).toMatchObject({ errors: [] });
 })
 
 test('default options for fields', async () => {
@@ -253,23 +225,23 @@ test('default options for fields', async () => {
 
   field.change(ctx, 'value')
 
-  expect(ctx.get(field.validation)).toEqual({
-    error: undefined,
-    meta: undefined,
-    triggered: true,
-    validating: undefined,
-  })
+	expect(ctx.get(field.validation)).toEqual({
+		errors: [],
+		meta: undefined,
+		triggered: true,
+		validating: undefined,
+	})
 
   ctx.get(array.array).forEach((field) => {
     field.change(ctx, 'value')
 
-    expect(ctx.get(field.validation)).toEqual({
-      error: undefined,
-      meta: undefined,
-      triggered: true,
-      validating: undefined,
-    })
-  })
+		expect(ctx.get(field.validation)).toEqual({
+			errors: [],
+			meta: undefined,
+			triggered: true,
+			validating: undefined,
+		})
+	});
 })
 
 describe('fieldArray and array literals as a fieldArray', () => {
@@ -330,31 +302,32 @@ describe('fieldArray and array literals as a fieldArray', () => {
   test('nested array literals and fieldArray in initState', () => {
     const ctx = createCtx()
 
-    const form = reatomForm({
-      addresses: [
-        {
-          country: '',
-          street: '',
-          city: '',
-          tags: ['defaultTag', 'defaultTag2'],
-          phoneNumbers: experimental_fieldArray({
-            initState: Array<{ number: string; priority: boolean }>(),
-            create: (ctx, { number, priority }) => ({
-              number,
-              priority: reatomBoolean(priority).pipe(withField()),
-            }),
-          }),
-        },
-      ],
-    })
+		const form = reatomForm({
+			addresses: [
+				{
+					country: '',
+					street: '',
+					city: '',
+					tags: ['defaultTag', 'defaultTag2'],
+					phoneNumbers: experimental_fieldArray({
+						initState: Array<{ number: string, priority: boolean }>(),
+						create: (ctx, { number, priority }) => ({
+							number,
+							priority: reatomBoolean(priority).pipe(withField())
+						})
+					}),
+				}
+			]
+		});
 
-    const addresses = ctx.get(form.fields.addresses.array)
-    const phoneNumbers = addresses[0]!.phoneNumbers
-    expect(ctx.get(phoneNumbers.array).length).toBe(0)
+		const addresses = ctx.get(form.fields.addresses.array);
+		const phoneNumbers = addresses[0]!.phoneNumbers;
+		expect(ctx.get(phoneNumbers.array).length).toBe(0);
 
-    phoneNumbers.create(ctx, { number: '778899', priority: true })
-    expect(ctx.get(phoneNumbers.array).length).toBe(1)
-  })
+		phoneNumbers.create(ctx, { number: '778899', priority: true });
+		expect(ctx.get(phoneNumbers.array).length).toBe(1);
+
+	})
 })
 
 test('reset', () => {
@@ -378,18 +351,18 @@ test('reset', () => {
 
   form.reset(ctx)
 
-  expect(ctx.get(field)).toBe('initial')
-  expect(ctx.get(field.focus)).toEqual({
-    active: false,
-    dirty: false,
-    touched: false,
-  })
-  expect(ctx.get(field.validation)).toEqual({
-    error: undefined,
-    meta: undefined,
-    triggered: false,
-    validating: undefined,
-  })
+	expect(ctx.get(field)).toBe('initial')
+	expect(ctx.get(field.focus)).toEqual({
+		active: false,
+		dirty: false,
+		touched: false,
+	})
+	expect(ctx.get(field.validation)).toEqual({
+		errors: [],
+		meta: undefined,
+		triggered: false,
+		validating: undefined,
+	})
 })
 
 describe('init array with reset', () => {
@@ -411,9 +384,11 @@ describe('init array with reset', () => {
 
     form.fields.dummy.change(ctx, 2)
 
-    form.reset(ctx, {
-      list: [{ kek: 'lel', arr: ['1'] }],
-    })
+		form.reset(ctx, {
+			list: [
+				{ kek: 'lel', arr: ['1'] }
+			]
+		})
 
     expect(ctx.get(form.fields.list.array).length).toEqual(1)
     expect(
@@ -499,85 +474,116 @@ test('form should correctly initialize field options', async () => {
 test('validating through form schema and placing errors to corresponding fields', async () => {
   const ctx = createCtx()
 
-  const form = reatomForm(
-    {
-      age: 12,
-      email: 'test',
-      items: ['', 'valid'],
-    },
-    {
-      schema: z.object({
-        age: z.number().min(18),
-        email: z.string().email(),
-        items: z.array(z.string().min(1)),
-      }),
-    },
-  )
+	const form = reatomForm({
+		age: 12,
+		email: 'test',
+		items: ['', 'valid']
+	}, {
+		schema: z.object({
+			age: z.number().min(18),
+			email: z.string().email(),
+			items: z.array(z.string().min(1))
+		})
+	});
 
-  form.submit(ctx)
+	form.submit(ctx);
 
-  expect(ctx.get(form.fields.age.validation).error).toBeTruthy()
-  expect(ctx.get(form.fields.email.validation).error).toBeTruthy()
-  expect(
-    ctx.get(ctx.get(form.fields.items.array)[0]!.validation).error,
-  ).toBeTruthy()
-  expect(
-    ctx.get(ctx.get(form.fields.items.array)[1]!.validation).error,
-  ).toBeFalsy()
+	expect(ctx.get(form.fields.age.validation).errors.length).toBeTruthy();
+	expect(ctx.get(form.fields.email.validation).errors.length).toBeTruthy();
+	expect(ctx.get(ctx.get(form.fields.items.array)[0]!.validation).errors.length).toBeTruthy();
+	expect(ctx.get(ctx.get(form.fields.items.array)[1]!.validation).errors.length).toBeFalsy();
 })
 
 test('triggering schema validation only for one field', async () => {
   const ctx = createCtx()
 
-  const form = reatomForm(
-    {
-      age: 12,
-      email: 'test',
-      items: ['', 'valid'],
-    },
-    {
-      validateOnChange: true,
-      schema: z.object({
-        age: z.number().min(18, 'must be minimum 18'),
-        email: z.string().email(),
-        items: z.array(z.string().min(1)),
-      }),
-    },
-  )
+	const form = reatomForm({
+		age: 12,
+		email: 'test',
+		items: ['', 'valid']
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			age: z.number().min(18, 'must be minimum 18'),
+			email: z.string().email(),
+			items: z.array(z.string().min(1))
+		})
+	});
 
-  expect(ctx.get(form.validation).error).toBeFalsy()
+	expect(ctx.get(form.validation).errors.length).toBeFalsy();
 
-  form.fields.age.change(ctx, 17)
-  expect(ctx.get(form.validation).error).toBe('must be minimum 18')
-  expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18')
+	form.fields.age.change(ctx, 17);
+	expect(ctx.get(form.validation).errors[0]?.message).toBe('must be minimum 18');
+	expect(ctx.get(form.fields.age.validation).errors[0]?.message).toBe('must be minimum 18');
+})
+
+test('correct handling of side errors from schema', async () => {
+	const ctx = createCtx()
+	const INVARIANT_ERR_MSG = 'value "min" should be less than "max" value';
+
+	const form = reatomForm({
+		min: reatomField(0, {
+			validate: (ctx, { value }) => value % 2 == 0 ? `shouldn't be even` : undefined,
+		}),
+		max: 10
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			min: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+			max: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+		}).superRefine(({ min, max }, ctx) => {
+			if (min > max) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ['min'],
+					message: INVARIANT_ERR_MSG,
+				})
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					path: ['max'],
+					message: INVARIANT_ERR_MSG
+				})
+			}
+		}),
+	})
+
+	form.fields.min.change(ctx, 15)
+	expect(ctx.get(form.fields.max.validation).errors[0]?.message).toBe(INVARIANT_ERR_MSG)
+	expect(ctx.get(form.fields.min.validation).errors[0]?.message).toBe(INVARIANT_ERR_MSG)
+
+	form.fields.min.change(ctx, 10)
+
+	expect(ctx.get(form.fields.max.validation).errors.length).toBeFalsy()
+	expect(ctx.get(form.fields.min.validation).errors[0]?.message).toBe(`shouldn't be even`)
+
+	form.fields.min.change(ctx, 9)
+
+	expect(ctx.get(form.fields.max.validation).errors.length).toBeFalsy()
+	expect(ctx.get(form.fields.min.validation).errors.length).toBeFalsy()
 })
 
 test('concurrent field validation with schema', async () => {
   const ctx = createCtx()
 
-  const form = reatomForm(
-    {
-      age: {
-        initState: 12,
-        validate: async () => {
-          await sleep()
-          throw new Error('validation error')
-        },
-      },
-    },
-    {
-      validateOnChange: true,
-      schema: z.object({
-        age: z.number().min(18, 'must be minimum 18'),
-      }),
-    },
-  )
+	const form = reatomForm({
+		age: reatomField(12, {
+			validate: async (ctx) => {
+				await ctx.schedule(() => sleep());
+				throw new Error('validation error')
+			},
+		})
+	}, {
+		validateOnChange: true,
+		schema: z.object({
+			age: z.number().min(18, 'must be minimum 18'),
+		})
+	});
 
-  form.fields.age.change(ctx, 10)
-  expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18')
-  await sleep()
+	form.fields.age.change(ctx, 10);
+	expect(ctx.get(form.fields.age.validation).errors[0]?.message).toBe('must be minimum 18');
+	await sleep();
 
-  expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18')
+	expect(ctx.get(form.fields.age.validation).errors[0]?.message).toBe('must be minimum 18');
 })
 
 test('autofocus recipe', async () => {
@@ -598,12 +604,11 @@ test('autofocus recipe', async () => {
   const focusFn = vi.fn()
   form.fields.email.elementRef(ctx, { focus: focusFn })
 
-  form.submit.onReject.onCall((ctx) => {
-    const errorField = ctx
-      .get(form.fieldsList)
-      .find((field) => !!ctx.get(field.validation).error)
-    if (errorField) ctx.get(errorField.elementRef)?.focus()
-  })
+	form.submit.onReject.onCall((ctx) => {
+		const errorField = ctx.get(form.fieldsList).find(field => !!ctx.get(field.validation).errors.length);
+		if (errorField)
+			ctx.get(errorField.elementRef)?.focus();
+	})
 
   await form.submit(ctx).catch(noop)
   expect(ctx.get(form.submit.error)).toBeInstanceOf(Error)
@@ -611,39 +616,36 @@ test('autofocus recipe', async () => {
 })
 
 test('validation trigger', async () => {
-  const ctx = createCtx()
-  const form = reatomForm(
-    {
-      email: reatomField('', {
-        validate: (ctx, { value }) => {
-          if (value === 'async_email')
-            return z.string().email().parseAsync(value)
+	const ctx = createCtx()
+	const form = reatomForm({
+		email: reatomField('', {
+			validate: (ctx, { value }) => {
+				if (value === 'async_email')
+					return z.string().email().parseAsync(value)
 
-          return z.string().email().parse(value)
-        },
-      }),
-      age: 12,
-    },
-    {
-      schema: z.object({
-        age: z.number().min(18),
-      }),
-    },
-  )
+				return z.string().email().parse(value)
+			}
+		}),
+		age: 12
+	}, {
+		schema: z.object({
+			age: z.number().min(18),
+		})
+	})
 
   const fieldSet = reatomFieldSet(form.fields)
 
-  expect(fieldSet.validation.trigger(ctx).validating).toBe(undefined)
-  form.fields.email.change(ctx, 'async_email')
-  expect(fieldSet.validation.trigger(ctx).validating).toBeInstanceOf(Promise)
-  form.fields.email.change(ctx, 'another')
-  expect(fieldSet.validation.trigger(ctx).validating).toBe(undefined)
+	expect(fieldSet.validation.trigger(ctx).validating).toBe(undefined);
+	form.fields.email.change(ctx, 'async_email');
+	expect(fieldSet.validation.trigger(ctx).validating).toBeInstanceOf(Promise);
+	form.fields.email.change(ctx, 'another');
+	expect(fieldSet.validation.trigger(ctx).validating).toBe(undefined);
 
-  form.reset(ctx, { email: 'async_email' })
+	form.reset(ctx, { email: 'async_email' });
 
-  const promise = form.validation.trigger(ctx).catch(() => null)
-  expect(fieldSet.validation.trigger(ctx).validating).toBeInstanceOf(Promise)
-  const result = await promise
-  expect(ctx.get(form.fields.age.validation).error).toBeTruthy()
-  expect(result).toBeFalsy()
+	const promise = form.validation.trigger(ctx).catch(() => null);
+	expect(fieldSet.validation.trigger(ctx).validating).toBeInstanceOf(Promise);
+	const result = await promise;
+	expect(ctx.get(form.fields.age.validation).errors.length).toBeTruthy();
+	expect(result).toBeFalsy();
 })

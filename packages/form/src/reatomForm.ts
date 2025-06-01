@@ -129,13 +129,12 @@ export type DeepPartial<T, Skip = never> = {
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
-export interface SubmitAction extends AsyncAction<[], void> {
-  error: Atom<Error | undefined>
-  statusesAtom: AsyncStatusesAtom
+export interface SubmitAction<Return> extends AsyncAction<[], Return> {
+  error: Atom<Error | undefined>;
+  statusesAtom: AsyncStatusesAtom;
 }
 
-export interface Form<T extends FormInitState, SchemaState>
-  extends Omit<FieldSet<T>, 'validation'> {
+export interface Form<T extends FormInitState, SchemaState, SubmitReturn> extends Omit<FieldSet<T>, 'validation'> {
   /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
   validation: Atom<FieldValidation> & {
     /** Action to trigger form validation. */
@@ -146,7 +145,7 @@ export interface Form<T extends FormInitState, SchemaState>
   }
 
   /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
-  submit: SubmitAction
+  submit: SubmitAction<SubmitReturn>;
 
   /** Atom with submitted state of the form */
   submitted: Atom<boolean>
@@ -184,9 +183,9 @@ export interface BaseFormOptions {
   validateOnBlur?: boolean
 }
 
-export interface FormOptionsWithSchema<State> extends BaseFormOptions {
-  /** The callback to process valid form data, typed according to the schema */
-  onSubmit?: (ctx: AsyncCtx, state: State) => void | Promise<void>
+export interface FormOptionsWithSchema<State, SubmitReturn> extends BaseFormOptions {
+	/** The callback to process valid form data, typed according to the schema */
+	onSubmit?: (ctx: AsyncCtx, state: State) => SubmitReturn | Promise<SubmitReturn>
 
   /** The callback to validate form fields, typed according to the schema */
   validate?: (ctx: Ctx, state: State) => any
@@ -195,10 +194,9 @@ export interface FormOptionsWithSchema<State> extends BaseFormOptions {
   schema: StandardSchemaV1<State>
 }
 
-export interface FormOptionsWithoutSchema<T extends FormInitState>
-  extends BaseFormOptions {
-  /** The callback to process valid form data, typed according to the raw form state */
-  onSubmit?: (ctx: AsyncCtx, state: FormState<T>) => void | Promise<void>
+export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn> extends BaseFormOptions {
+	/** The callback to process valid form data, typed according to the raw form state */
+	onSubmit?: (ctx: AsyncCtx, state: FormState<T>) => SubmitReturn | Promise<SubmitReturn>
 
   /** The callback to validate form fields, typed according to the raw form state */
   validate?: (ctx: Ctx, state: FormState<T>) => any
@@ -391,28 +389,25 @@ const resolveFieldByPath = <T extends FormInitState>(
   }
 }
 
-export function reatomForm<T extends FormInitState, SchemaState>(
-  initState: T | ((name: string) => T),
-  optionsWithSchema: FormOptionsWithSchema<SchemaState>,
-): Form<T, SchemaState>
+export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
+	initState: T | ((name: string) => T),
+	optionsWithSchema: FormOptionsWithSchema<SchemaState, SubmitReturn>
+): Form<T, SchemaState, SubmitReturn>
+
+export function reatomForm<T extends FormInitState, SubmitReturn>(
+	initState: T | ((name: string) => T),
+	options?: FormOptionsWithoutSchema<T, SubmitReturn>
+): Form<T, undefined, SubmitReturn>
 
 export function reatomForm<T extends FormInitState>(
-  initState: T | ((name: string) => T),
-  options?: FormOptionsWithoutSchema<T>,
-): Form<T, undefined>
+	initState: T | ((name: string) => T),
+	name?: string
+): Form<T, undefined, void>
 
-export function reatomForm<T extends FormInitState>(
-  initState: T | ((name: string) => T),
-  name?: string,
-): Form<T, undefined>
-
-export function reatomForm<T extends FormInitState, SchemaState>(
-  initState: T | ((name: string) => T),
-  options:
-    | string
-    | FormOptionsWithSchema<SchemaState>
-    | FormOptionsWithoutSchema<T> = {},
-): Form<T, SchemaState> {
+export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
+	initState: T | ((name: string) => T),
+	options: string | FormOptionsWithSchema<SchemaState, SubmitReturn> | FormOptionsWithoutSchema<T, SubmitReturn> = {},
+): Form<T, SchemaState, SubmitReturn> {
   const {
     name = __count('form'),
     onSubmit,
@@ -445,16 +440,15 @@ export function reatomForm<T extends FormInitState, SchemaState>(
           }),
         )
 
-        if (schema) {
-          field.validation.trigger.onCall((ctx) => {
-            if (!ctx.get(field.validation).error && !isCausedBy(ctx, submit))
-              checkSchemaValidation(ctx, field)
-          })
-        }
-      },
-    },
-  )
-
+			if (schema) {
+				field.validation.trigger.onCall((ctx) => {
+					if (!isCausedBy(ctx, submit))
+						checkSchemaValidation(ctx);
+				});
+			}
+		},
+  });
+  
   const {
     fieldsList,
     fieldArraysList,
@@ -466,31 +460,40 @@ export function reatomForm<T extends FormInitState, SchemaState>(
   } = reatomFieldSet(fields, name)
 
   reset.onCall((ctx) => {
-    submitted(ctx, false)
-    submit.errorAtom.reset(ctx)
-    submit.abort(ctx, `${name}.reset`)
+    submitted(ctx, false);
+    submit.errorAtom.reset(ctx);
+    submit.statusesAtom.reset(ctx);
+    submit.abort(ctx, `${name}.reset`);
   })
 
   const submitted = atom(false, `${name}.submitted`)
 
-  const checkSchemaValidation = action((ctx: Ctx, triggerOnlyFor?: Atom) => {
-    const state = ctx.get(fieldsState)
-    if (!schema) throw new Error('Triggering schema validation without schema')
+	const checkSchemaValidation = action((ctx) => {
+		const state = ctx.get(fieldsState);
+		if (!schema)
+			throw new Error('Triggering schema validation without schema');
 
     const validation = schema['~standard'].validate(state)
 
     const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
-      if (!result.issues?.length) return result
-      for (const issue of result.issues) {
-        const field = resolveFieldByPath(ctx, issue.path, fields)
-        if (!field || (triggerOnlyFor && triggerOnlyFor !== field)) continue
-
-        if (ctx.get(field.disabled)) continue
-
-        field.validation.setError(ctx, issue.message)
-
-        if (triggerOnlyFor) break
+      const touched = new Set<FieldAtom>();
+       
+      if(result.issues) {
+        for (const issue of result.issues) {
+          const field = resolveFieldByPath(ctx, issue.path, fields)
+          if (!field) continue
+   
+          field.validation.prependErrors(ctx, { source: 'schema', message: issue.message })
+          field.validation.trigger.abort(ctx, 'schemaError');
+          touched.add(field)
+        }
       }
+
+      for(const field of ctx.get(fieldsList)) {
+        if(!touched.has(field) && ctx.get(field.validation).errors.find(e => e.source == 'schema'))
+          field.validation.clearErrors(ctx, 'schema')
+      }
+    
       return result
     }
 
@@ -501,11 +504,9 @@ export function reatomForm<T extends FormInitState, SchemaState>(
 
   const origValidationTrigger = fieldsetValidation.trigger
   const validationTrigger = reatomAsync(async (ctx) => {
-    const status = origValidationTrigger(ctx)
-    const { error } = status.validating
-      ? await ctx.schedule(() => status.validating!)
-      : status
-    if (error) throw new Error(error)
+    const status = origValidationTrigger(ctx);
+    const { errors } = status.validating ? await ctx.schedule(() => status.validating!) : status;
+    if (errors.length) throw new Error(errors[0]!.message)
 
     let state: any
 
@@ -534,18 +535,20 @@ export function reatomForm<T extends FormInitState, SchemaState>(
   }, `${name}.validation.triggerExt`)
 
   const submit = reatomAsync(async (ctx) => {
-    const state = await ctx.schedule(() => validationTrigger(ctx))
-    if (onSubmit) await ctx.schedule(() => onSubmit(ctx, state))
+    const state = await ctx.schedule(() => validationTrigger(ctx));
+    if (onSubmit) await ctx.schedule(() => onSubmit(ctx, state));
+
+    let result
+
+    if (onSubmit) {
+      result = onSubmit(ctx, state)
+      if (result instanceof Promise) result = await ctx.schedule(() => onSubmit(ctx, state))
+    }
 
     submitted(ctx, true)
 
-    if (resetOnSubmit) {
-      // do not use `reset` action here to not abort the success
-      ctx.get(fieldsList).forEach((fieldAtom) => fieldAtom.reset(ctx))
-      submit.errorAtom.reset(ctx)
-      submit.statusesAtom.reset(ctx)
-      submitted(ctx, false)
-    }
+    if (resetOnSubmit) reset(ctx)
+    return result as SubmitReturn
   }, `${name}.onSubmit`).pipe(
     withStatusesAtom(),
     withAbort(),
