@@ -11,7 +11,7 @@ Any form consists of a set of inputs of various kinds, which can often be interc
 
 Between these abstractions there is another reactive primitive, but the goal of this guide is to show how to make a fairly simple form in Reatom, diving as little as possible into the implementation details of forms and everything related to them. Therefore, here we will focus only on `reatomForm`:
 
-```ts {16}
+```ts {17}
 import { reatomForm, wrap } from '@reatom/core'
 
 const loginForm = reatomForm({
@@ -26,6 +26,7 @@ const loginForm = reatomForm({
     }
 }, {
     name: 'loginForm',
+    validateOnBlur: true,
     onSubmit: async (values) => {
         //           ^? { username: string, password: string, confirmPassword: string }
         return wrap(api.login(values))
@@ -92,3 +93,5 @@ And indeed, the submit function, being asynchronous, cannot but be accompanied b
 loginForm.submit
 //        ^? Action<[], Promise<void>> & AsyncExt & AbortExt
 ```
+
+After calling `loginForm.submit`, parallel validation of all fields belonging to the form occurs first, then schema validation if it is defined, and finally validation through the form's `validate` function. Only then will the `onSubmit` callback passed in the form options be called, which will receive the parsed field values in a structure either by the schema if it is defined, or through the `parseAtoms` function
