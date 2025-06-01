@@ -360,7 +360,7 @@ import { reatomField, sleep, abortVar, wrap } from '@reatom/core'
 
 const usernameField = reatomField('', {
   validate: async ({ value }) => {
-    wrap(await sleep(300));
+    await wrap(sleep(300));
     const response = await wrap(fetch(`/api/usernames?username=${state}`, abortVar.getController()));
     const { taken } = await wrap(response.json());
     invariant(!taken, 'This username already taken');
@@ -417,7 +417,7 @@ const loginForm = reatomForm(name => ({
 })
 ```
 
-Cross errors are also supported. When validation is activated according to the scheme, errors are plcaed into the corresponding fields, prepending them directly to the `validation.errors` array of each field. With subsequent successful validation, these errors are excluded from this array.
+Cross errors are also supported. When validation is activated according to the scheme, errors are placed into the corresponding fields, prepending them directly to the `validation.errors` array of each field. With subsequent successful schema validation, these errors are excluded from this array.
 
 ```ts
 const form = reatomForm({
