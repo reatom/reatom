@@ -8,7 +8,7 @@ I am the author of the Reatom state manager, and today I want to introduce you t
 
 While most state managers force you to choose between imperative events or reactive state, Reatom bridges this gap with an elegant unification of both paradigms. This approach provides the clarity of event-driven programming with the consistency of reactive state management.
 
-## ▍ The Problem with Traditional Approaches
+## The Problem with Traditional Approaches
 
 Traditional state management typically falls into one of two categories:
 
@@ -19,7 +19,7 @@ Each has its strengths, but also critical weaknesses. Event-driven systems need 
 
 What if we could have the best of both worlds?
 
-## ▍ Actions as Reactive Events: A Core Insight
+## Actions as Reactive Events: A Core Insight
 
 The key insight of Reatom is treating actions as first-class reactive events that can be both triggered and observed. Let's see a simple example:
 
@@ -31,7 +31,7 @@ const counter = atom(0, 'counter')
 
 // Create an action - a callable function that also works as an event emitter
 const increment = action((amount = 1) => {
-  counter(counter() + amount)
+  counter.set(counter() + amount)
   return counter()
 }, 'increment')
 
@@ -61,7 +61,7 @@ increment(5)
 
 This dual nature of actions as both callable functions and observable events creates a foundation for powerful patterns that are difficult to implement in other libraries.
 
-## ▍ The `take` Operator: Awaiting Events Procedurally
+## The `take` Operator: Awaiting Events Procedurally
 
 One of the most powerful capabilities this enables is the `take` operator. It allows you to wait for specific events or state changes in an asynchronous context, similar to redux-saga's API but with native async/await syntax:
 
@@ -78,14 +78,14 @@ const saveUser = action(async () => {
   if (response.success) {
     // Wait for form confirmation
     await wrap(take(confirmSave))
-    successAtom(true)
+    successAtom.set(true)
   }
 }, 'saveUser')
 ```
 
 This allows you to describe complex workflows procedurally while still maintaining a reactive connection to your application's events.
 
-## ▍ The Problem with Traditional Event Sampling
+## The Problem with Traditional Event Sampling
 
 In traditional state management, coordinating between events and state often requires complex state machines or tangled subscriptions. Consider this common scenario: you need to listen for an event but access the latest state at the moment the event occurs.
 
@@ -113,7 +113,7 @@ Getting access to the current state when an event happens requires convoluted pa
 - Using refs in React
 - Complex selector patterns
 
-## ▍ Reatom's Solution: Direct State Access
+## Reatom's Solution: Direct State Access
 
 Reatom provides a remarkably clean solution to this problem with direct state access. Within any action or reactive function, you can simply call any atom as a function to get its current value:
 
@@ -131,7 +131,7 @@ const search = action(async () => {
   const results = await wrap(searchApi(filters))
 
   // Update results
-  resultsAtom(results)
+  resultsAtom.set(results)
 }, 'search')
 
 // Attach to a button in UI
@@ -140,7 +140,7 @@ searchButton.addEventListener('click', wrap(search))
 
 This eliminates an entire category of state management problems by making any state accessible at the point where it's needed.
 
-## ▍ Combining Actions and Atoms with `take`
+## Combining Actions and Atoms with `take`
 
 Now let's see how these concepts come together to create truly elegant solutions to complex problems.
 
@@ -161,11 +161,11 @@ const isValidAtom = computed(() => {
 
 // Form actions
 const setUsername = action((value) => {
-  usernameAtom(value)
+  usernameAtom.set(value)
 }, 'setUsername')
 
 const setPassword = action((value) => {
-  passwordAtom(value)
+  passwordAtom.set(value)
 }, 'setPassword')
 
 const submit = action(async () => {
@@ -195,7 +195,7 @@ const formFlowController = action(async () => {
 
   // Show success message and wait for user acknowledgment
   const showSuccessMessageAtom = atom(false, 'showSuccessMessage')
-  showSuccessMessageAtom(true)
+  showSuccessMessageAtom.set(true)
 
   // Wait for a specific button click to close the success message
   const closeButton = document.getElementById('closeSuccess')
@@ -210,7 +210,7 @@ formFlowController()
 
 See what happened here? We described a complex form flow with validation, submission, and success handling in a procedural way that's easy to follow, yet it's completely reactive. The code executes in response to events as they occur, without complex nested callbacks or state machine definitions.
 
-## ▍ Advanced Pattern: Condition-Based Event Sampling
+## Advanced Pattern: Condition-Based Event Sampling
 
 The `take` function allows for sophisticated filtering with its third parameter. This enables you to wait not just for events, but for events that meet specific criteria:
 
@@ -232,7 +232,7 @@ const validFormData = await wrap(
 
 This filtering capability eliminates the need for many conditional statements and allows for very declarative descriptions of complex flows.
 
-## ▍ Combining Multiple Sources: Racing and Parallel Sampling
+## Combining Multiple Sources: Racing and Parallel Sampling
 
 Sometimes you need to wait for any one of multiple possible events. Reatom makes this easy with techniques for racing between different events:
 
@@ -279,7 +279,7 @@ const [userProfile, userPreferences] = await wrap(
 // Both have loaded, proceed
 ```
 
-## ▍ Real-world Example: User Auth Flow
+## Real-world Example: User Auth Flow
 
 Let's bring everything together with a real-world example - an authentication flow that includes login, verification, and redirection:
 
@@ -318,16 +318,16 @@ const authFlow = action(async () => {
     password: formData.get('password'),
   }
 
-  loadingAtom(true)
+  loadingAtom.set(true)
 
   try {
     // Attempt login
     const user = await wrap(login(credentials))
-    userAtom(user)
+    userAtom.set(user)
 
     // If 2FA is required, wait for verification code
     if (user.requires2FA) {
-      twofaRequiredAtom(true)
+      twofaRequiredAtom.set(true)
 
       // Get reference to verification form
       const verificationForm = document.getElementById('2faForm')
@@ -359,15 +359,15 @@ const authFlow = action(async () => {
       window.location.href = '/dashboard'
     }
   } catch (error) {
-    errorAtom(error)
+    errorAtom.set(error)
 
     // Reset after error is acknowledged
     const dismissButton = document.getElementById('dismissError')
     await wrap(onEvent(dismissButton, 'click'))
 
-    errorAtom(null)
+    errorAtom.set(null)
   } finally {
-    loadingAtom(false)
+    loadingAtom.set(false)
   }
 }, 'authFlow')
 
@@ -382,7 +382,7 @@ document.addEventListener(
 
 This example shows how Reatom allows you to describe complex, multi-step processes with branching logic in a way that's readable, maintainable, and reactive.
 
-## ▍ Benefits Over Traditional Approaches
+## Benefits Over Traditional Approaches
 
 Compared to other approaches, Reatom's sampling pattern offers significant advantages:
 
@@ -393,7 +393,7 @@ Compared to other approaches, Reatom's sampling pattern offers significant advan
 5. **Testing**: Easily isolate and test individual steps or entire flows
 6. **Concurrency Control**: Built-in handling of race conditions
 
-## ▍ Conclusion
+## Conclusion
 
 The unification of events and state through Reatom's action and atom primitives enables a uniquely powerful approach to managing application state and behavior. By treating actions as reactive events and providing tools like `take` for procedural event sampling, Reatom creates a programming model that's both more expressive and simpler than traditional approaches.
 

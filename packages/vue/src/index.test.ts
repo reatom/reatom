@@ -1,13 +1,13 @@
 import { test, expect } from 'vitest'
-import { effectScope } from 'vue'
+import { createApp, effectScope } from 'vue'
 import { atom, clearStack, context, withConnectHook } from '@reatom/core'
-import { reatomRef } from './'
+import { reatomRef, createReatomVue } from './index'
 
 clearStack()
 
 test(
   'reatomRef',
-  context.start(() => async () => {
+  context.start(() => () => {
     let connected = false
     const state = atom(0).extend(
       withConnectHook(() => {
@@ -22,8 +22,8 @@ test(
 
     const scope = effectScope()
     scope.run(() => {
-      // FIXME
-      // app.use(top())
+      const app = createApp({})
+      app.use(createReatomVue(context.start()))
       const stateRef = reatomRef(state)
       expect(connected).toBe(true)
       expect(stateRef.value).toBe(0)
@@ -31,7 +31,7 @@ test(
       expect((stateRef.value = 1)).toBe(1)
       expect(stateRef.value).toBe(1)
       expect(state()).toBe(1)
-      state(2)
+      state.set(2)
       expect(stateRef.value).toBe(2)
     })
 

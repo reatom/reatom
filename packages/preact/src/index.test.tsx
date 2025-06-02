@@ -63,7 +63,7 @@ describe('reatomComponent', () => {
       const counterElement = document.querySelector('[data-testid="counter"]')
       expect(counterElement?.textContent).toBe('Count: 0')
 
-      countAtom(1)
+      countAtom.set(1)
       await wrap(tick())
       expect(counterElement?.textContent).toBe('Count: 1')
     }))
@@ -113,8 +113,8 @@ describe('reatomComponent', () => {
       )
 
       // Update atoms
-      nameAtom('Jane')
-      ageAtom(30)
+      nameAtom.set('Jane')
+      ageAtom.set(30)
 
       // Wait for rerender
       await wrap(tick())
@@ -160,7 +160,7 @@ describe('reatomComponent', () => {
       ).toBe('Hello, Alice!')
 
       // Update atom
-      messageAtom('Goodbye')
+      messageAtom.set('Goodbye')
 
       // Wait for rerender
       await wrap(tick())
@@ -244,7 +244,7 @@ describe('reatomFactoryComponent', () => {
         (props: { initialCount: number }) => {
           const count = atom(props.initialCount, 'localCount').actions(
             (target) => ({
-              inc: () => target((prev) => prev + 1),
+              inc: () => target.set((prev) => prev + 1),
             }),
           )
 
@@ -301,7 +301,7 @@ describe('reatomFactoryComponent', () => {
         effect(async () => {
           while (true) {
             await wrap(take(event))
-            count(++pooling)
+            count.set(++pooling)
           }
         })
 
@@ -335,7 +335,7 @@ describe('reatomFactoryComponent', () => {
         '2',
       )
 
-      active(false)
+      active.set(false)
       await wrap(tick())
       await wrap(tickEvent())
       await wrap(tickEvent())

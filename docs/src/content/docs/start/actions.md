@@ -21,8 +21,8 @@ const fetchAndUpdateCounter = action(async (userId: string) => {
   const response = await wrap(fetch(`/api/users/${userId}/count`)) // Preserve context!
   const data = await wrap(response.json()) // Preserve context!
 
-  counter(data.count) // Update state within the action
-  lastUpdated(new Date())
+  counter.set(data.count) // Update state within the action
+  lastUpdated.set(new Date())
 
   return data // Actions can return values
 }, 'fetchAndUpdateCounter')
@@ -38,11 +38,11 @@ For simple, direct state updates, using an action is unnecessary overhead. Atoms
 ```ts
 // ❌ BAD: Using actions for simple state updates.
 const setCounter = action((value: number) => {
-  counter(value)
+  counter.set(value)
 }, 'setCounter')
 
 // ✅ GOOD: Update atoms directly for simple cases.
-counter(10)
+counter.set(10)
 ```
 
 **Primary Use Cases for `action`:**
@@ -84,9 +84,9 @@ Here's how you can add `increment`, `decrement`, and `reset` actions to a `count
 
 ```ts
 const counter = atom(0, 'counter').actions((target) => ({
-  increment: (amount = 1) => target((prev) => prev + amount),
-  decrement: (amount = 1) => target((prev) => prev - amount),
-  reset: () => target(0),
+  increment: (amount = 1) => target.set((prev) => prev + amount),
+  decrement: (amount = 1) => target.set((prev) => prev - amount),
+  reset: () => target.set(0),
 }))
 
 // Now you can call these actions directly on the counter:

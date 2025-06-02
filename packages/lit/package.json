@@ -1,6 +1,6 @@
 {
   "name": "@reatom/lit",
-  "version": "1000.0.0-alpha.3",
+  "version": "1000.0.0-alpha.4",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -25,9 +25,9 @@
     "test:watch": "vitest src/*",
     "demo": "vite demo"
   },
-  "dependencies": {
+  "peerDependencies": {
     "lit": "^2.6.0",
-    "@reatom/core": "alpha"
+    "@reatom/core": "1000.0.0-alpha.26"
   },
   "devDependencies": {
     "vite": "^5.0.0"

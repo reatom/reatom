@@ -1,4 +1,5 @@
-import { context, Frame } from '../core'
+import type { Frame } from '../core'
+import { context } from '../core'
 
 /**
  * Executes a callback in the current context without tracking dependencies

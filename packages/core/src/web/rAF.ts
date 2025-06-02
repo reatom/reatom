@@ -1,4 +1,4 @@
-import { atom, _enqueue } from '../core'
+import { _enqueue, atom } from '../core'
 import { wrap } from '../methods'
 
 export let rAF = /* @__PURE__ */ (() =>
@@ -6,7 +6,7 @@ export let rAF = /* @__PURE__ */ (() =>
     _enqueue(async () => {
       while (true) {
         await wrap(new Promise((r) => requestAnimationFrame(r)))
-        rAF((state) => {
+        rAF.set((state) => {
           let timestamp = performance.now()
           return {
             timestamp,

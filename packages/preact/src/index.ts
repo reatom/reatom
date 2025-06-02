@@ -35,7 +35,7 @@ export let useFrame = (): Frame => {
 
 export const useWrap = <Params extends any[], Payload>(
   callback: (...params: Params) => Payload,
-  name?: string,
+  // name?: string,
 ): ((...params: Params) => Payload) => {
   let frame = useFrame()
 

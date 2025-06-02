@@ -1,5 +1,6 @@
-import { Action, Atom, atom, named, ReatomError, withMiddleware } from '../core'
-import { Fn } from '../utils'
+import type { Action, Atom } from '../core'
+import { atom, named, ReatomError, withMiddleware } from '../core'
+import type { Fn } from '../utils'
 
 export type EnumFormat = 'camelCase' | 'snake_case'
 
@@ -60,7 +61,7 @@ export const reatomEnum = <
         return value
       }),
     )
-    .actions((target) => ({ reset: () => target(initState!) }))
+    .actions((target) => ({ reset: () => target.set(initState!) }))
     .actions((target) =>
       variants.reduce(
         (acc, variant) => {
@@ -74,7 +75,7 @@ export const reatomEnum = <
           ) as keyof typeof acc
 
           // @ts-expect-error bad types inference for dynamic actions
-          acc[setterName] = () => target(variant)
+          acc[setterName] = () => target.set(variant)
           return acc
         },
         {} as EnumVariantSetters<T, Format>,

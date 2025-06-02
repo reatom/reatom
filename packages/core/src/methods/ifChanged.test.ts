@@ -1,9 +1,10 @@
-import { _read, action, atom, computed } from '../core'
 import { expect, test, vi } from 'test'
-import { ifChanged, ifCalled } from './ifChanged'
-import { sleep } from '../utils'
-import { wrap } from './wrap'
+
+import { _read, action, atom, computed } from '../core'
 import { notify } from '../core'
+import { sleep } from '../utils'
+import { ifCalled, ifChanged } from './ifChanged'
+import { wrap } from './wrap'
 
 test('ifChanged', () => {
   const name = 'ifChanged'
@@ -16,19 +17,19 @@ test('ifChanged', () => {
 
   expect(log).toBeCalledTimes(1)
 
-  some(1)
+  some.set(1)
   notify()
   expect(log).toBeCalledTimes(2)
   expect(log).toBeCalledWith(1, 0)
 
   un()
-  some(2)
+  some.set(2)
   data()
   expect(log).toBeCalledTimes(3)
   expect(log).toBeCalledWith(2, 1)
 
-  some(3)
-  some(2) // restore to the prev memo
+  some.set(3)
+  some.set(2) // restore to the prev memo
   notify()
   data()
   expect(log).toBeCalledTimes(3) // should not change
@@ -51,7 +52,7 @@ test('ifChanged few parents', () => {
 
   expect(log).toBeCalledTimes(4)
 
-  some(1)
+  some.set(1)
   notify()
   expect(log).toBeCalledTimes(8)
 })
@@ -104,7 +105,7 @@ test('ifCalled skip duplicates', async () => {
   expect(log).toBeCalledTimes(0)
   data()
   expect(log).toBeCalledTimes(2)
-  param(s => s + 1)
+  param.set((s) => s + 1)
   data()
   expect(log).toBeCalledTimes(2)
 })

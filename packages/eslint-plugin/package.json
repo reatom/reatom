@@ -57,6 +57,7 @@
   ],
   "devDependencies": {
     "@types/eslint": "^9.0.0",
+    "@typescript-eslint/rule-tester": "^8.32.0",
     "eslint": "^9.21.0",
     "eslint-plugin-eslint-plugin": "^6.4.0",
     "eslint-plugin-node": "^11.1.0",

@@ -1,7 +1,6 @@
 import { Card, Text, Group, Badge, Avatar, Anchor, Stack } from '@mantine/core'
 import { reatomComponent } from '@reatom/react'
 import { Issue } from '../../api/types'
-import { formatDate } from '../../utils/formatters'
 import { navigation } from '../../navigation/model'
 import { wrap } from '@reatom/core'
 

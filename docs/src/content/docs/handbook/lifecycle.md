@@ -20,7 +20,7 @@ import { atom, action, withConnectHook } from '@reatom/core'
 
 export const fetchList = action(async () => {
   const data = await wrap(api.getList())
-  list(data)
+  list.set(data)
 }, 'fetchList')
 export const list = atom([], 'list').extend(withConnectHook(fetchList))
 ```

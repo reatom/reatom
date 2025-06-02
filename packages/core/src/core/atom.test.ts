@@ -1,14 +1,15 @@
+import { expect, subscribe, test, vi } from 'test'
+
 import {
-  notify,
-  withTap,
   _read,
   atom,
   computed,
+  context,
   createAtom,
   isConnected,
-  context,
+  notify,
+  withTap,
 } from './'
-import { expect, vi, test, subscribe } from 'test'
 
 test('linking', () => {
   const name = 'linking'
@@ -81,10 +82,10 @@ test('disconnect tail deps', () => {
   bAtomControlled.subscribe()
   expect(track).toBeCalledTimes(1)
 
-  isActiveAtom(false)
+  isActiveAtom.set(false)
   notify()
   expect(isConnected(bAtom)).toBe(false)
-  aAtom(aAtom() + 1)
+  aAtom.set(aAtom() + 1)
   notify()
   expect(track).toBeCalledTimes(1)
 })
@@ -100,12 +101,12 @@ test('deps shift', () => {
 
   a.subscribe()
 
-  dep0(dep0() + 1)
+  dep0.set(dep0() + 1)
   notify()
   expect(isConnected(dep0)).toBeTruthy()
 
   deps.shift()
-  dep0(dep0() + 1)
+  dep0.set(dep0() + 1)
   expect(isConnected(dep0)).toBeTruthy()
   notify()
   expect(isConnected(dep0)).toBeFalsy()
@@ -138,7 +139,7 @@ test('update propagation for atom with listener', () => {
   expect(cb2).toBeCalledTimes(1)
   expect(cb3).toBeCalledTimes(1)
 
-  a1(1)
+  a1.set(1)
   notify()
 
   expect(cb2).toBeCalledTimes(2)
@@ -149,7 +150,7 @@ test('update propagation for atom with listener', () => {
   cb3.unsubscribe()
   expect(_read(a2)!.subs.length).toBe(1)
   expect(_read(a3)!.subs.length).toBe(0)
-  a1(2)
+  a1.set(2)
   notify()
   expect(cb2).toBeCalledTimes(3)
   expect(cb2).toBeCalledWith(2)
@@ -183,7 +184,7 @@ test('conditional deps duplication', () => {
   expect(isConnected(dep1)).toBe(true)
   expect(isConnected(dep2)).toBe(false)
 
-  condition(false)
+  condition.set(false)
   notify()
   expect(fn).toBeCalledTimes(2)
   expect(fn).toBeCalledWith(2)
@@ -191,16 +192,16 @@ test('conditional deps duplication', () => {
   expect(isConnected(dep1)).toBe(false)
   expect(isConnected(dep2)).toBe(true)
 
-  dep1(10)
+  dep1.set(10)
   notify()
   expect(fn).toBeCalledTimes(2)
 
-  dep2(20)
+  dep2.set(20)
   notify()
   expect(fn).toBeCalledTimes(3)
   expect(fn).toBeCalledWith(20)
 
-  condition(true)
+  condition.set(true)
   notify()
   expect(fn).toBeCalledTimes(4)
   expect(fn).toBeCalledWith(10)
@@ -226,12 +227,12 @@ test('computed without dependencies', () => {
 
   expect(a()).toBe(1)
   expect(a()).toBe(1)
-  expect(a(10)).toBe(11)
+  expect(a.set(10)).toBe(11)
 
   a.subscribe()
   expect(a()).toBe(11)
   expect(a()).toBe(11)
-  expect(a(100)).toBe(101)
+  expect(a.set(100)).toBe(101)
 })
 
 test('error tracking', () => {
@@ -255,11 +256,11 @@ test('error tracking', () => {
   expect(isConnected(b)).toBe(true)
   expect(() => b()).toThrow()
 
-  a(1)
+  a.set(1)
   notify()
   expect(() => b()).toThrow()
 
-  a(10)
+  a.set(10)
   notify()
   expect(success).toBe(true)
   expect(b()).toBe(10)
@@ -297,15 +298,17 @@ test('computed should not accept params', () => {
   expect(normalComputed()).toBe(0)
   expect(bComputed).toBeCalledTimes(1)
 
-  dep((s) => s + 1)
+  dep.set((s) => s + 1)
   expect(lowLevelComputed()).toBe(1)
   expect(normalComputed()).toBe(1)
   expect(bComputed).toBeCalledTimes(2)
 
-  expect(lowLevelComputed(2)).toBe(2)
+  expect(lowLevelComputed.set(2)).toBe(2)
   expect(lowLevelComputed()).toBe(2)
   // @ts-expect-error
-  expect(normalComputed(2)).toBe(1)
+  expect(() => normalComputed.set(2)).toThrow()
+  // // @ts-expect-error
+  // expect(() => normalComputed(2)).toThrow()
   expect(normalComputed()).toBe(1)
   expect(bComputed).toBeCalledTimes(2)
 })

@@ -1,5 +1,7 @@
-import { action, AtomLike, bind, computed, top } from '../core'
-import { Fn, isAbort, noop } from '../utils'
+import type { AtomLike } from '../core'
+import { action, bind, computed, top } from '../core'
+import type { Fn } from '../utils'
+import { isAbort, noop } from '../utils'
 import { abortVar } from './abort'
 import { ifCalled } from './ifChanged'
 

@@ -1,8 +1,22 @@
-import { test as viTest, vi, type Mock } from 'vitest'
-import { clearStack, context, AtomLike } from './core'
+import { type Mock, test as viTest, vi } from 'vitest'
+
+import type { AtomLike } from './core'
+import { clearStack, context, top } from './core'
 import { noop, type Unsubscribe } from './utils'
 
 clearStack()
+
+export const silentQueuesErrors = () => {
+  top().root.pushQueue = function pushQueue(cb, queue) {
+    this[queue].push(async () => {
+      try {
+        await cb()
+      } catch (error) {
+        // nothing
+      }
+    })
+  }
+}
 
 // TODO decorate chainable methods too
 /**
@@ -23,7 +37,7 @@ clearStack()
  *
  * test('atom updates correctly', () => {
  *   const counter = atom(0, 'counter')
- *   counter(5)
+ *   counter.set(5)
  *   expect(counter()).toBe(5)
  * })
  * ```
@@ -57,8 +71,8 @@ export const test = Object.assign(
  *   const counter = atom(0, 'counter')
  *   const sub = subscribe(counter)
  *
- *   counter(1)
- *   counter(2)
+ *   counter.set(1)
+ *   counter.set(2)
  *
  *   expect(sub).toHaveBeenCalledTimes(3) // Initial + 2 updates
  *   expect(sub).toHaveBeenLastCalledWith(2)
@@ -86,14 +100,14 @@ export function subscribe<State, T extends (state: State) => any>(
  * compatibility with Reatom's testing utilities defined in this file.
  */
 export {
-  expect,
-  vi,
-  describe,
-  beforeAll,
   afterAll,
-  beforeEach,
   afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
   expectTypeOf,
+  vi,
 } from 'vitest'
 
 /**

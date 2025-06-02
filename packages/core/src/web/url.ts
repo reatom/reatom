@@ -1,30 +1,20 @@
+import { type Plain, type Rec } from '../'
+import type { Action, Atom, AtomState, Computed } from '../core'
 import {
-  Action,
-  Atom,
-  AtomState,
-  Computed,
-  STACK,
+  _enqueue,
   action,
   atom,
   computed,
-  context,
-  _enqueue,
   named,
+  STACK,
   top,
   withMiddleware,
   withParams,
 } from '../core'
 import { ifChanged, peek } from '../methods'
 import { _getPrevFrame } from '../methods/context'
-
-import {
-  AbortExt,
-  withAbort,
-  withChangeHook,
-  withComputed,
-  withInit,
-} from '../mixins'
-import { type Rec, type Plain } from '../'
+import type { AbortExt } from '../mixins'
+import { withAbort, withChangeHook, withComputed, withInit } from '../mixins'
 import { onEvent } from './onEvent'
 
 type _PathParams<Path extends string = string> =
@@ -269,7 +259,7 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
 
     .actions((target) => ({
       go(path: string, replace?: boolean) {
-        return target((url) => new URL(path, url), replace)
+        return target.set((url) => new URL(path, url), replace)
       },
 
       match(path: string) {
@@ -417,7 +407,7 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
                 ? PathParams<Path>
                 : void
             const newPath = pathFn(pathParams)
-            return target((url) => {
+            return target.set((url) => {
               const newUrl = new URL(newPath, url)
               Object.entries(searchParams).forEach(([key, value]) => {
                 newUrl.searchParams.set(key, String(value))
@@ -448,14 +438,17 @@ const isSubpath = (currentPath: string, targetPath: string) =>
  */
 export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
   computed(() => Object.fromEntries(urlAtom().searchParams), 'searchParamsAtom')
+    .extend((target) =>
+      Object.assign(target, {
+        set: action((key: string, value: string, replace = false) => {
+          const url = urlAtom()
+          const newUrl = new URL(url.href)
+          newUrl.searchParams.set(key, value)
+          urlAtom(newUrl, replace)
+        }, 'searchParamsAtom.set'),
+      }),
+    )
     .actions(() => ({
-      set: (key: string, value: string, replace = false) => {
-        const url = urlAtom()
-        const newUrl = new URL(url.href)
-        newUrl.searchParams.set(key, value)
-        urlAtom(newUrl, replace)
-      },
-
       del: (key: string, replace = false) => {
         const url = urlAtom()
         const newUrl = new URL(url.href)
@@ -473,11 +466,8 @@ export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
                 : (options ?? {})
 
             return atom(parse(), name).extend(
-              withSearchParamsPersist(
-                key,
-                // @ts-expect-error
-                options,
-              ),
+              // @ts-expect-error
+              withSearchParamsPersist(key, options),
             )
           },
         }) satisfies Pick<SearchParamsAtom, 'lens'>,
@@ -594,7 +584,7 @@ export function withSearchParamsPersist<T = string>(
         let prevFrame = _getPrevFrame(frame)
         if (
           // process only the last update
-          frame === context().state.store.get(target) &&
+          frame === frame.root.store.get(target) &&
           // process only mutation or computed update
           frame.pubs[1]?.state === prevFrame?.pubs[1]?.state &&
           isSubpath(urlAtom().pathname, path)

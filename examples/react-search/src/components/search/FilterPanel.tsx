@@ -30,7 +30,7 @@ export const FilterPanel = reatomComponent(() => {
         <Chip.Group
           multiple={false}
           value={state || 'all'}
-          onChange={wrap((value) => issueState(value as IssueState))}
+          onChange={wrap((value) => issueState.set(value as IssueState))}
         >
           <Group>
             <Chip value="all">All</Chip>
@@ -46,7 +46,7 @@ export const FilterPanel = reatomComponent(() => {
           placeholder="Select labels"
           data={mockLabels.map(({ name }) => ({ value: name, label: name }))}
           value={labels || []}
-          onChange={wrap((value) => issueLabels(value))}
+          onChange={wrap((value) => issueLabels.set(value))}
         />
 
         <Select
@@ -54,7 +54,7 @@ export const FilterPanel = reatomComponent(() => {
           placeholder="Select language"
           data={mockLanguages.map((lang) => ({ value: lang, label: lang }))}
           value={language || ''}
-          onChange={wrap((value) => issueLanguage(value || ''))}
+          onChange={wrap((value) => issueLanguage.set(value || ''))}
         />
       </Group>
 
@@ -63,14 +63,14 @@ export const FilterPanel = reatomComponent(() => {
           label="Author"
           placeholder="GitHub username"
           value={author || ''}
-          onChange={wrap((e) => issueAuthor(e.currentTarget.value))}
+          onChange={wrap((e) => issueAuthor.set(e.currentTarget.value))}
         />
 
         <TextInput
           label="Assignee"
           placeholder="GitHub username"
           value={assignee || ''}
-          onChange={wrap((e) => issueAssignee(e.currentTarget.value))}
+          onChange={wrap((e) => issueAssignee.set(e.currentTarget.value))}
         />
       </Group>
     </Paper>

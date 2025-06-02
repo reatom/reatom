@@ -1,11 +1,11 @@
-import { top, context, Frame, AtomLike } from '../core'
+import type { AtomLike, Frame } from '../core'
+import { top } from '../core'
 
 export let _getPrevFrame = (frame = top()): null | Frame => {
-  let meta = context().state.meta.frames
-  let rec = meta.get(frame.atom)
+  let rec = frame.root.frames.get(frame.atom)
 
   if (!rec) {
-    meta.set(
+    frame.root.frames.set(
       frame.atom,
       (rec = {
         prev: null,
@@ -23,6 +23,6 @@ export let _getPrevFrame = (frame = top()): null | Frame => {
 }
 
 export let _getPrevAtomFrame = (target: AtomLike): null | Frame => {
-  let frame = context().state.store.get(target)
+  let frame = top().root.store.get(target)
   return frame ? _getPrevFrame(frame) : null
 }

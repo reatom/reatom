@@ -97,7 +97,7 @@ const sendForm = action(async (formData: any) => {
 }, 'sendForm').extend(withAsync())
 
 // Atoms provided by withAsync():
-// sendForm.ready() // Atom<boolean>: true while the action is running (pending)
+// sendForm.ready() // Atom<boolean>: false while the action is running (pending)
 // sendForm.error() // Atom<undefined | Error>: Stores the error if the action is rejected
 ```
 You can subscribe to `sendForm.ready()` to show a loading indicator, and to `sendForm.error()` to display any submission errors.
@@ -155,7 +155,7 @@ const pollingEffect = effect(async () => {
         return Math.random();
       }
       const newData = await wrap(fetchData())
-      dataAtom(newData)
+      dataAtom.set(newData)
       console.log('Data updated:', newData)
 
       // Wait for 5 seconds or until aborted

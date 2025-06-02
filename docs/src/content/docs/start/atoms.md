@@ -37,13 +37,13 @@ You can update an atom's value in two ways:
 1.  **Directly passing a new value:**
 
     ```ts
-    counter(5) // Sets the counter's value to 5
+    counter.set(5) // Sets the counter's value to 5
     ```
 
 2.  **Passing an updater function:** This function receives the previous value and returns the new value.
 
     ```ts
-    counter((prevValue) => prevValue + 1) // Increments counter; if it was 5, it becomes 6
+    counter.set((prevValue) => prevValue + 1) // Increments counter; if it was 5, it becomes 6
     ```
 
 ## `computed`: Derived State Container
@@ -102,8 +102,8 @@ const userView = {
 }
 
 // Updates are direct and efficient:
-userName('Bob')
-userEmail('bob@example.com')
+userName.set('Bob')
+userEmail.set('bob@example.com')
 ```
 With atomization, updates are targeted and efficient. Only the parts of your application that depend on the specific atom that changed will react.
 

@@ -1,13 +1,7 @@
-import { describe, test, expect, subscribe } from 'test'
-import {
-  AtomLike,
-  atom,
-  computed,
-  Atom,
-  AtomState,
-  notify,
-  isConnected,
-} from '../core'
+import { describe, expect, silentQueuesErrors, subscribe, test } from 'test'
+
+import type { Atom, AtomLike, AtomState } from '../core'
+import { atom, computed, isConnected, notify } from '../core'
 import { select } from './select'
 
 test('should not recompute the end atom if the source atom changed', () => {
@@ -22,12 +16,12 @@ test('should not recompute the end atom if the source atom changed', () => {
   expect(b()).toBe(0)
   expect(track).toBe(1)
 
-  a(3)
-  a(6)
+  a.set(3)
+  a.set(6)
   expect(b()).toBe(0)
   expect(track).toBe(1)
 
-  a(10)
+  a.set(10)
   expect(b()).toBe(1)
   expect(track).toBe(2)
 })
@@ -46,17 +40,17 @@ test('many selects should work', () => {
   expect(target()).toEqual({ length: 0, sum: 0 })
 
   const value = atom(1)
-  list([{ value }])
+  list.set([{ value }])
   notify()
   expect(target()).toEqual({ length: 1, sum: 1 })
   expect(track).toBeCalledTimes(2)
 
-  value(2)
+  value.set(2)
   notify()
   expect(target()).toEqual({ length: 1, sum: 2 })
   expect(track).toBeCalledTimes(3)
 
-  list([{ value }])
+  list.set([{ value }])
   notify()
   expect(target()).toEqual({ length: 1, sum: 2 })
   expect(track).toBeCalledTimes(3)
@@ -65,12 +59,7 @@ test('many selects should work', () => {
 test('prevent select memoization errors', () => {
   const list = atom(new Array<Atom<{ name: string; value: number }>>())
   const sum = computed(() => {
-    try {
-      return list().reduce((acc, el) => acc + select(() => el().value), 0)
-    } catch (error) {
-      debugger
-      throw error
-    }
+    return list().reduce((acc, el) => acc + select(() => el().value), 0)
   })
 
   const track = subscribe(sum)
@@ -79,8 +68,9 @@ test('prevent select memoization errors', () => {
   expect(sum()).toBe(0)
   expect(isConnected(list)).toBe(true)
 
-  list([atom({ name: 'a', value: 1 }), atom({ name: 'b', value: 2 })])
+  list.set([atom({ name: 'a', value: 1 }), atom({ name: 'b', value: 2 })])
   notify()
+  silentQueuesErrors()
   expect(() => sum()).toThrow(
     'multiple select with the same "toString" representation is not possible',
   )
@@ -99,29 +89,29 @@ describe('select', () => {
     const track = subscribe(odd)
     track.mockClear()
 
-    n(2)
+    n.set(2)
     notify()
     expect(track).toBeCalledTimes(0)
-    n(2)
-    notify()
-    expect(track).toBeCalledTimes(0)
-
-    n(4)
-    notify()
-    expect(track).toBeCalledTimes(0)
-    n(4)
+    n.set(2)
     notify()
     expect(track).toBeCalledTimes(0)
 
-    n(5)
+    n.set(4)
+    notify()
+    expect(track).toBeCalledTimes(0)
+    n.set(4)
+    notify()
+    expect(track).toBeCalledTimes(0)
+
+    n.set(5)
     notify()
     expect(track).toBeCalledTimes(1)
     expect(track).toBeCalledWith(5)
-    n(5)
+    n.set(5)
     notify()
     expect(track).toBeCalledTimes(1)
 
-    n(6)
+    n.set(6)
     notify()
     expect(track).toBeCalledTimes(1)
   })
@@ -148,11 +138,11 @@ describe('select', () => {
     })
 
     expect(lastSumHistory()).toBe(1)
-    data(2)
+    data.set(2)
     expect(lastSumHistory()).toBe(3)
-    data(3)
+    data.set(3)
     expect(lastSumHistory()).toBe(5)
-    data(4)
+    data.set(4)
     expect(lastSumHistory()).toBe(7)
   })
 })

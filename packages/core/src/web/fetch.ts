@@ -16,7 +16,7 @@ export interface FetchRequestInit<
   getResult?: (response: Response) => Result | Promise<Result>
 }
 
-export let FetchRequest = /* @__PURE__ */(() =>
+export let FetchRequest = /* @__PURE__ */ (() =>
   class FetchRequest<
     Result = unknown,
     Params extends any[] = any[],

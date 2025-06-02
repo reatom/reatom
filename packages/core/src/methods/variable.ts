@@ -1,5 +1,7 @@
-import { Frame, ReatomError, action, context, named, top } from '../core'
-import { assert, Fn, identity } from '../utils'
+import type { Frame } from '../core'
+import { action, context, named, ReatomError, top } from '../core'
+import type { Fn } from '../utils'
+import { assert, identity } from '../utils'
 
 /**
  * Interface for context variables in Reatom
@@ -118,7 +120,7 @@ export let variable: {
     cb: (payload: undefined | unknown) => undefined | T = (payload) =>
       payload as undefined | T,
     frame = top(),
-    meta = context().state.meta.variable,
+    meta = frame.root.variables,
   ): undefined | T => {
     let result = cb(meta.get(frame)?.get(key))
     if (result !== undefined) return result
@@ -138,9 +140,8 @@ export let variable: {
     if (value === undefined) {
       throw new ReatomError('Variable value cannot be undefined')
     }
-    let meta = context().state.meta.variable
-    let recs = meta.get(frame)
-    if (!recs) meta.set(frame, (recs = new WeakMap()))
+    let recs = frame.root.variables.get(frame)
+    if (!recs) frame.root.variables.set(frame, (recs = new WeakMap()))
     recs.set(key, value)
   }
 

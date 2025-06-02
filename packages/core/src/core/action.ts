@@ -1,14 +1,6 @@
-import {
-  AtomLike,
-  isAtom,
-  named,
-  ReatomError,
-  STACK,
-  _enqueue,
-  createAtom,
-  AtomMeta,
-} from './'
 import type { Fn } from '../utils'
+import type { AtomLike, AtomMeta } from './'
+import { _enqueue, createAtom, isAtom, named, ReatomError, STACK } from './'
 
 /** Autoclearable array of processed events */
 export interface ActionState<Params extends any[] = any[], Payload = any>

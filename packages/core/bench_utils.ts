@@ -1,4 +1,4 @@
-import { writeFile, readFile } from 'fs/promises'
+import { readFile,writeFile } from 'fs/promises'
 import { cpus } from 'os'
 import path from 'path'
 
@@ -52,7 +52,7 @@ const PACKAGE_NAMES: Rec<string> = {
 }
 
 export async function genChart(allResults: BenchResults) {
-  const popularLibs = new Array()
+  const popularLibs = []
   for (const libName of Object.keys(Object.values(allResults)[0]!)) {
     const moduleName = PACKAGE_NAMES[libName] ?? libName
     const moduleUrlName = moduleName.replace('/', '%2F')

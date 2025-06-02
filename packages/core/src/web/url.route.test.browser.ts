@@ -1,7 +1,8 @@
-import { test, expect } from 'test'
-import { urlAtom } from './url'
-import { sleep } from '../utils'
+import { expect, test } from 'test'
+
 import { wrap } from '../methods'
+import { sleep } from '../utils'
+import { urlAtom } from './url'
 
 test('urlAtom.route', async () => {
   // Define routes

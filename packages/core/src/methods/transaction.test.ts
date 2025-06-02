@@ -1,21 +1,22 @@
 import { expect, test } from 'test'
+
+import { withAsync } from '../async'
 import { action, atom } from '../core'
 import { withChangeHook } from '../mixins'
-import { wrap } from '.'
-import { withAsync } from '../async'
 import { sleep } from '../utils'
+import { wrap } from '.'
 import { withRollback } from './transaction'
 
 test('optimistic update', async () => {
   type List = Array<{ todo: string; done: boolean }>
 
   const add = action((todo: string) => {
-    list((list) => [...list, { todo, done: false }])
+    list.set((list) => [...list, { todo, done: false }])
   }, 'add')
 
   const updateList = action(async () => {
-    if (true) throw new Error('test')
-    await fetch('...')
+    // await fetch('...')
+    throw new Error('test')
   }, 'updateList').extend(
     withAsync(),
     // handle errors for actions and call `rollback()`

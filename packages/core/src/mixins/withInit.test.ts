@@ -1,5 +1,6 @@
-import { atom, clearStack, context } from '../core'
 import { expect, test, vi } from 'test'
+
+import { atom, clearStack, context } from '../core'
 import { withInit } from './withInit'
 
 test('init value', () => {
@@ -18,7 +19,7 @@ test('init callback', () => {
   expect(init).toBeCalledTimes(1)
 
   data()
-  data(123)
+  data.set(123)
   expect(init).toBeCalledTimes(1)
 })
 
@@ -41,6 +42,8 @@ test('different contexts', () => {
     expect(data()).toBe(3)
     expect(data()).toBe(3)
     expect(data()).toBe(3)
+
+    expect(context.start(() => data())).toBe(4)
   })
 })
 

@@ -8,7 +8,7 @@ I am the author of the Reatom state manager, and today I want to share with you 
 
 We'll explore how Reatom's concurrency model offers a more elegant solution than traditional debouncing techniques, providing both simplicity and power without sacrificing developer experience.
 
-## ▍ The Basic Problem
+## The Basic Problem
 
 Consider this common scenario: a search input that triggers API calls as the user types.
 
@@ -23,7 +23,7 @@ searchInput.addEventListener('input', (event) => {
 
 This code is problematic because it sends a request on every keystroke. If a user quickly types "react", we'd fire five separate API calls! This overwhelms both the network and the server, potentially causing race conditions where results arrive out of order, displaying outdated search results.
 
-## ▍ The Traditional Solution: Debounce
+## The Traditional Solution: Debounce
 
 The most common solution is to use debounce:
 
@@ -44,7 +44,7 @@ This works well for simple cases. The function waits 500ms after the user stops 
 
 Let's see what happens when we encounter more complex scenarios.
 
-## ▍ Problem 1: Event Object Access After Debounce
+## Problem 1: Event Object Access After Debounce
 
 When using debounce, we quickly encounter a significant limitation: the event object is not designed to be accessed asynchronously after the event handler returns.
 
@@ -75,7 +75,7 @@ searchInput.addEventListener('input', (event) => {
 
 Notice how we've already introduced more complexity - an additional function just to preserve a value!
 
-## ▍ Problem 2: Adding Conditional Logic
+## Problem 2: Adding Conditional Logic
 
 What if our debounced fetching logic needs to behave differently based on certain conditions? For example, applying debounce only for short queries:
 
@@ -107,7 +107,7 @@ Our code is growing increasingly complex. We now have:
 
 And what if we wanted to pass more data from the event? More mappings, more variables to maintain.
 
-## ▍ Enter Reatom's Concurrency Model
+## Enter Reatom's Concurrency Model
 
 Reatom takes a fundamentally different approach to this problem. Instead of debouncing the handler, we wrap the asynchronous operations and add abortion capabilities.
 
@@ -137,7 +137,7 @@ This might look similar in length, but notice what's happening:
 3. We extract the value immediately, avoiding event object problems
 4. We maintain a single, readable function with natural control flow
 
-## ▍ Adding Conditional Logic with Reatom
+## Adding Conditional Logic with Reatom
 
 Now let's add conditional logic:
 
@@ -160,7 +160,7 @@ Notice how much cleaner this is! The code reads naturally from top to bottom. No
 
 End even more! Chains of decorators is hard to inspect in the debugger: stack traces may be broken, intermediate values may be lost. Reatom uses native async/await which is perfectly supported in the debugger.
 
-## ▍ How It Works Under the Hood
+## How It Works Under the Hood
 
 Reatom's approach is built on the concept of [asynchronous context](./async-context.md) which allows data to flow through async operations without explicitly passing it through every function call.
 
@@ -173,7 +173,7 @@ This provides several key benefits:
 3. **Debuggability** with inspectable intermediate values
 4. **Automatic cancellation** of outdated operations
 
-## ▍ Comparing Code Size and Complexity
+## Comparing Code Size and Complexity
 
 Let's compare the solutions side-by-side:
 
@@ -215,7 +215,7 @@ searchInput.addEventListener('input', handleSearch)
 
 The Reatom version is not only more concise but also more maintainable as complexity grows.
 
-## ▍ Bonus: Implementing Throttle
+## Bonus: Implementing Throttle
 
 As a bonus, Reatom can elegantly implement throttle patterns as well. While debounce is ideal for search inputs (execute once after input stops), throttle is perfect for continuous events like window resizing, scrolling, or drag operations (execute regularly at a fixed rate).
 
@@ -269,7 +269,7 @@ By using the 'first-in-win' strategy (rather than the default 'last-in-win'), we
 
 This provides smooth, efficient updates during continuous operations like resizing without overwhelming the browser with calculations. The code is also more inspectable in development tools since you can see all intermediate values and the execution flow in breakpoints.
 
-## ▍ Conclusion
+## Conclusion
 
 Reatom's concurrency model offers a more elegant solution to the common problem of handling user input than traditional debouncing techniques. By focusing on wrapping asynchronous operations and providing automatic abortion capabilities, Reatom allows you to write code that is both simpler and more powerful.
 
@@ -286,7 +286,7 @@ I am the author of the Reatom state manager, and today I want to introduce you t
 
 While most state managers force you to choose between imperative events or reactive state, Reatom bridges this gap with an elegant unification of both paradigms. This approach provides the clarity of event-driven programming with the consistency of reactive state management.
 
-## ▍ The Problem with Traditional Approaches
+## The Problem with Traditional Approaches
 
 Traditional state management typically falls into one of two categories:
 
@@ -297,7 +297,7 @@ Each has its strengths, but also critical weaknesses. Event-driven systems need 
 
 What if we could have the best of both worlds?
 
-## ▍ Actions as Reactive Events: A Core Insight
+## Actions as Reactive Events: A Core Insight
 
 The key insight of Reatom is treating actions as first-class reactive events that can be both triggered and observed. Let's see a simple example:
 
@@ -309,7 +309,7 @@ const counter = atom(0, 'counter')
 
 // Create an action - a callable function that also works as an event emitter
 const increment = action((amount = 1) => {
-  counter(counter() + amount)
+  counter.set(counter() + amount)
   return counter()
 }, 'increment')
 
@@ -339,7 +339,7 @@ increment(5)
 
 This dual nature of actions as both callable functions and observable events creates a foundation for powerful patterns that are difficult to implement in other libraries.
 
-## ▍ The `take` Operator: Awaiting Events Procedurally
+## The `take` Operator: Awaiting Events Procedurally
 
 The `take` operator is a powerful tool for orchestrating asynchronous workflows by allowing you to `await` the next update of an atom or the next call of an action. This enables writing procedural-style logic that reacts to state changes and events. Always use `wrap(take(target))` to ensure proper Reatom context propagation.
 
@@ -363,7 +363,7 @@ Furthermore, Reatom allows combining multiple `take` operations:
 
 These patterns simplify building complex, multi-step processes that depend on various asynchronous events or state changes, such as form submissions with timeouts or loading multiple data sources in parallel.
 
-## ▍ The `onEvent` Operator: Handling External Events
+## The `onEvent` Operator: Handling External Events
 
 For integrating with external event sources like DOM elements or WebSockets, Reatom provides the `onEvent` operator. It allows you to `await` specific events (e.g., a button click or a WebSocket message) in a way that respects Reatom's abort context, ensuring proper cleanup when an action is aborted or a component unmounts.
 
@@ -377,7 +377,7 @@ const handleClick = action(async () => {
 ```
 `onEvent` is also useful for the "checkpoint pattern" to avoid race conditions: start listening for an event *before* an unrelated long-running async operation, ensuring the event isn't missed if it fires during the operation.
 
-## ▍ Benefits Over Traditional Approaches
+## Benefits Over Traditional Approaches
 
 Compared to other approaches, Reatom's sampling pattern offers significant advantages:
 
@@ -388,7 +388,7 @@ Compared to other approaches, Reatom's sampling pattern offers significant advan
 5. **Testing**: Easily isolate and test individual steps or entire flows
 6. **Concurrency Control**: Built-in handling of race conditions
 
-## ▍ Conclusion
+## Conclusion
 
 The unification of events and state through Reatom's action and atom primitives enables a uniquely powerful approach to managing application state and behavior. By treating actions as reactive events and providing tools like `take` for procedural event sampling, Reatom creates a programming model that's both more expressive and simpler than traditional approaches.
 

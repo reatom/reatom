@@ -1,11 +1,10 @@
 import {
   computed,
-  context,
+  type Frame,
+  type FunctionSource,
   named,
   ReatomError,
   top,
-  type Frame,
-  type FunctionSource,
 } from '../core'
 
 const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
@@ -20,7 +19,7 @@ export let select = <T>(
     touchedMap.set(frame, (touched = {}))
   }
 
-  const map = context().state.meta.select
+  const map = frame.root.selects
   let atoms = map.get(frame.atom)
 
   if (!atoms) {

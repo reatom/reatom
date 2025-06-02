@@ -1,11 +1,10 @@
 import {
   _isPubsChanged,
-  context,
-  top,
-  withMiddleware,
   type AtomLike,
   type AtomState,
   type Ext,
+  top,
+  withMiddleware,
 } from '../core'
 import { _getPrevFrame } from '../methods/context'
 
@@ -35,7 +34,7 @@ export let withComputed = <Target extends AtomLike>(
           if (
             !pubs ||
             (pubs.length > frame.pubs.length &&
-              _isPubsChanged(context(), frame, pubs, pubs.length + 1))
+              _isPubsChanged(frame, pubs, pubs.length + 1))
           ) {
             state = next(state)
           }

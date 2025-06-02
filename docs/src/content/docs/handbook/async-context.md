@@ -6,7 +6,7 @@ This article describes the main killer feature of redux-saga and rxjs and how yo
 
 We will talk about automatic cancellation of concurrent asynchronous chains - an essential property when working with any REST API and other more general asynchronous sequential operations.
 
-## ▍ Basic Example
+## Basic Example
 
 ```javascript
 const getA = async () => {
@@ -242,7 +242,7 @@ In `@reduxjs/toolkit`, there is `createListenerMiddleware`, whose API has some f
 
 What other options do we have?
 
-## ▍ Context
+## Context
 
 In this article, we've primarily discussed automatic cancellation of asynchronous chains, but this is actually a specific application of a more fundamental concept: **asynchronous context**. Async context is essentially the ability to access shared data across asynchronous boundaries, similar to how you can access variables in lexical scope, but preserved through asynchronous operations via call stack.
 

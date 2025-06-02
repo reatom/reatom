@@ -1,7 +1,7 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
 import { createAtom, ReatomError, top } from '../core'
-import { assert } from '../utils'
 import { wrap } from '../methods'
+import { assert } from '../utils'
 
 let SETTLED = new WeakMap<
   Promise<any>,
@@ -66,7 +66,7 @@ export let withSuspense =
                 wrap(target.suspended!),
                 wrap((error) => {
                   try {
-                    ;(target.suspended as Atom)(() => {
+                    ;(target.suspended as Atom).set(() => {
                       throw error
                     })
                   } catch {

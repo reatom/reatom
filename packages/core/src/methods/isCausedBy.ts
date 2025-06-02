@@ -1,4 +1,5 @@
-import { AtomLike, top } from "../core";
+import type { AtomLike } from '../core'
+import { top } from '../core'
 
 /**
  * Determines if an atom is part of the causal chain leading to the current computation
@@ -20,7 +21,6 @@ import { AtomLike, top } from "../core";
  * ```
  */
 export let isCausedBy = (target: AtomLike, frame = top()): boolean =>
-	frame.pubs.some(
-	  (pub) => pub && (pub.atom === target || isCausedBy(target, pub)),
-	)
-  
+  frame.pubs.some(
+    (pub) => pub && (pub.atom === target || isCausedBy(target, pub)),
+  )

@@ -1,10 +1,10 @@
-import { it, expectTypeOf } from 'vitest'
-import { reatomLinkedList } from '../primitives/reatomLinkedList'
+import { expectTypeOf, it } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
-import { test, describe, expect } from 'vitest'
 import { atom, computed } from '../core'
-import { parseAtoms } from './parseAtoms'
 import { reatomEnum } from '../primitives/reatomEnum'
+import { reatomLinkedList } from '../primitives/reatomLinkedList'
+import { parseAtoms } from './parseAtoms'
 
 describe('runtime', () => {
   test('should return value', () => {
@@ -62,7 +62,7 @@ describe('runtime', () => {
 
     expect(parsedAtom()).toEqual({ key: 'default' })
 
-    valueAtom('new')
+    valueAtom.set('new')
     expect(parsedAtom()).toEqual({ key: 'new' })
   })
 
@@ -267,9 +267,9 @@ describe('types', () => {
           type: reatomEnum(['A', 'B', 'C']),
           str1: atom(''),
           bool: atom(false),
-          nestedLinkedList: reatomLinkedList((value: number) => (
-            reatomEnum(['A', 'B', 'C'])
-          )),
+          nestedLinkedList: reatomLinkedList((value: number) =>
+            reatomEnum(['A', 'B', 'C']),
+          ),
         }),
       ]),
     }))
@@ -283,7 +283,7 @@ describe('types', () => {
         type: 'A' | 'B' | 'C'
         str1: string
         bool: boolean
-        nestedLinkedList: ("A" | "B" | "C")[]
+        nestedLinkedList: ('A' | 'B' | 'C')[]
       }[]
     }
 

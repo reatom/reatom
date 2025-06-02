@@ -1,5 +1,6 @@
-import { Queue, bind, context } from './'
 import type { Fn } from '../utils'
+import type { Queue } from './'
+import { bind, context } from './'
 
 /**
  * Schedules a function to be executed in a specific queue of the current context.

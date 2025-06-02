@@ -1,8 +1,9 @@
 import { expect, test, vi } from 'test'
+
 import { atom, computed } from '../core'
-import { withConnectHook, withDisconnectHook } from './withConnectHook'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
+import { withConnectHook, withDisconnectHook } from './withConnectHook'
 
 test('withConnectHook', async () => {
   const name = 'withConnectHook'

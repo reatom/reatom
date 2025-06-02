@@ -1,10 +1,11 @@
-import { _read, atom } from '../core'
 import { expect, test, vi } from 'test'
-import { effect } from './effect'
+
+import { atom } from '../core'
 import { withAbort } from '../mixins'
-import { abortVar } from './abort'
-import { wrap } from './wrap'
 import { sleep } from '../utils'
+import { abortVar } from './abort'
+import { effect } from './effect'
+import { wrap } from './wrap'
 
 test('different types of abort', async () => {
   // TODO
@@ -29,7 +30,7 @@ test('different types of abort', async () => {
   expect(e1Log).toBeCalledTimes(1)
   expect(e2Log).toBeCalledTimes(1)
 
-  a((s) => s + 1)
+  a.set((s) => s + 1)
   await wrap(sleep())
   expect(e1Log).toBeCalledTimes(2)
   expect(e2Log).toBeCalledTimes(3)

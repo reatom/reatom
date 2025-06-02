@@ -1,14 +1,6 @@
-import {
-  Action,
-  AtomLike,
-  AtomState,
-  ReatomError,
-  Ext,
-  _enqueue,
-  top,
-  withMiddleware,
-} from '../core'
-import { OverloadParameters, Unsubscribe } from '../utils'
+import type { Action, AtomLike, AtomState, Ext } from '../core'
+import { _enqueue, ReatomError, top, withMiddleware } from '../core'
+import type { OverloadParameters, Unsubscribe } from '../utils'
 
 export let withChangeHook = <Target extends AtomLike>(
   cb: (
@@ -25,6 +17,7 @@ export let withChangeHook = <Target extends AtomLike>(
       function withChangeHook(next, ...params) {
         let frame = top()
         let prevState = frame.state
+        // @ts-ignore
         let state = next(...params)
 
         if (!Object.is(prevState, state)) {
@@ -62,9 +55,10 @@ export let withCallHook = <Target extends Action>(
       throw new ReatomError('withCallHook can be used only with actions')
     }
 
-    return function withChangeHook(next, ...params) {
+    return function withCallHook(next, ...params) {
       let frame = top()
       let prevState = frame.state
+      // @ts-ignore
       let state = next(...params)
 
       if (!Object.is(prevState, state)) {

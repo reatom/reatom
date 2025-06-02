@@ -1,12 +1,5 @@
-import {
-  AtomLike,
-  AtomState,
-  Ext,
-  context,
-  _enqueue,
-  top,
-  withMiddleware,
-} from '../core'
+import type { AtomLike, AtomState, Ext } from '../core'
+import { _enqueue, top, withMiddleware } from '../core'
 
 export let withInit = <Target extends AtomLike>(
   init: AtomState<Target> | ((state: AtomState<Target>) => AtomState<Target>),
@@ -16,10 +9,9 @@ export let withInit = <Target extends AtomLike>(
   return withMiddleware(
     () =>
       function withInit(next, ...params) {
-        let meta = context().state.meta.init
-        if (!meta.has(key)) {
-          meta.set(key, null)
-          let frame = top()
+        let frame = top()
+        if (!frame.root.inits.has(key)) {
+          frame.root.inits.set(key, null)
           frame.state =
             typeof init === 'function'
               ? (init as (state: Target) => Target)(frame.state)

@@ -1,6 +1,7 @@
 import { expectTypeOf, test } from 'vitest'
-import { AtomMut, NumberAtom, reatomZod, ZodAtom } from '.'
 import { z } from 'zod'
+
+import { type Atom, type NumberAtom, reatomZod } from './'
 
 test('right types for basic schema', async () => {
   const schema = z.object({
@@ -16,19 +17,15 @@ test('right types for basic schema', async () => {
   type InferedSchema = z.infer<typeof schema>
 
   expectTypeOf(model.n).toEqualTypeOf<NumberAtom>()
-  expectTypeOf(model.s).toEqualTypeOf<AtomMut<InferedSchema['s']>>()
+  expectTypeOf(model.s).toEqualTypeOf<Atom<InferedSchema['s']>>()
   expectTypeOf(model.readonly).toEqualTypeOf<InferedSchema['readonly']>()
-  expectTypeOf(model.nullable).toEqualTypeOf<
-    AtomMut<InferedSchema['nullable']>
-  >()
-  expectTypeOf(model.optional).toEqualTypeOf<
-    AtomMut<InferedSchema['optional']>
-  >()
+  expectTypeOf(model.nullable).toEqualTypeOf<Atom<InferedSchema['nullable']>>()
+  expectTypeOf(model.optional).toEqualTypeOf<Atom<InferedSchema['optional']>>()
   expectTypeOf(model.nullishNumber).toEqualTypeOf<
-    AtomMut<InferedSchema['nullishNumber']>
+    Atom<InferedSchema['nullishNumber']>
   >()
   expectTypeOf(model.nullishBoolean).toEqualTypeOf<
-    AtomMut<InferedSchema['nullishBoolean']>
+    Atom<InferedSchema['nullishBoolean']>
   >()
 })
 
@@ -37,7 +34,7 @@ test('right types for catch', async () => {
   const model = reatomZod(catchSchema)
   type InferedSchema = z.infer<typeof catchSchema>
 
-  expectTypeOf(model).toEqualTypeOf<AtomMut<InferedSchema>>()
+  expectTypeOf(model).toEqualTypeOf<Atom<InferedSchema>>()
 })
 
 test('right types for effects', async () => {
@@ -60,15 +57,15 @@ test('right types for effects', async () => {
   const model = reatomZod(schema)
   type InferedSchema = z.infer<typeof schema>
 
-  expectTypeOf(model.refine).toEqualTypeOf<AtomMut<InferedSchema['refine']>>()
+  expectTypeOf(model.refine).toEqualTypeOf<Atom<InferedSchema['refine']>>()
   expectTypeOf(model.transform).toEqualTypeOf<
-    AtomMut<InferedSchema['transform']>
+    Atom<InferedSchema['transform']>
   >()
   expectTypeOf(model.transformedRefine).toEqualTypeOf<
-    AtomMut<InferedSchema['transformedRefine']>
+    Atom<InferedSchema['transformedRefine']>
   >()
   expectTypeOf(model.refinedTransform).toEqualTypeOf<
-    AtomMut<InferedSchema['refinedTransform']>
+    Atom<InferedSchema['refinedTransform']>
   >()
 })
 
@@ -79,7 +76,7 @@ test('right types for brands', async () => {
   // zod cannot derive nullish values with brand, but it's parser is ok with that
   type InferedUnionSchema = z.infer<typeof unionSchema> | null | undefined
 
-  expectTypeOf(unionModel).toEqualTypeOf<AtomMut<InferedUnionSchema>>()
+  expectTypeOf(unionModel).toEqualTypeOf<Atom<InferedUnionSchema>>()
 
   const objectSchema = z.object({
     brand: z
@@ -95,7 +92,7 @@ test('right types for brands', async () => {
 
   expectTypeOf(objectModel).toEqualTypeOf<{
     brand: {
-      kek: AtomMut<InferedObjectSchema['brand']['kek'] | null>
+      kek: Atom<InferedObjectSchema['brand']['kek'] | null>
     } & z.BRAND<'foo'>
     brand2: InferedObjectSchema['brand2']
   }>()
@@ -108,7 +105,9 @@ test('right types for pipeline', async () => {
   const model = reatomZod(pipelineSchema)
   type InferedSchema = z.infer<typeof pipelineSchema>
 
-  expectTypeOf(model).toEqualTypeOf<AtomMut<InferedSchema>>()
+  expectTypeOf(model).toEqualTypeOf<
+    Atom<InferedSchema, [string | number | Date]>
+  >()
 })
 
 test('right types for lazy', async () => {
@@ -123,5 +122,12 @@ test('right types for lazy', async () => {
   type InferedSchema = z.infer<typeof lazySchema>
 
   expectTypeOf(model.number).toEqualTypeOf<NumberAtom>()
-  expectTypeOf(model.string).toEqualTypeOf<AtomMut<InferedSchema['string']>>()
+  expectTypeOf(model.string).toEqualTypeOf<Atom<InferedSchema['string']>>()
+})
+
+test('union types', async () => {
+  const schema = z.union([z.number(), z.string()])
+  const model = reatomZod(schema)
+
+  expectTypeOf(model).toExtend<Atom<number | string>>()
 })

@@ -1,9 +1,10 @@
 import { expect, test, vi } from 'test'
+
+import { withAsyncData } from '../async'
 import { action, atom, computed, notify } from '../core'
+import { identity, noop, sleep } from '../utils'
 import { take } from './take'
 import { wrap } from './wrap'
-import { identity, noop, sleep } from '../utils'
-import { withAsyncData } from '../async'
 
 test('take atom', async () => {
   const at = atom(0)
@@ -25,7 +26,7 @@ test('take atom error', async () => {
   setTimeout(
     wrap(() => {
       try {
-        at(() => {
+        at.set(() => {
           throw 4
         })
       } catch {
@@ -55,11 +56,11 @@ test('take concurrency', async () => {
   expect(track).toBeCalledTimes(1)
   expect(track).toBeCalledWith(1)
 
-  param(false)
+  param.set(false)
   notify()
-  param(true)
+  param.set(true)
   await wrap(sleep())
-  param(false)
+  param.set(false)
   await wrap(sleep())
   some(1)
   await wrap(sleep())

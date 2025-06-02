@@ -1,4 +1,5 @@
-import { describe, test, expect } from 'test'
+import { describe, expect, test } from 'test'
+
 import { reatomString } from './reatomString'
 
 describe('reatomString', () => {
@@ -7,7 +8,7 @@ describe('reatomString', () => {
 
     expect(a()).toBe(`string`)
 
-    a((s) => `s`)
+    a.set((s) => `s`)
 
     expect(a()).toBe(`s`)
     a.reset()

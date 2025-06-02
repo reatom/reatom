@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "nodenext",
-    "target": "ESNext", // Node.js 18
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
     "lib": ["DOM", "ESNext"],
     "resolveJsonModule": false, // ESM doesn't yet support JSON modules.
     "declaration": true,
@@ -14,11 +14,13 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
+    "noEmit": true,
     "noEmitOnError": true,
     "useDefineForClassFields": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "rewriteRelativeImportExtensions": true
+    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true
   },
   "exclude": ["node_modules", "build"]
 }

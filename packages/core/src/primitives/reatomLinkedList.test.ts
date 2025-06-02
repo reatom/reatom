@@ -1,9 +1,10 @@
+import { expect, subscribe, test, vi } from 'test'
+
 import { atom, computed, isAtom, isConnected, notify } from '../core'
-import { test, expect, subscribe, vi } from 'test'
-import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
+import { isCausedBy } from '../methods'
 import { parseAtoms } from '../methods/parseAtoms'
 import { withChangeHook } from '../mixins'
-import { isCausedBy } from '../methods'
+import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 
 test('should respect initState, create and remove elements properly', () => {
   const list = reatomLinkedList({
@@ -117,7 +118,7 @@ test('should respect node keys even if it is an atom', () => {
 
   expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
-  list.map().get('1')?.id('0')
+  list.map().get('1')?.id.set('0')
   notify()
   expect(track.mock.lastCall?.[0]).toEqual(['0', '2'])
 })
@@ -175,7 +176,7 @@ test('should respect initSnapshot for initializing', () => {
 
   expect(track.mock.lastCall?.[0]).toEqual(['1', '2'])
 
-  list.map().get('1')?.id('0')
+  list.map().get('1')?.id.set('0')
   notify()
   expect(track.mock.lastCall?.[0]).toEqual(['0', '2'])
 })
@@ -203,7 +204,7 @@ test('should accept only initState and key optionally', () => {
   expect(track).toBeCalledWith(['1', '2'])
   expect(isConnected(list.map().get('1')!.id)).toBe(true)
 
-  list.map().get('1')!.id('0')
+  list.map().get('1')!.id.set('0')
   notify()
   expect(parseAtoms(list)).toStrictEqual([{ id: '0' }, { id: '2' }])
   expect(keys()).toStrictEqual(['0', '2'])

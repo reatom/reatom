@@ -1,16 +1,7 @@
-import {
-  Action,
-  context,
-  top,
-  run,
-  ReatomError,
-  Frame,
-  AtomLike,
-  AtomState,
-  ActionState,
-} from '../core'
-import { _getPrevFrame } from './context'
+import type { Action, ActionState, AtomLike, AtomState, Frame } from '../core'
+import { ReatomError, run, top } from '../core'
 import { assert } from '../utils'
+import { _getPrevFrame } from './context'
 
 /**
  * Executes a callback when an atom's state changes
@@ -45,7 +36,7 @@ export const ifChanged = <T extends AtomLike>(
   let prevTargetFrame = prevPubs[frame.pubs.length]
 
   target()
-  let targetFrame = context().state.store.get(target)!
+  let targetFrame = frame.root.store.get(target)!
 
   if (targetFrame.atom !== prevTargetFrame?.atom) {
     cb(targetFrame.state)
@@ -89,10 +80,7 @@ export const ifCalled = <Params extends any[], Payload>(
   let prevPubs = _getPrevFrame(frame)?.pubs ?? [null]
   let prevTargetFrame = prevPubs[frame.pubs.length] as undefined | ActionFrame
 
-  let contextFrame = context()
-  let targetFrame = contextFrame.state.store.get(target) as
-    | undefined
-    | ActionFrame
+  let targetFrame = frame.root.store.get(target) as undefined | ActionFrame
 
   assert(frame.atom.__reatom.reactive, 'invalid context', ReatomError)
 
@@ -101,11 +89,12 @@ export const ifCalled = <Params extends any[], Payload>(
       error: null,
       state: [],
       atom: target,
-      pubs: [contextFrame],
+      pubs: [frame.root.frame],
       subs: [],
       run,
+      root: frame.root,
     }
-    contextFrame.state.store.set(target, targetFrame)
+    frame.root.store.set(target, targetFrame)
   }
   frame.pubs.push(targetFrame)
 

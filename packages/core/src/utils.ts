@@ -1,4 +1,4 @@
-import { SetTimeout } from './setTimeout'
+import type { SetTimeout } from './setTimeout'
 
 /**
  * Generic function type representing any function that takes any parameters and returns any value.
@@ -154,6 +154,13 @@ export type Overloads<T> = T extends {
     ) => Return1 | Return2 | Return3 | Return4 | Return5
   : never
 
+// ? | ((...params: Overload1Params) => Return1)
+//     | ((...params: Overload2Params) => Return2)
+//     | ((...params: Overload3Params) => Return3)
+//     | ((...params: Overload4Params) => Return4)
+//     | ((...params: Overload5Params) => Return5)
+// : never
+
 /**
  * Extracts the parameters type from an overloaded function.
  * Returns a union of all possible parameter tuples.
@@ -282,7 +289,7 @@ export const isShallowEqual = (a: any, b: any, is = Object.is) => {
       a instanceof Map ? (a, b) => is(a[0], b[0]) && is(a[1], b[1]) : is
     let aIter = a[Symbol.iterator]()
     let bIter = b[Symbol.iterator]()
-    while (1) {
+    while (true) {
       let aNext = aIter.next()
       let bNext = bIter.next()
       if (aNext.done || bNext.done || !equal(aNext.value, bNext.value)) {

@@ -6,13 +6,13 @@ export const currentPageAtom = atom<Page>('search', 'navigation.currentPage')
 const issueIdAtom = atom<string | null>(null, 'navigation.issueId')
 
 const navigateToSearch = action(() => {
-  currentPageAtom('search')
-  issueIdAtom(null)
+  currentPageAtom.set('search')
+  issueIdAtom.set(null)
 }, 'navigation.navigateToSearch')
 
 const navigateToIssueDetail = action((issueId: string) => {
-  currentPageAtom('issueDetail')
-  issueIdAtom(issueId)
+  currentPageAtom.set('issueDetail')
+  issueIdAtom.set(issueId)
 }, 'navigation.navigateToIssueDetail')
 
 export const navigation = {

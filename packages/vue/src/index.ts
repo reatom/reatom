@@ -61,7 +61,8 @@ export function reatomRef<T>(
       return vueState.value
     },
     set value(next) {
-      target(next)
+      // @ts-expect-error
+      target.set(next)
     },
     [RefSymbol]: true,
   }

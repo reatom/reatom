@@ -1,5 +1,6 @@
-import { Action, AtomLike, AtomState, isAtom, ReatomError, top } from '.'
 import type { Fn, OverloadParameters, Rec } from '../utils'
+import type { Action, Atom, AtomLike, AtomState } from '.'
+import { isAtom, ReatomError, top } from '.'
 
 /**
  * Extension function interface for modifying atoms and actions.
@@ -118,7 +119,16 @@ export function extend<This extends AtomLike>(
           'extension can not change the atom reference, use middleware instead',
         )
       }
-      Object.assign(this, result)
+      if (!result) throw new ReatomError('extension can not return nothing')
+      for (let key in result as Rec) {
+        if (key in this)
+          throw new ReatomError(
+            `extension can not override existing methods: ${key}`,
+          )
+
+        // @ts-expect-error
+        this[key] = result[key]
+      }
     }
   }
   return this
@@ -137,7 +147,11 @@ export function extend<This extends AtomLike>(
  * @returns The state resulting from the atom/action execution
  */
 export type Middleware<Target extends AtomLike = AtomLike> = (
-  next: (...params: OverloadParameters<Target>) => AtomState<Target>,
+  next: (
+    ...params: Target extends Atom
+      ? OverloadParameters<Target['set']> | []
+      : OverloadParameters<Target>
+  ) => AtomState<Target>,
   ...params: OverloadParameters<Target>
 ) => AtomState<Target>
 
@@ -263,7 +277,9 @@ export interface ParamsExt<
           unknown[],
           unknown
         >
-    : AtomLike<AtomState<Target>, [] | Params>) & {
+    : Target extends Atom<infer State>
+      ? Atom<State, Params>
+      : AtomLike<AtomState<Target>, [] | Params>) & {
     [K in Exclude<keyof Target, keyof AtomLike>]: Target[K]
   }
 }
@@ -298,7 +314,9 @@ export interface ParamsExt<
 // @ts-ignore
 export let withParams: {
   <Target extends AtomLike, Params extends any[]>(
-    parse: (...parse: Params) => OverloadParameters<Target>[0],
+    parse: (
+      ...parse: Params
+    ) => OverloadParameters<Target extends Atom ? Target['set'] : Target>[0],
   ): ParamsExt<Target, Params>
 } = (parse: (...parse: any[]) => any): Ext => {
   if (typeof parse !== 'function') {

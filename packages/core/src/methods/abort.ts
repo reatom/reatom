@@ -1,17 +1,18 @@
+import type { Atom, GenericAction } from '../core'
 import {
-  AtomLike,
+  action,
+  bind,
+  computed,
   createAtom,
+  isAtom,
+  named,
   top,
   withParams,
-  computed,
-  isAtom,
-  bind,
-  named,
-  action,
-  GenericAction,
 } from '../core'
-import { AbortError, Fn, noop, toAbortError, Unsubscribe } from '../utils'
-import { Variable, variable } from './variable'
+import type { AbortError, Fn, Unsubscribe } from '../utils'
+import { noop, toAbortError } from '../utils'
+import type { Variable } from './variable'
+import { variable } from './variable'
 
 /**
  * Interface containing methods for abort handling in Reatom
@@ -59,11 +60,11 @@ export interface LazyAbortController extends AbortController {
  * Atom-like object that tracks abort state
  *
  * @interface AbortAtom
- * @extends {AtomLike<null | AbortError, [] | [reason: any]>}
+ * @extends {Atom<null | AbortError, [] | [reason: any]>}
  * @extends {AbortMethods}
  */
 export interface AbortAtom
-  extends AtomLike<null | AbortError, [] | [reason: any]>,
+  extends Atom<null | AbortError, [] | [reason: any]>,
     AbortMethods {}
 
 /**
@@ -139,18 +140,14 @@ export let abortVar: AbortVar = /* @__PURE__ */ (() =>
       return createAtom<null | AbortError>(
         {
           initState: null,
-          computed: (state) => {
-            if (state !== null) return state
-
-            return (
-              abortVar.find((maybeAbortAtom) => maybeAbortAtom?.(), frame) ??
-              null
-            )
-          },
+          computed: (state) =>
+            state ??
+            abortVar.find((maybeAbortAtom) => maybeAbortAtom?.(), frame) ??
+            null,
         },
         option,
       ).extend(
-        withParams((value) => toAbortError(value || `${option} abort`)),
+        withParams((value?: any) => toAbortError(value || `${option} abort`)),
         () =>
           ({
             throwIfAborted() {
@@ -186,7 +183,7 @@ export let abortVar: AbortVar = /* @__PURE__ */ (() =>
               if (controller.signal.aborted) unsubscribeAtom()
               else {
                 listener = bind((error: any) => {
-                  if (error !== this()) this(error)
+                  if (error !== this()) this.set(error)
                   controller.unsubscribe()
                 })
                 controller.signal.addEventListener('abort', listener)
@@ -199,7 +196,7 @@ export let abortVar: AbortVar = /* @__PURE__ */ (() =>
     }),
     {
       abort(reason?: any) {
-        abortVar.find()?.(reason)
+        abortVar.find()?.set(reason)
       },
       throwIfAborted() {
         abortVar.find()?.throwIfAborted()
@@ -238,6 +235,6 @@ export let spawn: GenericAction<
   ) => Payload
 > = action((cb: Fn, ...params: any[]): ReturnType<Fn> => {
   let abort = abortVar.set('spawn')
-  abort(new AbortController())
+  abort.set(new AbortController())
   return cb(...params)
 }, 'spawn')

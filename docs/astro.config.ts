@@ -18,12 +18,17 @@ export default defineConfig({
     ]),
     starlight({
       sidebar,
-      plugins: [starlightLinksValidator(), starlightLlmsTxt()],
+      plugins: [
+        // TODO
+        // starlightLinksValidator(),
+        starlightLlmsTxt(),
+      ],
       components: {
         Header: './src/components/starlight/Header.astro',
         MobileMenuFooter: './src/components/starlight/MobileMenuFooter.astro',
         Sidebar: './src/components/starlight/Sidebar.astro',
         PageTitle: './src/components/starlight/PageTitle.astro',
+        MarkdownContent: './src/components/MarkdownContent.astro',
       },
       title: 'Reatom',
       logo: {

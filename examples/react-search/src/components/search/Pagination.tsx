@@ -34,8 +34,8 @@ export const Pagination = reatomComponent(() => {
           ]}
           value={perPage.toString()}
           onChange={wrap((value) => {
-            issuePerPage(parseInt(value || '10'))
-            issuePage(1) // Reset to first page when changing items per page
+            issuePerPage.set(parseInt(value || '10'))
+            issuePage.set(1) // Reset to first page when changing items per page
           })}
           style={{ width: 80 }}
         />
@@ -43,7 +43,7 @@ export const Pagination = reatomComponent(() => {
         <MantinePagination
           total={totalPages}
           value={currentPage}
-          onChange={wrap((page) => issuePage(page))}
+          onChange={wrap((page) => issuePage.set(page))}
         />
       </Group>
     </Group>

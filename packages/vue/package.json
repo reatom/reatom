@@ -1,6 +1,6 @@
 {
-  "name": "@reatom/npm-vue",
-  "version": "1000.0.0-alpha.1",
+  "name": "@reatom/vue",
+  "version": "1000.0.0-alpha.2",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -24,6 +24,7 @@
     "test:watch": "vitest src/*"
   },
   "peerDependencies": {
+    "@reatom/core": "1000.0.0-alpha.26",
     "vue": "^3.5.0"
   },
   "author": {
@@ -48,9 +49,9 @@
   "bugs": {
     "url": "https://github.com/artalar/reatom/issues"
   },
-  "homepage": "https://www.reatom.dev/package/npm-vue",
+  "homepage": "https://www.reatom.dev/package/vue",
   "keywords": [
-    "npm-vue",
+    "vue",
     "reactive",
     "reactivity",
     "state-manager",
@@ -58,11 +59,5 @@
   ],
   "files": [
     "/build"
-  ],
-  "devDependencies": {
-    "@reatom/hooks": "^3.5.2"
-  },
-  "dependencies": {
-    "@reatom/lens": "^3.9.1"
-  }
+  ]
 }

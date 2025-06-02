@@ -1,7 +1,11 @@
-import { AssignerExt, context, ReatomError, top } from '../core'
-import { AbortAtom, abortVar } from '../methods'
-import { _getPrevAtomFrame, _getPrevFrame } from '../methods/context'
-import { assert, Fn, isAbort, noop, toAbortError } from '../utils'
+import type { AssignerExt } from '../core'
+import { ReatomError, STACK, top } from '../core'
+import type { AbortAtom } from '../methods'
+import { abortVar } from '../methods'
+import { _getPrevFrame } from '../methods/context'
+import type { Fn } from '../utils'
+import { assert, identity, isAbort, noop, toAbortError } from '../utils'
+import { withComputed } from './withComputed'
 
 export interface AbortExt {
   abort: (reason?: any) => void
@@ -16,6 +20,15 @@ export let withAbort = (
     ReatomError,
   )
 
+  let topAbort: AbortAtom | undefined = undefined
+  if (STACK[STACK.length - 1]) {
+    topAbort = abortVar.find()
+  }
+  let wrapTopAbort = topAbort
+    ? (abort: AbortAtom) =>
+        abort.extend(withComputed((state) => state ?? topAbort(), false))
+    : identity
+
   return (target) => {
     let abortMiddleware = (next: Fn, ...params: any[]) => {
       let frame = top()
@@ -29,11 +42,11 @@ export let withAbort = (
       let abort: AbortAtom
 
       if (!prevAbort /* init */) {
-        abort = abortVar.set(`${target.name}._abort`)
+        abort = wrapTopAbort(abortVar.set(`${target.name}._abort`))
 
         state = next(...params)
       } else {
-        abort = abortVar.set(`${target.name}._abort`)
+        abort = wrapTopAbort(abortVar.set(`${target.name}._abort`))
 
         state = next(...params)
 
@@ -43,7 +56,7 @@ export let withAbort = (
           return state
         }
 
-        prevAbort(toAbortError(`${target.name} concurrent`))
+        prevAbort.set(toAbortError(`${target.name} concurrent`))
       }
 
       let maybePromise = target.__reatom.reactive
@@ -79,9 +92,9 @@ export let withAbort = (
 
     return {
       abort(reason?: any) {
-        let frame = context().state.store.get(target)
+        let frame = top().root.store.get(target)
         if (frame) {
-          abortVar.find((maybeAbort) => maybeAbort ?? null, frame)?.(reason)
+          abortVar.find((maybeAbort) => maybeAbort ?? null, frame)?.set(reason)
         }
       },
     }

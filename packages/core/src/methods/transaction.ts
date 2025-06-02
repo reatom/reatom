@@ -1,18 +1,12 @@
-import {
-  Action,
-  action,
-  ActionState,
-  AtomLike,
-  bind,
-  GenericExt,
-  isAction,
-  top,
-} from '../core'
-import { Variable, variable } from './variable'
-import { Fn, isAbort } from '../utils'
-import { AsyncExt } from '../async'
+import type { AsyncExt } from '../async'
+import type { Action, ActionState, AtomLike, GenericExt } from '../core'
+import { action, bind, isAction, top } from '../core'
 import { withCallHook } from '../mixins'
+import type { Fn } from '../utils'
+import { isAbort } from '../utils'
 import { isCausedBy } from './isCausedBy'
+import type { Variable } from './variable'
+import { variable } from './variable'
 
 type Rollbacks = Array<Fn>
 

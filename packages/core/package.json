@@ -1,10 +1,9 @@
 {
   "name": "@reatom/core",
-  "version": "1000.0.0-alpha.22",
+  "version": "1000.0.0-alpha.26",
   "publishConfig": {
     "tag": "alpha"
   },
-  "private": false,
   "description": "The ultimate state manager",
   "exports": {
     "types": "./build/index.d.ts",
@@ -19,8 +18,8 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run test && npm run test:browser && npm run build && npm run build:docs:reference",
-    "build": "yoctobundle",
+    "prepublishOnly": "tsc -p ./tsconfig.bundle.json && eslint src --fix && prettier src -w && npm run build && npm run build:docs:reference",
+    "build": "npm run test && npm run test:browser && yoctobundle",
     "test": "vitest run",
     "test:browser": "vitest run --config=vitest.browser.config.ts",
     "test:watch": "vitest",

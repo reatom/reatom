@@ -1,9 +1,10 @@
 import { expect, test, vi } from 'test'
+
 import { _read, action, atom, computed } from '../core'
-import { withCallHook } from '../mixins'
 import { wrap } from '../methods'
-import { withAsync } from './withAsync'
+import { withCallHook } from '../mixins'
 import { noop, sleep } from '../utils'
+import { withAsync } from './withAsync'
 
 test('withAsync for action', async () => {
   const name = 'actionAsync'

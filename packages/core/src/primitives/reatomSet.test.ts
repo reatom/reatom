@@ -1,4 +1,5 @@
-import { test, expect, describe } from 'test'
+import { describe, expect, test } from 'test'
+
 import { reatomSet } from './reatomSet'
 
 describe('reatomSet', () => {
@@ -7,9 +8,7 @@ describe('reatomSet', () => {
   })
 
   test(`add`, () => {
-    expect(reatomSet(new Set([1, 2, 3])).add(4)).toEqual(
-      new Set([1, 2, 3, 4]),
-    )
+    expect(reatomSet(new Set([1, 2, 3])).add(4)).toEqual(new Set([1, 2, 3, 4]))
   })
 
   test(`delete`, () => {
@@ -101,7 +100,16 @@ describe('reatomSet', () => {
     const a = reatomSet(new Set([1, 2, 3]))
     expect(a.size()).toBe(3)
 
-    const b = reatomSet()
+    const b = reatomSet<number>()
     expect(b.size()).toBe(0)
+
+    b.set([1, 2])
+    expect(b.size()).toBe(2)
+
+    b.set((prev) => {
+      expect(prev).toEqual(new Set([1, 2]))
+      return new Set([1, 2, 3])
+    })
+    expect(b.size()).toBe(3)
   })
 })

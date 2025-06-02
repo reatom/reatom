@@ -77,7 +77,7 @@ export let isSuspense = (thing: unknown) =>
   thing instanceof Promise ||
   (thing instanceof Error && thing.message.startsWith('Suspense Exception'))
 
-export let reatomComponent = <Props extends Rec>(
+export let reatomComponent = <Props extends Rec = {}>(
   Component: (props: Props) => React.ReactNode,
   name?: string,
 ): ((props: Props) => React.ReactNode) => {
@@ -122,7 +122,7 @@ export let reatomComponent = <Props extends Rec>(
   }[name]!
 }
 
-export let reatomFactoryComponent = <Props extends Rec>(
+export let reatomFactoryComponent = <Props extends Rec = {}>(
   init: (initProps: Props) => (props: Props) => React.ReactNode,
   name?: string,
 ): ((props: Props) => React.ReactNode) =>

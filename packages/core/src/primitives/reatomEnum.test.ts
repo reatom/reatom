@@ -1,4 +1,5 @@
-import { describe, test, expect } from 'test'
+import { describe, expect, test } from 'test'
+
 import { reatomEnum } from './reatomEnum'
 
 describe('reatomEnum', () => {
@@ -35,7 +36,7 @@ describe('reatomEnum', () => {
     const enumAtom = reatomEnum(['a', 'b'], { initState: 'b' })
 
     expect(enumAtom()).toBe('b')
-    enumAtom(() => 'a')
+    enumAtom.set('a')
     expect(enumAtom()).toBe('a')
 
     enumAtom.reset()

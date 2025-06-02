@@ -1,12 +1,13 @@
 import { expect, test } from 'test'
-import { atom, computed, notify } from './core'
-import { getStackTrace } from './connectLogger'
+
 import { sleep, wrap } from '.'
+import { getStackTrace } from './connectLogger'
+import { atom, computed, notify } from './core'
 
 test('calc deps graph', async () => {
   // Create atoms for a counter feature
   const counter = atom(0, 'counter').actions((target) => ({
-    inc: () => target((s) => s + 1),
+    inc: () => target.set((s) => s + 1),
   }))
   const doubled = computed(() => counter() * 2, 'doubled')
   const isEven = computed(() => counter() % 2 === 0, 'isEven')
@@ -54,7 +55,7 @@ test('BFS log simplification', () => {
     stack = getStackTrace()
   })
 
-  a(1)
+  a.set(1)
   notify()
 
   expect(stack).toBe(

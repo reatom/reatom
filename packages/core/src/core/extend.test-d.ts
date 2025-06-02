@@ -1,22 +1,14 @@
-import {
-  Atom,
-  atom,
-  AtomLike,
-  Action,
-  isAction,
-  AssignerExt,
-  withParams,
-  action,
-} from './'
-import { withChangeHook } from '../mixins'
-
 import { expect, expectTypeOf, test } from 'test'
 
+import { withChangeHook } from '../mixins'
+import type { Action, AssignerExt, Atom, AtomLike } from './'
+import { action, atom, isAction, withParams } from './'
+
 // Simple extension for testing
-const withProp = <const P extends string, V>(
-  prop: P,
-  value: V,
-): AssignerExt<Record<P, V>> => () => ({ [prop]: value } as Record<P, V>)
+const withProp =
+  <const P extends string, V>(prop: P, value: V): AssignerExt<Record<P, V>> =>
+  () =>
+    ({ [prop]: value }) as Record<P, V>
 
 test('1 assigner extension', () => {
   const name = '1ext'
@@ -88,7 +80,7 @@ test('max overloads', () => {
 test('bind assigned functions', () => {
   const name = 'bindFunctions'
   const number = atom(0, `${name}.number`).actions((target) => ({
-    inc: (to = 1) => target(target() + to),
+    inc: (to = 1) => target.set(target() + to),
   }))
 
   expectTypeOf(number.inc).toExtend<Action<[number?], number>>()
@@ -108,15 +100,13 @@ test('input payload change atom', () => {
   )
 
   expect(a()).toBe('')
-  expect(a(3)).toBe('3')
+  expect(a.set(3)).toBe('3')
   // @ts-expect-error
   ;() => a('3')
 
   expectTypeOf(a).not.toExtend<Atom<string>>()
   expectTypeOf(a).toExtend<AtomLike<string, [] | [number]>>()
-  expectTypeOf(a).not.toExtend<
-    AtomLike<string> & ((value?: number) => string)
-  >()
+  expectTypeOf(a).not.toExtend<Atom<string> & ((value?: number) => string)>()
 })
 
 test('input payload change action', () => {
@@ -157,9 +147,9 @@ test('middleware persists properties', () => {
   )
 
   expect(n()).toBe('')
-  expect(n(3)).toBe('3')
+  expect(n.set(3)).toBe('3')
   // @ts-expect-error
-  ;() => n('3')
+  ;() => n.set('3')
 
   expectTypeOf(n).toExtend<
     AtomLike<string, [] | [value: number]> & {

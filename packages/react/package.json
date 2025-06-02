@@ -1,6 +1,6 @@
 {
   "name": "@reatom/react",
-  "version": "1000.0.0-alpha.10",
+  "version": "1000.0.0-alpha.11",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -23,10 +23,8 @@
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
-  "dependencies": {
-    "@reatom/core": "alpha"
-  },
   "peerDependencies": {
+    "@reatom/core": "1000.0.0-alpha.26",
     "react": ">=18.2.0"
   },
   "author": "artalar",

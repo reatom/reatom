@@ -1,21 +1,19 @@
+import type { Action, Atom, AtomLike, Computed } from '../core'
 import {
   action,
-  Action,
-  Atom,
-  AtomLike,
+  bind,
   computed,
-  Computed,
+  computedParams,
+  context,
   createAtom,
   ReatomError,
-  context,
+  STACK,
   top,
   withMiddleware,
-  bind,
-  computedParams,
-  STACK,
 } from '../core'
 import { ifCalled, ifChanged } from '../methods'
-import { assert, Fn, isAbort } from '../utils'
+import type { Fn } from '../utils'
+import { assert, isAbort } from '../utils'
 
 /**
  * Extension interface added by {@link withAsync} to atoms or actions that return promises.
@@ -151,17 +149,17 @@ export let withAsync: {
     } = options ?? {}
 
     let onFulfill: AsyncExt['onFulfill'] = action((payload, params) => {
-      if (resetError === 'onFulfill') error(emptyError)
+      if (resetError === 'onFulfill') error.set(emptyError)
       return onSettle({ payload, params }) as any // TODO
     }, `${target.name}.onFulfill`)
     let onReject: AsyncExt['onReject'] = action((err, params) => {
       if (!isAbort(err)) {
-        error((err = parseError(err)))
+        error.set((err = parseError(err)))
       }
       return onSettle({ error: err, params }) as any // TODO
     }, `${target.name}.onReject`)
     let onSettle: AsyncExt['onSettle'] = action((call) => {
-      pending((state) => state - 1)
+      pending.set((state) => state - 1)
       return call
     }, `${target.name}._onSettle`)
 
@@ -229,7 +227,7 @@ export let withAsync: {
 
       pending()
 
-      if (resetError === 'onCall') error(emptyError)
+      if (resetError === 'onCall') error.set(emptyError)
 
       return state
     }
@@ -238,7 +236,7 @@ export let withAsync: {
       let computedIdx = target.__reatom.middlewares.indexOf(computedParams)
       if (computedIdx !== -1) {
         let asyncComputedParams = (next: Fn) => {
-          if (STACK[STACK.length - 2]!.atom === retry) {
+          if (STACK[STACK.length - 2]?.atom === retry) {
             top().pubs.splice(1)
           }
 

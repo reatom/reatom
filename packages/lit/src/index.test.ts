@@ -21,13 +21,13 @@ test('withReatomElement and watch', () =>
     const element = document.createElement('my-element') // as typeof MyElement
     document.body.appendChild(element)
 
-    // Wait for the element to render
+    // @ts-ignore
     await wrap(element.updateComplete)
 
     expect(element.shadowRoot?.textContent).toContain('Atom value: initial')
 
-    // Update the atom and wait for the element to re-render
-    myAtom('updated')
+    myAtom.set('updated')
+    // @ts-ignore
     await wrap(element.updateComplete)
 
     expect(element.shadowRoot?.textContent).toContain('Atom value: updated')

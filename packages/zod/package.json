@@ -1,16 +1,22 @@
 {
   "name": "@reatom/zod",
-  "version": "1000.0.0-alpha.0",
+  "version": "1000.0.0-alpha.6",
   "publishConfig": {
     "tag": "alpha"
   },
-  "private": true,
   "sideEffects": false,
   "description": "Reatom for zod",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    ".": {
+      "types": "./build/index.d.ts",
+      "require": "./build/index.js",
+      "default": "./build/index.mjs"
+    },
+    "./v4": {
+      "types": "./build/v4.d.ts",
+      "require": "./build/v4.js",
+      "default": "./build/v4.mjs"
+    }
   },
   "main": "build/index.js",
   "module": "build/index.module.js",
@@ -19,20 +25,24 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
-    "build": "yoctobundle",
+    "prepublishOnly": "eslint src --fix && prettier src -w && npm run build",
+    "build": "npm run test && yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": ">=3.8.0",
-    "zod": "^3.23.4"
+    "@reatom/core": "1000.0.0-alpha.25",
+    "zod": "^3.25.0"
   },
   "author": "artalar",
   "maintainers": [
     {
       "name": "artalar",
       "url": "https://github.com/artalar"
+    },
+    {
+      "name": "Xelson",
+      "url": "https://github.com/xelson"
     }
   ],
   "license": "MIT",

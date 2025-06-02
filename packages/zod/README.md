@@ -24,8 +24,8 @@ export const User = z.object({
 
 const KEY = 'user-data'
 export const model = reatomZod(User, {
-  sync(ctx) {
-    localStorage.setItem(KEY, JSON.stringify(parseAtoms(ctx, model)))
+  sync() {
+    localStorage.setItem(KEY, JSON.stringify(parseAtoms(model)))
   },
   initState: JSON.parse(localStorage.getItem(KEY) || '{}'),
 })

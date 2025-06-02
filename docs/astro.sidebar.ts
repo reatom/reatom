@@ -31,6 +31,7 @@ export const sidebar = [
       'handbook/lifecycle',
       'handbook/async-context',
       'handbook/sampling',
+      'handbook/forms',
     ],
   }),
 

@@ -1,5 +1,6 @@
-import { Action, AtomLike, ReatomError, action } from './'
 import type { Fn, Rec } from '../utils'
+import type { Action, AtomLike } from './'
+import { action, ReatomError } from './'
 
 /**
  * Type representing a set of methods converted to Reatom actions.

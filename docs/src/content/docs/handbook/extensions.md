@@ -50,14 +50,14 @@ export const withReset =
     // Return the object to assign
     ({
       reset: action(
-        () => target(initialValue), // Action logic uses target and initialValue
+        () => target.set(initialValue), // Action logic uses target and initialValue
         `${target.name}.reset`, // Auto-naming based on target
       ),
     })
 
 // Usage:
 const counter = atom(0, 'counter').extend(withReset(0))
-counter(10)
+counter.set(10)
 counter.reset() // Works! State is 0.
 ```
 
@@ -106,7 +106,7 @@ const withLogger = (): GenericExt =>
 
 // Usage:
 const message = atom('', 'message').extend(withLogger())
-message('Hello') // Logs call and new state
+message.set('Hello') // Logs call and new state
 
 const greet = action((name: string) => `Hi, ${name}!`, 'greet').extend(
   withLogger(),

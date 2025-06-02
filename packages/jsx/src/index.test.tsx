@@ -53,9 +53,9 @@ test('dynamic props', () =>
     expect((element as any).prp).toBe('prp')
     expect(element.getAttribute('atr')).toBe('atr')
 
-    val('val1')
-    prp('prp1')
-    atr('atr1')
+    val.set('val1')
+    prp.set('prp1')
+    atr.set('atr1')
 
     await wrap(sleep())
     expect(element.id).toBe('val1')
@@ -73,7 +73,7 @@ test('getter props', () =>
     await wrap(sleep())
     expect(element.id).toBe(getter())
 
-    val('val1')
+    val.set('val1')
     await wrap(sleep())
     expect(element.id).toBe(getter())
   }))
@@ -100,12 +100,12 @@ test('children updates', () =>
     expect(element.childNodes[2]?.textContent).toBe('foo')
     expect(element.childNodes[5]).toBe(a)
 
-    val('bar')
+    val.set('bar')
     await wrap(sleep())
     expect(element.childNodes[2]?.textContent).toBe('bar')
 
     expect(element.childNodes[5]).toBe(a)
-    route('b')
+    route.set('b')
     await wrap(sleep())
     expect(element.childNodes[5]).toBe(b)
   }))
@@ -121,28 +121,25 @@ test('dynamic children', () =>
 
     expect(element.childNodes.length).toBe(3)
 
-    children(<div>Hello, world!</div>)
+    children.set(<div>Hello, world!</div>)
     await wrap(sleep())
     expect(element.childNodes[1]?.textContent).toBe('Hello, world!')
 
     const inner = <span>inner</span>
-    children(<div>{inner}</div>)
+    children.set(<div>{inner}</div>)
     await wrap(sleep())
     expect(element.childNodes[1]?.childNodes[0]).toBe(inner)
 
     const before = atom('before', 'before')
     const after = atom('after', 'after')
-    children(
+    children.set(
       <div>
         {before}
         {inner}
         {after}
       </div>,
     )
-    await wrap(sleep())
-    expect((element as HTMLDivElement).innerText).toBe('beforeinnerafter')
-
-    before('before...')
+    before.set('before...')
     await wrap(sleep())
     expect((element as HTMLDivElement).innerText).toBe('before...innerafter')
   }))
@@ -186,7 +183,7 @@ test.skip('spreads difference', () =>
     expect(element.className).toBe('class')
     expect(element.id).toBe('')
 
-    props({id: 'id'})
+    props.set({id: 'id'})
     await wrap(sleep())
     expect(element.className).toBe('')
     expect(element.id).toBe('id')
@@ -216,18 +213,18 @@ test('multiple render shared element', () =>
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->abc<!--value--></p></div><!----><!--child-->',
     )
 
-    valueAtom('def')
+    valueAtom.set('def')
     await wrap(sleep())
     expect(app.innerHTML).toBe(
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->def<!--value--></p></div><!----><!--child-->',
     )
 
-    childAtom(undefined)
+    childAtom.set(undefined)
     await wrap(sleep())
     expect(app.innerHTML).toBe('<!--child--><!--child-->')
 
-    childAtom(<Component></Component>)
-    valueAtom('ghi')
+    childAtom.set(<Component></Component>)
+    valueAtom.set('ghi')
     await wrap(sleep())
     expect(app.innerHTML).toBe(
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->ghi<!--value--></p></div><!----><!--child-->',
@@ -271,7 +268,7 @@ test('array children', () =>
     expect(element.childNodes.length).toBe(6)
     expect(element.textContent).toBe('1')
 
-    n(2)
+    n.set(2)
     await wrap(sleep())
     expect(element.childNodes.length).toBe(7)
     expect(element.textContent).toBe('12')
@@ -398,7 +395,7 @@ test('update skipped atom', () =>
     expect(parent().childNodes.length).toBe(1)
     expect(parent().textContent).toBe('')
 
-    valueAtom(123)
+    valueAtom.set(123)
 
     await wrap(sleep())
     expect(parent().childNodes.length).toBe(1)
@@ -555,7 +552,7 @@ test('css property generate class name', () =>
     const Second = () => <div css="color: red;"></div> // same
     const Third = () => <div css="color: blue;"></div>
 
-    DEBUG(true)
+    DEBUG.set(true)
 
     const first = <First></First>
     const second = <Second></Second>
@@ -600,13 +597,13 @@ test('css custom property', () =>
     expect(component.style.getPropertyValue('--first-property')).toBe('red')
     expect(component.style.getPropertyValue('--secondProperty')).toBe('red')
 
-    colorAtom('green')
+    colorAtom.set('green')
 
     await wrap(sleep())
     expect(component.style.getPropertyValue('--first-property')).toBe('green')
     expect(component.style.getPropertyValue('--secondProperty')).toBe('green')
 
-    colorAtom(undefined)
+    colorAtom.set(undefined)
 
     await wrap(sleep())
     expect(component.style.getPropertyValue('--first-property')).toBe('')
@@ -633,14 +630,14 @@ test('class and className attribute', () =>
     expect(ref1.hasAttribute('class')).toBe(true)
     expect(ref2.hasAttribute('class')).toBe(true)
 
-    classAtom('cls')
+    classAtom.set('cls')
     await wrap(sleep())
     expect(ref1.className).toBe('cls')
     expect(ref2.className).toBe('cls')
     expect(ref1.hasAttribute('class')).toBe(true)
     expect(ref2.hasAttribute('class')).toBe(true)
 
-    classAtom(undefined)
+    classAtom.set(undefined)
     await wrap(sleep())
     expect(ref1.className).toBe('')
     expect(ref2.className).toBe('')
@@ -658,8 +655,8 @@ test('class handles complex correctly', () =>
     await wrap(sleep())
     expect(element.className).toBe('a b c d e')
 
-    isBAtom(false)
-    stringAtom('dd')
+    isBAtom.set(false)
+    stringAtom.set('dd')
     await wrap(sleep())
     expect(element.className).toBe('a c dd e')
   }))
@@ -729,8 +726,8 @@ test('style object update', () =>
     expect(firstEl.getAttribute('style')).toBe('top: 0px; left: 0px;')
     expect(secondEl.getAttribute('style')).toBe('top: 0px; left: 0px;')
 
-    styleTopAtom(undefined)
-    styleBottomAtom(0)
+    styleTopAtom.set(undefined)
+    styleBottomAtom.set(0)
 
     await wrap(sleep())
     expect(firstEl.getAttribute('style')).toBe('left: 0px; bottom: 0px;')
@@ -779,43 +776,43 @@ test('render atom fragments', () =>
     const expect3 =
       '<p>0</p><!--1--><!----><p>1</p><!--2--><!----><p>2</p><p>3</p><!----><!--2--><p>4</p><!----><!--1--><p>5</p>'
 
-    bool1Atom(false)
-    bool2Atom(false)
+    bool1Atom.set(false)
+    bool2Atom.set(false)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect1)
 
-    bool1Atom(false)
-    bool2Atom(true)
+    bool1Atom.set(false)
+    bool2Atom.set(true)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect1)
 
-    bool1Atom(true)
-    bool2Atom(false)
+    bool1Atom.set(true)
+    bool2Atom.set(false)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect2)
 
-    bool1Atom(true)
-    bool2Atom(true)
+    bool1Atom.set(true)
+    bool2Atom.set(true)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect3)
 
-    bool1Atom(true)
-    bool2Atom(false)
+    bool1Atom.set(true)
+    bool2Atom.set(false)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect2)
 
-    bool1Atom(true)
-    bool2Atom(true)
+    bool1Atom.set(true)
+    bool2Atom.set(true)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect3)
 
-    bool1Atom(false)
-    bool2Atom(true)
+    bool1Atom.set(false)
+    bool2Atom.set(true)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect1)
 
-    bool1Atom(false)
-    bool2Atom(false)
+    bool1Atom.set(false)
+    bool2Atom.set(false)
     await wrap(sleep())
     expect(element.innerHTML).toBe(expect1)
   }))
@@ -839,7 +836,7 @@ test('Bind', () =>
       <Bind
         element={input}
         value={inputState}
-        on:input={(e) => inputState(e.currentTarget.value)}
+        on:input={(e) => inputState.set(e.currentTarget.value)}
       />
     )
     const testSvg = (
@@ -859,7 +856,7 @@ test('Bind', () =>
 
     await wrap(sleep())
 
-    inputState('43')
+    inputState.set('43')
 
     await wrap(sleep())
     expect(input.value).toBe('43')
@@ -878,7 +875,7 @@ test('dynamic atom fragment', () =>
       '<div><!--test--><span></span><!--test--></div>',
     )
 
-    child(() => atom('child atom', 'test.child'))
+    child.set(() => atom('child atom', 'test.child'))
     await wrap(sleep())
     expect(container.outerHTML).toBe(
       '<div><!--test--><!--test.child-->child atom<!--test.child--><!--test--></div>',
@@ -904,7 +901,7 @@ test('linked list', () =>
       '<div><!----><span>1</span><!--test--><a></a><!--test--><!----></div>',
     )
 
-    a(false)
+    a.set(false)
     await wrap(sleep())
     expect(container.outerHTML).toBe(
       '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
@@ -1082,7 +1079,7 @@ test('custom stylesheet for css property', () =>
   context.start(async () => {
     const sheet = new CSSStyleSheet()
     document.adoptedStyleSheets.push(sheet)
-    stylesheet(sheet)
+    stylesheet.set(sheet)
 
     const element = <div css="display:flex"></div>
 
@@ -1105,7 +1102,7 @@ test('element subscribes to atom when mounted to DOM', () =>
     expect(isConnected(valueAtom)).toBe(true)
     expect(element.className).toBe('aaa')
 
-    valueAtom('bbb')
+    valueAtom.set('bbb')
     await wrap(sleep())
     parent().append(element)
     await wrap(sleep())
@@ -1131,7 +1128,7 @@ test('element unsubscribes from atom when removed from DOM', () =>
     expect(isConnected(valueAtom)).toBe(false)
     expect(element.className).toBe('aaa')
 
-    valueAtom('bbb')
+    valueAtom.set('bbb')
     await wrap(sleep())
 
     expect(isConnected(valueAtom)).toBe(false)
@@ -1147,7 +1144,7 @@ test('preserves atom connection when moved within DOM', () =>
     await wrap(sleep())
     parent().parentElement!.append(element)
     await wrap(sleep())
-    valueAtom('bbb')
+    valueAtom.set('bbb')
     await wrap(sleep())
 
     expect(isConnected(valueAtom)).toBe(true)

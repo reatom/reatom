@@ -1,7 +1,9 @@
-import { _read, atom, computed, type Frame, _enqueue, bind } from './core'
+import { _enqueue, atom, bind, computed, type Frame } from './core'
+import type { AbortAtom } from './methods'
+import { abortVar, peek, variable, wrap } from './methods'
 import { _getPrevFrame } from './methods/context'
-import { AbortAtom, abortVar, peek, variable, wrap } from './methods'
-import { toAbortError, Unsubscribe } from './utils'
+import type { Unsubscribe } from './utils'
+import { toAbortError } from './utils'
 
 /**
  * Interface representing an abstract renderer for connecting Reatom with other reactive systems.
@@ -97,7 +99,7 @@ export let reatomAbstractRender = <Props, Result>({
         abortAtom = abortVar.set(abortAtom ?? `${name}._abort`)
         // Related to react remounts of `StrictMode` and `Activity`.
         if (peek(abortAtom) !== null) {
-          abortAtom(null)
+          abortAtom.set(null)
         }
 
         return { result: adapterRender(props) }
@@ -121,7 +123,7 @@ export let reatomAbstractRender = <Props, Result>({
     let render = bind((props: Props) => {
       try {
         rendering = true
-        _props({ ...props })
+        _props.set({ ...props })
         return _render()
       } finally {
         rendering = false
@@ -144,7 +146,7 @@ export let reatomAbstractRender = <Props, Result>({
 
       return wrap(() => {
         unsubscribe()
-        abortAtom(toAbortError('unmount ' + name))
+        abortAtom.set(toAbortError('unmount ' + name))
       })
     }, frame)
 

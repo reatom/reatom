@@ -1,6 +1,7 @@
-import { action } from './'
 import { expectTypeOf, test } from 'test'
-import { OverloadParameters } from '../utils'
+
+import type { OverloadParameters } from '../utils'
+import { action } from './'
 
 test('one generic action', () => {
   const a = action(<T extends string | number>(value: T): T => value)

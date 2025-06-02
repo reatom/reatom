@@ -1,20 +1,12 @@
-import {
-  type Atom,
-  type Action,
-  atom,
-  action,
-  ReatomError,
-  named,
-  isAtom,
-  computed,
-} from '../core'
-
-import { isObject, Fn, Rec } from '../utils'
+import type { Action, Atom, Computed } from '../core'
+import { action, atom, computed, isAtom, named, ReatomError } from '../core'
+import type { Fn, Rec } from '../utils'
+import { isObject } from '../utils'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
-export const LL_PREV = /* @__PURE__ */Symbol('Reatom linked list prev')
-export const LL_NEXT = /* @__PURE__ */Symbol('Reatom linked list next')
+export const LL_PREV = /* @__PURE__ */ Symbol('Reatom linked list prev')
+export const LL_NEXT = /* @__PURE__ */ Symbol('Reatom linked list next')
 
 /** Linked List is reusing the model reference to simplify the reference sharing and using it as a key of LL methods.
  * Btw, symbols works fine with serialization and will not add a garbage to an output.
@@ -41,9 +33,9 @@ export interface LinkedList<Node extends LLNode = LLNode> {
 
 export interface LinkedListLikeAtom<T extends LinkedList = LinkedList>
   extends Atom<T> {
-  __reatomLinkedList: true
+  array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
 
-  array: Atom<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
+  __reatomLinkedList: true
 }
 
 export interface LinkedListAtom<
@@ -108,7 +100,11 @@ export interface LinkedListDerivedState<Node extends LLNode, T extends LLNode>
 }
 
 export interface LinkedListDerivedAtom<Node extends LLNode, T extends LLNode>
-  extends LinkedListLikeAtom<LinkedListDerivedState<Node, T>> {}
+  extends Computed<LinkedListDerivedState<Node, T>> {
+  array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
+
+  __reatomLinkedList: true
+}
 
 const addLL = <Node extends LLNode>(
   state: LinkedList<Node>,
@@ -236,7 +232,7 @@ const toArray = <T extends Rec>(
   head: null | LLNode<T>,
   prev?: Array<LLNode<T>>,
 ): Array<LLNode<T>> => {
-  let arr: Array<LLNode<T>> = []
+  const arr: Array<LLNode<T>> = []
   let i = 0
   while (head) {
     if (prev !== undefined && prev[i] !== head) prev = undefined
@@ -407,7 +403,7 @@ export function reatomLinkedList<
   const batchFn = <T>(cb: Fn): T => {
     if (STATE) return cb()
 
-    STATE = linkedList(({ head, tail, size, version }) => ({
+    STATE = linkedList.set(({ head, tail, size, version }) => ({
       size,
       version: version + 1,
       changes: [],
@@ -417,8 +413,6 @@ export function reatomLinkedList<
 
     try {
       return cb()
-    } catch (e) {
-      throw e
     } finally {
       STATE = null
     }
@@ -642,6 +636,7 @@ export function reatomLinkedList<
       return mapList
     }, name)
 
+    // @ts-ignore
     const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] =
       computed(
         (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),

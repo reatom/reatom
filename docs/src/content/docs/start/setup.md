@@ -49,13 +49,13 @@ const counter = atom(0, 'counter');
 console.log(counter()); // Output: 0
 
 // 3. Update the atom's state
-// Call the atom as a function with the new value.
-counter(1);
+// Use the .set method to update the atom's state.
+counter.set(1);
 console.log(counter()); // Output: 1
 
 // You can also update using an updater function.
 // This function receives the previous state and returns the new state.
-counter((prevValue) => prevValue + 5);
+counter.set((prevValue) => prevValue + 5);
 console.log(counter()); // Output: 6
 ```
 
@@ -79,9 +79,9 @@ const NameEditor = reatomComponent(() => {
   // Inside the component, you can read atom values by calling them as functions.
   const currentName = nameAtom();
 
-  // Event handlers can update atoms directly.
+  // Event handlers can update atoms using the .set method too.
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    nameAtom(event.target.value);
+    nameAtom.set(event.target.value);
   };
 
   return (

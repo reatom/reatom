@@ -45,7 +45,6 @@ A function that creates a [Vue App plugin](https://vuejs.org/guide/reusability/p
 import { context } from '@reatom/core'
 import { createReatomVue } from '@reatom/npm-vue'
 
-const ctx = createReatomVue()
 app.use(createReatomVue(context.start()))
 ```
 

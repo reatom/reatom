@@ -1,5 +1,6 @@
-import { clearStack, context, notify } from '../core'
 import { expect, test } from 'test'
+
+import { clearStack, context, notify } from '../core'
 import { schedule } from './schedule'
 
 test('no extra tick by schedule', async () => {

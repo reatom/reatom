@@ -1,4 +1,4 @@
-import { printLogs, formatLog, POSITION_KEY } from './bench_utils'
+import { formatLog, POSITION_KEY, printLogs } from './bench_utils'
 
 async function testAggregateGrowing(
   count: number,
@@ -8,7 +8,7 @@ async function testAggregateGrowing(
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./build/index.mjs')
+  const Reatom = await import('./dist/index.mjs')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
@@ -174,7 +174,7 @@ async function testAggregateShrinking(
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./build/index.mjs')
+  const Reatom = await import('./dist/index.mjs')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
@@ -337,7 +337,7 @@ async function testParent(count: number, batchSize: number = 1) {
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./build/index.mjs')
+  const Reatom = await import('./dist/index.mjs')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
@@ -495,7 +495,7 @@ async function testAggregateShuffle(count: number, batchSize: number = 1) {
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./build/index.mjs')
+  const Reatom = await import('./dist/index.mjs')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
@@ -677,7 +677,7 @@ async function testAggregateMiddle(count: number, batchSize: number = 1) {
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
 
-  const Reatom = await import('./build/index.mjs')
+  const Reatom = await import('./dist/index.mjs')
 
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })

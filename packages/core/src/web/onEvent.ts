@@ -1,5 +1,5 @@
 import { abortVar, wrap } from '../methods'
-import { Fn, Unsubscribe } from '../utils'
+import type { Fn, Unsubscribe } from '../utils'
 
 export type EventOfTarget<Target extends EventTarget, Type extends string> =
   Target extends Record<`on${Type}`, infer Cb>

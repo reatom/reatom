@@ -1,8 +1,11 @@
-import { Atom, AtomLike, createAtom } from '../core'
+import type { Atom, AtomLike } from '../core'
+import { createAtom } from '../core'
 import { ifCalled } from '../methods'
-import { AbortExt, withAbort, withCallHook } from '../mixins'
+import type { AbortExt } from '../mixins'
+import { withAbort, withCallHook } from '../mixins'
 import { identity, noop } from '../utils'
-import { AsyncExt, AsyncOptions, withAsync } from './withAsync'
+import type { AsyncExt, AsyncOptions } from './withAsync'
+import { withAsync } from './withAsync'
 
 /**
  * Extension interface added by {@link withAsyncData} to atoms or actions that return promises.
@@ -48,7 +51,7 @@ export interface AsyncDataOptions<
    * Initial value for the data atom
    */
   initState?: State
-  
+
   /**
    * Function to transform the successful payload into the data state
    * @param payload - The resolved value from the promise
@@ -221,7 +224,7 @@ export function withAsyncData(
       /**
        * Resets the data atom to its initial state
        */
-      reset: () => target(() => initState),
+      reset: () => target.set(() => initState),
     }))
 
     asyncTarget.onFulfill.extend(withCallHook(() => data()))

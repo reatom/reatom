@@ -1,9 +1,10 @@
-import { test, expect, vi } from 'test'
+import { expect, test, vi } from 'test'
+
 import { atom } from '../core'
-import { withConnectHook } from '../mixins'
-import { onEvent } from './'
 import { wrap } from '../methods'
+import { withConnectHook } from '../mixins'
 import { sleep } from '../utils'
+import { onEvent } from './'
 
 test('onEvent', async () => {
   const a = atom(null)

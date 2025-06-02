@@ -1,6 +1,7 @@
 import { expect, expectTypeOf, test, vi } from 'test'
+
 import { action, atom, computed, notify } from '../core'
-import { withChangeHook, withCallHook } from './withChangeHook'
+import { withCallHook, withChangeHook } from './withChangeHook'
 
 test('atomChange', () => {
   const name = 'atomChange'
@@ -18,16 +19,16 @@ test('atomChange', () => {
   a1()
   notify()
   expect(cb).toBeCalledTimes(0)
-  a1(1)
+  a1.set(1)
   notify()
   expect(cb).toBeCalledWith(1, 0)
-  a1(1)
+  a1.set(1)
   notify()
   expect(cb).toBeCalledTimes(1)
 
   cb.mockClear()
 
-  a2(1)
+  a2.set(1)
   notify()
   expect(cb).toBeCalledTimes(1)
   expect(cb).toBeCalledWith(1, 0)

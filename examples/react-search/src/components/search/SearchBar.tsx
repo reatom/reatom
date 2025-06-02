@@ -17,7 +17,7 @@ export const SearchBar = reatomComponent(() => {
           placeholder="Search GitHub issues..."
           leftSection={<IconSearch size={16} />}
           value={query}
-          onChange={wrap((e) => issueQuery(e.currentTarget.value))}
+          onChange={wrap((e) => issueQuery.set(e.currentTarget.value))}
           style={{ flex: 1 }}
         />
 
@@ -29,7 +29,7 @@ export const SearchBar = reatomComponent(() => {
             { value: 'comments', label: 'Comments' },
           ]}
           value={sort}
-          onChange={wrap((value) => issueSort(value as IssueSort))}
+          onChange={wrap((value) => issueSort.set(value as IssueSort))}
           clearable
         />
 
@@ -40,7 +40,7 @@ export const SearchBar = reatomComponent(() => {
             { value: 'asc', label: 'Ascending' },
           ]}
           value={direction}
-          onChange={wrap((value) => issueDirection(value as SortDirection))}
+          onChange={wrap((value) => issueDirection.set(value as SortDirection))}
         />
       </Group>
     </>

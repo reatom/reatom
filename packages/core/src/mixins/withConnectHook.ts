@@ -1,4 +1,4 @@
-import { AtomLike, Ext } from '../core'
+import type { AtomLike, Ext } from '../core'
 
 export let withLifecycleHook =
   <Target extends AtomLike>(
