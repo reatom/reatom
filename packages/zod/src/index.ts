@@ -185,9 +185,7 @@ export const EXTENSIONS = new Array<
   (anAtom: Atom, ext: z.ZodFirstPartyTypeKind) => Atom
 >()
 
-/**
- * Get default state based on Zod type definition
- */
+/** Get default state based on Zod type definition */
 export const getDefaultState = (
   def: any, // Use any for Zod internal definition object
   initState?: any,
@@ -367,20 +365,22 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       // TODO @artalar generate a better name, instead of using `named`
       theAtom = reatomLinkedList(
         {
-          create: (itemInitState) => ({ 
+          create: (itemInitState) => ({
             value: reatomZod(def.type, {
               sync,
               initState: itemInitState,
               name: named(name),
             }),
           }),
-          initState: (state as any[] | undefined)?.map((itemInitState: any) => ({
-            value: reatomZod(def.type, {
-              sync,
-              initState: itemInitState,
-              name: named(name),
-            })
-          }))
+          initState: (state as any[] | undefined)?.map(
+            (itemInitState: any) => ({
+              value: reatomZod(def.type, {
+                sync,
+                initState: itemInitState,
+                name: named(name),
+              }),
+            }),
+          ),
         },
         name,
       )
@@ -515,13 +515,13 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
   theAtom ??= atom(state, name)
 
   // TODO: with withParams for reatomLinkedList
-  if(def.typeName !== z.ZodFirstPartyTypeKind.ZodArray) {
+  if (def.typeName !== z.ZodFirstPartyTypeKind.ZodArray) {
     theAtom.extend(
       withParams((payload) => {
         return typeof payload === 'function'
           ? (state: any) => parse(payload(state))
           : parse(payload)
-      })
+      }),
     )
   }
 

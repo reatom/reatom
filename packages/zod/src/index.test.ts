@@ -1,4 +1,10 @@
-import { type Atom, isAtom, notify, type deatomize, deatomize } from '@reatom/core'
+import {
+  type Atom,
+  type deatomize,
+  deatomize,
+  isAtom,
+  notify,
+} from '@reatom/core'
 import { expect, expectTypeOf, test, vi } from 'vitest'
 import { z } from 'zod'
 
@@ -31,20 +37,19 @@ test('base API', async () => {
 test('array', () => {
   const schema = z.object({
     primitives: z.array(z.string()),
-    objects: z.array(z.object({ name: z.string() }))
+    objects: z.array(z.object({ name: z.string() })),
   })
 
   const model = reatomZod(schema)
 
-  model.primitives.create('test');
-  expect(model.primitives.array().length).toBe(1);
-  expect(model.primitives.array()[0]!.value).toSatisfy(isAtom);
+  model.primitives.create('test')
+  expect(model.primitives.array().length).toBe(1)
+  expect(model.primitives.array()[0]!.value).toSatisfy(isAtom)
 
   model.objects.create({ name: 'kek' })
-  expect(model.objects.array().length).toBe(1);
-  expect(model.objects.array()[0]!.value.name).toSatisfy(isAtom);
+  expect(model.objects.array().length).toBe(1)
+  expect(model.objects.array()[0]!.value.name).toSatisfy(isAtom)
 })
-
 
 test('right values for effects', async () => {
   const schema = z.object({

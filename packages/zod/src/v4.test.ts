@@ -1,4 +1,10 @@
-import { type Atom, isAtom, notify, type deatomize, deatomize } from '@reatom/core'
+import {
+  type Atom,
+  type deatomize,
+  deatomize,
+  isAtom,
+  notify,
+} from '@reatom/core'
 import { expect, expectTypeOf, test, vi } from 'vitest'
 import { z } from 'zod/v4'
 
@@ -31,18 +37,18 @@ test('base API', async () => {
 test('array', () => {
   const schema = z.object({
     primitives: z.array(z.string()),
-    objects: z.array(z.object({ name: z.string() }))
+    objects: z.array(z.object({ name: z.string() })),
   })
 
   const model = reatomZod(schema)
 
-  model.primitives.create('test');
-  expect(model.primitives.array().length).toBe(1);
-  expect(model.primitives.array()[0]!.value).toSatisfy(isAtom);
+  model.primitives.create('test')
+  expect(model.primitives.array().length).toBe(1)
+  expect(model.primitives.array()[0]!.value).toSatisfy(isAtom)
 
   model.objects.create({ name: 'kek' })
-  expect(model.objects.array().length).toBe(1);
-  expect(model.objects.array()[0]!.value.name).toSatisfy(isAtom);
+  expect(model.objects.array().length).toBe(1)
+  expect(model.objects.array()[0]!.value.name).toSatisfy(isAtom)
 })
 
 test('right values for effects', async () => {
@@ -243,11 +249,19 @@ test('date set overload', () => {
 test('string template literal', () => {
   const schema = z.object({
     em: z.templateLiteral([z.number(), 'em']),
-    complex: z.templateLiteral([z.string(), '_1_', z.boolean(), '_2_', z.number(), '_3_', z.null()]),
-    test: z.bigint()
+    complex: z.templateLiteral([
+      z.string(),
+      '_1_',
+      z.boolean(),
+      '_2_',
+      z.number(),
+      '_3_',
+      z.null(),
+    ]),
+    test: z.bigint(),
   })
   const model = reatomZod(schema)
 
-  expect(model.em()).toBe('0em');
-  expect(model.complex()).toBe('_1_false_2_0_3_null');
+  expect(model.em()).toBe('0em')
+  expect(model.complex()).toBe('_1_false_2_0_3_null')
 })

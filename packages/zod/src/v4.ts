@@ -28,17 +28,17 @@ import {
 } from '@reatom/core'
 import { z } from 'zod/v4'
 
-export interface ZodAtom<_T> { }
+export interface ZodAtom<_T> {}
 
 export interface Atom<T = any, Params extends any[] = [newState: T]>
   extends ZodAtom<T>,
-  ReatomAtom<T, Params> { }
+    ReatomAtom<T, Params> {}
 
-export interface Computed<T = any> extends ZodAtom<T>, ReatomComputed<T> { }
+export interface Computed<T = any> extends ZodAtom<T>, ReatomComputed<T> {}
 
-export interface BooleanAtom extends ZodAtom<boolean>, ReatomBooleanAtom { }
+export interface BooleanAtom extends ZodAtom<boolean>, ReatomBooleanAtom {}
 
-export interface NumberAtom extends ZodAtom<number>, ReatomNumberAtom { }
+export interface NumberAtom extends ZodAtom<number>, ReatomNumberAtom {}
 
 type EnumAtom<
   T extends string,
@@ -47,19 +47,19 @@ type EnumAtom<
 
 export interface RecordAtom<T extends Rec>
   extends ZodAtom<T>,
-  ReatomRecordAtom<T> { }
+    ReatomRecordAtom<T> {}
 
 export interface MapAtom<Key, Element>
   extends ZodAtom<[Key, Element]>,
-  ReatomMapAtom<Key, Element> { }
+    ReatomMapAtom<Key, Element> {}
 
-export interface SetAtom<T> extends ZodAtom<[T]>, ReatomSetAtom<T> { }
+export interface SetAtom<T> extends ZodAtom<[T]>, ReatomSetAtom<T> {}
 
 export interface LinkedListAtom<
   Params extends any[] = any[],
   Model extends Rec = Rec,
 > extends ZodAtom<Array<Model>>,
-  ReatomLinkedListAtom<Params, Model> { }
+    ReatomLinkedListAtom<Params, Model> {}
 
 type DistributeIntersection<U, T> = U extends any ? U & T : never
 type OnlyStringKeys<T> = Exclude<T, number | symbol>
@@ -174,12 +174,12 @@ type BuiltIns = Primitive | Date | RegExp
 export type PartialDeep<T> = T extends BuiltIns
   ? T | undefined
   : T extends object
-  ? T extends ReadonlyArray<any>
-  ? T
-  : {
-    [K in keyof T]?: PartialDeep<T[K]>
-  }
-  : unknown
+    ? T extends ReadonlyArray<any>
+      ? T
+      : {
+          [K in keyof T]?: PartialDeep<T[K]>
+        }
+    : unknown
 
 export const silentUpdate = action((cb: Fn) => {
   cb()
@@ -189,9 +189,7 @@ export const EXTENSIONS = new Array<
   (anAtom: Atom, ext: z.core.$ZodTypeDef['type']) => Atom
 >()
 
-/**
- * Get default state based on Zod type definition
- */
+/** Get default state based on Zod type definition */
 export const getDefaultState = (
   def: z.ZodFirstPartySchemaTypes['_zod']['def'], // Use any for Zod internal definition object
   initState?: any,
@@ -233,9 +231,13 @@ export const getDefaultState = (
     case 'string':
       return ''
     case 'template_literal':
-      return def.parts.map(part => (
-        (part && typeof part === 'object' && '_zod' in part) ? String(getDefaultState(part._zod.def as typeof def)) : part
-      )).join('')
+      return def.parts
+        .map((part) =>
+          part && typeof part === 'object' && '_zod' in part
+            ? String(getDefaultState(part._zod.def as typeof def))
+            : part,
+        )
+        .join('')
     case 'number':
       return 0
     case 'boolean':
@@ -307,7 +309,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
   //     throw new ReatomError('Async schemas not supported yet');
   // }
 
-  parse ??= (input: unknown) => z.parse(schema, input);
+  parse ??= (input: unknown) => z.parse(schema, input)
 
   name ??= named(`reatomZod.${def.type}`)
 
@@ -329,7 +331,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
     case 'undefined':
     case 'null':
     case 'any':
-    case 'string': 
+    case 'string':
     case 'bigint':
     case 'file':
     case 'custom':
@@ -389,20 +391,22 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       // TODO @artalar generate a better name, instead of using `named`
       theAtom = reatomLinkedList(
         {
-          create: (itemInitState) => ({ 
+          create: (itemInitState) => ({
             value: reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
               sync,
               initState: itemInitState,
               name: named(name),
             }),
           }),
-          initState: (state as any[] | undefined)?.map((itemInitState: any) => ({
-            value: reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
-              sync,
-              initState: itemInitState,
-              name: named(name),
-            })
-          }))
+          initState: (state as any[] | undefined)?.map(
+            (itemInitState: any) => ({
+              value: reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
+                sync,
+                initState: itemInitState,
+                name: named(name),
+              }),
+            }),
+          ),
         },
         name,
       )
@@ -503,7 +507,12 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
         z.parse(def.innerType, state)
       } catch (error) {
         if (error instanceof z.ZodError)
-          state = def.catchValue({ issues: error.issues, value: state, error, input: state })
+          state = def.catchValue({
+            issues: error.issues,
+            value: state,
+            error,
+            input: state,
+          })
       }
 
       return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
@@ -549,13 +558,13 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
   theAtom ??= atom(state, name)
 
   // TODO: with withParams for reatomLinkedList
-  if(def.type !== 'array') {
+  if (def.type !== 'array') {
     theAtom.extend(
       withParams((payload) => {
         return typeof payload === 'function'
           ? (state: any) => parse(payload(state))
           : parse(payload)
-      })
+      }),
     )
   }
 
