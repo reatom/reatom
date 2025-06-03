@@ -1,0 +1,406 @@
+---
+title: Async Operations
+description: Handle async operations with predictable state management
+---
+
+Async operations are everywhere in modern applications - API calls, file uploads, data processing, and more. Reatom provides powerful extensions to handle async operations with automatic state tracking, error handling, and concurrency management.
+
+> **💡 Deep Dive**: For a comprehensive understanding of how Reatom's async context system works under the hood and why automatic cancellation is crucial, check out our [Async Context](/handbook/async-context) guide.
+
+## Overview
+
+Reatom offers two main approaches for async operations:
+
+| Use Case      | Extension       | Best For                                                 |
+| ------------- | --------------- | -------------------------------------------------------- |
+| **Mutations** | `withAsync`     | POST/PUT/DELETE requests, form submissions, side effects |
+| **Queries**   | `withAsyncData` | GET requests, data fetching, computed resources          |
+
+Both extensions provide automatic tracking of loading states, errors, and lifecycle hooks, with built-in support for request cancellation and race condition prevention through Reatom's async context system.
+
+## Basic Async Actions
+
+Use `withAsync` for operations that don't need to store the result data, such as form submissions or data mutations:
+
+```ts
+import { action, wrap } from '@reatom/core'
+import { withAsync } from '@reatom/core'
+
+const submitForm = action(async (formData: FormData) => {
+  const response = await wrap(
+    fetch('/api/submit', {
+      method: 'POST',
+      body: formData,
+    }),
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to submit: ${response.statusText}`)
+  }
+
+  return await wrap(response.json())
+}, 'submitForm').extend(withAsync())
+
+// Now you have access to:
+submitForm.ready() // → true when not loading
+submitForm.error() // → latest error or undefined
+submitForm.retry() // → retry with the same parameters
+```
+
+## Async Data Fetching
+
+Use `withAsyncData` when you need to store and access the fetched data. This extension includes all `withAsync` features plus data storage and automatic request cancellation. While it can be applied to actions, it's most powerful when used with `computed` atoms:
+
+```ts
+import { computed, atom, wrap } from '@reatom/core'
+import { withAsyncData } from '@reatom/core'
+
+const searchQuery = atom('', 'searchQuery')
+
+const searchResults = computed(async () => {
+  const query = searchQuery()
+  if (!query.trim()) return []
+
+  const response = await wrap(
+    fetch(`/api/search?q=${encodeURIComponent(query)}`),
+  )
+
+  if (!response.ok) {
+    throw new Error(`Search failed: ${response.statusText}`)
+  }
+
+  return await wrap(response.json())
+}, 'searchResults').extend(withAsyncData({ initState: [] }))
+
+// Access the data and states:
+searchResults.data() // → the search results array
+searchResults.ready() // → false while loading, true when complete
+searchResults.error() // → error if search failed
+```
+
+## Data Transformation
+
+Transform fetched data before storing it to match your application's data structure:
+
+```ts
+interface User {
+  id: string
+  name: string
+  email: string
+}
+
+interface UserListResponse {
+  users: User[]
+  total: number
+}
+
+const userList = computed(async () => {
+  const response = await wrap(fetch('/api/users'))
+  return (await wrap(response.json())) as UserListResponse
+}, 'userList').extend(
+  withAsyncData({
+    initState: [] as User[],
+    mapPayload: (response, params, currentUsers) => {
+      // Transform the API response into the format you need
+      return response.users
+    },
+  }),
+)
+
+// userList.data() now returns User[] instead of UserListResponse
+```
+
+## Debouncing
+
+When dealing with user input that triggers async operations (like search-as-you-type), you might want to debounce the requests to avoid overwhelming your API. Reatom offers elegant solutions for this common pattern.
+
+> **💡 Advanced Patterns**: For a deep dive into handling rapid user input and comparing traditional debounce patterns with Reatom's modern concurrency model, check out our [Sampling](/handbook/sampling) guide.
+
+Here's how you can add debouncing to our search example:
+
+```ts
+import { sleep } from '@reatom/utils'
+
+const searchResults = computed(async () => {
+  const query = searchQuery()
+  if (!query.trim()) return []
+
+  // Debounce: wait 300ms before making the request
+  // The wrap will throw abort error if user will trigger new search query during the delay
+  await wrap(sleep(300))
+
+  const response = await wrap(
+    fetch(`/api/search?q=${encodeURIComponent(query)}`),
+  )
+
+  if (!response.ok) {
+    throw new Error(`Search failed: ${response.statusText}`)
+  }
+
+  return await wrap(response.json())
+}, 'searchResults').extend(withAsyncData({ initState: [] }))
+```
+
+The beauty of this approach is that Reatom's automatic cancellation handles race conditions for you. When the user types quickly, outdated requests are cancelled automatically, ensuring only the latest search results are displayed.
+
+## Error Handling
+
+Customize error handling with parsing and reset strategies to create consistent error experiences:
+
+```ts
+const searchResults = computed(async () => {
+  const query = searchQuery()
+  if (!query.trim()) return []
+
+  await wrap(sleep(300)) // Debounce
+
+  const response = await wrap(
+    fetch(`/api/search?q=${encodeURIComponent(query)}`),
+  )
+  if (!response.ok) throw response
+  return await wrap(response.json())
+}, 'searchResults').extend(
+  withAsyncData({
+    initState: [],
+    // Transform errors into a consistent format
+    parseError: (error) => {
+      if (error instanceof Response) {
+        return new Error(`Search failed: HTTP ${error.status}`)
+      }
+      return error instanceof Error ? error : new Error(String(error))
+    },
+    // Reset errors when starting a new search
+    resetError: 'onCall',
+  }),
+)
+```
+
+## Advanced Patterns
+
+### Dependent Resources
+
+Chain async resources where one depends on another. Reatom automatically handles cancellation across the entire dependency chain:
+
+```ts
+const searchQuery = atom('', 'searchQuery')
+const selectedCategory = atom('all', 'selectedCategory')
+
+const searchResults = computed(async () => {
+  const query = searchQuery()
+  if (!query.trim()) return []
+
+  await wrap(sleep(300)) // Debounce
+
+  const response = await wrap(
+    fetch(`/api/search?q=${encodeURIComponent(query)}`),
+  )
+  return await wrap(response.json())
+}, 'searchResults').extend(withAsyncData({ initState: [] }))
+
+const filteredResults = computed(async () => {
+  // Wait for search results to load first
+  const results = await wrap(searchResults())
+  const category = selectedCategory()
+
+  if (category === 'all') return results
+
+  // Apply additional filtering based on category
+  const response = await wrap(
+    fetch(`/api/filter?category=${category}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: results }),
+    }),
+  )
+
+  return await wrap(response.json())
+}, 'filteredResults').extend(withAsyncData({ initState: [] }))
+```
+
+### Optimistic Updates
+
+Implement optimistic updates with automatic rollback on error:
+
+```ts
+const userList = atom([], 'userList')
+
+const updateUser = action(async (userId: string, updates: Partial<User>) => {
+  const response = await wrap(
+    fetch(`/api/users/${userId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    }),
+  )
+
+  if (!response.ok) throw new Error('Update failed')
+  return await wrap(response.json())
+}, 'updateUser').extend(withAsync())
+
+updateUser.subscribe(({ promise, params }) => {
+  const [userId, updates] = params
+  const currentList = userList()
+
+  // Optimistic update
+  const optimisticList = currentList.map((user) =>
+    user.id === userId ? { ...user, ...updates } : user,
+  )
+  userList.set(optimisticList)
+
+  // Rollback on error
+  promise.catch(() => {
+    userList.set(currentList)
+  })
+})
+```
+
+### Manual Abort Control
+
+`withAsyncData` includes automatic request cancellation through Reatom's async context system. For `withAsync`, you need to add `withAbort` explicitly:
+
+```ts
+import { withAbort, abortVar } from '@reatom/core'
+
+// withAsync alone doesn't include abort
+const basicTask = action(async (data: any) => {
+  const response = await wrap(
+    fetch('/api/process', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  )
+  return await wrap(response.json())
+}, 'basicTask').extend(withAsync())
+// basicTask.abort() // ❌ Not available
+
+// Add withAbort for manual cancellation control
+const abortableTask = action(async (data: any) => {
+  const controller = abortVar.getController()
+  const response = await wrap(
+    fetch('/api/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+      signal: controller?.signal, // Use the abort signal from abortVar
+    }),
+  )
+  return await wrap(response.json())
+}, 'abortableTask').extend(withAsync(), withAbort())
+
+// Now you can manually abort
+abortableTask.abort() // ✅ Available
+
+// withAsyncData includes withAbort automatically
+const dataResource = computed(async () => {
+  const response = await wrap(fetch('/api/data'))
+  return await wrap(response.json())
+}, 'dataResource').extend(withAsyncData())
+
+dataResource.abort() // ✅ Available automatically
+```
+
+### Lifecycle Hooks
+
+Both extensions provide hooks for handling different phases of async operations, enabling fine-grained control over your async workflows:
+
+```ts
+const api = action(async (data: any) => {
+  // Your async operation
+  return await wrap(
+    fetch('/api/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }),
+  )
+}, 'api').extend(withAsync())
+
+// Handle successful completion
+api.onFulfill.subscribe(({ payload, params }) => {
+  console.log('API call succeeded:', payload)
+  // payload: the resolved value
+  // params: the original parameters passed to the action
+})
+
+// Handle errors
+api.onReject.subscribe(({ error, params }) => {
+  console.error('API call failed:', error)
+  // error: the thrown error
+  // params: the original parameters passed to the action
+})
+
+// Handle completion (success or failure)
+api.onSettle.subscribe((result) => {
+  console.log('API call completed')
+  // result: either { payload, params } or { error, params }
+})
+```
+
+## Best Practices
+
+### 1. Choose the Right Extension
+
+```ts
+// ✅ Use withAsync for mutations that don't need to store data
+const saveUser = action(async (user) => {
+  await wrap(api.saveUser(user))
+}, 'saveUser').extend(withAsync())
+
+// ✅ Use withAsyncData for queries that need to store and access data
+const getUser = computed(async () => {
+  return await wrap(api.getUser())
+}, 'getUser').extend(withAsyncData())
+```
+
+### 2. Provide Meaningful Names
+
+```ts
+// ✅ Good: descriptive names help with debugging and developer experience
+const fetchUserProfile = computed(async () => {
+  return await wrap(api.getUserProfile())
+}, 'fetchUserProfile').extend(withAsyncData())
+
+// ❌ Avoid: generic names make debugging and maintenance harder
+const data = computed(async () => {
+  return await wrap(api.getUserProfile())
+}).extend(withAsyncData())
+```
+
+### 3. Always Handle Loading and Error States
+
+```tsx
+// ✅ Good: handle all possible states for better UX
+const Component = reatomComponent(() => {
+  if (!resource.ready()) return <Loading />
+  if (resource.error()) return <Error error={resource.error()} />
+  return <Data data={resource.data()} />
+})
+
+// ❌ Avoid: ignoring loading/error states leads to poor UX
+const Component = reatomComponent(() => {
+  return <Data data={resource.data()} />
+})
+```
+
+### 4. Always Use `wrap()` for Async Operations
+
+```ts
+// ✅ Good: wrap ensures proper error handling and cancellation
+const fetchData = computed(async () => {
+  const response = await wrap(fetch('/api/data'))
+  return await wrap(response.json())
+}, 'fetchData').extend(withAsyncData())
+
+// ❌ Avoid: unwrapped async calls bypass Reatom's async context system
+const fetchData = computed(async () => {
+  const response = await fetch('/api/data') // Missing wrap()
+  return await response.json() // Missing wrap()
+}, 'fetchData').extend(withAsyncData())
+```
+
+## Related Resources
+
+- **[Async Context](/handbook/async-context)** - Deep dive into Reatom's async context system and automatic cancellation
+- **[Sampling](/handbook/sampling)** - Advanced patterns for handling user input and debouncing strategies
+- **[Actions](/guides/actions)** - Learn more about Reatom actions and their capabilities
+- **[Computed Values](/guides/computed)** - Understanding reactive computations in Reatom

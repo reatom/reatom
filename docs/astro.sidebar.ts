@@ -20,11 +20,12 @@ export const sidebar = [
       'handbook/history',
       'handbook/atomization',
       'handbook/extensions',
+      'handbook/async',
       'handbook/lifecycle',
       'handbook/forms',
       'handbook/routing',
-      'handbook/async-context',
       'handbook/sampling',
+      'handbook/async-context',
     ],
   }),
 
