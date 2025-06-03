@@ -1,7 +1,9 @@
 ---
 import DefaultMarkdownContent from '@astrojs/starlight/components/MarkdownContent.astro'
+import AlphaBanner from './AlphaBanner.astro'
 ---
 
+<AlphaBanner />
 <DefaultMarkdownContent {...Astro.props as any}>
   <slot />
 </DefaultMarkdownContent>

@@ -1,0 +1,79 @@
+---
+const { className = '' } = Astro.props;
+---
+
+<div class={`alpha-banner ${className}`}>
+  <div class="banner-content">
+    <span class="emoji">🚀</span>
+    <div class="text">
+      <strong>New Alpha Version Available!</strong>
+      <p>Check out our latest alpha version and share your feedback to help us improve Reatom.</p>
+    </div>
+    <a href="https://v1000.reatom.dev/" class="button" target="_blank" rel="noopener noreferrer">
+      Try v1000 Alpha
+    </a>
+  </div>
+</div>
+
+<style>
+  .alpha-banner {
+    background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+    color: white;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  }
+
+  .banner-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .emoji {
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .text {
+    flex: 1;
+  }
+
+  .text p {
+    margin: 0.25rem 0 0;
+    opacity: 0.9;
+    font-size: 0.95rem;
+  }
+
+  .button {
+    display: inline-block;
+    background: white;
+    color: #1e40af;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s;
+    white-space: nowrap;
+  }
+
+  .button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .banner-content {
+      flex-direction: column;
+      text-align: center;
+      gap: 0.75rem;
+    }
+
+    .emoji {
+      margin-bottom: 0.5rem;
+    }
+  }
+</style>
