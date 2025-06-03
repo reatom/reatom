@@ -1,23 +1,24 @@
-import { createContext } from 'preact'
-import {
-  useMemo,
-  useLayoutEffect,
-  useContext,
-  useEffect,
-  useState,
-} from 'preact/hooks'
-import type { ComponentChild } from 'preact'
-import {
-  assert,
+import type {
   Frame,
+  Rec} from '@reatom/core';
+import {
+  action,
+  assert,
   named,
-  ReatomError,
   reatomAbstractRender,
-  Rec,
+  ReatomError,
   STACK,
   wrap,
-  action,
 } from '@reatom/core'
+import type { ComponentChild } from 'preact'
+import { createContext } from 'preact'
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'preact/hooks'
 
 export let reatomContext = createContext<null | Frame>(null)
 
