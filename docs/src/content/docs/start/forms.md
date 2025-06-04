@@ -7,17 +7,16 @@ Reatom has a very advanced form management system to handle complex cases in a t
 
 ## Creating a form
 
-```ts
+```ts title="loginForm.ts" {"Initial state": 4-9} {"For debugging": 22-23} 
 import { reatomForm } from '@reatom/core'
 
 export const loginForm = reatomForm(
-  // init state
+  
   {
     username: '',
     password: '',
     passwordDouble: '',
   },
-  // options (there are a lot more)
   {
     validate({ password, passwordDouble }) {
       if (password !== passwordDouble) {
@@ -30,7 +29,8 @@ export const loginForm = reatomForm(
       return await api.login(values)
     },
     validateOnBlur: true,
-    name: 'loginForm', // for debugging
+    
+    name: 'loginForm',
   },
 )
 ```
@@ -44,17 +44,18 @@ Each field value can be configured by passing a `reatomField` factory with vario
 The form instance itself (`loginForm`) has a `submit` action, of course, and computed validation and focus states. It computes from the individual field atoms, which you can find in the `loginForm.fields` object.
 
 ```ts
-// loginForm.fields:
-username: FieldAtom<string, string>,
-password: FieldAtom<string, string>,
-passwordDouble: FieldAtom<string, string>
+loginForm.fields satisfies {
+  username: FieldAtom<string, string>,
+  password: FieldAtom<string, string>,
+  passwordDouble: FieldAtom<string, string>
+}
 ```
 
 Each field atom includes meta atoms like `validation`, `focus`, and others, which you can use for precise control over the form and each field.
 
 ## Framework bindings
 
-```tsx
+```tsx title="LoginForm.tsx" /bindField\\(.+\\)/ /loginForm.submit\\(\\)/ /submit\\.ready\\(\\)/
 import { reatomComponent, bindField } from '@reatom/react'
 import { Button, TextInput, PasswordInput, Stack, Alert } from '@mantine/core'
 import { loginForm } from './loginForm'
