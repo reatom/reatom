@@ -9,7 +9,7 @@ The beauty of extensions is that they compose perfectly - you can combine multip
 
 Let's rewrite the data loading example from the [actions](/start/actions/) section using extensions, which add async tracking:
 
-```ts /withAsyncData/
+```ts /withAsyncData(?:\\(.+}\\))?/ title="src/model.ts"
 import { atom, action, withAsyncData } from '@reatom/core'
 
 const fetchList = action(async (page: number) => {
@@ -32,7 +32,7 @@ Some extensions can be used only with atoms (like `withMemo`), some only with ac
 Let's explore the list loading further. What if we want to add more parameters to the fetching? We could add another argument and pass it through the calling chain, but let's make it more reliable using the Reatom approach with implicit reactive coupling.
 
 <!-- prettier-ignore -->
-```ts /page\\(\\)|search\\(\\)/
+```ts /page\\(\\)|search\\(\\)/ title="src/model.ts"
 import { atom, computed, withAsyncData } from '@reatom/core'
 
 const search = atom('', 'search')
@@ -55,7 +55,7 @@ Let's enhance our extension system further. We have a few improvements to make:
 - Let's add handy actions for pagination
 
 <!-- prettier-ignore -->
-```ts /withSearchParams\\(|withComputed\\(/
+```ts /withSearchParams\\(|withComputed\\(/ title="src/model.ts"
 import { atom, withSearchParams, withComputed, isInit, computed, withAsyncData } from '@reatom/core'
 
 const search = atom('', 'search').extend(withSearchParams('search'))
@@ -84,7 +84,9 @@ Let's examine how to use this loading model in a component.
 
 ## Framework bindings
 
-```tsx
+TODO add explanation
+
+```tsx title="src/Results.tsx" /page\\.next|page\\.prev|(?:page|ready|data|search)\\(\\)|search.set\\(.+\\)/
 import React from 'react'
 import { reatomComponent } from '@reatom/react'
 import { search, page, listResource } from './model'
