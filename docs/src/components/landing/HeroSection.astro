@@ -97,19 +97,21 @@
         </a>
       </div>
     </div>
+  
+  
   </div>
-
   <!-- Scroll Indicator -->
   <div class="scroll-indicator">
     <div class="scroll-arrow"></div>
   </div>
+
 </main>
 
 <style>
   /* Hero Section */
   .hero-section {
     position: relative;
-    min-height: 100vh;
+    min-height: 100svh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -335,7 +337,7 @@
   /* Scroll Indicator */
   .scroll-indicator {
     position: absolute;
-    bottom: 2rem;
+    top: calc(100svh - 4rem);
     left: 50%;
     transform: translateX(-50%);
     z-index: 10;
