@@ -3,6 +3,8 @@ title: Actions
 description: Reatom actions and code organization
 ---
 
+import { Aside } from '@astrojs/starlight/components';
+
 Action is a base Reatom primitive that **increases the quality of your code** in many ways: organization and readability, debugability, extensibility.
 
 The beauty of Reatom is that you don't need to use actions for simple updates, like `(value) => myAtom.set(value)`. Actions are useful for complex operations, like data mappings, API calls and other side effects.
@@ -17,10 +19,13 @@ const isListLoading = atom(false)
 
 const loadList = action(async (page: number) => {
   isListLoading.set(true)
-  const response = await fetch(`/api/list?page=${page}`)
-  const payload = await response.json()
-  list.set(payload)
-  isListLoading.set(false)
+  try {
+    const response = await fetch(`/api/list?page=${page}`)
+    const payload = await response.json()
+    list.set(payload)
+  } finally {
+    isListLoading.set(false)
+  }
 })
 
 loadList(1) // Promise
@@ -41,7 +46,10 @@ const loadList = action(async (page: number) => {
 
 That's better!
 
-> If you use some LLM code assistant it will help you to write related names for you. Also, we have an eslint plugin for this (will see in the tooling section).
+<Aside type="tip">
+If you use some LLM code assistant it will help you to write related names for you. 
+Also, we have an eslint plugin for this: [check out tooking](/start/tooking/).
+</Aside>
 
 However, each atom has a `.actions` method to bind and name related actions.
 
@@ -49,23 +57,27 @@ However, each atom has a `.actions` method to bind and name related actions.
 
 It accepts a callback for creating related methods, it is called immediately and returns the original atom. The callback accepts the processed `target` as an argument and should return an object with related methods.
 
-```ts
+```ts del={10} ins={11} /\(target\)/
 import { atom, action } from '@reatom/core'
 
 export const list = atom([], 'list').actions(
-  (target /* <-- current atom */) => ({
+  (target) => ({
     async load(page: number) {
       isListLoading.set(true)
-      const response = await fetch(`/api/list?page=${page}`)
-      const payload = await response.json()
-      target.set(payload) // changed from `list.set` to `target.set`
-      isListLoading.set(false)
+      try {
+        const response = await fetch(`/api/list?page=${page}`)
+        const payload = await response.json()
+        list.set(payload)
+        target.set(payload)
+      } finally {
+        isListLoading.set(false)
+      }
     },
   }),
 )
 const isListLoading = atom(false, 'isListLoading')
 
-list.load(1) // Promise
+list.load(1) // returns Promise
 ```
 
 `.actions` converts passed methods to actions with relevant names. The code becomes more elegant and better organized!
@@ -93,13 +105,13 @@ export const list = atom([], 'list')
 
 Now you can access your states in a clean and readable way:
 
-```tsx
+```tsx {"   You can use regular hooks in reatomComponent!": 6-7} title="src/component/Paging.tsx"
 import React from 'react'
 import { reatomComponent } from '@reatom/react'
 import { list } from './model'
 
-// You can use regular hooks in `reatomComponent`!
 const Paging = reatomComponent(() => {
+
   const [page, setPage] = React.useState(1)
 
   React.useEffect(() => {
