@@ -279,6 +279,11 @@ test('route loader', async () => {
   await wrap(sleep())
   expect(track).toBeCalledTimes(1)
   expect(track).toBeCalledWith([{ id: `/api/goods/tech/apple?sort=asc` }])
+
+  expect(() =>
+    // @ts-expect-error - test
+    goodsBrandRoute.go({ category: 'tech', brand: 'apple', sort: 'asd' }),
+  ).toThrow()
 })
 
 test('route loader lazyness (abortable)', async () => {
@@ -342,14 +347,14 @@ test('params types transform', async () => {
     params: z.object({
       issueId: z.string().regex(/^\d+$/).transform(Number),
     }),
-    async loader(params: { issueId: number }) {
+    async loader(params) {
       return {
         issueId: params.issueId,
       }
     },
   })
 
-  issueRoute.go({ issueId: 123 })
+  issueRoute.go({ issueId: '123' })
 
   expect(await wrap(issueRoute.loader())).toEqual({ issueId: 123 })
 })

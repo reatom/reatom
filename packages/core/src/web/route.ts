@@ -32,14 +32,16 @@ export interface RouteOptions<
   Path extends string,
   Params extends PathKeys<Path> = PathParams<Path>,
   Search extends Partial<Rec<string>> = {},
-  LoaderParams = Plain<Params & Search>,
+  ParamsOutput = Params,
+  SearchOutput = Search,
+  LoaderParams = Plain<ParamsOutput & SearchOutput>,
   Payload = LoaderParams,
 > {
   path: Path
 
-  params?: StandardSchemaV1<Params>
+  params?: StandardSchemaV1<Params, ParamsOutput>
 
-  search?: StandardSchemaV1<Search>
+  search?: StandardSchemaV1<Search, SearchOutput>
 
   loader?: (params: LoaderParams) => Promise<Payload>
 }
@@ -65,6 +67,7 @@ export interface RouteMixin<
     `${Path}/${SubPath}`,
     // @ts-expect-error TODO
     Plain<Params & PathParams<SubPath>>,
+    {},
     {}
   >
 
@@ -95,22 +98,28 @@ export interface RouteMixin<
     SubPath extends string,
     SubParams extends PathKeys<SubPath> = PathParams<SubPath>,
     SubSearch extends Partial<Rec<string>> = {},
-    Payload = Plain<Params & SubParams> &
-      Plain<{} extends SubSearch ? SubSearch : never>,
+    SubParamsOutput = SubParams,
+    SubSearchOutput = SubSearch,
+    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    Payload = LoaderParams,
   >(
     options: RouteOptions<
       SubPath,
       SubParams,
       SubSearch,
-      Plain<Params & SubParams & SubSearch>,
+      SubParamsOutput,
+      SubSearchOutput,
+      LoaderParams,
       Payload
     >,
   ): RouteAtom<
     `${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`,
     // @ts-expect-error TODO
+    Plain<Params & SubParamsOutput>,
+    Plain<SubSearchOutput>,
+    Payload,
     Plain<Params & SubParams>,
-    Plain<{} extends SubSearch ? SubSearch : never>,
-    Payload
+    Plain<SubSearch>
   >
 }
 
@@ -143,10 +152,12 @@ export interface RouteAtom<
   Params extends PathKeys<Path> = PathParams<Path>,
   Search extends Rec<string> = {},
   Payload = Plain<Params & Search>,
+  InputParams = Params,
+  InputSearch = Search,
 > extends Computed<null | Plain<Params & Search>>,
     RouteMixin<Path, Params> {
   go: Action<
-    [params: MaybeVoid<Params & Search>, replace?: boolean], // Updated signature: single optional object argument
+    [params: MaybeVoid<InputParams & InputSearch>, replace?: boolean], // Updated signature: single optional object argument
     URL
   >
 
@@ -156,7 +167,7 @@ export interface RouteAtom<
 
   pattern: Path
 
-  path: (params: MaybeVoid<Params & Search>) => string
+  path: (params: MaybeVoid<InputParams & InputSearch>) => string
 }
 
 const getPatternName = (part: string) => {
