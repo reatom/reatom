@@ -324,10 +324,11 @@ export const userEditRoute = userProfileRoute.route({
     // Create a form factory INSIDE the loader!
     // This form will be automatically cleaned up when the route changes
     const editForm = reatomForm(
-      { name, bio },
+      { email, name, bio },
       {
         onSubmit: async (values) => {
-          if (hasUnsavedChanges()) {
+          // Checking that any field in the form is dirty so there is something to update
+          if (editForm.focus().dirty) {
             await api.updateUser(id, values)
           }
         },
@@ -335,16 +336,7 @@ export const userEditRoute = userProfileRoute.route({
       },
     )
 
-    // Create derived state that depends on both user data and form
-    const hasUnsavedChanges = computed(
-      () => !isShallowEqual(deatomize(editForm.fields), { name, bio }),
-    )
-
-    return {
-      userData,
-      editForm,
-      hasUnsavedChanges,
-    }
+    return { userData, editForm }
   },
 })
 ```
@@ -377,7 +369,7 @@ export const UserEditPage = reatomComponent(() => {
   if (error) return <div>Error: {error.message}</div>
 
   // Direct access to the form created in the loader!
-  const { editForm, hasUnsavedChanges } = data
+  const { editForm } = data
 
   return (
     <form
@@ -389,7 +381,7 @@ export const UserEditPage = reatomComponent(() => {
       <input placeholder="Name" {...bindField(editForm.fields.name)} />
       <textarea placeholder="Bio" {...bindField(editForm.fields.bio)} />
 
-      {hasUnsavedChanges() && <div>⚠️ You have unsaved changes</div>}
+      {editForm.focus().dirty && <div>⚠️ You have unsaved changes</div>}
 
       <button type="submit" disabled={!editForm.submit.ready()}>
         Save Changes
@@ -426,9 +418,9 @@ export const dashboardRoute = route({
 
     // Create derived state that spans multiple systems
     const dashboardState = computed(() => ({
-      isProfileComplete:
+      isProfileComplete: 
         profileForm.fields.name() && profileForm.fields.email(),
-      totalForms: [profileForm, settingsForm].filter((f) => f.dirty()).length,
+      totalForms: [profileForm, settingsForm].filter((f) => f.focus().dirty).length,
       hasNotifications: stats.notifications > 0,
     }))
 

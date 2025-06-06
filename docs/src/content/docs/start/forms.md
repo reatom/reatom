@@ -61,7 +61,8 @@ import { Button, TextInput, PasswordInput, Stack, Alert } from '@mantine/core'
 import { loginForm } from './loginForm'
 
 export const LoginForm = reatomComponent(() => {
-  const { submit, fields } = loginForm
+  const { submit, fields, validation } = loginForm
+  const { errors } = validation()
   return (
     <form
       onSubmit={(e) => {
@@ -70,6 +71,12 @@ export const LoginForm = reatomComponent(() => {
       }}
     >
       <Stack>
+        {errors.length > 0 && (
+          <Alert variant="light" color="red" title="Submit error">
+            {errors[0]?.message}
+          <Alert>
+        )}
+
         <TextInput
           label="Username"
           placeholder="Enter your username"

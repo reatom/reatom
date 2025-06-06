@@ -533,7 +533,7 @@ Here is the list of all additional properties and methods:
   - `in`: Action for handling field focus.
   - `out`: Action for handling field blur.
 - `validation`: Record atom with all related validation statuses:
-  - `errors`: The field validation error text, undefined if the field is valid.
+  - `errors`: The array of the field error objects with following properties:
     - `source`: The source of the error. The value will be `validation` if the error occurred due to the `validate` function of the field and `schema` if the error caused by schema validation
     - `message`: The text of the error
     - `meta`: The record with arbitrary information about the error like minimum chars, upper bound of a number, etc.
@@ -598,13 +598,13 @@ flowchart TB
     trigger([Validation triggered])
     trigger --> hasfunction{Has validation function?}
     hasfunction --> |Yes| validate{Validate}
-    hasfunction --> |No| valid[error: undefined, valid: true, validating: false]
-    validate --> |Validator threw| invalid["return {error: string, valid: true, validating: false}"]
+    hasfunction --> |No| valid["errors: [],<br>triggered: true,<br>validating: undefined"]
+    validate --> |Validator threw| invalid["errors: [...errors],<br>triggered: true,<br>validating: undefined"]
     validate --> |Validator returned a promise| promise[Promise]
     validate --> |Validator returned any other value| valid
     promise --> |Pending| keepErrorDuringValidating{keepErrorDuringValidating}
-    keepErrorDuringValidating --> |true| keepErrorDuringValidatingTrue["set {error: previousError, valid: true, validating: true}"]
-    keepErrorDuringValidating --> |false| keepErrorDuringValidatingFalse["set {error: undefined, valid: true, validating: true}"]
+    keepErrorDuringValidating --> |true| keepErrorDuringValidatingTrue["errors: [...previousErrors],<br>triggered: true,<br>validating: Promise<{ errors }>"]
+    keepErrorDuringValidating --> |false| keepErrorDuringValidatingFalse["errors: [],<br>triggered: true,<br>validating: Promise<{ errors }>"]
     promise --> |Fulfilled| valid
     promise --> |Rejected| invalid
 ```
