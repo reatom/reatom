@@ -53,7 +53,7 @@ const User = reatomComponent(() => {
   const name = currentUser.name()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
-    currentUser.name.set(e.currentTarget.value)
+    name.set(e.currentTarget.value)
 
   const handleSubmit = () => syncUserName()
 
