@@ -188,9 +188,9 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         position: sticky;
         top: 1rem;
         width: 100%;
-        max-width: 77rem;
         margin: auto;
-        padding: 0 1rem;
+        max-width: 79rem;
+        padding: 0 2rem;
         z-index: 50;
       }
 
@@ -239,6 +239,11 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         display: flex;
         text-decoration: none;
         color: var(--text-primary);
+        transition: 0.3s all ease;
+      }
+      
+      .nav-header-buttons a:hover {
+        color: var(--accent-primary);
       }
 
       /* Theme Toggle Button */
@@ -371,6 +376,11 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         .toggle-icon {
           width: 1.25rem;
           height: 1.25rem;
+        }
+
+        .nav-header {
+          max-width: 77rem;
+          padding: 0 1rem;
         }
 
         .nav-header-buttons {

@@ -171,6 +171,25 @@
     background: var(--bg-primary);
   }
 
+  html[data-theme="light"] .history-section {
+    background:
+      radial-gradient(
+        circle at 30% 80%,
+        rgba(59, 130, 246, 0.05) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        rgba(168, 85, 247, 0.04) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 40% 40%,
+        rgba(34, 197, 94, 0.04) 0%,
+        transparent 50%
+      )
+  }
+
   .history-section::before {
     content: '';
     position: absolute;
