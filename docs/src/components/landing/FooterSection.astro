@@ -348,6 +348,7 @@
   }
 
   .footer-container {
+    position: relative;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 2rem;
@@ -358,10 +359,23 @@
     padding: 4rem 0;
     text-align: center;
     position: relative;
+  }
+
+  .footer-cta-section::before {
+    content: " ";
+    position: absolute;
+    inset: 0;
+    --top-color: #222328;
     background-image: 
-      linear-gradient(to bottom, transparent 10rem, white 100%),
+      linear-gradient(to bottom, transparent 10rem, var(--bg-primary) 100vh 100%),
       url(assets/noise.svg), 
-      linear-gradient(to bottom, #cbd0ee, transparent);
+      linear-gradient(to bottom, var(--top-color), transparent);
+    opacity: 0.2;
+  }
+
+  html[data-theme="light"] .footer-cta-section::before {
+    opacity: 1;
+    --top-color: #cbd0ee;
   }
 
   .logo-shape {
@@ -378,9 +392,13 @@
   }
 
   .logo-shape svg circle {
-    fill: #eef0f9;
+    fill: #18191b;
     stroke: var(--accent);
     transition: fill 0.3s ease, stroke 0.3s ease;
+  }
+
+  html[data-theme="light"] .logo-shape svg circle {
+    fill: #eef0f9;
   }
 
   .logo-shape svg circle:first-child {
@@ -392,11 +410,7 @@
     font-size: clamp(2rem, 5vw, 3rem);
     font-weight: 700;
     margin-bottom: 1rem;
-    background: var(--accent-primary);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--accent-primary);
     transition: background 0.3s ease;
   }
 
@@ -416,7 +430,6 @@
     display: flex;
     gap: 1.5rem;
     justify-content: center;
-    align-items: center;
     flex-wrap: wrap;
   }
 
@@ -650,14 +663,6 @@
     background: var(--bg-primary);
   }
 
-  html[data-theme='light'] .footer-cta-title {
-    background: var(--accent-primary);
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
   html[data-theme='light'] .footer-cta-primary {
     color: #fdfdff;
     font-weight: 700;
@@ -675,7 +680,6 @@
     }
 
     .footer-cta-button {
-      width: 100%;
       max-width: 300px;
       justify-content: center;
     }
@@ -688,6 +692,11 @@
     .footer-bottom-content {
       flex-direction: column;
       text-align: center;
+    }
+
+    .logo-shape {
+      width: 15rem;
+      height: 15rem;
     }
   }
 
@@ -727,7 +736,6 @@
     }
 
     .footer-cta-title {
-      -webkit-text-fill-color: var(--text-primary);
       background: none;
     }
 

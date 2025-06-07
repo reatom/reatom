@@ -110,19 +110,19 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
       /* CSS Custom Properties for Theming */
       :root {
         /* Dark theme (default) */
-        --bg-primary: #151134;
+        --bg-primary: #0a0a0f;
         --bg-secondary: rgba(255, 255, 255, 0.05);
-        --bg-tertiary: rgba(255, 255, 255, 0.1);
+        --bg-tertiary: rgba(255, 255, 255, 0.05);
         --text-primary: #cccccc;
         --text-secondary: #e0e0e0;
         --text-muted: #999999;
-        --accent-primary: #6563a3;
-        --accent-secondary: #2f2f4b;
-        --accent-gradient: linear-gradient(135deg, #6563a3, #716f9f);
-        --border-color: rgba(255, 215, 0, 0.3);
-        --shadow-color: rgba(255, 215, 0, 0.3);
+        --accent-primary: #bca4e0;
+        --accent-secondary: #463958;
+        --accent-gradient: linear-gradient(135deg, #a3a1db, #8e8cc7);
+        --border-color: rgba(220, 220, 220, 0.3);
+        --shadow-color: rgba(133, 84, 255, 0.3);
         --texture-filter-color: #1B1B2A;
-        --card-bg: rgba(255, 255, 255, 0.05);
+        --card-bg: rgba(255, 255, 255, 0.02);
         --card-border: rgba(255, 255, 255, 0.1);
         --overlay-bg: rgba(21, 17, 52, 0.8);
         
@@ -197,13 +197,17 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
       .nav-header-content {
         height: 5rem;
         border-radius: 2.5rem;
-        background: #ffffff40;
+        background: #00000020;
         border: 1px solid var(--card-border);
         backdrop-filter: blur(2rem);
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 1rem;
+      }
+
+      html[data-theme="light"] .nav-header-content  {
+        background: #ffffff20;
       }
 
       .nav-header-logo {
@@ -213,6 +217,15 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         font-size: 1.2em;
         font-weight: bold;
         cursor: pointer;
+        color: var(--accent-primary);
+      }
+
+      html[data-theme="dark"] .nav-header-logo svg {
+        stroke: var(--accent-primary)
+      }
+
+      html[data-theme="dark"] .nav-header-logo svg circle:first-child {
+        fill: var(--accent-primary)
       }
 
       .nav-header-buttons {
@@ -225,7 +238,7 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
       .nav-header-buttons a {
         display: flex;
         text-decoration: none;
-        color: var(--accent-secondary);
+        color: var(--text-primary);
       }
 
       /* Theme Toggle Button */
@@ -314,10 +327,23 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         overflow-x: hidden;
         position: relative;
         transition: background-color 0.3s ease, color 0.3s ease;
+      }
+
+      body::before {
+        content: " ";
+        position: absolute;
+        inset: 0;
+        --top-color: #32343b;
         background-image: 
-          linear-gradient(to bottom, transparent 10rem, white 100vh 100%),
+          linear-gradient(to bottom, transparent 10rem, var(--bg-primary) 100vh 100%),
           url(assets/noise.svg), 
-          linear-gradient(to bottom, #cbd0ee, transparent);
+          linear-gradient(to bottom, var(--top-color), transparent);
+        opacity: 0.2;
+      }
+
+      html[data-theme="light"] body::before {
+        opacity: 1;
+        --top-color: #cbd0ee;
       }
 
       .background-texture {

@@ -181,22 +181,6 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background:
-      radial-gradient(
-        circle at 30% 80%,
-        rgba(59, 130, 246, 0.05) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 20%,
-        rgba(168, 85, 247, 0.03) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 40% 40%,
-        rgba(34, 197, 94, 0.02) 0%,
-        transparent 50%
-      );
     pointer-events: none;
   }
 
@@ -352,7 +336,7 @@
   }
 
   .feedback-highlight {
-    background: rgba(59, 130, 246, 0.1);
+    background: color-mix(in srgb, var(--accent-primary), transparent 92%);
     border-left: 3px solid var(--accent-primary);
     padding: 16px 20px;
     border-radius: 0 8px 8px 0;
@@ -482,32 +466,10 @@
     background: var(--bg-primary);
   }
 
-  html[data-theme='light'] .feedback-section::before {
-    background:
-      radial-gradient(
-        circle at 30% 80%,
-        rgba(37, 99, 235, 0.03) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 80% 20%,
-        rgba(124, 58, 237, 0.02) 0%,
-        transparent 50%
-      ),
-      radial-gradient(
-        circle at 40% 40%,
-        rgba(5, 150, 105, 0.02) 0%,
-        transparent 50%
-      );
-  }
-
   html[data-theme='light'] .feedback-card:hover {
     box-shadow: 0 32px 64px rgba(21, 17, 52, 0.15);
   }
 
-  html[data-theme='light'] .feedback-highlight {
-    background: color-mix(in srgb, var(--accent-primary), transparent 95%);
-  }
 
   html[data-theme='light'] .feedback-card-empty {
     background: linear-gradient(

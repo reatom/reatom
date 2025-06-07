@@ -601,11 +601,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(
-      ellipse at center,
-      rgba(255, 215, 0, 0.05) 0%,
-      transparent 70%
-    );
+
     pointer-events: none;
   }
 
@@ -674,9 +670,10 @@
     left: 0;
     width: 100%;
     height: 100%;
+    --glare-color: #ffffff17;
     background: linear-gradient(
       135deg,
-      white 0%,
+      var(--glare-color) 0%,
       transparent 50%,
       rgba(74, 144, 226, 0.05) 100%
     );
@@ -685,13 +682,17 @@
     pointer-events: none;
   }
 
+  html[data-theme="light"] .feature-card::before {
+    --glare-color: white;
+  }
+
   .feature-card:hover::before {
     opacity: 1;
   }
 
   .feature-card:hover {
     transform: translateY(-8px) scale(1.02);
-    border-color: rgba(74, 144, 226, 0.4);
+    border-color: color-mix(in srgb, var(--accent-primary), transparent 30%);
     box-shadow:
       0 20px 60px rgba(0, 0, 0, 0.4),
       0 8px 32px rgba(74, 144, 226, 0.2),
@@ -1028,7 +1029,7 @@
   .feature-card:hover .feature-icon {
     transform: scale(1.1);
     background: var(--bg-tertiary);
-    border-color: rgba(74, 144, 226, 0.3);
+    border-color: inherit;
   }
 
   .feature-card:hover .feature-icon svg {
@@ -1111,16 +1112,7 @@
     z-index: 1;
     transition: color 0.3s ease;
   }
-
-  /* Light theme specific adjustments */
-  html[data-theme='light'] .features-section::before {
-    background: radial-gradient(
-      ellipse at center,
-      rgba(21, 17, 52, 0.08) 0%,
-      transparent 70%
-    );
-  }
-
+  
   html[data-theme='light'] .features-title-main {
     background: var(--accent-primary);
     background-size: 200% 200%;
@@ -1135,17 +1127,7 @@
       0 2px 8px rgba(21, 17, 52, 0.05);
   }
 
-  html[data-theme='light'] .feature-card:hover {
-    border-color: rgba(37, 99, 235, 0.3);
-    /* box-shadow:
-      0 20px 60px rgba(21, 17, 52, 0.15),
-      0 8px 32px rgba(37, 99, 235, 0.15),
-      0 0 0 1px rgba(37, 99, 235, 0.1); */
-  }
 
-  html[data-theme='light'] .feature-card:hover .feature-icon {
-    border-color: rgba(37, 99, 235, 0.25);
-  }
 
   /* Responsive Design for Features */
   @media (max-width: 768px) {
