@@ -129,7 +129,6 @@ import { CODE_EXAMPLES } from './code-examples'
     display: flex;
     gap: 1rem;
     justify-content: space-between;
-    flex-wrap: wrap;
     margin-bottom: 1rem;
   }
 
@@ -142,10 +141,10 @@ import { CODE_EXAMPLES } from './code-examples'
     cursor: pointer;
     transition: all 0.2s ease;
     color: var(--text-primary);
-    min-width: 200px;
-    text-align: center;
+    text-align: start;
     text-decoration: none;
     backdrop-filter: blur(10px);
+    flex: 1;
   }
 
   .tab-btn:hover {
@@ -175,9 +174,12 @@ import { CODE_EXAMPLES } from './code-examples'
   }
 
   /* Highlight the active tab link */
-  .tab-content:has(#core:target) ~ .tab-nav .tab-btn[href='#core'],
+  .tab-content:has(#counter:target) ~ .tab-nav .tab-btn[href='#counter'],
   .tab-content:has(#forms:target) ~ .tab-nav .tab-btn[href='#forms'],
-  .tab-content:has(#router:target) ~ .tab-nav .tab-btn[href='#router'] {
+  .tab-content:has(#data-loading:target) ~ .tab-nav .tab-btn[href='#data-loading'],
+  .tab-content:has(#routing:target) ~ .tab-nav .tab-btn[href='#routing'] {
+    border-color: var(--accent-primary);
+
     .tab-title {
       color: var(--accent-primary);
     }

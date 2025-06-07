@@ -11,6 +11,33 @@
   <!-- CTA Section -->
   <div class="footer-cta-section">
     <div class="footer-container">
+      <div class="logo-shape">
+        <svg
+          viewBox="0 0 400 400"
+          xmlns="http://www.w3.org/2000/svg"
+          fill="#151134"
+          stroke="#fff"
+          stroke-width="2px"
+        >
+          <circle cx="200" cy="200" r="200" fill="#fff" stroke-width="0"
+          ></circle>
+          <circle cx="200" cy="200" r="198" stroke-width="0"></circle>
+          <circle cx="180" cy="180" r="130"></circle>
+          <circle cx="215" cy="180" r="70"></circle>
+          <circle cx="150" cy="94" r="38"></circle>
+          <circle cx="100" cy="195" r="40"></circle>
+          <circle cx="165" cy="275" r="30"></circle>
+          <circle cx="250" cy="265" r="20"></circle>
+          <circle cx="57" cy="270" r="20"></circle>
+          <circle cx="215" cy="345" r="36"></circle>
+          <circle cx="310" cy="290" r="36"></circle>
+          <circle cx="345" cy="195" r="30"></circle>
+          <circle cx="321" cy="107" r="25"></circle>
+          <circle cx="260" cy="50" r="20"></circle>
+          <circle cx="120" cy="330" r="25"></circle>
+        </svg>
+      </div>
+
       <h2 id="footer-heading" class="footer-cta-title">
         Ready to get started?
       </h2>
@@ -321,6 +348,7 @@
   }
 
   .footer-container {
+    position: relative;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 2rem;
@@ -333,23 +361,56 @@
     position: relative;
   }
 
+  .footer-cta-section::before {
+    content: " ";
+    position: absolute;
+    inset: 0;
+    --top-color: #222328;
+    background-image: 
+      linear-gradient(to bottom, transparent 10rem, var(--bg-primary) 100vh 100%),
+      url(assets/noise.svg), 
+      linear-gradient(to bottom, var(--top-color), transparent);
+    opacity: 0.2;
+  }
+
+  html[data-theme="light"] .footer-cta-section::before {
+    opacity: 1;
+    --top-color: #cbd0ee;
+  }
+
+  .logo-shape {
+    animation: rotate 600s linear infinite;
+    width: 20rem;
+    height: 20rem;
+    margin: 0 auto;
+    --accent: color-mix(in srgb, var(--accent-primary), transparent 60%)
+  }
+
+  .logo-shape svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .logo-shape svg circle {
+    fill: #18191b;
+    stroke: var(--accent);
+    transition: fill 0.3s ease, stroke 0.3s ease;
+  }
+
+  html[data-theme="light"] .logo-shape svg circle {
+    fill: #eef0f9;
+  }
+
+  .logo-shape svg circle:first-child {
+    fill: var(--accent);
+    transition: fill 0.3s ease;
+  }
+
   .footer-cta-title {
     font-size: clamp(2rem, 5vw, 3rem);
     font-weight: 700;
     margin-bottom: 1rem;
-    background: linear-gradient(
-      135deg,
-      var(--signal-color) 0%,
-      var(--signal-secondary) 25%,
-      #a8d5ff 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    animation: gradientText 8s ease infinite;
+    color: var(--accent-primary);
     transition: background 0.3s ease;
   }
 
@@ -364,22 +425,11 @@
     transition: color 0.3s ease;
   }
 
-  @keyframes gradientText {
-    0%,
-    100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
-
   /* Footer CTA Buttons */
   .footer-cta-container {
     display: flex;
     gap: 1.5rem;
     justify-content: center;
-    align-items: center;
     flex-wrap: wrap;
   }
 
@@ -499,12 +549,12 @@
   }
 
   .footer-links li {
-    margin-bottom: 1rem;
+    margin-left: -0.5rem;
   }
 
   .footer-link {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 0.75rem;
     text-decoration: none;
     color: var(--text-primary);
@@ -541,7 +591,6 @@
     width: 20px;
     height: 20px;
     flex-shrink: 0;
-    margin-top: 2px;
     color: var(--text-muted);
     transition: color 0.3s ease;
   }
@@ -560,8 +609,9 @@
     display: block;
     font-size: 0.875rem;
     color: var(--text-muted);
-    margin-top: 0.25rem;
     transition: color 0.3s ease;
+    margin-left: auto;
+    text-align: end;
   }
 
   /* Footer Bottom */
@@ -613,21 +663,6 @@
     background: var(--bg-primary);
   }
 
-  html[data-theme='light'] .footer-cta-title {
-    background: linear-gradient(
-      135deg,
-      #1e3a8a 0%,
-      #2563eb 25%,
-      #3b82f6 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
-    background-size: 200% 200%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
   html[data-theme='light'] .footer-cta-primary {
     color: #fdfdff;
     font-weight: 700;
@@ -645,7 +680,6 @@
     }
 
     .footer-cta-button {
-      width: 100%;
       max-width: 300px;
       justify-content: center;
     }
@@ -658,6 +692,11 @@
     .footer-bottom-content {
       flex-direction: column;
       text-align: center;
+    }
+
+    .logo-shape {
+      width: 15rem;
+      height: 15rem;
     }
   }
 
@@ -697,7 +736,6 @@
     }
 
     .footer-cta-title {
-      -webkit-text-fill-color: var(--text-primary);
       background: none;
     }
 

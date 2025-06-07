@@ -12,11 +12,11 @@
         xmlns="http://www.w3.org/2000/svg"
         fill="#151134"
         stroke="#fff"
-        stroke-width="15px"
+        stroke-width="1px"
       >
         <circle cx="200" cy="200" r="200" fill="#fff" stroke-width="0"
         ></circle>
-        <circle cx="200" cy="200" r="175" stroke-width="0"></circle>
+        <circle cx="200" cy="200" r="199" stroke-width="0"></circle>
         <circle cx="180" cy="180" r="130"></circle>
         <circle cx="215" cy="180" r="70"></circle>
         <circle cx="150" cy="94" r="38"></circle>
@@ -39,8 +39,7 @@
     <div class="container">
       <!-- Main Title with Gradient -->
       <h1 class="hero-title">
-        <span class="title-line">Reatom</span>
-        <span class="title-subtitle">state manager for any app</span>
+        <span class="title-line">State manager for any app</span>
       </h1>
 
       <!-- Description with Gradient -->
@@ -127,18 +126,19 @@
     width: 100%;
     height: 100%;
     z-index: 1;
+    mask-image: linear-gradient(to bottom, #000000FF 90%, #00000000);
   }
 
   /* Logo Shape */
   .logo-shape {
     position: absolute;
-    top: -50%;
-    left: -10%;
-    width: 80%;
-    height: 100%;
+    top: 2rem;
+    left: -50%;
+    width: 200%;
+    height: 200%;
     pointer-events: none;
-    opacity: 0.01;
-    animation: rotate 30s linear infinite;
+    opacity: 0.02;
+    animation: rotate 600s linear infinite;
     transition: opacity 0.3s ease;
   }
 
@@ -173,6 +173,7 @@
     z-index: 10;
     text-align: center;
     padding: 2rem;
+    margin-bottom: 10rem;
   }
 
   .container {
@@ -186,26 +187,20 @@
     font-weight: 700;
     line-height: 1.1;
     margin-bottom: 1.5rem;
-    background: linear-gradient(
-      135deg,
-      #4a90e2 0%,
-      #7bb3f0 25%,
-      #a8d5ff 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
+    background: var(--accent-primary);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: gradientText 8s ease infinite;
+    /* animation: gradientText 8s ease infinite; */
     filter: url(#glow);
     transition: background 0.3s ease;
   }
 
   .title-line {
     display: block;
-    font-size: 2em;
+    font-size: 0.7em;
+    font-family: monospace;
   }
 
   .title-subtitle {
@@ -228,7 +223,7 @@
   /* Hero Description */
   .hero-description {
     font-size: clamp(1.2rem, 3vw, 1.8rem);
-    font-weight: 400;
+    font-weight: 500;
     margin-bottom: 3rem;
     max-width: 600px;
     margin-left: auto;
@@ -243,7 +238,7 @@
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: gradientText 10s ease infinite;
+    /* animation: gradientText 10s ease infinite; */
     transition: background 0.3s ease;
   }
 
@@ -374,23 +369,16 @@
 
   /* Light theme specific adjustments */
   html[data-theme='light'] .cta-primary {
-    color: #fdfdff;
+    /* color: #fdfdff; */
     font-weight: 700;
   }
 
   html[data-theme='light'] .logo-shape {
-    opacity: 0.1;
+    opacity: 0.05;
   }
 
   html[data-theme='light'] .hero-title {
-    background: linear-gradient(
-      135deg,
-      #1e3a8a 0%,
-      #2563eb 25%,
-      #3b82f6 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
+    background: var(--accent-primary);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -434,9 +422,9 @@
     }
 
     .logo-shape {
-      top: 10%;
-      left: -43%;
-      width: 120%;
+      /* transform: translateX(-50%); */
+      top: -50%;
+      left: -50%;
     }
   }
 

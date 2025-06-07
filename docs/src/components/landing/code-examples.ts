@@ -38,6 +38,10 @@ counter.decrement(2)
         pattern: 'subscribe(',
         note: 'Activate the computed and receive changes',
       },
+      {
+        pattern: 'effect(',
+        note: 'Create a side-effect which is called when any atom inside it is changed',
+      },
     ],
   },
   {
@@ -87,6 +91,72 @@ const UserPage = reatomComponent(() => {
       {
         pattern: 'data()',
         note: 'Use state conditionally, even after the early return, no hook rules!',
+      },
+    ],
+  },
+  {
+    id: 'forms',
+    title: 'Forms',
+    description: 'An example of a reactive form model',
+    code: `import { reatomForm } from '@reatom/core'
+import { reatomComponent, bindField } from '@reatom/react'
+import { Button, TextInput, PasswordInput, Stack } from '@mantine/core'
+
+export const loginForm = reatomForm({
+  username: '',
+  password: '',
+}, {
+  validateOnBlur: true,
+  onSubmit: async (values) => { 
+    return await api.login(values)
+  },
+})
+
+export const LoginForm = reatomComponent(() => {
+  const { submit, fields } = loginForm
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        submit()
+      }}
+    >
+      <Stack>
+        <TextInput
+          label="Username"
+          placeholder="Enter your username"
+          {...bindField(fields.username)}
+        />
+
+        <PasswordInput
+          label="Password"
+          placeholder="Enter your password"
+          {...bindField(fields.password)}
+        />
+
+        <Button type="submit" loading={!submit.ready()}>
+          Login
+        </Button>
+      </Stack>
+    </form>
+  )
+})`,
+    annotations: [
+      {
+        pattern: 'loginForm',
+        note: "Declare the form model outside of the UI, describe it's default values and submit function",
+      },
+      {
+        pattern: 'submit()',
+        note: 'Trigger async submission function declared above in the model',
+      },
+      {
+        pattern: '...bindField(',
+        note: 'Bind field to the UI component and pass the error state there',
+      },
+      {
+        pattern: 'loading={!submit.ready()}',
+        note: 'Turning the button to loading state until the submission is completed',
       },
     ],
   },
