@@ -168,6 +168,7 @@
     position: relative;
     padding: 8rem 2rem;
     overflow: hidden;
+    background: var(--bg-primary);
   }
 
   .history-section::before {
@@ -202,14 +203,7 @@
     display: block;
     font-size: clamp(2.5rem, 6vw, 4rem);
     font-weight: 700;
-    background: linear-gradient(
-      135deg,
-      var(--signal-color) 0%,
-      var(--signal-secondary) 25%,
-      #a8d5ff 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
+    background: var(--accent-primary);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -280,8 +274,7 @@
     height: calc(100vh);
     background: linear-gradient(
       180deg,
-      var(--signal-color) 0%,
-      var(--accent-primary) 50%,
+      var(--accent-primary) 0%,
       var(--shadow-color) 100%
     );
     border-radius: 2px;
@@ -319,7 +312,7 @@
   .commits {
     font-size: 1.1rem;
     font-weight: 600;
-    color: var(--signal-color);
+    color: var(--accent-primary);
     transition: color 0.3s ease;
   }
 
@@ -350,8 +343,8 @@
   }
 
   .table-row.past .year-dot {
-    background: var(--signal-color);
-    box-shadow: 0 0 16px var(--signal-color);
+    background: var(--accent-primary);
+    box-shadow: 0 0 16px var(--accent-primary);
   }
 
   .table-row.current .year-dot {
@@ -427,14 +420,7 @@
   }
 
   html[data-theme="light"] .history-title-main {
-    background: linear-gradient(
-      135deg,
-      #1e3a8a 0%,
-      #2563eb 25%,
-      #3b82f6 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
+    background: var(--accent-primary);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;

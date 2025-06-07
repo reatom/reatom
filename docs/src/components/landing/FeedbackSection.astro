@@ -169,7 +169,6 @@
 <style>
   .feedback-section {
     padding: 120px 0;
-    background: var(--bg-primary);
     position: relative;
     overflow: hidden;
     transition: background 0.3s ease;
@@ -354,7 +353,7 @@
 
   .feedback-highlight {
     background: rgba(59, 130, 246, 0.1);
-    border-left: 3px solid var(--signal-color);
+    border-left: 3px solid var(--accent-primary);
     padding: 16px 20px;
     border-radius: 0 8px 8px 0;
     font-style: italic;
@@ -421,14 +420,14 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    color: var(--signal-color);
+    color: var(--accent-primary);
     text-decoration: none;
     font-weight: 500;
     transition: color 0.2s ease;
   }
 
   .cta-link:hover {
-    color: var(--signal-secondary);
+    color: var(--accent-secondary);
   }
 
   .cta-link svg {
@@ -460,11 +459,7 @@
     display: block;
     font-size: 2.5rem;
     font-weight: 700;
-    background: linear-gradient(
-      135deg,
-      var(--signal-color),
-      var(--forms-color)
-    );
+    background: var(--accent-primary);
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -511,8 +506,7 @@
   }
 
   html[data-theme='light'] .feedback-highlight {
-    background: rgba(37, 99, 235, 0.08);
-    border-left: 3px solid var(--signal-color);
+    background: color-mix(in srgb, var(--accent-primary), transparent 95%);
   }
 
   html[data-theme='light'] .feedback-card-empty {

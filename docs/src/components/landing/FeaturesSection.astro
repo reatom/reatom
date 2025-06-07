@@ -68,13 +68,12 @@
           </svg>
         </div>
         <h3 id="signal-title" class="feature-title">Signal Architecture</h3>
-        <p class="feature-subtitle">Modern reactive programming paradigm</p>
         <p class="feature-description">
-          The feature of reactivity in Signals: <a
+          Modern reactive programming paradigm. The feature of reactivity in Signals: <a
             href="https://github.com/tc39/proposal-signals"
             target="_blank"
             rel="noopener noreferrer"
-            style="color: #ffd700; text-decoration: none;">TC39</a
+            style="color: #ba9e00; text-decoration: none;">TC39</a
           >
         </p>
       </article>
@@ -107,11 +106,8 @@
         <h3 id="performance-title" class="feature-title">
           Small and Performant
         </h3>
-        <p class="feature-subtitle">
-          Minimal bundle size with maximum efficiency
-        </p>
         <p class="feature-description">
-          Treeshaking, benchmarking, microoptimizations and thoughtful internal
+          Minimal bundle size with maximum efficiency. Treeshaking, benchmarking, microoptimizations and thoughtful internal
           architecture
         </p>
       </article>
@@ -161,9 +157,8 @@
           </svg>
         </div>
         <h3 id="forms-title" class="feature-title">Forms</h3>
-        <p class="feature-subtitle">Comprehensive form state management</p>
         <p class="feature-description">
-          Most powerful validation system and best in class dynamic fields
+          Comprehensive form state management, most powerful validation system and best in class dynamic fields
         </p>
       </article>
 
@@ -369,11 +364,8 @@
           </svg>
         </div>
         <h3 id="router-title" class="feature-title">Router</h3>
-        <p class="feature-subtitle">
-          Dead simple mighty <strong>router</strong>
-        </p>
         <p class="feature-description">
-          Cutting edge combine: async concurrency, typesafe params, suspense
+          Dead simple mighty <strong>router</strong>. Cutting edge combine: async concurrency, typesafe params, suspense
         </p>
       </article>
 
@@ -435,7 +427,6 @@
           </svg>
         </div>
         <h3 id="framework-title" class="feature-title">Framework Agnostic</h3>
-        <p class="feature-subtitle">Framework agnostic</p>
         <p class="feature-description">
           Abstract and solid for simple testing and microfrontends
         </p>
@@ -482,8 +473,9 @@
           </svg>
         </div>
         <h3 id="debug-title" class="feature-title">Debug</h3>
-        <p class="feature-subtitle">Devtools</p>
-        <p class="feature-description">mission control center for your app</p>
+        <p class="feature-description">
+          A simple logger and advanced devtools to keep all the flow and bugs in the palm of your hand.
+        </p>
       </article>
 
       <!-- Ecosystem (spans 2 columns) -->
@@ -498,11 +490,11 @@
             xmlns="http://www.w3.org/2000/svg"
             fill="#151134"
             stroke="#fff"
-            stroke-width="15px"
+            stroke-width="1px"
           >
             <circle cx="200" cy="200" r="200" fill="#fff" stroke-width="0"
             ></circle>
-            <circle cx="200" cy="200" r="175" stroke-width="0"></circle>
+            <circle cx="200" cy="200" r="199" stroke-width="0"></circle>
             <circle cx="180" cy="180" r="130"></circle>
             <circle cx="215" cy="180" r="70"></circle>
             <circle cx="150" cy="94" r="38"></circle>
@@ -586,9 +578,8 @@
           </svg>
         </div>
         <h3 id="ecosystem-title" class="feature-title">Ecosystem</h3>
-        <p class="feature-subtitle">Enormous ecosystem</p>
         <p class="feature-description">
-          Incredible extension system and huge built-in set of tiny helpers
+          Enormous ecosystem. Incredible extension system and huge built-in set of tiny helpers
         </p>
       </article>
     </div>
@@ -635,19 +626,11 @@
     display: block;
     font-size: clamp(2.5rem, 6vw, 4rem);
     font-weight: 700;
-    background: linear-gradient(
-      135deg,
-      var(--signal-color) 0%,
-      var(--signal-secondary) 25%,
-      #a8d5ff 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
+    background: var(--accent-primary);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: gradientText 8s ease infinite;
     margin-bottom: 0.5rem;
     transition: background 0.3s ease;
   }
@@ -659,16 +642,6 @@
     color: var(--text-muted);
     opacity: 0.9;
     transition: color 0.3s ease;
-  }
-
-  @keyframes gradientText {
-    0%,
-    100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
   }
 
   /* Features Grid */
@@ -703,7 +676,7 @@
     height: 100%;
     background: linear-gradient(
       135deg,
-      var(--shadow-color) 0%,
+      white 0%,
       transparent 50%,
       rgba(74, 144, 226, 0.05) 100%
     );
@@ -1047,8 +1020,8 @@
   }
 
   .feature-icon svg {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     transition: transform 0.3s ease;
   }
 
@@ -1085,7 +1058,7 @@
     right: -40%;
     width: 120%;
     opacity: 0.03;
-    animation: rotate 60s linear infinite;
+    animation: rotate 300s linear infinite;
     pointer-events: none;
     z-index: 0;
   }
@@ -1129,17 +1102,6 @@
     transition: color 0.3s ease;
   }
 
-  .feature-subtitle {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--accent-primary);
-    margin-bottom: 1rem;
-    opacity: 0.9;
-    position: relative;
-    z-index: 1;
-    transition: color 0.3s ease;
-  }
-
   .feature-description {
     font-size: 1rem;
     color: var(--text-muted);
@@ -1160,14 +1122,7 @@
   }
 
   html[data-theme='light'] .features-title-main {
-    background: linear-gradient(
-      135deg,
-      var(--signal-color) 0%,
-      var(--signal-secondary) 25%,
-      #5a9bd4 50%,
-      var(--accent-primary) 75%,
-      var(--accent-secondary) 100%
-    );
+    background: var(--accent-primary);
     background-size: 200% 200%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -1182,10 +1137,10 @@
 
   html[data-theme='light'] .feature-card:hover {
     border-color: rgba(37, 99, 235, 0.3);
-    box-shadow:
+    /* box-shadow:
       0 20px 60px rgba(21, 17, 52, 0.15),
       0 8px 32px rgba(37, 99, 235, 0.15),
-      0 0 0 1px rgba(37, 99, 235, 0.1);
+      0 0 0 1px rgba(37, 99, 235, 0.1); */
   }
 
   html[data-theme='light'] .feature-card:hover .feature-icon {
@@ -1244,10 +1199,6 @@
       font-size: 1.3rem;
     }
 
-    .feature-subtitle {
-      font-size: 1rem;
-    }
-
     .feature-description {
       font-size: 0.9rem;
     }
@@ -1268,10 +1219,6 @@
 
     .feature-title {
       color: var(--text-primary);
-    }
-
-    .feature-subtitle {
-      color: var(--accent-primary);
     }
 
     .feature-description {
