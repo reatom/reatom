@@ -1,18 +1,18 @@
 Reatom adapter for [react](https://github.com/facebook/react).
 
-Note, that you don't require this adapter for simple usages, native `useSyncExternalStorage` will be enough!
+Note, that you don't require this adapter for simple usages, native `useSyncExternalStore` will be enough!
 
 ```tsx
-import { useSyncExternalStorage } from 'react'
+import { useSyncExternalStore } from 'react'
 import { atom } from '@reatom/core'
 
 export const page = atom(0, 'page').actions((target) => ({
-  next: () => target((state) => state + 1),
-  prev: () => target((state) => Math.max(0, state - 1)),
+  next: () => target.set((state) => state + 1),
+  prev: () => target.set((state) => Math.max(0, state - 1)),
 }))
 
 export const Paging = () => {
-  const state = useSyncExternalStorage(page.subscribe, page)
+  const state = useSyncExternalStore(page.subscribe, page)
 
   return (
     <span>
