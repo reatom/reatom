@@ -35,10 +35,6 @@ counter.decrement(2)
         note: 'Create a derived memoized state',
       },
       {
-        pattern: 'subscribe(',
-        note: 'Activate the computed and receive changes',
-      },
-      {
         pattern: 'effect(',
         note: 'Create a side-effect which is called when any atom inside it is changed',
       },

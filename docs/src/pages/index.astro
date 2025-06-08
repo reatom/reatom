@@ -124,7 +124,7 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         --texture-filter-color: #1B1B2A;
         --card-bg: rgba(255, 255, 255, 0.02);
         --card-border: rgba(255, 255, 255, 0.1);
-        --overlay-bg: rgba(21, 17, 52, 0.8);
+        --overlay-bg: #0a0a0f;
         
         /* Feature colors */
         --signal-color: #4A90E2;
@@ -215,17 +215,16 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         gap: 1rem;
         align-items: center;
         font-size: 1.2em;
-        font-weight: bold;
+        font-weight: 600;
         cursor: pointer;
-        color: var(--accent-primary);
       }
 
       html[data-theme="dark"] .nav-header-logo svg {
-        stroke: var(--accent-primary)
+        stroke: currentColor;
       }
 
       html[data-theme="dark"] .nav-header-logo svg circle:first-child {
-        fill: var(--accent-primary)
+        fill: currentColor;
       }
 
       .nav-header-buttons {
@@ -341,7 +340,7 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         --top-color: #32343b;
         background-image: 
           linear-gradient(to bottom, transparent 10rem, var(--bg-primary) 100vh 100%),
-          url(assets/noise.svg), 
+          url(/assets/noise.svg), 
           linear-gradient(to bottom, var(--top-color), transparent);
         opacity: 0.2;
       }
