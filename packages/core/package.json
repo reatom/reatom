@@ -58,6 +58,14 @@
   "files": [
     "/build"
   ],
+  "peerDependencies": {
+    "idb-keyval": "*"
+  },
+  "peerDependenciesMeta": {
+    "idb-keyval": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@artalar/act": "latest",
     "@frp-ts/core": "latest",
