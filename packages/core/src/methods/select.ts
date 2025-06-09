@@ -10,32 +10,38 @@ import {
 const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
 
 /**
- * Memoize additional computation inside a computed or an effect.
+ * Memoize additional computation inside a different calls of an atom (computed
+ * or an effect) or an action.
  *
  * It's useful when you want to avoid recomputing of the whole computed
  * function, especially if the computation is expensive. You could create an
  * external atom by yourself, but it is not handy sometimes.
  *
- * The `select` function takes a callback function `cb` that returns the value
- * to be memoized, and an optional `equal` function that compares the new and
- * old values to determine if the memoized value should be updated.
+ * The `memo` function takes a callback function `cb` that returns the value to
+ * be memoized, an optional `equal` function that compares the new and old
+ * values to determine if the memoized value should be updated, and an optional
+ * `key` to uniquely identify the memoized value.
  *
- * Note for a rare cases. A created underhood atom is memorized for the each
- * select by the passed function sources from "toString()" method, so every
- * computed callback in different selects of the same atom should contains
- * different code. It means that you can't repeat the same select a few times.
+ * **Important note**: The created internal atom only uses the first passed
+ * callback function. This means it's unsafe to rely on data from the closure
+ * that changes on every recall, as subsequent calls will not update the
+ * callback used by the internal atom.
+ *
+ * Note for rare cases: A created underhood atom is memorized for each memo by
+ * the passed function sources from "toString()" method, so every computed
+ * callback in different memos of the same atom should contain different code.
+ * However, you can provide a custom `key` parameter to uniquely identify
+ * different memo calls instead of relying on toString().
  *
  * @example
  *   // This is very useful to memoize not just the end string,
- *   // but, for example, a template computation inside ``reatomComponent` or so on.
+ *   // but, for example, a template computation inside `reatomComponent` or so on.
  *   export const listSum = computed(() => {
- *     // Simple call of `list().length` will cause extra recomputations for elements sorting or it internal changes.
+ *     // Simple call of `list().length` will cause extra recomputations for elements sorting or its internal changes.
  *     // correct optimal way, the component will rerender only on `length` change
- *     const length = select(() => list().length)
- *     // you could call different `select` many times in one computed
- *     const sum = select(() =>
- *       list().reduce((acc, el) => acc + el().value, 0),
- *     )
+ *     const length = memo(() => list().length)
+ *     // you could call different `memo` many times in one computed
+ *     const sum = memo(() => list().reduce((acc, el) => acc + el().value, 0))
  *
  *     return `The sum of ${length} elements is: ${sum}`
  *   }, 'listSum')
@@ -44,7 +50,7 @@ const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
  *   // An example of using the equality function as part of the logic
  *   const scroll = atom(0, 'scroll')
  *   const throttledScroll = computed(() => {
- *     const { state } = select(
+ *     const { state } = memo(
  *       () => ({ state: scroll(), time: Date.now() }),
  *       // Only update if 50ms have passed since the last update
  *       (next, prev) => prev.time + 50 < Date.now(),
@@ -52,17 +58,32 @@ const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
  *     return state
  *   }, 'throttledScroll')
  *
+ * @example
+ *   // Using memo in actions for expensive computations
+ *   const processData = action((data: string[]) => {
+ *     // You can even create a service, but not one that is tied only to this action.
+ *     const myService = memo(() => new Service())
+ *
+ *     myService.send(data)
+ *   }, 'processData')
+ *
  * @param cb A function that returns the value to be selected and memoized.
  * @param {function(T, T): boolean} [Object.is] An optional function to compare
- *   the new and old states. The selected value is recomputed only if `equal`
- *   returns `false`. Defaults to a function that always returns `false`,
- *   meaning the value is recomputed if the callback `cb` returns a different
- *   reference.
+ *   the new and old states, useful for reactive context. If the memo appears in
+ *   reactive context (`computed`, `effect`) then before triggering the host
+ *   recomputation the returned value compares with the previous returned value.
+ *   This option defines the comparator algorithm. By default it is a simple
+ *   reference comparison (`Object.is`).
+ * @param key An optional unique identifier for the memoized value. Defaults to
+ *   `cb.toString()`. Used to distinguish between different memo calls within
+ *   the same computed function. Providing a custom key is recommended when
+ *   using similar callback functions to avoid conflicts.
  * @returns The memoized value.
  */
-export let select = <T>(
+export let memo = <T>(
   cb: () => T,
   equal: (newState: T, oldState: T) => boolean = () => false,
+  key = cb.toString(),
 ): T => {
   let frame = top()
   let touched = touchedMap.get(frame)
@@ -77,20 +98,18 @@ export let select = <T>(
     map.set(frame.atom, (atoms = {}))
   }
 
-  const selectSource = cb.toString()
-
-  if (selectSource in touched) {
+  if (key in touched) {
     throw new ReatomError(
-      'multiple select with the same "toString" representation is not possible',
+      'multiple memo with the same "toString" representation is not possible',
     )
   }
 
-  touched[selectSource] = true
+  touched[key] = true
 
-  let selectAtom = atoms[selectSource]
-  if (!selectAtom) {
+  let memoAtom = atoms[key]
+  if (!memoAtom) {
     let isInit = true
-    atoms[selectSource] = selectAtom = computed(
+    atoms[key] = memoAtom = computed(
       (prevState?: any) => {
         const newState = cb()
         const resultState =
@@ -102,5 +121,8 @@ export let select = <T>(
     )
   }
 
-  return selectAtom()
+  return memoAtom()
 }
+
+/** @deprecated Use `memo` instead */
+export let select = memo

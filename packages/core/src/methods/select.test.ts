@@ -2,14 +2,14 @@ import { describe, expect, silentQueuesErrors, subscribe, test } from 'test'
 
 import type { Atom, AtomLike, AtomState } from '../core'
 import { atom, computed, isConnected, notify } from '../core'
-import { select } from './select'
+import { memo } from './select'
 
 test('should not recompute the end atom if the source atom changed', () => {
   let track = 0
   const a = atom(0)
   const b = computed(() => {
     track++
-    return select(() => a() % 3)
+    return memo(() => a() % 3)
   })
 
   b.subscribe()
@@ -26,11 +26,11 @@ test('should not recompute the end atom if the source atom changed', () => {
   expect(track).toBe(2)
 })
 
-test('many selects should work', () => {
+test('many memos should work', () => {
   const list = atom(new Array<{ value: Atom<number> }>())
   const target = computed(() => {
-    const length = select(() => list().length)
-    const sum = select(() => list().reduce((acc, el) => acc + el.value(), 0))
+    const length = memo(() => list().length)
+    const sum = memo(() => list().reduce((acc, el) => acc + el.value(), 0))
 
     return { length, sum }
   })
@@ -56,10 +56,10 @@ test('many selects should work', () => {
   expect(track).toBeCalledTimes(3)
 })
 
-test('prevent select memoization errors', () => {
+test('prevent memoization errors', () => {
   const list = atom(new Array<Atom<{ name: string; value: number }>>())
   const sum = computed(() => {
-    return list().reduce((acc, el) => acc + select(() => el().value), 0)
+    return list().reduce((acc, el) => acc + memo(() => el().value), 0)
   })
 
   const track = subscribe(sum)
@@ -72,15 +72,15 @@ test('prevent select memoization errors', () => {
   notify()
   silentQueuesErrors()
   expect(() => sum()).toThrow(
-    'multiple select with the same "toString" representation is not possible',
+    'multiple memo with the same "toString" representation is not possible',
   )
 })
 
-describe('select', () => {
+describe('memo', () => {
   test('should filter equals', () => {
     const n = atom(1)
     const odd = computed(() =>
-      select(
+      memo(
         () => n(),
         (next) => next % 2 === 0,
       ),
@@ -145,13 +145,4 @@ describe('select', () => {
     data.set(4)
     expect(lastSumHistory()).toBe(7)
   })
-})
-
-const scroll = atom(0)
-const scrollThrottled = computed(() => {
-  const { state } = select(
-    () => ({ state: scroll(), time: Date.now() }),
-    (prev, next) => prev.time < Date.now() - 50,
-  )
-  return state
 })
