@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@vitest/browser": "^3.0.9",
-    "playwright": "^1.51.1"
+    "playwright": "^1.53.0"
   },
   "author": "artalar",
   "maintainers": [

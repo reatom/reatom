@@ -12,7 +12,7 @@ jobs:
         with:
           node-version: 22.13.1
       - name: Install dependencies
-        run: | 
+        run: |
           npm ci --ignore-scripts
           npx playwright install --with-deps chromium
       - name: Run tests
