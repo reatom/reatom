@@ -1,7 +1,8 @@
 import { describe, expect, silentQueuesErrors, subscribe, test } from 'test'
 
 import type { Atom, AtomLike, AtomState } from '../core'
-import { atom, computed, isConnected, notify } from '../core'
+import { action, atom, computed, isConnected, notify } from '../core'
+import { random } from '../utils'
 import { memo } from './memo'
 
 test('should not recompute the end atom if the source atom changed', () => {
@@ -144,5 +145,21 @@ describe('memo', () => {
     expect(lastSumHistory()).toBe(5)
     data.set(4)
     expect(lastSumHistory()).toBe(7)
+  })
+
+  test('should work in actions', () => {
+    const processData = action((base: number) => {
+      const number = memo(() => random())
+
+      return {
+        number,
+        base,
+      }
+    }, 'processData')
+
+    const { number } = processData(0)
+
+    expect(processData(1)).toEqual({ number, base: 1 })
+    expect(processData(2)).toEqual({ number, base: 2 })
   })
 })
