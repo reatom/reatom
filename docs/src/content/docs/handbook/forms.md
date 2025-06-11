@@ -33,7 +33,7 @@ export const loginForm = reatomForm({
 }, {
   name: 'form',
   async onSubmit(state) {
-    //           ^? toJS<typeof loginForm.fields>
+    //           ^? deatomize<typeof loginForm.fields>
     const user = await api.login({
       name: state.username,
       password: state.password,
