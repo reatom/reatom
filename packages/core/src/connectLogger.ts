@@ -133,6 +133,8 @@ export let getStackTrace = (acc = '─ ', steps = '', frame = top()): string => 
   return concatTree(acc, steps, prepareFrameStack(frame))
 }
 
+let isNewLogStack = true
+
 /**
  * Sets up and connects a logger to the Reatom system for debugging and tracing.
  *
@@ -178,6 +180,13 @@ export let connectLogger = () => {
     }
 
     let logStack = (payload: any, error: any, cb: Fn) => {
+      if (isNewLogStack) {
+        isNewLogStack = false
+        setTimeout(() => {
+          isNewLogStack = true
+        })
+        console.log('--- ' + new Date().toISOString() + ' ----')
+      }
       console.groupCollapsed(
         `${title}${getSerial()}`,
         style + (error ? 'color: red;' : ''),
@@ -256,6 +265,7 @@ export let connectLogger = () => {
     )
   }
 
+  // @ts-ignore TODO
   globalThis.__REATOM.push(logExt)
 
   log.extend(logExt)
