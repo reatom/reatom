@@ -1,6 +1,6 @@
 import type { Fn, OverloadParameters, Rec } from '../utils'
 import type { Action, Atom, AtomLike, AtomState } from '.'
-import { isAtom, ReatomError, top } from '.'
+import { computedParams, isAtom, ReatomError, top } from '.'
 
 /**
  * Extension function interface for modifying atoms and actions.
@@ -291,8 +291,8 @@ export interface ParamsExt<
 }
 
 /**
- * Creates an extension that transforms parameters before they reach the atom or
- * action.
+ * Extension that transforms parameters before they reach the atom or action.
+ * Useful as the `.set` atom method can't be reassigned and changed.
  *
  * This utility lets you change how parameters are processed when an atom or
  * action is called, enabling custom parameter handling, validation, or
@@ -309,6 +309,8 @@ export interface ParamsExt<
  *           return value
  *         case 'km':
  *           return value * 1000
+ *         default:
+ *           return value
  *       }
  *     }),
  *   )
@@ -334,11 +336,14 @@ export let withParams: {
     throw new ReatomError('function expected')
   }
 
-  return withMiddleware(
-    (target) =>
-      (next: Fn, ...params) =>
-        target.__reatom.reactive && params.length === 0
-          ? next()
-          : next(parse(...params)),
-  )
+  return withMiddleware((target) => {
+    let idx = target.__reatom.middlewares.indexOf(computedParams)
+    if (idx !== -1) {
+      target.__reatom.middlewares.splice(idx, 1)
+    }
+    return (next: Fn, ...params) =>
+      target.__reatom.reactive && params.length === 0
+        ? next()
+        : next(parse(...params))
+  })
 }
