@@ -74,6 +74,7 @@
     "mobx": "latest",
     "mol_wire_lib": "latest",
     "nanostores": "latest",
+    "playwright": "^1.53.0",
     "react": "latest",
     "reatomV3": "@reatom/core@3",
     "redux": "latest",
