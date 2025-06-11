@@ -1,28 +1,24 @@
+import { type Frame, ReatomError, STACK } from '@reatom/core'
 import {
-  Atom,
-  AtomMut,
-  AtomState,
-  Ctx,
-  CtxSpy,
-  Fn,
-  __count,
-  atom,
-  isAtom,
-  throwReatomError,
-} from '@reatom/core'
-import { Accessor, createContext, from, getOwner, useContext } from 'solid-js'
+  type Accessor,
+  createContext,
+  from,
+  getOwner,
+  useContext,
+} from 'solid-js'
 
-export const reatomContext = createContext<Ctx>()
+export const reatomContext = createContext<null | Frame>(null)
 
-export const useCtx = (): Ctx => {
-  let ctx = useContext(reatomContext)
+export let useFrame = (): Frame => {
+  let frame = useContext(reatomContext) ?? STACK[0]
 
-  throwReatomError(
-    !ctx,
-    'ctx is not set, you probably forgot to specify the ctx provider',
-  )
+  if (!frame) {
+    throw new ReatomError(
+      'the root is not set, you probably forgot to specify the  provider',
+    )
+  }
 
-  return ctx!
+  return frame
 }
 
 // @ts-ignore

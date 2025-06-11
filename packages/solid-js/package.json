@@ -25,7 +25,8 @@
 		"test:watch": "vitest src/*"
 	},
 	"dependencies": {
-		"@reatom/core": ">=1000.0.0-alpha.30"
+		"@reatom/core": ">=1000.0.0-alpha.30",
+		"solid-js": "^1.9.7"
 	},
 	"author": {
 		"name": "artalar",
