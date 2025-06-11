@@ -63,6 +63,7 @@ export interface RouteMixin<
    */
   route<SubPath extends string>(
     path: SubPath,
+    name?: string,
   ): RouteAtom<
     `${Path}/${SubPath}`,
     // @ts-expect-error TODO
@@ -112,6 +113,7 @@ export interface RouteMixin<
       LoaderParams,
       Payload
     >,
+    name?: string,
   ): RouteAtom<
     `${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`,
     // @ts-expect-error TODO
@@ -178,6 +180,7 @@ const getPatternName = (part: string) => {
 
 const createRouteFactory = (
   parent: Computed & { pattern: string; loader?: RouteLoader },
+  name?: string,
 ) => {
   return function route(
     pathOrOptions: string | RouteOptions<string, any, any, any>,
@@ -210,7 +213,7 @@ const createRouteFactory = (
 
     const pattern = `${parentPattern}/${subPath}`
 
-    const name = `route#${pattern}`
+    name ??= `route#${pattern}`
 
     const hasOptionalPart = pattern.endsWith('?')
 
@@ -361,4 +364,9 @@ const createRouteFactory = (
   }
 }
 
-export let route = createRouteFactory(urlAtom as any) as RouteMixin<''>['route']
+export let reatomRoute = createRouteFactory(
+  urlAtom as any,
+) as RouteMixin<''>['route']
+
+/** @deprecated Use `reatomRoute` instead */
+export let route = reatomRoute

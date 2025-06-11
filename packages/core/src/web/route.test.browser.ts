@@ -5,7 +5,7 @@ import { computed } from '../core'
 import { effect, wrap } from '../methods'
 import { withChangeHook } from '../mixins'
 import { sleep } from '../utils'
-import { route } from './route'
+import { reatomRoute } from './route'
 import { urlAtom } from './url'
 
 beforeEach(() => {
@@ -15,10 +15,10 @@ beforeEach(() => {
 })
 
 test('route basic functionality', async () => {
-  const rootRoute = route('')
-  const profilesRoute = route('profiles')
-  const profileRoute = route('profiles/:profileId')
-  const postRoute = route('posts/:postId?')
+  const rootRoute = reatomRoute('')
+  const profilesRoute = reatomRoute('profiles')
+  const profileRoute = reatomRoute('profiles/:profileId')
+  const postRoute = reatomRoute('posts/:postId?')
   const postCommentsRoute = postRoute.route({
     path: 'comments/:commentId',
     search: z.object({ sort: z.string().optional() }),
@@ -117,7 +117,7 @@ test('route basic functionality', async () => {
 })
 
 test('route chainable functionality', async () => {
-  const apiRoute = route('api')
+  const apiRoute = reatomRoute('api')
   const productsRoute = apiRoute.route('products')
   const productDetailsRoute = productsRoute.route(':productId')
   const productSettingsRoute = productDetailsRoute.route('settings')
@@ -189,13 +189,13 @@ test('route chainable functionality', async () => {
 test('route typed params', () => {
   {
     // @ts-expect-error - test
-    const catalogRoute = route({
+    const catalogRoute = reatomRoute({
       path: 'catalog/:id',
       params: z.object({ /* mistake -> */ ib: z.number() }),
     })
   }
 
-  const catalogRoute = route({
+  const catalogRoute = reatomRoute({
     path: 'catalog/:id',
     params: z.object({ id: z.number() }),
   })
@@ -207,7 +207,7 @@ test('route typed params', () => {
 })
 
 test('route default loader', async () => {
-  const goodsRoute = route({
+  const goodsRoute = reatomRoute({
     path: 'goods/:category',
     params: z.object({ category: z.string() }),
     search: z.object({
@@ -240,7 +240,7 @@ test('route default loader', async () => {
 })
 
 test('route loader', async () => {
-  const goodsRoute = route('goods/:category')
+  const goodsRoute = reatomRoute('goods/:category')
   const goodsBrandRoute = goodsRoute.route({
     path: ':brand',
     search: z.object({
@@ -290,7 +290,7 @@ test('route loader lazyness (abortable)', async () => {
   let runs = 0
   let ticks = 0
 
-  const lazyRoute = route({
+  const lazyRoute = reatomRoute({
     path: 'lazy',
     async loader() {
       runs++
@@ -342,7 +342,7 @@ test('route loader lazyness (abortable)', async () => {
 })
 
 test('params types transform', async () => {
-  const issueRoute = route({
+  const issueRoute = reatomRoute({
     path: 'issue/:issueId',
     params: z.object({
       issueId: z.string().regex(/^\d+$/).transform(Number),

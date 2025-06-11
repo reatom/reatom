@@ -13,9 +13,9 @@ Let's imagine a login page:
 
 ```ts
 // src/routes.ts
-import { route } from '@reatom/core'
+import { reatomRoute } from '@reatom/core'
 
-export const loginRoute = route({
+export const loginRoute = reatomRoute({
   path: '/login',
 })
 ```
@@ -32,10 +32,10 @@ Let's adapt our `loginForm` example from the Forms guide:
 
 ```ts
 // src/routes.ts
-import { route, reatomForm } from '@reatom/core'
+import { reatomRoute, reatomForm } from '@reatom/core'
 // import * as api from './api' // Assuming you have an API module
 
-export const loginRoute = route({
+export const loginRoute = reatomRoute({
   path: '/login',
   async loader() {
     // This form is created ONLY when /login is active

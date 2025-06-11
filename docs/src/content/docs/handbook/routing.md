@@ -13,15 +13,15 @@ Let's create a file, say `src/routes.ts`:
 
 ```typescript
 // src/routes.ts
-import { route } from '@reatom/core'
+import { reatomRoute } from '@reatom/core'
 
-export const homeRoute = route('')
+export const homeRoute = reatomRoute('')
 
-export const userProfileRoute = route('users/:userId')
+export const userProfileRoute = reatomRoute('users/:userId')
 
-export const postsRoute = route('posts')
+export const postsRoute = reatomRoute('posts')
 
-export const searchPageRoute = route('search')
+export const searchPageRoute = reatomRoute('search')
 ```
 
 - `homeRoute()` will be an empty object `{}` if the URL is exactly `/`.
@@ -35,11 +35,11 @@ For type safety and transformation (e.g., ensuring an ID is a number), you can u
 
 ```typescript
 // src/routes.ts (with zod validation and loaders)
-import { route, wrap } from '@reatom/core'
+import { reatomRoute, wrap } from '@reatom/core'
 import { z } from 'zod'
 import * as api from './api'
 
-export const userProfileRoute = route({
+export const userProfileRoute = reatomRoute({
   path: 'users/:userId',
   params: z.object({
     userId: z.string().regex(/^\d+$/).transform(Number),
@@ -50,7 +50,7 @@ export const userProfileRoute = route({
   },
 })
 
-export const searchPageRoute = route({
+export const searchPageRoute = reatomRoute({
   path: 'search',
   search: z.object({
     query: z.string().optional(),
@@ -218,10 +218,10 @@ Each route with a `loader` option automatically extends the route with async dat
 
 ```tsx
 // src/routes.ts
-import { route, wrap } from '@reatom/core'
+import { reatomRoute, wrap } from '@reatom/core'
 import * as api from './api'
 
-export const postsRoute = route({
+export const postsRoute = reatomRoute({
   path: 'posts',
   async loader() {
     const posts = await wrap(api.getPosts())
@@ -234,11 +234,11 @@ export const postsRoute = route({
 
 ```tsx
 // src/routes.ts
-import { route, wrap } from '@reatom/core'
+import { reatomRoute, wrap } from '@reatom/core'
 import { z } from 'zod'
 import * as api from './api'
 
-export const postDetailRoute = route({
+export const postDetailRoute = reatomRoute({
   path: 'posts/:postId',
   params: z.object({
     postId: z.string().regex(/^\d+$/).transform(Number),
@@ -305,13 +305,7 @@ When a route loader executes, it can create forms, API clients, derived state, o
 
 ```typescript
 // src/routes.ts
-import {
-  route,
-  wrap,
-  reatomForm,
-  isShallowEqual,
-  deatomize,
-} from '@reatom/core'
+import { wrap, reatomForm, isShallowEqual, deatomize } from '@reatom/core'
 import { z } from 'zod'
 import * as api from './api'
 
@@ -404,7 +398,7 @@ export const UserEditPage = reatomComponent(() => {
 You can create incredibly sophisticated state factories:
 
 ```typescript
-export const dashboardRoute = route({
+export const dashboardRoute = reatomRoute({
   path: 'dashboard',
   async loader() {
     // Create multiple interconnected systems
