@@ -29,6 +29,8 @@ import {
 } from '@reatom/core'
 import { z } from 'zod'
 
+export * as v4 from './v4'
+
 export interface ZodAtom<_T> {}
 
 export interface Atom<T = any, Params extends any[] = [newState: T]>

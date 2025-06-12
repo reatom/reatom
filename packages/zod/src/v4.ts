@@ -471,7 +471,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       }
 
       theAtom = atom(getState(state), name).extend(
-        withParams<Atom<{}>, [{}]>((payload) =>
+        withParams<Atom<any>, [any]>((payload) =>
           getState(
             typeof payload === 'function' ? payload(top().state) : payload,
           ),
@@ -481,6 +481,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
     }
     case 'nonoptional':
     case 'optional': {
+      // @ts-ignore TODO
       return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
@@ -493,6 +494,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       })
     }
     case 'nullable': {
+      // @ts-ignore TODO
       return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
@@ -506,6 +508,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
     }
     case 'prefault':
     case 'default': {
+      // @ts-ignore TODO
       return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
@@ -526,6 +529,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
           })
       }
 
+      // @ts-ignore TODO
       return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
@@ -539,6 +543,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       break
     }
     case 'pipe': {
+      // @ts-ignore TODO
       return reatomZod(def.out as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
@@ -547,6 +552,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       })
     }
     case 'lazy': {
+      // @ts-ignore TODO
       return reatomZod(def.getter() as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
@@ -574,6 +580,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
   // TODO: with withParams for reatomLinkedList
   if (def.type !== 'array') {
     theAtom.extend(
+      // @ts-ignore TODO
       withParams((payload) => {
         return typeof payload === 'function'
           ? (state: any) => parse(payload(state))

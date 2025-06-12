@@ -1,6 +1,6 @@
 {
   "name": "@reatom/zod",
-  "version": "1000.0.0-alpha.32",
+  "version": "1000.0.0-alpha.33",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -26,7 +26,7 @@
   ],
   "scripts": {
     "prepublishOnly": "eslint src --fix && prettier src -w && pnpm run build",
-    "build": "pnpm run test && yoctobundle",
+    "build": "pnpm run test && yoctobundle -b",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
