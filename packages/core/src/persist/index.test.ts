@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'test'
 
-import { atom } from '../core'
+import { atom, notify } from '../core'
+import { wrap } from '../methods'
 import { withComputed } from '../mixins'
 import { sleep } from '../utils'
 import { createMemStorage, reatomPersist } from './'
@@ -13,7 +14,6 @@ test('createMemStorage basic functionality', () => {
 
   const record = {
     data: 'test-data',
-    fromState: true,
     id: 1,
     timestamp: Date.now(),
     to: Date.now() + 1000,
@@ -110,7 +110,6 @@ test('storage subscription', () => {
 
   const record = {
     data: 'test',
-    fromState: true,
     id: 1,
     timestamp: Date.now(),
     to: Date.now() + 1000,
@@ -129,7 +128,6 @@ test('version migration', () => {
   // Set data with version 0
   const oldRecord = {
     data: 'old-data',
-    fromState: true,
     id: 1,
     timestamp: Date.now(),
     to: Date.now() + 1000,
@@ -209,7 +207,7 @@ test('multiple atoms sharing same storage key (no subscription)', () => {
   expect(atom2()).toBe(100)
 })
 
-test('multiple atoms sharing same storage key with subscription', () => {
+test('multiple atoms sharing same storage key with subscription', async () => {
   const storage = createMemStorage({
     name: 'shared-test-sync',
     snapshot: { 'shared-key': 100 },
@@ -223,9 +221,19 @@ test('multiple atoms sharing same storage key with subscription', () => {
   expect(atom1()).toBe(100)
   expect(atom2()).toBe(100)
 
+  // Force connection by creating real subscriptions that track changes
+  const unsub1 = atom1.subscribe(() => {})
+  const unsub2 = atom2.subscribe(() => {})
+
+  // Wait for withConnectHook
+  await wrap(sleep(1))
+
   // When one atom changes, the other should sync automatically via subscription
   atom1.set(200)
   expect(atom1()).toBe(200)
+
+  // Force execution of effect queue (where subscription callback is scheduled)
+  notify()
 
   // atom2 should now be updated via subscription
   expect(atom2()).toBe(200)
@@ -233,7 +241,15 @@ test('multiple atoms sharing same storage key with subscription', () => {
   // Test the reverse direction
   atom2.set(300)
   expect(atom2()).toBe(300)
+
+  // Force execution of effect queue again
+  notify()
+
   expect(atom1()).toBe(300)
+
+  // Cleanup
+  unsub1()
+  unsub2()
 })
 
 test('computed atom with persist', () => {
@@ -274,7 +290,6 @@ test('persist with time expiration', () => {
   // Set a record that will expire in 1ms
   const expiredRecord = {
     data: 'expired-data',
-    fromState: true,
     id: 1,
     timestamp: Date.now() - 2000,
     to: Date.now() - 1000, // Already expired

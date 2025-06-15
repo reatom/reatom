@@ -36,7 +36,6 @@ test('withCookie basic functionality', () => {
   const cookieData = getCookieData('test-cookie-key')
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('cookie-value')
-  expect(cookieData.fromState).toBe(true)
   expect(typeof cookieData.id).toBe('number')
   expect(typeof cookieData.timestamp).toBe('number')
   expect(typeof cookieData.to).toBe('number')
@@ -76,7 +75,6 @@ test('cookie restore state', () => {
   // Pre-set a cookie
   const record = {
     data: 'restored-cookie-value',
-    fromState: true,
     id: 1,
     timestamp: Date.now(),
     to: Date.now() + 10000,
@@ -138,7 +136,6 @@ test('cookie encoding/decoding', () => {
   const cookieData = getCookieData('test-cookie-encoding')
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe(specialValue)
-  expect(cookieData.fromState).toBe(true)
   expect(typeof cookieData.id).toBe('number')
   expect(typeof cookieData.timestamp).toBe('number')
   expect(typeof cookieData.to).toBe('number')
@@ -161,7 +158,6 @@ test('cookie value updates', () => {
   let cookieData = getCookieData('test-cookie-update')
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('first-value')
-  expect(cookieData.fromState).toBe(true)
 
   // Update the value multiple times
   testAtom.set('second-value')
@@ -174,7 +170,6 @@ test('cookie value updates', () => {
   cookieData = getCookieData('test-cookie-update')
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('third-value')
-  expect(cookieData.fromState).toBe(true)
   expect(typeof cookieData.id).toBe('number')
   expect(typeof cookieData.timestamp).toBe('number')
   expect(typeof cookieData.to).toBe('number')
@@ -216,7 +211,6 @@ test('cookie with multiple attributes', () => {
   const cookieData = getCookieData('test-cookie-multi-attrs')
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('multi-attrs-value')
-  expect(cookieData.fromState).toBe(true)
 
   // Verify expiration time is approximately 2 hours from now (7200 seconds)
   const expectedExpiration = Date.now() + 7200 * 1000
@@ -235,7 +229,6 @@ test('cookie expired record handling', () => {
   // Pre-set an expired cookie
   const expiredRecord = {
     data: 'expired-data',
-    fromState: true,
     id: 1,
     timestamp: Date.now() - 2000,
     to: Date.now() - 1000, // Already expired

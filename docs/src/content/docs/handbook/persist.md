@@ -567,7 +567,6 @@ interface PersistRecord {
   timestamp: number // When record was created
   version: number // Your version number
   to: number // Expiration timestamp
-  fromState: boolean // Whether data came from state or storage
 }
 ```
 

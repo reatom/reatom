@@ -109,7 +109,7 @@ test('IndexedDB error handling', async () => {
 
   // Close channel to simulate BroadcastChannel errors
   channel.close()
-  
+
   // Test that atom continues to work despite BroadcastChannel errors
   // The adapter should handle errors gracefully and continue to work
   testAtom.set('error-test-value')
@@ -118,7 +118,7 @@ test('IndexedDB error handling', async () => {
   // Trigger multiple operations to ensure async errors occur
   testAtom.set('another-value-1')
   testAtom.set('another-value-2')
-  
+
   // Wait for async operations to complete
   await sleep(100)
 

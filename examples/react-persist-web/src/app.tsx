@@ -1,42 +1,45 @@
 import { atom } from '@reatom/core'
-import { reatomComponent } from '@reatom/react'
 import {
-  withLocalStorage,
-  withSessionStorage,
+  type Atom,
   withBroadcastChannel,
   withIndexedDb,
+  withLocalStorage,
+  withSessionStorage,
 } from '@reatom/core'
+import { reatomComponent } from '@reatom/react'
 
-// Create BroadcastChannel for demo
+// Create BroadcastChannel for cross-tab synchronization demo
+// BroadcastChannel allows real-time communication between tabs/windows of the same origin
+// If not available (e.g., in SSR), we fallback to null and use memory storage
 const demoChannel =
   typeof BroadcastChannel !== 'undefined'
     ? new BroadcastChannel('persist-demo')
     : null
 
 // Create atoms with different storage adapters
-const localStorageAtom = atom('', 'localStorageValue').extend(
+const dataWithLocalStorage = atom('', 'localStorageValue').extend(
   withLocalStorage('local-storage-demo'),
 )
 
-const sessionStorageAtom = atom('', 'sessionStorageValue').extend(
+const dataWithSessionStorage = atom('', 'sessionStorageValue').extend(
   withSessionStorage('session-storage-demo'),
 )
 
-const broadcastChannelAtom = atom('', 'broadcastChannelValue').extend(
+const dataWithBroadcastChannel = atom('', 'broadcastChannelValue').extend(
   demoChannel ? withBroadcastChannel(demoChannel) : () => ({}),
 )
 
-const indexedDbAtom = atom('', 'indexedDbValue').extend(
+const dataWithIndexedDb = atom('', 'indexedDbValue').extend(
   withIndexedDb('indexed-db-demo'),
 )
 
 // Storage demo component
 const StorageDemo = reatomComponent<{
   title: string
-  atom: typeof localStorageAtom
+  model: Atom<string>
   placeholder: string
-}>(({ title, atom: storageAtom, placeholder }) => {
-  const value = storageAtom()
+}>(({ title, model, placeholder }) => {
+  const value = model()
 
   // Check availability of different storage APIs
   const getStatus = () => {
@@ -82,7 +85,7 @@ const StorageDemo = reatomComponent<{
       <input
         type="text"
         value={value}
-        onChange={(e) => storageAtom(e.target.value)}
+        onChange={(e) => model.set(e.target.value)}
         placeholder={placeholder}
         style={{
           width: '100%',
@@ -104,6 +107,8 @@ export const App = reatomComponent(() => {
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <h1>🔄 Reatom Persist Demo</h1>
       <p>Try different storage adapters and see how data persists!</p>
+      <p>Open a few tabs and see the realtime sync.</p>
+      <p>Open the devtools Application tab and inspect the data.</p>
 
       <div
         style={{
@@ -114,25 +119,25 @@ export const App = reatomComponent(() => {
       >
         <StorageDemo
           title="localStorage"
-          atom={localStorageAtom}
+          model={dataWithLocalStorage}
           placeholder="I'm synced with localStorage"
         />
 
         <StorageDemo
           title="sessionStorage"
-          atom={sessionStorageAtom}
+          model={dataWithSessionStorage}
           placeholder="I'm synced with sessionStorage"
         />
 
         <StorageDemo
           title="BroadcastChannel"
-          atom={broadcastChannelAtom}
+          model={dataWithBroadcastChannel}
           placeholder="I'm synced with BroadcastChannel"
         />
 
         <StorageDemo
           title="IndexedDB"
-          atom={indexedDbAtom}
+          model={dataWithIndexedDb}
           placeholder="I'm synced with IndexedDB"
         />
       </div>

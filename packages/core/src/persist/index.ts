@@ -1,6 +1,8 @@
 import type { AssignerExt, Atom, AtomState } from '../core'
-import { atom, top, withMiddleware } from '../core'
+import { _enqueue, atom, top, withMiddleware } from '../core'
 import { wrap } from '../methods'
+import { withConnectHook } from '../mixins/withConnectHook'
+import { isInit } from '../mixins/withInit'
 import {
   type Fn,
   MAX_SAFE_TIMEOUT,
@@ -11,8 +13,6 @@ import {
 
 export interface PersistRecord<T = unknown> {
   data: T
-  /** @deprecated Not needed anymore */
-  fromState: boolean
   id: number
   timestamp: number
   version: number
@@ -25,7 +25,10 @@ export interface PersistStorage {
   get(key: string): null | PersistRecord | Promise<null | PersistRecord>
   set(key: string, rec: PersistRecord): void | Promise<void>
   clear?(key: string): void | Promise<void>
-  subscribe?(key: string, callback: (record: PersistRecord) => void): Unsubscribe
+  subscribe?(
+    key: string,
+    callback: (record: PersistRecord) => void,
+  ): Unsubscribe
 }
 
 export interface SyncPersistStorage {
@@ -33,7 +36,10 @@ export interface SyncPersistStorage {
   get(key: string): null | PersistRecord
   set(key: string, rec: PersistRecord): void
   clear?(key: string): void
-  subscribe?(key: string, callback: (record: PersistRecord) => void): Unsubscribe
+  subscribe?(
+    key: string,
+    callback: (record: PersistRecord) => void,
+  ): Unsubscribe
 }
 
 export interface WithPersistOptions<T> {
@@ -115,7 +121,6 @@ export const reatomPersist = (
 
       const toPersistRecord = (state: AtomState<T>): PersistRecord => ({
         data: toSnapshot(state),
-        fromState: true,
         id: random(),
         timestamp: Date.now(),
         to: Date.now() + time,
@@ -134,9 +139,6 @@ export const reatomPersist = (
         return fromSnapshot(rec.data)
       }
 
-      // Load initial state from storage on first read
-      let isInitialized = false
-
       // Add middleware to handle persist on read and write
       anAtom.extend(
         withMiddleware(
@@ -146,28 +148,31 @@ export const reatomPersist = (
               const isWrite = params.length > 0
 
               // Initialize from storage on first read
-              if (!isInitialized && !isWrite) {
+              if (isInit() && !isWrite) {
                 try {
                   const result = storageAtom().get(key)
 
                   // Handle both sync and async results
                   if (result instanceof Promise) {
                     // Async storage
-                    wrap(async () => {
+                    ;(async () => {
                       try {
-                        const persistedRecord = await result
-                        if (persistedRecord) {
-                          const restoredState =
-                            fromPersistRecord(persistedRecord)
-                          if (restoredState !== null) {
-                            anAtom.set(restoredState)
-                            persistRecordAtom.set(persistedRecord)
-                          }
-                        }
+                        await result.then(
+                          wrap((persistedRecord) => {
+                            if (persistedRecord) {
+                              const restoredState =
+                                fromPersistRecord(persistedRecord)
+                              if (restoredState !== null) {
+                                anAtom.set(restoredState)
+                                persistRecordAtom.set(persistedRecord)
+                              }
+                            }
+                          }),
+                        )
                       } catch (error) {
                         console.warn('Failed to load persisted state:', error)
                       }
-                    })().catch(console.warn)
+                    })()
                   } else {
                     // Sync storage
                     if (result) {
@@ -181,7 +186,6 @@ export const reatomPersist = (
                 } catch (error) {
                   console.warn('Failed to load persisted state:', error)
                 }
-                isInitialized = true
               }
 
               // Call the next middleware/atom
@@ -212,43 +216,29 @@ export const reatomPersist = (
         ),
       )
 
-      // Add storage subscription if enabled (always active)
+      // Add storage subscription if enabled
       if (subscribe && storage.subscribe) {
-        storage.subscribe(key, () => {
-          try {
-            const result = storageAtom().get(key)
-
-            // Handle both sync and async results
-            if (result instanceof Promise) {
-              result
-                .then((newRecord) => {
-                  if (
-                    newRecord &&
-                    newRecord.id !== persistRecordAtom()?.id
-                  ) {
+        anAtom.extend(
+          withConnectHook((target) => {
+            return storage.subscribe!(key, (newRecord) => {
+              _enqueue(() => {
+                try {
+                  if (newRecord) {
                     const newState = fromPersistRecord(newRecord)
-                    if (newState !== null) {
-                      anAtom.set(newState)
+                    const currentState = target()
+                    // Only update if the value is actually different from current atom state
+                    if (newState !== null && newState !== currentState) {
+                      target.set(newState)
                       persistRecordAtom.set(newRecord)
                     }
                   }
-                })
-                .catch((error) => {
+                } catch (error) {
                   console.warn('Failed to load from subscription:', error)
-                })
-            } else {
-              if (result && result.id !== persistRecordAtom()?.id) {
-                const newState = fromPersistRecord(result)
-                if (newState !== null) {
-                  anAtom.set(newState)
-                  persistRecordAtom.set(result)
                 }
-              }
-            }
-          } catch (error) {
-            console.warn('Failed to load from subscription:', error)
-          }
-        })
+              }, 'effect')
+            })
+          }),
+        )
       }
 
       return {
@@ -275,7 +265,6 @@ export const createMemStorage = ({
   const initState = Object.entries(snapshot).reduce((acc, [key, data]) => {
     acc[key] = {
       data,
-      fromState: false,
       id: 0,
       timestamp,
       to,

@@ -115,7 +115,7 @@ test('BroadcastChannel error handling', () => {
   // Should have logged warnings about failed broadcast
   expect(consoleSpy).toHaveBeenCalledWith(
     'Failed to broadcast message:',
-    expect.any(Error)
+    expect.any(Error),
   )
 
   consoleSpy.mockRestore()

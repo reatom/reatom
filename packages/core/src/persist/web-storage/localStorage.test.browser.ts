@@ -55,7 +55,6 @@ test('localStorage restore state', () => {
   // Pre-populate localStorage
   const record = {
     data: 100,
-    fromState: true,
     id: 1,
     timestamp: Date.now(),
     to: Date.now() + 10000,
