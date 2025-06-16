@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "declarationMap": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "hf",
+    "jsxImportSource": "@reatom/jsx",
+    "types": ["@vitest/browser/providers/playwright"],
+  },
+  "references": [
+    {"path": "../core/tsconfig.build.json"}
+  ]
+}

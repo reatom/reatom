@@ -1,8 +1,0 @@
-{
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "declarationMap": true
-  },
-  "include": ["src"],
-  "exclude": ["build", "**/*.test.ts", "**/*.test.browser.ts", "**/*.test-d.ts", "src/test.ts"]
-}

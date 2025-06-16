@@ -18,7 +18,7 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "tsc -p ./tsconfig.bundle.json && eslint src --fix && prettier src -w && pnpm run build",
+    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run build",
     "build": "pnpm run test && pnpm run test:browser && yoctobundle",
     "test": "vitest run",
     "test:browser": "vitest run --config=vitest.browser.config.ts",

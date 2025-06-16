@@ -62,4 +62,6 @@ catalog:
   wonka: latest
   yoctobundle: ^0.2.1
   zod: ^3.25.17
+  typedoc: ^0.28.5
+  typedoc-plugin-markdown: ^4.6.4
   zx: ^8.5.4

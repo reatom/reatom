@@ -1,0 +1,16 @@
+{
+	"$schema": "https://typedoc.org/schema.json",
+	"entryPoints": [
+        "packages/core", 
+        "packages/lit", 
+        "packages/preact", 
+        "packages/react", 
+        "packages/jsx", 
+        "packages/vue"
+    ],
+	"name": "reatom",
+    "out": "./autodocs",
+	"entryPointStrategy": "packages",
+	"gitRemote": "origin",
+    "plugin": ["typedoc-plugin-markdown"]
+}

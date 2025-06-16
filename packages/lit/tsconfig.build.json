@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "declarationMap": true
+  },
+  "references": [
+    {"path": "../core/tsconfig.build.json"}
+  ]
+}

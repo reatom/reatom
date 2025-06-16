@@ -68,6 +68,9 @@ build/
 .idea/
 .turbo
 .vercel
+*.tsbuildinfo
+tsbuild/
+autodocs/
 
 packages/**/package-lock.json
 packages/**/yarn.lock

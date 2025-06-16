@@ -1,0 +1,20 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "outDir": "${configDir}/tsbuild",
+        "composite": true,
+        "paths": {
+            "@reatom/core": ["./packages/core/src/index.ts"]
+        }
+    },
+    "include": ["${configDir}/src"],
+    "exclude": [
+        "${configDir}/**/*.test.ts", 
+        "${configDir}/**/*.test.browser.ts", 
+        "${configDir}/**/*.test-d.ts", 
+        "${configDir}/src/test.ts",
+        "${configDir}/**/*.test.tsx", 
+        "${configDir}/**/*.bench.ts",
+    ]
+}
