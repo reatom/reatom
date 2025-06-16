@@ -2,6 +2,7 @@
   "name": "reatom-workspace",
   "type": "module",
   "scripts": {
+    "postinstall": "pnpm --filter @reatom/core run build",
     "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "test": "vitest run",
     "release": "tsx ./tools/publish.ts",
