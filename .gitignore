@@ -68,7 +68,6 @@ build/
 .idea/
 .turbo
 .vercel
-*.tsbuildinfo
 tsbuild/
 autodocs/
 
