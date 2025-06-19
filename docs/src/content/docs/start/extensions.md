@@ -125,6 +125,6 @@ One of the key features of `withAsyncData` is that it automatically aborts the p
 
 > You can dive deeper into the rabbit hole of concurrency management in the [async context](/handbook/async-context/) article.
 
-However, when you need to _put_ / _post_ data, you don't need the autoabort strategy and the result data storing, for this cases you should use `withAsync` extension for you async actions, which only tracks the loading status and possible errors.
+However, when you need to _put_ / _post_ data, you don't need the autoabort strategy and the result data storing, for this cases you should use `withAsync` extension for your async actions, which only tracks the loading status and possible errors.
 
 Reatom ecosystem has a lot of other extensions, try to search the docs! But sometimes, you need a little more, not an extension for one atom or actions, but a factory to build a set of complex models. Check the next section to learn about form management!

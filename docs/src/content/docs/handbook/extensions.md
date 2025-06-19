@@ -10,7 +10,7 @@ Reatom features a powerful **Extension System** using the `.extend()` method. Ex
 
 > TODO link to references
 
-`withInit`, `withComputed`, `withAbort` adn many others.
+`withInit`, `withComputed`, `withAbort` and many others.
 
 ## How Extensions Work
 
