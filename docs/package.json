@@ -12,9 +12,9 @@
     "update": "npx npm-check-updates -u"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.34.0",
+    "@astrojs/starlight": "^0.34.4",
     "@floating-ui/dom": "^1.7.0",
-    "astro": "^5.6.1",
+    "astro": "^5.10.0",
     "fast-glob": "^3.3.3",
     "mermaid": "^11.6.0",
     "rehype-autolink-headings": "^7.1.0",
