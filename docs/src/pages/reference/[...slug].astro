@@ -1,0 +1,30 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { render, getCollection, getEntry } from 'astro:content'
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro'
+// import { joinBy } from '../../util/join.ts'
+
+export const getStaticPaths = (async () => {
+  return (await getCollection('reference')).map((e) => ({
+    params: {
+      slug: e.filePath
+        .split('/')
+        .slice(2)
+        .join('/')
+        .replace(/\.md$/, '')
+    },
+    props: {
+      id: e.id,
+    },
+  }))
+}) satisfies GetStaticPaths
+
+const { id } = Astro.props
+const entry = await getEntry('reference', id)
+
+const { Content, headings } = await render(entry)
+---
+
+<StarlightPage frontmatter={{ title: `Package @reatom/${id}` }} headings={headings}>
+  <Content />
+</StarlightPage>

@@ -1,9 +1,7 @@
 import type { StarlightIcon } from '@astrojs/starlight/types'
 
 import { group } from './config/sidebar'
-import { makeSidebar } from './config/integrations/package-reference'
 
-import { adapters } from './adapters.config'
 
 export const sidebar = [
   group('Start', {
@@ -40,9 +38,30 @@ export const sidebar = [
     },
   }),
 
-  group('Adapters', {
+  group('Reference', {
     badge: icon('information'),
-    items: await makeSidebar(adapters, { prefix: 'adapters' }),
+    items: [
+      {
+        label: "@reatom/core",
+        link: "/reference/core",
+      },
+      {
+        label: "@reatom/react",
+        link: "/reference/react",
+      },
+      {
+        label: "@reatom/vue",
+        link: "/reference/vue",
+      },
+      {
+        label: "@reatom/lit",
+        link: "/reference/lit",
+      },
+      {
+        label: "@reatom/preact",
+        link: "/reference/preact",
+      }
+    ]
   }),
 ]
 function icon(iconName: StarlightIcon) {

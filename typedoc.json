@@ -1,16 +1,21 @@
 {
-  "$schema": "https://typedoc.org/schema.json",
+  "$schema": "https://typedoc-plugin-markdown.org/schema.json",
   "entryPoints": [
     "packages/core", 
     "packages/lit", 
     "packages/preact", 
     "packages/react", 
-    "packages/jsx", 
+    // "packages/jsx", 
     "packages/vue"
   ],
   "name": "reatom",
   "out": "./autodocs",
   "entryPointStrategy": "packages",
   "gitRemote": "origin",
-  "plugin": ["typedoc-plugin-markdown"]
+  "plugin": ["typedoc-plugin-markdown"],
+  "hidePageHeader": true,
+  "hideBreadcrumbs": true,
+  "router": "module",
+  "mergeReadme": false,
+  "excludeScopesInPaths": true
 }
