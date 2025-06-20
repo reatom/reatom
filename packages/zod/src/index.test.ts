@@ -1,6 +1,6 @@
 import {
   type Atom,
-  type deatomize,
+  type Deatomize,
   deatomize,
   isAtom,
   notify,
@@ -25,7 +25,7 @@ test('base API', async () => {
       initState: { n: 42, readonly: 'foo' },
     },
   )
-  const track = vi.fn<(parsed: deatomize<typeof model>) => void>()
+  const track = vi.fn<(parsed: Deatomize<typeof model>) => void>()
 
   expect(model.readonly).toBe('foo')
   expect(model.n()).toBe(42)

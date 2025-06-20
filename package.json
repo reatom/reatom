@@ -12,8 +12,7 @@
     "update": "npx pnpm-check-updates -u",
     "prettify": "prettier --write */**/**/*.{js,ts,md}",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
-    "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
-    "autodocs": "pnpm --filter @reatom/core --filter @reatom/jsx --filter @reatom/lit --filter @reatom/preact --filter @reatom/react --filter @reatom/vue exec tsc -b tsconfig.build.json && typedoc"
+    "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}"
   },
   "engines": {
     "pnpm": ">=10",

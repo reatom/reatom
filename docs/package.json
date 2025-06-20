@@ -4,12 +4,13 @@
   "version": "0.100.0",
   "private": true,
   "scripts": {
-    "dev": "astro dev",
-    "start": "astro dev",
-    "build": "astro build",
+    "dev": "npm run references && astro dev",
+    "start": "npm run references && astro dev",
+    "build": "npm run references && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "update": "npx npm-check-updates -u"
+    "update": "npx npm-check-updates -u",
+    "references": "cd .. && pnpm i &&pnpm --filter @reatom/core --filter @reatom/jsx --filter @reatom/lit --filter @reatom/preact --filter @reatom/react --filter @reatom/vue --filter @reatom/zod exec tsc -b tsconfig.build.json && typedoc"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.34.4",

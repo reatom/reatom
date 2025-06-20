@@ -2,7 +2,6 @@ import type { StarlightIcon } from '@astrojs/starlight/types'
 
 import { group } from './config/sidebar'
 
-
 export const sidebar = [
   group('Start', {
     badge: icon('rocket'),
@@ -42,26 +41,34 @@ export const sidebar = [
     badge: icon('information'),
     items: [
       {
-        label: "@reatom/core",
-        link: "/reference/core",
+        label: '@reatom/core',
+        link: '/reference/core',
       },
       {
-        label: "@reatom/react",
-        link: "/reference/react",
+        label: '@reatom/react',
+        link: '/reference/react',
       },
       {
-        label: "@reatom/vue",
-        link: "/reference/vue",
+        label: '@reatom/vue',
+        link: '/reference/vue',
       },
       {
-        label: "@reatom/lit",
-        link: "/reference/lit",
+        label: '@reatom/lit',
+        link: '/reference/lit',
       },
       {
-        label: "@reatom/preact",
-        link: "/reference/preact",
-      }
-    ]
+        label: '@reatom/preact',
+        link: '/reference/preact',
+      },
+      {
+        label: '@reatom/jsx',
+        link: '/reference/jsx',
+      },
+      {
+        label: '@reatom/zod',
+        link: '/reference/zod',
+      },
+    ],
   }),
 ]
 function icon(iconName: StarlightIcon) {
