@@ -371,7 +371,6 @@ test('search params memo', async () => {
 
   route1.go()
 
-
   expect(route1()).toEqual({})
   await wrap(sleep()) // wait the hook
   expect(route1Track).toBeCalledTimes(1)
