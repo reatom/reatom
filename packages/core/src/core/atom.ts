@@ -838,9 +838,10 @@ export let createAtom: {
  * @returns An atom instance containing the state
  */
 export let atom: {
+  <T>(): Atom<T | undefined>
   <T>(createState: () => T, name?: string): Atom<T>
   <T>(initState: T, name?: string): Atom<T>
-} = (initState: any, name?: string) => createAtom({ initState }, name)
+} = (initState?: any, name?: string) => createAtom({ initState }, name)
 
 export function computedParams(next: Fn) {
   if (arguments.length > 1) {
