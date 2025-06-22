@@ -2,5 +2,5 @@ packages:
   - docs
   - packages/*
 publishBranch: v3
-executionEnv.nodeVersion: 24.2.0
-useNodeVersion: 24.2.0
+# executionEnv.nodeVersion: 24.2.0
+# useNodeVersion: 24.2.0

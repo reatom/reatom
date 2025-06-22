@@ -1,2 +1,2 @@
 tasks:
-  - init: npm install
+  - init: pnpm install
