@@ -14,13 +14,7 @@
     "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "actualize-issue-templates": "npx tsx ./tools/actualize-issue-templates.ts"
   },
-  "workspaces": [
-    "./packages/*"
-  ],
-  "packageManager": "npm@10.0.0",
-  "engines": {
-    "npm": ">=10"
-  },
+  "packageManager": "pnpm@10.12.1",
   "dependencies": {
     "@commitlint/cli": "^19.2.1",
     "@commitlint/config-conventional": "^19.1.0",
