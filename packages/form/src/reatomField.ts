@@ -1,6 +1,28 @@
-import { type Action, type Atom, type AtomMut, AtomState, type Ctx, CtxSpy, __count, action, atom } from '@reatom/core'
-import { __thenReatomed, abortCauseContext, getTopController, isCausedBy, withAbortableSchedule } from '@reatom/effects'
-import { BooleanAtom, type RecordAtom, reatomBoolean, reatomRecord, withAssign } from '@reatom/primitives'
+import {
+  type Action,
+  type Atom,
+  type AtomMut,
+  AtomState,
+  type Ctx,
+  CtxSpy,
+  __count,
+  action,
+  atom,
+} from '@reatom/core'
+import {
+  __thenReatomed,
+  abortCauseContext,
+  getTopController,
+  isCausedBy,
+  withAbortableSchedule,
+} from '@reatom/effects'
+import {
+  BooleanAtom,
+  type RecordAtom,
+  reatomBoolean,
+  reatomRecord,
+  withAssign,
+} from '@reatom/primitives'
 import { isDeepEqual, noop, toAbortError } from '@reatom/utils'
 
 import { toError } from './utils'
@@ -48,14 +70,15 @@ export interface ValidationAtom extends Atom<FieldValidation> {
 }
 
 export interface FieldElementRef {
-  focus: (options?: { preventScroll?: boolean }) => void;
+  focus: (options?: { preventScroll?: boolean }) => void
 }
 
 export interface FieldLikeAtom<State = any> extends AtomMut<State> {
   __reatomField: true
 }
 
-export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<State> {
+export interface FieldAtom<State = any, Value = State>
+  extends FieldLikeAtom<State> {
   /** Action for handling field changes, accepts the "value" parameter and applies it to `toState` option. */
   change: Action<[Value], Value>
 
@@ -78,7 +101,7 @@ export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<Sta
   disabled: BooleanAtom
 
   /** Atom with the reference to the field element. */
-  elementRef: AtomMut<FieldElementRef | undefined>;
+  elementRef: AtomMut<FieldElementRef | undefined>
 
   options: RecordAtom<{
     /**
@@ -170,7 +193,7 @@ export interface FieldOptions<State = any, Value = State> {
   /**
    * Defines a default element reference accosiated with the field.
    */
-  elementRef?: FieldElementRef;
+  elementRef?: FieldElementRef
 
   /**
    * Defines the reset behavior of the validation state during async validation.
@@ -221,21 +244,21 @@ export const fieldInitValidationLess: FieldValidation = {
 export function reatomField<State, Value = State>(
   _initState: State,
   options: string | FieldOptions<State, Value>,
-): FieldAtom<State, Value>;
+): FieldAtom<State, Value>
 
 /** @internal */
 export function reatomField<State, A extends AtomMut<State>, Value = State>(
   _initState: State,
   options: string | FieldOptions<State, Value>,
-  stateAtom: A
-): A & FieldAtom<State, Value>;
+  stateAtom: A,
+): A & FieldAtom<State, Value>
 
 export function reatomField<State, Value = State>(
   _initState: State,
   options: string | FieldOptions<State, Value> = {},
-  stateAtom?: AtomMut<State>
+  stateAtom?: AtomMut<State>,
 ): FieldAtom<State, Value> {
-  interface This extends FieldAtom<State, Value> { }
+  interface This extends FieldAtom<State, Value> {}
 
   const {
     filter = () => true,
@@ -246,67 +269,74 @@ export function reatomField<State, Value = State>(
     validate: validateFn,
     contract,
     ...restOptions
-  } = typeof options === 'string' ? ({ name: options } as FieldOptions<State, Value>) : options
+  } = typeof options === 'string'
+    ? ({ name: options } as FieldOptions<State, Value>)
+    : options
 
   const fieldOptions = reatomRecord({
     validateOnChange: restOptions.validateOnChange,
     validateOnBlur: restOptions.validateOnBlur,
     keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
     keepErrorOnChange: restOptions.keepErrorOnChange,
-    shouldValidate: undefined as boolean | undefined
+    shouldValidate: undefined as boolean | undefined,
   }).pipe(
     withAssign((target, name) => ({
       value: atom((ctx) => {
         const {
-          validateOnChange, 
-          validateOnBlur, 
+          validateOnChange,
+          validateOnBlur,
           keepErrorDuringValidating,
           keepErrorOnChange,
-          shouldValidate
+          shouldValidate,
         } = ctx.spy(target)
-        
+
         return {
           validateOnChange: validateOnChange ?? false,
           validateOnBlur: validateOnBlur ?? false,
           keepErrorDuringValidating: keepErrorDuringValidating ?? false,
           keepErrorOnChange: keepErrorOnChange ?? !validateOnChange,
-          shouldValidate: shouldValidate ?? !!(validateFn || contract)
+          shouldValidate: shouldValidate ?? !!(validateFn || contract),
         }
-      }, `${name}.value`)
-    }))
+      }, `${name}.value`),
+    })),
   )
 
-  const disabled = reatomBoolean(restOptions.disabled ?? false, `${name}.disabled`)
+  const disabled = reatomBoolean(
+    restOptions.disabled ?? false,
+    `${name}.disabled`,
+  )
   disabled.onChange((ctx, status) => {
-    if(!status)
-      validation.trigger(ctx)
+    if (!status) validation.trigger(ctx)
   })
 
   const elementRef = atom(restOptions.elementRef, `${name}.elementRef`)
 
   const field = stateAtom ?? atom(_initState, `${name}.field`)
   const initState = atom(_initState, `${name}.initState`)
-  // TODO: make sure it's ok to copy initState of other atom. 
+  // TODO: make sure it's ok to copy initState of other atom.
   // We need to extract initial state from `field` atom here and pass it to `initState` atom
   initState.__reatom.initState = field.__reatom.initState
 
-	field.onChange((ctx) => {
-    if(isCausedBy(ctx, reset))
-      return;
+  field.onChange((ctx) => {
+    if (isCausedBy(ctx, reset)) return
 
-		ctx.get(validationController).abort(toAbortError('change'))
+    ctx.get(validationController).abort(toAbortError('change'))
 
-    validation.merge(ctx,
+    validation.merge(
+      ctx,
       ctx.get(fieldOptions.value).keepErrorOnChange
         ? { validating: undefined }
-        : { validating: undefined, error: undefined }
+        : { validating: undefined, error: undefined },
     )
 
     if (!ctx.get(disabled) && ctx.get(fieldOptions.value).validateOnChange)
-			validation.trigger(ctx)
-	})
+      validation.trigger(ctx)
+  })
 
-  const value: This['value'] = atom((ctx) => fromState(ctx, ctx.spy(field)), `${name}.value`)
+  const value: This['value'] = atom(
+    (ctx) => fromState(ctx, ctx.spy(field)),
+    `${name}.value`,
+  )
 
   const focus = reatomRecord(fieldInitFocus, `${name}.focus`).pipe(
     withAssign((target, name) => ({
@@ -315,22 +345,29 @@ export function reatomField<State, Value = State>(
       }, `${name}.in`),
       out: action((ctx) => {
         focus.merge(ctx, { active: false, touched: true })
-      }, `${name}.out`)
-    }))
+      }, `${name}.out`),
+    })),
   )
 
   // @ts-expect-error the original computed state can't be typed properly
   focus.__reatom.computer = (ctx, state: FieldFocus) => {
-    const dirty = isDirty(ctx, ctx.spy(value), fromState(ctx, ctx.spy(initState)))
+    const dirty = isDirty(
+      ctx,
+      ctx.spy(value),
+      fromState(ctx, ctx.spy(initState)),
+    )
     return state.dirty === dirty ? state : { ...state, dirty }
   }
 
   focus.out.onCall((ctx) => {
-		if (!ctx.get(disabled) && ctx.get(fieldOptions.value).validateOnBlur)
-			validation.trigger(ctx)
-	})
+    if (!ctx.get(disabled) && ctx.get(fieldOptions.value).validateOnBlur)
+      validation.trigger(ctx)
+  })
 
-  const validationController = atom(new AbortController(), `${name}._validationController`)
+  const validationController = atom(
+    new AbortController(),
+    `${name}._validationController`,
+  )
   // prevent collisions for different contexts
   validationController.__reatom.initState = () => new AbortController()
 
@@ -341,27 +378,29 @@ export function reatomField<State, Value = State>(
     withAssign((target, name) => ({
       trigger: action((ctx) => {
         const validationValue = ctx.get(target)
-    
+
         if (validationValue.triggered) return validationValue
         if (!ctx.get(fieldOptions.value).shouldValidate) {
           return target.merge(ctx, { triggered: true })
         }
-    
+
         ctx.get(validationController).abort(toAbortError('concurrent'))
-    
+
         const controller = validationController(ctx, new AbortController())
         abortCauseContext.set(ctx.cause, controller)
-    
+
         const state = ctx.get(field)
         const valueValue = ctx.get(value)
         const focusValue = ctx.get(focus)
         let promise: any
         let message: undefined | string
-    
+
         try {
           contract?.(state)
-          const asyncCtx = Object.assign(withAbortableSchedule(ctx), { controller });
-          
+          const asyncCtx = Object.assign(withAbortableSchedule(ctx), {
+            controller,
+          })
+
           promise = validateFn?.(asyncCtx, {
             state,
             value: valueValue,
@@ -371,13 +410,14 @@ export function reatomField<State, Value = State>(
         } catch (error) {
           message = toError(error)
         }
-    
+
         if (promise instanceof Promise) {
           const validationPromise = __thenReatomed(
             ctx,
             promise,
             () => {
-              if (controller.signal.aborted) return { error: ctx.get(target).error }
+              if (controller.signal.aborted)
+                return { error: ctx.get(target).error }
               target.merge(ctx, {
                 error: undefined,
                 meta: undefined,
@@ -387,7 +427,8 @@ export function reatomField<State, Value = State>(
               return { error: undefined }
             },
             (error) => {
-              if (controller.signal.aborted) return { error: ctx.get(target).error }
+              if (controller.signal.aborted)
+                return { error: ctx.get(target).error }
               const validationError = toError(error)
               target.merge(ctx, {
                 error: validationError,
@@ -398,15 +439,17 @@ export function reatomField<State, Value = State>(
               return { error: validationError }
             },
           ).catch(noop)
-    
+
           return target.merge(ctx, {
-            error: ctx.get(fieldOptions.value).keepErrorDuringValidating ? validationValue.error : undefined,
+            error: ctx.get(fieldOptions.value).keepErrorDuringValidating
+              ? validationValue.error
+              : undefined,
             meta: undefined,
             triggered: true,
             validating: validationPromise,
           })
         }
-    
+
         return target.merge(ctx, {
           validating: undefined,
           error: message,
@@ -422,24 +465,22 @@ export function reatomField<State, Value = State>(
           meta: undefined,
           triggered: true,
           validating: undefined,
-        });
+        })
       }, `${name}.setError`),
-    }))
+    })),
   )
 
-  validation.__reatom.initState = ctx => (
-    ctx.get(fieldOptions.value).shouldValidate 
-      ? fieldInitValidation 
+  validation.__reatom.initState = (ctx) =>
+    ctx.get(fieldOptions.value).shouldValidate
+      ? fieldInitValidation
       : fieldInitValidationLess
-  )
 
   // @ts-expect-error the original computed state can't be typed properly
   validation.__reatom.computer = (ctx, state: FieldValidation) => {
     if (!ctx.spy(fieldOptions.value).shouldValidate)
-			return fieldInitValidationLess
+      return fieldInitValidationLess
 
-    if(ctx.spy(disabled))
-      return fieldInitValidation
+    if (ctx.spy(disabled)) return fieldInitValidation
 
     ctx.spy(value)
     return state.triggered ? { ...state, triggered: false } : state
@@ -447,8 +488,7 @@ export function reatomField<State, Value = State>(
 
   const change: This['change'] = action((ctx, newValue) => {
     const prevValue = ctx.get(value)
-    if (!filter(ctx, newValue, prevValue)) 
-      return prevValue
+    if (!filter(ctx, newValue, prevValue)) return prevValue
 
     field(ctx, toState(ctx, newValue))
     focus.merge(ctx, { touched: true })
@@ -475,14 +515,20 @@ export function reatomField<State, Value = State>(
     elementRef,
     options: fieldOptions,
 
-    __reatomField: true as const
+    __reatomField: true as const,
   })
 }
 
 export const withField = <T extends AtomMut, Value = AtomState<T>>(
-  options: Omit<FieldOptions<AtomState<T>, Value>, 'name'> = {}
+  options: Omit<FieldOptions<AtomState<T>, Value>, 'name'> = {},
 ): ((anAtom: T) => T & FieldAtom<AtomState<T>, Value>) => {
-  return (anAtom: T) =>  reatomField(null as AtomState<T>, { name: anAtom.__reatom.name, ...options }, anAtom)
+  return (anAtom: T) =>
+    reatomField(
+      null as AtomState<T>,
+      { name: anAtom.__reatom.name, ...options },
+      anAtom,
+    )
 }
 
-export const isFieldAtom = (thing: any): thing is FieldLikeAtom => thing?.__reatomField === true
+export const isFieldAtom = (thing: any): thing is FieldLikeAtom =>
+  thing?.__reatomField === true

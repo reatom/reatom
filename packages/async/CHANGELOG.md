@@ -2,11 +2,10 @@
 
 ## [3.16.8](https://github.com/artalar/reatom/compare/async-v3.16.7...async-v3.16.8) (2025-04-02)
 
-
 ### Bug Fixes
 
-* **async:** cleanup garbage timeouts ([1b85d07](https://github.com/artalar/reatom/commit/1b85d0746febbd557fb061f70898fc4fafac15b2))
-* **async:** exports ([14c81ee](https://github.com/artalar/reatom/commit/14c81ee94c049dd79862499ab8212692b6d8648f))
+- **async:** cleanup garbage timeouts ([1b85d07](https://github.com/artalar/reatom/commit/1b85d0746febbd557fb061f70898fc4fafac15b2))
+- **async:** exports ([14c81ee](https://github.com/artalar/reatom/commit/14c81ee94c049dd79862499ab8212692b6d8648f))
 
 ## [3.16.7](https://github.com/artalar/reatom/compare/async-v3.16.6...async-v3.16.7) (2025-02-27)
 

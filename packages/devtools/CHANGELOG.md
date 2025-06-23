@@ -2,24 +2,21 @@
 
 ## [0.13.1](https://github.com/artalar/reatom/compare/devtools-v0.13.0...devtools-v0.13.1) (2025-04-02)
 
-
 ### Bug Fixes
 
-* **devtools:** deps ([72dc64f](https://github.com/artalar/reatom/commit/72dc64fb9e68116bdc0d986bc9d7806c1dcd042e))
-* **devtools:** refactor model ([d596ba3](https://github.com/artalar/reatom/commit/d596ba3ff1da18669279a5cd14c764eb7d0ec8b4))
+- **devtools:** deps ([72dc64f](https://github.com/artalar/reatom/commit/72dc64fb9e68116bdc0d986bc9d7806c1dcd042e))
+- **devtools:** refactor model ([d596ba3](https://github.com/artalar/reatom/commit/d596ba3ff1da18669279a5cd14c764eb7d0ec8b4))
 
 ## [0.13.0](https://github.com/artalar/reatom/compare/devtools-v0.12.0...devtools-v0.13.0) (2025-03-14)
 
-
 ### Features
 
-* refactor and new features ([a6a06a0](https://github.com/artalar/reatom/commit/a6a06a010a151df5c1b3ab0fed905618d37893d9))
-
+- refactor and new features ([a6a06a0](https://github.com/artalar/reatom/commit/a6a06a010a151df5c1b3ab0fed905618d37893d9))
 
 ### Bug Fixes
 
-* **devtools:** autoscroll after elements removing ([90e25ae](https://github.com/artalar/reatom/commit/90e25ae9b5bfc02413f9d85168181836eaf160fb))
-* **devtools:** build with vite ([#1062](https://github.com/artalar/reatom/issues/1062)) ([cc3a99d](https://github.com/artalar/reatom/commit/cc3a99ded95499b731fd497aae3a2c8dc8701a14))
+- **devtools:** autoscroll after elements removing ([90e25ae](https://github.com/artalar/reatom/commit/90e25ae9b5bfc02413f9d85168181836eaf160fb))
+- **devtools:** build with vite ([#1062](https://github.com/artalar/reatom/issues/1062)) ([cc3a99d](https://github.com/artalar/reatom/commit/cc3a99ded95499b731fd497aae3a2c8dc8701a14))
 
 ## [0.12.0](https://github.com/artalar/reatom/compare/devtools-v0.11.4...devtools-v0.12.0) (2025-02-27)
 

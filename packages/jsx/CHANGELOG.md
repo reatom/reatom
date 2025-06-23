@@ -2,10 +2,9 @@
 
 ## [3.18.2](https://github.com/artalar/reatom/compare/jsx-v3.18.1...jsx-v3.18.2) (2025-04-02)
 
-
 ### Bug Fixes
 
-* **jsx:** run browser tests ([#1070](https://github.com/artalar/reatom/issues/1070)) ([179cea3](https://github.com/artalar/reatom/commit/179cea37fa958f33c434e8bb9ac72396e4709ef9))
+- **jsx:** run browser tests ([#1070](https://github.com/artalar/reatom/issues/1070)) ([179cea3](https://github.com/artalar/reatom/commit/179cea37fa958f33c434e8bb9ac72396e4709ef9))
 
 ## [3.18.1](https://github.com/artalar/reatom/compare/jsx-v3.18.0...jsx-v3.18.1) (2025-02-27)
 

@@ -2,11 +2,10 @@
 
 ## [3.4.0](https://github.com/reatom/reatom/compare/form-v3.3.2...form-v3.4.0) (2025-05-19)
 
-
 ### Features
 
-* **form:** add centralized fields initialization, add support for array fields, add `withField` ([#1038](https://github.com/reatom/reatom/issues/1038)) ([3da17df](https://github.com/reatom/reatom/commit/3da17df7c91c5ab8a5b17bd5a2cadd4792df340a))
-* **form:** add support for validation.trigger to reatomFieldSet (v3) ([#1130](https://github.com/reatom/reatom/issues/1130)) ([3041bd4](https://github.com/reatom/reatom/commit/3041bd4119f8f8dc1998a145b18084f62481e680))
+- **form:** add centralized fields initialization, add support for array fields, add `withField` ([#1038](https://github.com/reatom/reatom/issues/1038)) ([3da17df](https://github.com/reatom/reatom/commit/3da17df7c91c5ab8a5b17bd5a2cadd4792df340a))
+- **form:** add support for validation.trigger to reatomFieldSet (v3) ([#1130](https://github.com/reatom/reatom/issues/1130)) ([3041bd4](https://github.com/reatom/reatom/commit/3041bd4119f8f8dc1998a145b18084f62481e680))
 
 ## [3.3.2](https://github.com/artalar/reatom/compare/form-v3.3.1...form-v3.3.2) (2024-06-22)
 

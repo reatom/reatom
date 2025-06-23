@@ -2,10 +2,9 @@
 
 ## [3.11.0](https://github.com/artalar/reatom/compare/npm-zod-v3.10.3...npm-zod-v3.11.0) (2025-03-14)
 
-
 ### Features
 
-* **npm-zod:** add vitest, add support for catches, brands, pipelines, effects and etc  ([#1051](https://github.com/artalar/reatom/issues/1051)) ([a990907](https://github.com/artalar/reatom/commit/a990907495f9ea0eae7ca8377e26d306d69ad8e8))
+- **npm-zod:** add vitest, add support for catches, brands, pipelines, effects and etc ([#1051](https://github.com/artalar/reatom/issues/1051)) ([a990907](https://github.com/artalar/reatom/commit/a990907495f9ea0eae7ca8377e26d306d69ad8e8))
 
 ## [3.10.3](https://github.com/artalar/reatom/compare/npm-zod-v3.10.2...npm-zod-v3.10.3) (2024-06-22)
 

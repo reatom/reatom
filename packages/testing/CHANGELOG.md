@@ -2,10 +2,9 @@
 
 ## [3.4.9](https://github.com/artalar/reatom/compare/testing-v3.4.8...testing-v3.4.9) (2025-03-14)
 
-
 ### Bug Fixes
 
-* **testing:** restrictMultipleContexts ([7abb8db](https://github.com/artalar/reatom/commit/7abb8dbf470b57c2a7ffc4333add6fab9a0d193a))
+- **testing:** restrictMultipleContexts ([7abb8db](https://github.com/artalar/reatom/commit/7abb8dbf470b57c2a7ffc4333add6fab9a0d193a))
 
 ## [3.4.8](https://github.com/artalar/reatom/compare/testing-v3.4.7...testing-v3.4.8) (2024-12-30)
 
