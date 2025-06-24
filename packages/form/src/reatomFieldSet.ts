@@ -134,8 +134,10 @@ export const reatomFieldSet = <T extends FormInitState>(
         // @ts-expect-error bad type for initiate
         fields[key].initState(
           ctx,
+          // @ts-expect-error bad type for initiate
           fields[key].initiate(
             ctx,
+            // @ts-expect-error bad type for initiate
             value.map((v) => [v]),
           ),
         )
