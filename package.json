@@ -5,7 +5,6 @@
     "actualize-issue-templates": "tsx ./tools/actualize-issue-templates.ts",
     "build": "tsx ./tools/build.ts",
     "package-generator": "tsx tools/new-package.ts",
-    "postinstall": "pnpm run build",
     "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
     "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
@@ -15,7 +14,7 @@
     "test": "vitest run",
     "update": "npx npm-check-updates -u"
   },
-  "packageManager": "pnpm@10.12.1",
+  "packageManager": "pnpm@10.12.3",
   "workspaces": [
     "./packages/*"
   ],

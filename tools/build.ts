@@ -1,17 +1,20 @@
 import { spawn } from 'node:child_process'
 
+/**
+ * The build order is determined manually based on dependencies in package.json
+ */
 const order = [
   ['core', 'eslint-plugin', 'utils'],
   ['effects', 'logger', 'primitives'],
   ['all-settled', 'hooks', 'jsx'],
-  ['core-v1', 'core-v2', 'lens', 'timer', 'url', 'web'],
-  ['persist', 'react-v1', 'react-v2'],
-  ['async'],
-  ['framework', 'undo', 'web-fetch'],
+  ['lens', 'timer', 'url', 'web'], // 'core-v1', 'core-v2'
+  ['persist'], // 'react-v1', 'react-v2'
+  ['async', 'persist-web-storage'],
+  ['form', 'framework', 'undo', 'web-fetch'],
   [
     'cjs-import-check',
     'esm-import-check',
-    'form',
+    'form-web',
     'npm-cookie-baker',
     'npm-lit',
     'npm-react',
@@ -19,10 +22,8 @@ const order = [
     'npm-svelte',
     'npm-vue',
     'npm-zod',
-    'persist-web-storage',
     'testing',
   ],
-  ['form-web'],
 ]
 
 const runCommand = async (pkg: string) => {
