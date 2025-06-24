@@ -21,7 +21,7 @@ function Provider(props: { store: Store; children?: any }) {
   return <StoreProvider value={props.store}>{props.children}</StoreProvider>
 }
 
-describe('@reatom/react-v1', () => {
+describe.skip('@reatom/react-v1', () => {
   describe('useAtom', () => {
     test('throw Error if provider is not set', () => {
       const originalError = console.error

@@ -16,11 +16,14 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
     "bench": "ts-node src/index.bench.test.ts"
+  },
+  "devDependencies": {
+    "@reatom/testing": "workspace:^"
   },
   "author": "artalar",
   "contributors": [

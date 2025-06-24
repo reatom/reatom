@@ -28,22 +28,26 @@ export const passwordField = reatomField('', {
 })
 
 // Create a form with the fields
-export const loginForm = reatomForm({
-  username: nameField,
-  password: passwordField
-}, {
-  name: 'form',
-  async onSubmit(ctx, state) {
-    //                ^? ParseAtoms<typeof loginForm.fields>
-    const user = await api.login({
-      name: state.username,
-      password: state.password,
-    })
+export const loginForm = reatomForm(
+  {
+    username: nameField,
+    password: passwordField,
   },
-})
+  {
+    name: 'form',
+    async onSubmit(ctx, state) {
+      //                ^? ParseAtoms<typeof loginForm.fields>
+      const user = await api.login({
+        name: state.username,
+        password: state.password,
+      })
+    },
+  },
+)
 ```
 
 ### Form with Schema Validation
+
 The `schema` option supports any schema that implements the [Standard Schema interface](https://github.com/standard-schema/standard-schema)
 
 ```ts
@@ -51,34 +55,37 @@ import { reatomForm, fieldArray } from '@reatom/form'
 import { z } from 'zod'
 
 // Create a form with schema validation
-const userForm = reatomForm({
-  username: '',
-  email: '',
-  addresses: fieldArray([
-    {
-      street: '',
-      city: '',
-      zipCode: ''
-    }
-  ])
-}, {
-  name: 'form',
-  // Schema validation using zod
-  schema: z.object({
-    username: z.string().min(3, 'Username must be at least 3 characters'),
-    email: z.string().email('Invalid email format'),
-    addresses: z.array(
-      z.object({
-        street: z.string().min(1, 'Street is required'),
-        city: z.string().min(1, 'City is required'),
-        zipCode: z.string().regex(/^\d{5}$/, 'Invalid zip code format')
-      })
-    )
-  }),
-  async onSubmit(ctx, state) {
-    //                ^? z.infer<typeof schema>
-  }
-})
+const userForm = reatomForm(
+  {
+    username: '',
+    email: '',
+    addresses: fieldArray([
+      {
+        street: '',
+        city: '',
+        zipCode: '',
+      },
+    ]),
+  },
+  {
+    name: 'form',
+    // Schema validation using zod
+    schema: z.object({
+      username: z.string().min(3, 'Username must be at least 3 characters'),
+      email: z.string().email('Invalid email format'),
+      addresses: z.array(
+        z.object({
+          street: z.string().min(1, 'Street is required'),
+          city: z.string().min(1, 'City is required'),
+          zipCode: z.string().regex(/^\d{5}$/, 'Invalid zip code format'),
+        }),
+      ),
+    }),
+    async onSubmit(ctx, state) {
+      //                ^? z.infer<typeof schema>
+    },
+  },
+)
 ```
 
 ## Field Initialization
@@ -91,68 +98,89 @@ When creating a form, you can initialize fields in several ways:
 
 By passing a primitive value, you implicitly initialize a reatomField with that value as its default.
 This way is suitable when no individual options are needed for the field.
+
 ```ts
-const form = reatomForm({
-  username: '', // String field
-  age: 25, // Number field
-  isActive: true, // Boolean field
-  birthDate: new Date(), // Date field
-}, 'form')
+const form = reatomForm(
+  {
+    username: '', // String field
+    age: 25, // Number field
+    isActive: true, // Boolean field
+    birthDate: new Date(), // Date field
+  },
+  'form',
+)
 ```
 
 2. **Field Options Object**:
 
 By passing an object with `initState` property, you can initialize a reatomField with a value as its default, and pass additional options for the field.
+
 ```ts
-const form = reatomForm({
-  username: { 
-    initState: '', 
-    validateOnChange: true,
-    validate: ({ state }) => {
-      if (state.length < 3) throw new Error('Too short')
-    }
+const form = reatomForm(
+  {
+    username: {
+      initState: '',
+      validateOnChange: true,
+      validate: ({ state }) => {
+        if (state.length < 3) throw new Error('Too short')
+      },
+    },
+    age: {
+      initState: 25,
+      validateOnBlur: true,
+    },
   },
-  age: { 
-    initState: 25, 
-    validateOnBlur: true 
-  }
-}, 'form')
+  'form',
+)
 ```
 
 3. **Existing `reatomField` Instances**:
 
 ```ts
-const usernameField = reatomField('', 'usernameField').extend(withLocalStorage())
+const usernameField = reatomField('', 'usernameField').extend(
+  withLocalStorage(),
+)
 const ageField = reatomField(25, 'ageField')
 
-const form = reatomForm({
-  username: usernameField,
-  age: ageField
-}, 'form')
+const form = reatomForm(
+  {
+    username: usernameField,
+    age: ageField,
+  },
+  'form',
+)
 ```
-You are free to attach existing fields to the form. However, note that in this case, the fields will not receive naming scoped to the form domain. 
-For better debbuging experience, it is recommended to initialize fields directly within the form's field tree, initializing the name similar to how it is done in factories. 
+
+You are free to attach existing fields to the form. However, note that in this case, the fields will not receive naming scoped to the form domain.
+For better debbuging experience, it is recommended to initialize fields directly within the form's field tree, initializing the name similar to how it is done in factories.
 For this purpose, the form's initState accepts a callback with the `name` parameter.
 
 ```ts
 import { reatomForm, reatomField } from '@reatom/form'
 
-const form = reatomForm(name => ({
-  username: reatomField('', `${name}.username`),
-  password: reatomField('', `${name}.password`),
-}), 'form')
+const form = reatomForm(
+  (name) => ({
+    username: reatomField('', `${name}.username`),
+    password: reatomField('', `${name}.password`),
+  }),
+  'form',
+)
 ```
 
 4. **Atoms Extended with `withField`**:
 
 Also, you can extend existing smart atoms with the field functionality. In this case, the atom itself will become the state of the field, and any methods that mutate the extended atom will change the state of this field.
+
 ```ts
 import { reatomBoolean } from '@reatom/primitives'
 import { reatomForm, withField } from '@reatom/form'
 
-const form = reatomForm(name => ({
-  active: reatomBoolean(false, `${name}.active`).pipe(withField())
-}), 'form')
+const form = reatomForm(
+  (name) => ({
+    active: reatomBoolean(false, `${name}.active`).pipe(withField()),
+  }),
+  'form',
+)
 ```
 
 ## Array Fields
@@ -164,58 +192,73 @@ The `fieldArray` function allows you to create dynamic arrays of fields that can
 There are several ways to initialize array fields:
 
 1. **Simple Array Literals**:
+
 ```ts
-const form = reatomForm({
-  // Empty array field
-  tags: [],
-  
-  // Array with default item as a string field
-  emails: ['default@example.com'],
-  
-  // Array with default item as a string field through options definition
-  phones: [
-    { initState: '123-456-7890', validateOnChange: true }
-  ]
-}, 'form')
+const form = reatomForm(
+  {
+    // Empty array field
+    tags: [],
+
+    // Array with default item as a string field
+    emails: ['default@example.com'],
+
+    // Array with default item as a string field through options definition
+    phones: [{ initState: '123-456-7890', validateOnChange: true }],
+  },
+  'form',
+)
 ```
 
 2. **Empty Array with Type Information**:
+
 ```ts
-const form = reatomForm({
-  // Empty array with correct type information
-  emails: new Array<string>(),
-  contacts: new Array<{ name: string, phone: string }>()
-}, 'form')
+const form = reatomForm(
+  {
+    // Empty array with correct type information
+    emails: new Array<string>(),
+    contacts: new Array<{ name: string; phone: string }>(),
+  },
+  'form',
+)
 ```
 
 3. **Using fieldArray Function**:
+
 ```ts
-const form = reatomForm({
-  // Empty array field
-  tags: fieldArray<string>([]),
-  
-  // Array with default values
-  emails: fieldArray(['default@example.com']),
-}, 'form')
+const form = reatomForm(
+  {
+    // Empty array field
+    tags: fieldArray<string>([]),
+
+    // Array with default values
+    emails: fieldArray(['default@example.com']),
+  },
+  'form',
+)
 ```
 
 4. **Complex Array Field Factory**:
 
 If you want to configure the rules for creating fields in an array field, you should define a factory function that describes how each new field in this array field will be created.
+
 ```ts
-const form = reatomForm({
-  // Using initState and create
-  phoneNumbers: fieldArray({
-    initState: [{ number: '123-456-7890', priority: false }],
-    create: (ctx, { number, priority }, name) => ({
-      number: { initState: number, validateOnChange: true },
-      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
-    })
-  }),
-}, 'form')
+const form = reatomForm(
+  {
+    // Using initState and create
+    phoneNumbers: fieldArray({
+      initState: [{ number: '123-456-7890', priority: false }],
+      create: (ctx, { number, priority }, name) => ({
+        number: { initState: number, validateOnChange: true },
+        priority: reatomBoolean(priority, `${name}.priority`).pipe(withField()),
+      }),
+    }),
+  },
+  'form',
+)
 ```
 
 ### Basic Array Field Operations
+
 Since `fieldArray` is syntactic sugar over `reatomLinkedList`, it provides several methods to manipulate the array of fields:
 
 - `create(value)`: Adds a new field with the given value to the end of the array
@@ -231,10 +274,13 @@ When rendering field arrays in UI components, you should always use the `.array(
 ```ts
 import { reatomForm, fieldArray } from '@reatom/form'
 
-const contactForm = reatomForm({
-  name: '',
-  emails: fieldArray(['']) // Simple array of string fields
-}, 'form')
+const contactForm = reatomForm(
+  {
+    name: '',
+    emails: fieldArray(['']), // Simple array of string fields
+  },
+  'form',
+)
 
 // Add a new email field
 contactForm.fields.emails.create(ctx, '')
@@ -258,27 +304,31 @@ contactForm.fields.emails.clear(ctx)
 Since we use the "field as model" approach and each field is an object, we can achieve maximum type safety by working directly with objects. But the cherry on top is atomization, a principle used by array fields that allows maintaining a high-quality type-safe experience at any level of nesting in your forms.
 
 ### Complex Array Fields
+
 You can create more complex array fields with custom structures:
 
 ```ts
 import { reatomForm, fieldArray, withField } from '@reatom/form'
 import { reatomBoolean } from '@reatom/primitives'
 
-const contactForm = reatomForm({
-  name: '',
-  phoneNumbers: fieldArray({
-    initState: new Array<{ number: string, priority: boolean }>(),
-    create: (ctx, { number, priority }, name) => ({
-      number,
-      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
-    })
-  })
-}, 'form')
+const contactForm = reatomForm(
+  {
+    name: '',
+    phoneNumbers: fieldArray({
+      initState: new Array<{ number: string; priority: boolean }>(),
+      create: (ctx, { number, priority }, name) => ({
+        number,
+        priority: reatomBoolean(priority, `${name}.priority`).pipe(withField()),
+      }),
+    }),
+  },
+  'form',
+)
 
 // Add a new phone number
-contactForm.fields.phoneNumbers.create(ctx, { 
-  number: '123-456-7890', 
-  priority: false 
+contactForm.fields.phoneNumbers.create(ctx, {
+  number: '123-456-7890',
+  priority: false,
 })
 ```
 
@@ -289,16 +339,19 @@ You can also create nested array structures:
 ```ts
 import { reatomForm, fieldArray } from '@reatom/form'
 
-const userForm = reatomForm({
-  name: '',
-  addresses: fieldArray([
-    {
-      street: '',
-      city: '',
-      tags: fieldArray(['home'])
-    }
-  ])
-}, 'form')
+const userForm = reatomForm(
+  {
+    name: '',
+    addresses: fieldArray([
+      {
+        street: '',
+        city: '',
+        tags: fieldArray(['home']),
+      },
+    ]),
+  },
+  'form',
+)
 
 // Access nested fields
 const addresses = ctx.get(userForm.fields.addresses.array)
@@ -316,28 +369,39 @@ A common use case for field sets is creating multi-step forms where each step ha
 ```ts
 import { reatomForm, reatomFieldSet } from '@reatom/form'
 
-const checkoutForm = reatomForm({
-  personal: {
-    firstName: '',
-    lastName: '',
-    email: {
-      initState: '',
-      validate: ({ state }) => invariant(state.includes('@'), 'Invalid email format')
-    }
+const checkoutForm = reatomForm(
+  {
+    personal: {
+      firstName: '',
+      lastName: '',
+      email: {
+        initState: '',
+        validate: ({ state }) =>
+          invariant(state.includes('@'), 'Invalid email format'),
+      },
+    },
+    shipping: {
+      address: '',
+      city: '',
+      zipCode: {
+        initState: '',
+        validate: ({ state }) =>
+          invariant(/^\d{5}$/.test(state), 'Invalid zip code format'),
+      },
+    },
   },
-  shipping: {
-    address: '',
-    city: '',
-    zipCode: {
-      initState: '',
-      validate: ({ state }) => invariant(/^\d{5}$/.test(state), 'Invalid zip code format')
-    }
-  }
-}, 'checkoutForm')
+  'checkoutForm',
+)
 
 // Create field sets for each step
-const personalSet = reatomFieldSet(checkoutForm.fields.personal, 'checkoutForm.personalSet')
-const shippingSet = reatomFieldSet(checkoutForm.fields.shipping, 'checkoutForm.shippingSet')
+const personalSet = reatomFieldSet(
+  checkoutForm.fields.personal,
+  'checkoutForm.personalSet',
+)
+const shippingSet = reatomFieldSet(
+  checkoutForm.fields.shipping,
+  'checkoutForm.shippingSet',
+)
 ```
 
 Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
@@ -350,6 +414,7 @@ Each field set (`personalInfoSet` and `shippingInfoSet`) provides access to:
 Field sets are particularly useful for multi-step forms because they allow you to validate each step independently before allowing the user to proceed to the next step, or for reactive calculations for groups of fields.
 
 ## Recipes
+
 By composing form and reatom primitives, you can solve long-standing problems in forms as effectively as other libraries do through configuration.
 
 ### Async default values
@@ -360,24 +425,21 @@ This recipe shows how to load form values from an API. It creates an async resou
 import { reatomForm } from '@reatom/form'
 import { reatomResource, withDataAtom } from '@reatom/async'
 
-const profileForm = reatomForm({
-  username: '',
-  address: ''
-}, 'profileForm')
-
-const fetchFormValues = reatomResource(
-  async (ctx) => {
-    const response = await ctx.schedule(() => fetch('/api/profile'));
-    return ctx.schedule(() => response.json());
+const profileForm = reatomForm(
+  {
+    username: '',
+    address: '',
   },
-  'fetchFormValues'
-).pipe(
-  withDataAtom(null)
+  'profileForm',
 )
 
+const fetchFormValues = reatomResource(async (ctx) => {
+  const response = await ctx.schedule(() => fetch('/api/profile'))
+  return ctx.schedule(() => response.json())
+}, 'fetchFormValues').pipe(withDataAtom(null))
+
 fetchFormValues.onFulfill.onCall((ctx, defaultValues) => {
-  if(defaultValues)
-    profileForm.reset(ctx, defaultValues)
+  if (defaultValues) profileForm.reset(ctx, defaultValues)
 })
 
 fetchFormValues.pendingAtom // Use this atom to show loading state
@@ -391,14 +453,20 @@ This recipe implements debounced validation for a field. Thanks to reatom's conc
 import { reatomField } from '@reatom/form'
 import { sleep } from '@reatom/framework'
 
-const usernameField = reatomField('', {
-  validate: async (ctx, { value }) => {
-    await ctx.schedule(() => sleep(300));
-    const response = await ctx.schedule(() => fetch(`/api/usernames?username=${state}`, ctx.controller));
-    const { taken } = await ctx.schedule(() => response.json());
-    invariant(!taken, 'This username already taken');
-  }
-}, 'usernameField')
+const usernameField = reatomField(
+  '',
+  {
+    validate: async (ctx, { value }) => {
+      await ctx.schedule(() => sleep(300))
+      const response = await ctx.schedule(() =>
+        fetch(`/api/usernames?username=${state}`, ctx.controller),
+      )
+      const { taken } = await ctx.schedule(() => response.json())
+      invariant(!taken, 'This username already taken')
+    },
+  },
+  'usernameField',
+)
 ```
 
 The `ctx.controller` provides an AbortController that automatically cancels previous fetch requests when a new validation is triggered, preventing race conditions and unnecessary network requests.
@@ -412,17 +480,20 @@ The first approach uses field-level validation. The `confirmPassword` field dire
 ```ts
 import { reatomForm, reatomField } from '@reatom/form'
 
-const loginForm = reatomForm(name => ({
-  username: reatomField('', `${name}.username`),
-  password: reatomField('', `${name}.password`),
-  confirmPassword: reatomField('', {
-    name: `${name}.confirmPassword`,
-    validate: (ctx, { value }) => {
-      if (ctx.get(loginForm.fields.password.value) != value)
-        throw new Error('Passwords do not match')
-    }
-  })
-}), 'loginForm')
+const loginForm = reatomForm(
+  (name) => ({
+    username: reatomField('', `${name}.username`),
+    password: reatomField('', `${name}.password`),
+    confirmPassword: reatomField('', {
+      name: `${name}.confirmPassword`,
+      validate: (ctx, { value }) => {
+        if (ctx.get(loginForm.fields.password.value) != value)
+          throw new Error('Passwords do not match')
+      },
+    }),
+  }),
+  'loginForm',
+)
 ```
 
 The second approach uses schema-level validation with Zod. This centralizes validation logic in the schema and uses the `refine` method to add a custom validation rule:
@@ -431,23 +502,28 @@ The second approach uses schema-level validation with Zod. This centralizes vali
 import { reatomForm, reatomField } from '@reatom/form'
 import { z } from 'zod'
 
-const schema = z.object({
-  username: z.string(),
-  password: z.string(),
-  confirmPassword: z.string(),
-}).refine((values) => values.password === values.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+const schema = z
+  .object({
+    username: z.string(),
+    password: z.string(),
+    confirmPassword: z.string(),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
 
-const loginForm = reatomForm(name => ({
-  username: reatomField('', `${name}.username`),
-  password: reatomField('', `${name}.password`),
-  confirmPassword: reatomField('', `${name}.confirmPassword`)
-}), {
-  name: 'loginForm',
-  schema
-})
+const loginForm = reatomForm(
+  (name) => ({
+    username: reatomField('', `${name}.username`),
+    password: reatomField('', `${name}.password`),
+    confirmPassword: reatomField('', `${name}.confirmPassword`),
+  }),
+  {
+    name: 'loginForm',
+    schema,
+  },
+)
 ```
 
 ### Autofocus on error
@@ -459,20 +535,24 @@ Each field has an `elementRef` property that can be used to store a reference to
 ```ts
 import { reatomForm } from '@reatom/form'
 import { z } from 'zod'
-const form = reatomForm({
-  email: '',
-  age: 12
-}, {
-  schema: z.object({
-    email: z.string().email(),
-    age: z.number().min(18),
-  })
-})
+const form = reatomForm(
+  {
+    email: '',
+    age: 12,
+  },
+  {
+    schema: z.object({
+      email: z.string().email(),
+      age: z.number().min(18),
+    }),
+  },
+)
 
 form.submit.onReject.onCall((ctx) => {
-  const errorField = ctx.get(form.fieldsList).find(field => !!ctx.get(field.validation).error);
-  if(errorField)
-    ctx.get(errorField.elementRef)?.focus();
+  const errorField = ctx
+    .get(form.fieldsList)
+    .find((field) => !!ctx.get(field.validation).error)
+  if (errorField) ctx.get(errorField.elementRef)?.focus()
 })
 ```
 

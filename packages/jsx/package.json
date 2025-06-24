@@ -25,20 +25,22 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch=true"
   },
   "dependencies": {
-    "@reatom/core": ">=3.6.0",
-    "@reatom/primitives": "^3.5.0",
-    "@reatom/utils": "^3.5.0",
-    "csstype": "^3.1.2"
+    "@reatom/core": "workspace:^",
+    "@reatom/primitives": "workspace:^",
+    "@reatom/utils": "workspace:^",
+    "csstype": "catalog:"
   },
   "devDependencies": {
-    "@vitest/browser": "^3.0.9",
-    "playwright": "^1.51.1"
+    "@reatom/hooks": "workspace:^",
+    "@reatom/testing": "workspace:^",
+    "@vitest/browser": "catalog:",
+    "playwright": "catalog:"
   },
   "author": "artalar",
   "maintainers": [

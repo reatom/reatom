@@ -1,5 +1,5 @@
 import { test, expect } from 'vitest'
-import { createTestCtx, mockFn, createMockStorage } from '@reatom/testing'
+import { createTestCtx, mockFn } from '@reatom/testing'
 import { noop, sleep } from '@reatom/utils'
 import { Ctx, atom } from '@reatom/core'
 import { createMemStorage, reatomPersist } from '@reatom/persist'
@@ -216,7 +216,7 @@ test('withCache and action mocking', async () => {
 })
 
 test('withPersist', async () => {
-  const mockStorage = createMockStorage()
+  const mockStorage = createMemStorage({ name: 'test' })
   const withMock = reatomPersist(mockStorage)
 
   const effect = mockFn(async (ctx: Ctx, a: number, b: number) => a + b)

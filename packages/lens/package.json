@@ -16,20 +16,22 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": "^3.4.0",
-    "@reatom/effects": "^3.2.0",
-    "@reatom/hooks": "^3.3.1",
-    "@reatom/primitives": "^3.6.0",
-    "@reatom/utils": "^3.1.0"
+    "@reatom/core": "workspace:^",
+    "@reatom/effects": "workspace:^",
+    "@reatom/hooks": "workspace:^",
+    "@reatom/primitives": "workspace:^",
+    "@reatom/utils": "workspace:^"
   },
   "devDependencies": {
-    "@reatom/npm-zod": "^3.10.3"
+    "@reatom/npm-zod": "workspace:^",
+    "@reatom/testing": "workspace:^",
+    "zod": "catalog:"
   },
   "author": "artalar",
   "license": "MIT",

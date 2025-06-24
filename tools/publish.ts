@@ -77,7 +77,7 @@ const main = async () => {
     let npmVersion = '-1'
     try {
       npmVersion = (
-        await $`npm view @reatom/${packageName}@${tag} version`
+        await $`pnpm view @reatom/${packageName}@${tag} version`
       ).stdout.trim()
     } catch (error) {
       console.warn(`"${packageName}" is not published yet`)
@@ -100,7 +100,7 @@ const main = async () => {
 
       if (!otp) throw new Error('OTP code missed')
 
-      await $`cd ${packagePath} && npm publish --otp=${otp} --access public`
+      await $`cd ${packagePath} && pnpm publish --otp=${otp} --access public`
     }
   }
 

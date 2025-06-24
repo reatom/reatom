@@ -16,14 +16,14 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": "^3.1.0",
-    "@reatom/lens": "^3.1.0",
+    "@reatom/core": "workspace:^",
+    "@reatom/lens": "workspace:^",
     "svelte": "^3.0.0"
   },
   "author": "artalar",

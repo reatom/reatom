@@ -6,10 +6,10 @@ import {
   type LinkedListAtom,
   sleep,
   batch,
+  reatomLinkedList,
 } from '@reatom/framework'
 import { h, hf, JSX, ROOT } from '../jsx'
 import { followingsMap, getId, highlighted } from '../utils'
-import { reatomLinkedList } from '@reatom/primitives'
 
 interface Params {
   patch: AtomCache

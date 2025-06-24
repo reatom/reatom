@@ -2,17 +2,15 @@
 
 ## [3.11.0](https://github.com/reatom/reatom/compare/primitives-v3.10.0...primitives-v3.11.0) (2025-05-19)
 
-
 ### Features
 
-* **form:** add centralized fields initialization, add support for array fields, add `withField` ([#1038](https://github.com/reatom/reatom/issues/1038)) ([3da17df](https://github.com/reatom/reatom/commit/3da17df7c91c5ab8a5b17bd5a2cadd4792df340a))
+- **form:** add centralized fields initialization, add support for array fields, add `withField` ([#1038](https://github.com/reatom/reatom/issues/1038)) ([3da17df](https://github.com/reatom/reatom/commit/3da17df7c91c5ab8a5b17bd5a2cadd4792df340a))
 
 ## [3.10.0](https://github.com/artalar/reatom/compare/primitives-v3.9.0...primitives-v3.10.0) (2025-04-02)
 
-
 ### Features
 
-* **primitives:** constructor as initializer for primitives ([#1049](https://github.com/artalar/reatom/issues/1049)) ([5657158](https://github.com/artalar/reatom/commit/5657158aebbc0f7cbe03caa1cf97bb6df9a1af1f))
+- **primitives:** constructor as initializer for primitives ([#1049](https://github.com/artalar/reatom/issues/1049)) ([5657158](https://github.com/artalar/reatom/commit/5657158aebbc0f7cbe03caa1cf97bb6df9a1af1f))
 
 ## [3.9.0](https://github.com/artalar/reatom/compare/primitives-v3.8.0...primitives-v3.9.0) (2025-02-27)
 

@@ -16,16 +16,16 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/async": "^3.1.0",
-    "@reatom/utils": "^3.1.0",
-    "lit": "^2.6.0",
-    "@reatom/core": "^3.1.0"
+    "@reatom/async": "workspace:^",
+    "@reatom/core": "workspace:^",
+    "@reatom/utils": "workspace:^",
+    "lit": "catalog:"
   },
   "author": "kaifaty",
   "maintainers": [

@@ -19,7 +19,7 @@
     "node 16"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "tsc; tsx src/index.test.ts",
     "test:watch": "tsx watch src/index.test.ts"
@@ -54,8 +54,8 @@
   "homepage": "https://www.reatom.dev/package/eslint-plugin",
   "files": ["/build"],
   "devDependencies": {
-    "@types/eslint": "^9.0.0",
-    "eslint": "^9.21.0"
+    "@types/eslint": "catalog:",
+    "eslint": "catalog:"
   },
   "peerDependencies": {
     "eslint": "^8.0.0 || ^9.0.0"

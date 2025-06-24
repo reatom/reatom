@@ -2,24 +2,21 @@
 
 ## [3.12.0](https://github.com/reatom/reatom/compare/lens-v3.11.8...lens-v3.12.0) (2025-05-19)
 
-
 ### Features
 
-* **form:** add centralized fields initialization, add support for array fields, add `withField` ([#1038](https://github.com/reatom/reatom/issues/1038)) ([3da17df](https://github.com/reatom/reatom/commit/3da17df7c91c5ab8a5b17bd5a2cadd4792df340a))
+- **form:** add centralized fields initialization, add support for array fields, add `withField` ([#1038](https://github.com/reatom/reatom/issues/1038)) ([3da17df](https://github.com/reatom/reatom/commit/3da17df7c91c5ab8a5b17bd5a2cadd4792df340a))
 
 ## [3.11.8](https://github.com/artalar/reatom/compare/lens-v3.11.7...lens-v3.11.8) (2025-04-02)
 
-
 ### Bug Fixes
 
-* **lens:** parseAtoms types ([50bbb2c](https://github.com/artalar/reatom/commit/50bbb2cdfff0867105135f0810b46959bc000dd4))
+- **lens:** parseAtoms types ([50bbb2c](https://github.com/artalar/reatom/commit/50bbb2cdfff0867105135f0810b46959bc000dd4))
 
 ## [3.11.7](https://github.com/artalar/reatom/compare/lens-v3.11.6...lens-v3.11.7) (2025-03-14)
 
-
 ### Bug Fixes
 
-* **lens:** migrate to vitest, fix parseAtom type ([#1048](https://github.com/artalar/reatom/issues/1048)) ([b00054a](https://github.com/artalar/reatom/commit/b00054a54906c94c032b70e717f7e572a4b62bb7))
+- **lens:** migrate to vitest, fix parseAtom type ([#1048](https://github.com/artalar/reatom/issues/1048)) ([b00054a](https://github.com/artalar/reatom/commit/b00054a54906c94c032b70e717f7e572a4b62bb7))
 
 ## [3.11.6](https://github.com/artalar/reatom/compare/lens-v3.11.5...lens-v3.11.6) (2024-12-11)
 

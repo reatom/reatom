@@ -15,14 +15,14 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": "^3.3.0",
-    "@reatom/persist": "^3.1.0",
+    "@reatom/core": "workspace:^",
+    "@reatom/persist": "workspace:^",
     "idb-keyval": "^6.2.1"
   },
   "author": "artalar",

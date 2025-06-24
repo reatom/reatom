@@ -2,17 +2,15 @@
 
 ## [3.4.6](https://github.com/artalar/reatom/compare/persist-web-storage-v3.4.5...persist-web-storage-v3.4.6) (2025-04-02)
 
-
 ### Bug Fixes
 
-* **persist-web-storage:** types bundling ([971aed4](https://github.com/artalar/reatom/commit/971aed424c778e9fe82da8dbd71e5a6bf779ec1c))
+- **persist-web-storage:** types bundling ([971aed4](https://github.com/artalar/reatom/commit/971aed424c778e9fe82da8dbd71e5a6bf779ec1c))
 
 ## [3.4.5](https://github.com/artalar/reatom/compare/persist-web-storage-v3.4.4...persist-web-storage-v3.4.5) (2025-03-14)
 
-
 ### Bug Fixes
 
-* **devtools:** build with vite ([#1062](https://github.com/artalar/reatom/issues/1062)) ([cc3a99d](https://github.com/artalar/reatom/commit/cc3a99ded95499b731fd497aae3a2c8dc8701a14))
+- **devtools:** build with vite ([#1062](https://github.com/artalar/reatom/issues/1062)) ([cc3a99d](https://github.com/artalar/reatom/commit/cc3a99ded95499b731fd497aae3a2c8dc8701a14))
 
 ## [3.4.4](https://github.com/artalar/reatom/compare/persist-web-storage-v3.4.3...persist-web-storage-v3.4.4) (2024-06-22)
 

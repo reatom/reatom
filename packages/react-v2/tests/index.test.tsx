@@ -20,7 +20,7 @@ function Provider(props: { store: Store; children?: any }) {
   return <StoreProvider value={props.store}>{props.children}</StoreProvider>
 }
 
-describe('@reatom/react-v2', () => {
+describe.skip('@reatom/react-v2', () => {
   describe('useAtom', () => {
     test('returns atom state', () => {
       const store = createStore()

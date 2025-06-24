@@ -20,7 +20,9 @@ describe('reatomSet', () => {
   test(`delete`, () => {
     const ctx = createCtx()
 
-    expect(reatomSet(new Set([1, 2, 3])).delete(ctx, 3)).toEqual(new Set([1, 2]))
+    expect(reatomSet(new Set([1, 2, 3])).delete(ctx, 3)).toEqual(
+      new Set([1, 2]),
+    )
   })
 
   test(`toggle`, () => {
@@ -56,9 +58,9 @@ describe('reatomSet', () => {
   test(`union`, () => {
     const ctx = createCtx()
 
-    expect(reatomSet(new Set([1, 2, 3])).union(ctx, new Set([2, 3, 4]))).toEqual(
-      new Set([1, 2, 3, 4]),
-    )
+    expect(
+      reatomSet(new Set([1, 2, 3])).union(ctx, new Set([2, 3, 4])),
+    ).toEqual(new Set([1, 2, 3, 4]))
   })
 
   test(`difference`, () => {
@@ -73,7 +75,10 @@ describe('reatomSet', () => {
     const ctx = createCtx()
 
     expect(
-      reatomSet(new Set([1, 2, 3])).symmetricDifference(ctx, new Set([2, 3, 4])),
+      reatomSet(new Set([1, 2, 3])).symmetricDifference(
+        ctx,
+        new Set([2, 3, 4]),
+      ),
     ).toEqual(new Set([1, 4]))
   })
 

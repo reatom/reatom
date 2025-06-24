@@ -16,14 +16,17 @@
     "last 4 chrome versions"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": ">=3.1.0",
-    "@reatom/async": ">=3.1.0"
+    "@reatom/core": "workspace:^",
+    "@reatom/async": "workspace:^"
+  },
+  "devDependencies": {
+    "@reatom/testing": "workspace:^"
   },
   "author": "krulod",
   "maintainers": [

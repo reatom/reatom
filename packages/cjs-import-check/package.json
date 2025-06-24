@@ -1,16 +1,16 @@
 {
-  "name": "cjs-import-check",
+  "name": "@reatom-private/cjs-import-check",
   "dependencies": {
-    "@reatom/framework": "^3.4.37"
+    "@reatom/framework": "workspace:^"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node ./dist/hello.js",
-    "pretest": "npm run build",
+    "pretest": "pnpm run build",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "devDependencies": {
-    "typescript": "5.4.5"
+    "typescript": "catalog:"
   }
 }

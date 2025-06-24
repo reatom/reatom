@@ -42,12 +42,13 @@ export const reatomSet = <T>(
   initState: Set<T> | FirstSetConstructorParam<T> = new Set<T>(),
   name?: string,
 ): SetAtom<T> => {
-  const atomInitState = initState instanceof Set ? initState : new Set(initState);
-  
+  const atomInitState =
+    initState instanceof Set ? initState : new Set(initState)
+
   return atom(atomInitState, name).pipe(
     withAssign((target, name) => ({
       __reatomSet: true as const,
-      
+
       add: action(
         (ctx, el) =>
           target(ctx, (prev) => (prev.has(el) ? prev : new Set(prev).add(el))),
@@ -117,4 +118,5 @@ export const reatomSet = <T>(
   )
 }
 
-export const isSetAtom = (thing: any): thing is SetLikeAtom => thing?.__reatomSet === true
+export const isSetAtom = (thing: any): thing is SetLikeAtom =>
+  thing?.__reatomSet === true

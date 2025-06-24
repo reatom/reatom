@@ -14,20 +14,20 @@
   "types": "build/index.d.ts",
   "browserslist": ["last 1 year"],
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "pnpm run build",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/async": "^3.16.8",
-    "@reatom/core": "^3.10.1",
-    "@reatom/effects": "^3.11.3",
-    "@reatom/hooks": "^3.6.1",
-    "@reatom/lens": "^3.12.0",
-    "@reatom/logger": "^3.8.4",
-    "@reatom/primitives": "^3.11.0",
-    "@reatom/utils": "^3.11.3"
+    "@reatom/async": "workspace:^",
+    "@reatom/core": "workspace:^",
+    "@reatom/effects": "workspace:^",
+    "@reatom/hooks": "workspace:^",
+    "@reatom/lens": "workspace:^",
+    "@reatom/logger": "workspace:^",
+    "@reatom/primitives": "workspace:^",
+    "@reatom/utils": "workspace:^"
   },
   "author": "artalar",
   "license": "MIT",

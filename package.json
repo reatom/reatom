@@ -1,38 +1,35 @@
 {
   "name": "reatom-workspace",
+  "type": "module",
   "scripts": {
-    "release": "npx tsx ./tools/publish.ts",
-    "postinstall": "turbo run build --output-logs=errors-only --filter=./packages/{framework,testing}",
-    "build": "turbo run build --output-logs=errors-only --filter=./packages/*",
-    "reset": "sh ./tools/reset.sh",
-    "test": "turbo run build --output-logs=errors-only --filter=./packages/testing && turbo run test --filter=./packages/eslint-plugin && vitest",
-    "prettify": "prettier --write */**/**/*.{js,ts,md}",
+    "actualize-issue-templates": "tsx ./tools/actualize-issue-templates.ts",
+    "build": "tsx ./tools/build.ts",
+    "package-generator": "tsx tools/new-package.ts",
+    "postinstall": "pnpm run build",
+    "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
     "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
-    "package-generator": "tsx tools/new-package.ts",
-    "update": "npx npm-check-updates -u",
-    "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
-    "actualize-issue-templates": "npx tsx ./tools/actualize-issue-templates.ts"
+    "prettify": "prettier --write */**/**/*.{js,ts,md}",
+    "release": "tsx ./tools/publish.ts",
+    "reset": "sh ./tools/reset.sh",
+    "test": "vitest run",
+    "update": "npx npm-check-updates -u"
   },
+  "packageManager": "pnpm@10.12.1",
   "workspaces": [
     "./packages/*"
   ],
-  "packageManager": "npm@10.0.0",
-  "engines": {
-    "npm": ">=10"
-  },
   "dependencies": {
-    "@commitlint/cli": "^19.2.1",
-    "@commitlint/config-conventional": "^19.1.0",
-    "@types/node": "latest",
-    "husky": "^9.1.7",
-    "prettier": "^3.5.2",
-    "tsx": "^4.19.3",
-    "turbo": "^2.4.2",
-    "typescript": "^5.7.3",
-    "vitest": "^3.0.8",
-    "yoctobundle": "latest",
-    "zx": "^8.3.2"
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "@types/node": "catalog:",
+    "husky": "catalog:",
+    "prettier": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "yoctobundle": "catalog:",
+    "zx": "catalog:"
   },
   "author": "artalar",
   "license": "MIT",

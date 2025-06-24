@@ -9,7 +9,7 @@
   "module": "build/primitives.module.js",
   "types": "build/primitives.d.ts",
   "license": "MIT",
-  "peerDependencies": {
-    "@reatom/core-v2": "^3.1.0"
+  "dependencies": {
+    "@reatom/core-v2": "workspace:^"
   }
 }

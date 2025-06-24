@@ -1,4 +1,17 @@
-import { Atom, AtomCache, Ctx, __count, atom, isAtom } from '@reatom/core'
+import {
+  __count,
+  atom,
+  Atom,
+  AtomCache,
+  BooleanAtom,
+  Ctx,
+  isAtom,
+  parseAtoms,
+  reatomBoolean,
+  take,
+  withComputed,
+  withInit,
+} from '@reatom/framework'
 import { ctx, FC, h, mount, JSX, css, ROOT } from './jsx'
 
 // @ts-expect-error TODO write types
@@ -8,15 +21,6 @@ import observablehqStyles from '../../../node_modules/@observablehq/inspector/di
 import { create } from 'jsondiffpatch'
 import * as htmlFormatter from 'jsondiffpatch/formatters/html'
 import jsondiffpatchStyles from '../../../node_modules/jsondiffpatch/lib/formatters/styles/html.css?raw'
-
-import {
-  BooleanAtom,
-  parseAtoms,
-  reatomBoolean,
-  take,
-  withComputed,
-  withInit,
-} from '@reatom/framework'
 
 import {
   HISTORY_LENGTH,

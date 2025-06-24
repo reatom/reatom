@@ -16,13 +16,13 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "peerDependencies": {
-    "@reatom/core": ">=3.5.0",
+    "@reatom/core": "workspace:^",
     "vue": "^3.3.13"
   },
   "author": {
@@ -57,9 +57,10 @@
   ],
   "files": ["/build"],
   "devDependencies": {
-    "@reatom/hooks": "^3.5.2"
+    "@reatom/hooks": "workspace:^",
+    "@reatom/testing": "workspace:^"
   },
   "dependencies": {
-    "@reatom/lens": "^3.9.1"
+    "@reatom/lens": "workspace:^"
   }
 }

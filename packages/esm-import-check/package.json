@@ -5,17 +5,15 @@
   "type": "module",
   "license": "MIT",
   "private": true,
-  "dependencies": {
-    "@reatom/framework": "^3.4.37"
-  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node ./dist/hello.js",
-    "pretest": "npm run build",
+    "pretest": "pnpm run build",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "devDependencies": {
-    "typescript": "5.4.5"
+    "@reatom/framework": "workspace:^",
+    "typescript": "catalog:"
   }
 }

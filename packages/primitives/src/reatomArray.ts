@@ -23,7 +23,7 @@ export const reatomArray = <T>(
   atom(initState, name).pipe(
     withAssign((target, name) => ({
       __reatomArray: true as const,
-      
+
       toReversed: action(
         (ctx) => target(ctx, (prev) => prev.slice().reverse()),
         `${name}.toReversed`,
@@ -83,4 +83,5 @@ export const reatomArray = <T>(
     })),
   )
 
-export const isArrayAtom = (thing: any): thing is ArrayLikeAtom => thing?.__reatomArray === true
+export const isArrayAtom = (thing: any): thing is ArrayLikeAtom =>
+  thing?.__reatomArray === true

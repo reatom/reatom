@@ -16,16 +16,20 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": ">=3.8.0",
-    "@reatom/effects": ">=3.8.0",
-    "@reatom/primitives": ">=3.5.0",
-    "zod": "^3.23.4"
+    "@reatom/core": "workspace:^",
+    "@reatom/effects": "workspace:^",
+    "@reatom/primitives": "workspace:^",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@reatom/lens": "workspace:^",
+    "@reatom/testing": "workspace:^"
   },
   "author": "artalar",
   "maintainers": [

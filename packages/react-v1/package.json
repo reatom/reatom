@@ -16,13 +16,13 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core-v1": "^3.1.0",
+    "@reatom/core-v1": "workspace:^",
     "@types/react": ">=16.8.0",
     "react": ">=16.8.0",
     "use-sync-external-store": "^1.2.0"
@@ -42,6 +42,7 @@
     "/package.json"
   ],
   "devDependencies": {
+    "@reatom/testing": "workspace:^",
     "@testing-library/react": "^9.5.0",
     "@testing-library/react-hooks": "^8.0.1"
   }

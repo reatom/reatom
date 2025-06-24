@@ -16,17 +16,17 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
-    "@reatom/core": "^3.1.0",
-    "@reatom/form": "^3.1.0",
-    "@reatom/hooks": "^3.1.0",
-    "@reatom/primitives": "^3.1.0",
-    "@reatom/utils": "^3.1.0"
+    "@reatom/core": "workspace:^",
+    "@reatom/form": "workspace:^",
+    "@reatom/hooks": "workspace:^",
+    "@reatom/primitives": "workspace:^",
+    "@reatom/utils": "workspace:^"
   },
   "author": "artalar",
   "maintainers": [

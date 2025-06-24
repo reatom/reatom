@@ -9,6 +9,6 @@
   "types": "build/react-dom-batched-updates.d.ts",
   "license": "MIT",
   "peerDependencies": {
-    "@reatom/react-v2": "^3.1.0"
+    "@reatom/react-v2": "workspace:^"
   }
 }
