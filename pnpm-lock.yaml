@@ -184,8 +184,8 @@ importers:
         specifier: 'catalog:'
         version: 1.3.2(prettier@3.5.3)
       smartbundle:
-        specifier: 0.15.0-alpha.2
-        version: 0.15.0-alpha.2(@babel/core@7.27.1)(@types/node@24.0.4)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(typescript@5.8.3)(vitest@3.1.4)
+        specifier: 0.15.0-alpha.3
+        version: 0.15.0-alpha.3(@babel/core@7.27.1)(@types/node@24.0.4)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(typescript@5.8.3)(vitest@3.1.4)
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -4027,8 +4027,8 @@ packages:
     engines: {node: '>=14.0.0', npm: '>=6.0.0'}
     hasBin: true
 
-  smartbundle@0.15.0-alpha.2:
-    resolution: {integrity: sha512-sWI19JzdDrzjB43R0Ews4Y6N7n5GldUY/NdABO3NYW5v9GuiS3wsPxfn/7PDfqODeRIQmy4eBm3YPG1dEfppmQ==}
+  smartbundle@0.15.0-alpha.3:
+    resolution: {integrity: sha512-T2FTZpFMtBbaEGpjBk+yOecaXIMevyCUvl6TF0j3obG1X+DxLoG2xRu/r105N3aPd7TtdWQe6XMGW9sDQk3duw==}
     engines: {pnpm: ^10.11.0}
     hasBin: true
     peerDependencies:
@@ -9127,7 +9127,7 @@ snapshots:
       arg: 5.0.2
       sax: 1.4.1
 
-  smartbundle@0.15.0-alpha.2(@babel/core@7.27.1)(@types/node@24.0.4)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(typescript@5.8.3)(vitest@3.1.4):
+  smartbundle@0.15.0-alpha.3(@babel/core@7.27.1)(@types/node@24.0.4)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(typescript@5.8.3)(vitest@3.1.4):
     dependencies:
       glob: 11.0.3
       semver: 7.7.2
