@@ -1,23 +1,15 @@
 {
-  "name": "@reatom/core",
+  "name": "@reatom/core-sbsources",
   "version": "3.10.1",
-  "private": false,
+  "private": true,
   "description": "The ultimate state manager",
-  "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
-  },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "exports": "./src/index.ts",
   "sideEffects": false,
   "browserslist": [
     "last 1 year"
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
     "bench": "ts-node src/index.bench.test.ts"
@@ -51,6 +43,5 @@
     "reactivity",
     "state-manager",
     "reatom"
-  ],
-  "files": ["/build"]
+  ]
 }

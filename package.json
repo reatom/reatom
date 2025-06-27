@@ -2,6 +2,8 @@
   "name": "reatom-workspace",
   "type": "module",
   "scripts": {
+    "sb:link": "smartbundle-monorepo-link",
+    "sb:build": "smartbundle",
     "actualize-issue-templates": "tsx ./tools/actualize-issue-templates.ts",
     "build": "tsx ./tools/build.ts",
     "package-generator": "tsx tools/new-package.ts",
@@ -25,7 +27,6 @@
     "husky": "catalog:",
     "prettier": "catalog:",
     "tsx": "catalog:",
-    "typescript": "catalog:",
     "vitest": "catalog:",
     "yoctobundle": "catalog:",
     "zx": "catalog:"
@@ -41,6 +42,8 @@
   },
   "homepage": "https://www.reatom.dev",
   "devDependencies": {
-    "release-please": "^17.0.0"
+    "release-please": "^17.0.0",
+    "smartbundle": "0.15.0-alpha.1",
+    "typescript": "^5.8.3"
   }
 }
