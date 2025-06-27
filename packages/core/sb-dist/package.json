@@ -1,0 +1,13 @@
+{
+  "name": "@reatom/core",
+  "private": true,
+  "version": "1000.0.0-alpha.33",
+  "type": "module",
+  "description": "Link package for @reatom/core-sbsources",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "devDependencies": {
+    "@reatom/core-sbsources": "workspace:*"
+  }
+}

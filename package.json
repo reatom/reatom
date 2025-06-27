@@ -2,7 +2,9 @@
   "name": "reatom-workspace",
   "type": "module",
   "scripts": {
-    "postinstall": "pnpm --filter @reatom/core run build",
+    "sb:link": "smartbundle-monorepo-link",
+    "sb:build": "smartbundle",
+    "postinstall": "pnpm --filter @reatom/core run test",
     "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "test": "vitest run",
     "release": "tsx ./tools/publish.ts",
@@ -28,7 +30,6 @@
     "tsx": "catalog:",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "catalog:",
-    "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vitest": "catalog:",
     "yoctobundle": "catalog:",
@@ -47,7 +48,9 @@
   "devDependencies": {
     "globals": "catalog:",
     "prettier-plugin-astro": "catalog:",
-    "prettier-plugin-jsdoc": "catalog:"
+    "prettier-plugin-jsdoc": "catalog:",
+    "typescript": "^5.8.3",
+    "smartbundle": "0.15.0-alpha.2"
   },
   "packageManager": "pnpm@10.12.1"
 }

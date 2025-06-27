@@ -1,6 +1,7 @@
 packages:
   - docs
   - packages/*
+  - packages/*/sb-dist
 publishBranch: v1000
 executionEnv.nodeVersion: 24.2.0
 useNodeVersion: 24.2.0
