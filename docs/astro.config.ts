@@ -21,7 +21,49 @@ export default defineConfig({
       plugins: [
         // TODO
         // starlightLinksValidator(),
-        starlightLlmsTxt(),
+        starlightLlmsTxt({
+          // Configure multiple LLM output files
+          output: [
+            {
+              // Small focused file with start docs + references to handbook
+              filename: 'llms-start.txt',
+              include: ['start/**/*'],
+              transformContent: (content, frontmatter, url) => {
+                // Add handbook references at the end of start docs
+                let transformedContent = content;
+                
+                // Add reference links to corresponding handbook docs
+                if (url.includes('/start/')) {
+                  const docName = url.split('/').pop() || 'index';
+                  const handbookUrl = url.replace('/start/', '/handbook/');
+                  
+                  transformedContent += `\n\n📖 **For advanced information, see:** [${frontmatter.title || docName} Handbook](${handbookUrl})\n`;
+                  
+                  // Add general handbook references
+                  transformedContent += `\n**Comprehensive guides available in handbook:**
+- [Routing Handbook](/handbook/routing) - Advanced routing patterns, nested routes, computed factory
+- [Forms Handbook](/handbook/forms) - Complex form validation, async handling, field dependencies  
+- [Persistence Handbook](/handbook/persist) - Advanced data persistence strategies
+- [Async Context Handbook](/handbook/async-context) - Complex async state management
+- [Events Handbook](/handbook/events) - Advanced event handling patterns
+- [Lifecycle Handbook](/handbook/lifecycle) - Component lifecycle management
+- [Extensions Handbook](/handbook/extensions) - Creating and using extensions
+- [Atomization Handbook](/handbook/atomization) - Advanced atom composition patterns
+- [Sampling Handbook](/handbook/sampling) - Performance optimization techniques
+- [Async Handbook](/handbook/async) - Advanced async patterns and utilities
+- [History Handbook](/handbook/history) - Navigation and history management\n`;
+                }
+                
+                return transformedContent;
+              }
+            },
+            {
+              // Complete documentation file (existing behavior)
+              filename: 'llms.txt',
+              // Include all docs by default (no include/exclude means all)
+            }
+          ]
+        }),
       ],
       components: {
         Header: './src/components/starlight/Header.astro',
