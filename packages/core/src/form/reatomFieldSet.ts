@@ -30,9 +30,6 @@ export interface FieldSetValidation {
   /** The list of field validation errors. */
   errors: FieldSetFieldError[]
 
-  /** The field validation meta. */
-  meta: unknown | undefined
-
   /** The validation actuality status. */
   triggered: boolean
 
@@ -114,7 +111,6 @@ export const reatomFieldSet = <T extends FormInitState>(
       errors: validationErrors,
       validating: undefined,
       triggered: true,
-      meta: undefined,
     }
 
     for (const field of fieldsList()) {
