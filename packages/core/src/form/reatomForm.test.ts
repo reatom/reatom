@@ -112,7 +112,6 @@ test('validation states', async () => {
 
   expect(form.validation()).toMatchObject({
     errors: [],
-    meta: undefined,
     triggered: false,
     validating: undefined,
   })
@@ -122,7 +121,6 @@ test('validation states', async () => {
 
   expect(form.validation()).toMatchObject({
     errors: [{ message: 'Contract error' }],
-    meta: undefined,
     triggered: false,
     validating: undefined,
   })
@@ -132,7 +130,6 @@ test('validation states', async () => {
 
   expect(form.validation()).toMatchObject({
     errors: [{ message: 'Contract error' }],
-    meta: undefined,
     triggered: true,
   })
   expect(form.validation().validating).toBeInstanceOf(Promise)
@@ -144,7 +141,6 @@ test('validation states', async () => {
 
   expect(form.validation()).toEqual({
     errors: [],
-    meta: undefined,
     triggered: true,
     validating: undefined,
   })
@@ -154,7 +150,6 @@ test('validation states', async () => {
 
   expect(form.validation()).toEqual({
     errors: [],
-    meta: undefined,
     triggered: true,
     validating: undefined,
   })
@@ -164,7 +159,6 @@ test('validation states', async () => {
 
   expect(form.validation()).toEqual({
     errors: [],
-    meta: undefined,
     triggered: true,
     validating: undefined,
   })
@@ -249,7 +243,6 @@ test('default options for fields', async () => {
 
   expect(field.validation()).toEqual({
     errors: [],
-    meta: undefined,
     triggered: false,
     validating: undefined,
   })
@@ -259,7 +252,6 @@ test('default options for fields', async () => {
 
     expect(field.validation()).toEqual({
       errors: [],
-      meta: undefined,
       triggered: true,
       validating: undefined,
     })
@@ -375,7 +367,6 @@ test('reset', () => {
   })
   expect(field.validation()).toEqual({
     errors: [],
-    meta: undefined,
     triggered: false,
     validating: undefined,
   })

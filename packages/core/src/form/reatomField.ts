@@ -63,8 +63,6 @@ export interface FieldValidation {
   /** The list of field validation errors. */
   errors: FieldError[]
 
-  /** The field validation meta. */
-  meta: unknown | undefined
 
   /** The validation actuality status. */
   triggered: boolean
@@ -260,14 +258,12 @@ export const fieldInitFocus: FieldFocus = {
 
 export const fieldInitValidation: FieldValidation = {
   errors: [],
-  meta: undefined,
   triggered: false,
   validating: undefined,
 }
 
 export const fieldInitValidationLess: FieldValidation = {
   errors: [],
-  meta: undefined,
   triggered: true,
   validating: undefined,
 }
@@ -473,7 +469,6 @@ export function reatomField<State, Value = State>(
                 const errors = await wrap(promise)
                 target.merge({
                   errors,
-                  meta: undefined,
                   triggered: true,
                   validating: undefined,
                 })
@@ -487,7 +482,6 @@ export function reatomField<State, Value = State>(
                       message: toError(error),
                     },
                   ],
-                  meta: undefined,
                   triggered: true,
                   validating: undefined,
                 })
@@ -497,7 +491,6 @@ export function reatomField<State, Value = State>(
 
             return target.merge({
               errors: keepErrorDuringValidating ? validationValue.errors : [],
-              meta: undefined,
               triggered: true,
               validating: validationPromise,
             })
@@ -506,7 +499,6 @@ export function reatomField<State, Value = State>(
           return target.merge({
             validating: undefined,
             errors: promise,
-            meta: undefined,
             triggered: true,
           })
         }, `${target.name}.trigger`).extend(withAbort()),
