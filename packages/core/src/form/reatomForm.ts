@@ -164,7 +164,11 @@ export interface Form<
 export interface BaseFormOptions {
   name?: string
 
-  /** Should reset the state after success submit? @default true */
+  /** 
+   * Should reset the state after success submit? 
+   * 
+   * @default false 
+   */
   resetOnSubmit?: boolean
 
   /**
@@ -446,7 +450,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   const {
     name = named('form'),
     onSubmit,
-    resetOnSubmit = true,
+    resetOnSubmit = false,
     validate,
     submitValidate = validate,
     validateOnBlur = false,
