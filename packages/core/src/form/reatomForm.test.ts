@@ -99,7 +99,7 @@ test('validation states', async () => {
     {
       name: 'testForm',
       onSubmit: () => {},
-      validate: () => {
+      submitValidate: () => {
         throw new Error('Form validation error')
       },
     },

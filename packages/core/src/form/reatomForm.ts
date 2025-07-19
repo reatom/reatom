@@ -206,8 +206,16 @@ export interface FormOptionsWithSchema<State, SubmitReturn>
   /** The callback to process valid form data, typed according to the schema */
   onSubmit?: (state: State) => SubmitReturn | Promise<SubmitReturn>
 
-  /** The callback to validate form fields, typed according to the schema */
+  /** 
+   * The callback to validate form fields before submit, typed according to the schema 
+   * @deprecated Renamed to `submitValidate`
+   */
   validate?: (state: State) => any
+
+  /** 
+   * The callback to validate form fields before submit, typed according to the schema 
+   */
+  submitValidate?: (state: State) => any
 
   /**
    * The schema which supports StandardSchemaV1 specification to validate form
@@ -224,8 +232,17 @@ export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn>
    */
   onSubmit?: (state: FormState<T>) => SubmitReturn | Promise<SubmitReturn>
 
-  /** The callback to validate form fields, typed according to the raw form state */
+  /** 
+   * The callback to validate form fields before submit, typed according to the raw form state 
+   * @deprecated Renamed to `submitValidate`
+   */
   validate?: (state: FormState<T>) => any
+
+  /** 
+   * The callback to validate form fields before submit, typed according to the raw form state 
+   * @deprecated Renamed to `submitValidate`
+   */
+  submitValidate?: (state: FormState<T>) => any
 
   /** Schema is explicitly disallowed or undefined in this variant */
   schema?: undefined
@@ -431,6 +448,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     onSubmit,
     resetOnSubmit = true,
     validate,
+    submitValidate = validate,
     validateOnBlur = false,
     validateOnChange = false,
     keepErrorDuringValidating = false,
@@ -547,8 +565,8 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       state = fieldsState()
     }
 
-    if (validate) {
-      const promise = validate(state)
+    if (submitValidate) {
+      const promise = submitValidate(state)
       if (promise instanceof Promise) await wrap(promise)
     }
 
