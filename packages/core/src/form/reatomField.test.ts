@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 
 import { addCallHook, notify, reatomEnum, sleep, wrap } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
@@ -211,4 +211,62 @@ test(`reset with initState`, async () => {
   field.reset(1000)
   expect(field()).toEqual(1000)
   expect(field() === field.initState()).toBe(true)
+})
+
+describe(`reactivity of validate function`, () => {
+  test(`basic`, () => {
+    const passwordField = reatomField('', 'passwordField');
+
+    const confirmField = reatomField('', {
+      name: 'confirmField',
+      validate: () => {
+        if(!passwordField.validation().errors.length && passwordField.value() != confirmField.value())
+          return 'Passwords do not match'
+      }
+    })
+
+    confirmField.focus.subscribe()
+    confirmField.validation.subscribe()
+
+    passwordField.change('pass')
+    notify()
+    expect(confirmField.validation().errors).toHaveLength(0)
+
+    confirmField.change('password')
+    notify()
+    expect(confirmField.validation().errors.length).toBeTruthy()
+
+    passwordField.change('password')
+    notify()
+    expect(confirmField.validation().errors).toHaveLength(0)
+  })
+
+  test('concurrency', () => {
+    const burgerField = reatomField('Hamburger', 'burgerField')
+
+    const fetchBurgerCookingTime = async (burger: string) => {
+      await sleep(300 + burger.length)
+      if(burger === 'Hamburger') return 10
+      else return 5
+    }
+
+    const pickupTimeField = reatomField(0, {
+      name: 'pickupTimeField',
+      validate: async () => {
+        const burger = burgerField.value()
+        const pickupTime = pickupTimeField.value()
+
+        const cookingTime = await wrap(fetchBurgerCookingTime(burger))
+        if(cookingTime > pickupTime)
+          return 'We wont be able to cook the burger on time'
+      }
+    })
+
+    pickupTimeField.focus.subscribe()
+    pickupTimeField.validation.subscribe()
+
+    pickupTimeField.change(8)
+    notify()
+    expect(pickupTimeField.validation().validating).toBeInstanceOf(Promise)
+  })
 })

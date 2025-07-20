@@ -15,6 +15,7 @@ import {
   isCausedBy,
   isDeepEqual,
   named,
+  peek,
   reatomBoolean,
   reatomRecord,
   type Rec,
@@ -284,7 +285,7 @@ export function reatomField<State, Value = State>(
   options: string | FieldOptions<State, Value> = {},
   stateAtom?: Atom<State>,
 ): FieldAtom<State, Value> {
-  interface This extends FieldAtom<State, Value> {}
+  interface This extends FieldAtom<State, Value> { }
 
   const {
     filter = () => true,
@@ -295,8 +296,8 @@ export function reatomField<State, Value = State>(
     validate: validateFn,
     ...restOptions
   } = typeof options === 'string'
-    ? ({ name: options } as FieldOptions<State, Value>)
-    : options
+      ? ({ name: options } as FieldOptions<State, Value>)
+      : options
 
   const fieldOptions = reatomRecord({
     validateOnChange: restOptions.validateOnChange,
@@ -400,17 +401,20 @@ export function reatomField<State, Value = State>(
         return state.triggered ? { ...state, triggered: false } : state
       }),
       (target) => ({
-        trigger: action(() => {
-          const validationValue = target()
-
-          if (validationValue.triggered) return validationValue
-
-          const { shouldValidate, keepErrorDuringValidating } =
-            fieldOptions.value()
-          if (!shouldValidate) return target.merge({ triggered: true })
-
+        runValidation: ({
+          validation,
+          state,
+          value,
+          focus,
+          keepErrorDuringValidating
+        }: {
+          validation: FieldValidation,
+          state: State,
+          value: Value,
+          focus: FieldFocus,
+          keepErrorDuringValidating: boolean
+        }) => {
           let promise
-          const state = field()
 
           try {
             if (typeof validateFn == 'function') {
@@ -431,9 +435,9 @@ export function reatomField<State, Value = State>(
 
               const task = validateFn({
                 state,
-                value: value(),
-                focus: focus(),
-                validation: validationValue,
+                value,
+                focus,
+                validation,
               })
 
               promise =
@@ -489,20 +493,60 @@ export function reatomField<State, Value = State>(
               }
             })()
 
-            return target.merge({
-              errors: keepErrorDuringValidating ? validationValue.errors : [],
+            return {
+              errors: keepErrorDuringValidating ? validation.errors : [],
               triggered: true,
               validating: validationPromise,
-            })
+            }
           }
 
-          return target.merge({
+          return {
             validating: undefined,
             errors: promise,
             triggered: true,
+          }
+        }
+      })
+    )
+    .extend(
+      (target) => ({
+        trigger: action(() => {
+          const validation = target()
+
+          if (validation.triggered) return validation
+
+          const { shouldValidate, keepErrorDuringValidating } =
+            fieldOptions.value()
+          if (!shouldValidate) return target.merge({ triggered: true })
+
+          const propsToMerge = target.runValidation({
+            validation,
+            focus: focus(),
+            state: field(),
+            value: value(),
+            keepErrorDuringValidating,
           })
+
+          return target.merge(propsToMerge)
         }, `${target.name}.trigger`).extend(withAbort()),
       }),
+      (target) => target.extend(
+        withComputed((state) => {
+          if (peek(() => disabled() || !fieldOptions.value().shouldValidate))
+            return state
+
+          return peek(focus).dirty && typeof validateFn == 'function'
+            ? target.runValidation({ 
+              validation: state,
+              focus: peek(focus),
+              state: peek(field),
+              value: peek(value),
+              keepErrorDuringValidating: peek(fieldOptions.value).keepErrorDuringValidating
+            }) 
+            : state
+        }),
+      ),
+      withAbort(),
     )
     .actions((target) => ({
       prependErrors: (...errors: FieldError[]) => {
