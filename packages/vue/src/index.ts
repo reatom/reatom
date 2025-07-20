@@ -7,9 +7,8 @@ import {
   STACK,
   wrap,
 } from '@reatom/core'
-import { RefSymbol } from '@vue/reactivity'
 import type { App, Ref } from 'vue'
-import { inject, onScopeDispose, ref } from 'vue'
+import { inject, onScopeDispose, customRef } from 'vue'
 
 const ReatomContextKey = 'ReatomContextKey'
 
@@ -51,19 +50,27 @@ export function reatomRef<T>(
   // TODO fix type inference
   if (!isAtom(target)) throw 42
 
-  const vueState = ref()
+  let trigger: () => void
 
-  onScopeDispose(target.subscribe((state) => (vueState.value = state)))
+  const ref = customRef<T>((track, _trigger) => {
+    trigger = _trigger
 
-  return {
-    get value() {
-      return vueState.value
-    },
-    set value(next) {
-      // @ts-expect-error
-      target.set(next)
-    },
-    // @ts-ignore TODO
-    [RefSymbol]: true,
-  }
+    return {
+      get() {
+        track()
+        return target()
+      },
+      set(next) {
+        // @ts-expect-error
+        target.set(next)
+        _trigger()
+      },
+    }
+  })
+
+  const unsubscribe = target.subscribe(() => trigger())
+
+  onScopeDispose(unsubscribe)
+
+  return ref
 }
