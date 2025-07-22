@@ -6,6 +6,7 @@ import HistorySection from '../components/landing/HistorySection.astro'
 import FooterSection from '../components/landing/FooterSection.astro'
 import CodeExample from '../components/landing/CodeExample.astro'
 import FeedbackSection from '../components/landing/FeedbackSection.astro'
+import Screensaver from '../components/Screensaver.astro'
 ---
 
 <!doctype html>
@@ -27,72 +28,9 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-
-    <!-- Screensaver styles -->
-    <style>
-      .screensaver {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: #000;
-        z-index: 9999;
-        display: none;
-        cursor: none;
-      }
-
-      .screensaver.active {
-        display: block;
-      }
-
-      .screensaver-logo {
-        position: absolute;
-        width: 120px;
-        height: 120px;
-        transition: none;
-        filter: drop-shadow(0 0 20px currentColor);
-      }
-
-      .screensaver-info {
-        position: absolute;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        color: #fff;
-        font-family: 'Inter', sans-serif;
-        font-size: 14px;
-        opacity: 0.7;
-        text-align: center;
-        pointer-events: none;
-      }
-    </style>
   </head>
   <body>
-    <!-- Screensaver overlay -->
-    <div id="screensaver" class="screensaver">
-      <svg class="screensaver-logo" id="screensaver-logo" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="200" cy="200" r="200" fill="currentColor" stroke="#000" stroke-width="15px"/>
-        <circle cx="200" cy="200" r="175" stroke="#000" stroke-width="15px" fill="none"/>
-        <circle cx="180" cy="180" r="130" fill="#000"/>
-        <circle cx="215" cy="180" r="70" fill="#000"/>
-        <circle cx="150" cy="94" r="38" fill="#000"/>
-        <circle cx="100" cy="195" r="40" fill="#000"/>
-        <circle cx="165" cy="275" r="30" fill="#000"/>
-        <circle cx="250" cy="265" r="20" fill="#000"/>
-        <circle cx="57" cy="270" r="20" fill="#000"/>
-        <circle cx="215" cy="345" r="36" fill="#000"/>
-        <circle cx="310" cy="290" r="36" fill="#000"/>
-        <circle cx="345" cy="195" r="30" fill="#000"/>
-        <circle cx="321" cy="107" r="25" fill="#000"/>
-        <circle cx="260" cy="50" r="20" fill="#000"/>
-        <circle cx="120" cy="330" r="25" fill="#000"/>
-      </svg>
-      <div class="screensaver-info">
-        <div>Reatom Screensaver</div>
-        <div>Move mouse or press any key to continue</div>
-      </div>
-    </div>
+    <Screensaver />
 
     <header class="nav-header">
       <div class="nav-header-content">
@@ -507,148 +445,7 @@ import FeedbackSection from '../components/landing/FeedbackSection.astro'
         initTheme()
         initSmoothScroll()
         initLogoScroller()
-        initScreensaver()
       })
-
-      // Screensaver functionality
-      function initScreensaver() {
-        let inactivityTimer = null;
-        let screensaverActive = false;
-        let animationId = null;
-        const INACTIVITY_TIME = 30000; // 30 seconds
-
-        const screensaver = document.getElementById('screensaver');
-        const logo = document.getElementById('screensaver-logo');
-
-        // Screensaver animation variables
-        let x = 100;
-        let y = 100;
-        let dx = 2;
-        let dy = 2;
-        let logoWidth = 120;
-        let logoHeight = 120;
-
-        // Color palette for the bouncing logo
-        const colors = [
-          '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57',
-          '#FF9FF3', '#54A0FF', '#5F27CD', '#00D2D3', '#FF9F43',
-          '#10AC84', '#EE5A24', '#0ABDE3', '#3867D6', '#8B98A3'
-        ];
-        let currentColorIndex = 0;
-
-        function getRandomColor() {
-          currentColorIndex = (currentColorIndex + 1) % colors.length;
-          return colors[currentColorIndex];
-        }
-
-        function resetInactivityTimer() {
-          if (inactivityTimer) {
-            clearTimeout(inactivityTimer);
-          }
-
-          if (screensaverActive) {
-            hideScreensaver();
-            return;
-          }
-
-          inactivityTimer = setTimeout(() => {
-            showScreensaver();
-          }, INACTIVITY_TIME);
-        }
-
-        function showScreensaver() {
-          screensaverActive = true;
-          screensaver.classList.add('active');
-          
-          // Initialize random position
-          x = Math.random() * (window.innerWidth - logoWidth);
-          y = Math.random() * (window.innerHeight - logoHeight);
-          
-          // Set initial color
-          logo.style.color = getRandomColor();
-          
-          // Start animation
-          animate();
-        }
-
-        function hideScreensaver() {
-          screensaverActive = false;
-          screensaver.classList.remove('active');
-          
-          if (animationId) {
-            cancelAnimationFrame(animationId);
-            animationId = null;
-          }
-          
-          resetInactivityTimer();
-        }
-
-        function animate() {
-          if (!screensaverActive) return;
-
-          // Update position
-          x += dx;
-          y += dy;
-
-          // Bounce off edges and change color
-          if (x <= 0 || x >= window.innerWidth - logoWidth) {
-            dx = -dx;
-            logo.style.color = getRandomColor();
-            
-            // Create a subtle screen flash effect
-            screensaver.style.background = `radial-gradient(circle at ${x + logoWidth/2}px ${y + logoHeight/2}px, rgba(255,255,255,0.1) 0%, #000 50%)`;
-            setTimeout(() => {
-              screensaver.style.background = '#000';
-            }, 100);
-          }
-
-          if (y <= 0 || y >= window.innerHeight - logoHeight) {
-            dy = -dy;
-            logo.style.color = getRandomColor();
-            
-            // Create a subtle screen flash effect
-            screensaver.style.background = `radial-gradient(circle at ${x + logoWidth/2}px ${y + logoHeight/2}px, rgba(255,255,255,0.1) 0%, #000 50%)`;
-            setTimeout(() => {
-              screensaver.style.background = '#000';
-            }, 100);
-          }
-
-          // Keep within bounds
-          x = Math.max(0, Math.min(x, window.innerWidth - logoWidth));
-          y = Math.max(0, Math.min(y, window.innerHeight - logoHeight));
-
-          // Apply position
-          logo.style.left = x + 'px';
-          logo.style.top = y + 'px';
-
-          animationId = requestAnimationFrame(animate);
-        }
-
-        // Event listeners for user activity
-        const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-        
-        events.forEach(event => {
-          document.addEventListener(event, resetInactivityTimer, true);
-        });
-
-        // Handle window resize
-        window.addEventListener('resize', () => {
-          if (screensaverActive) {
-            // Keep logo within new bounds
-            x = Math.min(x, window.innerWidth - logoWidth);
-            y = Math.min(y, window.innerHeight - logoHeight);
-          }
-        });
-
-        // Special handling for screensaver clicks
-        screensaver.addEventListener('click', (e) => {
-          e.stopPropagation();
-          hideScreensaver();
-        });
-
-        // Initialize timer
-        resetInactivityTimer();
-      }
     </script>
   </body>
 </html>

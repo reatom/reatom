@@ -1,0 +1,277 @@
+---
+// Screensaver Component - Classic floating particles animation
+---
+
+<div class="screensaver-overlay" id="screensaver">
+  <canvas id="screensaver-canvas"></canvas>
+  <div class="screensaver-info">
+    <h2>Reatom Screensaver</h2>
+    <p>Move mouse or press any key to continue</p>
+  </div>
+</div>
+
+<style>
+  .screensaver-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #000;
+    z-index: 9999;
+    display: none;
+    cursor: none;
+    overflow: hidden;
+  }
+
+  .screensaver-overlay.active {
+    display: block;
+  }
+
+  #screensaver-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .screensaver-info {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-family: 'Inter', sans-serif;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .screensaver-info h2 {
+    font-size: 24px;
+    font-weight: 300;
+    margin: 0 0 8px 0;
+    letter-spacing: 2px;
+  }
+
+  .screensaver-info p {
+    font-size: 14px;
+    margin: 0;
+    opacity: 0.8;
+  }
+
+  @media (max-width: 768px) {
+    .screensaver-info h2 {
+      font-size: 20px;
+    }
+    .screensaver-info p {
+      font-size: 12px;
+    }
+  }
+</style>
+
+<script>
+// Classic floating particles screensaver - inspired by common CodePen patterns
+class ParticleScreensaver {
+  constructor() {
+    this.canvas = null;
+    this.ctx = null;
+    this.particles = [];
+    this.animationId = null;
+    this.isActive = false;
+    this.inactivityTimer = null;
+    this.INACTIVITY_TIME = 30000; // 30 seconds
+    this.PARTICLE_COUNT = 80;
+    
+    this.init();
+  }
+
+  init() {
+    this.canvas = document.getElementById('screensaver-canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.screensaver = document.getElementById('screensaver');
+    
+    this.setupEventListeners();
+    this.resetInactivityTimer();
+  }
+
+  setupCanvas() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+  }
+
+  createParticles() {
+    this.particles = [];
+    for (let i = 0; i < this.PARTICLE_COUNT; i++) {
+      this.particles.push({
+        x: Math.random() * this.canvas.width,
+        y: Math.random() * this.canvas.height,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        radius: Math.random() * 3 + 1,
+        hue: Math.random() * 360,
+        saturation: 70 + Math.random() * 30,
+        lightness: 50 + Math.random() * 30,
+        alpha: Math.random() * 0.8 + 0.2,
+        pulseSpeed: Math.random() * 0.02 + 0.01,
+        pulsePhase: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  updateParticles() {
+    this.particles.forEach((particle, index) => {
+      // Update position
+      particle.x += particle.vx;
+      particle.y += particle.vy;
+
+      // Bounce off walls
+      if (particle.x < 0 || particle.x > this.canvas.width) {
+        particle.vx *= -1;
+        particle.hue = (particle.hue + 60) % 360; // Change color on bounce
+      }
+      if (particle.y < 0 || particle.y > this.canvas.height) {
+        particle.vy *= -1;
+        particle.hue = (particle.hue + 60) % 360; // Change color on bounce
+      }
+
+      // Keep particles in bounds
+      particle.x = Math.max(0, Math.min(this.canvas.width, particle.x));
+      particle.y = Math.max(0, Math.min(this.canvas.height, particle.y));
+
+      // Pulsing effect
+      particle.pulsePhase += particle.pulseSpeed;
+      particle.alpha = 0.3 + Math.sin(particle.pulsePhase) * 0.3;
+
+      // Slowly change hue over time
+      particle.hue += 0.5;
+      if (particle.hue >= 360) particle.hue = 0;
+    });
+  }
+
+  drawParticles() {
+    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    // Draw connections between nearby particles
+    this.particles.forEach((particle, i) => {
+      this.particles.slice(i + 1).forEach(otherParticle => {
+        const dx = particle.x - otherParticle.x;
+        const dy = particle.y - otherParticle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 120) {
+          const alpha = (120 - distance) / 120 * 0.2;
+          this.ctx.strokeStyle = `hsla(${(particle.hue + otherParticle.hue) / 2}, 70%, 60%, ${alpha})`;
+          this.ctx.lineWidth = 1;
+          this.ctx.beginPath();
+          this.ctx.moveTo(particle.x, particle.y);
+          this.ctx.lineTo(otherParticle.x, otherParticle.y);
+          this.ctx.stroke();
+        }
+      });
+    });
+
+    // Draw particles
+    this.particles.forEach(particle => {
+      this.ctx.beginPath();
+      this.ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+      
+      // Create gradient for each particle
+      const gradient = this.ctx.createRadialGradient(
+        particle.x, particle.y, 0,
+        particle.x, particle.y, particle.radius
+      );
+      gradient.addColorStop(0, `hsla(${particle.hue}, ${particle.saturation}%, ${particle.lightness + 20}%, ${particle.alpha})`);
+      gradient.addColorStop(1, `hsla(${particle.hue}, ${particle.saturation}%, ${particle.lightness}%, 0)`);
+      
+      this.ctx.fillStyle = gradient;
+      this.ctx.fill();
+      
+      // Add a bright center
+      this.ctx.beginPath();
+      this.ctx.arc(particle.x, particle.y, particle.radius * 0.3, 0, Math.PI * 2);
+      this.ctx.fillStyle = `hsla(${particle.hue}, 100%, 80%, ${particle.alpha * 0.8})`;
+      this.ctx.fill();
+    });
+  }
+
+  animate() {
+    if (!this.isActive) return;
+
+    this.updateParticles();
+    this.drawParticles();
+    this.animationId = requestAnimationFrame(() => this.animate());
+  }
+
+  show() {
+    this.isActive = true;
+    this.screensaver.classList.add('active');
+    this.setupCanvas();
+    this.createParticles();
+    this.animate();
+  }
+
+  hide() {
+    this.isActive = false;
+    this.screensaver.classList.remove('active');
+    
+    if (this.animationId) {
+      cancelAnimationFrame(this.animationId);
+      this.animationId = null;
+    }
+    
+    this.resetInactivityTimer();
+  }
+
+  resetInactivityTimer() {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+    }
+
+    if (this.isActive) {
+      this.hide();
+      return;
+    }
+
+    this.inactivityTimer = setTimeout(() => {
+      this.show();
+    }, this.INACTIVITY_TIME);
+  }
+
+  setupEventListeners() {
+    // Activity events
+    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    
+    events.forEach(event => {
+      document.addEventListener(event, () => this.resetInactivityTimer(), true);
+    });
+
+    // Screensaver click to dismiss
+    this.screensaver.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.hide();
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      if (this.isActive) {
+        this.setupCanvas();
+      }
+    });
+
+    // Handle keyboard events specifically for screensaver dismissal
+    document.addEventListener('keydown', (e) => {
+      if (this.isActive) {
+        e.preventDefault();
+        this.hide();
+      }
+    });
+  }
+}
+
+// Initialize screensaver when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  new ParticleScreensaver();
+});
+</script>
