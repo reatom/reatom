@@ -305,7 +305,7 @@ export function reatomField<State, Value = State>(
     keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
     keepErrorOnChange: restOptions.keepErrorOnChange,
     shouldValidate: undefined as boolean | undefined,
-  }).extend((target) => ({
+  }, `${name}._fieldOptions`).extend((target) => ({
     value: computed(() => {
       const {
         validateOnChange,
@@ -327,7 +327,7 @@ export function reatomField<State, Value = State>(
 
   const disabled = reatomBoolean(
     restOptions.disabled ?? false,
-    `${name}.disabled`,
+    `${name}._disabled`,
   ).extend(
     withChangeHook((status) => {
       if (!status) validation.trigger()
@@ -366,7 +366,7 @@ export function reatomField<State, Value = State>(
     `${name}.value`,
   )
 
-  const focus = reatomRecord(fieldInitFocus, `${name}.focus`)
+  const focus = reatomRecord(fieldInitFocus, `${name}._focus`)
     .actions((target) => ({
       in: () => target.merge({ active: true }),
       out: () => target.merge({ active: false, touched: true }),
@@ -385,7 +385,7 @@ export function reatomField<State, Value = State>(
     }),
   )
 
-  const validation = reatomRecord(fieldInitValidationLess, `${name}.validation`)
+  const validation = reatomRecord(fieldInitValidationLess, `${name}._validation`)
     .extend(
       withInit(() =>
         fieldOptions.value().shouldValidate
@@ -535,15 +535,17 @@ export function reatomField<State, Value = State>(
           if (peek(() => disabled() || !fieldOptions.value().shouldValidate))
             return state
 
-          return peek(focus).dirty && typeof validateFn == 'function'
-            ? target.runValidation({ 
+          if (peek(focus).dirty && typeof validateFn == 'function') {
+            const propsToMerge = target.runValidation({
               validation: state,
               focus: peek(focus),
               state: peek(field),
               value: peek(value),
               keepErrorDuringValidating: peek(fieldOptions.value).keepErrorDuringValidating
-            }) 
-            : state
+            })
+            return { ...state, ...propsToMerge }
+          }
+          return state
         }),
       ),
       withAbort(),
@@ -569,7 +571,7 @@ export function reatomField<State, Value = State>(
     focus.merge({ touched: true })
 
     return value()
-  }, `${name}.change`)
+  }, `${name}._change`)
 
   const reset: This['reset'] = action((...args) => {
     field.set(args.length ? initState.set(args[0]) : initState())
@@ -577,7 +579,7 @@ export function reatomField<State, Value = State>(
 
     validation.set(fieldInitValidation)
     validation.trigger.abort('reset')
-  }, `${name}.reset`)
+  }, `${name}._reset`)
 
   return Object.assign(field, {
     change,
