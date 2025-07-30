@@ -147,7 +147,7 @@ export interface Form<T extends FormInitState, SchemaState, SubmitReturn> extend
     >
   })
 
-  /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
+  /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `submitValidate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
   submit: SubmitAction<SubmitReturn>;
 
   /** Atom with submitted state of the form */
@@ -157,8 +157,8 @@ export interface Form<T extends FormInitState, SchemaState, SubmitReturn> extend
 export interface BaseFormOptions {
   name?: string
 
-  /** Should reset the state after success submit? @default true */
-  resetOnSubmit?: boolean
+  /** Should reset the state after success submit? @default false */
+  resetOnSubmit?: boolean;
 
   /**
    * Defines the default reset behavior of the validation state during async validation for all fields.
@@ -190,8 +190,16 @@ export interface FormOptionsWithSchema<State, SubmitReturn> extends BaseFormOpti
 	/** The callback to process valid form data, typed according to the schema */
 	onSubmit?: (ctx: AsyncCtx, state: State) => SubmitReturn | Promise<SubmitReturn>
 
-  /** The callback to validate form fields, typed according to the schema */
-  validate?: (ctx: Ctx, state: State) => any
+  /** 
+   * The callback to validate form fields before submit, typed according to the schema 
+   * @deprecated Renamed to `submitValidate`
+   */
+  validate?: (ctx: AsyncCtx, state: State) => any
+
+  /** 
+   * The callback to validate form fields before submit, typed according to the schema 
+   */
+  submitValidate?: (ctx: AsyncCtx, state: State) => any
 
 	/** The schema which supports StandardSchemaV1 specification to validate form fields. */
 	schema: StandardSchemaV1<unknown, State>
@@ -201,8 +209,17 @@ export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn>
 	/** The callback to process valid form data, typed according to the raw form state */
 	onSubmit?: (ctx: AsyncCtx, state: FormState<T>) => SubmitReturn | Promise<SubmitReturn>
 
-  /** The callback to validate form fields, typed according to the raw form state */
-  validate?: (ctx: Ctx, state: FormState<T>) => any
+  /** 
+   * The callback to validate form fields before submit, typed according to the raw form state 
+   * @deprecated Renamed to `submitValidate`
+   */
+  validate?: (ctx: AsyncCtx, state: FormState<T>) => any
+
+  /** 
+   * The callback to validate form fields before submit, typed according to the raw form state 
+   * @deprecated Renamed to `submitValidate`
+   */
+  submitValidate?: (ctx: AsyncCtx, state: FormState<T>) => any
 
   /** Schema is explicitly disallowed or undefined in this variant */
   schema?: undefined
@@ -414,8 +431,9 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   const {
     name = __count('form'),
     onSubmit,
-    resetOnSubmit = true,
+    resetOnSubmit = false,
     validate,
+    submitValidate = validate,
     validateOnBlur = false,
     validateOnChange = false,
     keepErrorDuringValidating = false,
@@ -524,8 +542,8 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
 			state = ctx.get(fieldsState);
 		}
     
-    if (validate) {
-      const promise = validate(ctx, state)
+    if (submitValidate) {
+      const promise = submitValidate(ctx, state);
       if (promise instanceof Promise) {
         await ctx.schedule(() => promise)
       }

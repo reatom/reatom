@@ -36,9 +36,6 @@ export interface FieldValidation {
   /** The list of field validation errors. */
   errors: FieldError[]
 
-  /** The field validation meta. */
-  meta: unknown | undefined
-
   /** The validation actuality status. */
   triggered: boolean
 
@@ -85,7 +82,7 @@ export interface FieldAtom<State = any, Value = State>
   initState: AtomMut<State>
 
   /** Action to reset the state, the value, the validation, and the focus. */
-  reset: Action<[], void>
+  reset: Action<[] | [initState: State], void>
 
   /** Atom of an object with all related validation statuses. */
   validation: ValidationAtom
@@ -222,14 +219,12 @@ export const fieldInitFocus: FieldFocus = {
 
 export const fieldInitValidation: FieldValidation = {
   errors: [],
-  meta: undefined,
   triggered: false,
   validating: undefined,
 }
 
 export const fieldInitValidationLess: FieldValidation = {
   errors: [],
-  meta: undefined,
   triggered: true,
   validating: undefined,
 }
@@ -427,7 +422,6 @@ export function reatomField<State, Value = State>(
                 const errors = await ctx.schedule(() => promise)
                 target.merge(ctx, {
                   errors,
-                  meta: undefined,
                   triggered: true,
                   validating: undefined,
                 })
@@ -440,7 +434,6 @@ export function reatomField<State, Value = State>(
                 const validationErrors = [{ source: 'validaton', message: toError(error) }]
                 target.merge(ctx, {
                   errors: validationErrors,
-                  meta: undefined,
                   triggered: true,
                   validating: undefined,
                 })
@@ -453,7 +446,6 @@ export function reatomField<State, Value = State>(
               errors: keepErrorDuringValidating
                 ? validationValue.errors
                 : [],
-              meta: undefined,
               triggered: true,
               validating: validationPromise,
             })
@@ -462,7 +454,6 @@ export function reatomField<State, Value = State>(
           return target.merge(ctx, {
             validating: undefined,
             errors: promise,
-            meta: undefined,
             triggered: true,
           })
   
@@ -512,8 +503,8 @@ export function reatomField<State, Value = State>(
     return ctx.get(value)
   }, `${name}.change`)
 
-  const reset: This['reset'] = action((ctx) => {
-    field(ctx, ctx.get(initState))
+  const reset: This['reset'] = action((ctx, ...args) => {
+    field(ctx, args.length ? initState(ctx, args[0]) : ctx.get(initState))
     focus(ctx, fieldInitFocus)
 
     validation(ctx, fieldInitValidation)

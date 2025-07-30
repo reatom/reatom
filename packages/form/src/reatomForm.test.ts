@@ -95,7 +95,7 @@ test('validation states', async () => {
 	}, {
 		name: 'testForm',
 		onSubmit: () => { },
-		validate: () => {
+		submitValidate: () => {
 			throw new Error('Form validation error')
 		},
 	})
@@ -107,7 +107,6 @@ test('validation states', async () => {
 
 	expect(ctx.get(form.validation)).toEqual({
 		errors: [],
-		meta: undefined,
 		triggered: false,
 		validating: undefined,
 	})
@@ -116,7 +115,6 @@ test('validation states', async () => {
 
 	expect(ctx.get(form.validation)).toMatchObject({
 		errors: [{ message: 'Contract error' }],
-		meta: undefined,
 		triggered: false,
 		validating: undefined,
 	})
@@ -125,7 +123,6 @@ test('validation states', async () => {
 
 	expect(ctx.get(form.validation)).toMatchObject({
 		errors: [{ message: 'Contract error' }],
-		meta: undefined,
 		triggered: true,
 	})
 	expect(ctx.get(form.validation).validating).toBeInstanceOf(Promise);
@@ -137,7 +134,6 @@ test('validation states', async () => {
 
 	expect(ctx.get(form.validation)).toEqual({
 		errors: [],
-		meta: undefined,
 		triggered: true,
 		validating: undefined,
 	})
@@ -147,7 +143,6 @@ test('validation states', async () => {
 
 	expect(ctx.get(form.validation)).toEqual({
 		errors: [],
-		meta: undefined,
 		triggered: true,
 		validating: undefined,
 	})
@@ -157,7 +152,6 @@ test('validation states', async () => {
 
 	expect(ctx.get(form.validation)).toEqual({
 		errors: [],
-		meta: undefined,
 		triggered: true,
 		validating: undefined,
 	})
@@ -227,7 +221,6 @@ test('default options for fields', async () => {
 
 	expect(ctx.get(field.validation)).toEqual({
 		errors: [],
-		meta: undefined,
 		triggered: true,
 		validating: undefined,
 	})
@@ -237,7 +230,6 @@ test('default options for fields', async () => {
 
 		expect(ctx.get(field.validation)).toEqual({
 			errors: [],
-			meta: undefined,
 			triggered: true,
 			validating: undefined,
 		})
@@ -359,7 +351,6 @@ test('reset', () => {
 	})
 	expect(ctx.get(field.validation)).toEqual({
 		errors: [],
-		meta: undefined,
 		triggered: false,
 		validating: undefined,
 	})
