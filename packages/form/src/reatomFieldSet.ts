@@ -1,9 +1,33 @@
-import { CtxSpy, isAtom, type Atom, type Action, __count, atom, action, type Ctx, type Rec } from '@reatom/core';
-import { parseAtoms } from '@reatom/lens';
-import { isLinkedListAtom, withAssign } from '@reatom/primitives';
-import { entries, isShallowEqual, isObject } from '@reatom/utils';
-import { type FieldAtom, type FieldError, type FieldFocus, type FieldValidation, fieldInitFocus, fieldInitValidation } from './reatomField';
-import { FormInitState, FormFields, FormFieldElement, FormFieldArrayAtom, FormState, FormPartialState } from './reatomForm';
+import {
+  CtxSpy,
+  isAtom,
+  type Atom,
+  type Action,
+  __count,
+  atom,
+  action,
+  type Ctx,
+  type Rec,
+} from '@reatom/core'
+import { parseAtoms } from '@reatom/lens'
+import { isLinkedListAtom, withAssign } from '@reatom/primitives'
+import { entries, isShallowEqual, isObject } from '@reatom/utils'
+import {
+  type FieldAtom,
+  type FieldError,
+  type FieldFocus,
+  type FieldValidation,
+  fieldInitFocus,
+  fieldInitValidation,
+} from './reatomField'
+import {
+  FormInitState,
+  FormFields,
+  FormFieldElement,
+  FormFieldArrayAtom,
+  FormState,
+  FormPartialState,
+} from './reatomForm'
 
 export interface FieldSetFieldError extends FieldError {
   field: FieldAtom
@@ -38,7 +62,7 @@ export interface FieldSet<T extends FormInitState> {
 
   /** Atom with validation state of the fieldset, computed from all the fields in `fieldsList` */
   validation: Atom<FieldSetValidation> & {
-    trigger: Action<[], FieldSetValidation>;
+    trigger: Action<[], FieldSetValidation>
   }
 
   /** Action to set initial values for each field or field array in the fieldset */
@@ -80,33 +104,42 @@ export const reatomFieldSet = <T extends FormInitState>(
     return isShallowEqual(focus, state) ? state : focus
   }, `${name}.focus`)
 
-  const validation = atom((ctx, state: FieldSetValidation | undefined = undefined) => {
-    const validationErrors: FieldSetFieldError[] = []
-    const promises: Promise<{ errors: FieldSetFieldError[] }>[] = []
-    const validation: FieldSetValidation = { 
-      errors: validationErrors,
-      validating: undefined,
-      triggered: true,
-    } 
+  const validation = atom(
+    (ctx, state: FieldSetValidation | undefined = undefined) => {
+      const validationErrors: FieldSetFieldError[] = []
+      const promises: Promise<{ errors: FieldSetFieldError[] }>[] = []
+      const validation: FieldSetValidation = {
+        errors: validationErrors,
+        validating: undefined,
+        triggered: true,
+      }
 
-    for (const field of ctx.spy(fieldsList)) {
-      if (ctx.spy(field.disabled)) continue
+      for (const field of ctx.spy(fieldsList)) {
+        if (ctx.spy(field.disabled)) continue
 
-      const { triggered, validating, errors } = ctx.spy(field.validation);
+        const { triggered, validating, errors } = ctx.spy(field.validation)
 
-      validation.triggered &&= triggered;
-      validationErrors.push(...errors.map(err => ({ ...err, field })))
+        validation.triggered &&= triggered
+        validationErrors.push(...errors.map((err) => ({ ...err, field })))
 
-      if(validating)
-        promises.push(validating.then(({ errors }) => ({ errors: errors.map(err => ({ ...err, field })) })))
-    }
+        if (validating)
+          promises.push(
+            validating.then(({ errors }) => ({
+              errors: errors.map((err) => ({ ...err, field })),
+            })),
+          )
+      }
 
-    validation.validating = promises.length
-      ? Promise.all(promises).then((results) => ({ errors: results.flatMap(e => e.errors) }))
-      : undefined
+      validation.validating = promises.length
+        ? Promise.all(promises).then((results) => ({
+            errors: results.flatMap((e) => e.errors),
+          }))
+        : undefined
 
-    return state && isShallowEqual(validation, state) ? state : validation;
-  }, `${name}.validation`).pipe(
+      return state && isShallowEqual(validation, state) ? state : validation
+    },
+    `${name}.validation`,
+  ).pipe(
     withAssign((target, name) => ({
       trigger: action((ctx) => {
         for (const field of ctx.get(fieldsList)) {

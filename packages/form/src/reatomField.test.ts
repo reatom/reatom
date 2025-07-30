@@ -45,13 +45,19 @@ test(`keepErrorOnChange`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).errors[0]?.message).toBe('validation error')
+  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+    'validation error',
+  )
+  expect(ctx.get(fieldWithoutKeep.validation).errors[0]?.message).toBe(
+    'validation error',
+  )
 
   fieldWithKeep.change(ctx, 'new value')
   fieldWithoutKeep.change(ctx, 'new value')
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe('validation error')
+  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+    'validation error',
+  )
   expect(ctx.get(fieldWithoutKeep.validation).errors.length).toBeFalsy()
 })
 
@@ -80,8 +86,12 @@ test(`keepErrorDuringValidating`, async () => {
 
   await sleep()
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).errors[0]?.message).toBe('validation error')
+  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+    'validation error',
+  )
+  expect(ctx.get(fieldWithoutKeep.validation).errors[0]?.message).toBe(
+    'validation error',
+  )
 
   fieldWithKeep.change(ctx, 'new value')
   fieldWithoutKeep.change(ctx, 'new value')
@@ -89,7 +99,9 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe('validation error')
+  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+    'validation error',
+  )
   expect(ctx.get(fieldWithoutKeep.validation).errors.length).toBeFalsy()
 })
 
@@ -99,19 +111,18 @@ test(`disabled state`, async () => {
   const field = reatomField('', {
     validateOnChange: true,
     validate: (ctx, { value }) => {
-      if (value == 'errorValue')
-        throw new Error('validation error');
-    }
-  });
+      if (value == 'errorValue') throw new Error('validation error')
+    },
+  })
 
-  field.change(ctx, 'errorValue');
-  expect(ctx.get(field.validation).errors[0]?.message).toBe('validation error');
+  field.change(ctx, 'errorValue')
+  expect(ctx.get(field.validation).errors[0]?.message).toBe('validation error')
 
   field.disabled(ctx, true)
   expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation)
 
-  field.disabled(ctx, false);
-  expect(ctx.get(field.validation).errors[0]?.message).toBe('validation error');
+  field.disabled(ctx, false)
+  expect(ctx.get(field.validation).errors[0]?.message).toBe('validation error')
 })
 
 test(`toState and fromState`, async () => {
@@ -144,18 +155,24 @@ test(`validation concurrency`, async () => {
     },
   })
 
-  field.validation.trigger(ctx);
-  expect(ctx.get(field.validation)).toMatchObject({ triggered: true, errors: [] });
-  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise);
-  field.change(ctx, 1);
+  field.validation.trigger(ctx)
+  expect(ctx.get(field.validation)).toMatchObject({
+    triggered: true,
+    errors: [],
+  })
+  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise)
+  field.change(ctx, 1)
 
   expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation)
 
-  field.validation.trigger(ctx);
-  expect(ctx.get(field.validation)).toMatchObject({ triggered: true, errors: [] });
-  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise);
-  field.reset(ctx);
-  expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation);
+  field.validation.trigger(ctx)
+  expect(ctx.get(field.validation)).toMatchObject({
+    triggered: true,
+    errors: [],
+  })
+  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise)
+  field.reset(ctx)
+  expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation)
 
   field.options.merge(ctx, { validateOnChange: true })
 
@@ -163,13 +180,20 @@ test(`validation concurrency`, async () => {
   field.change(ctx, 0xdeadbeef)
   field.change(ctx, 3)
 
-  expect(ctx.get(field.validation)).toMatchObject({ triggered: true, errors: [] });
-  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise);
+  expect(ctx.get(field.validation)).toMatchObject({
+    triggered: true,
+    errors: [],
+  })
+  expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise)
 
   await sleep()
 
-  expect(ctx.get(field.validation)).toMatchObject({ validating: undefined, triggered: true, errors: [] });
-  expect(ctx.get(field.value)).toBe(3);
+  expect(ctx.get(field.validation)).toMatchObject({
+    validating: undefined,
+    triggered: true,
+    errors: [],
+  })
+  expect(ctx.get(field.value)).toBe(3)
 })
 
 test(`withField and initState derivation`, async () => {
