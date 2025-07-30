@@ -562,8 +562,8 @@ test('correct handling of side errors from schema', async () => {
 	expect(ctx.get(form.fields.min.validation).errors.length).toBeFalsy()
 })
 
-test('concurrent field validation with schema', async () => {
-  const ctx = createCtx()
+test('recipe: concurrent field validation with schema', async () => {
+	const ctx = createCtx()
 
 	const form = reatomForm({
 		age: reatomField(12, {
@@ -579,15 +579,23 @@ test('concurrent field validation with schema', async () => {
 		})
 	});
 
+	form.validation.triggerSchemaValidation.onCall((ctx) => {
+		form.fields.age.validation.trigger.abort(ctx);
+	})
+
 	form.fields.age.change(ctx, 10);
-	expect(ctx.get(form.fields.age.validation).errors[0]?.message).toBe('must be minimum 18');
+	expect(ctx.get(form.fields.age.validation)).toMatchObject({ 
+		errors: [{ message: 'must be minimum 18' }] 
+	});
 	await sleep();
 
-	expect(ctx.get(form.fields.age.validation).errors[0]?.message).toBe('must be minimum 18');
+	expect(ctx.get(form.fields.age.validation)).toMatchObject({ 
+		errors: [{ message: 'must be minimum 18' }] 
+	});
 })
 
-test('autofocus recipe', async () => {
-  const ctx = createCtx()
+test('recipe: autofocus', async () => {
+	const ctx = createCtx()
 
   const form = reatomForm(
     {
@@ -648,4 +656,27 @@ test('validation trigger', async () => {
 	const result = await promise;
 	expect(ctx.get(form.fields.age.validation).errors.length).toBeTruthy();
 	expect(result).toBeFalsy();
+})
+
+test('subsequent validation', async () => {
+	const ctx = createCtx()
+	const form = reatomForm(
+		{
+			email: '',
+		},
+		{
+			name: 'emailOtpForm',
+			schema: z.object({
+				email: z.string().email(),
+			}),
+		},
+	)
+
+	form.fields.email.change(ctx, 'test')
+	await form.submit(ctx).catch(noop)
+	expect(ctx.get(form.fields.email.validation).errors.length).toBe(1)
+
+	form.fields.email.change(ctx, 'test@test.com')
+	await form.submit(ctx).catch(noop)
+	expect(ctx.get(form.fields.email.validation).errors.length).toBe(0)
 })

@@ -421,15 +421,12 @@ export function reatomField<State, Value = State>(
             promise = [{ source: 'validation', message: toError(error) }]
           }
 
-          const putValidationErrors = (to: FieldError[], ...errors: FieldError[]) =>
-            to.filter(e => e.source !== 'validation').concat(errors)
-
           if (promise instanceof Promise) {
             const validationPromise = (async () => {
               try {
                 const errors = await ctx.schedule(() => promise)
                 target.merge(ctx, {
-                  errors: putValidationErrors(ctx.get(target).errors, ...errors),
+                  errors,
                   meta: undefined,
                   triggered: true,
                   validating: undefined,
@@ -440,15 +437,15 @@ export function reatomField<State, Value = State>(
                 const currentErrors = ctx.get(target).errors
                 if (isAbort(error) || controller.signal.aborted) return { errors: currentErrors }
 
-                const validationError = { source: 'validaton', message: toError(error) }
+                const validationErrors = [{ source: 'validaton', message: toError(error) }]
                 target.merge(ctx, {
-                  errors: putValidationErrors(currentErrors, validationError),
+                  errors: validationErrors,
                   meta: undefined,
                   triggered: true,
                   validating: undefined,
                 })
                 
-                return { errors: [validationError] }
+                return { errors: validationErrors }
               }
             })()
 
@@ -464,7 +461,7 @@ export function reatomField<State, Value = State>(
 
           return target.merge(ctx, {
             validating: undefined,
-            errors: putValidationErrors(validationValue.errors, ...promise),
+            errors: promise,
             meta: undefined,
             triggered: true,
           })
