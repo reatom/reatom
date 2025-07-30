@@ -613,7 +613,7 @@ test('recipe: concurrent field validation with schema', async () => {
   form.validation.triggerSchemaValidation.extend(
     withCallHook(() => {
       form.fields.age.validation.trigger.abort()
-    })
+    }),
   )
 
   form.fields.age.change(10)
@@ -703,12 +703,12 @@ test('subsequent validation', async () => {
       email: '',
     },
     {
-      name: "emailOtpForm",
+      name: 'emailOtpForm',
       schema: z.object({
         email: z.string().email(),
-      })
-    }
-  );
+      }),
+    },
+  )
 
   form.fields.email.change('test')
   await wrap(form.submit()).catch(noop)

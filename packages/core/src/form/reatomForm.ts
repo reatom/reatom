@@ -138,10 +138,11 @@ export interface Form<
     > &
       AsyncExt<[], any, Error | undefined> &
       AbortExt
-      
+
     triggerSchemaValidation: Action<
       [],
-      StandardSchemaV1.Result<SchemaState> | Promise<StandardSchemaV1.Result<SchemaState>>
+      | StandardSchemaV1.Result<SchemaState>
+      | Promise<StandardSchemaV1.Result<SchemaState>>
     > &
       AbortExt
   }
@@ -574,7 +575,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
 
   const validation = Object.assign(fieldsetValidation, {
     trigger: triggerValidation,
-    triggerSchemaValidation
+    triggerSchemaValidation,
   })
 
   return {

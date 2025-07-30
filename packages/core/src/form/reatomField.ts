@@ -481,10 +481,12 @@ export function reatomField<State, Value = State>(
               } catch (error) {
                 if (isAbort(error)) return { errors: target().errors }
                 const validation = target.merge({
-                  errors: [{
-                    source: 'validaton',
-                    message: toError(error),
-                  }],
+                  errors: [
+                    {
+                      source: 'validaton',
+                      message: toError(error),
+                    },
+                  ],
                   meta: undefined,
                   triggered: true,
                   validating: undefined,
