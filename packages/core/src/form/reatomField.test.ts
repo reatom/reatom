@@ -198,3 +198,17 @@ test(`withField and initState derivation`, async () => {
 
   expect(field.value.name).toBe('fieldAtom.value')
 })
+
+test(`reset with initState`, async () => {
+  const field = reatomField(123, 'field')
+
+  field.change(2000)
+  expect(field()).toEqual(2000)
+
+  field.reset()
+  expect(field()).toEqual(123)
+
+  field.reset(1000)
+  expect(field()).toEqual(1000)
+  expect(field() === field.initState()).toBe(true)
+})

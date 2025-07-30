@@ -115,7 +115,7 @@ export interface FieldAtom<State = any, Value = State>
   initState: Atom<State>
 
   /** Action to reset the state, the value, the validation, and the focus. */
-  reset: Action<[], void>
+  reset: Action<[] | [initState: State], void>
 
   /** Atom of an object with all related validation statuses. */
   validation: ValidationAtom
@@ -535,8 +535,8 @@ export function reatomField<State, Value = State>(
     return value()
   }, `${name}.change`)
 
-  const reset: This['reset'] = action(() => {
-    field.set(initState())
+  const reset: This['reset'] = action((...args) => {
+    field.set(args.length ? initState.set(args[0]) : initState())
     focus.set(fieldInitFocus)
 
     validation.set(fieldInitValidation)
