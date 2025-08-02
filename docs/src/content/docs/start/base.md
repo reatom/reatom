@@ -80,7 +80,7 @@ But in most cases you don't need to subscribe to atoms manually, you probably wa
 Effects are a way to react to changes in the state. They are similar to computed, but run immediately after creation. Basically it is just `computed(cb).subscribe()`, but with some extra features which we will investigate later. It is much more useful than just `.subscribe` as you can track many atoms in any combinations in one place.
 
 ```typescript
-import { atom, effect } from '@reatom/core'
+import { atom, computed, effect } from '@reatom/core'
 
 const counter = atom(0)
 const isEven = computed(() => counter() % 2 === 0)
