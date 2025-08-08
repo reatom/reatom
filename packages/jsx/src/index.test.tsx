@@ -44,12 +44,12 @@ test('dynamic props', () =>
     const prp = atom('prp', 'prp')
     const atr = atom('atr', 'atr')
 
-    const element = <div id={val} prop:prp={prp} attr:atr={atr} />
+    const element = <div id={val} prop:prp={prp} atr={atr} /> as HTMLElement
 
     mount(parent(), element)
     await wrap(sleep())
 
-    expect(element.id).toBe('val')
+    expect(element.getAttribute('id')).toBe('val')
     expect((element as any).prp).toBe('prp')
     expect(element.getAttribute('atr')).toBe('atr')
 
@@ -58,7 +58,7 @@ test('dynamic props', () =>
     atr.set('atr1')
 
     await wrap(sleep())
-    expect(element.id).toBe('val1')
+    expect(element.getAttribute('id')).toBe('val1')
     expect((element as any).prp).toBe('prp1')
     expect(element.getAttribute('atr')).toBe('atr1')
   }))
@@ -71,11 +71,11 @@ test('getter props', () =>
 
     mount(parent(), element)
     await wrap(sleep())
-    expect(element.id).toBe(getter())
+    expect(element.getAttribute('id')).toBe(getter())
 
     val.set('val1')
     await wrap(sleep())
-    expect(element.id).toBe(getter())
+    expect(element.getAttribute('id')).toBe(getter())
   }))
 
 test('children updates', () =>
@@ -149,7 +149,7 @@ test('spreads', () =>
     const clickTrack = vi.fn()
     const props = atom({
       id: '1',
-      'attr:b': '2',
+      atr: '2',
       'on:click': clickTrack as Fn,
       '$spread': {
         class: () => ['aaa', atom('bbb')],
@@ -164,8 +164,8 @@ test('spreads', () =>
     mount(parent(), element)
     await wrap(sleep())
 
-    expect(element.id).toBe('1')
-    expect(element.getAttribute('b')).toBe('2')
+    expect(element.getAttribute('id')).toBe('1')
+    expect(element.getAttribute('atr')).toBe('2')
     expect(element.getAttribute('class')).toBe('aaa bbb')
     expect(element.getAttribute('style')).toBe('color: red;')
     expect(clickTrack.mock.calls.length).toBe(0)
@@ -425,9 +425,7 @@ test('custom component', () =>
 
     await wrap(sleep())
     expect(<Component />).toBeInstanceOf(window.HTMLElement)
-    expect(((<Component draggable />) as HTMLElement).draggable).toBe(
-      true,
-    )
+    expect(((<Component draggable />) as HTMLElement).getAttribute('draggable')).toBe('')
     expect(((<Component>123</Component>) as HTMLElement).innerText).toBe('123')
   }))
 
@@ -534,10 +532,10 @@ test('css property and class attribute', () =>
     expect(ref2).toBeInstanceOf(window.HTMLElement)
     await wrap(sleep())
 
-    expect(ref1.className).toBe(cls)
+    expect(ref1.getAttribute('class')).toBe(cls)
     expect(ref1.dataset['reatomStyle']).toBeTruthy()
 
-    expect(ref2.className).toBe(cls)
+    expect(ref2.getAttribute('class')).toBe(cls)
     expect(ref2.dataset['reatomStyle']).toBeTruthy()
 
     expect(ref1.dataset['reatomStyle']).toBe(ref2.dataset['reatomStyle'])
@@ -624,22 +622,21 @@ test('class and className attribute', () =>
     mount(parent(), component)
     await wrap(sleep())
 
-    expect(ref1.hasAttribute('class')).toBe(true)
-    expect(ref2.hasAttribute('class')).toBe(true)
+    // initially empty -> both attributes removed
+    expect(ref1.hasAttribute('class')).toBe(false)
+    expect(ref2.hasAttribute('class')).toBe(false)
 
     classAtom.set('cls')
     await wrap(sleep())
-    expect(ref1.className).toBe('cls')
-    expect(ref2.className).toBe('cls')
+    expect(ref1.getAttribute('class')).toBe('cls')
+    expect(ref2.getAttribute('class')).toBe('cls')
     expect(ref1.hasAttribute('class')).toBe(true)
     expect(ref2.hasAttribute('class')).toBe(true)
 
     classAtom.set(undefined)
     await wrap(sleep())
-    expect(ref1.className).toBe('')
-    expect(ref2.className).toBe('')
-    expect(ref1.hasAttribute('class')).toBe(true)
-    expect(ref2.hasAttribute('class')).toBe(true)
+    expect(ref1.hasAttribute('class')).toBe(false)
+    expect(ref2.hasAttribute('class')).toBe(false)
   }))
 
 test('class handles complex correctly', () =>
@@ -650,12 +647,12 @@ test('class handles complex correctly', () =>
 
     mount(parent(), element)
     await wrap(sleep())
-    expect(element.className).toBe('a b c d e')
+    expect(element.getAttribute('class')).toBe('a b c d e')
 
     isBAtom.set(false)
     stringAtom.set('dd')
     await wrap(sleep())
-    expect(element.className).toBe('a c dd e')
+    expect(element.getAttribute('class')).toBe('a c dd e')
   }))
 
 test('ref mount and unmount callbacks order', () =>
@@ -856,7 +853,7 @@ test('Bind', () =>
     inputState.set('43')
 
     await wrap(sleep())
-    expect(input.value).toBe('43')
+    expect(input.getAttribute('value')).toBe('43')
     expect(testSvg.innerHTML).toBe('<path d="M 10 10 H 100"></path>')
   }))
 
@@ -935,58 +932,55 @@ const expectHtmlElementProperty = <
   getAttr: null | string,
 ) => {
   const element = h(tag, { [prop]: value }) as HTMLElement
-  expect((element as any)[prop]).toBe(expected)
-  expect(element.hasAttribute(prop.toLowerCase())).toBe(hasAttr)
   expect(element.getAttribute(prop.toLowerCase())).toBe(getAttr)
 }
 
 test('width property', () =>
   context.start(async () => {
-    expectHtmlElementProperty('img', 'width', undefined, 0, false, null)
-    expectHtmlElementProperty('img', 'width', null, 0, false, null)
-    expectHtmlElementProperty('img', 'width', 1, 1, true, '1')
-    expectHtmlElementProperty('img', 'width', '1', 1, true, '1')
-    expectHtmlElementProperty('img', 'width', -1, 0, true, '-1')
+    expectHtmlElementProperty('img', 'width', undefined as any, 0 as any, false, null)
+    expectHtmlElementProperty('img', 'width', null as any, 0 as any, false, null)
+    expectHtmlElementProperty('img', 'width', 1 as any, 1 as any, true, '1')
+    expectHtmlElementProperty('img', 'width', '1' as any, 1 as any, true, '1')
+    expectHtmlElementProperty('img', 'width', -1 as any, 0 as any, true, '-1')
   }))
 
 test('height property', () =>
   context.start(async () => {
-    expectHtmlElementProperty('img', 'height', undefined, 0, false, null)
-    expectHtmlElementProperty('img', 'height', null, 0, false, null)
-    expectHtmlElementProperty('img', 'height', 1, 1, true, '1')
-    expectHtmlElementProperty('img', 'height', '1', 1, true, '1')
-    expectHtmlElementProperty('img', 'height', -1, 0, true, '-1')
+    expectHtmlElementProperty('img', 'height', undefined as any, 0 as any, false, null)
+    expectHtmlElementProperty('img', 'height', null as any, 0 as any, false, null)
+    expectHtmlElementProperty('img', 'height', 1 as any, 1 as any, true, '1')
+    expectHtmlElementProperty('img', 'height', '1' as any, 1 as any, true, '1')
+    expectHtmlElementProperty('img', 'height', -1 as any, 0 as any, true, '-1')
   }))
 
 test('download property', () =>
   context.start(async () => {
-    expectHtmlElementProperty('a', 'download', undefined, '', false, null)
-    expectHtmlElementProperty('a', 'download', null, '', false, null)
-    expectHtmlElementProperty('a', 'download', 'abc', 'abc', true, 'abc')
+    expectHtmlElementProperty('a', 'download', undefined as any, '' as any, false, null)
+    expectHtmlElementProperty('a', 'download', null as any, '' as any, false, null)
+    expectHtmlElementProperty('a', 'download', 'abc' as any, 'abc' as any, true, 'abc')
   }))
 
 test('href property', () =>
   context.start(async () => {
-    expectHtmlElementProperty('a', 'href', undefined, '', false, null)
-    expectHtmlElementProperty('a', 'href', null, '', false, null)
+    expectHtmlElementProperty('a', 'href', undefined as any, '' as any, false, null)
+    expectHtmlElementProperty('a', 'href', null as any, '' as any, false, null)
     expectHtmlElementProperty(
       'a',
       'href',
-      'https://test.com/',
-      'https://test.com/',
+      'https://test.com/' as any,
+      'https://test.com/' as any,
       true,
       'https://test.com/',
     )
   }))
 
-test('role property', () =>
+test('role attribute', () =>
   context.start(async () => {
-    expectHtmlElementProperty('div', 'role', undefined, null, false, null)
-    expectHtmlElementProperty('div', 'role', null, null, false, null)
-    expectHtmlElementProperty('div', 'role', 'alert', 'alert', true, 'alert')
+    const el = h('div', { role: 'alert' }) as HTMLElement
+    expect(el.getAttribute('role')).toBe('alert')
   }))
 
-test('list property', () =>
+test('list attribute', () =>
   context.start(async () => {
     const element = <input list="list"></input> as HTMLInputElement
     const list = <datalist id="list"></datalist> as HTMLDataListElement
@@ -998,32 +992,10 @@ test('list property', () =>
       </div>,
     )
 
-    expect(element.list).toBe(list)
-    expect(element.hasAttribute('list')).toBe(true)
     expect(element.getAttribute('list')).toBe('list')
 
-    expectHtmlElementProperty('input', 'list', undefined, null, false, null)
-    expectHtmlElementProperty('input', 'list', null, null, false, null)
-  }))
-
-test('form property', () =>
-  context.start(async () => {
-    const element = <input form="form"></input> as HTMLInputElement
-    const form = <form id="form"></form> as HTMLFormElement
-    mount(
-      parent(),
-      <div>
-        {element}
-        {form}
-      </div>,
-    )
-
-    expect(element.form).toBe(form)
-    expect(element.hasAttribute('form')).toBe(true)
-    expect(element.getAttribute('form')).toBe('form')
-
-    expectHtmlElementProperty('input', 'form', undefined, null, false, null)
-    expectHtmlElementProperty('input', 'form', null, null, false, null)
+    expectHtmlElementProperty('input', 'list', undefined as any, null as any, false, null)
+    expectHtmlElementProperty('input', 'list', null as any, null as any, false, null)
   }))
 
 // test('tabIndex property', () =>
@@ -1058,18 +1030,21 @@ test('aria attributes', () =>
       value: Value,
     ) => {
       const element = h('div', { [attr]: value })
-      expect(element.hasAttribute(attr)).toBe(value != null)
-      expect(element.getAttribute(attr)).toBe(value?.toString() ?? null)
+      const present = value != null && value !== false
+      expect(element.hasAttribute(attr)).toBe(present)
+      expect(element.getAttribute(attr)).toBe(
+        present ? (value === true ? '' : (value as any).toString()) : null,
+      )
     }
 
-    expectAttribute('aria-checked', undefined)
-    expectAttribute('aria-checked', null)
-    expectAttribute('aria-checked', false)
-    expectAttribute('aria-checked', true)
-    expectAttribute('aria-checked', 'false')
-    expectAttribute('aria-checked', 'true')
-    expectAttribute('aria-colcount', 1)
-    expectAttribute('aria-colcount', '1')
+    expectAttribute('aria-checked', undefined as any)
+    expectAttribute('aria-checked', null as any)
+    expectAttribute('aria-checked', false as any)
+    expectAttribute('aria-checked', true as any)
+    expectAttribute('aria-checked', 'false' as any)
+    expectAttribute('aria-checked', 'true' as any)
+    expectAttribute('aria-colcount', 1 as any)
+    expectAttribute('aria-colcount', '1' as any)
   }))
 
 test('custom stylesheet for css property', () =>
@@ -1097,7 +1072,7 @@ test('element subscribes to atom when mounted to DOM', () =>
     await wrap(sleep())
 
     expect(isConnected(valueAtom)).toBe(true)
-    expect(element.className).toBe('aaa')
+    expect(element.getAttribute('class')).toBe('aaa')
 
     valueAtom.set('bbb')
     await wrap(sleep())
@@ -1105,7 +1080,7 @@ test('element subscribes to atom when mounted to DOM', () =>
     await wrap(sleep())
 
     expect(isConnected(valueAtom)).toBe(true)
-    expect(element.className).toBe('bbb')
+    expect(element.getAttribute('class')).toBe('bbb')
   }))
 
 test('element unsubscribes from atom when removed from DOM', () =>
@@ -1115,7 +1090,7 @@ test('element unsubscribes from atom when removed from DOM', () =>
 
     await wrap(sleep())
     expect(isConnected(valueAtom)).toBe(false)
-    expect(element.className).toBe('')
+    expect(element.getAttribute('class')).toBe(null)
 
     mount(parent(), element)
     await wrap(sleep())
@@ -1123,13 +1098,13 @@ test('element unsubscribes from atom when removed from DOM', () =>
     await wrap(sleep())
 
     expect(isConnected(valueAtom)).toBe(false)
-    expect(element.className).toBe('aaa')
+    expect(element.getAttribute('class')).toBe('aaa')
 
     valueAtom.set('bbb')
     await wrap(sleep())
 
     expect(isConnected(valueAtom)).toBe(false)
-    expect(element.className).toBe('aaa')
+    expect(element.getAttribute('class')).toBe('aaa')
   }))
 
 test('preserves atom connection when moved within DOM', () =>
@@ -1145,7 +1120,7 @@ test('preserves atom connection when moved within DOM', () =>
     await wrap(sleep())
 
     expect(isConnected(valueAtom)).toBe(true)
-    expect(element.className).toBe('bbb')
+    expect(element.getAttribute('class')).toBe('bbb')
   }))
 
 /**

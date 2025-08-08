@@ -399,6 +399,8 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
   if (key === 'class' || key === 'className') {
     if (typeof value === 'object' || typeof value === 'function') {
       unlink(element, () => reatomClassName(value).subscribe(setter))
+    } else if (typeof value === 'boolean') {
+      setter(value)
     } else {
       setter(typeof value === 'string' ? value : undefined)
     }
@@ -428,6 +430,9 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
 }
 
 let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
+  // Locked property-only keys (keep minimal, default to attributes)
+  const propertyOnly = new Set(['value'])
+
   if (key.startsWith('css:')) {
     setStyleProp(
       element.style,
@@ -455,37 +460,22 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
   } else if (key.startsWith('prop:')) {
     // @ts-expect-error
     element[key.slice(5)] = value
-  } else if (
-    !propertiesAsAttributes.has(key) &&
-    element instanceof dom.HTMLElement &&
-    (key in element || key === 'class')
-  ) {
-    /**
-     * @see https://measurethat.net/Benchmarks/Show/54
-     * @see https://measurethat.net/Benchmarks/Show/31249
-     */
-    if (key === 'class') key = 'className'
-    /** @note element.valueAsNumber = '' // element.value === '0' */
-    else if (key === 'valueAsNumber') key = 'value'
-
-    /** @note element.valueAsDate = '' // Uncaught TypeError: Failed to convert value to 'object'. */
+  } else if (propertyOnly.has(key)) {
+    // Only set via property for locked keys like "value"
     // @ts-ignore
-    element[key] = value == null && key !== 'valueAsDate' ? '' : value
+    element[key] = value == null ? '' : value
   } else {
+    // Default path: attributes for everything else
     if (key === 'className') key = 'class'
-    else if (key.startsWith('attr:')) key = key.slice(5)
 
-    /**
-     * @note aria- and data- attributes have no boolean representation.
-     * A `false` value is different from the attribute not being
-     * present, so we can't remove it. For non-boolean aria
-     * attributes we could treat false as a removal, but the
-     * amount of exceptions would cost too many bytes. On top of
-     * that other frameworks generally stringify `false`.
-     */
-    let isBool = booleanAttributes.has(key)
-    if (value == null || (isBool && value === false)) element.removeAttribute(key)
-    else element.setAttribute(key, isBool && value === true ? '' : value)
+    // Generic boolean/undefined handling
+    if (value === undefined || value === null || value === false) {
+      element.removeAttribute(key)
+    } else if (value === true) {
+      element.setAttribute(key, '')
+    } else {
+      element.setAttribute(key, String(value))
+    }
   }
 }
 
