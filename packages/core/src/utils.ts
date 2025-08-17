@@ -26,6 +26,18 @@ export interface Unsubscribe {
 }
 
 /**
+ * Type representing different possible return values from observable
+ * subscription methods. Supports both function-based unsubscribers and objects
+ * with unsubscribe methods.
+ */
+export type MaybeUnsubscribe =
+  | void
+  | Unsubscribe
+  | {
+      unsubscribe: Unsubscribe
+    }
+
+/**
  * Utility type that converts properties with undefined values to optional
  * properties. Makes properties with object or null values required, while
  * making other properties optional.
