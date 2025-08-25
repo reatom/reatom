@@ -2,6 +2,7 @@ import { expect, subscribe, test, vi } from 'test'
 
 import {
   _read,
+  type Atom,
   atom,
   computed,
   context,
@@ -311,4 +312,41 @@ test('computed should not accept params', () => {
   // expect(() => normalComputed(2)).toThrow()
   expect(normalComputed()).toBe(1)
   expect(bComputed).toBeCalledTimes(2)
+})
+
+test('deps state cache do not cache deps pubs', async () => {
+  const factory = atom<null | Atom<number | number>>(null)
+  const proxyFn = vi.fn(() => factory()?.() ?? null)
+  const proxy = computed(proxyFn)
+  const consumerFn = vi.fn(() => proxy())
+  const consumer = computed(consumerFn)
+
+  expect(consumer()).toBe(null)
+
+  const dep = factory.set(
+    // @ts-ignore
+    () => atom(null),
+  )!
+
+  proxyFn.mockClear()
+  consumerFn.mockClear()
+
+  // relinking process is trying to invalidate deps
+  // and if it's states didn't change (null === null)
+  // it may cache the deps, which is wrong and
+  // it is where the original issue comes from
+  // (`proxy` has only one pub, but should have two)
+  consumer.subscribe()
+
+  expect(proxyFn).toBeCalledTimes(1)
+  expect(consumerFn).toBeCalledTimes(0)
+
+  const { store } = context().state
+  expect(store.get(consumer)!.subs.length).toBe(1)
+  expect(store.get(proxy)!.subs.length).toBe(1)
+  expect(store.get(dep)!.subs.length).toBe(1)
+
+  dep.set(1)
+  notify()
+  expect(consumer()).toBe(1)
 })

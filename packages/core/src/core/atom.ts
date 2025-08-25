@@ -512,13 +512,12 @@ declare global {
 if (globalThis.__REATOM) throw new ReatomError('package duplication')
 globalThis.__REATOM = []
 
+/** This MUTATES frame.pubs */
 export function _isPubsChanged(
   frame: Frame,
   pubs: Frame['pubs'],
   from: number,
 ) {
-  // use current frame to reduce `copy` operations, reset pubs **temporally**
-  let framePubs = frame.pubs
   frame.pubs = [null]
 
   for (let i = from; i < pubs.length; i++) {
@@ -541,17 +540,19 @@ export function _isPubsChanged(
         // we should give an ability to handle errors in computer by a user himself
         pubFreshError = error as Frame['error']
       }
+      pubFrame = frame.root.store.get(pubAtom)!
     }
+
+    frame.pubs.push(pubFrame)
 
     if (
       !Object.is(pubState, pubFreshState) ||
       !Object.is(pubError, pubFreshError)
     ) {
+      frame.pubs = [null]
       return true
     }
   }
-  // restore pubs!
-  frame.pubs = framePubs
 
   return false
 }
