@@ -3,11 +3,10 @@ import {
   action,
   bind,
   computed,
-  computedParams,
   context,
   createAtom,
   ReatomError,
-  STACK,
+  resetDeps,
   top,
   withMiddleware,
 } from '../core'
@@ -238,21 +237,12 @@ export let withAsync: {
       return state
     }
 
-    if (target.__reatom.reactive) {
-      let computedIdx = target.__reatom.middlewares.indexOf(computedParams)
-      if (computedIdx !== -1) {
-        let asyncComputedParams = (next: Fn) => {
-          if (STACK[STACK.length - 2]?.atom === retry) {
-            top().pubs.splice(1)
-          }
-
-          return next()
-        }
-        target.__reatom.middlewares[computedIdx] = asyncComputedParams
+    let retry = action((...params: Parameters<typeof target>) => {
+      if (target.__reatom.reactive) {
+        resetDeps(target)
       }
-    }
-
-    let retry = action(target, `${target.name}.retry`)
+      return target(...params)
+    }, `${target.name}.retry`)
 
     return target.extend(
       withMiddleware(() => asyncMiddleware),

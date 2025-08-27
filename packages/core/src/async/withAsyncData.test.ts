@@ -7,7 +7,7 @@ import { withCallHook } from '../mixins'
 import { noop, sleep } from '../utils'
 import { withAsyncData } from './withAsyncData'
 
-test('withAsyncData for action', async () => {
+test('action', async () => {
   const name = 'actionAsyncData'
   const fetch = action(
     async (param: number) => param + 1,
@@ -34,7 +34,7 @@ test('withAsyncData for action', async () => {
   expect(onFulfill).toBeCalledWith({ payload: 2, params: [1] })
 })
 
-test('withAsyncData for action with mappings', async () => {
+test('action with mappings', async () => {
   const name = 'actionAsyncDataMap'
   const fetch = action(
     async (param: number) => param + 1,
@@ -62,7 +62,7 @@ test('withAsyncData for action with mappings', async () => {
   expect(fetch.data()).toEqual([2])
 })
 
-test('withAsyncData for atom', async () => {
+test('atom', async () => {
   const name = 'atomAsyncData'
   const param = atom(0, `${name}.param`)
   const resource = computed(async () => param() + 1, `${name}.resource`).extend(
@@ -81,7 +81,7 @@ test('withAsyncData for atom', async () => {
   expect(onFulfill).toBeCalledWith({ payload: 1, params: [0] })
 })
 
-test('withAsyncData for atom with mappings', async () => {
+test('atom with mappings', async () => {
   const name = 'atomAsyncDataMap'
   const param = atom(1, `${name}.param`)
   const resource = computed(async () => param() + 1, `${name}.resource`).extend(
@@ -164,7 +164,7 @@ test('withAsyncData atom concurrent', async () => {
   expect(onFulfill).toBeCalledWith({ payload: 4, params: [3] })
 })
 
-test('withAsyncData for atom error handling', async () => {
+test('atom error handling', async () => {
   const name = 'atomAsyncError'
   const errorMessage = 'TEST'
   const shouldFailAtom = atom(true, `${name}.shouldFail`)
@@ -216,6 +216,48 @@ test('withAsyncData for atom error handling', async () => {
   })
 
   expect(resource.error.set('test')).toBe('test')
+})
+
+test('withAsyncData for computed retry', async () => {
+  const name = 'computedRetry'
+  let shouldFail = true
+  const params = atom(0, `${name}.params`)
+  const resource = computed(async () => {
+    params() // dependency
+    if (shouldFail) {
+      throw new Error('Initial failure')
+    }
+    return 'Success'
+  }, `${name}.resource`).extend(withAsyncData())
+
+  const onReject = vi.fn()
+  resource.onReject.extend(withCallHook((call) => onReject(call)))
+  const onFulfill = vi.fn()
+  resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
+
+  resource.data.subscribe()
+
+  // Initial evaluation should fail
+  await wrap(sleep())
+
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).instanceOf(Error)
+  expect(resource.error()?.message).toBe('Initial failure')
+  expect(onReject).toHaveBeenCalledTimes(1)
+  expect(onFulfill).not.toHaveBeenCalled()
+
+  // Retry should succeed
+  shouldFail = false
+  await wrap(resource.retry().catch(noop))
+
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).toBeUndefined()
+  expect(onReject).toHaveBeenCalledTimes(1) // Should not be called again
+  expect(onFulfill).toHaveBeenCalledTimes(1)
+  expect(onFulfill).toHaveBeenCalledWith({
+    payload: 'Success',
+    params: [0], // params from the initial computed evaluation
+  })
 })
 
 // TODO just predefine actions WITH PERSIST CACHE and you get a nicer version of FSM.

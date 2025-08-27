@@ -1058,3 +1058,24 @@ export let mock = <Params extends any[], Payload>(
     if (idx !== -1) target.__reatom.middlewares.splice(idx, 1)
   }
 }
+
+/**
+ * Removes all computed atom dependencies.
+ * Useful for effects / resources invalidation.
+ *
+ * @param target - The reactive atom whose dependencies should be reset.
+ * @throws {ReatomError} If the target is not reactive.
+ */
+export const resetDeps = (target: AtomLike) => {
+  if (!target.__reatom.reactive) {
+    throw new ReatomError('only reactive atoms can be reset')
+  }
+
+  const { store } = context().state
+  let targetFrame = store.get(target)
+  if (targetFrame && targetFrame.pubs.length > 1) {
+    targetFrame = _copy(targetFrame)
+    targetFrame.pubs.splice(1)
+    store.set(target, targetFrame)
+  }
+}

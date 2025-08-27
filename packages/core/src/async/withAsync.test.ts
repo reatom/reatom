@@ -6,7 +6,7 @@ import { withCallHook } from '../mixins'
 import { noop, sleep } from '../utils'
 import { withAsync } from './withAsync'
 
-test('withAsync for action', async () => {
+test('action', async () => {
   const name = 'actionAsync'
   let fetchTrack = vi.fn()
   let fulfilLTrack = vi.fn()
@@ -29,7 +29,7 @@ test('withAsync for action', async () => {
   expect(settleTrack).toBeCalledWith({ payload: 1, params: [1] })
 })
 
-test('withAsync for atom', async () => {
+test('atom', async () => {
   const name = 'atomAsync'
   const params = atom(0, `${name}.params`)
   const data = computed(async () => params(), `${name}.data`).extend(
@@ -48,7 +48,7 @@ test('withAsync for atom', async () => {
   expect(data.ready()).toBe(true)
 })
 
-test('withAsync for action error handling', async () => {
+test('action error handling', async () => {
   const name = 'atomAsyncError'
   const fetch = action(async (shouldFail: boolean) => {
     await wrap(sleep())
@@ -87,38 +87,38 @@ test('withAsync for action error handling', async () => {
   })
 })
 
-test('withAsync for computed retry', async () => {
+test('computed retry', async () => {
   const name = 'computedRetry'
   let shouldFail = true
   const params = atom(0, `${name}.params`)
-  const data = computed(async () => {
+  const resource = computed(async () => {
     params() // dependency
     if (shouldFail) {
       throw new Error('Initial failure')
     }
     return 'Success'
-  }, `${name}.data`).extend(withAsync())
+  }, `${name}.resource`).extend(withAsync())
 
   const onReject = vi.fn()
-  data.onReject.extend(withCallHook((call) => onReject(call)))
+  resource.onReject.extend(withCallHook((call) => onReject(call)))
   const onFulfill = vi.fn()
-  data.onFulfill.extend(withCallHook((call) => onFulfill(call)))
+  resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
 
   // Initial evaluation should fail
-  await wrap(data().catch(noop))
+  await wrap(resource().catch(noop))
 
-  expect(data.ready()).toBe(true)
-  expect(data.error()).instanceOf(Error)
-  expect(data.error()?.message).toBe('Initial failure')
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).instanceOf(Error)
+  expect(resource.error()?.message).toBe('Initial failure')
   expect(onReject).toHaveBeenCalledTimes(1)
   expect(onFulfill).not.toHaveBeenCalled()
 
   // Retry should succeed
   shouldFail = false
-  await wrap(data.retry().catch(noop))
+  await wrap(resource.retry().catch(noop))
 
-  expect(data.ready()).toBe(true)
-  expect(data.error()).toBeUndefined()
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).toBeUndefined()
   expect(onReject).toHaveBeenCalledTimes(1) // Should not be called again
   expect(onFulfill).toHaveBeenCalledTimes(1)
   expect(onFulfill).toHaveBeenCalledWith({
