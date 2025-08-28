@@ -198,29 +198,7 @@ export let abortVar: AbortVar = /* @__PURE__ */ (() =>
       )
     }),
     {
-      find<T>(
-        cb: (payload: undefined | unknown) => undefined | T = (payload) =>
-          payload as undefined | T,
-        frame = top(),
-        meta = frame.root.variables,
-      ): undefined | T {
-        let result = cb(meta.get(frame)?.get(this))
-        if (result !== undefined) return result
-
-        for (
-          let i = frame.atom.__reatom.reactive ? 1 : 0;
-          i < frame.pubs.length;
-          i++
-        ) {
-          let pub = frame.pubs[i]
-          if (pub !== null && pub!.atom !== context) {
-            let result = this.find(cb, pub, meta)
-            if (result !== undefined) return result
-          }
-        }
-
-        return undefined
-      },
+      _findReactiveStartIndex: 1,
 
       abort(reason?: any) {
         abortVar.find()?.set(reason)
@@ -261,7 +239,56 @@ export let spawn: GenericAction<
   ) => Payload
 > = /* @__PURE__ */ (() =>
   action((cb: Fn, ...params: any[]): ReturnType<Fn> => {
-    let abort = abortVar.set('spawn')
-    abort.set(new AbortController())
+    abortVar.set(
+      createAtom<null | AbortError>({
+        initState: null,
+      }).extend(
+        withParams((value?: any) => toAbortError(value || `abort`)),
+        () =>
+          ({
+            throwIfAborted() {
+              let error = this()
+              if (error != null) throw error
+            },
+            subscribeAbort(cb) {
+              return computed(() => {
+                let state = this()
+                if (state !== null) cb(state)
+              }, `${this.name}._subscribeAbort`).subscribe()
+            },
+            getController() {
+              let controller = Object.assign(new AbortController(), {
+                unsubscribe() {
+                  controller.signal.removeEventListener('abort', listener)
+                  unsubscribeAtom()
+                },
+              })
+
+              let listener = noop
+
+              let unsubscribeAtom = computed(
+                () => {
+                  let error = this()
+                  if (error) {
+                    controller.abort(error)
+                  }
+                },
+                named(`${this.name}._controller`),
+              ).subscribe()
+
+              if (controller.signal.aborted) unsubscribeAtom()
+              else {
+                listener = bind((error: any) => {
+                  if (error !== this()) this.set(error)
+                  controller.unsubscribe()
+                })
+                controller.signal.addEventListener('abort', listener)
+              }
+
+              return controller
+            },
+          }) satisfies AbortMethods,
+      ),
+    )
     return cb(...params)
   }, 'spawn'))()

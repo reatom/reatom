@@ -65,6 +65,9 @@ export interface Variable<Params extends any[] = any[], Payload = any> {
    * @returns {T} The result of the function
    */
   run<T>(value: Payload, fn: () => T): T
+
+  /** @internal */
+  _findReactiveStartIndex: number
 }
 
 /**
@@ -116,19 +119,23 @@ export let variable: {
   }
   let [set, name = named('var')] = options as [Fn, string?]
 
-  let find = <T>(
+  function find<T>(
+    this: Variable,
     cb: (payload: undefined | unknown) => undefined | T = (payload) =>
       payload as undefined | T,
     frame = top(),
-    meta = frame.root.variables,
-  ): undefined | T => {
-    let result = cb(meta.get(frame)?.get(variable))
+  ): undefined | T {
+    let result = cb(frame.root.variables.get(frame)?.get(this))
     if (result !== undefined) return result
 
-    for (let i = 0; i < frame.pubs.length; i++) {
+    for (
+      let i = frame.atom.__reatom.reactive ? this._findReactiveStartIndex : 0;
+      i < frame.pubs.length;
+      i++
+    ) {
       let pub = frame.pubs[i]
       if (pub !== null && pub!.atom !== context) {
-        let result = find(cb, pub, meta)
+        let result = this.find(cb, pub)
         if (result !== undefined) return result
       }
     }
@@ -171,6 +178,8 @@ export let variable: {
     },
     find,
     run,
+
+    _findReactiveStartIndex: 0,
   }
 
   return variable
