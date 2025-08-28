@@ -1,7 +1,14 @@
 import type { AbortExt } from '../mixins'
 import { type Fn, isAbort, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
-import { _enqueue, type Actions, actions, type Extend, extend } from './'
+import {
+  _enqueue,
+  type Actions,
+  actions,
+  type Extend,
+  extend,
+  isAction,
+} from './'
 
 let identity = <T>(value: T): T => value
 
@@ -457,6 +464,12 @@ export function assertFn(fn: unknown): asserts fn is Fn {
 
 function subscribe(this: AtomLike, userCb?: Fn) {
   // console.log('subscribe', this.name)
+
+  if (isAction(this)) {
+    throw new ReatomError(
+      'Action cannot be subscribed, use `effect` and `getCalls` instead',
+    )
+  }
 
   if (userCb !== undefined) {
     return computed(() => {
