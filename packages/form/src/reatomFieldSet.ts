@@ -78,11 +78,11 @@ export const reatomFieldSet = <T extends FormInitState>(
 ): FieldSet<T> => {
   const fieldsList = atom(
     (ctx) => computeFieldsList(ctx, fields),
-    `${name}.fieldsList`,
+    `${name}._fieldsList`,
   )
   const fieldArraysList = atom(
     (ctx) => computeFieldArraysList(ctx, fields),
-    `${name}.fieldArraysList`,
+    `${name}._fieldArraysList`,
   )
   const fieldsState = atom(
     (ctx) => parseAtoms(ctx, fields),
