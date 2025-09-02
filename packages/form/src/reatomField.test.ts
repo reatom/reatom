@@ -45,20 +45,20 @@ test(`keepErrorOnChange`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
     'validation error',
   )
-  expect(ctx.get(fieldWithoutKeep.validation).errors[0]?.message).toBe(
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBe(
     'validation error',
   )
 
   fieldWithKeep.change(ctx, 'new value')
   fieldWithoutKeep.change(ctx, 'new value')
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
     'validation error',
   )
-  expect(ctx.get(fieldWithoutKeep.validation).errors.length).toBeFalsy()
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBeFalsy()
 })
 
 test(`keepErrorDuringValidating`, async () => {
@@ -86,10 +86,10 @@ test(`keepErrorDuringValidating`, async () => {
 
   await sleep()
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
     'validation error',
   )
-  expect(ctx.get(fieldWithoutKeep.validation).errors[0]?.message).toBe(
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBe(
     'validation error',
   )
 
@@ -99,10 +99,10 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).errors[0]?.message).toBe(
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
     'validation error',
   )
-  expect(ctx.get(fieldWithoutKeep.validation).errors.length).toBeFalsy()
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBeFalsy()
 })
 
 test(`disabled state`, async () => {
@@ -116,13 +116,13 @@ test(`disabled state`, async () => {
   })
 
   field.change(ctx, 'errorValue')
-  expect(ctx.get(field.validation).errors[0]?.message).toBe('validation error')
+  expect(ctx.get(field.validation).error).toBe('validation error')
 
   field.disabled(ctx, true)
   expect(ctx.get(field.validation)).toMatchObject(fieldInitValidation)
 
   field.disabled(ctx, false)
-  expect(ctx.get(field.validation).errors[0]?.message).toBe('validation error')
+  expect(ctx.get(field.validation).error).toBe('validation error')
 })
 
 test(`toState and fromState`, async () => {
@@ -158,7 +158,7 @@ test(`validation concurrency`, async () => {
   field.validation.trigger(ctx)
   expect(ctx.get(field.validation)).toMatchObject({
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise)
   field.change(ctx, 1)
@@ -168,7 +168,7 @@ test(`validation concurrency`, async () => {
   field.validation.trigger(ctx)
   expect(ctx.get(field.validation)).toMatchObject({
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise)
   field.reset(ctx)
@@ -182,7 +182,7 @@ test(`validation concurrency`, async () => {
 
   expect(ctx.get(field.validation)).toMatchObject({
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(ctx.get(field.validation).validating).toBeInstanceOf(Promise)
 
@@ -191,7 +191,7 @@ test(`validation concurrency`, async () => {
   expect(ctx.get(field.validation)).toMatchObject({
     validating: undefined,
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(ctx.get(field.value)).toBe(3)
 })
@@ -222,11 +222,15 @@ test(`validation.errors atom`, async () => {
   })
 
   field.change(ctx, 'errorValue')
-  expect(ctx.get(field.validation).errors.length).toBe(1)
+  expect(ctx.get(field.validation).error).toBeTruthy()
   expect(ctx.get(field.validation.errors).length).toBe(1)
 
   field.validation.errors.push(ctx, { source: "validation", message: "validation error 2" })
   
-  expect(ctx.get(field.validation).errors.length).toBe(2)
+  expect(ctx.get(field.validation).error).toBeTruthy()
   expect(ctx.get(field.validation.errors).length).toBe(2)
+
+  field.validation.errors.shift(ctx)
+  expect(ctx.get(field.validation).error).toBe('validation error 2')
+  expect(ctx.get(field.validation.errors).length).toBe(1)
 })

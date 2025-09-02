@@ -57,8 +57,8 @@ export interface FieldError<Meta = any> extends FieldErrorBody<Meta> {
 }
 
 export interface FieldValidation {
-  /** The list of field validation errors. */
-  errors: FieldError[]
+  /** Message of the first validation error. */
+  error: undefined | string
 
   /** The validation actuality status. */
   triggered: boolean
@@ -248,13 +248,13 @@ export const fieldInitFocus: FieldFocus = {
 }
 
 export const fieldInitValidation: FieldValidation = {
-  errors: [],
+  error: undefined,
   triggered: false,
   validating: undefined,
 }
 
 export const fieldInitValidationLess: FieldValidation = {
-  errors: [],
+  error: undefined,
   triggered: true,
   validating: undefined,
 }
@@ -341,12 +341,10 @@ export function reatomField<State, Value = State>(
 
     const { keepErrorOnChange, validateOnChange } = ctx.get(fieldOptions.value)
 
-    validation.merge(
-      ctx,
-      keepErrorOnChange
-        ? { validating: undefined }
-        : { validating: undefined, errors: [] },
-    )
+    if(!keepErrorOnChange)
+      validation.errors(ctx, [])
+
+    validation.merge(ctx, { validating: undefined })
 
     if (!ctx.get(disabled) && validateOnChange) validation.trigger(ctx)
   })
@@ -392,6 +390,9 @@ export function reatomField<State, Value = State>(
     fieldInitValidationLess,
     `${name}.validation`,
   ).pipe(
+    withAssign((target, name) => ({
+      errors: reatomArray<FieldError>([], `${name}.errors`),
+    })),
     withAssign((target, name) => ({
       trigger: action((ctx) => {
         const validationValue = ctx.get(target)
@@ -471,23 +472,23 @@ export function reatomField<State, Value = State>(
           const validationPromise = (async () => {
             try {
               const errors = await ctx.schedule(() => promise)
+              target.errors(ctx, errors)
               target.merge(ctx, {
-                errors,
                 triggered: true,
                 validating: undefined,
               })
 
               return { errors }
             } catch (error) {
-              const currentErrors = ctx.get(target).errors
               if (isAbort(error) || controller.signal.aborted)
-                return { errors: currentErrors }
+                return { errors: ctx.get(target.errors) }
 
               const validationErrors = [
                 { source: 'validaton', message: toError(error) },
               ]
+
+              target.errors(ctx, validationErrors)
               target.merge(ctx, {
-                errors: validationErrors,
                 triggered: true,
                 validating: undefined,
               })
@@ -496,18 +497,22 @@ export function reatomField<State, Value = State>(
             }
           })()
 
+          if(!keepErrorDuringValidating)
+            target.errors(ctx, [])
+
           return target.merge(ctx, {
-            errors: keepErrorDuringValidating ? validationValue.errors : [],
             triggered: true,
             validating: validationPromise,
           })
         }
 
-        return target.merge(ctx, {
+        target.errors(ctx, promise)
+
+        const val = target.merge(ctx, {
           validating: undefined,
-          errors: promise,
           triggered: true,
         })
+        return val
       }, `${name}.trigger`).pipe(
         withAssign((target, name) => ({
           abort: action(
@@ -517,25 +522,12 @@ export function reatomField<State, Value = State>(
           ),
         })),
       ),
-      errors: reatomArray<FieldError>([], `${name}.errors`),
       clearErrors: action((ctx, ...sources: FieldErrorSource[]) => {
-        if (!sources.length) return target.merge(ctx, { errors: [] })
-
-        return target.merge(ctx, {
-          errors: ctx
-            .get(target)
-            .errors.filter((e) => !sources.includes(e.source)),
-        })
+        target.errors(ctx, sources.length ? ctx.get(target.errors).filter(e => !sources.includes(e.source)) : [])
+        return ctx.get(target)
       }, `${name}.clearErrors`),
     })),
   )
-
-  // @ts-expect-error the original computed state can't be typed properly
-  validation.errors.__reatom.computer = (ctx, state: FieldError[]) => {
-    return ctx.spy(validation).errors
-  }
-
-  validation.errors.onChange((ctx, errors) => validation(ctx, state => ({ ...state, errors })))
 
   validation.__reatom.initState = (ctx) =>
     ctx.get(fieldOptions.value).shouldValidate
@@ -550,7 +542,8 @@ export function reatomField<State, Value = State>(
     if (ctx.spy(disabled)) return fieldInitValidation
 
     ctx.spy(value)
-    return state.triggered ? { ...state, triggered: false } : state
+    const firstError = ctx.spy(validation.errors)[0]?.message;
+    return state.triggered ? { ...state, error: firstError, triggered: false } : { ...state, error: firstError }
   }
 
   const change: This['change'] = action((ctx, newValue) => {

@@ -242,7 +242,7 @@ test('default options for fields', async () => {
   field.change(ctx, 'value')
 
   expect(ctx.get(field.validation)).toEqual({
-    errors: [],
+    error: undefined,
     triggered: true,
     validating: undefined,
   })
@@ -251,7 +251,7 @@ test('default options for fields', async () => {
     field.change(ctx, 'value')
 
     expect(ctx.get(field.validation)).toEqual({
-      errors: [],
+      error: undefined,
       triggered: true,
       validating: undefined,
     })
@@ -371,7 +371,7 @@ test('reset', () => {
     touched: false,
   })
   expect(ctx.get(field.validation)).toEqual({
-    errors: [],
+    error: undefined,
     triggered: false,
     validating: undefined,
   })
@@ -501,13 +501,13 @@ test('validating through form schema and placing errors to corresponding fields'
 
   form.submit(ctx)
 
-  expect(ctx.get(form.fields.age.validation).errors.length).toBeTruthy()
-  expect(ctx.get(form.fields.email.validation).errors.length).toBeTruthy()
+  expect(ctx.get(form.fields.age.validation).error).toBeTruthy()
+  expect(ctx.get(form.fields.email.validation).error).toBeTruthy()
   expect(
-    ctx.get(ctx.get(form.fields.items.array)[0]!.validation).errors.length,
+    ctx.get(ctx.get(form.fields.items.array)[0]!.validation).error,
   ).toBeTruthy()
   expect(
-    ctx.get(ctx.get(form.fields.items.array)[1]!.validation).errors.length,
+    ctx.get(ctx.get(form.fields.items.array)[1]!.validation).error,
   ).toBeFalsy()
 })
 
@@ -534,7 +534,7 @@ test('triggering schema validation only for one field', async () => {
 
   form.fields.age.change(ctx, 17)
   expect(ctx.get(form.validation).errors[0]?.message).toBe('must be minimum 18')
-  expect(ctx.get(form.fields.age.validation).errors[0]?.message).toBe(
+  expect(ctx.get(form.fields.age.validation).error).toBe(
     'must be minimum 18',
   )
 })
@@ -582,24 +582,24 @@ test('correct handling of side errors from schema', async () => {
   )
 
   form.fields.min.change(ctx, 15)
-  expect(ctx.get(form.fields.max.validation).errors[0]?.message).toBe(
+  expect(ctx.get(form.fields.max.validation).error).toBe(
     INVARIANT_ERR_MSG,
   )
-  expect(ctx.get(form.fields.min.validation).errors[0]?.message).toBe(
+  expect(ctx.get(form.fields.min.validation).error).toBe(
     INVARIANT_ERR_MSG,
   )
 
   form.fields.min.change(ctx, 10)
 
-  expect(ctx.get(form.fields.max.validation).errors.length).toBeFalsy()
-  expect(ctx.get(form.fields.min.validation).errors[0]?.message).toBe(
+  expect(ctx.get(form.fields.max.validation).error).toBeFalsy()
+  expect(ctx.get(form.fields.min.validation).error).toBe(
     `shouldn't be even`,
   )
 
   form.fields.min.change(ctx, 9)
 
-  expect(ctx.get(form.fields.max.validation).errors.length).toBeFalsy()
-  expect(ctx.get(form.fields.min.validation).errors.length).toBeFalsy()
+  expect(ctx.get(form.fields.max.validation).error).toBeFalsy()
+  expect(ctx.get(form.fields.min.validation).error).toBeFalsy()
 })
 
 test('recipe: concurrent field validation with schema', async () => {
@@ -628,12 +628,12 @@ test('recipe: concurrent field validation with schema', async () => {
 
   form.fields.age.change(ctx, 10)
   expect(ctx.get(form.fields.age.validation)).toMatchObject({
-    errors: [{ message: 'must be minimum 18' }],
+    error: 'must be minimum 18',
   })
   await sleep()
 
   expect(ctx.get(form.fields.age.validation)).toMatchObject({
-    errors: [{ message: 'must be minimum 18' }],
+    error: 'must be minimum 18',
   })
 })
 
@@ -658,7 +658,7 @@ test('recipe: autofocus', async () => {
   form.submit.onReject.onCall((ctx) => {
     const errorField = ctx
       .get(form.fieldsList)
-      .find((field) => !!ctx.get(field.validation).errors.length)
+      .find((field) => !!ctx.get(field.validation).error)
     if (errorField) ctx.get(errorField.elementRef)?.focus()
   })
 
@@ -701,7 +701,7 @@ test('validation trigger', async () => {
   const promise = form.validation.trigger(ctx).catch(() => null)
   expect(fieldSet.validation.trigger(ctx).validating).toBeInstanceOf(Promise)
   const result = await promise
-  expect(ctx.get(form.fields.age.validation).errors.length).toBeTruthy()
+  expect(ctx.get(form.fields.age.validation).error).toBeTruthy()
   expect(result).toBeFalsy()
 })
 
@@ -721,9 +721,9 @@ test('subsequent validation', async () => {
 
   form.fields.email.change(ctx, 'test')
   await form.submit(ctx).catch(noop)
-  expect(ctx.get(form.fields.email.validation).errors.length).toBe(1)
+  expect(ctx.get(form.fields.email.validation).error).toBeTruthy()
 
   form.fields.email.change(ctx, 'test@test.com')
   await form.submit(ctx).catch(noop)
-  expect(ctx.get(form.fields.email.validation).errors.length).toBe(0)
+  expect(ctx.get(form.fields.email.validation).error).toBeFalsy()
 })

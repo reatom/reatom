@@ -117,7 +117,8 @@ export const reatomFieldSet = <T extends FormInitState>(
       for (const field of ctx.spy(fieldsList)) {
         if (ctx.spy(field.disabled)) continue
 
-        const { triggered, validating, errors } = ctx.spy(field.validation)
+        const errors = ctx.spy(field.validation.errors)
+        const { triggered, validating } = ctx.spy(field.validation)
 
         validation.triggered &&= triggered
         validationErrors.push(...errors.map((err) => ({ ...err, field })))

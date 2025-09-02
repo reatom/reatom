@@ -44,12 +44,11 @@ import {
   reatomField,
   type FieldOptions,
   FieldLikeAtom,
-  FieldValidation,
 } from './reatomField'
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { withInit } from '@reatom/hooks'
-import { FieldSet, reatomFieldSet } from './reatomFieldSet'
+import { FieldSet, FieldSetValidation, reatomFieldSet } from './reatomFieldSet'
 
 export interface FormFieldOptions<State = any, Value = State>
   extends FieldOptions<State, Value> {
@@ -140,7 +139,7 @@ export interface SubmitAction<Return> extends AsyncAction<[], Return> {
 export interface Form<T extends FormInitState, SchemaState, SubmitReturn>
   extends Omit<FieldSet<T>, 'validation'> {
   /** Atom with validation state of the form, computed from all the fields in `fieldsList` */
-  validation: Atom<FieldValidation> & {
+  validation: Atom<FieldSetValidation> & {
     /** Action to trigger form validation. */
     trigger: AsyncAction<
       [],
@@ -534,7 +533,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       for (const field of ctx.get(fieldsList)) {
         if (
           !touched.has(field) &&
-          ctx.get(field.validation).errors.find((e) => e.source == 'schema')
+          ctx.get(field.validation.errors).find((e) => e.source == 'schema')
         )
           field.validation.clearErrors(ctx, 'schema')
       }

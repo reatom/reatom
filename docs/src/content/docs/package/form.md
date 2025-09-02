@@ -540,7 +540,7 @@ const form = reatomForm(
 form.submit.onReject.onCall((ctx) => {
   const errorField = ctx
     .get(form.fieldsList)
-    .find((field) => !!ctx.get(field.validation.errors).length)
+    .find((field) => !!ctx.get(field.validation).error)
   if (errorField) ctx.get(errorField.elementRef)?.focus()
 })
 ```
@@ -603,14 +603,14 @@ Here is the list of all additional properties and methods:
   - `in`: Action for handling field focus.
   - `out`: Action for handling field blur.
 - `validation`: Record atom with all related validation statuses:
-  - `errors`: The field validation error text, undefined if the field is valid.
+  - `error`: Computed message of the first error from errors array
     - `source`: The source of the error. The value will be `validation` if the error occurred due to the `validate` function of the field and `schema` if the error caused by schema validation
     - `message`: The text of the error
     - `meta`: The record with arbitrary information about the error like minimum chars, upper bound of a number, etc.
   - `triggered`: The validation actuality status. The standard schema does not support such met aattributes, so they only make sense if they are set manually in the `validate` functions.
   - `validating`: If asynchronous validation is running, it returns a promise which will be resolved after the validation and which will return a non-empty list of errors, if any.
   - `trigger`: Action to trigger field validation.
-  - `errors`: Writable computed for errors from validation atom.
+  - `errors`: Array of validation errors.
   - `clearErrors`: Action to clear all errors by passed sources.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
