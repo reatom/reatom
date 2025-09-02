@@ -540,7 +540,7 @@ const form = reatomForm(
 form.submit.onReject.onCall((ctx) => {
   const errorField = ctx
     .get(form.fieldsList)
-    .find((field) => !!ctx.get(field.validation).error)
+    .find((field) => !!ctx.get(field.validation.errors).length)
   if (errorField) ctx.get(errorField.elementRef)?.focus()
 })
 ```
@@ -610,7 +610,7 @@ Here is the list of all additional properties and methods:
   - `triggered`: The validation actuality status. The standard schema does not support such met aattributes, so they only make sense if they are set manually in the `validate` functions.
   - `validating`: If asynchronous validation is running, it returns a promise which will be resolved after the validation and which will return a non-empty list of errors, if any.
   - `trigger`: Action to trigger field validation.
-  - `prependErrors`: Action to prepend some errors to the field.
+  - `errors`: Writable computed for errors from validation atom.
   - `clearErrors`: Action to clear all errors by passed sources.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.

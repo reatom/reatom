@@ -17,8 +17,10 @@ import {
   withAbortableSchedule,
 } from '@reatom/effects'
 import {
+  ArrayAtom,
   BooleanAtom,
   type RecordAtom,
+  reatomArray,
   reatomBoolean,
   reatomRecord,
   withAssign,
@@ -77,8 +79,8 @@ export interface ValidationAtom extends Atom<FieldValidation> {
   /** Action to trigger field validation. */
   trigger: Action<[], FieldValidation> & { abort: Action<[reason?: any], void> }
 
-  /** Action to prepend some errors to the field. */
-  prependErrors: Action<[...errors: FieldError[]], FieldValidation>
+  /** Writable computed for errors from validation atom */
+  errors: ArrayAtom<FieldError>
 
   /** Action to clear all errors by passed sources. */
   clearErrors: Action<[...sources: FieldErrorSource[]], FieldValidation>
@@ -515,13 +517,7 @@ export function reatomField<State, Value = State>(
           ),
         })),
       ),
-      prependErrors: action((ctx, ...errors: FieldError[]) => {
-        if (!errors.length) return ctx.get(target)
-
-        return target.merge(ctx, {
-          errors: [...errors, ...ctx.get(target).errors],
-        })
-      }, `${name}.prependErrors`),
+      errors: reatomArray<FieldError>([], `${name}.errors`),
       clearErrors: action((ctx, ...sources: FieldErrorSource[]) => {
         if (!sources.length) return target.merge(ctx, { errors: [] })
 
@@ -530,9 +526,16 @@ export function reatomField<State, Value = State>(
             .get(target)
             .errors.filter((e) => !sources.includes(e.source)),
         })
-      }, `${name}.prependErrors`),
+      }, `${name}.clearErrors`),
     })),
   )
+
+  // @ts-expect-error the original computed state can't be typed properly
+  validation.errors.__reatom.computer = (ctx, state: FieldError[]) => {
+    return ctx.spy(validation).errors
+  }
+
+  validation.errors.onChange((ctx, errors) => validation(ctx, state => ({ ...state, errors })))
 
   validation.__reatom.initState = (ctx) =>
     ctx.get(fieldOptions.value).shouldValidate

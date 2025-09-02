@@ -211,3 +211,22 @@ test(`withField and initState derivation`, async () => {
 
   expect(field.value.__reatom.name).toBe('fieldAtom.value')
 })
+
+test(`validation.errors atom`, async () => {
+  const ctx = createCtx()
+  const field = reatomField('', {
+    validateOnChange: true,
+    validate: (ctx, { value }) => {
+      if (value == 'errorValue') throw new Error('validation error')
+    },
+  })
+
+  field.change(ctx, 'errorValue')
+  expect(ctx.get(field.validation).errors.length).toBe(1)
+  expect(ctx.get(field.validation.errors).length).toBe(1)
+
+  field.validation.errors.push(ctx, { source: "validation", message: "validation error 2" })
+  
+  expect(ctx.get(field.validation).errors.length).toBe(2)
+  expect(ctx.get(field.validation.errors).length).toBe(2)
+})

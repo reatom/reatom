@@ -523,7 +523,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
           const field = resolveFieldByPath(ctx, issue.path, fields)
           if (!field) continue
 
-          field.validation.prependErrors(ctx, {
+          field.validation.errors.unshift(ctx, {
             source: 'schema',
             message: issue.message,
           })
