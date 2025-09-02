@@ -22,6 +22,8 @@ import {
   reatomAsync,
   withAbort,
   AsyncCtx,
+  withDataAtom,
+  AsyncDataAtom,
 } from '@reatom/async'
 
 import {
@@ -131,6 +133,7 @@ export type FormPartialState<T extends FormInitState = FormInitState> =
 
 export interface SubmitAction<Return> extends AsyncAction<[], Return> {
   error: Atom<Error | undefined>
+  data: AsyncDataAtom<Return | undefined>
   statusesAtom: AsyncStatusesAtom
 }
 
@@ -595,10 +598,15 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     if (resetOnSubmit) reset(ctx)
     return result as SubmitReturn
   }, `${name}.onSubmit`).pipe(
+    withDataAtom(),
     withStatusesAtom(),
     withAbort(),
     withErrorAtom(undefined, { resetTrigger: 'onFulfill' }),
-    (submit) => Object.assign(submit, { error: submit.errorAtom }),
+    (submit) =>
+      Object.assign(submit, {
+        data: submit.dataAtom,
+        error: submit.errorAtom,
+      }),
   )
 
   const validation = Object.assign(fieldsetValidation, {
