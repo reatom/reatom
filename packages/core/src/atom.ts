@@ -622,7 +622,7 @@ export const createCtx = ({
       let listener = (state: any) =>
         Object.is(lastState, state) || cb((lastState = state))
 
-      let cache = read(proto)
+      let cache = proto.patch ?? read(proto)
 
       if (cache === undefined || !isConnected(cache)) {
         this.get(() => {
@@ -646,7 +646,7 @@ export const createCtx = ({
         if (cache!.listeners.delete(listener) && !isConnected(cache!)) {
           proto.disconnectHooks && nearEffects.push(...proto.disconnectHooks)
 
-          for (let pubCache of read(proto)!.pubs) {
+          for (let pubCache of (proto.patch?.pubs ?? read(proto)!.pubs)) {
             disconnect(proto, pubCache)
           }
 
