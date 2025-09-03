@@ -523,7 +523,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
           if (!field) continue
 
           const fieldErrors = touched.get(field) ?? []
-          fieldErrors.push({
+          fieldErrors.unshift({
             source: 'schema',
             message: issue.message,
           })
