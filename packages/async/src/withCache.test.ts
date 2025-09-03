@@ -13,6 +13,7 @@ import {
   AsyncCtx,
   reatomResource,
 } from './'
+import { takeNested } from '@reatom/effects'
 
 test('withCache', async () => {
   const fetchData = reatomAsync(
@@ -318,8 +319,8 @@ test('Infinity cache invalidation', async () => {
 test('shared cache', async () => {
   const ctx = createTestCtx()
 
-  const myModelStorage = createMemStorage({ name: 'myModel' })
-  const withMyModelPersist = reatomPersist(myModelStorage)
+  const ssrStorage = createMemStorage({ name: 'myModel' })
+  const withMyModelPersist = reatomPersist(ssrStorage)
   const reatomMyModel = (init: number) => {
     const param = atom(init)
     const someResource = reatomResource(async (ctx) => {
@@ -354,4 +355,50 @@ test('shared cache', async () => {
 
   a.param(ctx, 2)
   expect(ctx.get(a.data)).toBe(2)
+})
+
+test('reactive cache', async () => {
+  const ctx = createTestCtx()
+
+  const ssrStorage = createMemStorage({ name: 'myModel', subscribe: true })
+  const withMyModelPersist = reatomPersist(ssrStorage)
+
+  const a = atom(0, 'a').pipe(withMyModelPersist('a'))
+  // const aComputer = a.__reatom.computer!
+  // a.__reatom.computer = (ctx, state) => {
+  //   return aComputer(ctx, state)
+  // }
+  const r = reatomResource(async (ctx) => {
+    const value = ctx.spy(a)
+    await ctx.schedule(() => sleep())
+    return value
+  }, 'r').pipe(
+    withDataAtom(0),
+    withCache({
+      ignoreAbort: false,
+      withPersist: withMyModelPersist,
+    }),
+  )
+
+  ctx.subscribeTrack(r.dataAtom)
+
+  await sleep()
+  expect(ctx.get(r.dataAtom)).toBe(0)
+
+  const snapshot = await (async () => {
+    const ctx = createTestCtx()
+
+    await takeNested(ctx, async () => {
+      a(ctx, 3)
+      await r(ctx)
+    })
+    await sleep()
+    expect(ctx.get(r.dataAtom)).toBe(3)
+    return ctx.get(ssrStorage.snapshotAtom)
+  })()
+
+  ssrStorage.snapshotAtom(ctx, snapshot)
+  // synchronously!
+  expect(ctx.get(a)).toBe(3)
+  expect(ctx.get(r.dataAtom)).toBe(3)
 })

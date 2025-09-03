@@ -287,12 +287,8 @@ export const createMemStorage = ({
         snapshotAtom(ctx, (snapshot) => ({ ...snapshot, [key]: rec }))
       }
 
-      ctx.schedule(() =>
-        ctx
-          .get(listenersAtom)
-          .get(key)
-          ?.forEach((cb) => cb(rec)),
-      )
+      const listeners = ctx.get(listenersAtom).get(key)
+      listeners?.forEach((cb) => cb(rec))
     },
     subscribe: subscribe
       ? (ctx, key, callback) => {
@@ -312,6 +308,20 @@ export const createMemStorage = ({
           return cleanup
         }
       : undefined,
-    snapshotAtom,
+    snapshotAtom: Object.assign(
+      (ctx: Ctx, snapshot: Rec<PersistRecord>) =>
+        // put listeners notification inside snapshotAtom update for batching and cause tracking
+        snapshotAtom(ctx, () => {
+          ctx.schedule(() => {
+            for (const key in snapshot) {
+              const element = snapshot[key]!
+              const listeners = ctx.get(listenersAtom).get(key)
+              listeners?.forEach((cb) => cb(element))
+            }
+          }, 0)
+          return snapshot
+        }),
+      snapshotAtom,
+    ),
   }
 }
