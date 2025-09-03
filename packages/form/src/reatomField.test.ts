@@ -45,14 +45,20 @@ test(`keepErrorOnChange`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBe('validation error')
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
+    'validation error',
+  )
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBe(
+    'validation error',
+  )
 
   fieldWithKeep.change(ctx, 'new value')
   fieldWithoutKeep.change(ctx, 'new value')
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBeUndefined()
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
+    'validation error',
+  )
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBeFalsy()
 })
 
 test(`keepErrorDuringValidating`, async () => {
@@ -80,8 +86,12 @@ test(`keepErrorDuringValidating`, async () => {
 
   await sleep()
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBe('validation error')
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
+    'validation error',
+  )
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBe(
+    'validation error',
+  )
 
   fieldWithKeep.change(ctx, 'new value')
   fieldWithoutKeep.change(ctx, 'new value')
@@ -89,8 +99,10 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBeUndefined()
+  expect(ctx.get(fieldWithKeep.validation).error).toBe(
+    'validation error',
+  )
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBeFalsy()
 })
 
 test(`disabled state`, async () => {
@@ -98,7 +110,7 @@ test(`disabled state`, async () => {
 
   const field = reatomField('', {
     validateOnChange: true,
-    contract: (value) => {
+    validate: (ctx, { value }) => {
       if (value == 'errorValue') throw new Error('validation error')
     },
   })
@@ -198,4 +210,27 @@ test(`withField and initState derivation`, async () => {
   expect(ctx.get(field)).toBe('lel')
 
   expect(field.value.__reatom.name).toBe('fieldAtom.value')
+})
+
+test(`validation.errors atom`, async () => {
+  const ctx = createCtx()
+  const field = reatomField('', {
+    validateOnChange: true,
+    validate: (ctx, { value }) => {
+      if (value == 'errorValue') throw new Error('validation error')
+    },
+  })
+
+  field.change(ctx, 'errorValue')
+  expect(ctx.get(field.validation).error).toBeTruthy()
+  expect(ctx.get(field.validation.errors).length).toBe(1)
+
+  field.validation.errors.push(ctx, { source: "validation", message: "validation error 2" })
+  
+  expect(ctx.get(field.validation).error).toBeTruthy()
+  expect(ctx.get(field.validation.errors).length).toBe(2)
+
+  field.validation.errors.shift(ctx)
+  expect(ctx.get(field.validation).error).toBe('validation error 2')
+  expect(ctx.get(field.validation.errors).length).toBe(1)
 })

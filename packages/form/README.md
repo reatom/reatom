@@ -116,22 +116,17 @@ const form = reatomForm(
 By passing an object with `initState` property, you can initialize a reatomField with a value as its default, and pass additional options for the field.
 
 ```ts
-const form = reatomForm(
-  {
-    username: {
-      initState: '',
-      validateOnChange: true,
-      validate: ({ state }) => {
-        if (state.length < 3) throw new Error('Too short')
-      },
-    },
-    age: {
-      initState: 25,
-      validateOnBlur: true,
-    },
+const form = reatomForm({
+  username: { 
+    initState: '', 
+    validateOnChange: true,
+    validate: (ctx, { state }) => state.length < 3 ? 'too short' : undefined
   },
-  'form',
-)
+  age: { 
+    initState: 25, 
+    validateOnBlur: true 
+  }
+}, 'form')
 ```
 
 3. **Existing `reatomField` Instances**:
@@ -185,10 +180,6 @@ const form = reatomForm(
 
 ## Array Fields
 
-The `fieldArray` function allows you to create dynamic arrays of fields that can be added, removed, and manipulated.
-
-### Array Fields Initialization
-
 There are several ways to initialize array fields:
 
 1. **Simple Array Literals**:
@@ -239,27 +230,27 @@ const form = reatomForm(
 
 4. **Complex Array Field Factory**:
 
-If you want to configure the rules for creating fields in an array field, you should define a factory function that describes how each new field in this array field will be created.
-
+If you want to configure the rules for creating fields in an array field, you should define a factory function using `fieldArray` function that describes how each new field in this array field will be created.
 ```ts
-const form = reatomForm(
-  {
-    // Using initState and create
-    phoneNumbers: fieldArray({
-      initState: [{ number: '123-456-7890', priority: false }],
-      create: (ctx, { number, priority }, name) => ({
-        number: { initState: number, validateOnChange: true },
-        priority: reatomBoolean(priority, `${name}.priority`).pipe(withField()),
-      }),
-    }),
-  },
-  'form',
-)
+const form = reatomForm({
+  // Using initState and create
+  phoneNumbers: fieldArray({
+    initState: [{ number: '123-456-7890', priority: false }],
+    create: (ctx, { number, priority }, name) => ({
+      number: { initState: number, validateOnChange: true },
+      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
+    })
+  }),
+}, 'form')
+
+form.fields.phoneNumbers.create(ctx, { 
+  number: '123-456-7890', 
+  priority: false 
+})
 ```
 
 ### Basic Array Field Operations
-
-Since `fieldArray` is syntactic sugar over `reatomLinkedList`, it provides several methods to manipulate the array of fields:
+Since `fieldArray` or array literal in the fields definition are a syntactic sugar over `reatomLinkedList`, it provides several methods to manipulate the array of fields:
 
 - `create(value)`: Adds a new field with the given value to the end of the array
 - `remove(field)`: Removes a specific field from the array
@@ -302,35 +293,6 @@ contactForm.fields.emails.clear(ctx)
 ```
 
 Since we use the "field as model" approach and each field is an object, we can achieve maximum type safety by working directly with objects. But the cherry on top is atomization, a principle used by array fields that allows maintaining a high-quality type-safe experience at any level of nesting in your forms.
-
-### Complex Array Fields
-
-You can create more complex array fields with custom structures:
-
-```ts
-import { reatomForm, fieldArray, withField } from '@reatom/form'
-import { reatomBoolean } from '@reatom/primitives'
-
-const contactForm = reatomForm(
-  {
-    name: '',
-    phoneNumbers: fieldArray({
-      initState: new Array<{ number: string; priority: boolean }>(),
-      create: (ctx, { number, priority }, name) => ({
-        number,
-        priority: reatomBoolean(priority, `${name}.priority`).pipe(withField()),
-      }),
-    }),
-  },
-  'form',
-)
-
-// Add a new phone number
-contactForm.fields.phoneNumbers.create(ctx, {
-  number: '123-456-7890',
-  priority: false,
-})
-```
 
 ### Nested Array Fields
 
@@ -513,17 +475,44 @@ const schema = z
     path: ['confirmPassword'],
   })
 
-const loginForm = reatomForm(
-  (name) => ({
-    username: reatomField('', `${name}.username`),
-    password: reatomField('', `${name}.password`),
-    confirmPassword: reatomField('', `${name}.confirmPassword`),
+const loginForm = reatomForm(name => ({
+  username: reatomField('', `${name}.username`),
+  password: reatomField('', `${name}.password`),
+  confirmPassword: reatomField('', `${name}.confirmPassword`)
+}), {
+  name: 'loginForm',
+  schema
+})
+```
+
+Cross errors are also supported. When validation is activated according to the scheme, errors are placed into the corresponding fields, prepending them directly to the `validation.errors` array of each field. With subsequent successful schema validation, these errors are excluded from this array.
+
+```ts
+const form = reatomForm({
+  min: 0,
+  max: 10
+}, {
+  validateOnChange: true,
+  schema: z.object({
+    min: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+    max: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+  }).superRefine(({ min, max }, ctx) => {
+    if (min > max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['min'],
+        message: 'value "min" should be less than "max" value',
+      })
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['max'],
+        message: 'value "min" should be less than "max" value'
+      })
+    }
   }),
-  {
-    name: 'loginForm',
-    schema,
-  },
-)
+})
+
+form.fields.min.change(ctx, 11) // causing an error for both `min` and `max` fields
 ```
 
 ### Autofocus on error
@@ -585,7 +574,7 @@ Thus, the `reatomForm` gets all the same properties as the `reatomFieldSet`, but
 - `name`: The name of the form (optional, auto-generated if not provided).
 - `onSubmit`: The callback to process valid form data.
 - `resetOnSubmit`: Should reset the state after successful submit? (default: `true`).
-- `validate`: The callback to validate form fields.
+- `validateBeforeSubmit`: The callback to validate form before `onSubmit` will be triggered.
 - `schema`: A schema for validation (supports StandardSchemaV1 specification, like Zod, Valibot, etc).
 - `validateOnChange`: Defines if validation should be triggered with every field change by default for all fields (default: `false`).
 - `validateOnBlur`: Defines if validation should be triggered on field blur by default for all fields (default: `false`).
@@ -614,12 +603,15 @@ Here is the list of all additional properties and methods:
   - `in`: Action for handling field focus.
   - `out`: Action for handling field blur.
 - `validation`: Record atom with all related validation statuses:
-  - `error`: The field validation error text, undefined if the field is valid.
-  - `meta`: Additional validation metadata.
-  - `triggered`: The validation actuality status.
-  - `validating`: If asynchronous validation is running, it returns a promise which will be resolved after the validation.
+  - `error`: Computed message of the first error from errors array
+    - `source`: The source of the error. The value will be `validation` if the error occurred due to the `validate` function of the field and `schema` if the error caused by schema validation
+    - `message`: The text of the error
+    - `meta`: The record with arbitrary information about the error like minimum chars, upper bound of a number, etc.
+  - `triggered`: The validation actuality status. The standard schema does not support such met aattributes, so they only make sense if they are set manually in the `validate` functions.
+  - `validating`: If asynchronous validation is running, it returns a promise which will be resolved after the validation and which will return a non-empty list of errors, if any.
   - `trigger`: Action to trigger field validation.
-  - `setError`: Action to set an error for the field.
+  - `errors`: Array of validation errors.
+  - `clearErrors`: Action to clear all errors by passed sources.
 - `value`: Atom with the "value" data, computed by the `fromState` option.
 - `change`: Action for handling field changes, accepts the "value" parameter and applies it to `toState` option.
 - `reset`: Action to reset the state, the value, the validation, and the focus.
