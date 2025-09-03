@@ -44,6 +44,7 @@ import {
   reatomField,
   type FieldOptions,
   FieldLikeAtom,
+  FieldError,
 } from './reatomField'
 
 import type { StandardSchemaV1 } from '@standard-schema/spec'
@@ -155,7 +156,7 @@ export interface Form<T extends FormInitState, SchemaState, SubmitReturn>
           >
         })
 
-  /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `submitValidate` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
+  /** Submit async handler. It checks the validation of all the fields in `fieldsList`, calls the form's `validateBeforeSubmit` options handler, and then the `onSubmit` options handler. Check the additional options properties of async action: https://www.reatom.dev/package/async/. */
   submit: SubmitAction<SubmitReturn>
 
   /** Atom with submitted state of the form */
@@ -204,14 +205,14 @@ export interface FormOptionsWithSchema<State, SubmitReturn>
 
   /**
    * The callback to validate form fields before submit, typed according to the schema
-   * @deprecated Renamed to `submitValidate`
+   * @deprecated Renamed to `validateBeforeSubmit`
    */
   validate?: (ctx: AsyncCtx, state: State) => any
 
   /**
    * The callback to validate form fields before submit, typed according to the schema
    */
-  submitValidate?: (ctx: AsyncCtx, state: State) => any
+  validateBeforeSubmit?: (ctx: AsyncCtx, state: State) => any
 
   /** The schema which supports StandardSchemaV1 specification to validate form fields. */
   schema: StandardSchemaV1<unknown, State>
@@ -227,15 +228,14 @@ export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn>
 
   /**
    * The callback to validate form fields before submit, typed according to the raw form state
-   * @deprecated Renamed to `submitValidate`
+   * @deprecated Renamed to `validateBeforeSubmit`
    */
   validate?: (ctx: AsyncCtx, state: FormState<T>) => any
 
   /**
    * The callback to validate form fields before submit, typed according to the raw form state
-   * @deprecated Renamed to `submitValidate`
    */
-  submitValidate?: (ctx: AsyncCtx, state: FormState<T>) => any
+  validateBeforeSubmit?: (ctx: AsyncCtx, state: FormState<T>) => any
 
   /** Schema is explicitly disallowed or undefined in this variant */
   schema?: undefined
@@ -452,7 +452,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     onSubmit,
     resetOnSubmit = false,
     validate,
-    submitValidate = validate,
+    validateBeforeSubmit = validate,
     validateOnBlur = false,
     validateOnChange = false,
     keepErrorDuringValidating = false,
@@ -515,27 +515,32 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     const validation = schema['~standard'].validate(state)
 
     const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
-      const touched = new Set<FieldAtom>()
+      const touched = new Map<FieldAtom, FieldError[]>()
 
       if (result.issues) {
         for (const issue of result.issues) {
           const field = resolveFieldByPath(ctx, issue.path, fields)
           if (!field) continue
 
-          field.validation.errors.unshift(ctx, {
+          const fieldErrors = touched.get(field) ?? []
+          fieldErrors.push({
             source: 'schema',
             message: issue.message,
           })
-          touched.add(field)
+          touched.set(field, fieldErrors)
         }
       }
 
       for (const field of ctx.get(fieldsList)) {
-        if (
-          !touched.has(field) &&
-          ctx.get(field.validation.errors).find((e) => e.source == 'schema')
-        )
-          field.validation.clearErrors(ctx, 'schema')
+        const placedErrors = touched.get(field)
+        if (!placedErrors) {
+          if (
+            ctx.get(field.validation.errors).find((e) => e.source == 'schema')
+          )
+            field.validation.clearErrors(ctx, 'schema')
+        } else {
+          field.validation.errors(ctx, placedErrors)
+        }
       }
 
       return result
@@ -570,8 +575,8 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       state = ctx.get(fieldsState)
     }
 
-    if (submitValidate) {
-      const promise = submitValidate(ctx, state)
+    if (validateBeforeSubmit) {
+      const promise = validateBeforeSubmit(ctx, state)
       if (promise instanceof Promise) {
         await ctx.schedule(() => promise)
       }

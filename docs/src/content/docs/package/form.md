@@ -574,7 +574,7 @@ Thus, the `reatomForm` gets all the same properties as the `reatomFieldSet`, but
 - `name`: The name of the form (optional, auto-generated if not provided).
 - `onSubmit`: The callback to process valid form data.
 - `resetOnSubmit`: Should reset the state after successful submit? (default: `true`).
-- `validate`: The callback to validate form fields.
+- `validateBeforeSubmit`: The callback to validate form before `onSubmit` will be triggered.
 - `schema`: A schema for validation (supports StandardSchemaV1 specification, like Zod, Valibot, etc).
 - `validateOnChange`: Defines if validation should be triggered with every field change by default for all fields (default: `false`).
 - `validateOnBlur`: Defines if validation should be triggered on field blur by default for all fields (default: `false`).

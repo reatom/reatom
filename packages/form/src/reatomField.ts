@@ -9,6 +9,7 @@ import {
   __count,
   action,
   atom,
+  batch,
 } from '@reatom/core'
 import {
   __thenReatomed,
@@ -341,8 +342,7 @@ export function reatomField<State, Value = State>(
 
     const { keepErrorOnChange, validateOnChange } = ctx.get(fieldOptions.value)
 
-    if(!keepErrorOnChange)
-      validation.errors(ctx, [])
+    if (!keepErrorOnChange) validation.errors(ctx, [])
 
     validation.merge(ctx, { validating: undefined })
 
@@ -472,10 +472,13 @@ export function reatomField<State, Value = State>(
           const validationPromise = (async () => {
             try {
               const errors = await ctx.schedule(() => promise)
-              target.errors(ctx, errors)
-              target.merge(ctx, {
-                triggered: true,
-                validating: undefined,
+
+              batch(ctx, () => {
+                target.errors(ctx, errors)
+                target.merge(ctx, {
+                  triggered: true,
+                  validating: undefined,
+                })
               })
 
               return { errors }
@@ -487,18 +490,19 @@ export function reatomField<State, Value = State>(
                 { source: 'validaton', message: toError(error) },
               ]
 
-              target.errors(ctx, validationErrors)
-              target.merge(ctx, {
-                triggered: true,
-                validating: undefined,
+              batch(ctx, () => {
+                target.errors(ctx, validationErrors)
+                target.merge(ctx, {
+                  triggered: true,
+                  validating: undefined,
+                })
               })
 
               return { errors: validationErrors }
             }
           })()
 
-          if(!keepErrorDuringValidating)
-            target.errors(ctx, [])
+          if (!keepErrorDuringValidating) target.errors(ctx, [])
 
           return target.merge(ctx, {
             triggered: true,
@@ -506,13 +510,14 @@ export function reatomField<State, Value = State>(
           })
         }
 
-        target.errors(ctx, promise)
+        return batch(ctx, () => {
+          target.errors(ctx, promise)
 
-        const val = target.merge(ctx, {
-          validating: undefined,
-          triggered: true,
+          return target.merge(ctx, {
+            validating: undefined,
+            triggered: true,
+          })
         })
-        return val
       }, `${name}.trigger`).pipe(
         withAssign((target, name) => ({
           abort: action(
@@ -523,7 +528,11 @@ export function reatomField<State, Value = State>(
         })),
       ),
       clearErrors: action((ctx, ...sources: FieldErrorSource[]) => {
-        target.errors(ctx, sources.length ? ctx.get(target.errors).filter(e => !sources.includes(e.source)) : [])
+        target.errors(ctx, (errors) =>
+          sources.length
+            ? errors.filter((e) => !sources.includes(e.source))
+            : [],
+        )
         return ctx.get(target)
       }, `${name}.clearErrors`),
     })),
@@ -542,8 +551,10 @@ export function reatomField<State, Value = State>(
     if (ctx.spy(disabled)) return fieldInitValidation
 
     ctx.spy(value)
-    const firstError = ctx.spy(validation.errors)[0]?.message;
-    return state.triggered ? { ...state, error: firstError, triggered: false } : { ...state, error: firstError }
+    const firstError = ctx.spy(validation.errors)[0]?.message
+    return state.triggered
+      ? { ...state, error: firstError, triggered: false }
+      : { ...state, error: firstError }
   }
 
   const change: This['change'] = action((ctx, newValue) => {

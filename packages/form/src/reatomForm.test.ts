@@ -97,7 +97,7 @@ test('validation states', async () => {
     {
       name: 'testForm',
       onSubmit: () => {},
-      submitValidate: () => {
+      validateBeforeSubmit: () => {
         throw new Error('Form validation error')
       },
     },
