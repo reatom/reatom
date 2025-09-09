@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
-import { atom, withParams, type Atom } from '../core'
+import { type Atom, atom, withParams } from '../core'
 import { reatomLinkedList } from '../primitives/reatomLinkedList'
 import { type AtomizedUpdate, updateAtomized } from './atomize'
 
@@ -155,5 +155,6 @@ describe('updateAtomized', () => {
     const deepLlItems = data.llItems()[0]?.ll.array()
     expect(deepLlItems?.length).toBe(2)
     expect(deepLlItems?.[0]?.name()).toBe('C')
+    expect(deepLlItems?.[1]?.name()).toBe('D')
   })
 })

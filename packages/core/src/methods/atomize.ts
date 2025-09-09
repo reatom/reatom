@@ -55,11 +55,12 @@ export function updateAtomized<T>(
   if (isLinkedListAtom(target) && Array.isArray(update)) {
     // @ts-expect-error bad ll inference
     target.set(target.initiateFromSnapshot(update))
-    return update
+    return target
   }
 
   if (isAtom(target)) {
-    return (target as Atom).set(updateAtomized(target(), update))
+    (target as Atom).set(updateAtomized(target(), update))
+    return target
   }
 
   if (target instanceof Map && Array.isArray(update)) {
@@ -78,7 +79,7 @@ export function updateAtomized<T>(
         update[key] = updateAtomized(target[key], update[key])
       }
     }
-    return update
+    return { ...target, ...update }
   }
 
   if (Array.isArray(target) && Array.isArray(update)) {
