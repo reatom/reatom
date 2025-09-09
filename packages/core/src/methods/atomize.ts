@@ -1,5 +1,5 @@
 import type { Atom } from '../core'
-import { isAtom } from '../core'
+import { isAtom, ReatomError } from '../core'
 import {
   isLinkedListAtom,
   type LinkedList,
@@ -16,27 +16,21 @@ export type AtomizedUpdate<Shape> = Shape extends LinkedListAtom<infer Params, i
   ? { [key: number]: AtomizedUpdate<Node> } | Params[]
   : Shape extends LinkedListAtom<infer LL>
   ? LL extends LinkedList<infer Node>
-  ? { [key: number]: AtomizedUpdate<Node> } | Node[]
+  ? Node[]
   : never
   : Shape extends Atom<infer State, infer Params>
   ? Params extends [Params[0]]
-  // For atoms, the update can be a partial update of the atom's value, or a direct value replacement.
   ? AtomizedUpdate<Params[0]>
   : never
   : Shape extends Map<infer Key, infer Value>
-  ? // Map updates can be an array of key-value pairs.
-  [Key, Value][]
+  ? [Key, Value][]
   : Shape extends Set<infer Item>
-  ? // Set updates can be a Set or an array of values.
-  Item[]
+  ? Item[]
   : Shape extends Array<infer Item>
-  ? // Array updates can be a partial object by index.
-  { [key: PropertyKey]: AtomizedUpdate<Item> } | Array<Item>
+  ? { [key: PropertyKey]: AtomizedUpdate<Item> } | Array<Item>
   : Shape extends Record<PropertyKey, unknown>
-  ? // For all other objects, the update is a partial object with the same keys.
-  { [Key in keyof Shape]?: AtomizedUpdate<Shape[Key]> }
-  : // For primitives, the update is the value itself.
-  Shape
+  ? { [Key in keyof Shape]?: AtomizedUpdate<Shape[Key]> }
+  : Shape
 
 /**
  * Recursively updates an atomized structure with a plain object.
@@ -58,72 +52,47 @@ export function updateAtomized<T>(
   update: AtomizedUpdate<T>,
   _topUpdate?: (value: unknown) => void
 ) {
-  if (isLinkedListAtom(target)) {
-    if (Array.isArray(update)) {
-      // @ts-expect-error bad ll inference
-      target.set(target.initiateFromSnapshot(update))
-    } else if (isRec(update)) {
-      for (const key in update) {
-        const index = parseInt(key, 10)
-        if (!isNaN(index)) {
-          const item = target.array()[index]
-          if (item) {
-            console.log('mutating value', { item, update, key })
-            // @ts-expect-error bad key inference
-            updateAtomized(item, update[key], value => {
-              target.move(target.create(value), item)
-              target.remove(item)
-            })
-          }
-        }
-      }
-    }
-    return
+  if (isLinkedListAtom(target) && Array.isArray(update)) {
+    // @ts-expect-error bad ll inference
+    target.set(target.initiateFromSnapshot(update))
+    return update
   }
 
   if (isAtom(target)) {
-    updateAtomized(target(), update, val => (target as Atom).set(val))
-    return
+    return (target as Atom).set(updateAtomized(target(), update))
   }
 
-  if (target instanceof Map && Array.isArray(update) && _topUpdate) {
-    _topUpdate(new Map(update))
-    return
+  if (target instanceof Map && Array.isArray(update)) {
+    return new Map(update)
   }
 
-  if (target instanceof Set && Array.isArray(update) && _topUpdate) {
-    _topUpdate(new Set(update))
-    return
+  if (target instanceof Set && Array.isArray(update)) {
+    return new Set(update)
   }
 
-  // The target is a plain object or array (of atoms), and the update is an object.
   if ((isRec(target) || Array.isArray(target)) && isRec(update)) {
     for (const key in update) {
       // @ts-expect-error bad key inference
       if (target[key]) {
         // @ts-expect-error bad key inference
-        updateAtomized(target[key], update[key], val => target[key] = val)
+        update[key] = updateAtomized(target[key], update[key])
       }
     }
-    return
+    return update
   }
 
   if (Array.isArray(target) && Array.isArray(update)) {
-    target.splice(0, target.length, ...update)
-    return
+    return update
   }
 
-  // if the target atom holds a primitive, or the update is not an object,
-  // we can just set the value.
   if (
-    _topUpdate && (
-      typeof target !== 'object' ||
-      target === null ||
-      typeof update !== 'object' ||
-      update === null
-    )
+    typeof target !== 'object' ||
+    target === null ||
+    typeof update !== 'object' ||
+    update === null
   ) {
-    _topUpdate(update)
-    return
+    return update
   }
+
+  throw new ReatomError(`Invalid update for atomized structure (${update}${isAtom(target) ? ` to ${target.name}` : ''})`)
 }

@@ -83,17 +83,6 @@ describe('updateAtomized', () => {
     expect(Array.from(setAtom())).toEqual([8])
   })
 
-  test('should update a reatomLinkedList', () => {
-    const list = reatomLinkedList([
-      { name: atom('A') },
-      { name: atom('B') },
-      { name: atom('C') },
-    ])
-    updateAtomized(list, { 1: { name: 'B-updated' } })
-    const array = list.array()
-    expect(array[1]?.name()).toBe('B-updated')
-  })
-
   test('should fully replace a reatomLinkedList', () => {
     const list = reatomLinkedList({
       create: (name: string) => ({ name: atom(name) }),
@@ -166,17 +155,5 @@ describe('updateAtomized', () => {
     const deepLlItems = data.llItems()[0]?.ll.array()
     expect(deepLlItems?.length).toBe(2)
     expect(deepLlItems?.[0]?.name()).toBe('C')
-
-    updateAtomized(data, {
-      llItems: {
-        0: {
-          ll: {
-            0: [['B']]
-          }
-        }
-      }
-    })
-
-    expect(data.llItems()[0]?.ll.array()[0]?.name()).toBe('B')
   })
 })
