@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, test } from 'vitest'
 
-import { type Atom, atom, withParams } from '../core'
+import { type Atom, atom, ReatomError, withParams } from '../core'
 import { reatomLinkedList } from '../primitives/reatomLinkedList'
 import { type AtomizedUpdate, updateAtomized } from './atomize'
 
@@ -24,7 +24,9 @@ describe('updateAtomized', () => {
   })
 
   test('should update atom with custom params', () => {
-    const atomWithCustomParam = atom(100).extend(withParams((date: Date) => date.getTime()))
+    const atomWithCustomParam = atom(100).extend(
+      withParams((date: Date) => date.getTime()),
+    )
     const user = {
       name: atom('John'),
       stats: {
@@ -49,9 +51,15 @@ describe('updateAtomized', () => {
     expect(plainList[1]?.value()).toBe(5)
     expect(plainList.length).toBe(3)
 
-    expectTypeOf<{ 1: { value: 5 } }>().toExtend<AtomizedUpdate<typeof plainList>>()
-    expectTypeOf<[{ value: 5 }]>().not.toExtend<AtomizedUpdate<typeof plainList>>()
-    expectTypeOf<[{ value: Atom<number> }]>().toExtend<AtomizedUpdate<typeof plainList>>()
+    expectTypeOf<{ 1: { value: 5 } }>().toExtend<
+      AtomizedUpdate<typeof plainList>
+    >()
+    expectTypeOf<[{ value: 5 }]>().not.toExtend<
+      AtomizedUpdate<typeof plainList>
+    >()
+    expectTypeOf<[{ value: Atom<number> }]>().toExtend<
+      AtomizedUpdate<typeof plainList>
+    >()
   })
 
   test('should update a Map', () => {
@@ -61,17 +69,25 @@ describe('updateAtomized', () => {
         ['b', atom(2)],
       ]),
     )
-    updateAtomized(
-      mapAtom,
-      [
-        ['a', atom(1)],
-        ['b', atom(3)],
-      ],
-    )
+    updateAtomized(mapAtom, [
+      ['a', atom(1)],
+      ['b', atom(3)],
+    ])
 
     expect(mapAtom().get('a')?.()).toBe(1)
     expect(mapAtom().get('b')?.()).toBe(3)
     expect(mapAtom().get('c')).toBe(undefined)
+  })
+
+  test('should properly update atoms with class values', () => {
+    const struct = {
+      value: atom(new Date()),
+      nullable: null,
+    }
+
+    updateAtomized(struct, { value: new Date(), nullable: null })
+    expect(struct.value()).toBeInstanceOf(Date)
+    expect(struct.nullable).toBeNull()
   })
 
   test('should update a Set', () => {
@@ -81,6 +97,17 @@ describe('updateAtomized', () => {
 
     updateAtomized(setAtom, [8])
     expect(Array.from(setAtom())).toEqual([8])
+  })
+
+  test('should throw runtime error if invalid update payload passed', () => {
+    // @ts-expect-error it's not possible to do partial update of a Map
+    expect(() => updateAtomized(new Map(), atom())).toThrow(ReatomError)
+    // @ts-expect-error it's not possible to do partial update of a Set
+    expect(() => updateAtomized({ value: new Set() }, { value: {} })).toThrow(
+      ReatomError,
+    )
+    // @ts-expect-error it's not possible to do partial update of a Set
+    expect(() => updateAtomized({ test: 123 }, [])).toThrow(ReatomError)
   })
 
   test('should fully replace a reatomLinkedList', () => {
@@ -99,30 +126,47 @@ describe('updateAtomized', () => {
 
   test('should handle complex nested updates', () => {
     const data = {
-      user: atom({
-        name: 'John',
-        email: atom('john.doe@example.com', `data.user.email`),
-      }, `data.user`),
+      user: atom(
+        {
+          name: 'John',
+          email: atom('john.doe@example.com', `data.user.email`),
+        },
+        `data.user`,
+      ),
       settings: {
         theme: atom('dark', `data.settings.theme`),
-        notifications: atom({
-          email: true,
-          sms: atom(false, `data.settings.notifications.sms`),
-        }, `data.settings.notifications`),
+        notifications: atom(
+          {
+            email: true,
+            sms: atom(false, `data.settings.notifications.sms`),
+          },
+          `data.settings.notifications`,
+        ),
       },
-      items: atom([
-        { id: 1, name: atom('item1', `data.items.0.name`) },
-        { id: 2, name: atom('item2', `data.items.1.name`) },
-      ], `data.items`),
-      llItems: atom([
-        {
-          id: 1,
-          ll: reatomLinkedList({
-            create: (name: string) => ({ name: atom(name, `data.llItems.item`) }),
-            initSnapshot: [['A'], ['B'], ['C']],
-          }, `data.llItems.1.ll`),
-        },
-      ], `data.llItems`)
+      items: atom(
+        [
+          { id: 1, name: atom('item1', `data.items.0.name`) },
+          { id: 2, name: atom('item2', `data.items.1.name`) },
+        ],
+        `data.items`,
+      ),
+      llItems: atom(
+        [
+          {
+            id: 1,
+            ll: reatomLinkedList(
+              {
+                create: (name: string) => ({
+                  name: atom(name, `data.llItems.item`),
+                }),
+                initSnapshot: [['A'], ['B'], ['C']],
+              },
+              `data.llItems.1.ll`,
+            ),
+          },
+        ],
+        `data.llItems`,
+      ),
     }
 
     updateAtomized(data, {
@@ -141,9 +185,9 @@ describe('updateAtomized', () => {
       llItems: {
         0: {
           id: 3,
-          ll: [['C'], ['D']]
+          ll: [['C'], ['D']],
         },
-      }
+      },
     })
 
     expect(data.user().name).toBe('Jonny')
