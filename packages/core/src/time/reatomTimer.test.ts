@@ -19,15 +19,15 @@ describe('timer', { retry: 0 }, () => {
 
 		var target = 50
 		var duration = await wrap(getDuration(() =>
-			timerAtom.startTimer(target / 1000),
+			timerAtom.start(target / 1000),
 		))
 
 		expect(duration).toBeGreaterThanOrEqual(target)
 
 		var target = 50
 		var [duration] = await wrap(Promise.all([
-			getDuration(() => timerAtom.startTimer(target / 1000)),
-			sleep(target / 2).then(() => timerAtom.stopTimer()),
+			getDuration(() => timerAtom.start(target / 1000)),
+			sleep(target / 2).then(() => timerAtom.stop()),
 		]))
 		expect(duration).toBeGreaterThanOrEqual(target / 2)
 		expect(duration).lessThan(target)
@@ -39,7 +39,7 @@ describe('timer', { retry: 0 }, () => {
 		timerAtom.interval.set(10)
 		const track = subscribe(timerAtom.progress)
 
-		await wrap(timerAtom.startTimer(50))
+		await wrap(timerAtom.start(50))
 		expect(track.mock.calls.flat()).toEqual([0, 0.2, 0.4, 0.6, 0.8, 1])
 	})
 
@@ -49,7 +49,7 @@ describe('timer', { retry: 0 }, () => {
 		const track = subscribe(timerAtom.progress)
 		// track.calls.length = 0 // Reset call count
 
-		timerAtom.startTimer(100)
+		timerAtom.start(100)
 		let target = Date.now() + 100
 
 		for (let i = 0; i < 5; i++) {
@@ -83,7 +83,7 @@ describe('timer', { retry: 0 }, () => {
 
 		const delay = 10
 		const start = Date.now()
-		const promise = timerAtom.startTimer(delay)
+		const promise = timerAtom.start(delay)
 
 		await wrap(sleep(delay / 2))
 		while (Date.now() - start < delay) { ; }
@@ -99,7 +99,7 @@ describe('timer', { retry: 0 }, () => {
 		const delay = 20
 		const passed = 10
 		const start = Date.now()
-		const promise = timerAtom.startTimer(delay, passed)
+		const promise = timerAtom.start(delay, passed)
 		expect(timerAtom.progress()).toBe(passed / delay)
 
 		await wrap(promise)

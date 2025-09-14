@@ -14,15 +14,15 @@ export interface TimerAtom extends AtomLike<number> {
 		setSeconds: Action<[seconds: number], number>
 	}
 	/** start timer by passed interval. Seconds expected with default `delayMultiplier` */
-	startTimer: Action<[delay: number, passed?: number], Promise<void>>
+	start: Action<[delay: number, passed?: number], Promise<void>>
 	/** stop timer manually */
-	stopTimer: Action<[], void>
+	stop: Action<[], void>
 	/** allow to pause timer */
 	paused: BooleanAtom
 	/** switch pause state */
 	pause: Action<[], boolean>
 	/** track end of timer. Do not call manually! */
-	endTimer: Action<[], void>
+	onEnd: Action<[], void>
 }
 
 export const reatomTimer = (
@@ -73,7 +73,7 @@ export const reatomTimer = (
 
 	const _versionAtom = atom(0, `${name}._versionAtom`)
 
-	const startTimer: TimerAtom['startTimer'] = action(
+	const start: TimerAtom['start'] = action(
 		(delay: number, passed = 0) => {
 			delay *= delayMultiplier
 
@@ -145,21 +145,21 @@ export const reatomTimer = (
 			})())
 				.finally(wrap(() => {
 					cleanupPause()
-					if (version === _versionAtom()) endTimer()
+					if (version === _versionAtom()) onEnd()
 				}))
 		},
-		`${name}.startTimer`,
+		`${name}.start`,
 	)
 
-	const stopTimer: TimerAtom['stopTimer'] = action(() => {
+	const stop: TimerAtom['stop'] = action(() => {
 		_versionAtom.set((s) => s + 1)
-		endTimer()
+		onEnd()
 		if (resetProgress) progressAtom.set(0)
-	}, `${name}.stopTimer`)
+	}, `${name}.stop`)
 
-	const endTimer: TimerAtom['endTimer'] = action(() => {
+	const onEnd: TimerAtom['onEnd'] = action(() => {
 		timerAtom.set(0)
-	}, `${name}.endTimer`)
+	}, `${name}.onEnd`)
 
 	const pause: TimerAtom['pause'] = action(
 		() => paused.toggle(),
@@ -168,10 +168,10 @@ export const reatomTimer = (
 
 	return Object.assign({}, timerAtom, {
 		progress: progressAtom,
-		endTimer,
+		onEnd,
 		interval: intervalAtom,
-		startTimer,
-		stopTimer,
+		start,
+		stop,
 		paused,
 		pause,
 	})
