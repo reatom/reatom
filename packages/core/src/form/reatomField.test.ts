@@ -43,16 +43,16 @@ test(`keepErrorOnChange`, async () => {
   fieldWithKeep.validation.trigger()
   fieldWithoutKeep.validation.trigger()
   notify()
-  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
-  expect(fieldWithoutKeep.validation().errors[0]?.message).toBe(
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBe(
     'validation error',
   )
 
   fieldWithKeep.change('new value')
   fieldWithoutKeep.change('new value')
   notify()
-  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
-  expect(fieldWithoutKeep.validation().errors.length).toBeFalsy()
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBeFalsy()
 })
 
 test(`keepErrorDuringValidating`, async () => {
@@ -76,8 +76,8 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger()
   fieldWithoutKeep.validation.trigger()
   await wrap(sleep())
-  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
-  expect(fieldWithoutKeep.validation().errors[0]?.message).toBe(
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBe(
     'validation error',
   )
 
@@ -87,8 +87,8 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger()
   fieldWithoutKeep.validation.trigger()
   notify()
-  expect(fieldWithKeep.validation().errors[0]?.message).toBe('validation error')
-  expect(fieldWithoutKeep.validation().errors.length).toBeFalsy()
+  expect(fieldWithKeep.validation().error).toBe('validation error')
+  expect(fieldWithoutKeep.validation().error).toBeFalsy()
 })
 
 test(`disabled state`, async () => {
@@ -100,7 +100,7 @@ test(`disabled state`, async () => {
 
   field.change('errorValue')
   notify()
-  expect(field.validation().errors[0]?.message).toBe('validation error')
+  expect(field.validation().error).toBe('validation error')
 
   field.disabled.set(true)
   notify()
@@ -108,7 +108,7 @@ test(`disabled state`, async () => {
 
   field.disabled.set(false)
   notify()
-  expect(field.validation().errors[0]?.message).toBe('validation error')
+  expect(field.validation().error).toBe('validation error')
 })
 
 test(`toState and fromState`, async () => {
@@ -142,7 +142,7 @@ test(`validation concurrency`, async () => {
   field.validation.trigger()
   expect(field.validation()).toMatchObject({
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(field.validation().validating).toBeInstanceOf(Promise)
 
@@ -153,7 +153,7 @@ test(`validation concurrency`, async () => {
   field.validation.trigger()
   expect(field.validation()).toMatchObject({
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(field.validation().validating).toBeInstanceOf(Promise)
   field.reset()
@@ -170,7 +170,7 @@ test(`validation concurrency`, async () => {
   notify()
   expect(field.validation()).toMatchObject({
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(field.validation().validating).toBeInstanceOf(Promise)
 
@@ -179,7 +179,7 @@ test(`validation concurrency`, async () => {
   expect(field.validation()).toMatchObject({
     validating: undefined,
     triggered: true,
-    errors: [],
+    error: undefined,
   })
   expect(field.value()).toBe(3)
 })
@@ -220,7 +220,7 @@ describe(`reactivity of validate function`, () => {
     const confirmField = reatomField('', {
       name: 'confirmField',
       validate: () => {
-        if(!passwordField.validation().errors.length && passwordField.value() != confirmField.value())
+        if(!passwordField.validation().error && passwordField.value() != confirmField.value())
           return 'Passwords do not match'
       }
     })
@@ -230,15 +230,15 @@ describe(`reactivity of validate function`, () => {
 
     passwordField.change('pass')
     notify()
-    expect(confirmField.validation().errors).toHaveLength(0)
+    expect(confirmField.validation.errors()).toHaveLength(0)
 
     confirmField.change('password')
     notify()
-    expect(confirmField.validation().errors.length).toBeTruthy()
+    expect(confirmField.validation().error).toBeTruthy()
 
     passwordField.change('password')
     notify()
-    expect(confirmField.validation().errors).toHaveLength(0)
+    expect(confirmField.validation.errors()).toHaveLength(0)
   })
 
   test('concurrency', () => {

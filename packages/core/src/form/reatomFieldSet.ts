@@ -81,11 +81,11 @@ export const reatomFieldSet = <T extends FormInitState>(
 ): FieldSet<T> => {
   const fieldsList = computed(
     () => computeFieldsList(fields),
-    `${name}.fieldsList`,
+    `${name}._fieldsList`,
   )
   const fieldArraysList = computed(
     () => computeFieldArraysList(fields),
-    `${name}.fieldArraysList`,
+    `${name}._fieldArraysList`,
   )
   const fieldsState = computed(() => deatomize(fields), `${name}.fieldsState`)
 
@@ -116,7 +116,8 @@ export const reatomFieldSet = <T extends FormInitState>(
     for (const field of fieldsList()) {
       if (field.disabled()) continue
 
-      const { triggered, validating, errors } = field.validation()
+      const errors = field.validation.errors()
+      const { triggered, validating } = field.validation()
 
       validation.triggered &&= triggered
       validationErrors.push(...errors.map((err) => ({ ...err, field })))

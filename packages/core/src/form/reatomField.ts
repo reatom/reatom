@@ -4,6 +4,7 @@ import {
   type AbortExt,
   type Action,
   action,
+  type ArrayAtom,
   type Atom,
   atom,
   type AtomLike,
@@ -16,6 +17,7 @@ import {
   isDeepEqual,
   named,
   peek,
+  reatomArray,
   reatomBoolean,
   reatomRecord,
   type Rec,
@@ -61,9 +63,8 @@ export interface FieldError<Meta = any> extends FieldErrorBody<Meta> {
 }
 
 export interface FieldValidation {
-  /** The list of field validation errors. */
-  errors: FieldError[]
-
+  /** Message of the first validation error, computed from errors atom */
+  error: undefined | string
 
   /** The validation actuality status. */
   triggered: boolean
@@ -84,8 +85,8 @@ export interface ValidationAtom extends AtomLike<FieldValidation> {
   /** Action to trigger field validation. */
   trigger: Action<[], FieldValidation> & AbortExt
 
-  /** Action to prepend some errors to the field. */
-  prependErrors: Action<[...error: FieldError[]], FieldValidation>
+  /** Full list of all errors related to the field */
+  errors: ArrayAtom<FieldError>
 
   /** Action to clear all errors by passed sources. */
   clearErrors: Action<[...sources: FieldErrorSource[]], FieldValidation>
@@ -258,13 +259,13 @@ export const fieldInitFocus: FieldFocus = {
 }
 
 export const fieldInitValidation: FieldValidation = {
-  errors: [],
+  error: undefined,
   triggered: false,
   validating: undefined,
 }
 
 export const fieldInitValidationLess: FieldValidation = {
-  errors: [],
+  error: undefined,
   triggered: true,
   validating: undefined,
 }
@@ -351,11 +352,9 @@ export function reatomField<State, Value = State>(
 
       const { keepErrorOnChange, validateOnChange } = fieldOptions.value()
 
-      validation.merge(
-        keepErrorOnChange
-          ? { validating: undefined }
-          : { validating: undefined, errors: [] },
-      )
+      if (!keepErrorOnChange) validation.errors.set([])
+
+      validation.merge({ validating: undefined })
 
       if (!disabled() && validateOnChange) validation.trigger()
     }),
@@ -392,13 +391,19 @@ export function reatomField<State, Value = State>(
           ? fieldInitValidation
           : fieldInitValidationLess,
       ),
-      withComputed((state) => {
+      withComputed((state): FieldValidation => {
         if (!fieldOptions.value().shouldValidate) return fieldInitValidationLess
 
         if (disabled()) return fieldInitValidation
 
         value()
-        return state.triggered ? { ...state, triggered: false } : state
+        const firstError = validation.errors()?.[0]?.message
+        return state.triggered
+          ? { ...state, error: firstError, triggered: false }
+          : { ...state, error: firstError }
+      }),
+      () => ({
+        errors: reatomArray<FieldError>([], `${name}.errors`),
       }),
       (target) => ({
         runValidation: ({
@@ -471,38 +476,43 @@ export function reatomField<State, Value = State>(
             const validationPromise = (async () => {
               try {
                 const errors = await wrap(promise)
+
+                target.errors.set(errors)
                 target.merge({
-                  errors,
                   triggered: true,
                   validating: undefined,
                 })
+
                 return { errors }
               } catch (error) {
-                if (isAbort(error)) return { errors: target().errors }
-                const validation = target.merge({
-                  errors: [
-                    {
-                      source: 'validaton',
-                      message: toError(error),
-                    },
-                  ],
+                if (isAbort(error)) return { errors: target.errors() }
+
+                const validationErrors = [
+                  { source: 'validaton', message: toError(error) },
+                ]
+
+                target.errors.set(validationErrors)
+                target.merge({
                   triggered: true,
                   validating: undefined,
                 })
-                return { errors: validation.errors }
+
+                return { errors: validationErrors }
               }
             })()
 
+            if (!keepErrorDuringValidating) target.errors.set([])
+
             return {
-              errors: keepErrorDuringValidating ? validation.errors : [],
               triggered: true,
               validating: validationPromise,
             }
           }
 
+          target.errors.set(promise)
+
           return {
             validating: undefined,
-            errors: promise,
             triggered: true,
           }
         }
@@ -551,15 +561,13 @@ export function reatomField<State, Value = State>(
       withAbort(),
     )
     .actions((target) => ({
-      prependErrors: (...errors: FieldError[]) => {
-        if (!errors.length) return target()
-        return target.merge({ errors: [...errors, ...target().errors] })
-      },
       clearErrors: (...sources: FieldErrorSource[]) => {
-        if (!sources.length) return target.merge({ errors: [] })
-        return target.merge({
-          errors: target().errors.filter((e) => !sources.includes(e.source)),
-        })
+        target.errors.set((errors) =>
+          sources.length
+            ? errors.filter((e) => !sources.includes(e.source))
+            : [],
+        )
+        return target()
       },
     }))
 
