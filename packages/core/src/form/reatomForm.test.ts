@@ -99,7 +99,7 @@ test('validation states', async () => {
     {
       name: 'testForm',
       onSubmit: () => {},
-      submitValidate: () => {
+      validateBeforeSubmit: () => {
         throw new Error('Form validation error')
       },
     },
@@ -242,7 +242,7 @@ test('default options for fields', async () => {
   field.change('value')
 
   expect(field.validation()).toEqual({
-    errors: [],
+    error: undefined,
     triggered: false,
     validating: undefined,
   })
@@ -251,7 +251,7 @@ test('default options for fields', async () => {
     field.change('value')
 
     expect(field.validation()).toEqual({
-      errors: [],
+      error: undefined,
       triggered: true,
       validating: undefined,
     })
@@ -366,7 +366,7 @@ test('reset', () => {
     touched: false,
   })
   expect(field.validation()).toEqual({
-    errors: [],
+    error: undefined,
     triggered: false,
     validating: undefined,
   })
@@ -481,10 +481,10 @@ test('validating through form schema and placing errors to corresponding fields'
   await wrap(form.submit().catch(noop))
   notify()
 
-  expect(form.fields.age.validation().errors.length).toBeTruthy()
-  expect(form.fields.email.validation().errors.length).toBeTruthy()
-  expect(form.fields.items.array()[0]!.validation().errors.length).toBeTruthy()
-  expect(form.fields.items.array()[1]!.validation().errors.length).toBeFalsy()
+  expect(form.fields.age.validation().error).toBeTruthy()
+  expect(form.fields.email.validation().error).toBeTruthy()
+  expect(form.fields.items.array()[0]!.validation().error).toBeTruthy()
+  expect(form.fields.items.array()[1]!.validation().error).toBeFalsy()
 })
 
 test('triggering schema validation only for one field', async () => {
@@ -509,9 +509,7 @@ test('triggering schema validation only for one field', async () => {
   form.fields.age.change(17)
   notify()
   expect(form.validation().errors[0]?.message).toBe('must be minimum 18')
-  expect(form.fields.age.validation().errors[0]?.message).toBe(
-    'must be minimum 18',
-  )
+  expect(form.fields.age.validation().error).toBe('must be minimum 18')
 })
 
 test('correct handling of side errors from schema', async () => {
@@ -559,27 +557,24 @@ test('correct handling of side errors from schema', async () => {
   form.fields.min.change(15)
   notify()
 
-  expect(form.fields.max.validation().errors[0]?.message).toBe(
+  expect(form.fields.max.validation().error).toBe(
     INVARIANT_ERR_MSG,
   )
-  expect(form.fields.min.validation().errors[0]?.message).toBe(
+  expect(form.fields.min.validation().error).toBe(
     INVARIANT_ERR_MSG,
   )
 
   form.fields.min.change(10)
   notify()
 
-  console.log(form.fields.max.validation().errors)
-  expect(form.fields.max.validation().errors.length).toBeFalsy()
-  expect(form.fields.min.validation().errors[0]?.message).toBe(
-    `shouldn't be even`,
-  )
+  expect(form.fields.max.validation().error).toBeFalsy()
+  expect(form.fields.min.validation().error).toBe(`shouldn't be even`)
 
   form.fields.min.change(9)
   notify()
 
-  expect(form.fields.max.validation().errors.length).toBeFalsy()
-  expect(form.fields.min.validation().errors.length).toBeFalsy()
+  expect(form.fields.max.validation().error).toBeFalsy()
+  expect(form.fields.min.validation().error).toBeFalsy()
 })
 
 test('recipe: concurrent field validation with schema', async () => {
@@ -611,12 +606,12 @@ test('recipe: concurrent field validation with schema', async () => {
   notify()
 
   expect(form.fields.age.validation()).toMatchObject({
-    errors: [{ message: 'must be minimum 18' }],
+    error: 'must be minimum 18',
   })
   await wrap(sleep())
 
   expect(form.fields.age.validation()).toMatchObject({
-    errors: [{ message: 'must be minimum 18' }],
+    error: 'must be minimum 18',
   })
 })
 
@@ -640,7 +635,7 @@ test('recipe: autofocus', async () => {
     withCallHook(() => {
       const errorField = form
         .fieldsList()
-        .find((field) => !!field.validation().errors.length)
+        .find((field) => !!field.validation().error)
       errorField?.elementRef()?.focus()
     }),
   )
@@ -684,7 +679,7 @@ test('validation trigger', async () => {
   const promise = wrap(form.validation.trigger().catch(() => null))
   expect(fieldSet.validation.trigger().validating).toBeInstanceOf(Promise)
   const result = await promise
-  expect(form.fields.age.validation().errors.length).toBeTruthy()
+  expect(form.fields.age.validation().error).toBeTruthy()
   expect(result).toBeFalsy()
 })
 
@@ -703,9 +698,9 @@ test('subsequent validation', async () => {
 
   form.fields.email.change('test')
   await wrap(form.submit()).catch(noop)
-  expect(form.fields.email.validation().errors.length).toBe(1)
+  expect(form.fields.email.validation().error).toBeTruthy()
 
   form.fields.email.change('test@test.com')
   await wrap(form.submit()).catch(noop)
-  expect(form.fields.email.validation().errors.length).toBe(0)
+  expect(form.fields.email.validation().error).toBeFalsy()
 })

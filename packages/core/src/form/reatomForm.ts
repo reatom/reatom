@@ -28,7 +28,7 @@ import {
   withCallHook,
   wrap,
 } from '../'
-import type { FieldLikeAtom } from './reatomField'
+import type { FieldError, FieldLikeAtom } from './reatomField'
 import {
   type FieldAtom,
   type FieldOptions,
@@ -65,8 +65,8 @@ export type FormInitState = {
 
 type ExtractFieldArray<T> = {
   [K in keyof T]: T[K] extends FormFieldArray<infer Param, infer _Node>
-    ? Param[]
-    : ExtractFieldArray<T[K]>
+  ? Param[]
+  : ExtractFieldArray<T[K]>
 }
 
 export type FormFieldArrayAtom<
@@ -82,22 +82,22 @@ export type FormFieldElement<
 > = T extends FieldLikeAtom
   ? T
   : T extends Date
-    ? FieldAtom<T>
-    : T extends Array<infer Item>
-      ? Item extends FormInitStateElement
-        ? FormFieldArrayAtom<Item, Item>
-        : never
-      : T extends FormFieldArray<infer Param, infer Node>
-        ? FormFieldArrayAtom<Param, Node>
-        : T extends FieldOptions & { initState: infer State }
-          ? T extends FieldOptions<State, State>
-            ? FieldAtom<State>
-            : T extends FieldOptions<State, infer Value>
-              ? FieldAtom<State, Value>
-              : never
-          : T extends Rec<unknown>
-            ? { [K in keyof T]: FormFieldElement<T[K]> }
-            : FieldAtom<T>
+  ? FieldAtom<T>
+  : T extends Array<infer Item>
+  ? Item extends FormInitStateElement
+  ? FormFieldArrayAtom<Item, Item>
+  : never
+  : T extends FormFieldArray<infer Param, infer Node>
+  ? FormFieldArrayAtom<Param, Node>
+  : T extends FieldOptions & { initState: infer State }
+  ? T extends FieldOptions<State, State>
+  ? FieldAtom<State>
+  : T extends FieldOptions<State, infer Value>
+  ? FieldAtom<State, Value>
+  : never
+  : T extends Rec<unknown>
+  ? { [K in keyof T]: FormFieldElement<T[K]> }
+  : FieldAtom<T>
 
 export type FormFields<T extends FormInitState = FormInitState> = {
   [K in keyof T]: FormFieldElement<T[K]>
@@ -109,10 +109,10 @@ export type FormState<T extends FormInitState = FormInitState> = Deatomize<
 
 export type DeepPartial<T, Skip = never> = {
   [K in keyof T]?: T[K] extends Skip
-    ? T[K]
-    : T[K] extends Rec
-      ? DeepPartial<T[K], Skip>
-      : T[K]
+  ? T[K]
+  : T[K] extends Rec
+  ? DeepPartial<T[K], Skip>
+  : T[K]
 }
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
@@ -219,7 +219,7 @@ export interface FormOptionsWithSchema<State, SubmitReturn>
   /** 
    * The callback to validate form fields before submit, typed according to the schema 
    */
-  submitValidate?: (state: State) => any
+  validateBeforeSubmit?: (state: State) => any
 
   /**
    * The schema which supports StandardSchemaV1 specification to validate form
@@ -244,9 +244,8 @@ export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn>
 
   /** 
    * The callback to validate form fields before submit, typed according to the raw form state 
-   * @deprecated Renamed to `submitValidate`
    */
-  submitValidate?: (state: FormState<T>) => any
+  validateBeforeSubmit?: (state: FormState<T>) => any
 
   /** Schema is explicitly disallowed or undefined in this variant */
   schema?: undefined
@@ -364,18 +363,18 @@ function createFieldArray<
     | Array<Param>
     | ((params: Param, name: string) => Node)
     | {
-        create: (param: Param, name: string) => Node
-        initState?: Array<Param>
-      },
+      create: (param: Param, name: string) => Node
+      initState?: Array<Param>
+    },
 ): FormFieldArray<Param, Node> {
   const { create, initState = [] } =
     typeof options === 'function'
       ? { create: options }
       : Array.isArray(options)
         ? {
-            create: (param: Param) => param as unknown as Node,
-            initState: options,
-          }
+          create: (param: Param) => param as unknown as Node,
+          initState: options,
+        }
         : options
 
   return {
@@ -391,8 +390,8 @@ const isFieldArray = (value: any): value is FormFieldArray<any> =>
 export { createFieldArray as experimental_fieldArray }
 export type ArrayFieldItem<T> =
   T extends LinkedListLikeAtom<infer _Node>
-    ? AtomState<T['array']>[number]
-    : never
+  ? AtomState<T['array']>[number]
+  : never
 
 const resolveFieldByPath = <T extends FormInitState>(
   path: StandardSchemaV1.Issue['path'],
@@ -452,7 +451,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     onSubmit,
     resetOnSubmit = false,
     validate,
-    submitValidate = validate,
+    validateBeforeSubmit = validate,
     validateOnBlur = false,
     validateOnChange = false,
     keepErrorDuringValidating = false,
@@ -513,27 +512,32 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     const validation = schema['~standard'].validate(state)
 
     const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
-      const touched = new Set<FieldAtom>()
+      const touched = new Map<FieldAtom, FieldError[]>()
 
       if (result.issues) {
         for (const issue of result.issues) {
           const field = resolveFieldByPath(issue.path, fields)
           if (!field) continue
 
-          field.validation.prependErrors({
+          const fieldErrors = touched.get(field) ?? []
+          fieldErrors.unshift({
             source: 'schema',
             message: issue.message,
           })
-          touched.add(field)
+          touched.set(field, fieldErrors)
         }
       }
 
       for (const field of fieldsList()) {
-        if (
-          !touched.has(field) &&
-          field.validation().errors.find((e) => e.source == 'schema')
-        )
-          field.validation.clearErrors('schema')
+        const placedErrors = touched.get(field)
+        if (!placedErrors) {
+          if (
+            field.validation.errors().find((e) => e.source == 'schema')
+          )
+            field.validation.clearErrors('schema')
+        } else {
+          field.validation.errors.set(placedErrors)
+        }
       }
 
       return result
@@ -569,8 +573,8 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       state = fieldsState()
     }
 
-    if (submitValidate) {
-      const promise = submitValidate(state)
+    if (validateBeforeSubmit) {
+      const promise = validateBeforeSubmit(state)
       if (promise instanceof Promise) await wrap(promise)
     }
 
