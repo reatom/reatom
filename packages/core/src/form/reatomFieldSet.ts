@@ -88,7 +88,7 @@ export const reatomFieldSet = <T extends FormInitState>(
     () => computeFieldArraysList(fields),
     `${name}._fieldArraysList`,
   )
-  const fieldsState = computed(() => deatomize(fields), `${name}.fieldsState`)
+  const fieldsState = computed(() => deatomize(fields), name)
 
   const focus = computed(() => {
     const focus = { ...fieldInitFocus }
