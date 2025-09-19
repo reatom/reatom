@@ -484,19 +484,11 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     },
   )
 
-  const {
-    fieldsList,
-    fieldArraysList,
-    fieldsState,
-    focus,
-    validation: fieldsetValidation,
-    init,
-    reset,
-  } = reatomFieldSet(fields, name)
+  const fieldSet = reatomFieldSet(fields, name)
 
   const submitted = atom(false, `${name}.submitted`)
 
-  reset.extend(
+  fieldSet.reset.extend(
     withCallHook(() => {
       submitted.set(false)
       submit.error.reset()
@@ -508,7 +500,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   const triggerSchemaValidation = action(() => {
     if (!schema) throw new Error('Triggering schema validation without schema')
 
-    const state = fieldsState()
+    const state = fieldSet()
     const validation = schema['~standard'].validate(state)
 
     const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
@@ -528,7 +520,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
         }
       }
 
-      for (const field of fieldsList()) {
+      for (const field of fieldSet.fieldsList()) {
         const placedErrors = touched.get(field)
         if (!placedErrors) {
           if (
@@ -548,7 +540,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       : placeErrors(validation)
   }, `${name}.triggerSchemaValidation`).extend(withAbort())
 
-  const origTriggerValidation = fieldsetValidation.trigger
+  const origTriggerValidation = fieldSet.validation.trigger
   const triggerValidation = action(async () => {
     const status = origTriggerValidation()
     const validationResult = status.validating
@@ -570,7 +562,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
 
       state = schemaValidationResult.value
     } else {
-      state = fieldsState()
+      state = fieldSet()
     }
 
     if (validateBeforeSubmit) {
@@ -593,7 +585,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
 
     submitted.set(true)
 
-    if (resetOnSubmit) reset()
+    if (resetOnSubmit) fieldSet.reset()
     return result as SubmitReturn
   }, `${name}.onSubmit`).extend(
     withAsync({ resetError: 'onFulfill' }),
@@ -606,21 +598,15 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     withAbort(),
   )
 
-  const validation = Object.assign(fieldsetValidation, {
+  const validation = Object.assign(fieldSet.validation, {
     trigger: triggerValidation,
     triggerSchemaValidation,
   })
 
-  return {
+  return Object.assign(fieldSet, {
     fields,
-    fieldsList,
-    fieldArraysList,
-    fieldsState,
-    focus,
-    init,
-    reset,
     submit,
     submitted,
     validation,
-  }
+  })
 }
