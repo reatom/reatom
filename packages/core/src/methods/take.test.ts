@@ -121,10 +121,14 @@ test('take filter', async () => {
 test('take with selector', async () => {
   const atomized = atom<{ nested: Atom<number | undefined> }>()
 
-  setTimeout(wrap(() => atomized.set({ nested: atom(1) })), 4)
-
-  setTimeout(wrap(() => atomized()?.nested?.set(undefined)), 5)
-
+  setTimeout(wrap(() => atomized.set({ nested: atom(1) })))
   expect(await wrap(take(() => atomized()?.nested()))).toBe(1)
+
+  setTimeout(wrap(() => atomized()?.nested?.set(undefined)))
   expect(await wrap(take(() => atomized()?.nested()))).toBe(undefined)
+
+  setTimeout(wrap(() => atomized()?.nested?.set(5)))
+  setTimeout(wrap(() => atomized()?.nested?.set(4)))
+
+  expect(await wrap(take(() => atomized()?.nested(), (state) => state === 4 ? 4 : throwAbort()))).toBe(4)
 })

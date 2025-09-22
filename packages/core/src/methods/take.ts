@@ -1,5 +1,5 @@
 import type { AtomLike } from '../core'
-import { action, bind, computed, top } from '../core'
+import { action, bind, computed, isAtom, top } from '../core'
 import type { Fn } from '../utils'
 import { isAbort, noop } from '../utils'
 import { abortVar } from './abortVar'
@@ -61,7 +61,7 @@ export function take<Return, Result>(
   name?: string,
 ): Result | Promise<Result>
 export function take(
-  target: AtomLike | (() => AtomLike),
+  target: AtomLike | (() => any),
   mapOrName?: Fn | string,
   name?: string,
 ): unknown {
@@ -70,7 +70,7 @@ export function take(
 
   name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++i}`}`
 
-  const targetAtom = '__reatom' in target ? target : computed(target, `${name}.selector`)
+  const targetAtom = isAtom(target) ? target : computed(target, `${name}.selector`)
 
   let log = bind(action((_message: string, payload: any) => payload, name))
 
