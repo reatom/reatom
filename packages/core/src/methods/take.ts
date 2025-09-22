@@ -40,7 +40,7 @@ let i = 0
  *   result
  */
 export function take<Return>(
-  target: AtomLike<any, any, Return>,
+  target: AtomLike<any, any, Return> | (() => Return),
   name?: string,
 ): Promise<Awaited<Return>>
 /**
@@ -56,12 +56,12 @@ export function take<Return>(
  * @returns The mapped result or a promise that resolves with the mapped result.
  */
 export function take<Return, Result>(
-  target: AtomLike<any, any, Return>,
+  target: AtomLike<any, any, Return> | (() => Return),
   map: (value: Awaited<Return>) => Result,
   name?: string,
 ): Result | Promise<Result>
 export function take(
-  target: AtomLike,
+  target: AtomLike | (() => AtomLike),
   mapOrName?: Fn | string,
   name?: string,
 ): unknown {
@@ -69,6 +69,8 @@ export function take(
     typeof mapOrName === 'function' ? mapOrName : ((name = mapOrName), null)
 
   name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++i}`}`
+
+  const targetAtom = '__reatom' in target ? target : computed(target, `${name}.selector`)
 
   let log = bind(action((_message: string, payload: any) => payload, name))
 
@@ -88,7 +90,7 @@ export function take(
       } = null as any
 
   let promise = new Promise<unknown>((res, rej) => {
-    log('start', target.name)
+    log('start', targetAtom.name)
 
     cleanups.push(
       abort?.subscribeAbort(rej) ?? noop,
@@ -98,11 +100,11 @@ export function take(
         try {
           let value: any
 
-          if (target.__reatom.reactive) {
-            value = target()
+          if (targetAtom.__reatom.reactive) {
+            value = targetAtom()
           } else {
             let taken = false
-            ifCalled(target, (payload) => {
+            ifCalled(targetAtom, (payload) => {
               // get the first call, not the last
               if (!taken) {
                 taken = true

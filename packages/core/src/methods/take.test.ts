@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'test'
 
 import { withAsyncData } from '../async'
-import { action, atom, computed, notify } from '../core'
+import { action, type Atom, atom, computed, notify } from '../core'
 import { withAbort } from '../mixins'
 import { identity, noop, sleep, throwAbort } from '../utils'
 import { take } from './take'
@@ -116,4 +116,15 @@ test('take filter', async () => {
 
   const paramState = param()
   expect(take(param, (value) => value)).toBe(paramState)
+})
+
+test('take with selector', async () => {
+  const atomized = atom<{ nested: Atom<number | undefined> }>()
+
+  setTimeout(wrap(() => atomized.set({ nested: atom(1) })), 4)
+
+  setTimeout(wrap(() => atomized()?.nested?.set(undefined)), 5)
+
+  expect(await wrap(take(() => atomized()?.nested()))).toBe(1)
+  expect(await wrap(take(() => atomized()?.nested()))).toBe(undefined)
 })
