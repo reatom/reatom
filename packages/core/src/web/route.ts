@@ -130,14 +130,14 @@ export interface RouteMixin<
 
 function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   if (value instanceof Promise) {
-    throw new Error('Async search validation is not supported')
+    throw new Error('Async params validation is not supported')
   }
 }
 
 const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   const validation = schema['~standard'].validate(params)
 
-  assertPromise(validation)
+  assertNotPromise(validation)
 
   if (validation.issues) {
     throw new Error(
@@ -308,7 +308,7 @@ const createRouteFactory = (
     const go = action((params: void | any, replace = false) => {
       const newPath = getPath(params)
 
-      return urlAtom.set((url) => new URL(newPath, url), replace)
+      return urlAtom.go(newPath, replace)
     }, `${name}.go`)
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {
