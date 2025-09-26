@@ -13,7 +13,7 @@ import type { Action, Computed } from '../core'
 import { action, computed, ReatomError } from '../core'
 import { urlAtom } from './url'
 
-type MaybeVoid<T> = {} extends T ? T | void : T
+export type MaybeVoid<T> = {} extends T ? T | void : T
 
 export type PathParams<Path extends string = string> =
   Path extends `:${infer Param}/${infer Rest}`

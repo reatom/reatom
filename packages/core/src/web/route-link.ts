@@ -1,24 +1,56 @@
-import { action, atom, computed, withParams } from '../core'
+import { action, atom, computed, named, withParams } from '../core'
 import { abortVar, effect, take, wrap } from '../methods'
 import { withAbort, withMemo } from '../mixins'
-import { noop, sleep, throwAbort } from '../utils'
-import type { RouteAtom } from './route'
+import { reatomRecord } from '../primitives'
+import { noop, type Plain, type Rec,sleep, throwAbort } from '../utils'
+import {
+  type MaybeVoid,
+  type PathKeys,
+  type RouteAtom,
+} from './route'
+import { urlAtom } from './url'
 
 export type RouteLinkPreload = 'intent' | 'render' | 'viewport' | 'none'
 
 export interface RouterLinkActiveOptions {
   exact?: boolean
+  includeSearch?: boolean
 }
 
-export interface RouteLinkOptions {
-  route: RouteAtom
+export interface RouteLinkOptions<
+  Path extends string,
+  Params extends PathKeys<Path>,
+  Search extends Rec<string>,
+  Payload = Plain<Params & Search>,
+  InputParams = Params,
+  InputSearch = Search,
+> {
+  route: RouteAtom<Path, Params, Search, Payload, InputParams, InputSearch>
+  params: MaybeVoid<InputParams & InputSearch>
   elementRef: Element
   preload?: RouteLinkPreload
   disabled?: boolean
   activeOptions?: RouterLinkActiveOptions
 }
 
-export const reatomRouteLink = (options: RouteLinkOptions, name: string) => {
+export const reatomRouteLink = <
+  Path extends string,
+  Params extends PathKeys<Path>,
+  Search extends Rec<string>,
+  Payload,
+  InputParams,
+  InputSearch,
+>(
+  options: RouteLinkOptions<
+    Path,
+    Params,
+    Search,
+    Payload,
+    InputParams,
+    InputSearch
+  >,
+  name = named('routeLink'),
+) => {
   const { route } = options
 
   const createPreload = (type: RouteLinkPreload) => {
@@ -28,12 +60,12 @@ export const reatomRouteLink = (options: RouteLinkOptions, name: string) => {
 
         await wrap(sleep(50))
 
-        route.loader().catch(noop)
-      }, `${name}._mouseEnter`).extend(withAbort())
+        if (!disabled()) route.loader().catch(noop)
+      }, `${name}._startIntent`).extend(withAbort())
 
       const cancelIntent = action(() => {
         if (!disabled()) startIntent.abort()
-      }, `${name}._mouseLeave`)
+      }, `${name}._cancelIntent`)
 
       return {
         type,
@@ -86,17 +118,51 @@ export const reatomRouteLink = (options: RouteLinkOptions, name: string) => {
     withAbort(),
   )
 
+  const params = atom(options.params, `${name}._params`)
   const elementRef = atom(options.elementRef, `${name}._elementRef`)
   const disabled = atom(options.disabled || false, `${name}._disabled`)
 
-  const activeOptions = atom(
+  const activeOptions = reatomRecord(
     options.activeOptions ?? {},
     `${name}._activeOptions`,
   ).extend(withMemo())
 
   const active = computed(() => {
-    const { exact = false } = activeOptions()
-    return exact ? route.exact() : route() !== null
+    const currentUrl = urlAtom()
+    const targetUrl = new URL(route.path(params()), currentUrl)
+    const { exact = false, includeSearch = false } = activeOptions()
+
+    const currentPathname = stripTrailingSlash(targetUrl.pathname)
+    const targetPathname = stripTrailingSlash(currentUrl.pathname)
+
+    if (exact) {
+      if (currentPathname !== targetPathname) {
+        return false
+      }
+    } else {
+      if (
+        !currentPathname.startsWith(targetPathname) ||
+        !(
+          currentPathname.length === targetPathname.length ||
+          currentPathname[targetPathname.length] === '/'
+        )
+      )
+        return false
+    }
+
+    if (includeSearch) {
+      for (const [key, value] of targetUrl.searchParams.entries()) {
+        const paramEqual = currentUrl.searchParams.get(key) !== value
+
+        if (exact) {
+          if (!paramEqual) return false
+        } else {
+          if (paramEqual) return true
+        }
+      }
+    }
+
+    return true
   }, `${name}._active`)
 
   return {
@@ -104,7 +170,11 @@ export const reatomRouteLink = (options: RouteLinkOptions, name: string) => {
     preload,
     disabled,
     elementRef,
+    params,
     activeOptions,
     active,
   }
 }
+
+const stripTrailingSlash = (str: string) =>
+  str.endsWith('/') && str !== '/' ? str.slice(0, -1) : str
