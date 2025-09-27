@@ -382,3 +382,25 @@ test('search params memo', async () => {
   expect(route1Track).toBeCalledTimes(1)
   expect(route2()).toEqual({ q: '123' })
 })
+
+test('params collision', async () => {
+  const strictRoute = reatomRoute({
+    path: 'strictRoute/:id',
+  })
+
+  const liberalRoute = reatomRoute({
+    path: 'liberalRoute/:id',
+    search: z.record(z.string()),
+  })
+
+  const expectedId = '42'
+  const maliciousId = 'lol'
+
+  urlAtom.go(`/strictRoute/${expectedId}?id=${maliciousId}`)
+
+  expect(strictRoute()).toEqual({ id: expectedId })
+
+  urlAtom.go(`/liberalRoute/${expectedId}?id=${maliciousId}`)
+
+  expect(() => liberalRoute()).toThrow('Params collision')
+})

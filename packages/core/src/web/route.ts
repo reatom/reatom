@@ -10,7 +10,7 @@ import {
   withAsyncData,
 } from '../'
 import type { Action, Computed } from '../core'
-import { action, computed } from '../core'
+import { action, computed, ReatomError } from '../core'
 import { urlAtom } from './url'
 
 type MaybeVoid<T> = {} extends T ? T | void : T
@@ -29,7 +29,7 @@ export type PathParams<Path extends string = string> =
 export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, any>
 
 export interface RouteOptions<
-  Path extends string,
+  Path extends string = '',
   Params extends PathKeys<Path> = PathParams<Path>,
   Search extends Partial<Rec<string>> = {},
   ParamsOutput = Params,
@@ -37,7 +37,7 @@ export interface RouteOptions<
   LoaderParams = Plain<ParamsOutput & SearchOutput>,
   Payload = LoaderParams,
 > {
-  path: Path
+  path?: Path
 
   params?: StandardSchemaV1<Params, ParamsOutput>
 
@@ -54,14 +54,14 @@ export interface RouteMixin<
    * Create a sub-route by appending a path pattern to the current route.
    *
    * @example
-   *   const usersRoute = route('users') // Creates /users route
-   *   const userRoute = usersRoute.route(':userId') // Creates /users/:userId route
+   *   const usersRoute = reatomRoute('users') // Creates /users route
+   *   const userRoute = usersRoute.reatomRoute(':userId') // Creates /users/:userId route
    *
    * @param path The sub-path pattern to append (e.g., 'users', ':userId',
    *   'posts/:postId?')
    * @returns A new RouteAtom for the combined path pattern
    */
-  route<SubPath extends string>(
+  reatomRoute<SubPath extends string>(
     path: SubPath,
     name?: string,
   ): RouteAtom<
@@ -79,7 +79,7 @@ export interface RouteMixin<
    * @example
    *   import { z } from 'zod'
    *
-   *   const userRoute = urlAtom.route({
+   *   const userRoute = reatomRoute({
    *     path: 'user/:id',
    *     params: z.object({ id: z.number() }), // Should match the path
    *     search: z.object({ sort: z.enum(['asc', 'desc']).optional() }),
@@ -95,8 +95,8 @@ export interface RouteMixin<
    *   param should be optional!
    * @returns A new RouteAtom for the combined path with validation
    */
-  route<
-    SubPath extends string,
+  reatomRoute<
+    SubPath extends string = '',
     SubParams extends PathKeys<SubPath> = PathParams<SubPath>,
     SubSearch extends Partial<Rec<string>> = {},
     SubParamsOutput = SubParams,
@@ -123,6 +123,9 @@ export interface RouteMixin<
     Plain<Params & SubParams>,
     Plain<SubSearch>
   >
+
+  /** @deprecated Use `reatomRoute` instead */
+  route: this['reatomRoute']
 }
 
 function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
@@ -182,7 +185,7 @@ const createRouteFactory = (
   parent: Computed & { pattern: string; loader?: RouteLoader },
   name?: string,
 ) => {
-  return function route(
+  return function reatomRoute(
     pathOrOptions: string | RouteOptions<string, any, any, any>,
   ): RouteAtom<string> {
     const options =
@@ -191,7 +194,7 @@ const createRouteFactory = (
         : pathOrOptions
 
     const {
-      path: subPath,
+      path: subPath = '',
       params: paramsSchema,
       search: searchSchema,
       loader: optionsLoader = identity,
@@ -219,9 +222,9 @@ const createRouteFactory = (
 
     const patternParts = pattern.split('/').filter(Boolean)
 
-    const pathParamsCount = patternParts.filter((part) =>
-      part.startsWith(':'),
-    ).length
+    const paramsNames = patternParts.filter((part) => part.startsWith(':'))
+
+    const hasParams = paramsNames.length > 0
 
     const getPath = (params: void | Rec = {}): string => {
       let pathParams = paramsSchema
@@ -284,7 +287,7 @@ const createRouteFactory = (
 
       const pathname = urlAtom().pathname || '/'
 
-      if (!pathParamsCount && pattern === pathname) return true
+      if (hasParams && pattern === pathname) return true
 
       const parts = pathname.split('/').filter(Boolean)
 
@@ -332,31 +335,48 @@ const createRouteFactory = (
         }
       }
 
-      const result: Rec = {}
+      let validatedParams: Rec
+      let validatedSearch: undefined | Rec
 
       try {
-        if (paramsSchema) {
-          Object.assign(result, validate(paramsSchema, params, 'params'))
-        } else {
-          Object.assign(result, params)
-        }
+        validatedParams = paramsSchema
+          ? validate(paramsSchema, params, 'params')
+          : params
+
         if (searchSchema) {
           const searchParams = Object.fromEntries(url.searchParams)
-          Object.assign(result, validate(searchSchema, searchParams, 'search'))
+          validatedSearch = validate(searchSchema, searchParams, 'search')
         }
       } catch {
         return null
       }
 
+      let result = { ...validatedParams }
+
+      if (validatedSearch) {
+        for (const key in validatedSearch) {
+          if (key in result) {
+            throw new ReatomError(
+              `Params collision for "${key}" in route ${pattern}`,
+            )
+          }
+          result[key] = validatedSearch[key]
+        }
+      }
+
       return isDeepEqual(state, result) ? state! : result
-    }, name).extend((target) => ({
-      go,
-      loader,
-      exact,
-      pattern,
-      path: getPath,
-      route: createRouteFactory(target as RouteAtom),
-    })) as RouteAtom
+    }, name).extend((target) => {
+      const reatomRoute = createRouteFactory(target as RouteAtom)
+      return {
+        go,
+        loader,
+        exact,
+        pattern,
+        path: getPath,
+        reatomRoute,
+        route: reatomRoute,
+      }
+    }) as RouteAtom
 
     urlAtom.routes[pattern] = routeAtom
 
@@ -366,7 +386,7 @@ const createRouteFactory = (
 
 export let reatomRoute = createRouteFactory(
   urlAtom as any,
-) as RouteMixin<''>['route']
+) as RouteMixin<''>['reatomRoute']
 
 /** @deprecated Use `reatomRoute` instead */
 export let route = reatomRoute
