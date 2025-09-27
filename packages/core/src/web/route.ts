@@ -273,6 +273,7 @@ const createRouteFactory = (
       const promise = optionsLoader(params)
 
       if (parent.loader) {
+        if (promise instanceof Promise) promise.catch(noop)
         await parent.loader()
       }
 
