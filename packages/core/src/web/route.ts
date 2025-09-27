@@ -13,7 +13,7 @@ import type { Action, Computed } from '../core'
 import { action, computed, ReatomError } from '../core'
 import { urlAtom } from './url'
 
-type MaybeVoid<T> = {} extends T ? T | void : T
+export type MaybeVoid<T> = {} extends T ? T | void : T
 
 export type PathParams<Path extends string = string> =
   Path extends `:${infer Param}/${infer Rest}`
@@ -26,12 +26,18 @@ export type PathParams<Path extends string = string> =
         ? PathParams<Rest>
         : {}
 
-export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, any>
+export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, unknown>
+export type SearchKeys = Record<string, unknown>
+
+type IsNever<T> = [T] extends [never] ? true : false;
+
+type ParamsStringCompatible<B, Success, Error extends string> = 
+  IsNever<{ [K in keyof B]-?: IsNever<B[K] & string> extends true ? K : never }[keyof B]> extends true ? Success : Error;
 
 export interface RouteOptions<
   Path extends string = '',
   Params extends PathKeys<Path> = PathParams<Path>,
-  Search extends Partial<Rec<string>> = {},
+  Search extends SearchKeys = {},
   ParamsOutput = Params,
   SearchOutput = Search,
   LoaderParams = Plain<ParamsOutput & SearchOutput>,
@@ -39,9 +45,9 @@ export interface RouteOptions<
 > {
   path?: Path
 
-  params?: StandardSchemaV1<Params, ParamsOutput>
+  params?: ParamsStringCompatible<Params, StandardSchemaV1<Params, ParamsOutput>, 'ERROR: You can only use string-compatible parsers for path params'>
 
-  search?: StandardSchemaV1<Search, SearchOutput>
+  search?: ParamsStringCompatible<Search, StandardSchemaV1<Search, SearchOutput>, 'ERROR: You can only use string-compatible parsers for search params'>
 
   loader?: (params: LoaderParams) => Promise<Payload>
 }
@@ -98,7 +104,7 @@ export interface RouteMixin<
   reatomRoute<
     SubPath extends string = '',
     SubParams extends PathKeys<SubPath> = PathParams<SubPath>,
-    SubSearch extends Partial<Rec<string>> = {},
+    SubSearch extends SearchKeys = {},
     SubParamsOutput = SubParams,
     SubSearchOutput = SubSearch,
     LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
@@ -128,16 +134,16 @@ export interface RouteMixin<
   route: this['reatomRoute']
 }
 
-function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
+function assertNotPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   if (value instanceof Promise) {
-    throw new Error('Async search validation is not supported')
+    throw new Error('Async params validation is not supported')
   }
 }
 
 const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   const validation = schema['~standard'].validate(params)
 
-  assertPromise(validation)
+  assertNotPromise(validation)
 
   if (validation.issues) {
     throw new Error(
@@ -155,7 +161,7 @@ export interface RouteLoader<Params extends Rec = Rec, Payload = any>
 export interface RouteAtom<
   Path extends string = string,
   Params extends PathKeys<Path> = PathParams<Path>,
-  Search extends Rec<string> = {},
+  Search extends SearchKeys = {},
   Payload = Plain<Params & Search>,
   InputParams = Params,
   InputSearch = Search,
@@ -308,7 +314,7 @@ const createRouteFactory = (
     const go = action((params: void | any, replace = false) => {
       const newPath = getPath(params)
 
-      return urlAtom.set((url) => new URL(newPath, url), replace)
+      return urlAtom.go(newPath, replace)
     }, `${name}.go`)
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {
