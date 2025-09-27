@@ -26,12 +26,18 @@ export type PathParams<Path extends string = string> =
         ? PathParams<Rest>
         : {}
 
-export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, any>
+export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, unknown>
+export type SearchKeys = Record<string, unknown>
+
+type IsNever<T> = [T] extends [never] ? true : false;
+
+type ParamsStringCompatible<B, Success, Error extends string> = 
+  IsNever<{ [K in keyof B]-?: IsNever<B[K] & string> extends true ? K : never }[keyof B]> extends true ? Success : Error;
 
 export interface RouteOptions<
   Path extends string = '',
   Params extends PathKeys<Path> = PathParams<Path>,
-  Search extends Partial<Rec<string>> = {},
+  Search extends SearchKeys = {},
   ParamsOutput = Params,
   SearchOutput = Search,
   LoaderParams = Plain<ParamsOutput & SearchOutput>,
@@ -39,9 +45,9 @@ export interface RouteOptions<
 > {
   path?: Path
 
-  params?: StandardSchemaV1<Params, ParamsOutput>
+  params?: ParamsStringCompatible<Params, StandardSchemaV1<Params, ParamsOutput>, 'ERROR: You can only use string-compatible parsers for path params'>
 
-  search?: StandardSchemaV1<Search, SearchOutput>
+  search?: ParamsStringCompatible<Search, StandardSchemaV1<Search, SearchOutput>, 'ERROR: You can only use string-compatible parsers for search params'>
 
   loader?: (params: LoaderParams) => Promise<Payload>
 }
@@ -98,7 +104,7 @@ export interface RouteMixin<
   reatomRoute<
     SubPath extends string = '',
     SubParams extends PathKeys<SubPath> = PathParams<SubPath>,
-    SubSearch extends Partial<Rec<string>> = {},
+    SubSearch extends SearchKeys = {},
     SubParamsOutput = SubParams,
     SubSearchOutput = SubSearch,
     LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
@@ -128,7 +134,7 @@ export interface RouteMixin<
   route: this['reatomRoute']
 }
 
-function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
+function assertNotPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   if (value instanceof Promise) {
     throw new Error('Async params validation is not supported')
   }
@@ -155,7 +161,7 @@ export interface RouteLoader<Params extends Rec = Rec, Payload = any>
 export interface RouteAtom<
   Path extends string = string,
   Params extends PathKeys<Path> = PathParams<Path>,
-  Search extends Rec<string> = {},
+  Search extends SearchKeys = {},
   Payload = Plain<Params & Search>,
   InputParams = Params,
   InputSearch = Search,

@@ -1,5 +1,5 @@
 import { beforeEach, expect, expectTypeOf, test, vi } from 'test'
-import z from 'zod'
+import z from 'zod/v4'
 
 import { computed } from '../core'
 import { effect, wrap } from '../methods'
@@ -187,23 +187,61 @@ test('route chainable functionality', async () => {
 })
 
 test('route typed params', () => {
-  {
-    // @ts-expect-error - test
-    const catalogRoute = reatomRoute({
-      path: 'catalog/:id',
-      params: z.object({ /* mistake -> */ ib: z.number() }),
-    })
-  }
+  // @ts-expect-error - mistmatch between path parameter declaration and the actual schema
+  reatomRoute({
+    path: 'catalog/:id',
+    params: z.object({ ib: z.string() }),
+  })
 
-  const catalogRoute = reatomRoute({
+  // @ts-expect-error - usage of pure number validator
+  reatomRoute({
     path: 'catalog/:id',
     params: z.object({ id: z.number() }),
   })
 
-  // @ts-expect-error - test
-  expect(() => catalogRoute.go({ id: '42' })).toThrow()
+  const catalogRoute = reatomRoute({
+    path: 'catalog/:id',
+    params: z.object({ id: z.coerce.number() }),
+  })
 
+  expect(() => catalogRoute.go({ id: '42' })).not.toThrow()
   expect(catalogRoute.go({ id: 42 }).pathname).toBe('/catalog/42')
+  expect(catalogRoute()).toEqual({ id: 42 })
+})
+
+test('route typed search params', () => {
+  // @ts-expect-error usage of pure number validator
+  reatomRoute({
+    path: 'catalog/:id',
+    search: z.object({ search: z.number() }),
+  })
+
+  // @ts-expect-error usage of number validator with string-compatible validator together
+  reatomRoute({
+    path: 'catalog/:id',
+    search: z.object({ search: z.string(), number: z.number() }),
+  })
+
+  reatomRoute({
+    path: 'catalog/:id',
+    search: z.object({ search: z.string().optional() }),
+  })
+
+  const route = reatomRoute({
+    path: 'catalog/:id',
+    search: z.object({ 
+      search: z.coerce.number().optional(),
+      other: z.string()
+    }),
+  })
+
+  expect(() => route.go({ id: '42', search: { search: 42 }, other: 'empty' })).toThrow()
+
+  route.go({ id: '42', search: new Date(), other: 'empty'  })
+  expect(route()?.search).toBeTypeOf('number')
+
+  // @ts-expect-error missing required parameter `other`
+  expect(() => route.go({ id: '42', search: 123 })).toThrow()
 })
 
 test('route default loader', async () => {
@@ -390,7 +428,7 @@ test('params collision', async () => {
 
   const liberalRoute = reatomRoute({
     path: 'liberalRoute/:id',
-    search: z.record(z.string()),
+    search: z.record(z.string(), z.string()),
   })
 
   const expectedId = '42'

@@ -1,13 +1,9 @@
 import { action, atom, computed, named, withParams } from '../core'
 import { abortVar, effect, take, wrap } from '../methods'
 import { withAbort, withMemo } from '../mixins'
-import { reatomRecord } from '../primitives'
-import { noop, type Plain, type Rec,sleep, throwAbort } from '../utils'
-import {
-  type MaybeVoid,
-  type PathKeys,
-  type RouteAtom,
-} from './route'
+import { reatomBoolean, reatomRecord } from '../primitives'
+import { noop, sleep, throwAbort } from '../utils'
+import { type RouteLoader } from './route'
 import { urlAtom } from './url'
 
 export type RouteLinkPreload = 'intent' | 'render' | 'viewport' | 'none'
@@ -17,16 +13,14 @@ export interface RouterLinkActiveOptions {
   includeSearch?: boolean
 }
 
-export interface RouteLinkOptions<
-  Path extends string,
-  Params extends PathKeys<Path>,
-  Search extends Rec<string>,
-  Payload = Plain<Params & Search>,
-  InputParams = Params,
-  InputSearch = Search,
-> {
-  route: RouteAtom<Path, Params, Search, Payload, InputParams, InputSearch>
-  params: MaybeVoid<InputParams & InputSearch>
+interface RouterLikeAtom<Params> {
+  path: (params: Params) => string
+  loader: RouteLoader<any>
+}
+
+export interface RouteLinkOptions<Params, RouteAtom extends RouterLikeAtom<Params>> {
+  route: RouteAtom
+  params: Params
   elementRef: Element
   preload?: RouteLinkPreload
   disabled?: boolean
@@ -34,21 +28,10 @@ export interface RouteLinkOptions<
 }
 
 export const reatomRouteLink = <
-  Path extends string,
-  Params extends PathKeys<Path>,
-  Search extends Rec<string>,
-  Payload,
-  InputParams,
-  InputSearch,
+  Params,
+  RouteAtom extends RouterLikeAtom<Params>
 >(
-  options: RouteLinkOptions<
-    Path,
-    Params,
-    Search,
-    Payload,
-    InputParams,
-    InputSearch
-  >,
+  options: RouteLinkOptions<Params, RouteAtom>,
   name = named('routeLink'),
 ) => {
   const { route } = options
@@ -120,7 +103,7 @@ export const reatomRouteLink = <
 
   const params = atom(options.params, `${name}._params`)
   const elementRef = atom(options.elementRef, `${name}._elementRef`)
-  const disabled = atom(options.disabled || false, `${name}._disabled`)
+  const disabled = reatomBoolean(options.disabled || false, `${name}._disabled`)
 
   const activeOptions = reatomRecord(
     options.activeOptions ?? {},
