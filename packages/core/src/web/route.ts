@@ -206,6 +206,8 @@ const createRouteFactory = (
       )
     }
 
+    const isSearchOnlyRoute = !subPath && searchSchema
+
     let parentPattern = parent.pattern
 
     for (const restricted of ['/', '?']) {
@@ -306,9 +308,13 @@ const createRouteFactory = (
     }, `${name}.exact`)
 
     const go = action((params: void | any, replace = false) => {
-      const newPath = getPath(params)
-
-      return urlAtom.set((url) => new URL(newPath, url), replace)
+      return urlAtom.set((url) => {
+        const newUrl = new URL(getPath(params), url)
+        if (isSearchOnlyRoute && url.pathname.startsWith(newUrl.pathname)) {
+          newUrl.pathname = url.pathname
+        }
+        return newUrl
+      }, replace)
     }, `${name}.go`)
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {

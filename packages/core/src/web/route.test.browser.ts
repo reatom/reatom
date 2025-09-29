@@ -9,6 +9,7 @@ import { reatomRoute } from './route'
 import { urlAtom } from './url'
 
 beforeEach(() => {
+  urlAtom.routes = {}
   if (window.location.pathname !== '/') {
     window.history.replaceState({}, '', '/')
   }
@@ -403,4 +404,53 @@ test('params collision', async () => {
   urlAtom.go(`/liberalRoute/${expectedId}?id=${maliciousId}`)
 
   expect(() => liberalRoute()).toThrow('Params collision')
+})
+
+test('search-only route should preserve pathname', async () => {
+  const dialogRoute = reatomRoute({
+    search: z.object({
+      dialog: z.enum(['login', 'signup']).optional(),
+    }),
+  })
+
+  urlAtom.go('/profile/123')
+  expect(urlAtom().pathname).toBe('/profile/123')
+  expect(urlAtom().search).toBe('')
+
+  dialogRoute.go({ dialog: 'login' })
+  expect(urlAtom().pathname).toBe('/profile/123')
+  expect(urlAtom().search).toBe('?dialog=login')
+  expect(dialogRoute()).toEqual({ dialog: 'login' })
+
+  urlAtom.go('/another/page?dialog=signup')
+  expect(urlAtom().pathname).toBe('/another/page')
+  expect(dialogRoute()).toEqual({ dialog: 'signup' })
+
+  dialogRoute.go({})
+  expect(urlAtom().pathname).toBe('/another/page')
+  expect(urlAtom().search).toBe('')
+  expect(dialogRoute()).toEqual({})
+})
+
+test('search-only route should preserve sub pathname', async () => {
+  const authRoute = reatomRoute('auth')
+  const dialogRoute = authRoute.reatomRoute({
+    search: z.object({
+      dialog: z.enum(['login', 'signup']).optional(),
+    }),
+  })
+
+  urlAtom.go('/some')
+  expect(urlAtom().pathname).toBe('/some')
+
+  dialogRoute.go({ dialog: 'login' })
+  expect(urlAtom().pathname).toBe('/auth')
+  expect(urlAtom().search).toBe('?dialog=login')
+  expect(dialogRoute()).toEqual({ dialog: 'login' })
+
+  urlAtom.go('/auth/email')
+  expect(urlAtom().pathname).toBe('/auth/email')
+  dialogRoute.go({ dialog: 'signup' })
+  expect(urlAtom().pathname).toBe('/auth/email')
+  expect(urlAtom().search).toBe('?dialog=signup')
 })
