@@ -646,7 +646,7 @@ export const createCtx = ({
         if (cache!.listeners.delete(listener) && !isConnected(cache!)) {
           proto.disconnectHooks && nearEffects.push(...proto.disconnectHooks)
 
-          for (let pubCache of (proto.patch?.pubs ?? read(proto)!.pubs)) {
+          for (let pubCache of proto.patch?.pubs ?? read(proto)!.pubs) {
             disconnect(proto, pubCache)
           }
 

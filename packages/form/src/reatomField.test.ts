@@ -45,19 +45,13 @@ test(`keepErrorOnChange`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe(
-    'validation error',
-  )
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBe(
-    'validation error',
-  )
+  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBe('validation error')
 
   fieldWithKeep.change(ctx, 'new value')
   fieldWithoutKeep.change(ctx, 'new value')
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe(
-    'validation error',
-  )
+  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
   expect(ctx.get(fieldWithoutKeep.validation).error).toBeFalsy()
 })
 
@@ -86,12 +80,8 @@ test(`keepErrorDuringValidating`, async () => {
 
   await sleep()
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe(
-    'validation error',
-  )
-  expect(ctx.get(fieldWithoutKeep.validation).error).toBe(
-    'validation error',
-  )
+  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
+  expect(ctx.get(fieldWithoutKeep.validation).error).toBe('validation error')
 
   fieldWithKeep.change(ctx, 'new value')
   fieldWithoutKeep.change(ctx, 'new value')
@@ -99,9 +89,7 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithKeep.validation.trigger(ctx)
   fieldWithoutKeep.validation.trigger(ctx)
 
-  expect(ctx.get(fieldWithKeep.validation).error).toBe(
-    'validation error',
-  )
+  expect(ctx.get(fieldWithKeep.validation).error).toBe('validation error')
   expect(ctx.get(fieldWithoutKeep.validation).error).toBeFalsy()
 })
 
@@ -225,8 +213,11 @@ test(`validation.errors atom`, async () => {
   expect(ctx.get(field.validation).error).toBeTruthy()
   expect(ctx.get(field.validation.errors).length).toBe(1)
 
-  field.validation.errors.push(ctx, { source: "validation", message: "validation error 2" })
-  
+  field.validation.errors.push(ctx, {
+    source: 'validation',
+    message: 'validation error 2',
+  })
+
   expect(ctx.get(field.validation).error).toBeTruthy()
   expect(ctx.get(field.validation.errors).length).toBe(2)
 

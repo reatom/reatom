@@ -116,17 +116,21 @@ const form = reatomForm(
 By passing an object with `initState` property, you can initialize a reatomField with a value as its default, and pass additional options for the field.
 
 ```ts
-const form = reatomForm({
-  username: { 
-    initState: '', 
-    validateOnChange: true,
-    validate: (ctx, { state }) => state.length < 3 ? 'too short' : undefined
+const form = reatomForm(
+  {
+    username: {
+      initState: '',
+      validateOnChange: true,
+      validate: (ctx, { state }) =>
+        state.length < 3 ? 'too short' : undefined,
+    },
+    age: {
+      initState: 25,
+      validateOnBlur: true,
+    },
   },
-  age: { 
-    initState: 25, 
-    validateOnBlur: true 
-  }
-}, 'form')
+  'form',
+)
 ```
 
 3. **Existing `reatomField` Instances**:
@@ -231,25 +235,30 @@ const form = reatomForm(
 4. **Complex Array Field Factory**:
 
 If you want to configure the rules for creating fields in an array field, you should define a factory function using `fieldArray` function that describes how each new field in this array field will be created.
-```ts
-const form = reatomForm({
-  // Using initState and create
-  phoneNumbers: fieldArray({
-    initState: [{ number: '123-456-7890', priority: false }],
-    create: (ctx, { number, priority }, name) => ({
-      number: { initState: number, validateOnChange: true },
-      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
-    })
-  }),
-}, 'form')
 
-form.fields.phoneNumbers.create(ctx, { 
-  number: '123-456-7890', 
-  priority: false 
+```ts
+const form = reatomForm(
+  {
+    // Using initState and create
+    phoneNumbers: fieldArray({
+      initState: [{ number: '123-456-7890', priority: false }],
+      create: (ctx, { number, priority }, name) => ({
+        number: { initState: number, validateOnChange: true },
+        priority: reatomBoolean(priority, `${name}.priority`).pipe(withField()),
+      }),
+    }),
+  },
+  'form',
+)
+
+form.fields.phoneNumbers.create(ctx, {
+  number: '123-456-7890',
+  priority: false,
 })
 ```
 
 ### Basic Array Field Operations
+
 Since `fieldArray` or array literal in the fields definition are a syntactic sugar over `reatomLinkedList`, it provides several methods to manipulate the array of fields:
 
 - `create(value)`: Adds a new field with the given value to the end of the array
@@ -475,42 +484,50 @@ const schema = z
     path: ['confirmPassword'],
   })
 
-const loginForm = reatomForm(name => ({
-  username: reatomField('', `${name}.username`),
-  password: reatomField('', `${name}.password`),
-  confirmPassword: reatomField('', `${name}.confirmPassword`)
-}), {
-  name: 'loginForm',
-  schema
-})
+const loginForm = reatomForm(
+  (name) => ({
+    username: reatomField('', `${name}.username`),
+    password: reatomField('', `${name}.password`),
+    confirmPassword: reatomField('', `${name}.confirmPassword`),
+  }),
+  {
+    name: 'loginForm',
+    schema,
+  },
+)
 ```
 
 Cross errors are also supported. When validation is activated according to the scheme, errors are placed into the corresponding fields, prepending them directly to the `validation.errors` array of each field. With subsequent successful schema validation, these errors are excluded from this array.
 
 ```ts
-const form = reatomForm({
-  min: 0,
-  max: 10
-}, {
-  validateOnChange: true,
-  schema: z.object({
-    min: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
-    max: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
-  }).superRefine(({ min, max }, ctx) => {
-    if (min > max) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['min'],
-        message: 'value "min" should be less than "max" value',
+const form = reatomForm(
+  {
+    min: 0,
+    max: 10,
+  },
+  {
+    validateOnChange: true,
+    schema: z
+      .object({
+        min: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
+        max: z.number().min(0, 'must be minimum 0').max(20, 'must be up to 20'),
       })
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['max'],
-        message: 'value "min" should be less than "max" value'
-      })
-    }
-  }),
-})
+      .superRefine(({ min, max }, ctx) => {
+        if (min > max) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['min'],
+            message: 'value "min" should be less than "max" value',
+          })
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['max'],
+            message: 'value "min" should be less than "max" value',
+          })
+        }
+      }),
+  },
+)
 
 form.fields.min.change(ctx, 11) // causing an error for both `min` and `max` fields
 ```

@@ -2,10 +2,9 @@
 
 ## [3.4.2](https://github.com/reatom/reatom/compare/persist-v3.4.1...persist-v3.4.2) (2025-10-08)
 
-
 ### Bug Fixes
 
-* **persist:** createMemStorage reactivity ([96c2e46](https://github.com/reatom/reatom/commit/96c2e461487349a0ee63450af7cdaaf11289b690))
+- **persist:** createMemStorage reactivity ([96c2e46](https://github.com/reatom/reatom/commit/96c2e461487349a0ee63450af7cdaaf11289b690))
 
 ## [3.4.1](https://github.com/artalar/reatom/compare/persist-v3.4.0...persist-v3.4.1) (2024-10-08)
 
