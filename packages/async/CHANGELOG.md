@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.16.9](https://github.com/reatom/reatom/compare/async-v3.16.8...async-v3.16.9) (2025-10-08)
+
+
+### Bug Fixes
+
+* **persist:** createMemStorage reactivity ([96c2e46](https://github.com/reatom/reatom/commit/96c2e461487349a0ee63450af7cdaaf11289b690))
+
 ## [3.16.8](https://github.com/artalar/reatom/compare/async-v3.16.7...async-v3.16.8) (2025-04-02)
 
 ### Bug Fixes
