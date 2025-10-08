@@ -27,7 +27,7 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
-    "yoctobundle": "catalog:",
+    "microbundle": "catalog:",
     "zx": "catalog:"
   },
   "author": "artalar",

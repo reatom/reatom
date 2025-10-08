@@ -1,10 +1,9 @@
 {
   "name": "@reatom/devtools",
   "version": "0.13.1",
-  "description": "Reatom developer tools for states and actions inspecting",
-  "type": "module",
   "private": false,
   "sideEffects": false,
+  "description": "Reatom developer tools for states and actions inspecting",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.cjs",
@@ -19,6 +18,7 @@
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
+  "type": "module",
   "author": {
     "name": "artalar",
     "url": "https://github.com/artalar"
@@ -47,6 +47,7 @@
   ],
   "files": [
     "/build",
+    "/package.json",
     "/devtools1.png",
     "/devtools2.png"
   ],

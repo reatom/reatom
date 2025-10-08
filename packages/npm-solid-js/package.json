@@ -4,6 +4,7 @@
   "private": false,
   "sideEffects": false,
   "description": "Reatom bindings for solid-js",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -15,15 +16,17 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
+    "build": "microbundle -f esm,cjs",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
     "@reatom/core": "workspace:^",
-    "@reatom/lens": "workspace:^",
     "solid-js": ">=1.1.0"
   },
   "author": "artalar",
@@ -49,8 +52,9 @@
     "state-manager",
     "reatom"
   ],
-  "files": ["/build"],
-  "devDependencies": {
-    "vite-plugin-solid": "^2.11.2"
-  }
+  "files": [
+    "/build",
+    "/package.json"
+  ],
+  "devDependencies": {}
 }

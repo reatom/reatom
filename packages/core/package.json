@@ -2,7 +2,9 @@
   "name": "@reatom/core",
   "version": "3.10.1",
   "private": false,
+  "sideEffects": false,
   "description": "The ultimate state manager",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -11,13 +13,15 @@
   "main": "build/index.js",
   "module": "build/index.mjs",
   "types": "build/index.d.ts",
-  "sideEffects": false,
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
+    "build": "microbundle -f esm,cjs --raw=true",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
     "bench": "ts-node src/index.bench.test.ts"
@@ -52,5 +56,8 @@
     "state-manager",
     "reatom"
   ],
-  "files": ["/build"]
+  "files": [
+    "/build",
+    "/package.json"
+  ]
 }

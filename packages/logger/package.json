@@ -3,7 +3,8 @@
   "version": "3.8.4",
   "private": false,
   "sideEffects": false,
-  "description": "A logger for the Reatom state manager",
+  "description": "Reatom for logger",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -15,19 +16,18 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
+    "build": "microbundle -f esm,cjs",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
   "dependencies": {
     "@reatom/core": "workspace:^",
     "@reatom/utils": "workspace:^"
-  },
-  "devDependencies": {
-    "@reatom/lens": "workspace:^",
-    "@reatom/testing": "workspace:^"
   },
   "author": "artalar",
   "license": "MIT",
@@ -39,5 +39,8 @@
     "url": "https://github.com/artalar/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/logger",
-  "files": ["/build"]
+  "files": [
+    "/build",
+    "/package.json"
+  ]
 }

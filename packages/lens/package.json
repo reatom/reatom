@@ -3,7 +3,8 @@
   "version": "3.12.0",
   "private": false,
   "sideEffects": false,
-  "description": "FRP operators and other utilities for the Reatom state manager",
+  "description": "Reatom for lens",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -15,11 +16,14 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
-    "test": "vitest run src/*",
-    "test:watch": "vitest src/*"
+    "build": "microbundle -f esm,cjs",
+    "test": "vitest run src/* --typecheck",
+    "test:watch": "vitest src/* --typecheck"
   },
   "dependencies": {
     "@reatom/core": "workspace:^",
@@ -44,6 +48,7 @@
   },
   "homepage": "https://www.reatom.dev/package/lens",
   "files": [
-    "/build"
+    "/build",
+    "/package.json"
   ]
 }

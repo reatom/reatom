@@ -4,6 +4,7 @@
   "private": false,
   "sideEffects": false,
   "description": "Reatom for timers",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -15,9 +16,12 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
+    "build": "microbundle -f esm,cjs",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
@@ -40,5 +44,8 @@
     "url": "https://github.com/artalar/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/timer",
-  "files": ["/build"]
+  "files": [
+    "/build",
+    "/package.json"
+  ]
 }

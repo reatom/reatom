@@ -1,8 +1,8 @@
 {
   "name": "@reatom-private/cjs-import-check",
-  "dependencies": {
-    "@reatom/framework": "workspace:^"
-  },
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node ./dist/hello.js",
@@ -10,7 +10,12 @@
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
+  "dependencies": {
+    "@reatom/framework": "workspace:^"
+  },
   "devDependencies": {
     "typescript": "catalog:"
-  }
+  },
+  "type": "commonjs",
+  "license": "MIT"
 }

@@ -554,9 +554,10 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   const origTriggerValidation = fieldsetValidation.trigger
   const triggerValidation = reatomAsync(async (ctx) => {
     const status = origTriggerValidation(ctx)
-    const { errors } = status.validating
+    const validatedStatus = status.validating
       ? await ctx.schedule(() => status.validating!)
       : status
+    const { errors } = validatedStatus
     if (errors.length) throw new Error(errors[0]!.message)
 
     let state: any

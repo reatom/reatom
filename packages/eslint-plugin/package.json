@@ -1,12 +1,10 @@
 {
   "name": "@reatom/eslint-plugin",
   "version": "3.8.0",
-  "publishConfig": {
-    "tag": "experimental"
-  },
   "private": false,
   "sideEffects": false,
   "description": "Reatom-specific ESLint rules",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -18,29 +16,24 @@
   "browserslist": [
     "node 16"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
-    "test": "tsc; tsx src/index.test.ts",
-    "test:watch": "tsx watch src/index.test.ts"
+    "build": "microbundle -f esm,cjs",
+    "test": "ts-node src/index.test.ts",
+    "test:watch": "tsx watch src/index.test.ts",
+    "sandbox": "vite"
+  },
+  "publishConfig": {
+    "tag": "experimental"
   },
   "author": "pivaszbs",
   "maintainers": [
     {
-      "name": "krulod",
-      "url": "https://github.com/krulod"
-    },
-    {
       "name": "artalar",
       "url": "https://github.com/artalar"
-    },
-    {
-      "name": "pivaszbs",
-      "url": "https://github.com/pivaszbs"
-    },
-    {
-      "name": "serikovlearning",
-      "url": "https://github.com/serikovlearning"
     }
   ],
   "license": "MIT",
@@ -52,7 +45,10 @@
     "url": "https://github.com/artalar/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/eslint-plugin",
-  "files": ["/build"],
+  "files": [
+    "/build",
+    "/package.json"
+  ],
   "devDependencies": {
     "@types/eslint": "catalog:",
     "eslint": "catalog:"

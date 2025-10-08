@@ -4,6 +4,7 @@
   "private": false,
   "sideEffects": false,
   "description": "Reatom adapter for Vue",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -15,9 +16,12 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
+    "build": "microbundle",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },
@@ -55,7 +59,10 @@
     "state-manager",
     "reatom"
   ],
-  "files": ["/build"],
+  "files": [
+    "/build",
+    "/package.json"
+  ],
   "devDependencies": {
     "@reatom/hooks": "workspace:^",
     "@reatom/testing": "workspace:^"

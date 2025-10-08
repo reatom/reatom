@@ -8,6 +8,9 @@
   "module": "build/react-dom-batched-updates.module.js",
   "types": "build/react-dom-batched-updates.d.ts",
   "license": "MIT",
+  "scripts": {
+    "build": "microbundle -f esm,cjs"
+  },
   "peerDependencies": {
     "@reatom/react-v2": "workspace:^"
   }

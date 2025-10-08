@@ -4,6 +4,7 @@
   "private": false,
   "sideEffects": false,
   "description": "Reatom for url",
+  "source": "src/index.ts",
   "exports": {
     "types": "./build/index.d.ts",
     "require": "./build/index.js",
@@ -15,11 +16,15 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
+    "build": "microbundle -f esm,cjs",
     "test": "vitest run src/*",
-    "test:watch": "vitest src/*"
+    "test:watch": "vitest src/*",
+    "sandbox": "vite"
   },
   "dependencies": {
     "@reatom/core": "workspace:^",
@@ -46,5 +51,8 @@
     "url": "https://github.com/artalar/reatom/issues"
   },
   "homepage": "https://www.reatom.dev/package/url",
-  "files": ["/build"]
+  "files": [
+    "/build",
+    "/package.json"
+  ]
 }
