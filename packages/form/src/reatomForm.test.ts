@@ -534,9 +534,7 @@ test('triggering schema validation only for one field', async () => {
 
   form.fields.age.change(ctx, 17)
   expect(ctx.get(form.validation).errors[0]?.message).toBe('must be minimum 18')
-  expect(ctx.get(form.fields.age.validation).error).toBe(
-    'must be minimum 18',
-  )
+  expect(ctx.get(form.fields.age.validation).error).toBe('must be minimum 18')
 })
 
 test('correct handling of side errors from schema', async () => {
@@ -582,19 +580,13 @@ test('correct handling of side errors from schema', async () => {
   )
 
   form.fields.min.change(ctx, 15)
-  expect(ctx.get(form.fields.max.validation).error).toBe(
-    INVARIANT_ERR_MSG,
-  )
-  expect(ctx.get(form.fields.min.validation).error).toBe(
-    INVARIANT_ERR_MSG,
-  )
+  expect(ctx.get(form.fields.max.validation).error).toBe(INVARIANT_ERR_MSG)
+  expect(ctx.get(form.fields.min.validation).error).toBe(INVARIANT_ERR_MSG)
 
   form.fields.min.change(ctx, 10)
 
   expect(ctx.get(form.fields.max.validation).error).toBeFalsy()
-  expect(ctx.get(form.fields.min.validation).error).toBe(
-    `shouldn't be even`,
-  )
+  expect(ctx.get(form.fields.min.validation).error).toBe(`shouldn't be even`)
 
   form.fields.min.change(ctx, 9)
 

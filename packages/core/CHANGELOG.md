@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.10.2](https://github.com/reatom/reatom/compare/core-v3.10.1...core-v3.10.2) (2025-10-08)
+
+### Bug Fixes
+
+- **core:** more accurate pubs handling ([b94dc8f](https://github.com/reatom/reatom/commit/b94dc8f6e16b1105560bda2572f87cdd1da5c36b))
+
 ## [3.10.1](https://github.com/artalar/reatom/compare/core-v3.10.0...core-v3.10.1) (2025-02-16)
 
 ### Bug Fixes

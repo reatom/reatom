@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.5.0](https://github.com/reatom/reatom/compare/form-v3.4.0...form-v3.5.0) (2025-10-08)
+
+### Features
+
+- **form:** support cross-errors from schema (v3) ([#1140](https://github.com/reatom/reatom/issues/1140)) ([486793a](https://github.com/reatom/reatom/commit/486793a246ef8bc09ad0f8623ff9c1da5ff51022))
+
+### Bug Fixes
+
+- **form:** typo ([3d602f2](https://github.com/reatom/reatom/commit/3d602f23f73a23fbdf41fcb27d0a64d7bed64fd2))
+
 ## [3.4.0](https://github.com/reatom/reatom/compare/form-v3.3.2...form-v3.4.0) (2025-05-19)
 
 ### Features
