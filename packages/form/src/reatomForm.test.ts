@@ -78,6 +78,37 @@ test('focus states', () => {
   })
 })
 
+test('form submit', async () => {
+  const ctx = createCtx()
+  const form = reatomForm({
+    login: '',
+    password: '',
+  }, {
+    schema: z.object({
+      login: z.string().min(1),
+      password: z.string().min(1),
+    }),
+    onSubmit: async (ctx, state) => {
+      await ctx.schedule(() => sleep())
+      trackSubmit(state)
+    }
+  })
+
+  const trackSubmit = vi.fn((args: { login: string, password: string }) => {})
+
+  await expect(async () => form.submit(ctx)).rejects.toThrowError()
+  expect(trackSubmit).toBeCalledTimes(0)
+
+  form.fields.login.change(ctx, 'username')
+  form.fields.password.change(ctx, 'my_strong_password')
+
+  await expect(form.submit(ctx)).resolves.not.toThrowError()
+
+  expect(trackSubmit.mock.calls.flat()).toMatchObject([
+    { login: 'username', password: 'my_strong_password' },
+  ])
+})
+
 test('validation states', async () => {
   const ctx = createCtx()
   const contract = z.string().refine((v) => v != 'errorValue', 'Contract error')

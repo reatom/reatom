@@ -580,14 +580,13 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
 
   const submit = reatomAsync(async (ctx) => {
     const state = await ctx.schedule(() => triggerValidation(ctx))
-    if (onSubmit) await ctx.schedule(() => onSubmit(ctx, state))
 
-    let result
+    let result: any
 
     if (onSubmit) {
       result = onSubmit(ctx, state)
       if (result instanceof Promise)
-        result = await ctx.schedule(() => onSubmit(ctx, state))
+        result = await ctx.schedule(() => result)
     }
 
     submitted(ctx, true)
