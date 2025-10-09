@@ -510,6 +510,9 @@ test('triggering schema validation only for one field', async () => {
   notify()
   expect(form.validation().errors[0]?.message).toBe('must be minimum 18')
   expect(form.fields.age.validation().error).toBe('must be minimum 18')
+
+  form.validation.triggerSchemaValidation()
+  expect(form.validation().errors.length).toBe(3)
 })
 
 test('correct handling of side errors from schema', async () => {
