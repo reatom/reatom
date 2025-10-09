@@ -564,6 +564,12 @@ test('correct handling of side errors from schema', async () => {
     INVARIANT_ERR_MSG,
   )
 
+  form.fields.min.change(16)
+  expect(form.fields.min.validation().error).toBe(
+    INVARIANT_ERR_MSG
+  )
+  expect(form.fields.min.validation.errors().length).toBe(2)
+
   form.fields.min.change(10)
   notify()
 
