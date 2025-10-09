@@ -1,6 +1,6 @@
 {
   "name": "@reatom/framework",
-  "version": "3.4.65",
+  "version": "3.4.66",
   "private": false,
   "sideEffects": false,
   "description": "Reatom for framework",
