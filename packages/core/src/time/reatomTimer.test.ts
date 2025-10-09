@@ -1,5 +1,5 @@
-import { subscribe } from 'test'
-import { describe, expect, test } from 'vitest'
+import { subscribe, test } from 'test'
+import { describe, expect } from 'vitest'
 
 import { wrap } from '../methods'
 import { sleep } from '../utils'
@@ -27,7 +27,7 @@ describe('timer', { retry: 0 }, () => {
 		var target = 50
 		var [duration] = await wrap(Promise.all([
 			getDuration(() => timerAtom.start(target / 1000)),
-			sleep(target / 2).then(() => timerAtom.stop()),
+			sleep(target / 2).then(wrap(() => timerAtom.stop())),
 		]))
 		expect(duration).toBeGreaterThanOrEqual(target / 2)
 		expect(duration).lessThan(target)
