@@ -16,9 +16,7 @@ import {
   type FieldAtom,
   type FieldError,
   type FieldFocus,
-  type FieldValidation,
   fieldInitFocus,
-  fieldInitValidation,
 } from './reatomField'
 import {
   FormInitState,
@@ -44,7 +42,7 @@ export interface FieldSetValidation {
   validating: undefined | Promise<{ errors: FieldSetFieldError[] }>
 }
 
-export interface FieldSet<T extends FormInitState> {
+export interface FieldSet<T extends FormInitState> extends Atom<FormState<T>> {
   /** Fields from the init state */
   fields: FormFields<T>
 
@@ -54,7 +52,11 @@ export interface FieldSet<T extends FormInitState> {
   /** Computed list of all the field arrays from the fields tree */
   fieldArraysList: Atom<FormFieldArrayAtom[]>
 
-  /** Atom with the state of the fieldset, computed from all the fields in `fieldsList` */
+  /**
+   * Atom with the state of the fieldset, computed from all the fields in
+   * `fieldsList`
+   * @deprecated use target atom instead
+   */
   fieldsState: Atom<FormState<T>>
 
   /** Atom with focus state of the fieldset, computed from all the fields in `fieldsList` */
@@ -77,19 +79,20 @@ export const reatomFieldSet = <T extends FormInitState>(
   name = __count('fieldSet'),
 ): FieldSet<T> => {
   const fieldsList = atom(
-    (ctx, state = undefined) => state && !ctx.cause.pubs.length ? state : computeFieldsList(ctx, fields),
+    (ctx, state = undefined) =>
+      state && !ctx.cause.pubs.length ? state : computeFieldsList(ctx, fields),
     `${name}._fieldsList`,
   )
 
   const fieldArraysList = atom(
-    (ctx, state = undefined) => state && !ctx.cause.pubs.length ? state : computeFieldArraysList(ctx, fields),
+    (ctx, state = undefined) =>
+      state && !ctx.cause.pubs.length
+        ? state
+        : computeFieldArraysList(ctx, fields),
     `${name}._fieldArraysList`,
   )
-  
-  const fieldsState = atom(
-    (ctx) => parseAtoms(ctx, fields),
-    `${name}.fieldsState`,
-  )
+
+  const fieldsState = atom((ctx) => parseAtoms(ctx, fields), name)
 
   const focus = atom((ctx, state = fieldInitFocus) => {
     const focus = { ...fieldInitFocus }
@@ -196,7 +199,7 @@ export const reatomFieldSet = <T extends FormInitState>(
     ctx.get(fieldsList).forEach((fieldAtom) => fieldAtom.reset(ctx))
   }, `${name}.reset`)
 
-  return {
+  return Object.assign(fieldsState, {
     fieldsList,
     fieldArraysList,
     fields,
@@ -205,7 +208,7 @@ export const reatomFieldSet = <T extends FormInitState>(
     validation,
     init,
     reset,
-  }
+  })
 }
 
 const computeFieldsList = <T extends FormInitState>(

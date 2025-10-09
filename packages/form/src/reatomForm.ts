@@ -461,7 +461,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   } = typeof options === 'string' ? { name: options } : options
 
   const fields = reatomFormFields(
-    initState instanceof Function ? initState(name) : initState,
+    initState instanceof Function ? initState(`${name}.fields`) : initState,
     {
       name: `${name}.fields`,
       onFieldResolved: (field) => {
@@ -489,17 +489,9 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     },
   )
 
-  const {
-    fieldsList,
-    fieldArraysList,
-    fieldsState,
-    focus,
-    validation: fieldsetValidation,
-    reset,
-    init,
-  } = reatomFieldSet(fields, name)
+  const fieldSet = reatomFieldSet(fields, name)
 
-  reset.onCall((ctx) => {
+  fieldSet.reset.onCall((ctx) => {
     submitted(ctx, false)
     submit.errorAtom.reset(ctx)
     submit.statusesAtom.reset(ctx)
@@ -509,7 +501,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   const submitted = atom(false, `${name}.submitted`)
 
   const triggerSchemaValidation = action((ctx) => {
-    const state = ctx.get(fieldsState)
+    const state = ctx.get(fieldSet)
     if (!schema) throw new Error('Triggering schema validation without schema')
 
     const validation = schema['~standard'].validate(state)
@@ -531,7 +523,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
         }
       }
 
-      for (const field of ctx.get(fieldsList)) {
+      for (const field of ctx.get(fieldSet.fieldsList)) {
         const placedErrors = touched.get(field)
         if (!placedErrors) {
           if (
@@ -551,7 +543,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       : placeErrors(validation)
   }, `${name}.triggerSchemaValidation`)
 
-  const origTriggerValidation = fieldsetValidation.trigger
+  const origTriggerValidation = fieldSet.validation.trigger
   const triggerValidation = reatomAsync(async (ctx) => {
     const status = origTriggerValidation(ctx)
     const validatedStatus = status.validating
@@ -573,7 +565,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
 
       state = schemaValidationResult.value
     } else {
-      state = ctx.get(fieldsState)
+      state = ctx.get(fieldSet)
     }
 
     if (validateBeforeSubmit) {
@@ -600,7 +592,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
 
     submitted(ctx, true)
 
-    if (resetOnSubmit) reset(ctx)
+    if (resetOnSubmit) fieldSet.reset(ctx)
     return result as SubmitReturn
   }, `${name}.onSubmit`).pipe(
     withDataAtom(),
@@ -614,21 +606,15 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       }),
   )
 
-  const validation = Object.assign(fieldsetValidation, {
+  const validation = Object.assign(fieldSet.validation, {
     trigger: triggerValidation,
     triggerSchemaValidation,
   })
 
-  return {
+  return Object.assign(fieldSet, {
     fields,
-    fieldsList,
-    fieldArraysList,
-    fieldsState,
-    focus,
-    init,
-    reset,
     submit,
     submitted,
     validation,
-  }
+  })
 }
