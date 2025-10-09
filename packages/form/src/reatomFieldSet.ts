@@ -77,13 +77,15 @@ export const reatomFieldSet = <T extends FormInitState>(
   name = __count('fieldSet'),
 ): FieldSet<T> => {
   const fieldsList = atom(
-    (ctx) => computeFieldsList(ctx, fields),
+    (ctx, state = undefined) => state && !ctx.cause.pubs.length ? state : computeFieldsList(ctx, fields),
     `${name}._fieldsList`,
   )
+
   const fieldArraysList = atom(
-    (ctx) => computeFieldArraysList(ctx, fields),
+    (ctx, state = undefined) => state && !ctx.cause.pubs.length ? state : computeFieldArraysList(ctx, fields),
     `${name}._fieldArraysList`,
   )
+  
   const fieldsState = atom(
     (ctx) => parseAtoms(ctx, fields),
     `${name}.fieldsState`,
