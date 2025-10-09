@@ -34,8 +34,8 @@ test(`adding and removing fields`, async () => {
 test('focus states', () => {
   const ctx = createCtx()
   const form = reatomForm({
-    field1: { initState: '', validate: () => {} },
-    field2: { initState: '', validate: () => {} },
+    field1: { initState: '', validate: () => { } },
+    field2: { initState: '', validate: () => { } },
     list: experimental_fieldArray({
       initState: ['initial'],
       create: (ctx, param) => reatomField(param, 'fieldAtom'),
@@ -94,7 +94,7 @@ test('form submit', async () => {
     }
   })
 
-  const trackSubmit = vi.fn((args: { login: string, password: string }) => {})
+  const trackSubmit = vi.fn((args: { login: string, password: string }) => { })
 
   await expect(async () => form.submit(ctx)).rejects.toThrowError()
   expect(trackSubmit).toBeCalledTimes(0)
@@ -127,7 +127,7 @@ test('validation states', async () => {
     },
     {
       name: 'testForm',
-      onSubmit: () => {},
+      onSubmit: () => { },
       validateBeforeSubmit: () => {
         throw new Error('Form validation error')
       },
@@ -163,7 +163,7 @@ test('validation states', async () => {
 
   field2.reset(ctx)
 
-  await form.submit(ctx).catch(() => {})
+  await form.submit(ctx).catch(() => { })
   expect(ctx.get(form.submit.error)?.message).toBe('Form validation error')
 
   expect(ctx.get(form.validation)).toEqual({
@@ -248,6 +248,15 @@ test('validation states with disabled fields and defined schema', async () => {
     errors: [{ message: 'Schema contract error' }],
   })
 
+  targetField.disabled(ctx, true)
+  formWithSchema.validation.triggerSchemaValidation(ctx)
+  expect(ctx.get(formWithSchema.validation)).toMatchObject({ errors: [] })
+
+  targetField.disabled(ctx, false)
+  expect(ctx.get(formWithSchema.validation)).toMatchObject({
+    errors: [{ message: 'Schema contract error' }],
+  })
+
   targetField.change(ctx, 'validValue')
   expect(ctx.get(formWithSchema.validation)).toMatchObject({ errors: [] })
 
@@ -260,7 +269,7 @@ test('default options for fields', async () => {
   const ctx = createCtx()
   const form = reatomForm(
     {
-      field: { initState: 'initial', validate: () => {} },
+      field: { initState: 'initial', validate: () => { } },
       array: experimental_fieldArray(['one', 'two', 'free']),
     },
     {
@@ -378,11 +387,11 @@ test('reset', () => {
   const ctx = createCtx()
   const form = reatomForm(
     {
-      field: { initState: 'initial', validate: () => {} },
+      field: { initState: 'initial', validate: () => { } },
     },
     {
       name: 'testForm',
-      onSubmit: () => {},
+      onSubmit: () => { },
     },
   )
 
@@ -573,13 +582,14 @@ test('correct handling of side errors from schema', async () => {
   const INVARIANT_ERR_MSG = 'value "min" should be less than "max" value'
 
   const form = reatomForm(
-    {
+    name => ({
       min: reatomField(0, {
+        name: `${name}.min`,
         validate: (ctx, { value }) =>
           value % 2 == 0 ? `shouldn't be even` : undefined,
       }),
       max: 10,
-    },
+    }),
     {
       validateOnChange: true,
       schema: z
@@ -613,6 +623,10 @@ test('correct handling of side errors from schema', async () => {
   form.fields.min.change(ctx, 15)
   expect(ctx.get(form.fields.max.validation).error).toBe(INVARIANT_ERR_MSG)
   expect(ctx.get(form.fields.min.validation).error).toBe(INVARIANT_ERR_MSG)
+
+  form.fields.min.change(ctx, 16)
+  expect(ctx.get(form.fields.min.validation).error).toBe(INVARIANT_ERR_MSG)
+  expect(ctx.get(form.fields.min.validation.errors).length).toBe(2)
 
   form.fields.min.change(ctx, 10)
 

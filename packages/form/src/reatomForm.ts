@@ -512,9 +512,9 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       if (result.issues) {
         for (const issue of result.issues) {
           const field = resolveFieldByPath(ctx, issue.path, fields)
-          if (!field) continue
+          if (!field || ctx.get(field.disabled)) continue
 
-          const fieldErrors = touched.get(field) ?? []
+          const fieldErrors = touched.get(field) ?? [...ctx.get(field.validation.errors).filter(e => e.source !== 'schema')]
           fieldErrors.unshift({
             source: 'schema',
             message: issue.message,
