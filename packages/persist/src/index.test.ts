@@ -4,6 +4,7 @@ import { createTestCtx } from '@reatom/testing'
 import { noop, random } from '@reatom/utils'
 import { withComputed } from '@reatom/primitives'
 import { createMemStorage, reatomPersist } from './'
+import { reatomResource, withCache, withDataAtom } from '@reatom/async'
 
 const withSomePersist = reatomPersist(createMemStorage({ name: 'test' }))
 
@@ -38,6 +39,62 @@ describe('base', () => {
     })
     expect(ctx.get(a1)).toBe(12)
     expect(ctx.get(withSomePersist.storageAtom).get(ctx, 'a1')?.data).toBe(12)
+  })
+
+  test('should persist and update cache atom correctly', async () => {
+    const ctx = createTestCtx()
+    const resource = reatomResource(async () => 1, 'resource').pipe(
+      withDataAtom(),
+      withCache({ withPersist: withSomePersist })
+    )
+
+    withSomePersist.storageAtom(
+      ctx,
+      createMemStorage({
+        name: 'test',
+        snapshot: {
+          [resource.cacheAtom.__reatom.name!]: [
+            [
+              [],
+              {
+                value: 1,
+                version: 1,
+                params: [],
+                clearTimeoutId: 0,
+                controller: {},
+                lastUpdate: Date.now(),
+              }
+            ]
+          ]
+        },
+      }),
+    )
+
+    expect(ctx.get(resource.dataAtom)).toBe(1)
+
+    withSomePersist.storageAtom(
+      ctx,
+      createMemStorage({
+        name: 'test',
+        snapshot: {
+          [resource.cacheAtom.__reatom.name!]: [
+            [
+              [],
+              {
+                value: 2,
+                version: 1,
+                params: [],
+                clearTimeoutId: 0,
+                controller: {},
+                lastUpdate: Date.now(),
+              }
+            ]
+          ]
+        },
+      }),
+    )
+
+    expect(ctx.get(resource.dataAtom)).toBe(2)
   })
 })
 
