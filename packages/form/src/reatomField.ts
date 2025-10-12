@@ -552,7 +552,7 @@ export function reatomField<State, Value = State>(
 
     ctx.spy(value)
     const firstError = ctx.spy(validation.errors)[0]?.message
-    return state.triggered
+    return state.triggered && !isCausedBy(ctx, validation.errors)
       ? { ...state, error: firstError, triggered: false }
       : { ...state, error: firstError }
   }

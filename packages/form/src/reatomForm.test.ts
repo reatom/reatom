@@ -109,7 +109,7 @@ test('form submit', async () => {
   ])
 })
 
-test('validation states', async () => {
+describe('validation states', async () => {
   const ctx = createCtx()
   const contract = z.string().refine((v) => v != 'errorValue', 'Contract error')
 
@@ -163,7 +163,7 @@ test('validation states', async () => {
 
   field2.reset(ctx)
 
-  await form.submit(ctx).catch(() => { })
+  await form.submit(ctx).catch(noop)
   expect(ctx.get(form.submit.error)?.message).toBe('Form validation error')
 
   expect(ctx.get(form.validation)).toEqual({
@@ -171,7 +171,6 @@ test('validation states', async () => {
     triggered: true,
     validating: undefined,
   })
-
   const fieldNoValidationTrigger = rest.create(ctx, '')
   fieldNoValidationTrigger.change(ctx, 'value')
 
@@ -188,6 +187,31 @@ test('validation states', async () => {
     errors: [],
     triggered: true,
     validating: undefined,
+  })
+
+  test('correct states with schema', async () => {
+    const form = reatomForm(
+      {
+        field1: { initState: '' },
+        field2: { initState: '', validate: contract },
+      },
+      {
+        name: 'testForm',
+        validateOnChange: true,
+        onSubmit: noop,
+        schema: z.object({
+          field1: z.string().min(1, 'Too short')
+        })
+      },
+    )
+
+    await form.submit(ctx).catch(noop)
+
+    expect(ctx.get(form.validation)).toMatchObject({
+      errors: [{ message: 'Too short' }],
+      triggered: true,
+      validating: undefined,
+    })
   })
 })
 
