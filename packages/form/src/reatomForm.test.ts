@@ -110,86 +110,91 @@ test('form submit', async () => {
 })
 
 describe('validation states', async () => {
-  const ctx = createCtx()
   const contract = z.string().refine((v) => v != 'errorValue', 'Contract error')
+  
+  test('base', async () => {
+    const ctx = createCtx()
 
-  const validate = async (ctx: Ctx, { value }: { value: string }) => {
-    await sleep()
-    if (value === 'errorValue') throw new Error('Contract error')
-  }
+    const validate = async (ctx: Ctx, { value }: { value: string }) => {
+      await sleep()
+      if (value === 'errorValue') throw new Error('Contract error')
+    }
 
-  const form = reatomForm(
-    {
-      field1: { initState: '', validate: contract, validateOnChange: true },
-      field2: { initState: '', validate: contract, validateOnChange: true },
-      field3: { initState: '', validate, validateOnChange: true },
-      rest: experimental_fieldArray<string>([]),
-    },
-    {
-      name: 'testForm',
-      onSubmit: () => { },
-      validateBeforeSubmit: () => {
-        throw new Error('Form validation error')
+    const form = reatomForm(
+      {
+        field1: { initState: '', validate: contract, validateOnChange: true },
+        field2: { initState: '', validate: contract, validateOnChange: true },
+        field3: { initState: '', validate, validateOnChange: true },
+        rest: experimental_fieldArray<string>([]),
       },
-    },
-  )
+      {
+        name: 'testForm',
+        onSubmit: () => { },
+        validateBeforeSubmit: () => {
+          throw new Error('Form validation error')
+        },
+      },
+    )
 
-  const { field1, field2, field3, rest } = form.fields
+    const { field1, field2, field3, rest } = form.fields
 
-  field1.change(ctx, 'value')
-  field2.change(ctx, 'value')
+    field1.change(ctx, 'value')
+    field2.change(ctx, 'value')
 
-  expect(ctx.get(form.validation)).toEqual({
-    errors: [],
-    triggered: false,
-    validating: undefined,
-  })
+    expect(ctx.get(form.validation)).toEqual({
+      errors: [],
+      triggered: false,
+      validating: undefined,
+    })
 
-  field2.change(ctx, 'errorValue')
+    field2.change(ctx, 'errorValue')
 
-  expect(ctx.get(form.validation)).toMatchObject({
-    errors: [{ message: 'Contract error' }],
-    triggered: false,
-    validating: undefined,
-  })
+    expect(ctx.get(form.validation)).toMatchObject({
+      errors: [{ message: 'Contract error' }],
+      triggered: false,
+      validating: undefined,
+    })
 
-  field3.change(ctx, 'hey')
+    field3.change(ctx, 'hey')
 
-  expect(ctx.get(form.validation)).toMatchObject({
-    errors: [{ message: 'Contract error' }],
-    triggered: true,
-  })
-  expect(ctx.get(form.validation).validating).toBeInstanceOf(Promise)
+    expect(ctx.get(form.validation)).toMatchObject({
+      errors: [{ message: 'Contract error' }],
+      triggered: true,
+    })
+    expect(ctx.get(form.validation).validating).toBeInstanceOf(Promise)
 
-  field2.reset(ctx)
+    field2.reset(ctx)
 
-  await form.submit(ctx).catch(noop)
-  expect(ctx.get(form.submit.error)?.message).toBe('Form validation error')
+    await form.submit(ctx).catch(noop)
+    expect(ctx.get(form.submit.error)?.message).toBe('Form validation error')
 
-  expect(ctx.get(form.validation)).toEqual({
-    errors: [],
-    triggered: true,
-    validating: undefined,
-  })
-  const fieldNoValidationTrigger = rest.create(ctx, '')
-  fieldNoValidationTrigger.change(ctx, 'value')
+    expect(ctx.get(form.validation)).toEqual({
+      errors: [],
+      triggered: true,
+      validating: undefined,
+    })
+    const fieldNoValidationTrigger = rest.create(ctx, '')
+    fieldNoValidationTrigger.change(ctx, 'value')
 
-  expect(ctx.get(form.validation)).toEqual({
-    errors: [],
-    triggered: true,
-    validating: undefined,
-  })
+    expect(ctx.get(form.validation)).toEqual({
+      errors: [],
+      triggered: true,
+      validating: undefined,
+    })
 
-  rest.clear(ctx)
-  field1.change(ctx, 'value')
+    rest.clear(ctx)
+    field1.change(ctx, 'value')
 
-  expect(ctx.get(form.validation)).toEqual({
-    errors: [],
-    triggered: true,
-    validating: undefined,
+    expect(ctx.get(form.validation)).toEqual({
+      errors: [],
+      triggered: true,
+      validating: undefined,
+    })
   })
 
   test('correct states with schema', async () => {
+    const ctx = createCtx()
+    
     const form = reatomForm(
       {
         field1: { initState: '' },
