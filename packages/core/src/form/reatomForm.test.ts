@@ -31,8 +31,8 @@ test(`adding and removing fields`, async () => {
 
 test('focus states', () => {
   const form = reatomForm({
-    field1: { initState: '', validate: () => {} },
-    field2: { initState: '', validate: () => {} },
+    field1: { initState: '', validate: () => { } },
+    field2: { initState: '', validate: () => { } },
     list: experimental_fieldArray({
       initState: ['initial'],
       create: (param) => reatomField(param, 'fieldAtom'),
@@ -80,87 +80,114 @@ test('focus states', () => {
   })
 })
 
-test('validation states', async () => {
+describe('validation states', async () => {
   const contract = ({ value }: { value: string }) =>
     value == 'errorValue' ? 'Contract error' : undefined
 
-  const validate = async ({ value }: { value: string }) => {
-    await sleep()
-    if (value === 'errorValue') throw new Error('Contract error')
-  }
+  test('base', async () => {
+    const validate = async ({ value }: { value: string }) => {
+      await sleep()
+      if (value === 'errorValue') throw new Error('Contract error')
+    }
 
-  const form = reatomForm(
-    {
-      field1: { initState: '', validate: contract, validateOnChange: true },
-      field2: { initState: '', validate: contract, validateOnChange: true },
-      field3: { initState: '', validate, validateOnChange: true },
-      rest: experimental_fieldArray<string>([]),
-    },
-    {
-      name: 'testForm',
-      onSubmit: () => {},
-      validateBeforeSubmit: () => {
-        throw new Error('Form validation error')
+    const form = reatomForm(
+      {
+        field1: { initState: '', validate: contract, validateOnChange: true },
+        field2: { initState: '', validate: contract, validateOnChange: true },
+        field3: { initState: '', validate, validateOnChange: true },
+        rest: experimental_fieldArray<string>([]),
       },
-    },
-  )
+      {
+        name: 'testForm',
+        onSubmit: noop,
+        validateBeforeSubmit: () => {
+          throw new Error('Form validation error')
+        },
+      },
+    )
 
-  const { field1, field2, field3, rest } = form.fields
+    const { field1, field2, field3, rest } = form.fields
 
-  field1.change('value')
-  field2.change('value')
+    field1.change('value')
+    field2.change('value')
 
-  expect(form.validation()).toMatchObject({
-    errors: [],
-    triggered: false,
-    validating: undefined,
+    expect(form.validation()).toMatchObject({
+      errors: [],
+      triggered: false,
+      validating: undefined,
+    })
+
+    field2.change('errorValue')
+    notify()
+
+    expect(form.validation()).toMatchObject({
+      errors: [{ message: 'Contract error' }],
+      triggered: false,
+      validating: undefined,
+    })
+
+    field3.change('hey')
+    notify()
+
+    expect(form.validation()).toMatchObject({
+      errors: [{ message: 'Contract error' }],
+      triggered: true,
+    })
+    expect(form.validation().validating).toBeInstanceOf(Promise)
+
+    field2.reset()
+
+    await wrap(form.submit().catch(noop))
+    expect(form.submit.error()?.message).toBe('Form validation error')
+
+    expect(form.validation()).toEqual({
+      errors: [],
+      triggered: true,
+      validating: undefined,
+    })
+
+    const fieldNoValidationTrigger = rest.create('')
+    fieldNoValidationTrigger.change('value')
+
+    expect(form.validation()).toEqual({
+      errors: [],
+      triggered: true,
+      validating: undefined,
+    })
+
+    rest.clear()
+    field1.change('value')
+
+    expect(form.validation()).toEqual({
+      errors: [],
+      triggered: true,
+      validating: undefined,
+    })
   })
 
-  field2.change('errorValue')
-  notify()
+  test('correct states with schema', async () => {
+    const form = reatomForm(
+      {
+        field1: { initState: '' },
+        field2: { initState: '', validate: contract },
+      },
+      {
+        name: 'testForm',
+        validateOnChange: true,
+        onSubmit: noop,
+        schema: z.object({
+          field1: z.string().min(1, 'Too short')
+        })
+      },
+    )
 
-  expect(form.validation()).toMatchObject({
-    errors: [{ message: 'Contract error' }],
-    triggered: false,
-    validating: undefined,
-  })
+    await wrap(form.submit().catch(noop))
 
-  field3.change('hey')
-  notify()
-
-  expect(form.validation()).toMatchObject({
-    errors: [{ message: 'Contract error' }],
-    triggered: true,
-  })
-  expect(form.validation().validating).toBeInstanceOf(Promise)
-
-  field2.reset()
-
-  await wrap(form.submit().catch(() => {}))
-  expect(form.submit.error()?.message).toBe('Form validation error')
-
-  expect(form.validation()).toEqual({
-    errors: [],
-    triggered: true,
-    validating: undefined,
-  })
-
-  const fieldNoValidationTrigger = rest.create('')
-  fieldNoValidationTrigger.change('value')
-
-  expect(form.validation()).toEqual({
-    errors: [],
-    triggered: true,
-    validating: undefined,
-  })
-
-  rest.clear()
-  field1.change('value')
-
-  expect(form.validation()).toEqual({
-    errors: [],
-    triggered: true,
-    validating: undefined,
+    expect(form.validation()).toMatchObject({
+      errors: [{ message: 'Too short' }],
+      triggered: true,
+      validating: undefined,
+    })
   })
 })
 
@@ -233,7 +260,7 @@ test('validation states with disabled fields and defined schema', async () => {
 
 test('default options for fields', async () => {
   const form = reatomForm({
-    field: { initState: 'initial', validate: () => {} },
+    field: { initState: 'initial', validate: () => { } },
     array: experimental_fieldArray(['one', 'two', 'free']),
   })
 
@@ -342,11 +369,11 @@ describe('fieldArray and array literals as a fieldArray', () => {
 test('reset', () => {
   const form = reatomForm(
     {
-      field: { initState: 'initial', validate: () => {} },
+      field: { initState: 'initial', validate: () => { } },
     },
     {
       name: 'testForm',
-      onSubmit: () => {},
+      onSubmit: () => { },
     },
   )
 
@@ -571,6 +598,7 @@ test('correct handling of side errors from schema', async () => {
   expect(form.fields.min.validation().error).toBe(
     INVARIANT_ERR_MSG
   )
+  notify()
   expect(form.fields.min.validation.errors().length).toBe(2)
 
   form.fields.min.change(10)
@@ -613,7 +641,6 @@ test('recipe: concurrent field validation with schema', async () => {
 
   form.fields.age.change(10)
   notify()
-
   expect(form.fields.age.validation()).toMatchObject({
     error: 'must be minimum 18',
   })

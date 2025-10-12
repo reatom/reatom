@@ -219,14 +219,12 @@ describe(`reactivity of validate function`, () => {
 
     const confirmField = reatomField('', {
       name: 'confirmField',
+      validateOnChange: true,
       validate: () => {
-        if(!passwordField.validation().error && passwordField.value() != confirmField.value())
+        if (!passwordField.validation().error && passwordField.value() != confirmField.value())
           return 'Passwords do not match'
       }
     })
-
-    confirmField.focus.subscribe()
-    confirmField.validation.subscribe()
 
     passwordField.change('pass')
     notify()
@@ -241,32 +239,60 @@ describe(`reactivity of validate function`, () => {
     expect(confirmField.validation.errors()).toHaveLength(0)
   })
 
-  test('concurrency', () => {
+  test('concurrency', async () => {
     const burgerField = reatomField('Hamburger', 'burgerField')
 
     const fetchBurgerCookingTime = async (burger: string) => {
-      await sleep(300 + burger.length)
-      if(burger === 'Hamburger') return 10
+      await sleep(1)
+      if (burger === 'Hamburger') return 10
       else return 5
     }
 
     const pickupTimeField = reatomField(0, {
       name: 'pickupTimeField',
+      validateOnChange: true,
       validate: async () => {
         const burger = burgerField.value()
         const pickupTime = pickupTimeField.value()
+        console.log({ burger, pickupTime })
 
         const cookingTime = await wrap(fetchBurgerCookingTime(burger))
-        if(cookingTime > pickupTime)
-          return 'We wont be able to cook the burger on time'
+        if (cookingTime > pickupTime)
+          return 'cookTooLong'
       }
     })
 
-    pickupTimeField.focus.subscribe()
-    pickupTimeField.validation.subscribe()
-
     pickupTimeField.change(8)
     notify()
-    expect(pickupTimeField.validation().validating).toBeInstanceOf(Promise)
+
+    await expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+      errors: [
+        {
+          source: 'validation',
+          message: 'cookTooLong',
+        },
+      ],
+    })
+
+    burgerField.change('Cheeseburger')
+    notify()
+
+    await expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+      errors: [],
+    })
+
+    burgerField.change('Krabby Patty')
+    await wrap(sleep())
+    pickupTimeField.change(3)
+    notify()
+
+    await expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+      errors: [
+        {
+          source: 'validation',
+          message: 'cookTooLong',
+        },
+      ],
+    })
   })
 })

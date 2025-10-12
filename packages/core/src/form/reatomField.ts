@@ -12,6 +12,7 @@ import {
   type BooleanAtom,
   type Computed,
   computed,
+  effect,
   isAbort,
   isCausedBy,
   isDeepEqual,
@@ -397,8 +398,8 @@ export function reatomField<State, Value = State>(
         if (disabled()) return fieldInitValidation
 
         value()
-        const firstError = validation.errors()?.[0]?.message
-        return state.triggered
+        const firstError = validation.errors()[0]?.message
+        return state.triggered // && !isCausedBy(validation.errors)
           ? { ...state, error: firstError, triggered: false }
           : { ...state, error: firstError }
       }),
@@ -529,35 +530,30 @@ export function reatomField<State, Value = State>(
             fieldOptions.value()
           if (!shouldValidate) return target.merge({ triggered: true })
 
-          const propsToMerge = target.runValidation({
-            validation,
-            focus: focus(),
-            state: field(),
-            value: value(),
-            keepErrorDuringValidating,
-          })
-
-          return target.merge(propsToMerge)
+          if (typeof validateFn !== 'function') {
+            const propsToMerge = target.runValidation({
+              validation,
+              focus: focus(),
+              state: field(),
+              value: value(),
+              keepErrorDuringValidating,
+            })
+            return target.merge(propsToMerge)
+          }
+          else {
+            return effect(() => {
+              const propsToMerge = target.runValidation({
+                state: peek(field),
+                validation,
+                focus: peek(focus),
+                value: peek(value),
+                keepErrorDuringValidating,
+              })
+              return target.merge(propsToMerge)
+            }, `${target.name}.trigger.validationEffect`)()
+          }
         }, `${target.name}.trigger`).extend(withAbort()),
       }),
-      (target) => target.extend(
-        withComputed((state) => {
-          if (peek(() => disabled() || !fieldOptions.value().shouldValidate))
-            return state
-
-          if (peek(focus).dirty && typeof validateFn == 'function') {
-            const propsToMerge = target.runValidation({
-              validation: state,
-              focus: peek(focus),
-              state: peek(field),
-              value: peek(value),
-              keepErrorDuringValidating: peek(fieldOptions.value).keepErrorDuringValidating
-            })
-            return { ...state, ...propsToMerge }
-          }
-          return state
-        }),
-      ),
       withAbort(),
     )
     .actions((target) => ({
