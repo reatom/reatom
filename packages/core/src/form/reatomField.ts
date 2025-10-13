@@ -398,13 +398,15 @@ export function reatomField<State, Value = State>(
         if (disabled()) return fieldInitValidation
 
         value()
-        const firstError = validation.errors()[0]?.message
-        return state.triggered // && !isCausedBy(validation.errors)
+        const firstError = peek(validation.errors)[0]?.message
+        return state.triggered 
           ? { ...state, error: firstError, triggered: false }
           : { ...state, error: firstError }
       }),
       () => ({
-        errors: reatomArray<FieldError>([], `${name}.errors`),
+        errors: reatomArray<FieldError>([], `${name}.errors`).extend(
+          withChangeHook((errors) => validation.merge({ error: errors[0]?.message }))
+        ),
       }),
       (target) => ({
         runValidation: ({
