@@ -1,204 +1,570 @@
 ---
 title: Routing
-description: Routing and computed factory in Reatom
+description: Type-safe routing with automatic data loading in Reatom
 ---
 
-Managing what users see and what data is loaded based on the URL is a fundamental part of web applications. Reatom provides elegant tools to handle routing and associated state, building on the principles of atomization and reactive computations. This guide will walk you through the basics, focusing on simplicity and the built-in data loading capabilities.
+Reatom provides a powerful routing system that handles URL management, parameter validation, and data loading with automatic memory management. This guide covers everything from basic routing to advanced patterns.
 
-## Defining Your Routes
+## Quick Start
 
-Routes are created using the `route` function, which creates route atoms that hold the parameters of the route if it's active, or `null` otherwise. Routes can be chained to define nested paths.
-
-Let's create a file, say `src/routes.ts`:
+Here's a minimal example to get you started:
 
 ```typescript
 // src/routes.ts
 import { reatomRoute } from '@reatom/core'
 
 export const homeRoute = reatomRoute('')
+export const aboutRoute = reatomRoute('about')
 
-export const userProfileRoute = reatomRoute('users/:userId')
-
-export const postsRoute = reatomRoute('posts')
-
-export const searchPageRoute = reatomRoute('search')
+// Navigate programmatically
+homeRoute.go({})
+aboutRoute.go({})
 ```
 
-- `homeRoute()` will be an empty object `{}` if the URL is exactly `/`.
-- `userProfileRoute()` will be `{ userId: 'someId' }` if the URL is `/users/someId`.
-- `postsRoute()` will be `{}` if the URL is `/posts`.
-- `searchPageRoute()` will collect search parameters, e.g., for `/search?q=term`, it would be `{ q: 'term' }`.
+```tsx
+// src/App.tsx
+import { reatomComponent } from '@reatom/react'
+import { homeRoute, aboutRoute } from './routes'
 
-### Validating Route and Search Parameters
+export const App = reatomComponent(
+  () => (
+    <div>
+      <nav>
+        <button onClick={wrap(() => homeRoute.go({}))}>Home</button>
+        <button onClick={wrap(() => aboutRoute.go({}))}>About</button>
+      </nav>
 
-For type safety and transformation (e.g., ensuring an ID is a number), you can use schema validation with libraries like `zod`.
+      {homeRoute.exact() && <h1>Home Page</h1>}
+      {aboutRoute.exact() && <h1>About Page</h1>}
+    </div>
+  ),
+  'App',
+)
+```
+
+That's it! Routes automatically sync with the browser URL and history.
+
+## Core Concepts
+
+### Route Atoms
+
+Routes are atoms that return parameters when matched, or `null` when not matched:
 
 ```typescript
-// src/routes.ts (with zod validation and loaders)
+import { reatomRoute } from '@reatom/core'
+
+const userRoute = reatomRoute('users/:userId')
+
+userRoute()
+```
+
+When the URL is `/users/123`, `userRoute()` returns `{ userId: '123' }`.
+When the URL is anything else, `userRoute()` returns `null`.
+
+### Exact vs Partial Matching
+
+Routes can match **partially** (prefix) or **exactly**:
+
+```typescript
+const usersRoute = reatomRoute('users')
+const userRoute = reatomRoute('users/:userId')
+
+// At URL: /users/123
+usersRoute() // { }      - matches partially
+usersRoute.exact() // false    - not an exact match
+userRoute() // { userId: '123' }
+userRoute.exact() // true     - exact match
+```
+
+Use `.exact()` when you only want to render content for that specific route:
+
+```tsx
+// Only show on /users, not /users/123
+{
+  usersRoute.exact() && <UserList />
+}
+
+// Show on both /users/123 and /users/123/edit
+{
+  userRoute() && <UserBreadcrumb userId={userRoute().userId} />
+}
+```
+
+### Navigation
+
+Navigate using the `.go()` method:
+
+```typescript
+// Navigate with parameters
+userRoute.go({ userId: '123' })
+
+// Navigate without parameters
+homeRoute.go({})
+
+// Navigate with type safety - TypeScript error if wrong params
+userRoute.go({ userId: 123 }) // ❌ Error: userId must be string
+```
+
+You can also use `urlAtom` directly for raw URL changes:
+
+```typescript
+import { urlAtom } from '@reatom/core'
+
+// Navigate to any URL
+urlAtom.go('/some/path')
+urlAtom.go('/users/123?tab=posts')
+
+// Read current URL
+const { pathname, search, hash } = urlAtom()
+```
+
+### Route Parameters
+
+Define dynamic segments with `:paramName`:
+
+```typescript
+// Required parameter
+const userRoute = reatomRoute('users/:userId')
+
+// Optional parameter (note the ?)
+const postRoute = reatomRoute('posts/:postId?')
+
+postRoute.go({}) // → /posts
+postRoute.go({ postId: '42' }) // → /posts/42
+```
+
+### Building URLs
+
+Use `.path()` to build URLs without navigating:
+
+```typescript
+const userRoute = reatomRoute('users/:userId')
+
+const url = userRoute.path({ userId: '123' })
+// url === '/users/123'
+
+// Use in links
+<a href={userRoute.path({ userId: '123' })}>View User</a>
+```
+
+You might think, "hmm, but this is going to be a native link with regular browser navigation", but this is not the case: by default, `urlAtom` intercepts clicks on any `<a>` links and makes SPA navigation. You can disable this behavior globally in the entry point of your app like this:
+
+```typescript
+urlAtom.catchLinks(false)
+```
+
+## Nested Routes
+
+Build route hierarchies by chaining `.reatomRoute()`:
+
+```typescript
+// src/routes.ts
+import { reatomRoute } from '@reatom/core'
+
+export const dashboardRoute = reatomRoute('dashboard')
+export const usersRoute = apiRoute.reatomRoute('users')
+export const userRoute = usersRoute.reatomRoute(':userId')
+export const userEditRoute = userRoute.reatomRoute('edit')
+
+// At URL: /dashboard/users/123/edit
+dashboardRoute() // { }
+usersRoute() // { }
+userRoute() // { userId: '123' }
+userEditRoute() // { userId: '123' }
+
+dashboardRoute.exact() // false
+usersRoute.exact() // false
+userRoute.exact() // false
+userEditRoute.exact() // true
+```
+
+Nested routes inherit parent parameters:
+
+```typescript
+// Navigate to /dashboard/users/123/edit
+userEditRoute.go({ userId: '123' })
+
+// All parent routes automatically match
+dashboardRoute() // { }
+usersRoute() // { }
+userRoute() // { userId: '123' }
+```
+
+This makes layouts and breadcrumbs simple:
+
+```tsx
+export const App = reatomComponent(
+  () => (
+    <div>
+      {dashboardRoute() && (
+        <DashboardLayout>
+          {usersRoute() && <UsersLayout />}
+          {userRoute() && <UserProfile userId={userRoute().userId} />}
+          {userEditRoute.exact() && <UserEditor />}
+        </DashboardLayout>
+      )}
+    </div>
+  ),
+  'App',
+)
+```
+
+## Path Parameters
+
+You can define, validate and transform parameters using Zod schemas or other [Standard Schema](https://standardschema.dev/) compatible validation:
+
+```typescript
+import { reatomRoute } from '@reatom/core'
+import { z } from 'zod/v4'
+
+export const userRoute = reatomRoute({
+  path: 'users/:userId',
+  params: z.object({
+    userId: z.string().regex(/^\d+$/).transform(Number),
+  }),
+})
+
+// Type-safe: userId is now a number
+userRoute.go({ userId: '123' }) // ✅ Valid
+userRoute.go({ userId: 'abc' }) // ❌ Throws validation error
+
+// At URL: /users/123
+const params = userRoute()
+params.userId // Type: number, Value: 123
+```
+
+If validation fails, the route returns `null`:
+
+```typescript
+// At URL: /users/invalid
+userRoute() // null (validation failed)
+```
+
+## Search Parameters
+
+Define query string parameters with the `search` option:
+
+```typescript
+export const searchRoute = reatomRoute({
+  path: 'search',
+  search: z.object({
+    q: z.string().optional(),
+    page: z.string().regex(/^\d+$/).transform(Number).default(1),
+    sort: z.enum(['asc', 'desc']).optional(),
+  }),
+})
+
+// Navigate with query params
+searchRoute.go({ q: 'reatom', page: 2, sort: 'desc' })
+// URL: /search?q=reatom&page=2&sort=desc
+
+// At URL: /search?q=reatom
+const params = searchRoute()
+params.q // 'reatom'
+params.page // 1 (default applied)
+params.sort // undefined
+```
+
+### Search-Only Routes
+
+Routes can have **only** search parameters with no path. These are useful for global overlays like modals or filters.
+
+#### Standalone Search-Only Routes
+
+A search-only route preserves the current pathname:
+
+```typescript
+export const dialogRoute = reatomRoute({
+  search: z.object({
+    dialog: z.enum(['login', 'signup']).optional(),
+  }),
+})
+
+// User is at /profile/123
+dialogRoute.go({ dialog: 'login' })
+// URL: /profile/123?dialog=login (pathname preserved)
+
+// Navigate elsewhere
+urlAtom.go('/settings')
+// dialogRoute() still works: reads ?dialog param from any URL
+
+// Close dialog
+dialogRoute.go({})
+// URL: /settings (search params cleared)
+```
+
+This is perfect for modals that work across your entire app:
+
+```tsx
+export const LoginDialog = reatomComponent(() => {
+  const params = dialogRoute()
+  if (params?.dialog !== 'login') return null
+
+  return (
+    <dialog open>
+      <h2>Login</h2>
+      <button onClick={wrap(() => dialogRoute.go({}))}>Close</button>
+    </dialog>
+  )
+}, 'LoginDialog')
+```
+
+#### Nested Search-Only Routes
+
+Search-only routes under a parent navigate to the parent's path:
+
+```typescript
+const settingsRoute = reatomRoute('settings')
+const settingsDialogRoute = settingsRoute.reatomRoute({
+  search: z.object({
+    dialog: z.enum(['export', 'import']).optional(),
+  }),
+})
+
+// User is at /home
+settingsDialogRoute.go({ dialog: 'export' })
+// URL: /settings?dialog=export (navigates to parent path)
+
+// User is at /settings/profile
+settingsDialogRoute.go({ dialog: 'import' })
+// URL: /settings/profile?dialog=import (preserves sub-path)
+```
+
+Use cases:
+
+- Modal dialogs scoped to specific sections
+- Filters that persist across related pages
+- Authentication overlays
+- Settings panels
+
+### Avoiding Parameter Collisions
+
+Be careful not to use the same name in both path and search parameters:
+
+```typescript
+const badRoute = reatomRoute({
+  path: 'posts/:id',
+  search: z.record(z.string()), // Accepts any query param including 'id'
+})
+
+// At URL: /posts/123?id=456
+badRoute() // ❌ Throws: "Params collision"
+```
+
+Keep parameter names unique or use strict search schemas:
+
+```typescript
+const goodRoute = reatomRoute({
+  path: 'posts/:postId',
+  search: z.object({
+    commentId: z.string().optional(),
+  }),
+})
+```
+
+## Data Loading with Loaders
+
+Loaders automatically fetch data when a route becomes active:
+
+```typescript
 import { reatomRoute, wrap } from '@reatom/core'
 import { z } from 'zod'
-import * as api from './api'
 
-export const userProfileRoute = reatomRoute({
+export const userRoute = reatomRoute({
   path: 'users/:userId',
   params: z.object({
     userId: z.string().regex(/^\d+$/).transform(Number),
   }),
   async loader(params) {
-    const userData = await wrap(api.getUserProfile(params.userId))
-    return userData
-  },
-})
-
-export const searchPageRoute = reatomRoute({
-  path: 'search',
-  search: z.object({
-    query: z.string().optional(),
-    page: z.string().regex(/^\d+$/).transform(Number).optional().default(1),
-  }),
-  async loader(params) {
-    if (!params.query) return { results: [], total: 0 }
-
-    const searchResults = await wrap(api.search(params.query, params.page))
-    return searchResults
+    const user = await wrap(
+      fetch(`/api/users/${params.userId}`).then((r) => r.json()),
+    )
+    return user
   },
 })
 ```
 
-If `params` or `search` validation fails, the entire route match becomes `null`.
-
-## Creating Page Components
-
-Page components use route atoms and their loaders to determine what to render.
+The loader automatically provides async state tracking:
 
 ```tsx
-// src/components/HomePage.tsx
-import { reatomComponent } from '@reatom/react'
-import { homeRoute } from '../routes'
-
-export const HomePage = reatomComponent(() => {
-  if (!homeRoute.exact()) return null
-  return <h1>Welcome Home!</h1>
-}, 'HomePage')
-```
-
-```tsx
-// src/components/UserProfilePage.tsx
-import { reatomComponent } from '@reatom/react'
-import { userProfileRoute } from '../routes'
-
-export const UserProfilePage = reatomComponent(() => {
-  const params = userProfileRoute()
+export const UserPage = reatomComponent(() => {
+  const params = userRoute()
   if (!params) return null
 
-  // Using the route loader's async data properties
-  const isReady = userProfileRoute.loader.ready()
-  const userData = userProfileRoute.loader.data()
-  const error = userProfileRoute.loader.error()
+  const ready = userRoute.loader.ready()
+  const user = userRoute.loader.data()
+  const error = userRoute.loader.error()
 
-  if (!isReady) return <div>Loading profile for user {params.userId}...</div>
+  if (!ready) return <div>Loading user {params.userId}...</div>
   if (error)
     return (
       <div>
-        Error: {error.message}{' '}
-        <button onClick={() => userProfileRoute.loader.reset()}>Retry</button>
+        Error: {error.message}
+        <button onClick={wrap(userRoute.loader.reset)}>Retry</button>
       </div>
     )
 
   return (
     <div>
-      <h1>{userData.name}</h1>
-      <p>Bio: {userData.bio}</p>
-      <button
-        onClick={() =>
-          userProfileRoute.go({
-            userId: params.userId === 1 ? 2 : 1,
-          })
-        }
-      >
-        View Another Profile
-      </button>
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
     </div>
   )
-}, 'UserProfilePage')
+}, 'UserPage')
 ```
 
+### Loader State Properties
+Since route loader it's an async computed, you can access the same properties that available with `withAsyncData` extension:
+
+- `loader.ready()` - Boolean atom that is `true` when data has loaded successfully
+- `loader.data()` - Atom with the loaded data (throws if not ready)
+- `loader.error()` - Atom with error if loading failed, `null` otherwise
+- `loader.retry()` - Action to trigger a retry for loader, that will rerun the loader function
+
+### Default Loader
+
+If you don't provide a loader but do provide validation schemas, a default loader returns the validated parameters:
+
+```typescript
+const searchRoute = reatomRoute({
+  path: 'search',
+  search: z.object({
+    q: z.string(),
+    page: z.number().default(1),
+  }),
+})
+
+// Default loader returns validated params
+const params = await wrap(searchRoute.loader())
+params.q // string
+params.page // number
+```
+
+### Loader with Nested Routes
+
+Child route loaders can access parent params:
+
+```typescript
+const userRoute = reatomRoute({
+  path: 'users/:userId',
+  params: z.object({
+    userId: z.string().transform(Number),
+  }),
+  async loader(params) {
+    const user = await wrap(
+      fetch(`/api/users/${params.userId}`).then((r) => r.json()),
+    )
+    return user
+  },
+})
+
+const userPostsRoute = userRoute.reatomRoute({
+  path: 'posts',
+  // loaders params includes parent route params
+  async loader({ userId }) {
+    const posts = await wrap(
+      fetch(`/api/users/${userId}/posts`).then((r) => r.json()),
+    )
+    return posts
+  },
+})
+```
+
+### Automatic Abort on Navigation
+
+Loaders are automatically aborted when navigating away:
+
+```typescript
+const lazyRoute = reatomRoute({
+  path: 'dashboard',
+  async loader() {
+    // This effect runs while the route is active and as long as the louder's 
+    // dependencies do not change (its parameters or any other atoms reactively 
+    // called inside this callback)
+    effect(async () => {
+      while (true) {
+        await wrap(sleep(5000))
+        // Doing retry every 5 seconds there, just a regular pooling implementation
+        lazyRoute.loader.retry() 
+      }
+    })
+
+    // Long-running fetch that will also be aborted with the effect above
+    const data = await wrap(fetch('/api/dashboard').then((r) => r.json()))
+    return data
+  },
+})
+
+// Navigate away
+someOtherRoute.go({})
+// ✅ Loader fetch and effects are automatically aborted
+```
+
+## Building Page Components
+
+### Basic Page Component
+
 ```tsx
-// src/components/SearchPage.tsx
 import { reatomComponent } from '@reatom/react'
-import { searchPageRoute } from '../routes'
+import { homeRoute } from '../routes'
 
-export const SearchPage = reatomComponent(() => {
-  const params = searchPageRoute()
-  if (!params) return null
-
-  const isReady = searchPageRoute.loader.ready()
-  const searchData = searchPageRoute.loader.data()
-  const error = searchPageRoute.loader.error()
+export const HomePage = reatomComponent(() => {
+  if (!homeRoute.exact()) return null
 
   return (
     <div>
-      <h1>Search Results</h1>
-      {params.query && (
-        <p>
-          Searching for: "{params.query}" (Page {params.page})
-        </p>
-      )}
-
-      {!isReady && <div>Searching...</div>}
-      {error && <div>Error: {error.message}</div>}
-      {isReady && searchData && (
-        <div>
-          <p>Found {searchData.total} results</p>
-          <ul>
-            {searchData.results.map((result) => (
-              <li key={result.id}>{result.title}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <h1>Welcome Home!</h1>
     </div>
   )
-}, 'SearchPage')
+}, 'HomePage')
 ```
 
-Your main `App` component assembles these pages.
+### Page with Loader
 
 ```tsx
-// src/App.tsx
-import React from 'react'
+import { reatomComponent } from '@reatom/react'
+import { userRoute } from '../routes'
+
+export const UserPage = reatomComponent(() => {
+  const params = userRoute()
+  if (!params) return null
+
+  const ready = userRoute.loader.ready()
+  const user = userRoute.loader.data()
+  const error = userRoute.loader.error()
+
+  if (!ready) return <div>Loading...</div>
+  if (error) return <div>Error: {error.message}</div>
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
+    </div>
+  )
+}, 'UserPage')
+```
+
+### Main App Component
+
+```tsx
 import { reatomComponent } from '@reatom/react'
 import { HomePage } from './components/HomePage'
-import { UserProfilePage } from './components/UserProfilePage'
-import { SearchPage } from './components/SearchPage'
-import { homeRoute, userProfileRoute, searchPageRoute } from './routes'
-
-const Nav = reatomComponent(
-  () => (
-    <nav>
-      <button onClick={() => homeRoute.go({})}>Home</button>
-      <button onClick={() => userProfileRoute.go({ userId: 1 })}>
-        User 1 Profile
-      </button>
-      <button onClick={() => userProfileRoute.go({ userId: 2 })}>
-        User 2 Profile
-      </button>
-      <button onClick={() => searchPageRoute.go({ query: 'reatom', page: 1 })}>
-        Search
-      </button>
-    </nav>
-  ),
-  'Nav',
-)
+import { UserPage } from './components/UserPage'
+import { homeRoute, userRoute } from './routes'
 
 export const App = reatomComponent(
   () => (
     <div>
-      <Nav />
+      <nav>
+        <button onClick={wrap(() => homeRoute.go({}))}>Home</button>
+        <button onClick={wrap(() => userRoute.go({ userId: '1' }))}>User 1</button>
+        <button onClick={wrap(() => userRoute.go({ userId: '2' }))}>User 2</button>
+      </nav>
+
       <main>
         <HomePage />
-        <UserProfilePage />
-        <SearchPage />
+        <UserPage />
       </main>
     </div>
   ),
@@ -206,262 +572,269 @@ export const App = reatomComponent(
 )
 ```
 
-## Route Loaders and Data Management
+## Advanced Patterns
 
-Each route with a `loader` option automatically extends the route with async data capabilities. The loader provides three key properties:
+### Global Loading State
 
-- `loader.ready()` - boolean indicating if data has been successfully loaded
-- `loader.data()` - the loaded data (only available when ready is true)
-- `loader.error()` - any error that occurred during loading
-
-### Simple Route with Loader
-
-```tsx
-// src/routes.ts
-import { reatomRoute, wrap } from '@reatom/core'
-import * as api from './api'
-
-export const postsRoute = reatomRoute({
-  path: 'posts',
-  async loader() {
-    const posts = await wrap(api.getPosts())
-    return posts
-  },
-})
-```
-
-### Complex Route with Parameters and Error Handling
-
-```tsx
-// src/routes.ts
-import { reatomRoute, wrap } from '@reatom/core'
-import { z } from 'zod'
-import * as api from './api'
-
-export const postDetailRoute = reatomRoute({
-  path: 'posts/:postId',
-  params: z.object({
-    postId: z.string().regex(/^\d+$/).transform(Number),
-  }),
-  search: z.object({
-    comment: z.string().optional(),
-  }),
-  async loader(params) {
-    const post = await wrap(api.getPost(params.postId))
-
-    // If there's a comment parameter, load that too
-    if (params.comment) {
-      const comment = await wrap(api.getComment(params.comment))
-      post.highlightedComment = comment
-    }
-
-    return post
-  },
-})
-```
-
-## Route Registry and Global Loading State
-
-All routes are automatically registered in `urlAtom.routes`, which maintains a registry of all route atoms in your application. This is particularly useful for some analyses or debugging, or creating global loading indicators that track the loading state of any active routes.
+Track if any route is loading using the route registry:
 
 ```typescript
-// src/globalState.ts
 import { urlAtom, computed } from '@reatom/core'
 
-// Create a computed that tracks if any route is currently loading
-export const isAnyRouteLoading = computed(
-  () => Object.values(urlAtom.routes).some((route) => !route.loader.ready()),
-  'isAnyRouteLoading',
-)
+export const isAnyRouteLoading = computed(() => {
+  return Object.values(urlAtom.routes).some((route) => !route.loader.ready())
+}, 'isAnyRouteLoading')
 ```
 
-This pattern is excellent for showing global loading spinners, progress bars, or other UI feedback when any part of your application is fetching route-related data.
+```tsx
+export const GlobalLoader = reatomComponent(() => {
+  const loading = isAnyRouteLoading()
+  if (!loading) return null
 
-## The Revolutionary "Computed Factory" Pattern
+  return <div className="loading-bar">Loading...</div>
+}, 'GlobalLoader')
+```
 
-Here's where Reatom's routing system becomes truly revolutionary, solving one of the most fundamental problems in state management: **memory management in global state**.
+All routes are automatically registered in `urlAtom.routes`, making it easy to create global loading indicators or debug route state.
 
-### The State Management Dilemma
+### The Computed Factory Pattern
 
-Traditional state management faces a classic dilemma:
+One of Reatom's most powerful features is creating state **inside route loaders**. This solves the classic state management problem: automatic memory management in global state.
 
-- **Local state** (like React's `useState`) has perfect memory management - it's automatically cleaned up when components unmount. But it suffers from sharing problems: prop drilling, code duplication, and complex type definitions.
-- **Global state** solves sharing beautifully - no prop drilling, easy access anywhere, shared types. But it creates a massive memory management problem: when do you clean up global state? How do you know when it's safe to dispose of data?
+#### The Problem
 
-### The Computed Factory Solution
+- **Local state** (`useState`) has automatic cleanup but suffers from prop drilling
+- **Global state** is easy to share but requires manual memory management
 
-Reatom's computed factory pattern **solves both problems simultaneously**! 🎉
+#### The Solution
 
-Instead of creating atoms in global scope, you create them **inside computeds** (like route loaders). This gives you:
-
-- ✅ **Easy global access** - `myRoute.loader.data().form.fields.username()`
-- ✅ **No extra code or type definitions** - everything flows naturally
-- ✅ **Perfect automatic memory management** - when computed dependencies change, the function re-executes and previous states are garbage collected
-- ✅ **Intentional and expected lifecycle** - just like local component state, but globally accessible
-
-### How It Works in Practice
-
-When a route loader executes, it can create forms, API clients, derived state, or any complex state structure:
+Create atoms inside computeds (like route loaders) for automatic cleanup:
 
 ```typescript
-// src/routes.ts
-import { wrap, reatomForm, isShallowEqual, deatomize } from '@reatom/core'
+import {
+  reatomRoute,
+  reatomForm,
+  computed,
+  isShallowEqual,
+  deatomize,
+  wrap,
+} from '@reatom/core'
 import { z } from 'zod'
-import * as api from './api'
 
-export const userEditRoute = userProfileRoute.route({
+const userRoute = reatomRoute({
+  path: 'users/:userId',
+  params: z.object({
+    userId: z.string().transform(Number),
+  }),
+  async loader(params) {
+    const user = await wrap(
+      fetch(`/api/users/${params.userId}`).then((r) => r.json()),
+    )
+    return user
+  },
+})
+
+export const userEditRoute = userRoute.reatomRoute({
   path: 'edit',
   async loader(params) {
-    // Already loaded, as it is a child route
-    const { id, name, email, bio } = userProfileRoute.loader.data()
+    const user = userRoute.loader.data()
 
-    // Create a form factory INSIDE the loader!
-    // This form will be automatically cleaned up when the route changes
+    // Create a form INSIDE the loader
+    // It will be automatically cleaned up when the route changes
     const editForm = reatomForm(
-      { name, bio },
+      { name: user.name, bio: user.bio },
       {
         onSubmit: async (values) => {
-          if (hasUnsavedChanges()) {
-            await api.updateUser(id, values)
+          if (editForm.focus().dirty) {
+            await wrap(
+              fetch(`/api/users/${user.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(values),
+              }),
+            )
           }
         },
-        name: `userEditForm#${id}`,
+        name: `userEditForm#${user.id}`,
       },
     )
 
-    // Create derived state that depends on both user data and form
-    const hasUnsavedChanges = computed(
-      () => !isShallowEqual(deatomize(editForm.fields), { name, bio }),
-    )
-
     return {
-      userData,
-      editForm,
-      hasUnsavedChanges,
+      user,
+      editForm
     }
   },
 })
 ```
 
-### The Magic of Automatic Cleanup
-
-When the user navigates from `/users/123/edit` to `/users/456/edit`, something beautiful happens:
-
-1. The loader function executes with new params `{ userId: 456 }`
-2. A completely new form is created for user 456
-3. The previous form for user 123 is **automatically garbage collected**
-4. No memory leaks, no manual cleanup, no complex lifecycle management
-
-You can access the form globally from any component:
+Now access the form globally from any component:
 
 ```tsx
-// src/components/UserEditPage.tsx
-import { reatomComponent, bindField } from '@reatom/react'
-import { userEditRoute } from '../routes'
-
 export const UserEditPage = reatomComponent(() => {
-  const routeData = userEditRoute()
-  if (!routeData) return null
+  const params = userEditRoute()
+  if (!params) return null
 
-  const isReady = userEditRoute.loader.ready()
+  const ready = userEditRoute.loader.ready()
   const data = userEditRoute.loader.data()
   const error = userEditRoute.loader.error()
 
-  if (!isReady) return <div>Loading user editor...</div>
+  if (!ready) return <div>Loading editor...</div>
   if (error) return <div>Error: {error.message}</div>
 
-  // Direct access to the form created in the loader!
-  const { editForm, hasUnsavedChanges } = data
+  const { editForm } = data
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        editForm.submit()
+        editForm.submit().catch(noop)
       }}
     >
-      <input placeholder="Name" {...bindField(editForm.fields.name)} />
-      <textarea placeholder="Bio" {...bindField(editForm.fields.bio)} />
+      <input
+        name="name"
+        {...bindField(editForm.fields.name)}
+      />
+      <textarea
+        name="bio"
+        {...bindField(editForm.fields.bio)}
+      />
 
-      {hasUnsavedChanges() && <div>⚠️ You have unsaved changes</div>}
+      {editForm.focus().dirty && <div>⚠️ Unsaved changes</div>}
 
       <button type="submit" disabled={!editForm.submit.ready()}>
-        Save Changes
+        Save
       </button>
     </form>
   )
 }, 'UserEditPage')
 ```
 
-### Advanced Factory Patterns
+#### Automatic Memory Management
 
-You can create incredibly sophisticated state factories:
+When navigating from `/users/123/edit` to `/users/456/edit`:
+
+1. Loader executes with `{ userId: 456 }`
+2. New form is created for user 456
+3. **Previous form for user 123 is automatically garbage collected**
+4. No memory leaks, no manual cleanup
+
+This gives you:
+
+- ✅ Global accessibility (no prop drilling)
+- ✅ Automatic memory management (like local state)
+- ✅ Perfect type inference
+- ✅ No manual lifecycle management
+
+#### Complex State Factories
+
+Create sophisticated interconnected systems:
 
 ```typescript
+import { reatomRoute, reatomForm, computed, effect, wrap } from '@reatom/core'
+
 export const dashboardRoute = reatomRoute({
   path: 'dashboard',
   async loader() {
-    // Create multiple interconnected systems
-    const userApi = createApiClient('/api/user')
-    const analyticsApi = createApiClient('/api/analytics')
-
     // Load initial data
-    const user = await wrap(userApi.getCurrentUser())
-    const stats = await wrap(analyticsApi.getStats())
+    const user = await wrap(fetch('/api/user').then((r) => r.json()))
 
-    // Create forms for different dashboard sections
-    const profileForm = reatomForm(user, {
-      onSubmit: async (values) => await userApi.updateProfile(values),
+    // Create multiple forms
+    const profileForm = reatomForm(user.profile, {
+      onSubmit: async (values) => {
+        await wrap(
+          fetch('/api/profile', {
+            method: 'PUT',
+            body: JSON.stringify(values),
+          }),
+        )
+      },
     })
 
     const settingsForm = reatomForm(user.settings, {
-      onSubmit: async (values) => await userApi.updateSettings(values),
+      onSubmit: async (values) => {
+        await wrap(
+          fetch('/api/settings', {
+            method: 'PUT',
+            body: JSON.stringify(values),
+          }),
+        )
+      },
     })
 
-    // Create derived state that spans multiple systems
-    const dashboardState = computed(() => ({
-      isProfileComplete:
-        profileForm.fields.name() && profileForm.fields.email(),
-      totalForms: [profileForm, settingsForm].filter((f) => f.dirty()).length,
-      hasNotifications: stats.notifications > 0,
-    }))
+    // Creating an async action to fetch stats
+    const fetchStats = action(async () => {
+      const stats = await wrap(fetch('/api/stats').then((r) => r.json()))
+      return stats
+    }).extend(withAsyncData())
 
-    // Create an effect that runs while this route is active
-    // It will be automatically aborted when the route changes
+    // Polling effect that runs while route is active
     effect(async () => {
       while (true) {
-        await wrap(sleep(30000)) // Wait 30 seconds
-        // Refresh analytics data periodically
-        const newStats = await wrap(analyticsApi.getStats())
-        // Update some local state or trigger notifications
-        if (newStats.hasNewActivity) {
-          // Handle new activity
-        }
+        await wrap(sleep(30_000))
+        fetchStats()
+      }
+    })
+
+    // Derived state across multiple systems
+    const dashboardState = computed(() => {
+      const stats = fetchStats.data()
+      return {
+        isProfileComplete: !!(
+          profileForm.fields.name() && profileForm.fields.email()
+        ),
+        dirtyFormsCount: [profileForm, settingsForm].filter((f) => f.focus().dirty).length,
+        hasNotifications: stats ? stats.notifications > 0 : null,
       }
     })
 
     return {
       user,
-      stats,
+      stats: fetchStats.data,
       profileForm,
       settingsForm,
       dashboardState,
-      // Even create nested sub-routes with their own factories!
-      createSubSection: (sectionId: string) =>
-        createSectionFactory(sectionId, user),
     }
   },
 })
 ```
 
-### Why This Changes Everything
+This pattern provides:
 
-This pattern fundamentally changes how we think about state management:
+- **No global singletons** - fresh state for each route activation
+- **No manual cleanup** - automatic garbage collection
+- **No state pollution** - clean slate on navigation
+- **Perfect composition** - factories can create any state structure
+- **Type safety** - complete inference through the chain
 
-- **No global singletons** - each route activation creates fresh, isolated state
-- **No manual cleanup** - garbage collection handles everything automatically
-- **No state pollution** - switching between users/contexts creates clean slates
-- **Perfect composition** - factories can create other factories, forms, APIs, anything
-- **Type safety paradise** - Types are inferred perfectly through the computed chain
+## Troubleshooting
 
-It's like having the best of both worlds: the automatic lifecycle of local state with the global accessibility and sharing capabilities of global state. This is truly revolutionary! 🚀
+Summary of common errors and their solution
+
+### Validation errors
+
+We know that any URL parameters, whether they are path parameters or search parameters, are all strings, so they are an input for parsing and validating these parameters through the Standard Schema library. Therefore, in order to satisfy the validation contract for any route parameters, input must always be compatible with a string, and then it can be converted to anything you want.
+
+```typescript
+const route = reatomRoute({
+  path: 'users/:userId',
+  params: z.object({
+    userId: z.number(), // ❌ URL params are always strings!
+  }),
+})
+```
+
+If you use Zod, then the easiest way to follow the contract is to do coerce which will make the input parameters of the `unknown` type
+```typescript
+const route = reatomRoute({
+  path: 'users/:userId',
+  params: z.object({
+    userId: z.coerce.number(), // ✅ Correct: use type coercion or explicit transform from string to number
+  }),
+})
+```
+
+## Next Steps
+
+- Learn about [Forms](/handbook/forms) to build complex forms with validation
+- Explore [Async Context](/handbook/async-context) to understand `wrap()` and async effects
+- Check out [Persistence](/handbook/persist) to save route state across sessions
+- Read about [Testing](/handbook/testing) to test your routes in isolation
