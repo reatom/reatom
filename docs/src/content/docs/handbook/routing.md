@@ -26,17 +26,20 @@ aboutRoute.go({})
 import { reatomComponent } from '@reatom/react'
 import { homeRoute, aboutRoute } from './routes'
 
-export const App = reatomComponent(() => (
-  <div>
-    <nav>
-      <button onClick={() => homeRoute.go({})}>Home</button>
-      <button onClick={() => aboutRoute.go({})}>About</button>
-    </nav>
-    
-    {homeRoute.exact() && <h1>Home Page</h1>}
-    {aboutRoute.exact() && <h1>About Page</h1>}
-  </div>
-), 'App')
+export const App = reatomComponent(
+  () => (
+    <div>
+      <nav>
+        <button onClick={() => homeRoute.go({})}>Home</button>
+        <button onClick={() => aboutRoute.go({})}>About</button>
+      </nav>
+
+      {homeRoute.exact() && <h1>Home Page</h1>}
+      {aboutRoute.exact() && <h1>About Page</h1>}
+    </div>
+  ),
+  'App',
+)
 ```
 
 That's it! Routes automatically sync with the browser URL and history.
@@ -67,20 +70,24 @@ const usersRoute = reatomRoute('users')
 const userRoute = reatomRoute('users/:userId')
 
 // At URL: /users/123
-usersRoute()        // { }      - matches partially
-usersRoute.exact()  // false    - not an exact match
-userRoute()         // { userId: '123' }
-userRoute.exact()   // true     - exact match
+usersRoute() // { }      - matches partially
+usersRoute.exact() // false    - not an exact match
+userRoute() // { userId: '123' }
+userRoute.exact() // true     - exact match
 ```
 
 Use `.exact()` when you only want to render content for that specific route:
 
 ```tsx
 // Only show on /users, not /users/123
-{usersRoute.exact() && <UserList />}
+{
+  usersRoute.exact() && <UserList />
+}
 
 // Show on both /users/123 and /users/123/edit
-{userRoute() && <UserBreadcrumb userId={userRoute().userId} />}
+{
+  userRoute() && <UserBreadcrumb userId={userRoute().userId} />
+}
 ```
 
 ### Navigation
@@ -122,7 +129,7 @@ const userRoute = reatomRoute('users/:userId')
 // Optional parameter (note the ?)
 const postRoute = reatomRoute('posts/:postId?')
 
-postRoute.go({})              // → /posts
+postRoute.go({}) // → /posts
 postRoute.go({ postId: '42' }) // → /posts/42
 ```
 
@@ -154,15 +161,15 @@ export const userRoute = usersRoute.route(':userId')
 export const userEditRoute = userRoute.route('edit')
 
 // At URL: /api/users/123/edit
-apiRoute()         // { }
-usersRoute()       // { }
-userRoute()        // { userId: '123' }
-userEditRoute()    // { userId: '123' }
+apiRoute() // { }
+usersRoute() // { }
+userRoute() // { userId: '123' }
+userEditRoute() // { userId: '123' }
 
-apiRoute.exact()       // false
-usersRoute.exact()     // false
-userRoute.exact()      // false
-userEditRoute.exact()  // true
+apiRoute.exact() // false
+usersRoute.exact() // false
+userRoute.exact() // false
+userEditRoute.exact() // true
 ```
 
 Nested routes inherit parent parameters:
@@ -172,22 +179,25 @@ Nested routes inherit parent parameters:
 userEditRoute.go({ userId: '123' })
 
 // All parent routes automatically match
-apiRoute()      // { }
-usersRoute()    // { }
-userRoute()     // { userId: '123' }
+apiRoute() // { }
+usersRoute() // { }
+userRoute() // { userId: '123' }
 ```
 
 This makes layouts and breadcrumbs simple:
 
 ```tsx
-export const App = reatomComponent(() => (
-  <div>
-    {apiRoute() && <ApiLayout />}
-    {usersRoute() && <UsersLayout />}
-    {userRoute() && <UserProfile userId={userRoute().userId} />}
-    {userEditRoute.exact() && <UserEditor />}
-  </div>
-), 'App')
+export const App = reatomComponent(
+  () => (
+    <div>
+      {apiRoute() && <ApiLayout />}
+      {usersRoute() && <UsersLayout />}
+      {userRoute() && <UserProfile userId={userRoute().userId} />}
+      {userEditRoute.exact() && <UserEditor />}
+    </div>
+  ),
+  'App',
+)
 ```
 
 ## Parameter Validation with Zod
@@ -206,8 +216,8 @@ export const userRoute = reatomRoute({
 })
 
 // Type-safe: userId is now a number
-userRoute.go({ userId: '123' })  // ✅ Valid
-userRoute.go({ userId: 'abc' })  // ❌ Throws validation error
+userRoute.go({ userId: '123' }) // ✅ Valid
+userRoute.go({ userId: 'abc' }) // ❌ Throws validation error
 
 // At URL: /users/123
 const params = userRoute()
@@ -241,7 +251,7 @@ searchRoute.go({ q: 'reatom', page: 2, sort: 'desc' })
 
 // At URL: /search?q=reatom
 const params = searchRoute()
-params.q    // 'reatom'
+params.q // 'reatom'
 params.page // 1 (default applied)
 params.sort // undefined
 ```
@@ -280,7 +290,7 @@ This is perfect for modals that work across your entire app:
 export const LoginDialog = reatomComponent(() => {
   const params = dialogRoute()
   if (params?.dialog !== 'login') return null
-  
+
   return (
     <dialog open>
       <h2>Login</h2>
@@ -312,6 +322,7 @@ settingsDialogRoute.go({ dialog: 'import' })
 ```
 
 Use cases:
+
 - Modal dialogs scoped to specific sections
 - Filters that persist across related pages
 - Authentication overlays
@@ -356,8 +367,9 @@ export const userRoute = reatomRoute({
     userId: z.string().regex(/^\d+$/).transform(Number),
   }),
   async loader(params) {
-    const response = await fetch(`/api/users/${params.userId}`)
-    const user = await response.json()
+    const user = await wrap(
+      fetch(`/api/users/${params.userId}`).then((r) => r.json()),
+    )
     return user
   },
 })
@@ -369,19 +381,20 @@ The loader automatically provides async state tracking:
 export const UserPage = reatomComponent(() => {
   const params = userRoute()
   if (!params) return null
-  
+
   const isReady = userRoute.loader.ready()
   const user = userRoute.loader.data()
   const error = userRoute.loader.error()
-  
+
   if (!isReady) return <div>Loading user {params.userId}...</div>
-  if (error) return (
-    <div>
-      Error: {error.message}
-      <button onClick={() => userRoute.loader.reset()}>Retry</button>
-    </div>
-  )
-  
+  if (error)
+    return (
+      <div>
+        Error: {error.message}
+        <button onClick={() => userRoute.loader.reset()}>Retry</button>
+      </div>
+    )
+
   return (
     <div>
       <h1>{user.name}</h1>
@@ -413,13 +426,13 @@ const searchRoute = reatomRoute({
 
 // Default loader returns validated params
 const params = await wrap(searchRoute.loader())
-params.q    // string
+params.q // string
 params.page // number
 ```
 
 ### Loader with Nested Routes
 
-Child route loaders can access parent data:
+Child route loaders can access parent params:
 
 ```typescript
 const userRoute = reatomRoute({
@@ -428,21 +441,21 @@ const userRoute = reatomRoute({
     userId: z.string().transform(Number),
   }),
   async loader(params) {
-    const user = await fetch(`/api/users/${params.userId}`).then(r => r.json())
-    return { user }
+    const user = await wrap(
+      fetch(`/api/users/${params.userId}`).then((r) => r.json()),
+    )
+    return user
   },
 })
 
 const userPostsRoute = userRoute.route({
   path: 'posts',
-  async loader(params) {
-    // Access parent loader data
-    const { user } = userPostsRoute.loader.data()
-    
-    const posts = await fetch(`/api/users/${params.userId}/posts`)
-      .then(r => r.json())
-    
-    return { user, posts }
+  // loaders params includes parent route params
+  async loader({ userId }) {
+    const posts = await wrap(
+      fetch(`/api/users/${userId}/posts`).then((r) => r.json()),
+    )
+    return posts
   },
 })
 ```
@@ -462,9 +475,9 @@ const lazyRoute = reatomRoute({
         console.log('Polling...')
       }
     })
-    
+
     // Long-running fetch
-    const data = await fetch('/api/dashboard').then(r => r.json())
+    const data = await wrap(fetch('/api/dashboard').then((r) => r.json()))
     return data
   },
 })
@@ -484,7 +497,7 @@ import { homeRoute } from '../routes'
 
 export const HomePage = reatomComponent(() => {
   if (!homeRoute.exact()) return null
-  
+
   return (
     <div>
       <h1>Welcome Home!</h1>
@@ -502,18 +515,18 @@ import { userRoute } from '../routes'
 export const UserPage = reatomComponent(() => {
   const params = userRoute()
   if (!params) return null
-  
+
   const isReady = userRoute.loader.ready()
-  const data = userRoute.loader.data()
+  const user = userRoute.loader.data()
   const error = userRoute.loader.error()
-  
+
   if (!isReady) return <div>Loading...</div>
   if (error) return <div>Error: {error.message}</div>
-  
+
   return (
     <div>
-      <h1>{data.user.name}</h1>
-      <p>{data.user.bio}</p>
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
     </div>
   )
 }, 'UserPage')
@@ -527,20 +540,23 @@ import { HomePage } from './components/HomePage'
 import { UserPage } from './components/UserPage'
 import { homeRoute, userRoute } from './routes'
 
-export const App = reatomComponent(() => (
-  <div>
-    <nav>
-      <button onClick={() => homeRoute.go({})}>Home</button>
-      <button onClick={() => userRoute.go({ userId: '1' })}>User 1</button>
-      <button onClick={() => userRoute.go({ userId: '2' })}>User 2</button>
-    </nav>
-    
-    <main>
-      <HomePage />
-      <UserPage />
-    </main>
-  </div>
-), 'App')
+export const App = reatomComponent(
+  () => (
+    <div>
+      <nav>
+        <button onClick={() => homeRoute.go({})}>Home</button>
+        <button onClick={() => userRoute.go({ userId: '1' })}>User 1</button>
+        <button onClick={() => userRoute.go({ userId: '2' })}>User 2</button>
+      </nav>
+
+      <main>
+        <HomePage />
+        <UserPage />
+      </main>
+    </div>
+  ),
+  'App',
+)
 ```
 
 ## Advanced Patterns
@@ -553,8 +569,8 @@ Track if any route is loading using the route registry:
 import { urlAtom, computed } from '@reatom/core'
 
 export const isAnyRouteLoading = computed(() => {
-  return Object.values(urlAtom.routes).some(route => 
-    route.loader && !route.loader.ready()
+  return Object.values(urlAtom.routes).some(
+    (route) => route.loader && !route.loader.ready(),
   )
 }, 'isAnyRouteLoading')
 ```
@@ -563,7 +579,7 @@ export const isAnyRouteLoading = computed(() => {
 export const GlobalLoader = reatomComponent(() => {
   const isLoading = isAnyRouteLoading()
   if (!isLoading) return null
-  
+
   return <div className="loading-bar">Loading...</div>
 }, 'GlobalLoader')
 ```
@@ -584,7 +600,14 @@ One of Reatom's most powerful features is creating state **inside route loaders*
 Create atoms inside computeds (like route loaders) for automatic cleanup:
 
 ```typescript
-import { reatomRoute, reatomForm, computed, isShallowEqual, deatomize, wrap } from '@reatom/core'
+import {
+  reatomRoute,
+  reatomForm,
+  computed,
+  isShallowEqual,
+  deatomize,
+  wrap,
+} from '@reatom/core'
 import { z } from 'zod'
 
 const userRoute = reatomRoute({
@@ -593,16 +616,18 @@ const userRoute = reatomRoute({
     userId: z.string().transform(Number),
   }),
   async loader(params) {
-    const user = await fetch(`/api/users/${params.userId}`).then(r => r.json())
-    return { user }
+    const user = await wrap(
+      fetch(`/api/users/${params.userId}`).then((r) => r.json()),
+    )
+    return user
   },
 })
 
 export const userEditRoute = userRoute.route({
   path: 'edit',
   async loader(params) {
-    const { user } = userRoute.loader.data()
-    
+    const user = userRoute.loader.data()
+
     // Create a form INSIDE the loader
     // It will be automatically cleaned up when the route changes
     const editForm = reatomForm(
@@ -610,24 +635,27 @@ export const userEditRoute = userRoute.route({
       {
         onSubmit: async (values) => {
           if (hasUnsavedChanges()) {
-            await fetch(`/api/users/${user.id}`, {
-              method: 'PUT',
-              body: JSON.stringify(values),
-            })
+            await wrap(
+              fetch(`/api/users/${user.id}`, {
+                method: 'PUT',
+                body: JSON.stringify(values),
+              }),
+            )
           }
         },
         name: `userEditForm#${user.id}`,
-      }
+      },
     )
-    
+
     // Create derived state
-    const hasUnsavedChanges = computed(() => 
-      !isShallowEqual(deatomize(editForm.fields), { 
-        name: user.name, 
-        bio: user.bio 
-      })
+    const hasUnsavedChanges = computed(
+      () =>
+        !isShallowEqual(deatomize(editForm.fields), {
+          name: user.name,
+          bio: user.bio,
+        }),
     )
-    
+
     return {
       user,
       editForm,
@@ -643,34 +671,36 @@ Now access the form globally from any component:
 export const UserEditPage = reatomComponent(() => {
   const params = userEditRoute()
   if (!params) return null
-  
+
   const isReady = userEditRoute.loader.ready()
   const data = userEditRoute.loader.data()
   const error = userEditRoute.loader.error()
-  
+
   if (!isReady) return <div>Loading editor...</div>
   if (error) return <div>Error: {error.message}</div>
-  
+
   const { editForm, hasUnsavedChanges } = data
-  
+
   return (
-    <form onSubmit={(e) => {
-      e.preventDefault()
-      editForm.submit()
-    }}>
-      <input 
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        editForm.submit()
+      }}
+    >
+      <input
         name="name"
         value={editForm.fields.name()}
         onChange={(e) => editForm.fields.name(e.target.value)}
       />
-      <textarea 
+      <textarea
         name="bio"
         value={editForm.fields.bio()}
         onChange={(e) => editForm.fields.bio(e.target.value)}
       />
-      
+
       {hasUnsavedChanges() && <div>⚠️ Unsaved changes</div>}
-      
+
       <button type="submit" disabled={!editForm.submit.ready()}>
         Save
       </button>
@@ -689,6 +719,7 @@ When navigating from `/users/123/edit` to `/users/456/edit`:
 4. No memory leaks, no manual cleanup
 
 This gives you:
+
 - ✅ Global accessibility (no prop drilling)
 - ✅ Automatic memory management (like local state)
 - ✅ Perfect type inference
@@ -705,44 +736,51 @@ export const dashboardRoute = reatomRoute({
   path: 'dashboard',
   async loader() {
     // Load initial data
-    const user = await fetch('/api/user').then(r => r.json())
-    const stats = await fetch('/api/stats').then(r => r.json())
-    
+    const user = await wrap(fetch('/api/user').then((r) => r.json()))
+    const stats = await wrap(fetch('/api/stats').then((r) => r.json()))
+
     // Create multiple forms
     const profileForm = reatomForm(user.profile, {
       onSubmit: async (values) => {
-        await fetch('/api/profile', {
-          method: 'PUT',
-          body: JSON.stringify(values),
-        })
+        await wrap(
+          fetch('/api/profile', {
+            method: 'PUT',
+            body: JSON.stringify(values),
+          }),
+        )
       },
     })
-    
+
     const settingsForm = reatomForm(user.settings, {
       onSubmit: async (values) => {
-        await fetch('/api/settings', {
-          method: 'PUT',
-          body: JSON.stringify(values),
-        })
+        await wrap(
+          fetch('/api/settings', {
+            method: 'PUT',
+            body: JSON.stringify(values),
+          }),
+        )
       },
     })
-    
+
     // Derived state across multiple systems
     const dashboardState = computed(() => ({
-      isProfileComplete: !!(profileForm.fields.name() && profileForm.fields.email()),
-      dirtyFormsCount: [profileForm, settingsForm].filter(f => f.dirty()).length,
+      isProfileComplete: !!(
+        profileForm.fields.name() && profileForm.fields.email()
+      ),
+      dirtyFormsCount: [profileForm, settingsForm].filter((f) => f.dirty())
+        .length,
       hasNotifications: stats.notifications > 0,
     }))
-    
+
     // Polling effect that runs while route is active
     effect(async () => {
       while (true) {
         await wrap(sleep(30000))
-        const newStats = await fetch('/api/stats').then(r => r.json())
+        const newStats = await wrap(fetch('/api/stats').then((r) => r.json()))
         // Handle updates
       }
     })
-    
+
     return {
       user,
       stats,
@@ -755,6 +793,7 @@ export const dashboardRoute = reatomRoute({
 ```
 
 This pattern provides:
+
 - **No global singletons** - fresh state for each route activation
 - **No manual cleanup** - automatic garbage collection
 - **No state pollution** - clean slate on navigation
@@ -766,6 +805,7 @@ This pattern provides:
 ### Route not matching
 
 **Check the path construction:**
+
 ```typescript
 // ❌ Wrong
 const route = reatomRoute('/users/:id')
@@ -876,7 +916,7 @@ Global URL state:
 ```typescript
 import { urlAtom } from '@reatom/core'
 
-urlAtom()       // { pathname, search, hash, ... }
+urlAtom() // { pathname, search, hash, ... }
 urlAtom.go(url) // Navigate to URL
-urlAtom.routes  // Registry of all routes
+urlAtom.routes // Registry of all routes
 ```
