@@ -30,8 +30,8 @@ export const App = reatomComponent(
   () => (
     <div>
       <nav>
-        <button onClick={() => homeRoute.go({})}>Home</button>
-        <button onClick={() => aboutRoute.go({})}>About</button>
+        <button onClick={wrap(() => homeRoute.go({}))}>Home</button>
+        <button onClick={wrap(() => aboutRoute.go({}))}>About</button>
       </nav>
 
       {homeRoute.exact() && <h1>Home Page</h1>}
@@ -147,26 +147,32 @@ const url = userRoute.path({ userId: '123' })
 <a href={userRoute.path({ userId: '123' })}>View User</a>
 ```
 
+You might think, "hmm, but this is going to be a native link with regular browser navigation", but this is not the case: by default, `urlAtom` intercepts clicks on any `<a>` links and makes SPA navigation. You can disable this behavior globally in the entry point of your app like this:
+
+```typescript
+urlAtom.catchLinks(false)
+```
+
 ## Nested Routes
 
-Build route hierarchies by chaining `.route()`:
+Build route hierarchies by chaining `.reatomRoute()`:
 
 ```typescript
 // src/routes.ts
 import { reatomRoute } from '@reatom/core'
 
-export const apiRoute = reatomRoute('api')
-export const usersRoute = apiRoute.route('users')
-export const userRoute = usersRoute.route(':userId')
-export const userEditRoute = userRoute.route('edit')
+export const dashboardRoute = reatomRoute('dashboard')
+export const usersRoute = apiRoute.reatomRoute('users')
+export const userRoute = usersRoute.reatomRoute(':userId')
+export const userEditRoute = userRoute.reatomRoute('edit')
 
-// At URL: /api/users/123/edit
-apiRoute() // { }
+// At URL: /dashboard/users/123/edit
+dashboardRoute() // { }
 usersRoute() // { }
 userRoute() // { userId: '123' }
 userEditRoute() // { userId: '123' }
 
-apiRoute.exact() // false
+dashboardRoute.exact() // false
 usersRoute.exact() // false
 userRoute.exact() // false
 userEditRoute.exact() // true
@@ -175,11 +181,11 @@ userEditRoute.exact() // true
 Nested routes inherit parent parameters:
 
 ```typescript
-// Navigate to /api/users/123/edit
+// Navigate to /dashboard/users/123/edit
 userEditRoute.go({ userId: '123' })
 
 // All parent routes automatically match
-apiRoute() // { }
+dashboardRoute() // { }
 usersRoute() // { }
 userRoute() // { userId: '123' }
 ```
@@ -190,23 +196,26 @@ This makes layouts and breadcrumbs simple:
 export const App = reatomComponent(
   () => (
     <div>
-      {apiRoute() && <ApiLayout />}
-      {usersRoute() && <UsersLayout />}
-      {userRoute() && <UserProfile userId={userRoute().userId} />}
-      {userEditRoute.exact() && <UserEditor />}
+      {dashboardRoute() && (
+        <DashboardLayout>
+          {usersRoute() && <UsersLayout />}
+          {userRoute() && <UserProfile userId={userRoute().userId} />}
+          {userEditRoute.exact() && <UserEditor />}
+        </DashboardLayout>
+      )}
     </div>
   ),
   'App',
 )
 ```
 
-## Parameter Validation with Zod
+## Path Parameters
 
-Validate and transform parameters using Zod schemas:
+You can define, validate and transform parameters using Zod schemas or other [Standard Schema](https://standardschema.dev/) compatible validation:
 
 ```typescript
 import { reatomRoute } from '@reatom/core'
-import { z } from 'zod'
+import { z } from 'zod/v4'
 
 export const userRoute = reatomRoute({
   path: 'users/:userId',
@@ -294,7 +303,7 @@ export const LoginDialog = reatomComponent(() => {
   return (
     <dialog open>
       <h2>Login</h2>
-      <button onClick={() => dialogRoute.go({})}>Close</button>
+      <button onClick={wrap(() => dialogRoute.go({}))}>Close</button>
     </dialog>
   )
 }, 'LoginDialog')
@@ -382,16 +391,16 @@ export const UserPage = reatomComponent(() => {
   const params = userRoute()
   if (!params) return null
 
-  const isReady = userRoute.loader.ready()
+  const ready = userRoute.loader.ready()
   const user = userRoute.loader.data()
   const error = userRoute.loader.error()
 
-  if (!isReady) return <div>Loading user {params.userId}...</div>
+  if (!ready) return <div>Loading user {params.userId}...</div>
   if (error)
     return (
       <div>
         Error: {error.message}
-        <button onClick={() => userRoute.loader.reset()}>Retry</button>
+        <button onClick={wrap(userRoute.loader.reset)}>Retry</button>
       </div>
     )
 
@@ -405,11 +414,12 @@ export const UserPage = reatomComponent(() => {
 ```
 
 ### Loader State Properties
+Since route loader it's an async computed, you can access the same properties that available with `withAsyncData` extension:
 
-- `loader.ready()` - `true` when data has loaded successfully
-- `loader.data()` - The loaded data (throws if not ready)
-- `loader.error()` - Error if loading failed, `null` otherwise
-- `loader.reset()` - Trigger a reload
+- `loader.ready()` - Boolean atom that is `true` when data has loaded successfully
+- `loader.data()` - Atom with the loaded data (throws if not ready)
+- `loader.error()` - Atom with error if loading failed, `null` otherwise
+- `loader.retry()` - Action to trigger a retry for loader, that will rerun the loader function
 
 ### Default Loader
 
@@ -448,7 +458,7 @@ const userRoute = reatomRoute({
   },
 })
 
-const userPostsRoute = userRoute.route({
+const userPostsRoute = userRoute.reatomRoute({
   path: 'posts',
   // loaders params includes parent route params
   async loader({ userId }) {
@@ -468,15 +478,18 @@ Loaders are automatically aborted when navigating away:
 const lazyRoute = reatomRoute({
   path: 'dashboard',
   async loader() {
-    // This effect runs while the route is active
+    // This effect runs while the route is active and as long as the louder's 
+    // dependencies do not change (its parameters or any other atoms reactively 
+    // called inside this callback)
     effect(async () => {
       while (true) {
         await wrap(sleep(5000))
-        console.log('Polling...')
+        // Doing retry every 5 seconds there, just a regular pooling implementation
+        lazyRoute.loader.retry() 
       }
     })
 
-    // Long-running fetch
+    // Long-running fetch that will also be aborted with the effect above
     const data = await wrap(fetch('/api/dashboard').then((r) => r.json()))
     return data
   },
@@ -516,11 +529,11 @@ export const UserPage = reatomComponent(() => {
   const params = userRoute()
   if (!params) return null
 
-  const isReady = userRoute.loader.ready()
+  const ready = userRoute.loader.ready()
   const user = userRoute.loader.data()
   const error = userRoute.loader.error()
 
-  if (!isReady) return <div>Loading...</div>
+  if (!ready) return <div>Loading...</div>
   if (error) return <div>Error: {error.message}</div>
 
   return (
@@ -544,9 +557,9 @@ export const App = reatomComponent(
   () => (
     <div>
       <nav>
-        <button onClick={() => homeRoute.go({})}>Home</button>
-        <button onClick={() => userRoute.go({ userId: '1' })}>User 1</button>
-        <button onClick={() => userRoute.go({ userId: '2' })}>User 2</button>
+        <button onClick={wrap(() => homeRoute.go({}))}>Home</button>
+        <button onClick={wrap(() => userRoute.go({ userId: '1' }))}>User 1</button>
+        <button onClick={wrap(() => userRoute.go({ userId: '2' }))}>User 2</button>
       </nav>
 
       <main>
@@ -569,16 +582,14 @@ Track if any route is loading using the route registry:
 import { urlAtom, computed } from '@reatom/core'
 
 export const isAnyRouteLoading = computed(() => {
-  return Object.values(urlAtom.routes).some(
-    (route) => route.loader && !route.loader.ready(),
-  )
+  return Object.values(urlAtom.routes).some((route) => !route.loader.ready())
 }, 'isAnyRouteLoading')
 ```
 
 ```tsx
 export const GlobalLoader = reatomComponent(() => {
-  const isLoading = isAnyRouteLoading()
-  if (!isLoading) return null
+  const loading = isAnyRouteLoading()
+  if (!loading) return null
 
   return <div className="loading-bar">Loading...</div>
 }, 'GlobalLoader')
@@ -623,7 +634,7 @@ const userRoute = reatomRoute({
   },
 })
 
-export const userEditRoute = userRoute.route({
+export const userEditRoute = userRoute.reatomRoute({
   path: 'edit',
   async loader(params) {
     const user = userRoute.loader.data()
@@ -634,7 +645,7 @@ export const userEditRoute = userRoute.route({
       { name: user.name, bio: user.bio },
       {
         onSubmit: async (values) => {
-          if (hasUnsavedChanges()) {
+          if (editForm.focus().dirty) {
             await wrap(
               fetch(`/api/users/${user.id}`, {
                 method: 'PUT',
@@ -647,19 +658,9 @@ export const userEditRoute = userRoute.route({
       },
     )
 
-    // Create derived state
-    const hasUnsavedChanges = computed(
-      () =>
-        !isShallowEqual(deatomize(editForm.fields), {
-          name: user.name,
-          bio: user.bio,
-        }),
-    )
-
     return {
       user,
-      editForm,
-      hasUnsavedChanges,
+      editForm
     }
   },
 })
@@ -672,34 +673,32 @@ export const UserEditPage = reatomComponent(() => {
   const params = userEditRoute()
   if (!params) return null
 
-  const isReady = userEditRoute.loader.ready()
+  const ready = userEditRoute.loader.ready()
   const data = userEditRoute.loader.data()
   const error = userEditRoute.loader.error()
 
-  if (!isReady) return <div>Loading editor...</div>
+  if (!ready) return <div>Loading editor...</div>
   if (error) return <div>Error: {error.message}</div>
 
-  const { editForm, hasUnsavedChanges } = data
+  const { editForm } = data
 
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        editForm.submit()
+        editForm.submit().catch(noop)
       }}
     >
       <input
         name="name"
-        value={editForm.fields.name()}
-        onChange={(e) => editForm.fields.name(e.target.value)}
+        {...bindField(editForm.fields.name)}
       />
       <textarea
         name="bio"
-        value={editForm.fields.bio()}
-        onChange={(e) => editForm.fields.bio(e.target.value)}
+        {...bindField(editForm.fields.bio)}
       />
 
-      {hasUnsavedChanges() && <div>⚠️ Unsaved changes</div>}
+      {editForm.focus().dirty && <div>⚠️ Unsaved changes</div>}
 
       <button type="submit" disabled={!editForm.submit.ready()}>
         Save
@@ -737,7 +736,6 @@ export const dashboardRoute = reatomRoute({
   async loader() {
     // Load initial data
     const user = await wrap(fetch('/api/user').then((r) => r.json()))
-    const stats = await wrap(fetch('/api/stats').then((r) => r.json()))
 
     // Create multiple forms
     const profileForm = reatomForm(user.profile, {
@@ -762,28 +760,35 @@ export const dashboardRoute = reatomRoute({
       },
     })
 
-    // Derived state across multiple systems
-    const dashboardState = computed(() => ({
-      isProfileComplete: !!(
-        profileForm.fields.name() && profileForm.fields.email()
-      ),
-      dirtyFormsCount: [profileForm, settingsForm].filter((f) => f.dirty())
-        .length,
-      hasNotifications: stats.notifications > 0,
-    }))
+    // Creating an async action to fetch stats
+    const fetchStats = action(async () => {
+      const stats = await wrap(fetch('/api/stats').then((r) => r.json()))
+      return stats
+    }).extend(withAsyncData())
 
     // Polling effect that runs while route is active
     effect(async () => {
       while (true) {
-        await wrap(sleep(30000))
-        const newStats = await wrap(fetch('/api/stats').then((r) => r.json()))
-        // Handle updates
+        await wrap(sleep(30_000))
+        fetchStats()
+      }
+    })
+
+    // Derived state across multiple systems
+    const dashboardState = computed(() => {
+      const stats = fetchStats.data()
+      return {
+        isProfileComplete: !!(
+          profileForm.fields.name() && profileForm.fields.email()
+        ),
+        dirtyFormsCount: [profileForm, settingsForm].filter((f) => f.focus().dirty).length,
+        hasNotifications: stats ? stats.notifications > 0 : null,
       }
     })
 
     return {
       user,
-      stats,
+      stats: fetchStats.data,
       profileForm,
       settingsForm,
       dashboardState,
@@ -802,21 +807,11 @@ This pattern provides:
 
 ## Troubleshooting
 
-### Route not matching
-
-**Check the path construction:**
-
-```typescript
-// ❌ Wrong
-const route = reatomRoute('/users/:id')
-
-// ✅ Correct
-const route = reatomRoute('users/:id')
-```
-
-Paths should not start with `/`.
+Summary of common errors and their solution
 
 ### Validation errors
+
+We know that any URL parameters, whether they are path parameters or search parameters, are all strings, so they are an input for parsing and validating these parameters through the Standard Schema library. Therefore, in order to satisfy the validation contract for any route parameters, input must always be compatible with a string, and then it can be converted to anything you want.
 
 ```typescript
 const route = reatomRoute({
@@ -825,41 +820,15 @@ const route = reatomRoute({
     userId: z.number(), // ❌ URL params are always strings!
   }),
 })
-
-// ✅ Correct: transform string to number
-params: z.object({
-  userId: z.string().regex(/^\d+$/).transform(Number),
-})
 ```
 
-### Loader data not available
-
+If you use Zod, then the easiest way to follow the contract is to do coerce which will make the input parameters of the `unknown` type
 ```typescript
-// ❌ Wrong
-const data = userRoute.loader.data() // Throws if not ready
-
-// ✅ Correct
-if (userRoute.loader.ready()) {
-  const data = userRoute.loader.data()
-}
-```
-
-Always check `.ready()` before accessing `.data()`.
-
-### TypeScript errors with parameters
-
-```typescript
-// If TypeScript complains about required parameters
-userRoute.go({ userId: '123' })
-
-// Make sure your schema matches
-params: z.object({
-  userId: z.string(), // Required
-})
-
-// Or make it optional
-params: z.object({
-  userId: z.string().optional(),
+const route = reatomRoute({
+  path: 'users/:userId',
+  params: z.object({
+    userId: z.coerce.number(), // ✅ Correct: use type coercion or explicit transform from string to number
+  }),
 })
 ```
 
@@ -869,54 +838,3 @@ params: z.object({
 - Explore [Async Context](/handbook/async-context) to understand `wrap()` and async effects
 - Check out [Persistence](/handbook/persist) to save route state across sessions
 - Read about [Testing](/handbook/testing) to test your routes in isolation
-
-## API Reference
-
-### `reatomRoute(path)`
-
-Create a basic route:
-
-```typescript
-const route = reatomRoute('path/:param')
-```
-
-### `reatomRoute(options)`
-
-Create a route with validation and loader:
-
-```typescript
-const route = reatomRoute({
-  path: 'users/:userId',
-  params: z.object({ userId: z.string() }),
-  search: z.object({ tab: z.string().optional() }),
-  async loader(params) {
-    // Load data
-    return data
-  },
-})
-```
-
-### Route Methods
-
-- `route()` - Get current parameters or `null`
-- `route.exact()` - Check if route matches exactly
-- `route.go(params)` - Navigate to route
-- `route.path(params)` - Build URL string
-- `route.route(...)` - Create nested child route
-- `route.loader` - Loader atom (if defined)
-- `route.loader.ready()` - Check if loaded
-- `route.loader.data()` - Get loaded data
-- `route.loader.error()` - Get error if failed
-- `route.loader.reset()` - Trigger reload
-
-### `urlAtom`
-
-Global URL state:
-
-```typescript
-import { urlAtom } from '@reatom/core'
-
-urlAtom() // { pathname, search, hash, ... }
-urlAtom.go(url) // Navigate to URL
-urlAtom.routes // Registry of all routes
-```
