@@ -10,7 +10,7 @@ export interface ArrayAtom<T> extends Atom<Array<T>> {
 
 export const reatomArray = <T>(
   initState = [] as T[],
-  name = named('arrayAtom'),
+  name: string = named('arrayAtom'),
 ): ArrayAtom<T> =>
   atom(initState, name).actions((target) => ({
     push: (...items: T[]) => {

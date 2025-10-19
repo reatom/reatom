@@ -2,7 +2,7 @@ import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
 import type { Atom } from '../core'
 import { action, atom, computed } from '../core'
-import { wrap } from '../methods'
+import { retryComputed, wrap } from '../methods'
 import { withCallHook } from '../mixins'
 import { noop, sleep } from '../utils'
 import { withAsyncData } from './withAsyncData'
@@ -167,11 +167,11 @@ test('withAsyncData atom concurrent', async () => {
 test('atom error handling', async () => {
   const name = 'atomAsyncError'
   const errorMessage = 'TEST'
-  const shouldFailAtom = atom(true, `${name}.shouldFail`)
+  const shouldFail = atom(true, `${name}.shouldFail`)
   const resource = computed(async () => {
-    const shouldFail = shouldFailAtom()
+    const shouldFailState = shouldFail()
     await wrap(sleep())
-    if (shouldFail) throw new Error(errorMessage)
+    if (shouldFailState) throw new Error(errorMessage)
     return 'Success'
   }, `${name}.resource`).extend(
     withAsyncData({
@@ -192,7 +192,7 @@ test('atom error handling', async () => {
   expect(resource.data()).toBe(null)
   expectTypeOf(resource.data).toExtend<Atom<null | string>>()
 
-  await wrap(resource().catch(noop))
+  await wrap(sleep())
 
   expect(resource.ready()).toBe(true)
   expect(resource.error()).toBe(errorMessage)
@@ -202,7 +202,7 @@ test('atom error handling', async () => {
   })
   expect(onFulfill).not.toHaveBeenCalled()
 
-  shouldFailAtom.set(false)
+  shouldFail.set(false)
   expect(resource.ready()).toBe(false)
   await wrap(resource())
 
@@ -248,7 +248,7 @@ test('withAsyncData for computed retry', async () => {
 
   // Retry should succeed
   shouldFail = false
-  await wrap(resource.retry().catch(noop))
+  await wrap(retryComputed(resource).catch(noop))
 
   expect(resource.ready()).toBe(true)
   expect(resource.error()).toBeUndefined()

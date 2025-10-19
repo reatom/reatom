@@ -70,13 +70,13 @@ export function take(
 
   name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++i}`}`
 
-  const targetAtom = isAtom(target) ? target : computed(target, `${name}.selector`)
+  const targetAtom = isAtom(target)
+    ? target
+    : computed(target, `${name}.selector`)
 
   let log = bind(action((_message: string, payload: any) => payload, name))
 
   let cleanups: Array<Fn> = []
-
-  let abort = abortVar.find()
 
   let syncResult:
     | null
@@ -93,7 +93,7 @@ export function take(
     log('start', targetAtom.name)
 
     cleanups.push(
-      abort?.subscribeAbort(rej) ?? noop,
+      abortVar.subscribe(rej).unsubscribe,
       computed(async () => {
         let isFirstCall = cleanups.length === 0
 

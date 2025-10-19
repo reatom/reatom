@@ -67,7 +67,7 @@ export let wrap: {
 
   let aborted = false
   var promise = new Promise(async (resolve, reject) => {
-    let un = abortVar.subscribeAbort((error) => {
+    let abortSubscription = abortVar.subscribe((error) => {
       aborted = true
       promise?.catch(noop)
       reject(error)
@@ -84,7 +84,7 @@ export let wrap: {
 
     queueMicrotask(() => void STACK.push(frame))
 
-    un?.()
+    abortSubscription.unsubscribe()
     seal()
 
     queueMicrotask(() => void STACK.pop())

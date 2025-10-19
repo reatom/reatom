@@ -391,9 +391,8 @@ const createRouteFactory = (
   }
 }
 
-export let reatomRoute = createRouteFactory(
-  urlAtom as any,
-) as RouteMixin<''>['reatomRoute']
+export let reatomRoute = /* @__PURE__ */ (() =>
+  createRouteFactory(urlAtom as any) as RouteMixin<''>['reatomRoute'])()
 
 /** @deprecated Use `reatomRoute` instead */
 export let route = reatomRoute

@@ -319,7 +319,7 @@ export function reatomLinkedList<
         initSnapshot?: Array<Params>
         key?: Key
       },
-  name = named('linkedListAtom'),
+  name: string = named('linkedListAtom'),
 ): LinkedListAtom<Params, Node, Key> {
   const {
     create: userCreate = (...params: Params) => params[0],

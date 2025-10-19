@@ -23,7 +23,7 @@ export let withConnectHook =
         }
 
         if (typeof result === 'function') {
-          abortVar.subscribeAbort(result)
+          abortVar.subscribe(result)
         }
       }),
     )

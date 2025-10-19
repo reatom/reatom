@@ -1,9 +1,7 @@
 import { _enqueue, atom, bind, computed, type Frame } from './core'
-import type { AbortAtom } from './methods'
-import { abortVar, peek, variable, wrap } from './methods'
+import { type AbortSubscription, abortVar, variable, wrap } from './methods'
 import { _getPrevFrame } from './methods/context'
 import type { Unsubscribe } from './utils'
-import { toAbortError } from './utils'
 
 /**
  * Interface representing an abstract renderer for connecting Reatom with other
@@ -91,7 +89,7 @@ export let reatomAbstractRender = <Props, Result>({
 
     let _props = atom({} as Props, `${name}._props`)
 
-    let abortAtom: AbortAtom
+    let abortSubscription: AbortSubscription
 
     let _render = computed((state?: { result: Result }): { result: Result } => {
       let pubs = _getPrevFrame()?.pubs ?? [null]
@@ -101,10 +99,12 @@ export let reatomAbstractRender = <Props, Result>({
       let props = _props()
 
       if (rendering) {
-        abortAtom = abortVar.set(abortAtom ?? `${name}._abort`)
+        abortSubscription ??= abortVar.subscribe()
         // Related to react remounts of `StrictMode` and `Activity`.
-        if (peek(abortAtom) !== null) {
-          abortAtom.set(null)
+        if (abortSubscription.controller.signal.aborted) {
+          abortSubscription.unsubscribe()
+          abortVar.set()
+          abortSubscription = abortVar.subscribe()
         }
 
         return { result: adapterRender(props) }
@@ -151,7 +151,7 @@ export let reatomAbstractRender = <Props, Result>({
 
       return wrap(() => {
         unsubscribe()
-        abortAtom.set(toAbortError('unmount ' + name))
+        abortSubscription.controller.abort('unmount')
       })
     }, frame)
 

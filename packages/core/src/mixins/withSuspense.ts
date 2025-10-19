@@ -90,6 +90,7 @@ export let withSuspense =
       ),
   })
 
+  // FIXME: what if withSuspense is already applied with different preserve options?
 export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
   ('suspended' in target
     ? (target as AtomLike & SuspenseExt<State>)

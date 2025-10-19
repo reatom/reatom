@@ -80,7 +80,7 @@ export let action: {
   <T extends Fn>(cb: T, name?: string): GenericAction<T>
 } = <Params extends any[] = any[], Payload = any>(
   cb: (...params: Params) => Payload,
-  name = named('action'),
+  name: string = named('action'),
 ): Action<Params, Payload> => {
   if (typeof cb !== 'function') {
     throw new ReatomError('function expected')

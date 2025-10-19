@@ -16,7 +16,7 @@ export interface SetAtom<T> extends Atom<Set<T>, [newState: StateInit<T>]> {
 
 export const reatomSet = <T>(
   initState: StateInit<T> = new Set<T>(),
-  name = named('setAtom'),
+  name: string = named('setAtom'),
 ): SetAtom<T> => {
   const atomInitState = createSet(initState)
 

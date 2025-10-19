@@ -26,3 +26,6 @@ export let _getPrevAtomFrame = (target: AtomLike): null | Frame => {
   let frame = top().root.store.get(target)
   return frame ? _getPrevFrame(frame) : null
 }
+
+export let getPrevState = <T>(target: AtomLike<T>): undefined | T =>
+  _getPrevAtomFrame(target)?.state

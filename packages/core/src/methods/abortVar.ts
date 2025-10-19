@@ -1,115 +1,138 @@
-import type { Atom, GenericAction } from '../core'
-import {
-  action,
-  bind,
-  computed,
-  context,
-  createAtom,
-  isAtom,
-  named,
-  top,
-  withParams,
-} from '../core'
-import type { AbortError, Fn, Unsubscribe } from '../utils'
-import { noop, toAbortError } from '../utils'
-import type { Variable } from './variable'
-import { variable } from './variable'
+import { top } from '../core'
+import type { AbortError, Unsubscribe } from '../utils'
+import { isAbort, throwIfAborted, toAbortError } from '../utils'
+import { Variable } from './variable'
 
-/**
- * Interface containing methods for abort handling in Reatom
- *
- * @interface AbortMethods
- */
-export interface AbortMethods {
-  /**
-   * Throws the current abort error if the atom is in aborted state
-   *
-   * @throws {AbortError} If the atom is in aborted state
-   */
-  throwIfAborted(this: AbortAtom): void
-
-  /**
-   * Subscribes a callback to be executed when the atom transitions to aborted
-   * state
-   *
-   * @param {(error: AbortError) => void} cb - Callback to execute when aborted
-   * @returns {Unsubscribe} Function to unsubscribe the callback
-   */
-  subscribeAbort(this: AbortAtom, cb: (error: AbortError) => void): Unsubscribe
-
-  /**
-   * Creates and returns an AbortController connected to this abort atom
-   *
-   * @returns {LazyAbortController} An AbortController that will be aborted when
-   *   the atom is aborted
-   */
-  getController(this: AbortAtom): LazyAbortController
+export class NamedAbortController extends AbortController {
+  constructor(public name: string) {
+    super()
+  }
+  override abort(reason?: any) {
+    super.abort(
+      isAbort(reason) ? reason : toAbortError(`${this.name} ${String(reason)}`),
+    )
+  }
 }
 
-/**
- * Extended AbortController with unsubscribe capability
- *
- * @extends {AbortController}
- * @interface LazyAbortController
- */
-export interface LazyAbortController extends AbortController {
-  /** Function to unsubscribe and clean up the controller */
+export interface AbortSubscription {
+  controller: NamedAbortController
   unsubscribe: Unsubscribe
+  [Symbol.dispose]: Unsubscribe
+  [Symbol.asyncDispose]: Unsubscribe
+}
+
+export class AbortVariable extends Variable<
+  NamedAbortController,
+  [AbortController?]
+> {
+  protected override _findReactiveStartIndex = 1
+
+  constructor() {
+    super({
+      name: 'abort',
+      create: (controller) => {
+        let namedController = new NamedAbortController(top().atom.name)
+        return controller instanceof NamedAbortController
+          ? controller
+          : controller instanceof AbortController
+            ? Object.assign(controller, {
+                name: namedController.name,
+                abort: namedController.abort,
+              })
+            : namedController
+      },
+    })
+  }
+
+  /**
+   * Subscribes to abortion events from parent context tree (including current
+   * frame).
+   *
+   * Creates a subscription that listens for abort signals from any parent
+   * AbortController in the context tree. When an abort occurs, the callback is
+   * invoked with the abort error and the subscription automatically cleans up.
+   *
+   * It is IMPORTANT to clean up the subscription when it is no longer needed,
+   * otherwise a memory leak will occur. You can use the `unsubscribe` function
+   * returned by this method or `using` statement.
+   *
+   * @example
+   *   const myResource = computed(async () => {
+   *     const { controller, unsubscribe } = abortVar.subscribe()
+   *     const { signal } = controller
+   *
+   *     try {
+   *       const response = await fetch('/api/my-resource', { signal })
+   *       return await response.json()
+   *     } finally {
+   *       unsubscribe()
+   *     }
+   *   }).extend(withAsyncData())
+   *
+   * @example
+   *   const myResource = computed(async () => {
+   *   using { controller } = abortVar.subscribe()
+   *   const { signal } = controller
+   *
+   *   const response = await fetch('/api/my-resource', { signal })
+   *   return await response.json()
+   *   }).extend(withAsyncData())
+   *
+   * @param {(error: AbortError) => void} cb - Callback invoked when abortion
+   *   occurs
+   * @returns {Object} Subscription object
+   * @returns {AbortController} Controller - The AbortController for the current
+   *   context
+   * @returns {Function} Unsubscribe - Function to unsubscribe from abort events
+   */
+  subscribe(cb?: (error: AbortError) => void): AbortSubscription {
+    let controller = top()['var#abort'] ?? this.set()
+
+    let un = new AbortController()
+
+    let unsubscribe = () => un.abort()
+
+    function listener(this: AbortSignal) {
+      unsubscribe()
+      controller.abort(this.reason)
+      cb?.(controller.signal.reason)
+    }
+
+    this.find((parentController) => {
+      if (parentController?.signal.aborted) {
+        listener.call(parentController.signal)
+        throw controller.signal.reason
+      }
+
+      parentController?.signal.addEventListener('abort', listener, un)
+      // do not return anything to traverse the whole tree
+    })
+
+    return {
+      controller,
+      unsubscribe,
+      [Symbol.dispose]: unsubscribe,
+      [Symbol.asyncDispose]: unsubscribe,
+    }
+  }
+
+  /**
+   * NOTE: this method already used in `wrap`, that you should use in your code
+   * instead.
+   *
+   * Throws if any AbortController in the parent context (frame) tree, including
+   * the current frame, is aborted.
+   *
+   * @throws {AbortError}
+   */
+  throwIfAborted() {
+    this.find(throwIfAborted)
+  }
 }
 
 /**
- * Atom-like object that tracks abort state
- *
- * @extends {Atom<null | AbortError, [] | [reason: any]>}
- * @extends {AbortMethods}
- * @interface AbortAtom
- */
-export interface AbortAtom
-  extends Atom<null | AbortError, [] | [reason: any]>,
-    AbortMethods {}
-
-/**
- * Interface for a global abort variable tied to the current frame
- *
- * @extends {Variable<[option: string | AbortAtom], AbortAtom>}
- * @interface AbortVar
- */
-export interface AbortVar
-  extends Variable<[option: string | AbortAtom], AbortAtom> {
-  /**
-   * Throws if the current frame is aborted
-   *
-   * @throws {AbortError} If the current frame is aborted
-   */
-  throwIfAborted(): void
-
-  /**
-   * Subscribes a callback to be executed when the current frame is aborted
-   *
-   * @param {(error: AbortError) => void} cb - Callback to execute when aborted
-   * @returns {undefined | Unsubscribe} Function to unsubscribe the callback or
-   *   undefined if no abort atom available
-   */
-  subscribeAbort(cb: (error: AbortError) => void): undefined | Unsubscribe
-
-  /**
-   * Creates and returns an AbortController connected to the current frame
-   *
-   * @returns {undefined | AbortController} An AbortController or undefined if
-   *   no abort atom available
-   */
-  getController(): undefined | AbortController
-
-  /**
-   * Aborts the current frame with an optional reason
-   *
-   * @param {unknown} [reason] - Optional reason for aborting
-   */
-  abort(reason?: unknown): void
-}
-
-/**
- * Global abort variable that creates abort atoms coupled to the current frame.
+ * Global abort variable that precess AbortController's coupled to the current
+ * frame stack.
  *
  * The abortVar is computed from all other abort atoms in the current frame
  * tree, which allows for propagation of abortion signals through the
@@ -117,178 +140,28 @@ export interface AbortVar
  * in Reatom's async operations.
  *
  * @example
- *   // Check if current operation is aborted
- *   try {
- *     abortVar.throwIfAborted()
- *     // continue operation...
- *   } catch (e) {
- *     // Handle abortion
- *   }
- *
- *   // Trigger abortion
- *   abortVar.abort('Operation cancelled')
- *
- *   // Get AbortController for fetch API
- *   const controller = abortVar.getController()
- *   fetch('/api/data', { signal: controller?.signal })
- *
- * @type {AbortVar}
- */
-export let abortVar: AbortVar = /* @__PURE__ */ (() =>
-  Object.assign(
-    variable((option: string | AbortAtom): AbortAtom => {
-      if (isAtom(option)) return option
-
-      let frame = top()
-      return createAtom<null | AbortError>(
-        {
-          initState: null,
-          computed: (state) =>
-            state ??
-            abortVar.find((maybeAbortAtom) => maybeAbortAtom?.(), frame) ??
-            null,
-        },
-        option,
-      ).extend(
-        withParams((value?: any) => toAbortError(value || `${option} abort`)),
-        () =>
-          ({
-            throwIfAborted() {
-              let error = this()
-              if (error != null) throw error
-            },
-            subscribeAbort(cb) {
-              return computed(() => {
-                let state = this()
-                if (state !== null) cb(state)
-              }, `${this.name}._subscribeAbort`).subscribe()
-            },
-            getController() {
-              let controller = Object.assign(new AbortController(), {
-                unsubscribe() {
-                  controller.signal.removeEventListener('abort', listener)
-                  unsubscribeAtom()
-                },
-              })
-
-              let listener = noop
-
-              let unsubscribeAtom = computed(
-                () => {
-                  let error = this()
-                  if (error) {
-                    controller.abort(error)
-                  }
-                },
-                named(`${this.name}._controller`),
-              ).subscribe()
-
-              if (controller.signal.aborted) unsubscribeAtom()
-              else {
-                listener = bind((error: any) => {
-                  if (error !== this()) this.set(error)
-                  controller.unsubscribe()
-                })
-                controller.signal.addEventListener('abort', listener)
-              }
-
-              return controller
-            },
-          }) satisfies AbortMethods,
-      )
-    }),
-    {
-      _findReactiveStartIndex: 1,
-
-      abort(reason?: any) {
-        abortVar.find()?.set(reason)
-      },
-      throwIfAborted() {
-        abortVar.find()?.throwIfAborted()
-      },
-      subscribeAbort(cb: (error: AbortError) => void) {
-        return abortVar.find()?.subscribeAbort(cb)
-      },
-      getController() {
-        return abortVar.find()?.getController()
-      },
-    },
-  ))()
-
-/**
- * This utility allow you to start a function which will NOT follow the async
- * abort context.
+ *   // Trigger abortion of the current frame
+ *   abortVar.abortCurrent('Operation cancelled')
  *
  * @example
- *   // If you want to start a fetch when the atom gets a subscription,
- *   // but don't want to abort the fetch when the subscription is lost to save the data anyway.
- *   const some = atom('...').extend(
- *     withConnectHook((target) => {
- *       spawn(async () => {
- *         // here `wrap` doesn't follow the connection abort
- *         const data = await wrap(api.getSome())
- *         some(data)
- *       })
- *     }),
- *   )
+ *   // Trigger abortion of the current frame stack
+ *   abortVar.get()?.abort('Operation cancelled')
+ *
+ * @example
+ *   // Check if current operation (the whole frame stack) is aborted
+ *   abortVar.throwIfAborted()
+ *   // continue operation...
+ *
+ * @example
+ *   // Get AbortController for fetch API
+ *   const { controller, unsubscribe } = abortVar.subscribe()
+ *   await fetch('/api/data', { signal: controller.signal })
+ *   unsubscribe()
+ *
+ * @type {AbortVariable}
  */
-export let spawn: GenericAction<
-  <Params extends any[], Payload>(
-    cb: (...params: Params) => Payload,
-    ...params: Params
-  ) => Payload
-> = /* @__PURE__ */ (() =>
-  action((cb: Fn, ...params: any[]): ReturnType<Fn> => {
-    abortVar.set(
-      createAtom<null | AbortError>({
-        initState: null,
-      }).extend(
-        withParams((value?: any) => toAbortError(value || `abort`)),
-        () =>
-          ({
-            throwIfAborted() {
-              let error = this()
-              if (error != null) throw error
-            },
-            subscribeAbort(cb) {
-              return computed(() => {
-                let state = this()
-                if (state !== null) cb(state)
-              }, `${this.name}._subscribeAbort`).subscribe()
-            },
-            getController() {
-              let controller = Object.assign(new AbortController(), {
-                unsubscribe() {
-                  controller.signal.removeEventListener('abort', listener)
-                  unsubscribeAtom()
-                },
-              })
+export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
 
-              let listener = noop
-
-              let unsubscribeAtom = computed(
-                () => {
-                  let error = this()
-                  if (error) {
-                    controller.abort(error)
-                  }
-                },
-                named(`${this.name}._controller`),
-              ).subscribe()
-
-              if (controller.signal.aborted) unsubscribeAtom()
-              else {
-                listener = bind((error: any) => {
-                  if (error !== this()) this.set(error)
-                  controller.unsubscribe()
-                })
-                controller.signal.addEventListener('abort', listener)
-              }
-
-              return controller
-            },
-          }) satisfies AbortMethods,
-      ),
-    )
-    return cb(...params)
-  }, 'spawn'))()
+/** @deprecated Use `abortVar.spawn` instead */
+export let spawn: AbortVariable['spawn'] = /* @__PURE__ */ (() =>
+  abortVar.spawn)()

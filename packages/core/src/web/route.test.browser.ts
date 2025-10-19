@@ -391,7 +391,7 @@ test('params collision', async () => {
 
   const liberalRoute = reatomRoute({
     path: 'liberalRoute/:id',
-    search: z.record(z.string()),
+    search: z.record(z.string(), z.string()),
   })
 
   const expectedId = '42'

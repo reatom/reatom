@@ -1,6 +1,6 @@
 import type { Atom, AtomLike } from '../core'
 import { createAtom } from '../core'
-import { ifCalled } from '../methods'
+import { getCalls } from '../methods'
 import type { AbortExt } from '../mixins'
 import { withAbort, withCallHook } from '../mixins'
 import { identity, noop } from '../utils'
@@ -223,9 +223,11 @@ export function withAsyncData(
           typeof initState === 'function' ? () => initState : initState,
         computed(state) {
           if (target.__reatom.reactive) target().catch(noop)
-          ifCalled(asyncTarget.onFulfill, ({ payload, params }) => {
-            state = mapPayload(payload, params, state)
-          })
+          getCalls(asyncTarget.onFulfill).forEach(
+            ({ payload: { payload, params } }) => {
+              state = mapPayload(payload, params, state)
+            },
+          )
           return state
         },
       },

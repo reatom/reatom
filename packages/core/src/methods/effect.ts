@@ -1,9 +1,10 @@
 import type { Computed } from '../core'
-import { computed, context, named, top } from '../core'
+import { computed, context, named, STACK, top } from '../core'
+import { withAbort } from '../mixins'
+import { withDynamicSubscription } from '../mixins/withDynamicSubscription'
 import type { Unsubscribe } from '../utils'
 import { isAbort } from '../utils'
-import { type AbortAtom, abortVar } from './abortVar'
-import { _getPrevFrame } from './context'
+import { abortVar } from './abortVar'
 
 export interface Effect<State> extends Computed<State> {
   unsubscribe: Unsubscribe
@@ -51,43 +52,43 @@ export interface Effect<State> extends Computed<State> {
  *   used within managed contexts like `reatomFactoryComponent` or
  *   `withConnectHook`, as cleanup happens automatically.
  */
-export let effect = <T>(cb: () => T, name?: string): Effect<T> => {
-  let parentFrame = top()
+export let effect = <T>(cb: () => T, name?: string) => {
+  let topFrame = top()
+
   if (!name) {
-    let frame = parentFrame
-    name = named(frame.atom === context ? '' : `${frame.atom.name}.` + 'effect')
+    name = named(
+      topFrame.atom === context ? 'effect' : `${topFrame.atom.name}.effect`,
+    )
   }
 
-  let abort: AbortAtom
+  let subscribeController: AbortController
+  return computed(() => {
+    // from `withAbort`
+    let controller = abortVar.get()!
 
-  let target = computed(() => {
-    // put the relative context to this frame without subscribing to it
-    top().pubs[0] = parentFrame
-
-    let prevFrame = _getPrevFrame()
-    let prevAbort =
-      prevFrame && abortVar.find((maybeAbort) => maybeAbort ?? null, prevFrame)
-
-    abort = abortVar.set(prevAbort || name)
+    subscribeController ??= abortVar.first(STACK[STACK.length - 3])!
+    subscribeController.signal.throwIfAborted?.()
 
     let res = cb()
     if (res instanceof Promise) {
-      res.catch((error) => {
-        // throw unhandled error
-        if (!isAbort(error) && !(error instanceof Promise)) throw error
+      let listener = () => {
+        controller.abort(subscribeController.signal.reason)
+      }
+      subscribeController.signal.addEventListener('abort', listener, {
+        signal: controller.signal,
       })
+      res
+        .finally(() => {
+          subscribeController.signal.removeEventListener('abort', listener)
+        })
+        .catch((error) => {
+          // throw unhandled error
+          if (!isAbort(error) && !(error instanceof Promise)) throw error
+        })
     }
+
     return res
-  }, name)
-
-  var unabort = abortVar.subscribeAbort(unsubscribe)
-  var uncomputed = target.subscribe()
-
-  function unsubscribe() {
-    uncomputed()
-    unabort?.()
-    abort!.set('disconnect')
-  }
-
-  return target.extend(() => ({ unsubscribe }))
+  }, name).extend(withAbort(), withDynamicSubscription(), (target) => ({
+    unsubscribe: target.subscribe(),
+  }))
 }

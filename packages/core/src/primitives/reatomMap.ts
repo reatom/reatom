@@ -40,7 +40,7 @@ export interface MapAtom<Key, Value> extends AtomLike<Map<Key, Value>, []> {
 
 export const reatomMap = <Key, Value>(
   initState: StateInit<Key, Value> = new Map<Key, Value>(),
-  name = named('mapAtom'),
+  name: string = named('mapAtom'),
 ): MapAtom<Key, Value> => {
   const atomInitState = createMap(initState)
 

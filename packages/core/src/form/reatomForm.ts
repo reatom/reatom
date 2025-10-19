@@ -138,14 +138,16 @@ export interface Form<
     > &
       AsyncExt<[], any, Error | undefined> &
       AbortExt
-  } & (undefined extends SchemaState ? {} : {
-    triggerSchemaValidation: Action<
-      [],
-      | StandardSchemaV1.Result<SchemaState>
-      | Promise<StandardSchemaV1.Result<SchemaState>>
-    > &
-      AbortExt
-  })
+  } & (undefined extends SchemaState
+      ? {}
+      : {
+          triggerSchemaValidation: Action<
+            [],
+            | StandardSchemaV1.Result<SchemaState>
+            | Promise<StandardSchemaV1.Result<SchemaState>>
+          > &
+            AbortExt
+        })
 
   /**
    * Submit async handler. It checks the validation of all the fields in
@@ -282,10 +284,11 @@ const reatomFormFields = <T extends FormInitState>(
           }),
         })
       } else if ('initState' in element) {
-        const field = reatomField(element.initState, {
+        const fieldOptions = {
           name,
-          ...(element as FieldOptions),
-        })
+          ...element,
+        }
+        const field = reatomField(element.initState, fieldOptions)
 
         onFieldResolved?.(field)
         return field
@@ -420,6 +423,9 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     | FormOptionsWithSchema<SchemaState, SubmitReturn>
     | FormOptionsWithoutSchema<T, SubmitReturn> = {},
 ): Form<T, SchemaState, SubmitReturn> {
+  if (typeof options === 'string') {
+    options = { name: options }
+  }
   const {
     name = named('form'),
     onSubmit,
@@ -430,7 +436,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     keepErrorDuringValidating = false,
     keepErrorOnChange = !validateOnChange,
     schema,
-  } = typeof options === 'string' ? { name: options } : options
+  } = options
 
   const fields = reatomFormFields(
     typeof initState == 'function' ? initState(name) : initState,
@@ -519,9 +525,10 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
   const origTriggerValidation = fieldsetValidation.trigger
   const triggerValidation = action(async () => {
     const status = origTriggerValidation()
-    const { errors } = status.validating
+    const validationResult = status.validating
       ? await wrap(status.validating)
       : status
+    const { errors } = validationResult
     if (errors.length) throw new Error(errors[0]!.message)
 
     let state: any

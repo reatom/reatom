@@ -1,7 +1,13 @@
-import type { Frame } from '../core'
+import type { Frame, GenericAction } from '../core'
 import { action, context, named, ReatomError, top } from '../core'
 import type { Fn } from '../utils'
-import { assert, identity } from '../utils'
+import { identity } from '../utils'
+
+export interface AsyncVariableOptions<T, Params extends any[] = any[]> {
+  name?: string
+  defaultValue?: T
+  create?: (...params: Params) => T
+}
 
 /**
  * Interface for context variables in Reatom
@@ -10,64 +16,180 @@ import { assert, identity } from '../utils'
  * for context-aware state similar to React's Context API but with more granular
  * control and integration with Reatom's reactive system.
  *
- * @template Params - Types of parameters accepted by the setter function
- * @template Payload - Type of the stored value
+ * @template T - Type of the stored value
+ * @see {@link https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextvariable}
  */
-export interface Variable<Params extends any[] = any[], Payload = any> {
+export class Variable<T, Params extends any[] = any[]> {
+  protected _findReactiveStartIndex = 0
+
+  protected create: (...params: Params) => T
+
+  readonly name: `var#${string}`
+
+  constructor(options?: AsyncVariableOptions<T, Params>) {
+    this.name = options?.name ? `var#${options.name}` : named('var')
+
+    this.create = options?.create ?? (identity as Fn)
+
+    this.run = action((value: T, fn: Fn, ...args: any[]) => {
+      if (value === undefined) {
+        throw new ReatomError('Variable value cannot be undefined')
+      }
+
+      top()[this.name] = value
+
+      return fn(...args)
+    }, `${this.name}.run`)
+
+    this.spawn = action(
+      (cb: Fn, ...params: any[]): ReturnType<Fn> => cb(...params),
+      `${this.name}.spawn`,
+    )
+  }
+
   /**
-   * Gets the current value of the variable
+   * Gets the passed frame value of the variable
    *
    * @param {Frame} [frame] - Optional frame to check (defaults to current top
    *   frame)
-   * @returns {Payload} The current value
+   * @returns {T} The current value
    * @throws {Error} If the variable is not found in the frame tree
    */
-  get(frame?: Frame): Payload
+  get(frame?: Frame): undefined | T {
+    return this.find(identity, frame)
+  }
 
   /**
-   * Sets a new value for the variable
+   * Executes a callback function with the variable set to a specific value
+   * within that execution context
    *
-   * @param {...Params} params - Parameters passed to the setter function
-   * @returns {Payload} The new value
+   * This method creates a new frame in the context tree where the variable is
+   * bound to the provided value. The callback function runs within this frame,
+   * allowing any code inside (and its descendants) to access this value via
+   * `get()`.
+   *
+   * @example
+   *   const userVar = variable<string>('user')
+   *
+   *   userVar.run('Alice', () => {
+   *     console.log(userVar.get()) // 'Alice'
+   *   })
+   *
+   *   // Passing parameters to callback
+   *   const result = userVar.run('Bob', (x, y) => x + y, 2, 3)
+   *   console.log(result) // 5
+   *
+   * @template Params - Types of parameters passed to the callback
+   * @template Payload - Return type of the callback
+   * @param {T} value - The value to set for this variable during callback
+   *   execution. Cannot be undefined.
+   * @param {(...params: Params) => Payload} cb - The callback function to
+   *   execute with the variable set
+   * @param {...Params} params - Additional parameters to pass to the callback
+   * @returns {Payload} The return value of the callback
+   * @throws {ReatomError} If value is undefined
    */
-  set(...params: Params): Payload
+  run: GenericAction<
+    <Params extends any[], Payload>(
+      value: T,
+      cb: (...params: Params) => Payload,
+      ...params: Params
+    ) => Payload
+  >
 
   /**
-   * Checks if the variable exists in the current stack
+   * This utility allow you to start a function which will NOT follow the async
+   * context of this variable.
+   *
+   * @example
+   *   // If you want to start a fetch when the atom gets a subscription,
+   *   // but don't want to abort the fetch when the subscription is lost to save the data anyway.
+   *   const some = atom('...').extend(
+   *     withConnectHook((target) => {
+   *       abortVar.spawn(async () => {
+   *         // here `wrap` doesn't follow the connection abort
+   *         const data = await wrap(api.getSome())
+   *         some(data)
+   *       })
+   *     }),
+   *   )
+   */
+  spawn: GenericAction<
+    <Params extends any[], Payload>(
+      cb: (...params: Params) => Payload,
+      ...params: Params
+    ) => Payload
+  >
+
+  /**
+   * Gets the variable value from the first frame only, without traversing the
+   * whole frame tree
+   *
+   * Unlike `get()` which searches through parent frames, this method only
+   * checks the top frame. Returns undefined if the variable is not set in the
+   * frame.
+   *
+   * @returns {undefined | T} The value in the frame, or undefined if not set
+   */
+  first(frame = top()): undefined | T {
+    return frame[this.name] as undefined | T
+  }
+
+  /**
+   * Checks if the variable exists in the passed frame stack
    *
    * @param {Frame} [frame] - Optional frame to check (defaults to current top
    *   frame)
    * @returns {boolean} True if the variable exists in the context
    */
-  has(frame?: Frame): boolean
+  has(frame?: Frame): boolean {
+    return this.find((value) => value !== undefined, frame) === true
+  }
 
   /**
    * Traverses the frame tree to find and map the variable value.
    *
-   * @template T - Return type of the callback
-   * @param {(value: undefined | Payload) => undefined | T} [cb] - Optional
+   * @template Result - Return type of the callback
+   * @param {(value: undefined | T) => undefined | Result} [cb] - Optional
    *   transformation callback
    * @param {Frame} [frame] - Optional frame to check (defaults to current top
    *   frame)
-   * @returns {undefined | T} The transformed value or undefined if not found
+   * @returns {undefined | Result} The transformed value or undefined if not
+   *   found
    */
-  find<T = Payload>(
-    cb?: (value: undefined | Payload) => undefined | T,
-    frame?: Frame,
-  ): undefined | T
+  find<Result = T>(
+    cb: (payload: undefined | T) => undefined | Result = (payload) =>
+      payload as undefined | Result,
+    frame = top(),
+  ): undefined | Result {
+    let result = cb(frame[this.name] as undefined | T)
+    if (result !== undefined || frame.atom === this.spawn) return result
+
+    for (
+      let i = frame.atom.__reatom.reactive ? this._findReactiveStartIndex : 0;
+      i < frame.pubs.length;
+      i++
+    ) {
+      let pub = frame.pubs[i]
+      if (pub !== null && pub!.atom !== context) {
+        let result = this.find(cb, pub)
+        if (result !== undefined) return result
+      }
+    }
+
+    return undefined
+  }
 
   /**
-   * Runs a function with new variable value
+   * Sets a new variable value for CURRENT frame. Be aware that it is mostly for
+   * internal use!
    *
-   * @template T - Return type of the function
-   * @param {Payload} value - The temporary value to set
-   * @param {() => T} fn - Function to execute with the temporary value
-   * @returns {T} The result of the function
+   * @param {...Params} params - Parameters passed to the setter function
+   * @returns {T} The new value
    */
-  run<T>(value: Payload, fn: () => T): T
-
-  /** @internal */
-  _findReactiveStartIndex: number
+  set(...params: Params): T {
+    return (top()[this.name] = this.create(...params))
+  }
 }
 
 /**
@@ -106,81 +228,23 @@ export interface Variable<Params extends any[] = any[], Payload = any> {
  * @see {@link https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextvariable}
  */
 export let variable: {
-  <T>(name?: string): Variable<[T], T>
+  <T>(name?: string): Variable<T, [T]>
 
   <Params extends any[], Payload>(
     set: (...params: Params) => Payload,
     name?: string,
-  ): Variable<Params, Payload>
+  ): Variable<Payload, Params>
 } = (...options: [string?] | [Fn, string?]) => {
   if (typeof options[0] !== 'function') {
     // @ts-expect-error
     options.unshift(identity)
   }
-  let [set, name = named('var')] = options as [Fn, string?]
+  let [create, name] = options as [Fn, string?]
 
-  function find<T>(
-    this: Variable,
-    cb: (payload: undefined | unknown) => undefined | T = (payload) =>
-      payload as undefined | T,
-    frame = top(),
-  ): undefined | T {
-    let result = cb(frame.root.variables.get(frame)?.get(this))
-    if (result !== undefined) return result
-
-    for (
-      let i = frame.atom.__reatom.reactive ? this._findReactiveStartIndex : 0;
-      i < frame.pubs.length;
-      i++
-    ) {
-      let pub = frame.pubs[i]
-      if (pub !== null && pub!.atom !== context) {
-        let result = this.find(cb, pub)
-        if (result !== undefined) return result
-      }
-    }
-
-    return undefined
+  // TODO: Add more reserved names?
+  if (name === 'abort') {
+    throw new ReatomError('This name is reserved for internal abort variable')
   }
 
-  let write = (value: any, frame = top()) => {
-    if (value === undefined) {
-      throw new ReatomError('Variable value cannot be undefined')
-    }
-    let recs = frame.root.variables.get(frame)
-    if (!recs) frame.root.variables.set(frame, (recs = new WeakMap()))
-    recs.set(variable, value)
-  }
-
-  let run = action((value, cb: Fn) => {
-    write(value)
-
-    return cb()
-  }, name)
-
-  let variable = {
-    get(frame?: Frame) {
-      let value = this.find(identity, frame)
-
-      assert(value !== undefined, 'Variable not found')
-
-      return value
-    },
-    set(...params: [any, ...any[]]) {
-      let value = set(...params)
-
-      write(value)
-
-      return value
-    },
-    has(frame?: Frame) {
-      return this.find(identity, frame) !== undefined
-    },
-    find,
-    run,
-
-    _findReactiveStartIndex: 0,
-  }
-
-  return variable
+  return new Variable({ create, name })
 }

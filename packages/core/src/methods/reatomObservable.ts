@@ -142,5 +142,5 @@ export const reatomObservable: {
 } = <T>(
   producer: Producer<T>,
   init?: (() => T) | T,
-  name = named('reatomObservable'),
+  name: string = named('reatomObservable'),
 ) => atom(init, name).extend(withObservable(producer))

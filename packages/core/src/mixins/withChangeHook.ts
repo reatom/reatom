@@ -21,6 +21,7 @@ export let withChangeHook = <Target extends AtomLike>(
         let state = next(...params)
 
         if (!Object.is(prevState, state)) {
+          // FIXME: enqueue before next call!
           _enqueue(frame.run.bind(frame, cb, state, prevState), 'hook')
         }
         return state
@@ -64,6 +65,7 @@ export let withCallHook = <Target extends Action>(
       if (!Object.is(prevState, state)) {
         for (let i = prevState?.length ?? 0; i < state.length; i++) {
           let { params, payload } = state[i]!
+          // FIXME: enqueue before next call!
           _enqueue(
             frame.run.bind(
               frame,

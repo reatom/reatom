@@ -1,11 +1,10 @@
-import type { Action, AssignerExt } from '../core'
-import { action, ReatomError, STACK, top } from '../core'
-import type { AbortAtom } from '../methods'
+import type { Action, AssignerExt, Frame } from '../core'
+import { action, ReatomError, top } from '../core'
+import { NamedAbortController } from '../methods'
 import { abortVar } from '../methods'
 import { _getPrevFrame } from '../methods/context'
 import type { Fn } from '../utils'
-import { assert, identity, isAbort, noop, toAbortError } from '../utils'
-import { withComputed } from './withComputed'
+import { assert, isAbort, noop } from '../utils'
 
 export interface AbortExt {
   abort: Action<[reason?: any]>
@@ -20,43 +19,31 @@ export let withAbort = (
     ReatomError,
   )
 
-  let topAbort: AbortAtom | undefined = undefined
-  if (STACK[STACK.length - 1]) {
-    topAbort = abortVar.find()
-  }
-  let wrapTopAbort = topAbort
-    ? (abort: AbortAtom) =>
-        abort.extend(withComputed((state) => state ?? topAbort(), false))
-    : identity
+  // TODO may be useful for `reatomComponent`, but may be dangerous for other cases
+  // let topController = STACK.length ? abortVar.get() : null
+
+  let recomputed = new WeakSet<Frame>()
 
   return (target) => {
     let withAbort = (next: Fn, ...params: any[]) => {
       let frame = top()
       let prevFrame = _getPrevFrame(frame)
-      let prevAbort =
-        prevFrame &&
-        abortVar.find((maybeAbort) => maybeAbort ?? null, prevFrame)
-
+      let prevController = prevFrame && abortVar.first(prevFrame)
       let prevState = frame.state
       let state = prevState
-      let abort: AbortAtom
+      abortVar.set(new NamedAbortController(`${target.name}.withAbort`))
 
-      if (!prevAbort /* init */) {
-        abort = wrapTopAbort(abortVar.set(`${target.name}._abort`))
+      state = next(...params)
 
-        state = next(...params)
-      } else {
-        abort = wrapTopAbort(abortVar.set(`${target.name}._abort`))
-
-        state = next(...params)
-
-        if (target.__reatom.reactive && Object.is(prevState, state)) {
-          abortVar.set(prevAbort)
+      if (prevController) {
+        // may be just reading, no computed recall
+        if (target.__reatom.reactive && !recomputed.has(frame)) {
+          abortVar.set(prevController)
 
           return state
         }
 
-        prevAbort.set(toAbortError(`${target.name} concurrent`))
+        prevController.abort('concurrent')
       }
 
       let maybePromise = target.__reatom.reactive
@@ -65,15 +52,15 @@ export let withAbort = (
 
       if (maybePromise instanceof Promise) {
         maybePromise = new Promise((res, rej) => {
-          let un = abort.subscribeAbort(rej)
+          let abortSubscription = abortVar.subscribe(rej)
           ;(maybePromise as Promise<any>)
             .then((value) => {
-              un()
+              abortSubscription.unsubscribe()
               res(value)
             })
             .catch((error) => {
               if (isAbort(error)) maybePromise.catch(noop)
-              un()
+              abortSubscription.unsubscribe()
               rej(error)
             })
         })
@@ -88,13 +75,20 @@ export let withAbort = (
       return state
     }
 
+    if (target.__reatom.reactive) {
+      target.__reatom.middlewares.unshift(function (next) {
+        recomputed.add(top())
+        return next.apply(arguments)
+      })
+    }
+
     target.__reatom.middlewares.push(withAbort)
 
     return {
       abort: action((reason?: any) => {
         let frame = top().root.store.get(target)
         if (frame) {
-          abortVar.find((maybeAbort) => maybeAbort ?? null, frame)?.set(reason)
+          abortVar.first(frame)?.abort(reason || 'abort')
         }
       }, `${target.name}._abort`),
     }

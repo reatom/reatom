@@ -1,7 +1,7 @@
-import { expect, test, vi } from 'test'
+import { expect, test } from 'test'
 
-import { action, atom, computed } from '../core'
-import { withAbort } from '../mixins'
+import { action, atom, computed, notify } from '../core'
+import { withDynamicSubscription } from '../mixins/withDynamicSubscription'
 import { sleep } from '../utils'
 import { abortVar } from './abortVar'
 import { effect } from './effect'
@@ -48,49 +48,65 @@ test("effect didn't connect to reactive parent", async () => {
 })
 
 test('different types of abort', async () => {
-  abortVar.set('test')
+  const name = 'differentTypesOfAbort'
 
-  const data = atom(0, 'data')
+  await action(async () => {
+    abortVar.set()
 
-  const doSome = action((shouldUpdate: boolean) => {
-    if (shouldUpdate) data.set((s) => s + 1)
-  }, 'doSome')
+    const data = atom(0, 'data')
 
-  let logs1 = vi.fn()
-  const effect1 = effect(() => {
-    data()
-    logs1('rerun')
-    abortVar.subscribeAbort((error) => logs1(error.message))
-  })
+    const doSome = action((shouldUpdate: boolean) => {
+      if (shouldUpdate) data.set((s) => s + 1)
+    }, `${name}.doSome`)
 
-  let logs2 = vi.fn()
-  const effect2 = effect(() => {
-    data()
-    logs2('rerun')
-    expect(abortVar)
-    abortVar.subscribeAbort((error) => logs2(error.message))
-    abortVar.subscribeAbort(() => console.log('abort'))
-  }).extend(withAbort())
+    const logs1: string[] = []
+    const un1 = computed(() => {
+      data()
+      logs1.push('rerun')
+      abortVar.subscribe((error) => {
+        logs1.push(error.message)
+      })
+    }, `${name}.computed`)
+      .extend(withDynamicSubscription())
+      .subscribe()
 
-  expect(logs1).toBeCalledTimes(1)
-  expect(logs2).toBeCalledTimes(1)
+    let logs2: string[] = []
+    const un2 = effect(() => {
+      data()
+      logs2.push('rerun')
+      abortVar.subscribe((error) => {
+        logs2.push(error.message)
+      })
+    }, `${name}.effect`)
 
-  data.set((s) => s + 1)
-  await wrap(sleep())
-  // +1 rerun
-  expect(logs1).toBeCalledTimes(2)
-  // +1 rerun, +1 abort
-  // expect(logs2).toBeCalledTimes(3)
+    expect(logs1).toEqual(['rerun'])
+    expect(logs2).toEqual(['rerun'])
 
-  effect1.unsubscribe()
-  await wrap(sleep())
-  // +1 rerun
-  expect(logs1.mock.calls.map((c) => c[0])).toEqual([
-    'rerun',
-    'rerun',
-    // two logs from two subscriptions from two reruns
-    'disconnect [#1]',
-    'disconnect [#1]',
-  ])
-  expect(logs2).toBeCalledTimes(2)
+    data.set((s) => s + 1)
+    await wrap(sleep())
+    expect(logs1).toEqual(['rerun', 'rerun'])
+    expect(logs2).toEqual([
+      'rerun',
+      'rerun',
+      expect.stringContaining(
+        'differentTypesOfAbort.effect.withAbort concurrent',
+      ),
+    ])
+
+    un2.unsubscribe()
+    // notify()
+    await wrap(sleep())
+
+    expect(logs1).toEqual(['rerun', 'rerun'])
+    expect(logs2).toEqual([
+      'rerun',
+      'rerun',
+      expect.stringContaining(
+        'differentTypesOfAbort.effect.withAbort concurrent',
+      ),
+      expect.stringContaining(
+        'differentTypesOfAbort.effect.subscribe unsubscribe',
+      ),
+    ])
+  }, `${name}._abort`)()
 })

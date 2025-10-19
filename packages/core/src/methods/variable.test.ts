@@ -8,7 +8,7 @@ import { variable } from './variable'
 
 test('unique scope', async () => {
   const countVar = variable((init: number) => atom(init))
-  const init = action(countVar.set)
+  const init = action(countVar.set.bind(countVar))
 
   const log = vi.fn()
   init(1).subscribe(log)
@@ -19,7 +19,7 @@ test('unique scope', async () => {
 
 test('scope propagation for actions', async () => {
   const countVar = variable((init: number) => atom(init))
-  const read = action(() => countVar.get()())
+  const read = action(() => countVar.get()!())
   const init = action((init: number) => {
     countVar.set(init)
 
@@ -40,7 +40,7 @@ test('scope propagation for atoms', async () => {
       initState: { param: -1, paramVar: -1 },
       mapPayload: (param) => ({
         param,
-        paramVar: paramVar.get(),
+        paramVar: paramVar.get()!,
       }),
     }),
   )
@@ -53,7 +53,7 @@ test('scope propagation for atoms', async () => {
 
   expect(resource.data()).toEqual({ param: -1, paramVar: -1 })
   await wrap(sleep())
-  expect(() => resource.data()).toThrow('Variable not found')
+  expect(resource.data().paramVar).toBeUndefined()
 
   update(1)
   await wrap(sleep())

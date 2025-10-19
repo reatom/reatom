@@ -85,7 +85,7 @@ export interface Extend<This extends AtomLike> {
   <T extends Array<Ext<AtomLike, AtomLike | Rec>>>(
     ...extensions: T
   ): {
-    extend_ERROR: 'To many overloads (separate it to a few `extend` calls) or some mixing has incompatible types'
+    extend_ERROR: 'To many overloads (separate it to a few `extend` calls) or some extensions has incompatible types'
   } & AtomLike<unknown, unknown[], unknown>
 }
 

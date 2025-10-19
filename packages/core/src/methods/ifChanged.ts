@@ -4,6 +4,20 @@ import { assert } from '../utils'
 import { _getPrevFrame } from './context'
 import { peek } from './peek'
 
+export let isChanged = (target: AtomLike): boolean => {
+  let frame = top()
+  let prevPubs = _getPrevFrame(frame)?.pubs ?? [null]
+  let prevTargetFrame = prevPubs[frame.pubs.length]
+
+  target()
+  let targetFrame = frame.root.store.get(target)!
+
+  return (
+    targetFrame.atom !== prevTargetFrame?.atom ||
+    !Object.is(targetFrame.state, prevTargetFrame.state)
+  )
+}
+
 /**
  * Executes a callback when an atom's state changes
  *
@@ -101,6 +115,7 @@ export const getCalls = <Params extends any[], Payload>(
     targetFrame = {
       error: null,
       state: [],
+      'var#abort': null,
       atom: target,
       pubs: [frame.root.frame],
       subs: [],

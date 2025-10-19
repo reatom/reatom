@@ -1,5 +1,6 @@
 import {
   computed,
+  context,
   type Frame,
   type FunctionSource,
   named,
@@ -68,7 +69,7 @@ const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
  *   }, 'processData')
  *
  * @param cb A function that returns the value to be selected and memoized.
- * @param {function(T, T): boolean} [Object.is] An optional function to compare
+ * @param {function(State, State): boolean} [Object.is] An optional function to compare
  *   the new and old states, useful for reactive context. If the memo appears in
  *   reactive context (`computed`, `effect`) then before triggering the host
  *   recomputation the returned value compares with the previous returned value.
@@ -80,12 +81,17 @@ const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
  *   using similar callback functions to avoid conflicts.
  * @returns The memoized value.
  */
-export let memo = <T>(
-  cb: () => T,
-  equal: (newState: T, oldState: T) => boolean = () => false,
+export let memo = <State>(
+  cb: (() => State) | ((state?: State) => State),
+  equal: (newState: State, oldState: State) => boolean = () => false,
   key = cb.toString(),
-): T => {
+): State => {
   let frame = top()
+
+  if (frame.atom === context) {
+    throw new ReatomError('memo can be used only inside atoms or actions')
+  }
+
   let touched = touchedMap.get(frame)
   if (!touched) {
     touchedMap.set(frame, (touched = {}))
@@ -98,28 +104,26 @@ export let memo = <T>(
     map.set(frame.atom, (atoms = {}))
   }
 
-  if (frame.atom.__reatom.reactive) {
-    if (key in touched) {
-      throw new ReatomError(
-        'multiple memo with the same "toString" representation is not possible',
-      )
-    }
-
-    touched[key] = true
+  if (key in touched) {
+    throw new ReatomError(
+      'multiple memo with the same "toString" representation is not possible',
+    )
   }
+
+  touched[key] = true
 
   let memoAtom = atoms[key]
   if (!memoAtom) {
     let isInit = true
     atoms[key] = memoAtom = computed(
-      (prevState?: any) => {
-        const newState = cb()
+      (prevState) => {
+        const newState = cb(prevState)
         const resultState =
           isInit || !equal(newState, prevState) ? newState : prevState
         isInit = false
         return resultState
       },
-      named(`${frame.atom.name}._select`),
+      named(`${frame.atom.name}._memo`),
     )
   }
 

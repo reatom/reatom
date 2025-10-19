@@ -72,7 +72,7 @@ test('max overloads', () => {
 
   expectTypeOf(test11).toExtend<
     {
-      extend_ERROR: 'To many overloads (separate it to a few `extend` calls) or some mixing has incompatible types'
+      extend_ERROR: 'To many overloads (separate it to a few `extend` calls) or some extensions has incompatible types'
     } & AtomLike<unknown, unknown[], unknown>
   >()
 })

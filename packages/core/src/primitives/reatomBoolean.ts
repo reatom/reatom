@@ -10,7 +10,7 @@ export interface BooleanAtom extends Atom<boolean> {
 
 export const reatomBoolean = (
   init = false,
-  name = named('booleanAtom'),
+  name: string = named('booleanAtom'),
 ): BooleanAtom =>
   atom(init, name).actions((target) => ({
     toggle: () => target.set((prev) => !prev),

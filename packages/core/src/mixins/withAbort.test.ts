@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'test'
 
-import { action, atom, computed } from '../core'
-import { abortVar, effect, wrap } from '../methods'
-import { sleep } from '../utils'
+import { action, atom, computed, notify } from '../core'
+import { abortVar, effect, getCalls, wrap } from '../methods'
+import { noop, sleep } from '../utils'
 import { withAbort } from './withAbort'
 
 test('abort propagation', async () => {
@@ -33,16 +33,20 @@ test('abort computed propagation', async () => {
 
   const logs: any[] = []
   computed(async () => {
-    const state = double()
-    let running = true
-    logs.push(state + ' start')
-    abortVar.subscribeAbort(() => {
-      running = false
-      logs.push(state + ' abort')
-    })
-    while (running) {
-      logs.push(state + ' loop')
-      await wrap(sleep())
+    try {
+      const state = double()
+      let running = true
+      logs.push(state + ' start')
+      abortVar.subscribe(() => {
+        running = false
+        logs.push(state + ' abort')
+      })
+      while (running) {
+        logs.push(state + ' loop')
+        await wrap(sleep())
+      }
+    } catch {
+      // nothing
     }
   }, `${name}.loop`).subscribe()
 
@@ -50,7 +54,7 @@ test('abort computed propagation', async () => {
   await wrap(sleep())
   expect(logs).toEqual(['0 start', '0 loop', '0 loop', '0 loop'])
 
-  const { unsubscribe } = effect(() => {
+  const unsubscribe = effect(() => {
     count.set((s) => s + 1)
   }, `${name}.setCountEffect`)
   await wrap(Promise.resolve())
@@ -64,8 +68,12 @@ test('abort computed propagation', async () => {
   ])
 
   unsubscribe()
+
+  notify()
+
   await wrap(sleep())
   await wrap(sleep())
+
   expect(logs).toEqual([
     '0 start',
     '0 loop',
@@ -104,4 +112,37 @@ test('abortable model', async () => {
   const doSome2 = model()
   doSome1()
   expect(fn).toBeCalledTimes(1)
+})
+
+test('abort for computed rerun with the same state', () => {
+  let calls = 0
+  let aborts = 0
+
+  const tick = action(noop, 'tick')
+
+  const testComputed = computed(() => {
+    getCalls(tick)
+    calls++
+    abortVar.subscribe(() => aborts++)
+    return undefined
+  }, 'testComputed').extend(withAbort())
+
+  const un = testComputed.subscribe()
+
+  expect(calls).toBe(1)
+  expect(aborts).toBe(0)
+
+  tick()
+  notify()
+  expect(calls).toBe(2)
+  expect(aborts).toBe(1)
+
+  un()
+  tick()
+  notify()
+  testComputed()
+  testComputed() // second call to ensure there will be no extra `aborts`
+  expect(calls).toBe(3)
+  notify() // need to process `abortVar.subscribe`
+  expect(aborts).toBe(2)
 })

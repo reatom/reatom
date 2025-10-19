@@ -10,7 +10,7 @@ import { variable } from './variable'
 
 type Rollbacks = Array<Fn>
 
-interface TransactionVariable extends Variable<[Rollbacks?], Rollbacks> {
+interface TransactionVariable extends Variable<Rollbacks, [Rollbacks?]> {
   /**
    * Extension to follow rollback context. For atoms it adds prev state
    * restoration when relative `rollback()` appears. For actions it adds error

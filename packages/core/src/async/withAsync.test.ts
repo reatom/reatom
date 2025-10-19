@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'test'
 
 import { _read, action, atom, computed } from '../core'
-import { wrap } from '../methods'
+import { retryComputed, wrap } from '../methods'
 import { withCallHook } from '../mixins'
 import { noop, sleep } from '../utils'
 import { withAsync } from './withAsync'
@@ -115,7 +115,7 @@ test('computed retry', async () => {
 
   // Retry should succeed
   shouldFail = false
-  await wrap(resource.retry().catch(noop))
+  await wrap(retryComputed(resource).catch(noop))
 
   expect(resource.ready()).toBe(true)
   expect(resource.error()).toBeUndefined()
@@ -124,5 +124,43 @@ test('computed retry', async () => {
   expect(onFulfill).toHaveBeenCalledWith({
     payload: 'Success',
     params: [0], // params from the initial computed evaluation
+  })
+})
+
+test('computed retry without params', async () => {
+  const name = 'computedRetry'
+  let shouldFail = true
+  const resource = computed(async () => {
+    if (shouldFail) {
+      throw new Error('Initial failure')
+    }
+    return 'Success'
+  }, `${name}.resource`).extend(withAsync())
+
+  const onReject = vi.fn()
+  resource.onReject.extend(withCallHook((call) => onReject(call)))
+  const onFulfill = vi.fn()
+  resource.onFulfill.extend(withCallHook((call) => onFulfill(call)))
+
+  // Initial evaluation should fail
+  await wrap(resource().catch(noop))
+
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).instanceOf(Error)
+  expect(resource.error()?.message).toBe('Initial failure')
+  expect(onReject).toHaveBeenCalledTimes(1)
+  expect(onFulfill).not.toHaveBeenCalled()
+
+  // Retry should succeed
+  shouldFail = false
+  await wrap(retryComputed(resource).catch(noop))
+
+  expect(resource.ready()).toBe(true)
+  expect(resource.error()).toBeUndefined()
+  expect(onReject).toHaveBeenCalledTimes(1) // Should not be called again
+  expect(onFulfill).toHaveBeenCalledTimes(1)
+  expect(onFulfill).toHaveBeenCalledWith({
+    payload: 'Success',
+    params: [], // params from the initial computed evaluation
   })
 })

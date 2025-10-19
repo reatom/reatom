@@ -1,3 +1,4 @@
+import type { NamedAbortController } from '../methods'
 import type { AbortExt } from '../mixins'
 import { type Fn, isAbort, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
@@ -162,6 +163,8 @@ export interface Frame<
   /** Current state of the atom */
   state: State
 
+  'var#abort': null | NamedAbortController
+
   /** Reference to the atom itself */
   readonly atom: AtomLike<State, Params, Payload>
 
@@ -186,7 +189,9 @@ export interface Frame<
   run<I extends any[], O>(fn: (...params: I) => O, ...params: I): O
 
   /** The root frame state with all meta information */
-  root: RootState
+  readonly root: RootState
+
+  [key: `var#${string}`]: unknown
 }
 
 /**
@@ -246,6 +251,8 @@ export interface RootState {
   /** Store that maps atoms to their frames in this context. */
   store: Store
 
+  // Meta
+
   /** Frame history. */
   frames: WeakMap<AtomLike, { prev: null | Frame; next: Frame }>
 
@@ -255,8 +262,7 @@ export interface RootState {
   /** Cache for memoized selectors, keyed by source function. */
   selects: WeakMap<AtomLike, Record<FunctionSource, AtomLike>>
 
-  /** Async variables maps. */
-  variables: WeakMap<Frame, WeakMap<WeakKey, any>>
+  // Queues
 
   /** Queue for hook callbacks to be executed. */
   hook: Queue
@@ -270,6 +276,8 @@ export interface RootState {
   /** Queue for effect callbacks to be executed. */
   effect: Queue
 
+  // Methods
+
   /**
    * Add a callback to a specific queue for later execution.
    *
@@ -277,6 +285,8 @@ export interface RootState {
    * @param queue - Queue to add the callback to
    */
   pushQueue(cb: Fn, queue: 'hook' | 'compute' | 'cleanup' | 'effect'): void
+
+  // Internal
 
   /** Link to itself frame for internal use */
   frame: RootFrame
@@ -322,6 +332,7 @@ export function run<I extends any[], O>(
   }
 }
 
+/** @private */
 export let _copy = (frame: Frame) => {
   // console.log(COLOR.dimGreen('copy'), frame.atom.name)
 
@@ -334,6 +345,7 @@ export let _copy = (frame: Frame) => {
   frame = {
     error: frame.error,
     state: frame.state,
+    'var#abort': null,
     atom: frame.atom,
     pubs,
     subs: frame.subs,
@@ -350,7 +362,7 @@ export let isAtom = (value: any): value is AtomLike => {
   return typeof value === 'function' && '__reatom' in value
 }
 
-export let isWratableAtom = (value: any): value is Atom => {
+export let isWritableAtom = (value: any): value is Atom => {
   return isAtom(value) && value.set !== undefined
 }
 
@@ -515,7 +527,12 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 }
 
 let i = 0
-export let named = (name: string | TemplateStringsArray) => `${name}#${++i}`
+export let named: {
+  <T extends string>(name: T): `${T}#${number}`
+  (name: string | TemplateStringsArray): `${string}#${number}`
+} = (name: string | TemplateStringsArray): `${string}#${number}` => {
+  return `${name}#${++i}`
+}
 
 declare global {
   // @ts-ignore TODO
@@ -657,7 +674,14 @@ let castAtom = <T extends AtomLike>(
     } satisfies AtomMeta,
 
     toString: () => `[Atom ${target.name}]`,
+    toJSON: target,
   } as Exclude<AtomLike, Fn>) as T
+
+export let ANONYMOUS = false
+
+export let anonymizeNames = () => {
+  ANONYMOUS = true
+}
 
 export let createAtom: {
   <State>(
@@ -679,9 +703,14 @@ export let createAtom: {
     initState?: State | (() => State)
     computed?: (prev: State | undefined) => State
   },
-  name = named('atom'),
+  name: string = named('atom'),
 ): Atom<State> => {
-  let computed = setup.computed && atomMiddleware.bind(null, setup.computed)
+  let precompiledComputed =
+    setup.computed && atomMiddleware.bind(null, setup.computed)
+
+  if (ANONYMOUS) {
+    name = 'anonymous'
+  }
 
   let target = castAtom<Atom<State>>(
     {
@@ -697,6 +726,7 @@ export let createAtom: {
           frame = {
             error: null,
             state: undefined as State,
+            'var#abort': null,
             atom: target,
             pubs: [null],
             subs: [],
@@ -741,12 +771,12 @@ export let createAtom: {
           middlewares: try {
             let fn: Fn = identity
 
-            if (computed !== undefined) {
+            if (precompiledComputed !== undefined) {
               if (
                 middlewares.length === 1 &&
                 middlewares[0] === atomMiddleware
               ) {
-                newState = computed.apply(
+                newState = precompiledComputed.apply(
                   null,
                   // @ts-ignore TODO
                   arguments,
@@ -759,6 +789,7 @@ export let createAtom: {
             }
 
             for (let middleware of middlewares) {
+              // TODO is `.bind` fast enough?
               fn = middleware.bind(null, fn)
             }
             newState = fn.apply(
@@ -840,10 +871,10 @@ export let createAtom: {
  *   const value = counter() // -> 0
  *
  *   // Update with new value
- *   counter(5) // Sets value to 5
+ *   counter.set(5) // Sets value to 5
  *
  *   // Update with a function
- *   counter((prev) => prev + 1) // Sets value to 6
+ *   counter.set((prev) => prev + 1) // Sets value to 6
  *
  * @template T - The type of state stored in the atom
  * @param createState - A function that returns the initial state, or the
@@ -939,7 +970,6 @@ context.start = (cb = top) => {
       frames: new WeakMap(),
       inits: new WeakMap(),
       selects: new WeakMap(),
-      variables: new WeakMap(),
 
       // queues
       hook: [],
@@ -953,6 +983,7 @@ context.start = (cb = top) => {
 
       frame: undefined as any,
     } satisfies RootState,
+    'var#abort': null,
     atom: context as any,
     pubs: [null],
     subs: [],
@@ -960,6 +991,7 @@ context.start = (cb = top) => {
     root: undefined as any,
   }
 
+  // @ts-expect-error
   frame.root = frame.state
   frame.state.frame = frame
 
@@ -973,6 +1005,7 @@ context.start = (cb = top) => {
  * from the current context. It's used to access an atom's state and
  * dependencies without triggering reactivity or creating new dependencies.
  *
+ * @private
  * @template State - The state type of the atom
  * @template Params - The parameter types the atom accepts
  * @template Payload - The return type when the atom is called
@@ -1069,26 +1102,5 @@ export let mock = <Params extends any[], Payload>(
   return () => {
     let idx = target.__reatom.middlewares.indexOf(mockMiddleware)
     if (idx !== -1) target.__reatom.middlewares.splice(idx, 1)
-  }
-}
-
-/**
- * Removes all computed atom dependencies.
- * Useful for effects / resources invalidation.
- *
- * @param target - The reactive atom whose dependencies should be reset.
- * @throws {ReatomError} If the target is not reactive.
- */
-export const resetDeps = (target: AtomLike) => {
-  if (!target.__reatom.reactive) {
-    throw new ReatomError('only reactive atoms can be reset')
-  }
-
-  const { store } = context().state
-  let targetFrame = store.get(target)
-  if (targetFrame && targetFrame.pubs.length > 1) {
-    targetFrame = _copy(targetFrame)
-    targetFrame.pubs.splice(1)
-    store.set(target, targetFrame)
   }
 }

@@ -11,7 +11,7 @@ export interface RecordAtom<T extends Rec> extends Atom<T> {
 
 export const reatomRecord = <T extends Rec>(
   initState: Exclude<T, Fn>,
-  name = named('recordAtom'),
+  name: string = named('recordAtom'),
 ): RecordAtom<T> =>
   atom(initState, name).actions((target) => ({
     merge: (slice: Partial<T>) =>

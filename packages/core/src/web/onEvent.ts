@@ -47,16 +47,16 @@ export const onEvent: {
 
   listener = wrap(listener)
 
-  let un = () => {
+  let abortSubscription = abortVar.subscribe()
+
+  target.addEventListener(type, listener, {
+    signal: abortSubscription.controller.signal,
+  })
+
+  return () => {
     target.removeEventListener(type, listener)
-    unAbort?.()
+    abortSubscription.unsubscribe()
   }
-
-  target.addEventListener(type, listener)
-
-  let unAbort = abortVar.find()?.subscribeAbort(un)
-
-  return un
 }
 
 // export const withEvent: {

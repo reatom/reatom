@@ -11,7 +11,7 @@ export interface NumberAtom extends Atom<number> {
 
 export const reatomNumber = (
   initState = 0,
-  name = named('numberAtom'),
+  name: string = named('numberAtom'),
 ): NumberAtom =>
   atom(initState, name).actions((target) => ({
     increment: (by = 1) => target.set((prev) => prev + by),

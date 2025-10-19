@@ -6,11 +6,10 @@ import {
   context,
   createAtom,
   ReatomError,
-  resetDeps,
   top,
   withMiddleware,
 } from '../core'
-import { ifCalled, ifChanged } from '../methods'
+import { getCalls, ifChanged } from '../methods'
 import type { Fn } from '../utils'
 import { assert, isAbort } from '../utils'
 
@@ -80,8 +79,6 @@ export interface AsyncExt<
 
   /** Atom containing the most recent error or undefined if no error has occurred */
   error: Atom<undefined | Error>
-
-  retry: Action<Params, Promise<Payload>>
 }
 
 /**
@@ -176,7 +173,7 @@ export let withAsync: {
           if (target.__reatom.reactive) {
             ifChanged(target, () => state++)
           } else {
-            ifCalled(target as Action, () => state++)
+            state += getCalls(target as Action).length
           }
           return state
         },
@@ -237,13 +234,6 @@ export let withAsync: {
       return state
     }
 
-    let retry = action((...params: Parameters<typeof target>) => {
-      if (target.__reatom.reactive) {
-        resetDeps(target)
-      }
-      return target(...params)
-    }, `${target.name}.retry`)
-
     return target.extend(
       withMiddleware(() => asyncMiddleware),
       () => ({
@@ -253,7 +243,6 @@ export let withAsync: {
         onSettle,
         pending,
         error,
-        retry,
       }),
     ) satisfies AtomLike & AsyncExt
   }
