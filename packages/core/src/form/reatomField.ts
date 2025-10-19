@@ -392,7 +392,8 @@ export function reatomField<State, Value = State>(
           ? fieldInitValidation
           : fieldInitValidationLess,
       ),
-      withComputed((state): FieldValidation => {
+      // TODO: remove default assignment after bug fix
+      withComputed((state = fieldInitValidationLess): FieldValidation => {
         if (!fieldOptions.value().shouldValidate) return fieldInitValidationLess
 
         if (disabled()) return fieldInitValidation
