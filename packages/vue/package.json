@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "yoctobundle",
+    "build": "microbundle -f esm,cjs --raw",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },

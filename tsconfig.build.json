@@ -2,12 +2,9 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
-    "outDir": "${configDir}/tsbuild",
-    "tsBuildInfoFile": "${configDir}/tsbuild/.tsbuildinfo",
-    "composite": true,
-    "paths": {
-      "@reatom/core": ["./packages/core/src/index.ts"]
-    }
+    "outDir": "${configDir}/build",
+    "tsBuildInfoFile": "${configDir}/build/.tsbuildinfo",
+    "composite": true
   },
   "include": ["${configDir}/src"],
   "exclude": [

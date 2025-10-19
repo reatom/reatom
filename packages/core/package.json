@@ -18,8 +18,8 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run build",
-    "build": "pnpm run test && pnpm run test:browser && yoctobundle",
+    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run test:browser && pnpm run build",
+    "build": "microbundle -f esm,cjs --raw",
     "test": "vitest run",
     "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
     "test:watch": "vitest",
@@ -58,6 +58,9 @@
   "files": [
     "/build"
   ],
+  "dependencies": {
+    "@standard-schema/spec": "catalog:"
+  },
   "peerDependencies": {
     "idb-keyval": "*"
   },
@@ -71,7 +74,6 @@
     "@frp-ts/core": "latest",
     "@ngrx/store": "latest",
     "@preact/signals-core": "latest",
-    "@standard-schema/spec": "catalog:",
     "@types/node": "latest",
     "@webreflection/signal": "latest",
     "alien-signals": "catalog:",
@@ -93,6 +95,7 @@
     "usignal": "latest",
     "whatsup": "latest",
     "wonka": "latest",
-    "zod": "^3.25.17"
+    "zod": "catalog:",
+    "typescript": "catalog:"
   }
 }

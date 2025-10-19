@@ -12,7 +12,8 @@
     "update": "npx pnpm-check-updates -u",
     "prettify": "prettier --write */**/**/*.{js,ts,md}",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
-    "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}"
+    "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
+    "autodocs": "typedoc && tsx tools/cleanup-autodocs.ts"
   },
   "dependencies": {
     "@commitlint/cli": "catalog:",
@@ -25,13 +26,13 @@
     "eslint-plugin-unused-imports": "catalog:",
     "husky": "catalog:",
     "prettier": "catalog:",
+    "microbundle": "catalog:",
     "tsx": "catalog:",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
     "vitest": "catalog:",
-    "yoctobundle": "catalog:",
     "zx": "catalog:"
   },
   "author": "artalar",
@@ -49,5 +50,5 @@
     "prettier-plugin-astro": "catalog:",
     "prettier-plugin-jsdoc": "catalog:"
   },
-  "packageManager": "pnpm@10.12.1"
+  "packageManager": "pnpm@10.18.3"
 }

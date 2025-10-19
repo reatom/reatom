@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build",
-    "build": "yoctobundle && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
+    "build": "microbundle -f esm,cjs && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch=true"
   },

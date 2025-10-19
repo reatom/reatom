@@ -25,8 +25,8 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "eslint src --fix && prettier src -w && pnpm run build",
-    "build": "pnpm run test && yoctobundle -b",
+    "prepublishOnly": "eslint src --fix && prettier src -w && pnpm run test && pnpm run build",
+    "build": "microbundle -f esm,cjs --raw",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
   },

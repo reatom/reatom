@@ -1,5 +1,6 @@
 {
   "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["src/index.ts"],
-  "tsconfig": "tsconfig.build.json"
+  "tsconfig": "tsconfig.build.json",
+  "exclude": ["src/jsx.d.ts"]
 }

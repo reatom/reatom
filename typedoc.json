@@ -18,5 +18,7 @@
   "hideBreadcrumbs": true,
   "router": "module",
   "mergeReadme": false,
-  "excludeScopesInPaths": true
+  "excludeScopesInPaths": true,
+  "excludePrivate": true,
+  "excludeProtected": true
 }
