@@ -2,6 +2,7 @@
 title: Async Context
 description: Documentation on async context in Reatom
 ---
+
 This article describes the main killer feature of redux-saga and rxjs and how you can now get it more simply, as well as about upcoming changes in the ECMAScript standard and Reatom.
 
 We will talk about automatic cancellation of concurrent asynchronous chains - an essential property when working with any REST API and other more general asynchronous sequential operations.
@@ -240,6 +241,8 @@ event$
 
 In `@reduxjs/toolkit`, there is `createListenerMiddleware`, whose API has some features from redux-saga that allow solving primitive cases of this problem. But chain tracking is more local and not as well integrated into the entire toolkit API.
 
+Also Effect has some features to solve this, but all _monad_ and _generator_ approaches have the same problem - excessive function coloring, which leads to abstraction leaking.
+
 What other options do we have?
 
 ## Context
@@ -402,4 +405,4 @@ Reatom's implementation offers several key advantages over other solutions:
 
 5. **Debuggability**: Reatom provides complete traceability for all actions and includes a built-in logging system that works out of the box. This makes tracking async workflows and identifying issues much easier than with traditional approaches, where you'd need to manually add logging throughout your code.
 
-P.S. we have more features on top of async context, including transactions with automatic rollbacks! Come to our docs 🙌
+P.S. we have more features on top of async context, including transactions with automatic rollbacks! Check the rest of the docs 🙌

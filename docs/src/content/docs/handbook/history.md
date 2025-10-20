@@ -20,7 +20,7 @@ We dropped our first Long Term Support (LTS) version (v1) in [December 2019](htt
 
 We have [a lot of contributors](https://github.com/reatom/reatom/graphs/contributors) working on different packages. We are trying to build a super stable and predictable ecosystem. To achieve this, we welcome you to put your package into our monorepo and check the [contribution](/contributing) guidelines.
 
-Since the 1k version (`1000`), Reatom uses epoch-based versioning inspired by Antfu's post. The next epoch release (`2000`) will be in 2026-2027 and may include meaningful changes; the whole ecosystem will be migrated together with the core package. The classic major versions (`1001`, `1002`, `1042`) and other minor and patch versions follow standard SemVer and represent small changes in a general epoch context. `@alpha` tags denote pre-release versions.
+Since the 1k version (`1000`), Reatom uses epoch-based versioning inspired [by Antfu's post](https://antfu.me/posts/epoch-semver). The next epoch release (`2000`) will be in 2026-2027 and may include meaningful changes; the whole ecosystem will be migrated together with the core package. The classic major versions (`1001`, `1002`, `1042`) and other minor and patch versions follow standard SemVer and represent small changes in a general epoch context. `@alpha` tags denote pre-release versions.
 
 ## How performant Reatom is?
 
@@ -51,7 +51,7 @@ Also, with `@reatom/zod`, you can create safer reactive structures even shorter 
 
 ## Migration from v3
 
-- **NEVER** use `ctx` or `Ctx`. The API is context-based implicitly via `wrap()`.
+- **NEVER** use `ctx` or `Ctx`. The API is context-based implicitly via `wrap`.
 - `ctx.schedule(() => promise)` -> `wrap(promise)`
 - `ctx.spy(dataAtom)` -> `data()`
 - `ctx.get(dataAtom)` -> `peek(data)`
@@ -60,3 +60,11 @@ Also, with `@reatom/zod`, you can create safer reactive structures even shorter 
 - `dataAtom(ctx, (state) => newState)` -> `data.set((state) => newState)`
 - Type `Atom` -> `AtomLike`
 - Type `AtomMut` -> `Atom`
+
+### Methods
+
+- `reaction` -> `effect`
+- `anAtom.onChange(cb)` -> `anAtom.extend(withChangeHook(cb))`
+- `onConnect(anAtom, cb)` -> `anAtom.extend(withConnectHook(cb))`
+- `take(anAtom, (ctx, value, SKIP) => value || SKIP)` -> `take(anAtom, (value) => value || throwAbort())`
+- `withConcurrency` -> `withAbort`

@@ -466,5 +466,5 @@ const fetchData = computed(async () => {
 
 - **[Async Context](/handbook/async-context)** - Deep dive into Reatom's async context system and automatic cancellation
 - **[Sampling](/handbook/sampling)** - Advanced patterns for handling user input and debouncing strategies
-- **[Actions](/guides/actions)** - Learn more about Reatom actions and their capabilities
-- **[Computed Values](/guides/computed)** - Understanding reactive computations in Reatom
+- **[Actions](/start/actions)** - Learn more about Reatom actions and their capabilities
+- **[Computed Values](/start/base)** - Understanding reactive computations in Reatom
