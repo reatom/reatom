@@ -1,0 +1,38 @@
+This utility helps to deserialize a plain (JSON) data structure to a reactive data model.
+
+## Installation
+
+```sh
+npm i @reatom/npm-zod
+```
+
+## Usage
+
+You can find an example here: https://github.com/reatom/reatom/tree/v3/examples/react-table-atomization
+
+```ts
+import { deatomize } from '@reatom/framework'
+import { reatomZod } from '@reatom/npm-zod'
+import * as z from 'zod'
+
+export const User = z.object({
+  id: z.string().readonly(),
+  email: z.string().readonly(),
+  name: z.string(),
+  age: z.number().optional(),
+})
+
+const KEY = 'user-data'
+export const model = reatomZod(User, {
+  sync() {
+    localStorage.setItem(KEY, JSON.stringify(deatomize(model)))
+  },
+  initState: JSON.parse(localStorage.getItem(KEY) || '{}'),
+})
+```
+
+## Mapping
+
+This section describes how types coverts to a specific atoms.
+
+`union` type creates an atom with all possible state variants and `discriminatedUnion` creates an atom with all possible atoms variants.
