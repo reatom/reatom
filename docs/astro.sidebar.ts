@@ -42,7 +42,43 @@ export const sidebar = [
     items: [
       {
         label: '@reatom/core',
-        link: '/reference/core',
+        collapsed: false,
+        items: [
+          {
+            label: 'Overview',
+            link: '/reference/core',
+          },
+          {
+            label: 'Classes',
+            link: '/reference/core/classes',
+          },
+          {
+            label: 'Functions',
+            link: '/reference/core/functions',
+          },
+          {
+            label: 'Variables',
+            link: '/reference/core/variables',
+          },
+          {
+            label: 'Type Aliases',
+            link: '/reference/core/type-aliases',
+          },
+          {
+            label: 'Interfaces',
+            collapsed: true,
+            items: [
+              { label: 'A-C', link: '/reference/core/interfaces/interfaces-a-c' },
+              { label: 'D-F', link: '/reference/core/interfaces/interfaces-d-f' },
+              { label: 'G-I', link: '/reference/core/interfaces/interfaces-g-i' },
+              { label: 'J-L', link: '/reference/core/interfaces/interfaces-j-l' },
+              { label: 'M-O', link: '/reference/core/interfaces/interfaces-m-o' },
+              { label: 'P-R', link: '/reference/core/interfaces/interfaces-p-r' },
+              { label: 'S-T', link: '/reference/core/interfaces/interfaces-s-t' },
+              { label: 'U-Z', link: '/reference/core/interfaces/interfaces-u-z' },
+            ],
+          },
+        ],
       },
       {
         label: '@reatom/react',
