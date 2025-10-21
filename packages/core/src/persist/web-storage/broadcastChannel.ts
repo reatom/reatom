@@ -180,9 +180,9 @@ export const reatomPersistBroadcastChannel = (
   })
 }
 
-// Check if BroadcastChannel is available
+let isBroadcastChannelAvailable
 try {
-  var isBroadcastChannelAvailable = !!globalThis.BroadcastChannel
+  isBroadcastChannelAvailable = !!globalThis.BroadcastChannel
 } catch {
   isBroadcastChannelAvailable = false
 }

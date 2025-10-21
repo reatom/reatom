@@ -152,9 +152,9 @@ export const reatomPersistWebStorage = (
   })
 }
 
-// Check if Web Storage is available
+let isWebStorageAvailable: boolean
 try {
-  var isWebStorageAvailable = !!globalThis.localStorage
+  isWebStorageAvailable = !!globalThis.localStorage
 } catch {
   isWebStorageAvailable = false
 }

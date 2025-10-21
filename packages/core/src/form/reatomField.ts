@@ -503,7 +503,7 @@ export function reatomField<State, Value = State>(
             })
           }
 
-          return target.merge({ 
+          return target.merge({
             validating: undefined,
             errors: promise,
             meta: undefined,

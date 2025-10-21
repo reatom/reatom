@@ -235,11 +235,10 @@ export const reatomPersistIndexedDb = (
   })
 }
 
-// Check if IndexedDB and BroadcastChannel are available
 // Note: idb-keyval availability is checked dynamically at runtime
+let isIndexedDbAvailable: boolean
 try {
-  var isIndexedDbAvailable =
-    !!globalThis.indexedDB && !!globalThis.BroadcastChannel
+  isIndexedDbAvailable = !!globalThis.indexedDB && !!globalThis.BroadcastChannel
 } catch {
   isIndexedDbAvailable = false
 }

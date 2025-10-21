@@ -66,16 +66,17 @@ export let wrap: {
   if (!(target instanceof Promise)) target = Promise.resolve(target) as T
 
   let aborted = false
-  var promise = new Promise(async (resolve, reject) => {
+  let promise = new Promise(async (resolve, reject) => {
     let abortSubscription = abortVar.subscribe((error) => {
       aborted = true
       promise?.catch(noop)
       reject(error)
     })
+    let seal: Fn
     try {
       let value = await target
 
-      var seal = () => resolve(value)
+      seal = () => resolve(value)
     } catch (error) {
       // prevent unhandled error for abort
       if (isAbort(error)) promise.catch(noop)

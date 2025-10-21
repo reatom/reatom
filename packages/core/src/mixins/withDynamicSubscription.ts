@@ -1,6 +1,6 @@
 import { action, type AtomLike } from '../core'
 import { abortVar } from '../methods'
-import type { Fn } from '../utils'
+import type { Fn, Unsubscribe } from '../utils'
 
 /**
  * This interface improve `.subscribe` method behavior by relying it on
@@ -14,9 +14,10 @@ export let withDynamicSubscription =
     let { subscribe: subscribeOriginal } = target
 
     target.subscribe = action((cb?: Fn) => {
+      let unsubscribeOriginal: Unsubscribe
       let abortSubscription = abortVar.subscribe(() => unsubscribeOriginal?.())
 
-      var unsubscribeOriginal = subscribeOriginal.call(target, cb)
+      unsubscribeOriginal = subscribeOriginal.call(target, cb)
 
       return () => {
         unsubscribeOriginal()

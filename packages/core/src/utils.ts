@@ -596,7 +596,7 @@ const visited = new WeakMap<{}, string>()
  * @returns A string representation of the value
  */
 export const toStringKey = (thing: any, immutable = true): string => {
-  var tag = typeof thing
+  let tag = typeof thing
 
   if (tag === 'symbol') return `[reatom Symbol]${thing.description || 'symbol'}`
 
@@ -612,19 +612,19 @@ export const toStringKey = (thing: any, immutable = true): string => {
 
   if (visited.has(thing)) return visited.get(thing)!
 
-  var name =
+  let name =
     Reflect.getPrototypeOf(thing)?.constructor.name ||
     toString.call(thing).slice(8, -1)
   // get a unique prefix for each type to separate same array / map
   // thing could be a circular or not stringifiable object from a userspace
-  var result = `[reatom ${name}#${random()}]`
+  let result = `[reatom ${name}#${random()}]`
   if (tag === 'function') {
     visited.set(thing, (result += thing.name))
     return result
   }
   visited.set(thing, result)
 
-  var proto = Reflect.getPrototypeOf(thing)
+  let proto = Reflect.getPrototypeOf(thing)
   if (
     proto &&
     Reflect.getPrototypeOf(proto) &&
@@ -634,7 +634,7 @@ export const toStringKey = (thing: any, immutable = true): string => {
     return result
   }
 
-  var iterator =
+  let iterator =
     Symbol.iterator in thing
       ? thing
       : Object.entries(thing).sort(([a], [b]) => a.localeCompare(b))
@@ -672,9 +672,10 @@ let i = 0
  * @returns An AbortError instance
  */
 export const toAbortError = (reason: any): AbortError => {
+  let options: undefined | ErrorOptions
   if (reason instanceof Error === false || reason.name !== 'AbortError') {
     if (reason instanceof Error) {
-      var options: undefined | ErrorOptions = { cause: reason }
+      options = { cause: reason }
       reason = reason.message
     } else {
       reason = isObject(reason) ? toString.call(reason) : String(reason)

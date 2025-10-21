@@ -80,7 +80,7 @@ export interface FieldSet<T extends FormInitState> {
 
 export const reatomFieldSet = <T extends FormInitState>(
   fields: FormFields<T>,
-  name = named('fieldsSet'),
+  name: string = named('fieldsSet'),
 ): FieldSet<T> => {
   const fieldsList = computed(
     () => computeFieldsList(fields),

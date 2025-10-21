@@ -143,9 +143,9 @@ const reatomPersistCookie =
     })
   }
 
-// Check if cookies are available
+let isCookieAvailable: boolean
 try {
-  var isCookieAvailable = 'cookie' in globalThis.document
+  isCookieAvailable = 'cookie' in globalThis.document
 } catch {
   isCookieAvailable = false
 }
