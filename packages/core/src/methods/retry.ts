@@ -7,27 +7,27 @@ import { _copy } from '../core'
  * Removes all computed atom dependencies. Useful for resources / effects
  * invalidation.
  *
+ * Note that this method not recall and recompute the atom, it only throws it's
+ * deps. Use `retryComputed` to reevaluate the computed.
+ *
  * @param target - The reactive atom whose dependencies should be reset.
- * @throws {ReatomError} If the target is not reactive.
+ * @throws {ReatomError} If the target is an action.
  */
-export const reset = <T extends AtomLike>(target: T): T => {
+export const reset = <T extends AtomLike>(target: T) => {
   if (!target.__reatom.reactive) {
-    throw new ReatomError('Only reactive atoms can be reseted')
+    throw new ReatomError('Only reactive atoms can be reset')
   }
 
-  const { store } = context().state
+  let { store } = context().state
   let targetFrame = store.get(target)
   if (targetFrame) {
-    targetFrame = _copy(targetFrame)
-    targetFrame.pubs.splice(1)
-    store.set(target, targetFrame)
+    _copy(targetFrame).pubs.splice(1)
   }
-
-  return target
 }
 
 /**
- * Retries computed atom by resetting its dependencies and re-evaluating it.
+ * Retries computed atom by resetting its dependencies and re-evaluating the
+ * computed function .
  *
  * @template T - The return type of the atom.
  * @param target - The atom to retry.
