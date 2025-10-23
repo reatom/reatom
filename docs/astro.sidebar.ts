@@ -24,9 +24,41 @@ export const sidebar = [
       'handbook/async-context',
       'handbook/async',
       'handbook/lifecycle',
-      'handbook/forms',
       'handbook/routing',
       'handbook/sampling',
+      {
+        label: 'Forms',
+        items: [
+          'handbook/forms/introduction',
+          'handbook/forms/comparison',
+          {
+            label: 'Concepts',
+            items: [
+              'handbook/forms/concepts/field-atom',
+              'handbook/forms/concepts/reactive-validation',
+              'handbook/forms/concepts/field-array',
+              'handbook/forms/concepts/fieldset',
+              'handbook/forms/concepts/form',
+            ]
+          },
+          {
+            label: 'Recipes',
+            items: [
+              'handbook/forms/recipes/async-default-values',
+              'handbook/forms/recipes/async-validation-debounce',
+              'handbook/forms/recipes/dependent-validation',
+              'handbook/forms/recipes/focus-management',
+              'handbook/forms/recipes/errors-ux',
+              'handbook/forms/recipes/fields-factory',
+              'handbook/forms/recipes/abstract-components',
+              'handbook/forms/recipes/compound-fields',
+              'handbook/forms/recipes/wizard-forms',
+              'handbook/forms/recipes/persistence',
+            ]
+          },
+          'handbook/forms/migration/react-hook-form'
+        ]
+      }
     ],
   }),
 
