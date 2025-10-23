@@ -255,20 +255,23 @@ describe('types', () => {
   })
 
   it('should parse linked list as array', () => {
-    const model = reatomLinkedList((value: number) => ({
-      kind: 'TEST' as const,
-      bool1: atom(true),
-      array: atom([
-        atom({
-          type: reatomEnum(['A', 'B', 'C']),
-          str1: atom(''),
-          bool: atom(false),
-          nestedLinkedList: reatomLinkedList((value: number) =>
-            reatomEnum(['A', 'B', 'C']),
-          ),
-        }),
-      ]),
-    }))
+    const model = reatomLinkedList(
+      // @ts-expect-error
+      (value: number) => ({
+        kind: 'TEST' as const,
+        bool1: atom(true),
+        array: atom([
+          atom({
+            type: reatomEnum(['A', 'B', 'C']),
+            str1: atom(''),
+            bool: atom(false),
+            nestedLinkedList: reatomLinkedList(() =>
+              reatomEnum(['A', 'B', 'C']),
+            ),
+          }),
+        ]),
+      }),
+    )
 
     const test = deatomize(model)
 

@@ -1,7 +1,7 @@
 // TODO move to test source
 import type { Source as WSource } from 'wonka'
 
-import type {Rec } from './bench_utils';
+import type { Rec } from './bench_utils'
 import { genChart } from './bench_utils'
 import { formatLog, printLogs } from './bench_utils'
 
@@ -108,6 +108,7 @@ const testComputers = setupComputersTest({
     startCreation()
 
     const entry = createEvent<number>()
+    // @ts-expect-error
     const a = createStore(0).on(entry, (state, v) => v)
     const b = a.map((a) => a + 1)
     const c = a.map((a) => a + 1)
@@ -130,6 +131,7 @@ const testComputers = setupComputersTest({
     startCreation()
 
     const entry = createEvent<number>()
+    // @ts-expect-error
     const a = createStore(0).on(entry, (state, v) => v)
     const b = a.map((a) => a + 1)
     const c = a.map((a) => a + 1)
@@ -398,7 +400,9 @@ const testComputers = setupComputersTest({
   //   return (i) => store.dispatch(a.entry(i))
   // },
   async reatom({ listener, startCreation, endCreation }) {
-    const { atom, computed, context, wrap, notify, clearStack } = await import('./build')
+    const { atom, computed, context, wrap, notify, clearStack } = await import(
+      './build'
+    )
 
     startCreation()
 
@@ -420,7 +424,7 @@ const testComputers = setupComputersTest({
       endCreation()
 
       return wrap((v: number) => {
-        entry(v)
+        entry.set(v)
         notify()
       })
     })
@@ -616,6 +620,7 @@ const testComputers = setupComputersTest({
     return (i) => entry.next(i)
   },
   async '@artalar/act'({ listener, startCreation, endCreation }) {
+    // @ts-ignore
     const { act } = await import('@artalar/act')
 
     startCreation()

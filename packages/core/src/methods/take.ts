@@ -1,9 +1,9 @@
 import type { AtomLike } from '../core'
 import { action, bind, computed, isAtom, top } from '../core'
-import type { Fn } from '../utils'
+import { withDynamicSubscription } from '../mixins/withDynamicSubscription'
+import type { Fn, Unsubscribe } from '../utils'
 import { isAbort, noop } from '../utils'
-import { abortVar } from './abortVar'
-import { ifCalled } from './ifChanged'
+import { getCalls } from './ifChanged'
 
 let i = 0
 
@@ -76,7 +76,7 @@ export function take(
 
   let log = bind(action((_message: string, payload: any) => payload, name))
 
-  let cleanups: Array<Fn> = []
+  let un: Unsubscribe
 
   let syncResult:
     | null
@@ -92,63 +92,60 @@ export function take(
   let promise = new Promise<unknown>((res, rej) => {
     log('start', targetAtom.name)
 
-    cleanups.push(
-      abortVar.subscribe(rej).unsubscribe,
-      computed(async () => {
-        let isFirstCall = cleanups.length === 0
+    un = computed(async () => {
+      let isFirstCall = un === undefined
 
-        try {
-          let value: any
+      try {
+        let value: any
 
-          if (targetAtom.__reatom.reactive) {
-            value = targetAtom()
-          } else {
-            let taken = false
-            ifCalled(targetAtom, (payload) => {
-              // get the first call, not the last
-              if (!taken) {
-                taken = true
-                value = payload
-              }
-            })
-          }
-
-          if (isFirstCall && !map) return
-
-          if (value instanceof Promise) value = await value
-
-          if (map) value = map(value)
-
-          if (isFirstCall) {
-            syncResult = { kind: 'fulfilled', value }
-            log('resolve', value)
-          }
-
-          res(value)
-        } catch (error) {
-          if (!isAbort(error)) {
-            if (isFirstCall) {
-              syncResult = { kind: 'rejected', value: error }
-              log('reject', error)
-            }
-            if (!isFirstCall || !map) rej(error)
+        if (targetAtom.__reatom.reactive) {
+          value = targetAtom()
+        } else {
+          let [call] = getCalls(targetAtom)
+          if (call) {
+            value = call.payload
           }
         }
-      }, `${name}.computed`)
-        // TODO withAbort?
-        .subscribe(),
-    )
+
+        if (isFirstCall && !map) return
+
+        if (value instanceof Promise) value = await value
+
+        if (map) value = map(value)
+
+        if (isFirstCall) {
+          syncResult = { kind: 'fulfilled', value }
+          log('resolve', value)
+        }
+
+        res(value)
+      } catch (error) {
+        if (!isAbort(error)) {
+          if (isFirstCall) {
+            syncResult = { kind: 'rejected', value: error }
+            log('reject', error)
+          }
+          if (!isFirstCall || !map) rej(error)
+        }
+      }
+    }, `${name}.computed`)
+      .extend(withDynamicSubscription())
+      .subscribe()
   })
 
   promise
     .then((value) => {
-      cleanups.forEach((fn) => fn())
+      un()
       if (!syncResult) log('resolve', value)
     })
     .catch((error) => {
-      if (isAbort(error)) promise.catch(noop)
-      cleanups.forEach((fn) => fn())
-      if (!syncResult) log('reject', error)
+      un()
+      if (isAbort(error)) {
+        promise.catch(noop)
+        log('abort', error)
+      } else if (!syncResult) {
+        log('reject', error)
+      }
     })
 
   if (syncResult) {

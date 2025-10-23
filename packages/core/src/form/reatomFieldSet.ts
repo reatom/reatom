@@ -155,7 +155,7 @@ export const reatomFieldSet = <T extends FormInitState>(
       const keyValue = fields[key] as unknown
       if (isLinkedListAtom(keyValue)) {
         // @ts-ignore TODO
-        keyValue.initState(keyValue.initiateFromSnapshot(value.map((v) => [v])))
+        keyValue.initState.set(keyValue.initiateFromSnapshot(value.map((v) => [v])))
       } else if (
         isObject(value) &&
         !(value instanceof Date) &&
@@ -165,7 +165,7 @@ export const reatomFieldSet = <T extends FormInitState>(
         reinitState(value, keyValue as unknown as FormFields)
       } else if (isAtom(keyValue)) {
         // @ts-ignore TODO
-        keyValue.initState(value)
+        keyValue.initState.set(value)
       }
     }
   }

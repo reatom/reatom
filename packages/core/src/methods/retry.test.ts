@@ -1,10 +1,7 @@
-import { expect, test, vi } from 'test'
+import { expect, test } from 'test'
 
 import { withAsync } from '../async'
 import { action } from '../core'
-import { wrap } from '../methods'
-import { withCallHook } from '../mixins'
-import { noop } from '../utils'
 import { retryComputed } from './retry'
 
 test('action retry disabled by default', async () => {

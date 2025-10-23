@@ -17,13 +17,16 @@ export let withChangeHook = <Target extends AtomLike>(
       function withChangeHook(next, ...params) {
         let frame = top()
         let prevState = frame.state
+
+        // enqueue before next call for better predictable logs
+        _enqueue(() => {
+          if (!Object.is(prevState, state)) {
+            frame.run(cb, state, prevState)
+          }
+        }, 'hook')
+
         // @ts-ignore
         let state = next(...params)
-
-        if (!Object.is(prevState, state)) {
-          // FIXME: enqueue before next call!
-          _enqueue(frame.run.bind(frame, cb, state, prevState), 'hook')
-        }
         return state
       },
   )
@@ -59,24 +62,20 @@ export let withCallHook = <Target extends Action>(
     return function withCallHook(next, ...params) {
       let frame = top()
       let prevState = frame.state
+
+      // enqueue before next call for better predictable logs
+      _enqueue(() => {
+        if (!Object.is(prevState, state)) {
+          for (let i = prevState?.length ?? 0; i < state.length; i++) {
+            let { params, payload } = state[i]!
+            frame.run(cb, payload, params as OverloadParameters<Target>)
+          }
+        }
+      }, 'hook')
+
       // @ts-ignore
       let state = next(...params)
 
-      if (!Object.is(prevState, state)) {
-        for (let i = prevState?.length ?? 0; i < state.length; i++) {
-          let { params, payload } = state[i]!
-          // FIXME: enqueue before next call!
-          _enqueue(
-            frame.run.bind(
-              frame,
-              cb,
-              payload,
-              params as OverloadParameters<Target>,
-            ),
-            'hook',
-          )
-        }
-      }
       return state
     }
   })

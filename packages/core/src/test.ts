@@ -11,7 +11,7 @@ export const silentQueuesErrors = () => {
     this[queue].push(async () => {
       try {
         await cb()
-      } catch (error) {
+      } catch {
         // nothing
       }
     })

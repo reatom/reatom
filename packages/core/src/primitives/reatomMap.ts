@@ -1,6 +1,6 @@
 import type { Action, AtomLike } from '../core'
 import type { Computed } from '../core'
-import { action, atom, computed, named } from '../core'
+import { _set, action, atom, computed, named } from '../core'
 
 type StateInit<Key, Value> =
   | Map<Key, Value>
@@ -54,8 +54,7 @@ export const reatomMap = <Key, Value>(
         if (typeof update === 'function') {
           update = update(target())
         }
-        // @ts-expect-error
-        return target(createMap(update))
+        return _set(target, () => createMap(update))
       },
     }))
     .extend((target) =>

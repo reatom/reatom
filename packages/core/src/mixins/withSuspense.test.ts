@@ -83,4 +83,15 @@ test('withSuspense', async () => {
   const data = computed(async () => param(), `${name}.data`).extend(
     withSuspense(),
   )
+
+  const track = subscribe(data.suspended)
+  expect(track).toBeCalledTimes(0)
+  await wrap(sleep())
+  expect(track).toBeCalledTimes(1)
+  expect(track).toBeCalledWith(0)
+  
+  param.set(1)
+  await wrap(sleep())
+  expect(track).toBeCalledTimes(2)
+  expect(track).toBeCalledWith(1)
 })

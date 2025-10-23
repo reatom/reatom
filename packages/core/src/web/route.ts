@@ -8,6 +8,7 @@ import {
   type Plain,
   type Rec,
   withAsyncData,
+  wrap,
 } from '../'
 import type { Action, Computed } from '../core'
 import { action, computed, ReatomError } from '../core'
@@ -276,7 +277,7 @@ const createRouteFactory = (
 
       if (parent.loader) {
         if (promise instanceof Promise) promise.catch(noop)
-        await parent.loader()
+        await wrap(parent.loader())
       }
 
       const result = await promise

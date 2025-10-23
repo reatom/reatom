@@ -1,5 +1,5 @@
 import type { AsyncExt } from '../async'
-import type { Action, ActionState, AtomLike, GenericExt } from '../core'
+import type { Action, ActionState, Atom, GenericExt } from '../core'
 import { action, bind, isAction, top } from '../core'
 import { withCallHook } from '../mixins'
 import type { Fn } from '../utils'
@@ -40,7 +40,7 @@ export let reatomTransaction = (): TransactionVariable => {
     {
       withRollback:
         (): GenericExt =>
-        <T extends AtomLike>(target: T): T => {
+        <T extends Atom | Action>(target: T): T => {
           if (isAction(target)) {
             if ('onReject' in target) {
               ;(target.onReject as AsyncExt['onReject']).extend(
@@ -80,7 +80,7 @@ export let reatomTransaction = (): TransactionVariable => {
                 !isCausedBy(transactionVar.rollback)
               ) {
                 let rollbacks = transactionVar.set(transactionVar.find())
-                rollbacks.push(() => target(prevState))
+                rollbacks.push(() => target.set(prevState))
               }
               return nextState
             })

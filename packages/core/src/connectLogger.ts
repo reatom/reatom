@@ -180,25 +180,32 @@ export let connectLogger = () => {
     }
 
     let logStack = (payload: any, error: any, cb: Fn) => {
-      if (isNewLogStack) {
-        isNewLogStack = false
-        setTimeout(() => {
-          isNewLogStack = true
-        })
-        console.log('--- ' + new Date().toISOString() + ' ----')
+      try {
+        if (isNewLogStack) {
+          isNewLogStack = false
+          setTimeout(() => {
+            isNewLogStack = true
+          })
+          console.log('--- ' + new Date().toISOString() + ' ----')
+        }
+        console.groupCollapsed(
+          `${title}${getSerial()}`,
+          style + (error ? 'color: red;' : ''),
+        )
+        if (isNodeEnv) console.log(error ?? payload)
+        cb()
+        const stack = getStackTrace()
+        if (stack) {
+          console.groupCollapsed('stack:')
+          console.log(stack)
+          console.groupEnd()
+        }
+        if (!isNodeEnv) console.log('frame:', top())
+        console.groupEnd()
+        if (!isNodeEnv) console.log(error ?? payload)
+      } catch (error) {
+        console.log('Reatom log error:', error)
       }
-      console.groupCollapsed(
-        `${title}${getSerial()}`,
-        style + (error ? 'color: red;' : ''),
-      )
-      if (isNodeEnv) console.log(error ?? payload)
-      cb()
-      console.groupCollapsed('stack:')
-      console.log(getStackTrace())
-      console.groupEnd()
-      if (!isNodeEnv) console.log('frame:', top())
-      console.groupEnd()
-      if (!isNodeEnv) console.log(error ?? payload)
     }
 
     let initKey = {}

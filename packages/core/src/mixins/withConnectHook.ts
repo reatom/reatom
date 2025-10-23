@@ -1,6 +1,6 @@
 import type { AtomLike, Ext } from '../core'
 import { action } from '../core'
-import { abortVar } from '../methods'
+import { abortVar, wrap } from '../methods'
 import type { Unsubscribe } from '../utils'
 import { noop } from '../utils'
 import { withAbort } from './withAbort'
@@ -19,7 +19,7 @@ export let withConnectHook =
         let result = cb(target)
 
         if (result instanceof Promise) {
-          result = await result
+          result = await wrap(result)
         }
 
         if (typeof result === 'function') {

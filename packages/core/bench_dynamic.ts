@@ -13,6 +13,7 @@ async function testAggregateGrowing(
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
 
+  // @ts-ignore
   const { act } = await import('@artalar/act')
 
   const {
@@ -93,7 +94,7 @@ async function testAggregateGrowing(
     ReatomRoot.run(() => {
       for (let j = i; j < batchEnd; j++) {
         ReatomAtoms[method](Reatom.atom(j))
-        ReatomAtoms.at(-2)!(j)
+        ReatomAtoms.at(-2)!.set(j)
       }
       Reatom.notify()
     })
@@ -179,6 +180,7 @@ async function testAggregateShrinking(
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
 
+  // @ts-ignore
   const { act } = await import('@artalar/act')
 
   const {
@@ -200,10 +202,10 @@ async function testAggregateShrinking(
   const mobxAtoms = Array.from({ length: count }, (_, i) =>
     observable.box(1, { name: `${i}` }),
   )
-  const actAtoms = Array.from({ length: count }, (_, i) => act(1))
-  const alienAtoms = Array.from({ length: count }, (_, i) => signal(1))
+  const actAtoms = Array.from({ length: count }, () => act(1))
+  const alienAtoms = Array.from({ length: count }, () => signal(1))
   const jotaiStore = createStore()
-  const jotaiAtoms = Array.from({ length: count }, (_, i) => atom(1))
+  const jotaiAtoms = Array.from({ length: count }, () => atom(1))
 
   const molAtom = new $mol_wire_atom(`sum`, () =>
     molAtoms.reduce((sum, atom) => sum + atom.sync(), 0),
@@ -250,7 +252,7 @@ async function testAggregateShrinking(
     const startReatom = performance.now()
     ReatomRoot.run(() => {
       for (let j = i; j < batchEnd; j++) {
-        ReatomAtoms[method]()!(j)
+        ReatomAtoms[method]()!.set(j)
       }
       Reatom.notify()
     })
@@ -333,6 +335,7 @@ async function testAggregateShrinking(
   })
 }
 
+// @ts-expect-error
 async function testParent(count: number, batchSize: number = 1) {
   const mol_wire_lib = await import('mol_wire_lib')
   const { $mol_wire_atom } = mol_wire_lib.default
@@ -342,6 +345,7 @@ async function testParent(count: number, batchSize: number = 1) {
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
 
+  // @ts-ignore
   const { act } = await import('@artalar/act')
 
   const {
@@ -408,7 +412,7 @@ async function testParent(count: number, batchSize: number = 1) {
     const startReatom = performance.now()
     ReatomRoot.run(() => {
       for (let j = i - 1; j >= batchStart; j--) {
-        ReatomAtom(j)
+        ReatomAtom.set(j)
       }
       Reatom.notify()
     })
@@ -429,7 +433,7 @@ async function testParent(count: number, batchSize: number = 1) {
 
     const startAct = performance.now()
     for (let j = i - 1; j >= batchStart; j--) {
-      actAtom(j)
+      actAtom.set(j)
     }
     act.notify()
     actLogs.push(performance.now() - startAct)
@@ -500,6 +504,7 @@ async function testAggregateShuffle(count: number, batchSize: number = 1) {
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
 
+  // @ts-ignore
   const { act } = await import('@artalar/act')
 
   const {
@@ -521,10 +526,10 @@ async function testAggregateShuffle(count: number, batchSize: number = 1) {
   const mobxAtoms = Array.from({ length: count }, (_, i) =>
     observable.box(1, { name: `${i}` }),
   )
-  const actAtoms = Array.from({ length: count }, (_, i) => act(1))
-  const alienAtoms = Array.from({ length: count }, (_, i) => signal(1))
+  const actAtoms = Array.from({ length: count }, () => act(1))
+  const alienAtoms = Array.from({ length: count }, () => signal(1))
   const jotaiStore = createStore()
-  const jotaiAtoms = Array.from({ length: count }, (_, i) => atom(1))
+  const jotaiAtoms = Array.from({ length: count }, () => atom(1))
 
   const molAtom = new $mol_wire_atom(`sum`, () =>
     molAtoms.reduce((sum, atom) => sum + atom.sync(), 0),
@@ -575,7 +580,7 @@ async function testAggregateShuffle(count: number, batchSize: number = 1) {
         // Get a random index for each removal
         const randomIndex = Math.floor(Math.random() * ReatomAtoms.length)
         const removed = ReatomAtoms.splice(randomIndex, 1)[0]
-        if (removed) removed(i + j)
+        if (removed) removed.set(i + j)
       }
       Reatom.notify()
     })
@@ -682,6 +687,7 @@ async function testAggregateMiddle(count: number, batchSize: number = 1) {
   const { observable, computed, autorun, configure } = await import('mobx')
   configure({ enforceActions: 'never' })
 
+  // @ts-ignore
   const { act } = await import('@artalar/act')
 
   const {
@@ -703,10 +709,10 @@ async function testAggregateMiddle(count: number, batchSize: number = 1) {
   const mobxAtoms = Array.from({ length: count }, (_, i) =>
     observable.box(1, { name: `${i}` }),
   )
-  const actAtoms = Array.from({ length: count }, (_, i) => act(1))
-  const alienAtoms = Array.from({ length: count }, (_, i) => signal(1))
+  const actAtoms = Array.from({ length: count }, () => act(1))
+  const alienAtoms = Array.from({ length: count }, () => signal(1))
   const jotaiStore = createStore()
-  const jotaiAtoms = Array.from({ length: count }, (_, i) => atom(1))
+  const jotaiAtoms = Array.from({ length: count }, () => atom(1))
 
   const molAtom = new $mol_wire_atom(`sum`, () =>
     molAtoms.reduce((sum, atom) => sum + atom.sync(), 0),
@@ -758,7 +764,7 @@ async function testAggregateMiddle(count: number, batchSize: number = 1) {
         // Get the middle index
         const middleIndex = Math.floor(ReatomAtoms.length / 2)
         const removed = ReatomAtoms.splice(middleIndex, 1)[0]
-        if (removed) removed(i + j)
+        if (removed) removed.set(i + j)
       }
       Reatom.notify()
     })

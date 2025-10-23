@@ -151,6 +151,7 @@ export interface Computed<State = any> extends AtomLike<State, []> {}
  * @template State - The state type of the atom
  * @template Params - The parameter types the atom accepts
  * @template Payload - The return type when the atom is called
+ * @see https://github.com/tc39/proposal-async-context
  */
 export interface Frame<
   State = any,
@@ -649,6 +650,8 @@ function atomMiddleware(next: Fn) {
   return newState
 }
 
+let SET_PARAMS: null | any[] = null
+
 let castAtom = <T extends AtomLike>(
   target: Fn,
   meta: Omit<AtomMeta, 'processing' | 'linking' | 'onConnect'>,
@@ -659,7 +662,8 @@ let castAtom = <T extends AtomLike>(
     extend,
 
     set(...params: any) {
-      return target(...params)
+      SET_PARAMS = params
+      return target()
     },
 
     subscribe: subscribe.bind(target as T),
@@ -679,8 +683,17 @@ let castAtom = <T extends AtomLike>(
 
 export let ANONYMOUS = false
 
+/**
+ * Useful for security reasons, if you need to increase your runtime complexity.
+ * It's important to call this function before creating any atoms.
+ */
 export let anonymizeNames = () => {
   ANONYMOUS = true
+}
+
+export let _set = (target: AtomLike, ...params: any[]) => {
+  SET_PARAMS = params
+  return target()
 }
 
 export let createAtom: {
@@ -716,10 +729,17 @@ export let createAtom: {
     {
       // Use computed property name to setup the function name for better stack traces
       [name](): State {
+        if (target.__reatom.reactive && !SET_PARAMS && arguments.length) {
+          throw new ReatomError(`Can't write atom directly to "${name}"`)
+        }
+        // TODO optimize
+        let args = target.__reatom.reactive ? SET_PARAMS : arguments
+        let write = args !== null
+        SET_PARAMS = null
         let { reactive, initState, middlewares } = target.__reatom
         let topFrame = top()
         let frame = topFrame.root.store.get(target)!
-        let push = !reactive || arguments.length !== 0
+        let push = !reactive || write
         let isInit = frame === undefined
 
         if (isInit) {
@@ -779,7 +799,7 @@ export let createAtom: {
                 newState = precompiledComputed.apply(
                   null,
                   // @ts-ignore TODO
-                  arguments,
+                  write ? args : [],
                 )
                 newError = null
                 break middlewares
@@ -795,7 +815,7 @@ export let createAtom: {
             newState = fn.apply(
               null,
               // @ts-ignore TODO
-              arguments,
+              write ? args : [],
             )
             newError = null
           } catch (error) {
@@ -844,12 +864,6 @@ export let createAtom: {
       middlewares: [atomMiddleware],
     },
   )
-
-  Object.assign(target, {
-    set(...params: any[]) {
-      return target(...(params as Parameters<typeof target>))
-    },
-  })
 
   return globalThis.__REATOM.length === 0
     ? target

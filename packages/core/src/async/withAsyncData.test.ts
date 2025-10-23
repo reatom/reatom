@@ -2,8 +2,8 @@ import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
 import type { Atom } from '../core'
 import { action, atom, computed } from '../core'
-import { retryComputed, wrap } from '../methods'
-import { withCallHook } from '../mixins'
+import { effect, retryComputed, wrap } from '../methods'
+import { withCallHook, withConnectHook } from '../mixins'
 import { noop, sleep } from '../utils'
 import { withAsyncData } from './withAsyncData'
 
@@ -258,6 +258,29 @@ test('withAsyncData for computed retry', async () => {
     payload: 'Success',
     params: [0], // params from the initial computed evaluation
   })
+})
+
+test('Circle subscription', async () => {
+  const externalResource = atom(0).extend(
+    withConnectHook(() => {
+      effect(() => {
+        resource.data()
+      })
+    }),
+  )
+
+  const resource = computed(async () => {
+    await wrap(sleep())
+    return 'done'
+  }).extend(withAsyncData({ initState: 'init' }))
+
+  resource.data.extend(withConnectHook(externalResource.subscribe))
+
+  const track = subscribe(resource.data)
+
+  await wrap(resource())
+
+  expect(track.mock.calls.flat()).toEqual(['init', 'done'])
 })
 
 // TODO just predefine actions WITH PERSIST CACHE and you get a nicer version of FSM.

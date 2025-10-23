@@ -109,6 +109,7 @@ test('abortable model', async () => {
   expect(fn).toBeCalledTimes(1)
 
   id.set(1)
+  // @ts-expect-error
   const doSome2 = model()
   doSome1()
   expect(fn).toBeCalledTimes(1)

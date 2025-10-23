@@ -1,10 +1,11 @@
-import type { Computed } from '../core'
-import { computed, context, named, STACK, top } from '../core'
+import type { Action, Computed } from '../core'
+import { computed, context, named, top } from '../core'
 import { withAbort } from '../mixins'
 import { withDynamicSubscription } from '../mixins/withDynamicSubscription'
 import type { Unsubscribe } from '../utils'
 import { isAbort } from '../utils'
-import { abortVar } from './abortVar'
+import { getCalls } from './ifChanged'
+import { memo } from './memo'
 
 export interface Effect<State> extends Computed<State> {
   unsubscribe: Unsubscribe
@@ -53,42 +54,30 @@ export interface Effect<State> extends Computed<State> {
  *   `withConnectHook`, as cleanup happens automatically.
  */
 export let effect = <T>(cb: () => T, name?: string) => {
-  let topFrame = top()
-
   if (!name) {
+    let topFrame = top()
     name = named(
       topFrame.atom === context ? 'effect' : `${topFrame.atom.name}.effect`,
     )
   }
 
-  let subscribeController: AbortController
-  return computed(() => {
-    // from `withAbort`
-    let controller = abortVar.get()!
-
-    subscribeController ??= abortVar.first(STACK[STACK.length - 3])!
-    subscribeController.signal.throwIfAborted?.()
+  let target = computed(() => {
+    // TODO optimize
+    // need to link abortVar to unsubscribe
+    memo(() => void getCalls(target.subscribe as Action))
 
     let res = cb()
     if (res instanceof Promise) {
-      let listener = () => {
-        controller.abort(subscribeController.signal.reason)
-      }
-      subscribeController.signal.addEventListener('abort', listener, {
-        signal: controller.signal,
+      res.catch((error) => {
+        // throw unhandled error
+        if (!isAbort(error) && !(error instanceof Promise)) throw error
       })
-      res
-        .finally(() => {
-          subscribeController.signal.removeEventListener('abort', listener)
-        })
-        .catch((error) => {
-          // throw unhandled error
-          if (!isAbort(error) && !(error instanceof Promise)) throw error
-        })
     }
 
     return res
-  }, name).extend(withAbort(), withDynamicSubscription(), (target) => ({
+  }, name).extend(withAbort(), withDynamicSubscription())
+
+  return target.extend((target) => ({
     unsubscribe: target.subscribe(),
   }))
 }

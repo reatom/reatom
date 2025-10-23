@@ -10,7 +10,7 @@ import { wrap } from './wrap'
 test('take atom', async () => {
   const at = atom(0)
 
-  setTimeout(wrap(at), 0, 4)
+  setTimeout(wrap(at.set), 0, 4)
   expect(await take(at)).toBe(4)
 })
 

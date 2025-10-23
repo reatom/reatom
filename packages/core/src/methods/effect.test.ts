@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { action, atom, computed, notify } from '../core'
+import { action, atom, computed } from '../core'
 import { withDynamicSubscription } from '../mixins/withDynamicSubscription'
 import { sleep } from '../utils'
 import { abortVar } from './abortVar'
@@ -8,7 +8,9 @@ import { effect } from './effect'
 import { wrap } from './wrap'
 
 test("effect didn't connect to reactive parent", async () => {
-  const data = atom(0, 'data')
+  const name = 'effectReactiveParent'
+
+  const data = atom(0, `${name}.name`)
   let effectState: any
   const comp = computed(() => {
     effect(() => {
@@ -20,7 +22,7 @@ test("effect didn't connect to reactive parent", async () => {
       }
     })
     return Math.random()
-  })
+  }, `${name}.comp`)
 
   comp.subscribe()
 
@@ -50,63 +52,56 @@ test("effect didn't connect to reactive parent", async () => {
 test('different types of abort', async () => {
   const name = 'differentTypesOfAbort'
 
-  await action(async () => {
+  // create extra action for this test to use `abortVar.set` not in the global context
+  const doWithAbort = action(async () => {
     abortVar.set()
 
-    const data = atom(0, 'data')
+    const data = atom(0, `${name}.data`)
 
-    const doSome = action((shouldUpdate: boolean) => {
-      if (shouldUpdate) data.set((s) => s + 1)
-    }, `${name}.doSome`)
-
-    const logs1: string[] = []
-    const un1 = computed(() => {
+    const computedLogs: string[] = []
+    const computedEffect = computed(() => {
       data()
-      logs1.push('rerun')
+      computedLogs.push('rerun')
       abortVar.subscribe((error) => {
-        logs1.push(error.message)
+        computedLogs.push(error.message)
       })
-    }, `${name}.computed`)
-      .extend(withDynamicSubscription())
-      .subscribe()
+    }, `${name}.computedEffect`).extend(withDynamicSubscription())
+    computedEffect.subscribe()
 
-    let logs2: string[] = []
-    const un2 = effect(() => {
+    let effectLogs: string[] = []
+    const nativeEffect = effect(() => {
       data()
-      logs2.push('rerun')
+      effectLogs.push('rerun')
       abortVar.subscribe((error) => {
-        logs2.push(error.message)
+        effectLogs.push(error.message)
       })
-    }, `${name}.effect`)
+    }, `${name}.nativeEffect`)
 
-    expect(logs1).toEqual(['rerun'])
-    expect(logs2).toEqual(['rerun'])
+    expect(computedLogs).toEqual(['rerun'])
+    expect(effectLogs).toEqual(['rerun'])
 
     data.set((s) => s + 1)
     await wrap(sleep())
-    expect(logs1).toEqual(['rerun', 'rerun'])
-    expect(logs2).toEqual([
+    expect(computedLogs).toEqual(['rerun', 'rerun'])
+    expect(effectLogs).toEqual([
       'rerun',
       'rerun',
-      expect.stringContaining(
-        'differentTypesOfAbort.effect.withAbort concurrent',
-      ),
+      expect.stringContaining(`${name}.nativeEffect.withAbort concurrent`),
     ])
 
-    un2.unsubscribe()
-    // notify()
+    // need to unsubscribe and do all checks exactly after an update
+    // to ensure that subscribe controller is available for all `abortVar.subscribe`,
+    // not only for the first one.
+    nativeEffect.unsubscribe()
     await wrap(sleep())
 
-    expect(logs1).toEqual(['rerun', 'rerun'])
-    expect(logs2).toEqual([
+    expect(effectLogs).toEqual([
       'rerun',
       'rerun',
-      expect.stringContaining(
-        'differentTypesOfAbort.effect.withAbort concurrent',
-      ),
-      expect.stringContaining(
-        'differentTypesOfAbort.effect.subscribe unsubscribe',
-      ),
+      expect.stringContaining(`${name}.nativeEffect.withAbort concurrent`),
+      expect.stringContaining(`${name}.nativeEffect.subscribe unsubscribe`),
     ])
-  }, `${name}._abort`)()
+  }, `${name}.doWithAbort`)
+
+  await doWithAbort()
 })

@@ -16,7 +16,7 @@ test('onEvent', async () => {
       onEvent(controller.signal, 'abort', cb)
     }),
   )
-  const un = a.subscribe(a)
+  const un = a.subscribe()
   await wrap(sleep())
   expect(cb).toBeCalledTimes(0)
   controller.abort()
@@ -31,7 +31,7 @@ test('onEvent abort following', async () => {
 
   const controller = new AbortController()
   a.extend(withConnectHook(() => onEvent(controller.signal, 'abort', cb)))
-  const un = a.subscribe(a)
+  const un = a.subscribe()
   un()
   await wrap(sleep())
   expect(cb).toBeCalledTimes(0)

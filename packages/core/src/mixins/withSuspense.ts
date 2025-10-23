@@ -1,5 +1,5 @@
-import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
-import { createAtom, top } from '../core'
+import type { AtomLike, AtomState, Computed, Ext } from '../core'
+import { _set, createAtom, top } from '../core'
 import { wrap } from '../methods'
 
 /** Internal suspense cache, do not use it directly, only for libraries! */
@@ -65,10 +65,10 @@ export let withSuspense =
             let result = settled(promise, promise)
             if (result === promise) {
               promise.then(
-                wrap(target.suspended!),
+                wrap((value) => _set(target.suspended!, value)),
                 wrap((error) => {
                   try {
-                    ;(target.suspended as Atom).set(() => {
+                    _set(target.suspended!, () => {
                       throw error
                     })
                   } catch {
@@ -90,7 +90,7 @@ export let withSuspense =
       ),
   })
 
-  // FIXME: what if withSuspense is already applied with different preserve options?
+// FIXME: what if withSuspense is already applied with different preserve options?
 export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
   ('suspended' in target
     ? (target as AtomLike & SuspenseExt<State>)

@@ -85,7 +85,9 @@ test('should swap elements', () => {
 test('should move elements', () => {
   const list = reatomLinkedList((n: number) => ({ n }))
   const one = list.create(1)
+  // @ts-expect-error
   const two = list.create(2)
+  // @ts-expect-error
   const three = list.create(3)
   const four = list.create(4)
   const track = subscribe(list.array)

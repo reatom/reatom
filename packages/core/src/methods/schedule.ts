@@ -7,9 +7,9 @@ export let schedule = <T>(fn: () => T, frame = top()) => {
       try {
         let result = frame ? frame.run(fn) : fn()
 
-        result instanceof Promise
-          ? result.then(res, rej) // reduce the amount of microtasks
-          : res(result)
+        // it reduces the amount of microtasks
+        if (result instanceof Promise) result.then(res, rej)
+        else res(result)
       } catch (e) {
         rej(e)
       }

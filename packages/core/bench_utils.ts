@@ -1,4 +1,4 @@
-import { readFile,writeFile } from 'fs/promises'
+import { readFile, writeFile } from 'fs/promises'
 import { cpus } from 'os'
 import path from 'path'
 
@@ -52,7 +52,7 @@ const PACKAGE_NAMES: Rec<string> = {
 }
 
 export async function genChart(allResults: BenchResults) {
-  const popularLibs = []
+  const popularLibs: string[] = []
   for (const libName of Object.keys(Object.values(allResults)[0]!)) {
     const moduleName = PACKAGE_NAMES[libName] ?? libName
     const moduleUrlName = moduleName.replace('/', '%2F')
@@ -145,7 +145,7 @@ async function getChartData(results: BenchResults): Promise<ChartData> {
   const data: ChartData = []
 
   let i = -1
-  for (const [iteration, iterationValues] of Object.entries(results)) {
+  for (const [, iterationValues] of Object.entries(results)) {
     i++
 
     if (!fastest.min[i]) fastest.min[i] = Infinity
