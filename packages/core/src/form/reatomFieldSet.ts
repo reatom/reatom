@@ -78,7 +78,7 @@ export interface FieldSet<T extends FormInitState> extends Computed<FormState<T>
 
 export const reatomFieldSet = <T extends FormInitState>(
   fields: FormFields<T>,
-  name: string = named('fieldsSet'),
+  name: string = named('fieldSet'),
 ): FieldSet<T> => {
   const fieldsList = computed(
     () => computeFieldsList(fields),
