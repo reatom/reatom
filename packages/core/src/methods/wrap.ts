@@ -58,7 +58,7 @@ export let wrap: {
     abortVar.throwIfAborted()
 
     return function wrap(...params: any) {
-      frame.run(() => {
+      return frame.run(() => {
         abortVar.throwIfAborted()
         // @ts-expect-error
         return target(...params)
