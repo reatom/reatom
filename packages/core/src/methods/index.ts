@@ -1,6 +1,7 @@
 export * from './abortVar'
 export * from './deatomize'
 export * from './effect'
+export * from './framePromise'
 export * from './ifChanged'
 export * from './isCausedBy'
 export * from './memo'

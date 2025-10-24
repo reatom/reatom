@@ -1,30 +1,35 @@
-import { _enqueue, top } from '../core'
+import { _enqueue, type QueueKind } from '../core'
 import { wrap } from './wrap'
 
 /**
- * Delay some work to the end of all computations.
+ * Schedule a callback to execute after all current computations complete.
  *
- * The passed callback will be scheduled to "effect" queue and will be processed
- * with other effects, like subscription callbacks and so on.
+ * The callback is added to the specified queue ("effect" by default) and
+ * processes alongside subscription callbacks and other side effects. This
+ * method respects wrap and abortVar policies.
  *
- * This method follows the wrap and abortVar policies.
+ * @param fn - Callback function to execute
+ * @param queue - Queue type to schedule in (default: "effect")
+ * @returns Promise that resolves with the callback's return value
  */
-export let schedule = <T>(fn: () => T, frame = top()) => {
-  fn = wrap(fn, frame)
+export let schedule = <T>(
+  fn: () => T,
+  queue: QueueKind = 'effect',
+): Promise<T> => {
+  let wrappedFn = wrap(fn)
 
   let promise = new Promise((res, rej) =>
     _enqueue(() => {
       try {
-        let result = fn()
+        let result = wrappedFn()
 
-        // it reduces the amount of microtasks
         if (result instanceof Promise) result.then(res, rej)
         else res(result)
       } catch (e) {
         rej(e)
       }
-    }, 'effect'),
+    }, queue),
   )
 
-  return promise
+  return promise as Promise<T>
 }

@@ -2,6 +2,8 @@ import type { Fn } from '../utils'
 import type { Queue } from './'
 import { bind, context } from './'
 
+export type QueueKind = 'hook' | 'compute' | 'cleanup' | 'effect'
+
 /**
  * Schedules a function to be executed in a specific queue of the current
  * context.
@@ -15,10 +17,7 @@ import { bind, context } from './'
  * @param queue - The queue to add the function to ('hook', 'compute',
  *   'cleanup', or 'effect')
  */
-export let _enqueue = (
-  fn: Fn,
-  queue: 'hook' | 'compute' | 'cleanup' | 'effect',
-): void => {
+export let _enqueue = (fn: Fn, queue: QueueKind): void => {
   let contextFrame = context()
 
   if (
