@@ -75,6 +75,7 @@
     "@ngrx/store": "latest",
     "@preact/signals-core": "latest",
     "@types/node": "latest",
+    "@types/ws": "catalog:",
     "@webreflection/signal": "latest",
     "alien-signals": "catalog:",
     "cellx": "latest",
@@ -92,10 +93,11 @@
     "s-js": "latest",
     "solid-js": "catalog:",
     "spred": "latest",
+    "typescript": "catalog:",
     "usignal": "latest",
     "whatsup": "latest",
     "wonka": "latest",
-    "zod": "catalog:",
-    "typescript": "catalog:"
+    "ws": "catalog:",
+    "zod": "catalog:"
   }
 }
