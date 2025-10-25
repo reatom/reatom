@@ -6,7 +6,7 @@ In many form validation libraries, fields exist only within forms and their life
 
 In Reatom, fields are independent entities with their own related states and methods that are fully open to configuration and composition. `reatomField` itself is a field state atom, to which other related states are assigned, such as `validation`, `focus` and others, as well as various methods like `change` and `reset`. Let's examine each aspect of `reatomField` in more detail to build a complete picture and reactive model in your head.
 
-### Validation atom
+## Validation atom
 This atom stores states related to field state validation. In addition to the validation error text of the field itself, it contains `triggered`, which always shows when validation was triggered and completed. But validation can also be asynchronous, so `validating` can contain a validation promise that will return a non-empty list of errors if validation fails.
 
 ```ts
@@ -44,7 +44,7 @@ The `trigger` action activates the field validation callback and returns the new
 const result = await field.validation.trigger().validating
 ```
 
-### Focus atom
+## Focus atom
 
 All states related to field interaction are stored here.
 
@@ -78,11 +78,86 @@ export interface FocusAtom extends AtomLike<FieldFocus> {
 
 Without these methods, we cannot maintain the `focus` atom in a consistent state. In rendering frameworks, these actions should be used as `focus` and `blur` events, otherwise, in addition to the inconsistency of the `focus` atom, we may lose the ability to validate the field when focus is lost.
 
-### State and value
+## State and value
 TODO
 
-### Validation and concurrency
+## Validation and concurrency
+Like all form fields in the world, a field can have validation rules defined. For `reatomField`, validation rules consist of two parts: field validity checking through the `validate` callback in form creation options and defining validation trigger conditions.
+Speaking of the `validate` callback, it allows using both synchronous and asynchronous functions and even Standard Schema compatible validation schemas.
+
+### Validation triggers
 TODO
 
-### `withField` extension
+### Validation callback
+In any validation callback, you can either throw errors or return their text or a `FieldError` object, which allows setting arbitrary error sources and even metadata:
+```ts
+const usernameField = reatomField({
+  validate: ({ state }) => {
+    if (!state) return 'Username is required'
+
+    if (state.length < 3) {
+      return { 
+        message: 'Username is too short', 
+        source: 'validation', 
+        meta: { minLength: 3 } 
+      }
+    }
+  }
+})
+```
+Also, since validation callback execution is an effect, the validation callback allows automatically tracking dependencies and re-calling itself when these dependencies change, just like all effects or computed values do. We call this [reactive validation](/handbook/forms/concepts/reactive-validation) and this pattern allows very elegant implementation of [dependent validation](/handbook/forms/recipes/dependent-validation)
+
+### Async validation callback
+The main feature of the async callback lies in concurrency handling. Each subsequent call of the async callback cancels the execution of the pending promise from the previous call. This opens up many possibilities, including implementing [debounce validation](/handbook/forms/recipes/async-validation-debounce)
+
+### Combining both async and sync
+Moreover, it's possible to combine both synchronous and asynchronous validation in one field and this won't color the validation function in case of synchronous validation:
+```ts
+const usernameField = reatomField({
+  validate: ({ state }) => {
+    if (!state) return 'Username is required' // `validation` atom will receive error synchronously
+    
+    const checkUsernameIsFree = async () => {
+      const response = wrap(await fetch(`/api/check-username?username=${state}`))
+      const data = await wrap(response.json())
+      return !!data
+    }
+
+    // `validation` atom won't receive error synchronously,
+    // but validation promise will be available in `.validating`
+    return checkUsernameIsFree() 
+  },
+})
+```
+When combining synchronous and asynchronous validations, pay attention to the function's return type. The callback itself should never be asynchronous, but should return some promise in some of the validation code execution branches
+
+### Standard schema
+Using such schemas is quite straightforward, you just need to pass a standard-compatible object there. The nicest thing here is that even in asynchronous validation schemas, Reatom will resolve concurrency by interrupting async function execution at `wrap` call sites.
+
+```ts
+const usernameField = reatomField({
+  validate: z.string().min(3).max(20).refine(async (value) => {
+    const response = await wrap(fetch(`/api/check-username?username=${value}`))
+    const data = await wrap(response.json())
+    return !!data
+  })
+})
+```
+
+### Error sources
 TODO
+
+## `withField` extension
+This extension is a convenient way to make any atom as a form field without losing its original properties
+```ts
+const priorityField = reatomEnum(['unset', 'low', 'high'], 'priorityField').extend(
+  withField({
+    validate: ({ state }) => state === 'unset' ? 'Priority is required' : undefined
+  }),
+)
+
+// These actions are still available:
+priorityField.setLow()
+priorityField.setHigh()
+priorityField.setUnset()
+```
