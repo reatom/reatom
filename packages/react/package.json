@@ -1,6 +1,6 @@
 {
   "name": "@reatom/react",
-  "version": "1000.0.0-alpha.32",
+  "version": "1000.0.0-alpha.40",
   "publishConfig": {
     "tag": "alpha"
   },

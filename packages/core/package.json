@@ -1,6 +1,6 @@
 {
   "name": "@reatom/core",
-  "version": "1000.0.0-alpha.34",
+  "version": "1000.0.0-alpha.40",
   "publishConfig": {
     "tag": "alpha"
   },
