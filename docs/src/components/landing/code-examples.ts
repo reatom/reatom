@@ -82,7 +82,7 @@ const UserPage = reatomComponent(() => {
       },
       {
         pattern: 'reatomComponent(',
-        note: 'This is just a computed with React bindings',
+        note: 'This is just a computed with React bindings (hooks allowed)',
       },
       {
         pattern: 'data()',
@@ -160,12 +160,13 @@ export const LoginForm = reatomComponent(() => {
     id: 'routing',
     title: 'Routing',
     description: 'Routing and data fetching example',
-    code: `import { route } from "@reatom/core"
+    code: `import { reatomRoute } from "@reatom/core"
 import { reatomComponent } from "@reatom/react"
+import { z } from "zod"
 
-export const goodsRoute = route("goods/:category")
+export const goodsRoute = reatomRoute("goods/:category")
 
-export const goodsBrandRoute = goodsRoute.route({
+export const goodsBrandRoute = goodsRoute.reatomRoute({
   path: ":brand",
   search: z.object({
     sort: z.enum(["asc", "desc"]).optional(),
@@ -189,7 +190,7 @@ export const BrandGoodsTable = reatomComponent(() => {
 
   return (
     <Table>
-      {data().map((item) => (
+      {data()?.map((item) => (
         <Table.Row key={item.id}>
           <Table.Cell>{item.id}</Table.Cell>
           <Table.Cell>{item.name}</Table.Cell>
@@ -201,11 +202,11 @@ export const BrandGoodsTable = reatomComponent(() => {
 })`,
     annotations: [
       {
-        pattern: 'route("goods/:category")',
+        pattern: 'reatomRoute("goods/:category")',
         note: 'Match path, params types will be inferred',
       },
       {
-        pattern: '.route({',
+        pattern: '.reatomRoute({',
         note: 'Nest sub-path, with all related parent params',
       },
       {
@@ -218,7 +219,7 @@ export const BrandGoodsTable = reatomComponent(() => {
       },
       {
         pattern: '{ data, error, ready }',
-        note: 'Track the loader state',
+        note: 'Get loader atoms',
       },
     ],
   },
