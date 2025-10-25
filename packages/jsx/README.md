@@ -187,13 +187,7 @@ Avoid replacing the full style object — prefer updates via static keys:
 ❌ **Avoid:**
 
 ```tsx
-<div
-  style={() =>
-    flag()
-      ? { top: 0 }
-      : { bottom: 0 }
-  }
-/>
+<div style={() => (flag() ? { top: 0 } : { bottom: 0 })} />
 ```
 
 ✅ **Use:**
@@ -201,9 +195,7 @@ Avoid replacing the full style object — prefer updates via static keys:
 ```tsx
 <div
   style={() =>
-    flag()
-      ? { top: 0, bottom: undefined }
-      : { top: undefined, bottom: 0 }
+    flag() ? { top: 0, bottom: undefined } : { top: undefined, bottom: 0 }
   }
 />
 ```
@@ -228,7 +220,6 @@ Values can be primitives or reactive (`atom`, `() => string`, etc.). Numbers are
 
 The JSX runtime automatically applies the same logic internally using `reatomClassName`.
 
-
 ```ts
 /** @example <button class="button button--size-medium button--theme-primary button--is-active"></button> */
 <button class={[
@@ -244,6 +235,8 @@ The JSX runtime automatically applies the same logic internally using `reatomCla
 
 ### CSS-in-JS
 
+The `css` prop provides an ideal architectural balance for styling: it keeps styles colocated with the markup they affect while avoiding the coupling issues of other approaches.
+
 Use the `css` prop to declare styles via tagged template literals. Dynamic values can be passed as CSS variables via `css:*`.
 
 ```tsx
@@ -256,10 +249,7 @@ const Component = () => (<input
 This will be compiled to:
 
 ```tsx
-<div
-  class="Component_ab12cd"
-  style="--size: 3"
-></div>
+<div class="Component_ab12cd" style="--size: 3"></div>
 ```
 
 Behind the scenes, the runtime:
@@ -267,6 +257,14 @@ Behind the scenes, the runtime:
 - Creates a scoped class name (`Component_*`)
 - Inserts the CSS rule once
 - Applies dynamic values as inline CSS variables (`--size`)
+
+#### Why css-prop?
+
+It's important to note that Reatom doesn't process passed styles and put it as is to the DOM, but you may use [native nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Using_CSS_nesting), so DX is still perfect.
+
+Unlike css-modules or SFC style tags, the `css` prop doesn't force you to duplicate component structure across separate files. Unlike utility-first frameworks (Tailwind), it uses standard CSS without additional mental overhead. Unlike styled-components or Linaria, it has zero runtime overhead and no build complexity.
+
+The key advantage is architectural: inline styles naturally encourage better code organization. When a component grows large with many styles, the path of least resistance is to **extract the entire component** (keeping styles inline), not just move styles to a separate file. This maintains high cohesion and low coupling — the foundation of maintainable architecture.
 
 > Tip: wrapping logic in components improves generated class readability and traceability.
 
@@ -385,9 +383,7 @@ const SvgIcon = ({ svg }: { svg: string }) =>
 **Option 2**: use `prop:outerHTML`
 
 ```tsx
-const SvgIcon = ({ svg }: { svg: string }) => (
-  <svg:svg prop:outerHTML={svg} />
-)
+const SvgIcon = ({ svg }: { svg: string }) => <svg:svg prop:outerHTML={svg} />
 ```
 
 ### `ref` props
@@ -446,7 +442,10 @@ reatomClassName('my-class') // Computed<'my-class'>
 
 reatomClassName(['first', atom('second')]) // Computed<'first second'>
 
-/** The `active` class will be determined by the truthiness of the data property `isActiveAtom`. */
+/**
+ * The `active` class will be determined by the truthiness of the data property
+ * `isActiveAtom`.
+ */
 reatomClassName({ active: isActiveAtom }) // Computed<'active' | ''>
 
 reatomClassName(() => (isActiveAtom() ? 'active' : undefined)) // Computed<'active' | ''>
@@ -455,7 +454,10 @@ reatomClassName(() => (isActiveAtom() ? 'active' : undefined)) // Computed<'acti
 The `reatomClassName` function supports various complex data combinations, making it easier to declaratively describe classes for complex UI components.
 
 ```ts
-/** @example Computed<'button button--size-medium button--theme-primary button--is-active'> */
+/**
+ * @example
+ *   Computed<'button button--size-medium button--theme-primary button--is-active'>
+ */
 reatomClassName([
   'button',
   `button--size-${props.size}`,
