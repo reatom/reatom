@@ -10,7 +10,39 @@ type OnlineAtom = Atom<boolean> & {
   onlineAtAtom: Atom<number | undefined>
 }
 
-/** @note https://issues.chromium.org/issues/338514113 */
+/**
+ * An atom that tracks the browser's online/offline connectivity status.
+ *
+ * Returns `true` when the browser has network connectivity, `false` when offline.
+ * Automatically updates by listening to the browser's `online` and `offline` events.
+ *
+ * Provides additional timestamp tracking:
+ *
+ * - `onlineAtAtom`: Timestamp (from `Date.now()`) when the connection was established
+ * - `offlineAtAtom`: Timestamp (from `Date.now()`) when the connection was lost
+ *
+ * @note Due to a Chromium bug (https://issues.chromium.org/issues/338514113),
+ *   the initial state may not always reflect the actual connectivity status.
+ *   The atom will correct itself once the first online/offline event fires.
+ *
+ * @example
+ *   import { effect, onLineAtom } from '@reatom/core'
+ *
+ *   effect(() => {
+ *     const isOnline = onLineAtom()
+ *     const lastOnlineAt = onLineAtom.onlineAtAtom()
+ *     const lastOfflineAt = onLineAtom.offlineAtAtom()
+ *
+ *     if (isOnline) {
+ *       if (lastOnlineAt) {
+ *         syncPendingChanges()
+ *       }
+ *     } else {
+ *       showOfflineBanner()
+ *       queueChangesForLater()
+ *     }
+ *   })
+ */
 export let onLineAtom: OnlineAtom = /* @__PURE__ */ (() =>
   atom(() => navigator.onLine, 'onLine').extend(
     withMiddleware(

@@ -10,6 +10,68 @@ export type EventOfTarget<Target extends EventTarget, Type extends string> =
         Parameters<Cb>[0] // general type
       : never
 
+/**
+ * Integrates external event sources (DOM elements, WebSockets, etc.) with
+ * Reatom's reactive system and abort context.
+ *
+ * Can be used in two ways:
+ *
+ * 1. **As a Promise** (without callback): Returns a promise that resolves when the
+ *    event fires once. Use with `await wrap(onEvent(...))` in actions to wait
+ *    for events while respecting abort contexts.
+ * 2. **As a Subscription** (with callback): Registers a callback that fires on
+ *    each event occurrence. Returns an unsubscribe function for cleanup.
+ *
+ * When used within an action with abort context, `onEvent` automatically cleans
+ * up listeners when the action is aborted or when a component unmounts,
+ * preventing memory leaks and stale event handlers.
+ *
+ * @example
+ *   import { action, onEvent, wrap } from '@reatom/core'
+ *
+ *   const handleUserAction = action(async () => {
+ *     const button = document.getElementById('confirmButton')
+ *
+ *     const clickEvent = await wrap(onEvent(button, 'click'))
+ *     console.log(clickEvent.clientX, clickEvent.clientY)
+ *
+ *     processUserConfirmation()
+ *   }, 'handleUserAction').extend(withAbort())
+ *
+ * @example
+ *   import { atom, effect, onEvent } from '@reatom/core'
+ *
+ *   const activeVideoAtom = atom(null, 'activeVideo')
+ *   const videoStatsAtom = atom({ plays: 0, pauses: 0 }, 'videoStats')
+ *
+ *   effect(() => {
+ *     const videoElement = activeVideoAtom()
+ *     if (!videoElement) return
+ *
+ *     // the listener will be cleared automatically, when the new videoElement is set
+ *     onEvent(videoElement, 'play', () => {
+ *       videoStatsAtom.set((stats) => ({ ...stats, plays: stats.plays + 1 }))
+ *     })
+ *     onEvent(videoElement, 'pause', () => {
+ *       videoStatsAtom.set((stats) => ({
+ *         ...stats,
+ *         pauses: stats.pauses + 1,
+ *       }))
+ *     })
+ *   })
+ *
+ * @param target - The event target (DOM element, WebSocket, etc.)
+ * @param type - The event type to listen for (e.g., 'click', 'message')
+ * @param cb - Optional callback function. If omitted, returns a Promise
+ * @param options - Optional event listener options (capture, passive, etc.)
+ * @returns A Promise resolving to the event (if no callback), or an unsubscribe
+ *   function (if callback provided)
+ * @note Uses `abortVar.subscribe()` internally to connect the event listener
+ *   lifecycle to Reatom's abort context. The listener is automatically removed when
+ *   the associated AbortController signals abortion, which happens when the parent
+ *   action is aborted, a component unmounts, or when `withAbort()` cancels a
+ *   previous execution (`effect` do it automatically).
+ */
 // @ts-ignore
 export const onEvent: {
   <
