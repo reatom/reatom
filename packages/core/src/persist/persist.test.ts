@@ -13,12 +13,12 @@ describe('base', () => {
     const a2 = atom(0).extend(withSomePersist('a2'))
 
     withSomePersist.storageAtom.set(
-      createMemStorage({ 
-        name: 'test', 
-        snapshot: { 
-          a1: 1, 
-          a2: 2, 
-        }, 
+      createMemStorage({
+        name: 'test',
+        snapshot: {
+          a1: 1,
+          a2: 2,
+        },
       }),
     )
 
@@ -28,7 +28,7 @@ describe('base', () => {
     a1.set(11)
     expect(a1()).toBe(11)
     expect(a2()).toBe(2)
-    // Check storage data for sync storage  
+    // Check storage data for sync storage
     const storage = withSomePersist.storageAtom()
     const a1Record = storage.get('a1')
     if (a1Record && !(a1Record instanceof Promise)) {
@@ -98,12 +98,12 @@ describe('should not skip double update', () => {
     const a2 = atom(0).extend(withSomePersist('a2'))
 
     withSomePersist.storageAtom.set(
-      createMemStorage({ 
-        name: 'test', 
-        snapshot: { 
-          a1: 1, 
-          a2: 2, 
-        }, 
+      createMemStorage({
+        name: 'test',
+        snapshot: {
+          a1: 1,
+          a2: 2,
+        },
       }),
     )
 
@@ -119,11 +119,11 @@ describe('should not skip double update', () => {
 describe('should memoize a computer', () => {
   test('should compute and memoize correctly', () => {
     const storage = withSomePersist.storageAtom.set(
-      createMemStorage({ 
-        name: 'test', 
-        snapshot: { 
-          a: 1, 
-        }, 
+      createMemStorage({
+        name: 'test',
+        snapshot: {
+          a: 1,
+        },
       }),
     )
 
@@ -142,12 +142,12 @@ describe('should memoize a computer', () => {
     expect(a()).toBe(1)
     expect(computedCalls).toBe(1)
 
-    storage.set('a', { 
-      data: 2, 
-      id: random(), 
-      timestamp: Date.now(), 
-      to: Date.now() + 5 * 1000, 
-      version: 0, 
+    storage.set('a', {
+      data: 2,
+      id: random(),
+      timestamp: Date.now(),
+      to: Date.now() + 5 * 1000,
+      version: 0,
     })
     expect(a()).toBe(2)
     expect(computedCalls).toBe(1)
