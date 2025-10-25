@@ -2,7 +2,7 @@ import { clearStack, context, rAF, take, top, wrap } from '@reatom/core'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { isSuspense, reatomComponent, reatomContext, useFrame } from './index'
+import { isSuspense, reatomComponent, reatomContext, useFrame } from './'
 
 clearStack()
 

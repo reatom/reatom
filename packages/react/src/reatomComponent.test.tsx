@@ -12,7 +12,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
-import { reatomComponent, reatomContext } from './index'
+import { reatomComponent, reatomContext } from './'
 
 clearStack()
 

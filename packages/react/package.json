@@ -17,6 +17,9 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "microbundle -f esm,cjs --raw",

@@ -14,7 +14,7 @@ import {
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { reatomComponent, reatomContext, reatomFactoryComponent } from './index'
+import { reatomComponent, reatomContext, reatomFactoryComponent } from './'
 
 clearStack()
 
