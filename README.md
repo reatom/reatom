@@ -28,7 +28,7 @@ A powerful reactive state management library designed to become your go-to resou
   [2 KB](https://bundlejs.com/?q=%40reatom%2Fcore) gzipped for core.
 
 - **Best TypeScript experience**  
-  Type inference is a top priority with excellent type safety throughout.
+  Top type inference with excellent type safety throughout.
 
 ## Installation
 
