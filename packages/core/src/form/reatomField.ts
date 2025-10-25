@@ -392,8 +392,10 @@ export function reatomField<State, Value = State>(
           ? fieldInitValidation
           : fieldInitValidationLess,
       ),
-      // TODO: remove default assignment after bug fix
-      withComputed((state = fieldInitValidationLess): FieldValidation => {
+      withComputed((state): FieldValidation => {
+        if(state === undefined) 
+          throw new Error('artlar TODO: undefined as a state for atom with default value')
+
         if (!fieldOptions.value().shouldValidate) return fieldInitValidationLess
 
         if (disabled()) return fieldInitValidation
