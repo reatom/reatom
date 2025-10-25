@@ -69,12 +69,12 @@ const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
  *   }, 'processData')
  *
  * @param cb A function that returns the value to be selected and memoized.
- * @param {function(State, State): boolean} [Object.is] An optional function to compare
- *   the new and old states, useful for reactive context. If the memo appears in
- *   reactive context (`computed`, `effect`) then before triggering the host
- *   recomputation the returned value compares with the previous returned value.
- *   This option defines the comparator algorithm. By default it is a simple
- *   reference comparison (`Object.is`).
+ * @param {function(State, State): boolean} [Object.is] An optional function to
+ *   compare the new and old states, useful for reactive context. If the memo
+ *   appears in reactive context (`computed`, `effect`) then before triggering
+ *   the host recomputation the returned value compares with the previous
+ *   returned value. This option defines the comparator algorithm. By default it
+ *   is a simple reference comparison (`Object.is`).
  * @param key An optional unique identifier for the memoized value. Defaults to
  *   `cb.toString()`. Used to distinguish between different memo calls within
  *   the same computed function. Providing a custom key is recommended when

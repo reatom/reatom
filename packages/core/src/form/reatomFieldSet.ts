@@ -154,8 +154,11 @@ export const reatomFieldSet = <T extends FormInitState>(
     for (const [key, value] of Object.entries(initState as Rec)) {
       const keyValue = fields[key] as unknown
       if (isLinkedListAtom(keyValue)) {
-        // @ts-ignore TODO
-        keyValue.initState.set(keyValue.initiateFromSnapshot(value.map((v) => [v])))
+        // @ts-ignore
+        keyValue.initState.set(
+          // @ts-ignore
+          keyValue.initiateFromSnapshot(value.map((v) => [v])),
+        )
       } else if (
         isObject(value) &&
         !(value instanceof Date) &&
@@ -164,7 +167,7 @@ export const reatomFieldSet = <T extends FormInitState>(
       ) {
         reinitState(value, keyValue as unknown as FormFields)
       } else if (isAtom(keyValue)) {
-        // @ts-ignore TODO
+        // @ts-ignore
         keyValue.initState.set(value)
       }
     }
@@ -203,7 +206,7 @@ const computeFieldArraysList = <T extends FormInitState>(
   ) => {
     if (isLinkedListAtom(element)) {
       acc.push(element as FormFieldArrayAtom<unknown>)
-      // @ts-ignore TODO
+      // @ts-ignore
       element.array().forEach((e) => computeElement(e, acc))
     } else if (!isAtom(element)) computeFieldArraysList(element, acc)
 

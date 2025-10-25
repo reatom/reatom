@@ -89,7 +89,7 @@ test('withSuspense', async () => {
   await wrap(sleep())
   expect(track).toBeCalledTimes(1)
   expect(track).toBeCalledWith(0)
-  
+
   param.set(1)
   await wrap(sleep())
   expect(track).toBeCalledTimes(2)

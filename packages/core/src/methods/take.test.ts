@@ -130,5 +130,12 @@ test('take with selector', async () => {
   setTimeout(wrap(() => atomized()?.nested?.set(5)))
   setTimeout(wrap(() => atomized()?.nested?.set(4)))
 
-  expect(await wrap(take(() => atomized()?.nested(), (state) => state === 4 ? 4 : throwAbort()))).toBe(4)
+  expect(
+    await wrap(
+      take(
+        () => atomized()?.nested(),
+        (state) => (state === 4 ? 4 : throwAbort()),
+      ),
+    ),
+  ).toBe(4)
 })

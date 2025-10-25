@@ -11,6 +11,6 @@ test('action retry disabled by default', async () => {
   )
 
   expect(() => retryComputed(fetch)).toThrow(
-    'Only reactive atoms can be reseted',
+    'Only reactive atoms can be reset',
   )
 })

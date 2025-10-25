@@ -76,9 +76,7 @@ import { schedule } from './schedule'
  * @returns Promise that resolves with the current frame's state
  * @see {@link https://github.com/tc39/proposal-explicit-resource-management}
  */
-export let framePromise = (
-  queue: QueueKind = 'effect',
-): Promise<unknown> => {
+export let framePromise = (queue: QueueKind = 'effect'): Promise<unknown> => {
   let frame = top()
   let state: unknown
 

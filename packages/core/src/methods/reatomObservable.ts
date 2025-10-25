@@ -43,9 +43,7 @@ type Producer<T> =
  *   import { autorun, observable } from 'mobx'
  *   const mobxStore = observable({ count: 0 })
  *   const syncedAtom = atom(0).extend(
- *     withObservable(
- *       (setter) => autorun(() => setter(mobxStore.count)),
- *     ),
+ *     withObservable((setter) => autorun(() => setter(mobxStore.count))),
  *   )
  *
  * @example
