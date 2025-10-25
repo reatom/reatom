@@ -18,6 +18,7 @@ catalog:
   '@types/node': latest
   '@types/react': ^18.2.77
   '@types/react-dom': ^18.2.7
+  '@types/ws': ^8.18.1
   '@typescript-eslint/eslint-plugin': ^8.28.0
   '@typescript-eslint/parser': ^8.28.0
   '@typescript-eslint/rule-tester': ^8.32.1
@@ -62,6 +63,7 @@ catalog:
   whatsup: latest
   microbundle: ^0.15.1
   wonka: latest
+  ws: ^8.18.3
   zod: ^4.0.0
   typedoc: ^0.28.5
   typedoc-plugin-markdown: ^4.6.4
