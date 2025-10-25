@@ -10,7 +10,7 @@ import {
   isAtom,
   isLinkedListAtom,
   isObject,
-  isWratableAtom,
+  isWritableAtom,
   type LinkedList,
   type LinkedListLikeAtom,
   LL_NEXT,
@@ -407,7 +407,7 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
 
   if (key.startsWith('model:')) {
     key = key.slice(6) as 'checked' | 'value' | 'valueAsDate' | 'valueAsNumber'
-    if (isWratableAtom(value)) {
+    if (isWritableAtom(value)) {
       setProp(dom, element, 'on:input', (event: any) => {
         if (!event.target.validity.badInput) {
           let val = event.target[key]
