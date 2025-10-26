@@ -34,6 +34,10 @@ const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
  * However, you can provide a custom `key` parameter to uniquely identify
  * different memo calls instead of relying on toString().
  *
+ * When a custom `key` is provided, the toString() duplication check is
+ * bypassed, allowing you to use the same callback function multiple times
+ * within the same atom by providing different keys for each usage.
+ *
  * @example
  *   // This is very useful to memoize not just the end string,
  *   // but, for example, a template computation inside `reatomComponent` or so on.
@@ -84,7 +88,7 @@ const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
 export let memo = <State>(
   cb: (() => State) | ((state?: State) => State),
   equal: (newState: State, oldState: State) => boolean = () => false,
-  key = cb.toString(),
+  key?: string,
 ): State => {
   let frame = top()
 
@@ -104,13 +108,17 @@ export let memo = <State>(
     map.set(frame.atom, (atoms = {}))
   }
 
-  if (key in touched) {
-    throw new ReatomError(
-      'multiple memo with the same "toString" representation is not possible',
-    )
-  }
+  if (!key) {
+    key = cb.toString()
 
-  touched[key] = true
+    if (key in touched) {
+      throw new ReatomError(
+        'multiple memo with the same "toString" representation is not possible',
+      )
+    }
+
+    touched[key] = true
+  }
 
   let memoAtom = atoms[key]
   if (!memoAtom) {
