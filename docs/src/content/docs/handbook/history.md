@@ -42,6 +42,32 @@ Proxy is a common pattern for working with signals, but it could be pretty messy
 
 Also, with `@reatom/zod`, you can create safer reactive structures even shorter than with Proxy.
 
+## Package Updates
+
+> Keywords: "package duplication", "deduplication", "dedupe"...
+
+When updating Reatom packages, you may encounter type incompatibilities, unexpected build or runtime errors due to your package manager's deduplication policy. Reatom core package is singleton, it uses internal `STACK` for the frames stack management and other singleton variables and services. However, there are no standards for this type of package, and different package managers may deduplicate them differently.
+
+Therefore, we recommend running deduplication manually after updating Reatom packages. For example, if you have installed `@reatom/core` and `@reatom/react`, and you want to update the react adapter to the latest version, use one of the following commands.
+
+NPM has special flag to deduplicate related packages during installation:
+
+```bash
+npm i --prefer-dedupe @reatom/react@latest
+```
+
+`yarn@1` deduplicates packages by default during installation, but `yarn@3` and `yarn@4` do not. For these versions, you need to run deduplication manually:
+
+```sh
+yarn add @reatom/react@latest && yarn dedupe "@reatom/*"
+```
+
+PNPM does not deduplicate packages by default, and there isn't a deduplication command for a specific **set** of packages. You can run `pnpm dedupe @reatom/core`, but for sure you will need to manually remove all installed Reatom packages and install it again:
+
+```sh
+pnpm rm @reatom/core @reatom/react && pnpm i @reatom/core@latest @reatom/react@latest
+```
+
 ## Media
 
 - [en twitter](https://twitter.com/ReatomJS)
