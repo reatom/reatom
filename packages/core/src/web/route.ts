@@ -397,3 +397,22 @@ export let reatomRoute = /* @__PURE__ */ (() =>
 
 /** @deprecated Use `reatomRoute` instead */
 export let route = reatomRoute
+
+/**
+ * A computed atom that indicates whether the current URL matches any defined
+ * routes.
+ *
+ * Returns `true` when no routes match the current URL (404 scenario), and
+ * `false` when at least one route matches.
+ *
+ * This is useful for implementing fallback UI, displaying "page not found"
+ * messages, or redirecting users when they navigate to non-existent pages.
+ *
+ * @returns A boolean indicating whether the current URL is not matched by any
+ *   route
+ */
+export const is404 = /* @__PURE__ */ (() =>
+  computed(
+    () => Object.values(urlAtom.routes).every((route) => !route()),
+    'is404',
+  ))()
