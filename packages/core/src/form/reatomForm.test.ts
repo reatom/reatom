@@ -41,6 +41,7 @@ test('focus states', () => {
 
   form.fields.field1.change('value')
   form.fields.field2.change('value')
+  notify()
 
   expect(form.focus()).toEqual({
     active: false,
@@ -59,6 +60,7 @@ test('focus states', () => {
 
   const [arrField] = form.fields.list.array()
   arrField!.change('value')
+  notify()
 
   expect(arrField!.focus()).toEqual({
     active: false,

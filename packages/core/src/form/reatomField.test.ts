@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
-import { addCallHook, notify, reatomEnum, sleep, wrap } from '../'
+import { addCallHook, atom, notify, reatomEnum, sleep, throwAbort, wrap } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
 
 test(`validateOnChange`, async () => {
@@ -130,6 +130,71 @@ test(`toState and fromState`, async () => {
   expect(field()).toEqual({ label, value: 2000 })
 })
 
+test(`toState reactivity`, async () => {
+  const decimalPlaces = atom(2, 'decimalPlaces')
+  
+  const priceField = reatomField<number, string>(100.50, {
+    name: 'priceField',
+    fromState: (state) => state.toFixed(decimalPlaces()),
+    toState: (value) => {
+      if (!value) return 0
+      const parsed = parseFloat(value)
+      const multiplier = Math.pow(10, decimalPlaces())
+      return Math.round(parsed * multiplier) / multiplier
+    },
+  })
+
+  expect(priceField()).toBe(100.5)
+  expect(priceField.value()).toBe('100.50')
+
+  priceField.change('100.12345')
+  notify()
+  expect(priceField()).toBe(100.12)
+  expect(priceField.value()).toBe('100.12')
+
+  decimalPlaces.set(4)
+  notify()
+  
+  expect(priceField.value()).toBe('100.1200')
+  
+  priceField.change('99.123456789')
+  notify()
+  expect(priceField()).toBe(99.1235)
+  expect(priceField.value()).toBe('99.1235')
+
+  decimalPlaces.set(0)
+  notify()
+  expect(priceField.value()).toBe('99')
+  
+  priceField.change('88.7')
+  notify()
+  expect(priceField()).toBe(89)
+  expect(priceField.value()).toBe('89')
+})
+
+test(`value atom should be writable`, async () => {
+  const field = reatomField<Date | null, string>(null, {
+    name: 'fieldAtom',
+    fromState: (state) => state ? state.toString() : '',
+    toState: (value) => {
+      if(!value) return null
+      const date = new Date(value)
+      return !isNaN(date.getTime()) ? date : null
+    },
+  })
+
+  expect(field()).toBeNull()
+  expect(field.value()).toBe('')
+
+  const date = new Date()
+
+  field.set(date)
+  expect(field.value()).toBe(date.toString())
+
+  field.change('Oct 27 2025 25:00')
+  expect(field()).toBe(null)
+})
+
 test(`validation concurrency`, async () => {
   const field = reatomField(123, {
     validate: async ({ value }) => {
@@ -191,7 +256,9 @@ test(`withField and initState derivation`, async () => {
 
   expect(field()).toBe('lel')
   field.setKek()
+  notify()
   expect(field()).toBe('kek')
+  expect(field.focus().touched).toBe(true)
 
   field.reset()
   expect(field()).toBe('lel')

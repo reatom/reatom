@@ -79,17 +79,57 @@ export interface FocusAtom extends AtomLike<FieldFocus> {
 Without these methods, we cannot maintain the `focus` atom in a consistent state. In rendering frameworks, these actions should be used as `focus` and `blur` events, otherwise, in addition to the inconsistency of the `focus` atom, we may lose the ability to validate the field when focus is lost.
 
 ## State and value
-TODO
+The state is the key atom of the field, which `reatomField` returns as its value. Additionally, a `value` atom is attached to this atom, which is computed from the `state` atom (i.e., from the field's state itself). The key difference between `state` and `value` is their purpose - `state` undergoes validation and should contain the pure field value, which is the definitive value from a business logic perspective, while `value` is a derived value primarily intended for UI display.
+
+A couple of examples illustrating the dichotomy between these states for better understanding:
+* In a select component, `state` will contain the actual value of the selected element, while `value` will contain the element's text (i.e., its label)
+* In a text field for selecting a birth date, the `state` will contain either a `Date` object or `null` if the value is invalid, while `value` will contain a string with arbitrary user input, which will be used for rendering in the text field. Thus, if the user enters a valid date, the `state` will receive a valid `Date`
+
+To configure the `state -> value` transformation, you can define the `fromState` callback in the field creation options, and for the reverse transformation there is a `toState` callback.
+
+```ts
+const dateField = reatomField<Date | null, string>(null, {
+  name: 'dateField',
+  fromState: (state) => state ? state.toString() : '',
+  toState: (value) => {
+    if(!value) return null
+    const date = new Date(value)
+    return !isNaN(date.getTime()) ? date : null
+  },
+})
+```
+
+### `toState` reactivity
+Since the `toState` transformer executes in the context of computing the `value` computed atom, it's possible to reactively use atoms inside it, which allows maintaining the field state more consistently by adding new dependencies to `value`:
+
+```ts
+const dateMask = atom('MM.DD.YYYY', 'dateMask')
+
+const dateField = reatomField<Date | null, string>('08.20.2024', {
+  name: 'dateField',
+  fromState: (state) => state ? state.toString() : '',
+  toState: (value) => {
+    if(!value) return null
+    const date = dayjs(value, dateMask())
+    return date.isValid() ? date.toDate() : null
+  },
+})
+
+dateMask.set('DD.MM.YYYY')
+```
+After this, the `dateField` state now becomes `null` because we changed the date format. This may seem like functionality that should be inside a reactive validation callback, but this specific case can be useful if there are computed atoms from the field's `state` that should remain consistent even after changing the date format
 
 ## Validation and concurrency
 Like all form fields in the world, a field can have validation rules defined. For `reatomField`, validation rules consist of two parts: field validity checking through the `validate` callback in form creation options and defining validation trigger conditions.
 Speaking of the `validate` callback, it allows using both synchronous and asynchronous functions and even Standard Schema compatible validation schemas.
 
 ### Validation triggers
-TODO
+By default, validation does not happen automatically and is only called programmatically through the `field.validation.trigger()` action, but it's possible to configure validation triggers on certain events in the field creation options:
+* `validateOnChange` - validation on value change
+* `validateOnBlur` - validation on blur
 
 ### Validation callback
-In any validation callback, you can either throw errors or return their text or a `FieldError` object, which allows setting arbitrary error sources and even metadata:
+In any validation callback, you can either throw errors or return their message as string or a `FieldError` object, which allows setting arbitrary error sources and even metadata:
 ```ts
 const usernameField = reatomField({
   validate: ({ state }) => {
@@ -145,7 +185,7 @@ const usernameField = reatomField({
 ```
 
 ### Error sources
-TODO
+Any validation error in forms has a property `source`, which indicates what caused the validation error. By default, any errors that occurred during field validation through the `validate` option will receive the value `validation` as the `source`. Also, errors can appear in the field whose `source` value will be `schema`, in case the error occurred during validation by the schema from the [form](/handbook/forms/concepts/form/) that contains this field. Otherwise, nothing prevents you from using any other values as `source` if necessary
 
 ## `withField` extension
 This extension is a convenient way to make any atom as a form field without losing its original properties

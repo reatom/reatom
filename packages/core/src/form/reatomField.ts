@@ -121,8 +121,8 @@ export interface FieldAtom<State = any, Value = State>
   /** Atom of an object with all related validation statuses. */
   validation: ValidationAtom
 
-  /** Atom with the "value" data, computed by the `fromState` option */
-  value: Computed<Value>
+  /** Writable atom with the "value" data, computed by the `fromState` option */
+  value: Atom<Value>
 
   /** Atom that defines if the field is disabled */
   disabled: BooleanAtom
@@ -349,6 +349,7 @@ export function reatomField<State, Value = State>(
     withChangeHook(() => {
       if (isCausedBy(reset)) return
 
+      focus.merge({ touched: true })
       validation.trigger.abort('change')
 
       const { keepErrorOnChange, validateOnChange } = fieldOptions.value()
@@ -361,9 +362,11 @@ export function reatomField<State, Value = State>(
     }),
   )
 
-  const value: This['value'] = computed(
+  const value: This['value'] = atom(
     () => fromState(field()),
     `${name}.value`,
+  ).extend(
+    withComputed(() => fromState(field())),
   )
 
   const focus = reatomRecord(fieldInitFocus, `${name}._focus`)
@@ -577,8 +580,6 @@ export function reatomField<State, Value = State>(
     if (!filter(newValue, prevValue)) return prevValue
 
     field.set(toState(newValue))
-    focus.merge({ touched: true })
-
     return value()
   }, `${name}._change`)
 
