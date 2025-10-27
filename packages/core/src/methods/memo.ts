@@ -2,15 +2,15 @@ import { computed, context, type Frame, named, ReatomError, top } from '../core'
 
 /**
  * Internal utility for keyed memoization within an atom's execution context.
- * 
- * Caches values by key within the current atom frame, creating the value on first
- * access and returning the cached value on subsequent calls. This enables
+ *
+ * Caches values by key within the current atom frame, creating the value on
+ * first access and returning the cached value on subsequent calls. This enables
  * persistent memoization across multiple invocations of the same atom.
- * 
- * The cache is scoped per-atom and persists across all calls to that atom within
- * the same context, making it suitable for creating internal computed atoms or
- * other resources that should be created once and reused.
- * 
+ *
+ * The cache is scoped per-atom and persists across all calls to that atom
+ * within the same context, making it suitable for creating internal computed
+ * atoms or other resources that should be created once and reused.
+ *
  * @template T The type of value being cached
  * @param key Unique identifier for the cached value within the atom
  * @param create Factory function to create the value if not already cached
