@@ -42,6 +42,7 @@ import { abortVar } from './abortVar'
  * @param target - The function or promise to wrap with context preservation
  * @param frame - The frame to use (defaults to the current top frame)
  * @returns A wrapped function or promise that preserves reactive context
+ * @see {@link https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextsnapshotwrap}
  */
 export let wrap: {
   <Params extends any[], Payload>(

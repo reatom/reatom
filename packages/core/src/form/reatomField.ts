@@ -10,7 +10,6 @@ import {
   type AtomLike,
   type AtomState,
   type BooleanAtom,
-  type Computed,
   computed,
   effect,
   isAbort,
