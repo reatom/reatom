@@ -31,8 +31,8 @@ test(`adding and removing fields`, async () => {
 
 test('focus states', () => {
   const form = reatomForm({
-    field1: { initState: '', validate: () => { } },
-    field2: { initState: '', validate: () => { } },
+    field1: { initState: '', validate: () => {} },
+    field2: { initState: '', validate: () => {} },
     list: experimental_fieldArray({
       initState: ['initial'],
       create: (param) => reatomField(param, 'fieldAtom'),
@@ -178,8 +178,8 @@ describe('validation states', async () => {
         validateOnChange: true,
         onSubmit: noop,
         schema: z.object({
-          field1: z.string().min(1, 'Too short')
-        })
+          field1: z.string().min(1, 'Too short'),
+        }),
       },
     )
 
@@ -262,7 +262,7 @@ test('validation states with disabled fields and defined schema', async () => {
 
 test('default options for fields', async () => {
   const form = reatomForm({
-    field: { initState: 'initial', validate: () => { } },
+    field: { initState: 'initial', validate: () => {} },
     array: experimental_fieldArray(['one', 'two', 'free']),
   })
 
@@ -371,11 +371,11 @@ describe('fieldArray and array literals as a fieldArray', () => {
 test('reset', () => {
   const form = reatomForm(
     {
-      field: { initState: 'initial', validate: () => { } },
+      field: { initState: 'initial', validate: () => {} },
     },
     {
       name: 'testForm',
-      onSubmit: () => { },
+      onSubmit: () => {},
     },
   )
 
@@ -589,17 +589,11 @@ test('correct handling of side errors from schema', async () => {
   form.fields.min.change(15)
   notify()
 
-  expect(form.fields.max.validation().error).toBe(
-    INVARIANT_ERR_MSG,
-  )
-  expect(form.fields.min.validation().error).toBe(
-    INVARIANT_ERR_MSG,
-  )
+  expect(form.fields.max.validation().error).toBe(INVARIANT_ERR_MSG)
+  expect(form.fields.min.validation().error).toBe(INVARIANT_ERR_MSG)
 
   form.fields.min.change(16)
-  expect(form.fields.min.validation().error).toBe(
-    INVARIANT_ERR_MSG
-  )
+  expect(form.fields.min.validation().error).toBe(INVARIANT_ERR_MSG)
   notify()
   expect(form.fields.min.validation.errors().length).toBe(2)
 

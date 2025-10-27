@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
-import { addCallHook, atom, notify, reatomEnum, sleep, throwAbort, wrap } from '../'
+import { addCallHook, atom, notify, reatomEnum, sleep, wrap } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
 
 test(`validateOnChange`, async () => {
@@ -44,9 +44,7 @@ test(`keepErrorOnChange`, async () => {
   fieldWithoutKeep.validation.trigger()
   notify()
   expect(fieldWithKeep.validation().error).toBe('validation error')
-  expect(fieldWithoutKeep.validation().error).toBe(
-    'validation error',
-  )
+  expect(fieldWithoutKeep.validation().error).toBe('validation error')
 
   fieldWithKeep.change('new value')
   fieldWithoutKeep.change('new value')
@@ -77,9 +75,7 @@ test(`keepErrorDuringValidating`, async () => {
   fieldWithoutKeep.validation.trigger()
   await wrap(sleep())
   expect(fieldWithKeep.validation().error).toBe('validation error')
-  expect(fieldWithoutKeep.validation().error).toBe(
-    'validation error',
-  )
+  expect(fieldWithoutKeep.validation().error).toBe('validation error')
 
   fieldWithKeep.change('new value')
   fieldWithoutKeep.change('new value')
@@ -132,8 +128,8 @@ test(`toState and fromState`, async () => {
 
 test(`toState reactivity`, async () => {
   const decimalPlaces = atom(2, 'decimalPlaces')
-  
-  const priceField = reatomField<number, string>(100.50, {
+
+  const priceField = reatomField<number, string>(100.5, {
     name: 'priceField',
     fromState: (state) => state.toFixed(decimalPlaces()),
     toState: (value) => {
@@ -154,9 +150,9 @@ test(`toState reactivity`, async () => {
 
   decimalPlaces.set(4)
   notify()
-  
+
   expect(priceField.value()).toBe('100.1200')
-  
+
   priceField.change('99.123456789')
   notify()
   expect(priceField()).toBe(99.1235)
@@ -165,7 +161,7 @@ test(`toState reactivity`, async () => {
   decimalPlaces.set(0)
   notify()
   expect(priceField.value()).toBe('99')
-  
+
   priceField.change('88.7')
   notify()
   expect(priceField()).toBe(89)
@@ -175,9 +171,9 @@ test(`toState reactivity`, async () => {
 test(`value atom should be writable`, async () => {
   const field = reatomField<Date | null, string>(null, {
     name: 'fieldAtom',
-    fromState: (state) => state ? state.toString() : '',
+    fromState: (state) => (state ? state.toString() : ''),
     toState: (value) => {
-      if(!value) return null
+      if (!value) return null
       const date = new Date(value)
       return !isNaN(date.getTime()) ? date : null
     },
@@ -282,15 +278,18 @@ test(`reset with initState`, async () => {
 
 describe(`reactivity of validate function`, () => {
   test(`basic`, () => {
-    const passwordField = reatomField('', 'passwordField');
+    const passwordField = reatomField('', 'passwordField')
 
     const confirmField = reatomField('', {
       name: 'confirmField',
       validateOnChange: true,
       validate: () => {
-        if (!passwordField.validation().error && passwordField.value() != confirmField.value())
+        if (
+          !passwordField.validation().error &&
+          passwordField.value() != confirmField.value()
+        )
           return 'Passwords do not match'
-      }
+      },
     })
 
     passwordField.change('pass')
@@ -324,15 +323,16 @@ describe(`reactivity of validate function`, () => {
         console.log({ burger, pickupTime })
 
         const cookingTime = await wrap(fetchBurgerCookingTime(burger))
-        if (cookingTime > pickupTime)
-          return 'cookTooLong'
-      }
+        if (cookingTime > pickupTime) return 'cookTooLong'
+      },
     })
 
     pickupTimeField.change(8)
     notify()
 
-    await expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+    await expect(
+      pickupTimeField.validation().validating,
+    ).resolves.toMatchObject({
       errors: [
         {
           source: 'validation',
@@ -344,7 +344,9 @@ describe(`reactivity of validate function`, () => {
     burgerField.change('Cheeseburger')
     notify()
 
-    await expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+    await expect(
+      pickupTimeField.validation().validating,
+    ).resolves.toMatchObject({
       errors: [],
     })
 
@@ -353,7 +355,9 @@ describe(`reactivity of validate function`, () => {
     pickupTimeField.change(3)
     notify()
 
-    await expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+    await expect(
+      pickupTimeField.validation().validating,
+    ).resolves.toMatchObject({
       errors: [
         {
           source: 'validation',

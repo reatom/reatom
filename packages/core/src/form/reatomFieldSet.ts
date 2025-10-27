@@ -37,7 +37,8 @@ export interface FieldSetValidation {
   validating: undefined | Promise<{ errors: FieldSetFieldError[] }>
 }
 
-export interface FieldSet<T extends FormInitState> extends Computed<FormState<T>> {
+export interface FieldSet<T extends FormInitState>
+  extends Computed<FormState<T>> {
   /** Fields from the init state */
   fields: FormFields<T>
 
@@ -50,7 +51,8 @@ export interface FieldSet<T extends FormInitState> extends Computed<FormState<T>
   /**
    * Atom with the state of the fieldset, computed from all the fields in
    * `fieldsList`
-   * @deprecated use target atom instead
+   *
+   * @deprecated Use target atom instead
    */
   fieldsState: Computed<FormState<T>>
 
@@ -133,8 +135,8 @@ export const reatomFieldSet = <T extends FormInitState>(
 
     validation.validating = promises.length
       ? Promise.all(promises).then((results) => ({
-        errors: results.flatMap((e) => e.errors),
-      }))
+          errors: results.flatMap((e) => e.errors),
+        }))
       : undefined
 
     return validation
