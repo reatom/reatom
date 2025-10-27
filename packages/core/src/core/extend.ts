@@ -185,8 +185,10 @@ export type Middleware<Target extends AtomLike = AtomLike> = (
  * @template Result - The resulting type after applying the middleware
  * @param cb - A function that receives the target and returns a middleware
  *   function
- * @param tail - Whether to add the middleware at the end (true) or beginning
- *   (false) of the middleware chain
+ * @param tail - Whether to add the middleware at the end (true) or the
+ *   beginning (false) of the middleware chain. IMPORTANT: `false` allows the
+ *   middleware to be called inside the default "computed" middleware, which
+ *   means all other atoms read are reactive here.
  * @returns An extension that applies the middleware when used with .extend()
  */
 // @ts-expect-error
