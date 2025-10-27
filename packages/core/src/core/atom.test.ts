@@ -1,5 +1,6 @@
 import { expect, subscribe, test, vi } from 'test'
 
+import { withComputed } from '../mixins'
 import {
   _read,
   type Atom,
@@ -349,4 +350,20 @@ test('deps state cache do not cache deps pubs', async () => {
   dep.set(1)
   notify()
   expect(consumer()).toBe(1)
+})
+
+test('bidirectional link', () => {
+  const single = atom(0).extend(withComputed(() => double() / 2))
+  const double: Atom<number> = atom(0).extend(withComputed(() => single() * 2))
+
+  expect(single()).toBe(0)
+  expect(double()).toBe(0)
+
+  single.set(1)
+  expect(single()).toBe(1)
+  expect(double()).toBe(2)
+
+  double.set(8)
+  expect(single()).toBe(4)
+  expect(double()).toBe(8)
 })
