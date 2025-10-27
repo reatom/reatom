@@ -79,8 +79,8 @@ catalogs:
       specifier: ^0.15.1
       version: 0.15.1
     playwright:
-      specifier: ^1.53.0
-      version: 1.53.0
+      specifier: ^1.55.1
+      version: 1.56.1
     prettier:
       specifier: ^3.5.3
       version: 3.5.3
@@ -286,7 +286,7 @@ importers:
         version: 1.0.13
       cellx:
         specifier: latest
-        version: 2.3.1(@artalar/act@3.2.1)(@frp-ts/core@1.0.0-beta.6(tslib@2.8.1))(@preact/signals-core@1.12.1)(@reatom/core@1000.0.0-alpha.40(idb-keyval@6.2.2))(@webreflection/signal@2.1.2)(alien-signals@1.0.13)(effector@23.4.4)(mobx@6.15.0)(mol_wire_lib@1.0.1577)(nanostores@1.0.1)(s-js@0.4.9)(solid-js@1.9.7)(spred@0.34.0)(usignal@0.10.0)(whatsup@2.6.0)
+        version: 2.3.1(@artalar/act@3.2.1)(@frp-ts/core@1.0.0-beta.6(tslib@2.8.1))(@preact/signals-core@1.12.1)(@reatom/core@1000.0.0-alpha.40(idb-keyval@6.2.2))(@webreflection/signal@2.1.2)(alien-signals@1.0.13)(effector@23.4.4)(mobx@6.15.0)(mol_wire_lib@1.0.1581)(nanostores@1.0.1)(s-js@0.4.9)(solid-js@1.9.7)(spred@0.34.0)(usignal@0.10.0)(whatsup@2.6.0)
       dexnode:
         specifier: 'catalog:'
         version: 1.2.2
@@ -301,13 +301,13 @@ importers:
         version: 6.15.0
       mol_wire_lib:
         specifier: latest
-        version: 1.0.1577
+        version: 1.0.1581
       nanostores:
         specifier: latest
         version: 1.0.1
       playwright:
         specifier: 'catalog:'
-        version: 1.53.0
+        version: 1.56.1
       react:
         specifier: 'catalog:'
         version: 18.3.1
@@ -377,10 +377,10 @@ importers:
     devDependencies:
       '@vitest/browser':
         specifier: 'catalog:'
-        version: 3.1.4(playwright@1.53.0)(vite@6.3.5(@types/node@24.9.1)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(yaml@2.8.0))(vitest@3.1.4)
+        version: 3.1.4(playwright@1.56.1)(vite@6.3.5(@types/node@24.9.1)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(yaml@2.8.0))(vitest@3.1.4)
       playwright:
         specifier: 'catalog:'
-        version: 1.53.0
+        version: 1.56.1
 
   packages/lit:
     dependencies:
@@ -4513,8 +4513,8 @@ packages:
   mobx@6.15.0:
     resolution: {integrity: sha512-UczzB+0nnwGotYSgllfARAqWCJ5e/skuV2K/l+Zyck/H6pJIhLXuBnz+6vn2i211o7DtbE78HQtsYEKICHGI+g==}
 
-  mol_wire_lib@1.0.1577:
-    resolution: {integrity: sha512-gyFsJ51I7Bq8tp2jTgPrF/aM1YfwapKrP+IU0kuVI6k3cAWtBgODhV3A7FYUXBG88DzX0KXwy4ibn2t56SzEMg==}
+  mol_wire_lib@1.0.1581:
+    resolution: {integrity: sha512-5OA1zvEm9KB2FHzFrnhHvumqEaLMEQdXulHnpxO3eApaEI2+cRNOAnqqRECT0R2o3BdHp6kFn3j6hvD1xKAqdA==}
 
   mri@1.2.0:
     resolution: {integrity: sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==}
@@ -4783,13 +4783,13 @@ packages:
   pkg-types@2.1.0:
     resolution: {integrity: sha512-wmJwA+8ihJixSoHKxZJRBQG1oY8Yr9pGLzRmSsNms0iNWyHHAlZCa7mmKiFR10YPZuz/2k169JiS/inOjBCZ2A==}
 
-  playwright-core@1.53.0:
-    resolution: {integrity: sha512-mGLg8m0pm4+mmtB7M89Xw/GSqoNC+twivl8ITteqvAndachozYe2ZA7srU6uleV1vEdAHYqjq+SV8SNxRRFYBw==}
+  playwright-core@1.56.1:
+    resolution: {integrity: sha512-hutraynyn31F+Bifme+Ps9Vq59hKuUCz7H1kDOcBs+2oGguKkWTU50bBWrtz34OUWmIwpBTWDxaRPXrIXkgvmQ==}
     engines: {node: '>=18'}
     hasBin: true
 
-  playwright@1.53.0:
-    resolution: {integrity: sha512-ghGNnIEYZC4E+YtclRn4/p6oYbdPiASELBIYkBXfaTVKreQUYbMUYQDwS12a8F0/HtIjr/CkGjtwABeFPGcS4Q==}
+  playwright@1.56.1:
+    resolution: {integrity: sha512-aFi5B0WovBHTEvpM3DzXTUaeN6eN0qWnTkKx4NQaH4Wvcmc153PdaY2UBdSYKaGYw+UyWXSVyxDUg5DoPEttjw==}
     engines: {node: '>=18'}
     hasBin: true
 
@@ -5466,6 +5466,7 @@ packages:
   sitemap@8.0.0:
     resolution: {integrity: sha512-+AbdxhM9kJsHtruUF39bwS/B0Fytw6Fr1o4ZAIAEqA6cke2xcoO2GleBw9Zw7nRzILVEgz7zBM5GiTJjie1G9A==}
     engines: {node: '>=14.0.0', npm: '>=6.0.0'}
+    deprecated: 'SECURITY: Multiple vulnerabilities fixed in 8.0.1 (XML injection, path traversal, command injection, protocol injection). Upgrade immediately: npm install sitemap@8.0.1'
     hasBin: true
 
   slash@3.0.0:
@@ -8375,7 +8376,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@vitest/browser@3.1.4(playwright@1.53.0)(vite@6.3.5(@types/node@24.9.1)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(yaml@2.8.0))(vitest@3.1.4)':
+  '@vitest/browser@3.1.4(playwright@1.56.1)(vite@6.3.5(@types/node@24.9.1)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(yaml@2.8.0))(vitest@3.1.4)':
     dependencies:
       '@testing-library/dom': 10.4.0
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.0)
@@ -8387,7 +8388,7 @@ snapshots:
       vitest: 3.1.4(@types/debug@4.1.12)(@types/node@24.9.1)(@vitest/browser@3.1.4)(terser@5.39.2)
       ws: 8.18.3
     optionalDependencies:
-      playwright: 1.53.0
+      playwright: 1.56.1
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -8887,7 +8888,7 @@ snapshots:
 
   ccount@2.0.1: {}
 
-  cellx@2.3.1(@artalar/act@3.2.1)(@frp-ts/core@1.0.0-beta.6(tslib@2.8.1))(@preact/signals-core@1.12.1)(@reatom/core@1000.0.0-alpha.40(idb-keyval@6.2.2))(@webreflection/signal@2.1.2)(alien-signals@1.0.13)(effector@23.4.4)(mobx@6.15.0)(mol_wire_lib@1.0.1577)(nanostores@1.0.1)(s-js@0.4.9)(solid-js@1.9.7)(spred@0.34.0)(usignal@0.10.0)(whatsup@2.6.0):
+  cellx@2.3.1(@artalar/act@3.2.1)(@frp-ts/core@1.0.0-beta.6(tslib@2.8.1))(@preact/signals-core@1.12.1)(@reatom/core@1000.0.0-alpha.40(idb-keyval@6.2.2))(@webreflection/signal@2.1.2)(alien-signals@1.0.13)(effector@23.4.4)(mobx@6.15.0)(mol_wire_lib@1.0.1581)(nanostores@1.0.1)(s-js@0.4.9)(solid-js@1.9.7)(spred@0.34.0)(usignal@0.10.0)(whatsup@2.6.0):
     dependencies:
       '@artalar/act': 3.2.1
       '@frp-ts/core': 1.0.0-beta.6(tslib@2.8.1)
@@ -8897,7 +8898,7 @@ snapshots:
       alien-signals: 1.0.13
       effector: 23.4.4
       mobx: 6.15.0
-      mol_wire_lib: 1.0.1577
+      mol_wire_lib: 1.0.1581
       nanostores: 1.0.1
       s-js: 0.4.9
       solid-js: 1.9.7
@@ -11341,7 +11342,7 @@ snapshots:
 
   mobx@6.15.0: {}
 
-  mol_wire_lib@1.0.1577: {}
+  mol_wire_lib@1.0.1581: {}
 
   mri@1.2.0: {}
 
@@ -11597,11 +11598,11 @@ snapshots:
       exsolve: 1.0.7
       pathe: 2.0.3
 
-  playwright-core@1.53.0: {}
+  playwright-core@1.56.1: {}
 
-  playwright@1.53.0:
+  playwright@1.56.1:
     dependencies:
-      playwright-core: 1.53.0
+      playwright-core: 1.56.1
     optionalDependencies:
       fsevents: 2.3.2
 
@@ -13052,7 +13053,7 @@ snapshots:
     optionalDependencies:
       '@types/debug': 4.1.12
       '@types/node': 24.9.1
-      '@vitest/browser': 3.1.4(playwright@1.53.0)(vite@6.3.5(@types/node@24.9.1)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(yaml@2.8.0))(vitest@3.1.4)
+      '@vitest/browser': 3.1.4(playwright@1.56.1)(vite@6.3.5(@types/node@24.9.1)(jiti@2.4.2)(terser@5.39.2)(tsx@4.19.4)(yaml@2.8.0))(vitest@3.1.4)
     transitivePeerDependencies:
       - less
       - lightningcss
