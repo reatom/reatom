@@ -353,8 +353,14 @@ test('deps state cache do not cache deps pubs', async () => {
 })
 
 test('bidirectional link', () => {
-  const single = atom(0).extend(withComputed(() => double() / 2))
-  const double: Atom<number> = atom(0).extend(withComputed(() => single() * 2))
+  const name = 'bidirectionalLink'
+
+  const single = atom(0, `${name}.single`).extend(
+    withComputed(() => double() / 2),
+  )
+  const double: Atom<number> = atom(0, `${name}.double`).extend(
+    withComputed(() => single() * 2),
+  )
 
   expect(single()).toBe(0)
   expect(double()).toBe(0)
@@ -366,4 +372,9 @@ test('bidirectional link', () => {
   double.set(8)
   expect(single()).toBe(4)
   expect(double()).toBe(8)
+
+  single.subscribe()
+  double.set(10)
+  notify()
+  expect(context().state.store.get(single)!.state).toBe(5)
 })

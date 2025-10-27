@@ -552,6 +552,12 @@ export function _isPubsChanged(
 
     // try to reduce extra atom calls
     let pubFrame = frame.root.store.get(pubAtom)!
+
+    if (pubFrame.atom.__reatom.processing) {
+      frame.pubs.push(pubs[i]!)
+      continue
+    }
+
     if (
       pubFrame.pubs.length === 1 ||
       (pubFrame.pubs[0] !== null && pubFrame.subs.length !== 0)
