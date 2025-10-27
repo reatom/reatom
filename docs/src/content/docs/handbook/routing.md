@@ -17,8 +17,8 @@ export const homeRoute = reatomRoute('')
 export const aboutRoute = reatomRoute('about')
 
 // Navigate programmatically
-homeRoute.go({})
-aboutRoute.go({})
+homeRoute.go()
+aboutRoute.go()
 ```
 
 ```tsx
@@ -30,8 +30,8 @@ export const App = reatomComponent(
   () => (
     <div>
       <nav>
-        <button onClick={wrap(() => homeRoute.go({}))}>Home</button>
-        <button onClick={wrap(() => aboutRoute.go({}))}>About</button>
+        <button onClick={wrap(() => homeRoute.go())}>Home</button>
+        <button onClick={wrap(() => aboutRoute.go())}>About</button>
       </nav>
 
       {homeRoute.exact() && <h1>Home Page</h1>}
@@ -99,7 +99,7 @@ Navigate using the `.go()` method:
 userRoute.go({ userId: '123' })
 
 // Navigate without parameters
-homeRoute.go({})
+homeRoute.go()
 
 // Navigate with type safety - TypeScript error if wrong params
 userRoute.go({ userId: 123 }) // ❌ Error: userId must be string
@@ -162,7 +162,7 @@ Build route hierarchies by chaining `.reatomRoute()`:
 import { reatomRoute } from '@reatom/core'
 
 export const dashboardRoute = reatomRoute('dashboard')
-export const usersRoute = apiRoute.reatomRoute('users')
+export const usersRoute = dashboardRoute.reatomRoute('users')
 export const userRoute = usersRoute.reatomRoute(':userId')
 export const userEditRoute = userRoute.reatomRoute('edit')
 
@@ -190,23 +190,130 @@ usersRoute() // { }
 userRoute() // { userId: '123' }
 ```
 
-This makes layouts and breadcrumbs simple:
+### Component Composition Pattern
+
+Reatom routing provides a **framework-agnostic component composition pattern** through the `child` option. This allows you to define components directly in your routes and compose them hierarchically, with automatic mounting/unmounting management - no framework coupling required!
+
+Each route may have a `child` function that returns a component. This component will be added automatically in the parent children list when the route is active/inactive.
+
+```typescript
+import { reatomRoute } from '@reatom/core'
+
+const layoutRoute = reatomRoute({
+  child(children) {
+    return html`<div>
+      <header>My App</header>
+      <main>${children()}</main>
+      <footer>© 2025</footer>
+    </div>`
+  },
+})
+
+const aboutRoute = layoutRoute.reatomRoute({
+  path: 'about',
+  child() {
+    return html`<article>
+      <h1>About</h1>
+      <p>Welcome to our app!</p>
+    </article>`
+  },
+})
+
+const userRoute = layoutRoute.reatomRoute({
+  path: 'user/:userId',
+  async loader({ userId }) {
+    return api.getUser(userId)
+  },
+  child() {
+    if (!userRoute.loader.ready()) return html`<div>Loading...</div>`
+    const user = userRoute.loader.data()
+    return html`<article>
+      <h1>${user.name}</h1>
+      <p>${user.bio}</p>
+    </article>`
+  },
+})
+```
+
+Render your entire app by calling `.child()` on the root route:
+
+```typescript
+const App = computed(() => {
+  return html`<div>${layoutRoute.child()}</div>`
+})
+```
+
+**How it works:**
+
+1. **`child` option** - Each route can define a `child` function that returns your component (string, object, or any type)
+2. **`children()` computed** - Returns an array of all active child routes' rendered components
+3. **Automatic rendering** - When the URL matches a route, its `child()` is called and added to parent's `children()`
+4. **Memory management** - Components are automatically cleaned up when routes become inactive
+5. **Layout routes** - Routes can omit the `path` to act as pure layout wrappers (always active)
+
+**Key benefits:**
+
+- ✅ **Framework-agnostic** - Works with any rendering approach (tagged templates, JSX, hyperscript, etc.)
+- ✅ **Declarative composition** - Route hierarchy defines component hierarchy
+- ✅ **Automatic cleanup** - No manual lifecycle management needed
+- ✅ **Type-safe** - Ability to define custom types for your framework
+
+#### Custom types for your framework
+
+The `RouteChild` type can be redeclared for your framework:
+
+```typescript
+// For React/Preact
+declare module '@reatom/core' {
+  interface RouteChild extends JSX.Element {}
+}
+
+// For Vue
+declare module '@reatom/core' {
+  interface RouteChild extends VNode {}
+}
+
+// For Lit
+declare module '@reatom/core' {
+  interface RouteChild extends TemplateResult {}
+}
+```
+
+Here is how it would look like in React:
+
+> IMPORTANT NOTE: you cannot use hooks inside `child` function, because it's not a React component.
 
 ```tsx
-export const App = reatomComponent(
-  () => (
-    <div>
-      {dashboardRoute() && (
-        <DashboardLayout>
-          {usersRoute() && <UsersLayout />}
-          {userRoute() && <UserProfile userId={userRoute().userId} />}
-          {userEditRoute.exact() && <UserEditor />}
-        </DashboardLayout>
-      )}
-    </div>
-  ),
-  'App',
-)
+import { reatomRoute } from '@reatom/core'
+import { reatomComponent } from '@reatom/react'
+
+const layoutRoute = reatomRoute({
+  child(children) {
+    return (
+      <div>
+        <header>My App</header>
+        <main>${children()}</main>
+        <footer>© 2025</footer>
+      </div>
+    )
+  },
+})
+
+const About = React.lazy(() => import('./About'))
+const aboutRoute = layoutRoute.reatomRoute({
+  path: 'about',
+  child() {
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <About />
+      </Suspense>
+    )
+  },
+})
+
+const App = reatomComponent(() => {
+  return <div>{layoutRoute.child()}</div>
+})
 ```
 
 ## Path Parameters
@@ -414,6 +521,7 @@ export const UserPage = reatomComponent(() => {
 ```
 
 ### Loader State Properties
+
 Since route loader it's an async computed, you can access the same properties that available with `withAsyncData` extension:
 
 - `loader.ready()` - Boolean atom that is `true` when data has loaded successfully
@@ -478,14 +586,14 @@ Loaders are automatically aborted when navigating away:
 const lazyRoute = reatomRoute({
   path: 'dashboard',
   async loader() {
-    // This effect runs while the route is active and as long as the louder's 
-    // dependencies do not change (its parameters or any other atoms reactively 
+    // This effect runs while the route is active and as long as the louder's
+    // dependencies do not change (its parameters or any other atoms reactively
     // called inside this callback)
     effect(async () => {
       while (true) {
         await wrap(sleep(5000))
         // Doing retry every 5 seconds there, just a regular pooling implementation
-        lazyRoute.loader.retry() 
+        lazyRoute.loader.retry()
       }
     })
 
@@ -558,8 +666,12 @@ export const App = reatomComponent(
     <div>
       <nav>
         <button onClick={wrap(() => homeRoute.go({}))}>Home</button>
-        <button onClick={wrap(() => userRoute.go({ userId: '1' }))}>User 1</button>
-        <button onClick={wrap(() => userRoute.go({ userId: '2' }))}>User 2</button>
+        <button onClick={wrap(() => userRoute.go({ userId: '1' }))}>
+          User 1
+        </button>
+        <button onClick={wrap(() => userRoute.go({ userId: '2' }))}>
+          User 2
+        </button>
       </nav>
 
       <main>
@@ -660,7 +772,7 @@ export const userEditRoute = userRoute.reatomRoute({
 
     return {
       user,
-      editForm
+      editForm,
     }
   },
 })
@@ -689,14 +801,8 @@ export const UserEditPage = reatomComponent(() => {
         editForm.submit().catch(noop)
       }}
     >
-      <input
-        name="name"
-        {...bindField(editForm.fields.name)}
-      />
-      <textarea
-        name="bio"
-        {...bindField(editForm.fields.bio)}
-      />
+      <input name="name" {...bindField(editForm.fields.name)} />
+      <textarea name="bio" {...bindField(editForm.fields.bio)} />
 
       {editForm.focus().dirty && <div>⚠️ Unsaved changes</div>}
 
@@ -781,7 +887,9 @@ export const dashboardRoute = reatomRoute({
         isProfileComplete: !!(
           profileForm.fields.name() && profileForm.fields.email()
         ),
-        dirtyFormsCount: [profileForm, settingsForm].filter((f) => f.focus().dirty).length,
+        dirtyFormsCount: [profileForm, settingsForm].filter(
+          (f) => f.focus().dirty,
+        ).length,
         hasNotifications: stats ? stats.notifications > 0 : null,
       }
     })
@@ -823,6 +931,7 @@ const route = reatomRoute({
 ```
 
 If you use Zod, then the easiest way to follow the contract is to do coerce which will make the input parameters of the `unknown` type
+
 ```typescript
 const route = reatomRoute({
   path: 'users/:userId',

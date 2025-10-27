@@ -29,6 +29,9 @@ export type PathParams<Path extends string = string> =
 
 export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, any>
 
+/** Redeclare this type for your framework */
+export interface RouteChild {}
+
 export interface RouteOptions<
   Path extends string = '',
   Params extends PathKeys<Path> = PathParams<Path>,
@@ -45,6 +48,8 @@ export interface RouteOptions<
   search?: StandardSchemaV1<Search, SearchOutput>
 
   loader?: (params: LoaderParams) => Promise<Payload>
+
+  child?: (children: RouteAtom['children']) => RouteChild
 }
 
 export interface RouteMixin<
@@ -174,6 +179,12 @@ export interface RouteAtom<
   pattern: Path
 
   path: (params: MaybeVoid<InputParams & InputSearch>) => string
+
+  routes: Rec<RouteAtom>
+
+  children: Computed<RouteChild[]>
+
+  child: Computed<null | RouteChild>
 }
 
 const getPatternName = (part: string) => {
@@ -183,7 +194,11 @@ const getPatternName = (part: string) => {
 }
 
 const createRouteFactory = (
-  parent: Computed & { pattern: string; loader?: RouteLoader },
+  parent: Computed & {
+    pattern: string
+    routes: Rec<RouteAtom>
+    loader?: RouteLoader
+  },
   name?: string,
 ) => {
   return function reatomRoute(
@@ -199,6 +214,7 @@ const createRouteFactory = (
       params: paramsSchema,
       search: searchSchema,
       loader: optionsLoader = identity,
+      child: childFn,
     } = options
 
     if (subPath.startsWith('/')) {
@@ -375,18 +391,39 @@ const createRouteFactory = (
       return isDeepEqual(state, result) ? state! : result
     }, name).extend((target) => {
       const reatomRoute = createRouteFactory(target as RouteAtom)
+
+      const routes: RouteAtom['routes'] = {}
+
+      const children = computed(() => {
+        const result: RouteChild[] = []
+        for (let pattern in routes) {
+          let child = routes[pattern]!.child()
+          if (child) {
+            result.push(child)
+          }
+        }
+        return result
+      }, `${name}._children`)
+
+      const child = computed(() => {
+        return childFn && routeAtom() ? childFn(children) : null
+      }, `${name}._child`)
+
       return {
         go,
         loader,
         exact,
         pattern,
         path: getPath,
+        routes,
+        children,
+        child,
         reatomRoute,
         route: reatomRoute,
       }
     }) as RouteAtom
 
-    urlAtom.routes[pattern] = routeAtom
+    parent.routes[pattern] = urlAtom.routes[pattern] = routeAtom
 
     return routeAtom
   }
