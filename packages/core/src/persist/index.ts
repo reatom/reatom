@@ -1,4 +1,4 @@
-import type { AssignerExt, Atom, AtomState } from '../core'
+import type { Atom, AtomState, Ext } from '../core'
 import { _enqueue, atom, top, withMiddleware } from '../core'
 import { wrap } from '../methods'
 import { withConnectHook } from '../mixins/withConnectHook'
@@ -78,16 +78,7 @@ export interface WithPersistOptions<T> {
 export interface WithPersist {
   <T extends Atom>(
     ...args: [key: string] | [options: WithPersistOptions<AtomState<T>>]
-  ): AssignerExt<
-    {
-      /**
-       * Internal sync atom with `PersistRecord` state. Do not follow it when
-       * applying a few persist adapters!
-       */
-      __persistRecordAtom: Atom<PersistRecord | null>
-    },
-    T
-  >
+  ): Ext<T>
 }
 
 export const reatomPersist = (
@@ -99,7 +90,7 @@ export const reatomPersist = (
 
   const withPersist: WithPersist =
     <T extends Atom>(options: string | WithPersistOptions<AtomState<T>>) =>
-    (anAtom: T) => {
+    (target: T) => {
       const {
         key,
         fromSnapshot = (data: any) => data,
@@ -116,7 +107,7 @@ export const reatomPersist = (
 
       const persistRecordAtom = atom<PersistRecord | null>(
         null,
-        `${anAtom.name}._${storage.name}Atom`,
+        `${target.name}._${storage.name}Atom`,
       )
 
       const toPersistRecord = (state: AtomState<T>): PersistRecord => ({
@@ -140,7 +131,7 @@ export const reatomPersist = (
       }
 
       // Add middleware to handle persist on read and write
-      anAtom.extend(
+      target.extend(
         withMiddleware(
           () =>
             function withPersist(next, ...params) {
@@ -163,7 +154,7 @@ export const reatomPersist = (
                               const restoredState =
                                 fromPersistRecord(persistedRecord)
                               if (restoredState !== null) {
-                                anAtom.set(restoredState)
+                                target.set(restoredState)
                                 persistRecordAtom.set(persistedRecord)
                               }
                             }
@@ -218,7 +209,7 @@ export const reatomPersist = (
 
       // Add storage subscription if enabled
       if (subscribe && storage.subscribe) {
-        anAtom.extend(
+        target.extend(
           withConnectHook((target) => {
             return storage.subscribe!(key, (newRecord) => {
               _enqueue(() => {
@@ -241,9 +232,7 @@ export const reatomPersist = (
         )
       }
 
-      return {
-        __persistRecordAtom: persistRecordAtom,
-      }
+      return target
     }
 
   return Object.assign(withPersist, { storageAtom })
