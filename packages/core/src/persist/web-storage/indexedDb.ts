@@ -66,7 +66,6 @@ const checkIdb = async () => {
  * memory storage if IndexedDB or idb-keyval is unavailable.
  *
  * @example
- *   ```typescript
  *   // Custom IndexedDB with specific database name
  *   const userDataChannel = new BroadcastChannel('user-data-sync')
  *   const withUserDb = reatomPersistIndexedDb('user-db', userDataChannel)
@@ -87,7 +86,6 @@ const checkIdb = async () => {
  *   const cacheAtom = atom(new Map(), 'cacheAtom').extend(
  *   withLargeDataDb('api-cache')
  *   )
- *   ```
  *
  *   **Features:**
  *   - Large storage capacity (hundreds of MB to GB depending on browser)
@@ -122,7 +120,7 @@ export const reatomPersistIndexedDb = (
   const postMessage = (msg: BroadcastMessage) => channel.postMessage(msg)
 
   const memCacheAtom = atom(
-    new Map<string, PersistRecord>(),
+    () => new Map<string, PersistRecord>(),
     `withIndexedDb._memCacheAtom`,
   )
 
@@ -141,7 +139,6 @@ export const reatomPersistIndexedDb = (
     async set(key, rec) {
       const memCache = memCacheAtom()
       memCache.set(key, rec)
-      memCacheAtom.set(new Map(memCache))
 
       try {
         const idbLib = await checkIdb()
@@ -161,7 +158,6 @@ export const reatomPersistIndexedDb = (
     async clear(key) {
       const memCache = memCacheAtom()
       memCache.delete(key)
-      memCacheAtom.set(new Map(memCache))
 
       try {
         const idbLib = await checkIdb()
@@ -194,11 +190,9 @@ export const reatomPersistIndexedDb = (
             const { rec } = event.data
             if (rec === null) {
               memCache.delete(key)
-              memCacheAtom.set(new Map(memCache))
             } else {
               if (rec.id !== memCache.get(key)?.id) {
                 memCache.set(key, rec)
-                memCacheAtom.set(new Map(memCache))
                 cb(rec)
               }
             }
@@ -220,7 +214,6 @@ export const reatomPersistIndexedDb = (
               const rec = await idbLib.get(key, store)
               if (rec && rec.id !== memCache.get(key)?.id) {
                 memCache.set(key, rec)
-                memCacheAtom.set(new Map(memCache))
                 cb(rec)
               }
             }
@@ -252,7 +245,6 @@ try {
  * BroadcastChannel, or the idb-keyval dependency is unavailable.
  *
  * @example
- *   ```typescript
  *   // Large data cache that persists across browser sessions
  *   const apiCacheAtom = atom(new Map(), 'apiCacheAtom').extend(
  *   withIndexedDb('api-cache')
@@ -276,7 +268,6 @@ try {
  *   }, 'appStateAtom').extend(
  *   withIndexedDb('app-state')
  *   )
- *   ```
  *
  *   **Features:**
  *   - Large storage capacity (hundreds of MB to GB)
@@ -308,9 +299,10 @@ try {
  * @see {@link withLocalStorage} for simpler persistent storage
  * @see {@link withBroadcastChannel} for memory-only cross-tab sync
  */
-export const withIndexedDb: WithPersistWebStorage = isIndexedDbAvailable
-  ? /*#__PURE__*/ reatomPersistIndexedDb(
-      'reatom_default',
-      new BroadcastChannel('reatom_withIndexedDb_default'),
-    )
-  : /*#__PURE__*/ reatomPersist(createMemStorage({ name: 'withIndexedDb' }))
+export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ (() =>
+  isIndexedDbAvailable
+    ? reatomPersistIndexedDb(
+        'reatom_default',
+        new BroadcastChannel('reatom_withIndexedDb_default'),
+      )
+    : reatomPersist(createMemStorage({ name: 'withIndexedDb' })))()

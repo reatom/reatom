@@ -187,6 +187,72 @@ const cartAtom = atom([], 'cart').extend(withCookie()('shopping-cart'))
 - Consider `sameSite: 'strict'` for enhanced CSRF protection
 - Avoid storing large objects due to 4KB size limit
 
+### Cookie Store API (Modern Async Cookies)
+
+Modern asynchronous cookie management using the Cookie Store API with automatic cross-tab synchronization:
+
+```typescript
+import { withCookieStore } from '@reatom/core/persist/web-storage'
+
+// Basic usage with modern async API
+const themeAtom = atom('light', 'theme').extend(
+  withCookieStore()('theme-preference'),
+)
+
+// Async cookie with full configuration
+const sessionAtom = atom(null, 'session').extend(
+  withCookieStore({
+    expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+    path: '/',
+    sameSite: 'strict',
+  })('session-id'),
+)
+
+// Secure authentication cookie
+const authTokenAtom = atom('', 'authToken').extend(
+  withCookieStore({
+    expires: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+    sameSite: 'strict',
+    path: '/',
+  })('auth-token'),
+)
+```
+
+**Features:**
+
+- Asynchronous promise-based API for better performance
+- Automatic cross-tab synchronization via change events
+- Better error handling than document.cookie
+- Available in service workers
+- Non-blocking operations
+- Automatic fallback to memory storage when unavailable
+
+**Browser Support:**
+
+- Chrome/Edge 87+ and Chromium-based browsers
+- Limited browser support (not available in Firefox/Safari yet)
+- Automatic fallback ensures compatibility in all browsers
+
+**Use Cases:**
+
+- Modern web applications requiring async cookie operations
+- Service worker cookie management
+- Applications prioritizing non-blocking I/O
+- Cross-tab synchronized cookie state
+
+**Advantages over document.cookie:**
+
+- Non-blocking asynchronous operations
+- Automatic change notifications
+- Works in service workers
+- Better error messages
+- Cleaner API design
+
+**When to use Cookie Store API vs Cookies:**
+
+- **Use withCookieStore**: Modern browsers, service workers, async-first apps
+- **Use withCookie**: Maximum browser compatibility, SSR applications, synchronous needs
+
 ### IndexedDB
 
 Large-capacity persistent storage for complex applications:
@@ -700,7 +766,8 @@ const userPrefsAtom = atom({}).extend(withLocalStorage('user-prefs')) // Persist
 const formDataAtom = atom({}).extend(withSessionStorage('form-data')) // Session-only
 const liveStatusAtom = atom({}).extend(withBroadcastChannel('live-status')) // Real-time sync
 const largeCacheAtom = atom([]).extend(withIndexedDb('large-cache')) // Big data
-const authTokenAtom = atom('').extend(withCookie({ secure: true })('token')) // Server-accessible
+const authTokenAtom = atom('').extend(withCookie({ secure: true })('token')) // Server-accessible (sync)
+const sessionTokenAtom = atom('').extend(withCookieStore()('session')) // Modern async cookies
 ```
 
 ### Working with Computed Atoms

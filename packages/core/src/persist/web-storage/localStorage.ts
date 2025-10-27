@@ -25,7 +25,6 @@ export interface WithPersistWebStorage extends WithPersist {
  * events.
  *
  * @example
- *   ```typescript
  *   // Using localStorage
  *   const withMyLocalStorage = reatomPersistWebStorage('myApp', localStorage)
  *   const settingsAtom = atom({}, 'settingsAtom').extend(
@@ -45,7 +44,6 @@ export interface WithPersistWebStorage extends WithPersist {
  *   removeItem: (key) => myDatabase.delete(key)
  *   }
  *   const withCustomStorage = reatomPersistWebStorage('db', customStorage)
- *   ```
  *
  *   **Features:**
  *   - Memory cache for performance optimization
@@ -65,7 +63,7 @@ export const reatomPersistWebStorage = (
   storage: Storage,
 ): WithPersistWebStorage => {
   const memCacheAtom = atom(
-    new Map<string, PersistRecord>(),
+    () => new Map<string, PersistRecord>(),
     `${name}._memCacheAtom`,
   )
 
@@ -92,7 +90,6 @@ export const reatomPersistWebStorage = (
           }
 
           memCache.set(key, rec)
-          memCacheAtom.set(new Map(memCache))
           return rec
         }
       } catch {
@@ -103,7 +100,6 @@ export const reatomPersistWebStorage = (
     set(key, rec) {
       const memCache = memCacheAtom()
       memCache.set(key, rec)
-      memCacheAtom.set(new Map(memCache))
 
       try {
         storage.setItem(key, JSON.stringify(rec))
@@ -115,7 +111,6 @@ export const reatomPersistWebStorage = (
     clear(key) {
       const memCache = memCacheAtom()
       memCache.delete(key)
-      memCacheAtom.set(new Map(memCache))
 
       try {
         storage.removeItem(key)
@@ -130,14 +125,12 @@ export const reatomPersistWebStorage = (
         if (event.storageArea === storage && event.key === key) {
           if (event.newValue === null) {
             memCache.delete(key)
-            memCacheAtom.set(new Map(memCache))
           } else {
             try {
               const rec: PersistRecord = JSON.parse(event.newValue)
 
               if (rec.id !== memCache.get(key)?.id) {
                 memCache.set(key, rec)
-                memCacheAtom.set(new Map(memCache))
                 cb(rec)
               }
             } catch {
@@ -169,7 +162,6 @@ try {
  * browsing modes).
  *
  * @example
- *   ```typescript
  *   // Basic usage - data persists across browser sessions
  *   const userPrefsAtom = atom({}, 'userPrefsAtom').extend(
  *   withLocalStorage('user-preferences')
@@ -187,7 +179,6 @@ try {
  *   }, 'dashboardAtom').extend(
  *   withLocalStorage('dashboard-config')
  *   )
- *   ```
  *
  *   **Features:**
  *   - Data persists between browser sessions
@@ -205,12 +196,15 @@ try {
  * @see {@link withSessionStorage} for session-only storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withLocalStorage: WithPersistWebStorage = isWebStorageAvailable
-  ? /*#__PURE__*/ reatomPersistWebStorage(
-      'withLocalStorage',
-      globalThis.localStorage,
-    )
-  : /*#__PURE__*/ reatomPersist(createMemStorage({ name: 'withLocalStorage' }))
+export const withLocalStorage: WithPersistWebStorage = /* @__PURE__ */ (() =>
+  isWebStorageAvailable
+    ? /* @__PURE__ */ reatomPersistWebStorage(
+        'withLocalStorage',
+        globalThis.localStorage,
+      )
+    : /* @__PURE__ */ reatomPersist(
+        createMemStorage({ name: 'withLocalStorage' }),
+      ))()
 
 /**
  * Default sessionStorage persistence adapter with automatic fallback to memory
@@ -221,7 +215,6 @@ export const withLocalStorage: WithPersistWebStorage = isWebStorageAvailable
  * memory storage in environments where sessionStorage is not available.
  *
  * @example
- *   ```typescript
  *   // Temporary data that clears when tab closes
  *   const wizardStateAtom = atom({ step: 1 }, 'wizardStateAtom').extend(
  *   withSessionStorage('wizard-progress')
@@ -236,7 +229,6 @@ export const withLocalStorage: WithPersistWebStorage = isWebStorageAvailable
  *   const cartAtom = atom([], 'cartAtom').extend(
  *   withSessionStorage('shopping-cart')
  *   )
- *   ```
  *
  *   **Features:**
  *   - Data persists during the page session only
@@ -254,11 +246,7 @@ export const withLocalStorage: WithPersistWebStorage = isWebStorageAvailable
  * @see {@link withLocalStorage} for persistent cross-session storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withSessionStorage: WithPersistWebStorage = isWebStorageAvailable
-  ? /*#__PURE__*/ reatomPersistWebStorage(
-      'withSessionStorage',
-      globalThis.sessionStorage,
-    )
-  : /*#__PURE__*/ reatomPersist(
-      createMemStorage({ name: 'withSessionStorage' }),
-    )
+export const withSessionStorage: WithPersistWebStorage = /* @__PURE__ */ (() =>
+  isWebStorageAvailable
+    ? reatomPersistWebStorage('withSessionStorage', globalThis.sessionStorage)
+    : reatomPersist(createMemStorage({ name: 'withSessionStorage' })))()

@@ -1,6 +1,7 @@
 import { expect, test } from 'test'
 
 import { atom } from '../../core'
+import { wrap } from '../../methods'
 import { sleep } from '../../utils'
 import { reatomPersistIndexedDb, withIndexedDb } from './indexedDb'
 
@@ -28,7 +29,7 @@ test('custom IndexedDB adapter', async () => {
   expect(testAtom()).toBe(42)
 
   // Wait a bit for async operations
-  await sleep(50)
+  await wrap(sleep(50))
 
   // Note: Not closing channel to avoid async race conditions
 })
@@ -120,7 +121,7 @@ test('IndexedDB error handling', async () => {
   testAtom.set('another-value-2')
 
   // Wait for async operations to complete
-  await sleep(100)
+  await wrap(sleep(100))
 
   // Error handling is verified by the fact that the test doesn't crash
   // and the atom continues to work properly
@@ -156,7 +157,7 @@ test('IndexedDB rapid updates handling', async () => {
   // Test that subsequent reads are consistent
   expect(testAtom().count).toBe(3)
 
-  await sleep(0)
+  await wrap(sleep(0))
   channel.close()
 })
 
@@ -182,7 +183,7 @@ test('IndexedDB adapter initialization', async () => {
   expect(atom1()).toBe('value-in-db1')
   expect(atom2()).toBe('value-in-db2')
 
-  await sleep(0)
+  await wrap(sleep(0))
 
   channel1.close()
   channel2.close()

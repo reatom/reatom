@@ -49,7 +49,6 @@ export type BroadcastMessage =
  * involvement. Data is stored in memory and shared via message passing.
  *
  * @example
- *   ```typescript
  *   // Basic usage with automatic channel
  *   const counterAtom = atom(0, 'counterAtom').extend(
  *   withBroadcastChannel('shared-counter')
@@ -69,7 +68,6 @@ export type BroadcastMessage =
  *   const usersAtom = atom([], 'usersAtom').extend(
  *   reatomPersistBroadcastChannel(chatChannel)('users')
  *   )
- *   ```
  *
  *   **Features:**
  *   - Real-time cross-tab synchronization
@@ -95,7 +93,7 @@ export const reatomPersistBroadcastChannel = (
   const postMessage = (msg: BroadcastMessage) => channel.postMessage(msg)
 
   const memCacheAtom = atom(
-    new Map<string, PersistRecord>(),
+    () => new Map<string, PersistRecord>(),
     `withBroadcastChannel._memCacheAtom`,
   )
 
@@ -107,7 +105,6 @@ export const reatomPersistBroadcastChannel = (
     set(key, rec) {
       const memCache = memCacheAtom()
       memCache.set(key, rec)
-      memCacheAtom.set(new Map(memCache))
 
       try {
         postMessage({
@@ -123,7 +120,6 @@ export const reatomPersistBroadcastChannel = (
     clear(key) {
       const memCache = memCacheAtom()
       memCache.delete(key)
-      memCacheAtom.set(new Map(memCache))
 
       try {
         postMessage({
@@ -151,10 +147,8 @@ export const reatomPersistBroadcastChannel = (
             const { rec } = event.data
             if (rec === null) {
               memCache.delete(key)
-              memCacheAtom.set(new Map(memCache))
             } else if (rec.id !== memCache.get(key)?.id) {
               memCache.set(key, rec)
-              memCacheAtom.set(new Map(memCache))
               cb(rec)
             }
           }
@@ -197,7 +191,6 @@ try {
  * contexts).
  *
  * @example
- *   ```typescript
  *   // Simple cross-tab synchronization - changes in one tab appear in others
  *   const notificationCountAtom = atom(0, 'notificationCountAtom').extend(
  *   withBroadcastChannel('notification-count')
@@ -217,7 +210,6 @@ try {
  *   const settingsAtom = atom({}, 'settingsAtom').extend(
  *   withBroadcastChannel('app-settings')
  *   )
- *   ```
  *
  *   **Features:**
  *   - Instant cross-tab synchronization without page refresh
@@ -243,10 +235,9 @@ try {
  * @see {@link BroadcastMessage} for message format details
  */
 export const withBroadcastChannel: WithPersistWebStorage =
-  isBroadcastChannelAvailable
-    ? /*#__PURE__*/ reatomPersistBroadcastChannel(
-        new BroadcastChannel('reatom_withBroadcastChannel_default'),
-      )
-    : /*#__PURE__*/ reatomPersist(
-        createMemStorage({ name: 'withBroadcastChannel' }),
-      )
+  /* @__PURE__ */ (() =>
+    isBroadcastChannelAvailable
+      ? reatomPersistBroadcastChannel(
+          new BroadcastChannel('reatom_withBroadcastChannel_default'),
+        )
+      : reatomPersist(createMemStorage({ name: 'withBroadcastChannel' })))()

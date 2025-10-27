@@ -173,7 +173,7 @@ test('async storage operations', async () => {
   expect(testAtom()).toBe(42)
 
   // Wait for async operations to complete
-  await sleep(10)
+  await wrap(sleep(10))
 
   // Now storage should have the value
   const persistedRecord = await asyncStorage.get('async-key')

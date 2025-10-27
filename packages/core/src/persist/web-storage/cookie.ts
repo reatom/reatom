@@ -62,7 +62,7 @@ const reatomPersistCookie =
   (options: CookieAttributes = {}): WithPersistWebStorage => {
     const now = Date.now()
     const memCacheAtom = atom(
-      new Map<string, PersistRecord>(),
+      () => new Map<string, PersistRecord>(),
       `${name}._memCacheAtom`,
     )
 
@@ -98,7 +98,6 @@ const reatomPersistCookie =
           }
 
           memCache.set(key, rec)
-          memCacheAtom.set(new Map(memCache))
           return rec
         } catch {
           return null
@@ -118,7 +117,6 @@ const reatomPersistCookie =
 
         const memCache = memCacheAtom()
         memCache.set(key, rec)
-        memCacheAtom.set(new Map(memCache))
 
         try {
           const value = converter.write(JSON.stringify(rec))
@@ -131,7 +129,6 @@ const reatomPersistCookie =
       clear(key) {
         const memCache = memCacheAtom()
         memCache.delete(key)
-        memCacheAtom.set(new Map(memCache))
 
         try {
           document.cookie = `${key}=; max-age=-1`
@@ -199,8 +196,7 @@ try {
  * @see {@link reatomPersistCookie} for creating custom cookie adapters
  */
 export const withCookie: (options?: CookieAttributes) => WithPersistWebStorage =
-  isCookieAvailable
-    ? /*#__PURE__*/ reatomPersistCookie('withCookie', globalThis.document)
-    : () =>
-        /*#__PURE__*/
-        reatomPersist(createMemStorage({ name: 'withCookie' }))
+  /* @__PURE__ */ (() =>
+    isCookieAvailable
+      ? reatomPersistCookie('withCookie', globalThis.document)
+      : () => reatomPersist(createMemStorage({ name: 'withCookie' })))()
