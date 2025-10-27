@@ -54,7 +54,7 @@ catalog:
   solid-js: ^1.9.7
   spred: latest
   tsx: ^4.19.4
-  typescript: ^5.8.3
+  typescript: ^5.9.3
   typescript-eslint: ^8.32.1
   usignal: latest
   vite: ^5.0.0
