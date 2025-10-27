@@ -1,12 +1,36 @@
-import {
-  computed,
-  context,
-  type Frame,
-  type FunctionSource,
-  named,
-  ReatomError,
-  top,
-} from '../core'
+import { computed, context, type Frame, named, ReatomError, top } from '../core'
+
+/**
+ * Internal utility for keyed memoization within an atom's execution context.
+ * 
+ * Caches values by key within the current atom frame, creating the value on first
+ * access and returning the cached value on subsequent calls. This enables
+ * persistent memoization across multiple invocations of the same atom.
+ * 
+ * The cache is scoped per-atom and persists across all calls to that atom within
+ * the same context, making it suitable for creating internal computed atoms or
+ * other resources that should be created once and reused.
+ * 
+ * @template T The type of value being cached
+ * @param key Unique identifier for the cached value within the atom
+ * @param create Factory function to create the value if not already cached
+ * @returns The cached value, either newly created or retrieved from cache
+ */
+export let memoKey = <T>(key: string, create: () => T): T => {
+  let frame = top()
+  let framesMap = frame.root.memoKey
+  let frameMap = framesMap.get(frame.atom)
+  if (frameMap === undefined) {
+    framesMap.set(frame.atom, (frameMap = {}))
+  }
+  return key in frameMap ? (frameMap[key] as T) : (frameMap[key] = create())
+}
+
+/**
+ * Type representing the source of a function as a string. Used for caching and
+ * identification purposes.
+ */
+export type FunctionSource = string
 
 const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
 
@@ -96,20 +120,15 @@ export let memo = <State>(
     throw new ReatomError('memo can be used only inside atoms or actions')
   }
 
-  let touched = touchedMap.get(frame)
-  if (!touched) {
-    touchedMap.set(frame, (touched = {}))
-  }
-
-  const map = frame.root.selects
-  let atoms = map.get(frame.atom)
-
-  if (!atoms) {
-    map.set(frame.atom, (atoms = {}))
-  }
+  let keyed = key !== undefined
 
   if (!key) {
     key = cb.toString()
+
+    let touched = touchedMap.get(frame)
+    if (!touched) {
+      touchedMap.set(frame, (touched = {}))
+    }
 
     if (key in touched) {
       throw new ReatomError(
@@ -120,20 +139,21 @@ export let memo = <State>(
     touched[key] = true
   }
 
-  let memoAtom = atoms[key]
-  if (!memoAtom) {
+  let memoAtom = memoKey(key, () => {
     let isInit = true
-    atoms[key] = memoAtom = computed(
+    return computed<State>(
       (prevState) => {
         const newState = cb(prevState)
         const resultState =
-          isInit || !equal(newState, prevState) ? newState : prevState
+          isInit || !equal(newState, prevState as State) ? newState : prevState
         isInit = false
-        return resultState
+        return resultState as State
       },
-      named(`${frame.atom.name}._memo`),
+      keyed
+        ? `${frame.atom.name}._memo#${key}`
+        : named(`${frame.atom.name}._memo`),
     )
-  }
+  })
 
   return memoAtom()
 }

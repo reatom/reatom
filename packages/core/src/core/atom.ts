@@ -1,6 +1,6 @@
 import type { NamedAbortController } from '../methods'
 import type { AbortExt } from '../mixins'
-import { type Fn, isAbort, type Unsubscribe } from '../utils'
+import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
 import {
   _enqueue,
@@ -237,12 +237,6 @@ export interface Store extends WeakMap<AtomLike, Frame> {
 }
 
 /**
- * Type representing the source of a function as a string. Used for caching and
- * identification purposes.
- */
-export type FunctionSource = string
-
-/**
  * Reatom's execution context that manages reactive state.
  *
  * The context handles tracking relationships between atoms, scheduling
@@ -260,8 +254,8 @@ export interface RootState {
   /** Initialization flags for init hooks. */
   inits: WeakMap<WeakKey, any>
 
-  /** Cache for memoized selectors, keyed by source function. */
-  selects: WeakMap<AtomLike, Record<FunctionSource, AtomLike>>
+  /** Cache for in atom keyed memoization. */
+  memoKey: WeakMap<AtomLike, Rec>
 
   // Queues
 
@@ -983,7 +977,7 @@ context.start = (cb = top) => {
       // meta
       frames: new WeakMap(),
       inits: new WeakMap(),
-      selects: new WeakMap(),
+      memoKey: new WeakMap(),
 
       // queues
       hook: [],
