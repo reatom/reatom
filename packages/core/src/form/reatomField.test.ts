@@ -390,17 +390,17 @@ describe(`standard schema validation`, () => {
     })
 
     asyncField.validation.trigger()
-    notify();
+    notify()
     expect(asyncField.validation()).toMatchObject({
       error: undefined,
       validating: expect.any(Promise),
     })
 
-    await wrap(asyncField.validation().validating);
+    await wrap(asyncField.validation().validating)
     expect(asyncField.validation()).toMatchObject({
       error: undefined,
       validating: undefined,
-    });
+    })
 
     asyncField.change(91)
     notify()
@@ -409,20 +409,20 @@ describe(`standard schema validation`, () => {
       validating: expect.any(Promise),
     })
 
-    asyncField.validation.trigger.abort();
+    asyncField.validation.trigger.abort()
     notify()
 
     expect(asyncField.validation()).toMatchObject({
       error: undefined,
       validating: undefined,
-    });
+    })
 
     await wrap(sleep(1))
 
     expect(asyncField.validation()).toMatchObject({
       error: undefined,
       validating: undefined,
-    });
+    })
 
     asyncField.change(92)
     notify()
@@ -431,11 +431,11 @@ describe(`standard schema validation`, () => {
       validating: expect.any(Promise),
     })
 
-    await wrap(asyncField.validation().validating);
+    await wrap(asyncField.validation().validating)
     expect(asyncField.validation()).toMatchObject({
       error: 'min',
       validating: undefined,
-    }); 
+    })
   })
 })
 
@@ -491,7 +491,7 @@ describe(`reactivity of validate function`, () => {
     })
 
     pickupTimeField.change(8)
-    notify()
+    await wrap(sleep())
 
     await expect(
       pickupTimeField.validation().validating,
@@ -505,7 +505,7 @@ describe(`reactivity of validate function`, () => {
     })
 
     burgerField.change('Cheeseburger')
-    notify()
+    await wrap(sleep())
 
     await expect(
       pickupTimeField.validation().validating,
@@ -516,7 +516,7 @@ describe(`reactivity of validate function`, () => {
     burgerField.change('Krabby Patty')
     await wrap(sleep())
     pickupTimeField.change(3)
-    notify()
+    await wrap(sleep())
 
     await expect(
       pickupTimeField.validation().validating,

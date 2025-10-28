@@ -400,11 +400,6 @@ export function reatomField<State, Value = State>(
           : fieldInitValidationLess,
       ),
       withComputed((state): FieldValidation => {
-        if (state === undefined)
-          throw new Error(
-            'artlar TODO: undefined as a state for atom with default value',
-          )
-
         if (!fieldOptions.value().shouldValidate) return fieldInitValidationLess
 
         if (disabled()) return fieldInitValidation
