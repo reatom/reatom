@@ -197,6 +197,7 @@ const usernameField = reatomField({
     })
   }
 })
+```
 
 ### Error sources
 Any validation error in forms has a property `source`, which indicates what caused the validation error. By default, any errors that occurred during field validation through the `validate` option will receive the value `validation` as the `source`. Also, errors can appear in the field whose `source` value will be `schema`, in case the error occurred during validation by the schema from the [form](/handbook/forms/concepts/form/) that contains this field. Otherwise, nothing prevents you from using any other values as `source` if necessary
