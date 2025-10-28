@@ -1,4 +1,4 @@
-import type { Action, AtomLike } from '../core'
+import type { ActionState, AtomLike } from '../core'
 import { isAction, isAtom } from '../core'
 import type {
   LinkedList,
@@ -24,14 +24,15 @@ type Builtin = Date | RegExp | Function
  * @returns Unwrapped version of the type with atoms replaced by their state
  *   types
  */
-export type Deatomize<T> = T extends Action
-  ? T
-  : T extends LinkedListLikeAtom<infer T>
+export type Deatomize<T> =
+  T extends LinkedListLikeAtom<infer T>
     ? T extends LinkedList<LLNode<infer T>>
       ? Array<Deatomize<T>>
       : never
-    : T extends AtomLike<infer T, any, any>
-      ? Deatomize<T>
+    : T extends AtomLike<infer T, infer Params, infer Payload>
+      ? T extends AtomLike<ActionState<Params, Payload>, Params, Payload>
+        ? T
+        : Deatomize<T>
       : T extends Map<infer K, infer T>
         ? Map<K, Deatomize<T>>
         : T extends Set<infer T>
