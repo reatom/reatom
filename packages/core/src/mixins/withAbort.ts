@@ -76,10 +76,9 @@ export let withAbort = (
     }
 
     if (target.__reatom.reactive) {
-      target.__reatom.middlewares.unshift(function (next) {
+      target.__reatom.middlewares.unshift((next, ...args) => {
         recomputed.add(top())
-        // @ts-expect-error
-        return next.apply(next, arguments)
+        return next(...args)
       })
     }
 
