@@ -107,8 +107,8 @@ export class AbortVariable extends Variable<
 
       parentController?.signal.addEventListener(
         'abort',
-        (target) => {
-          listener(target.currentTarget as AbortSignal)
+        (event) => {
+          listener(event.target as AbortSignal)
         },
         un,
       )
