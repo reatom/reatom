@@ -2,7 +2,7 @@ import type { Frame } from '../core'
 import { STACK, top } from '../core'
 import type { Fn } from '../utils'
 import { isAbort, noop } from '../utils'
-import { abortVar } from './abortVar'
+import { type AbortSubscription, abortVar } from './abortVar'
 
 /**
  * Preserves Reatom's reactive context across async boundaries or function
@@ -69,33 +69,34 @@ export let wrap: {
 
   if (!(target instanceof Promise)) target = Promise.resolve(target) as T
 
-  let aborted = false
-  let promise = new Promise(async (resolve, reject) => {
-    let abortSubscription = abortVar.subscribe((error) => {
-      aborted = true
-      promise?.catch(noop)
-      reject(error)
-    })
-    let seal: Fn
-    try {
-      let value = await target
+  let abortSubscription: undefined | AbortSubscription
+  let promise: undefined | Promise<Awaited<T>>
 
-      seal = () => resolve(value)
-    } catch (error) {
-      // prevent unhandled error for abort
-      if (isAbort(error)) promise.catch(noop)
-      seal = () => reject(error)
+  let seal = (cb: Fn) => {
+    // prevent unhandled error for abort
+    if (abortSubscription) {
+      if (abortSubscription.controller.signal.aborted) promise?.catch(noop)
+      abortSubscription?.unsubscribe()
     }
 
     queueMicrotask(() => void STACK.push(frame))
-
-    abortSubscription.unsubscribe()
-    seal()
-
+    cb()
     queueMicrotask(() => void STACK.pop())
-  })
+  }
 
-  if (aborted) promise.catch(noop)
+  promise = new Promise(async (resolve, reject) => {
+    try {
+      abortSubscription = abortVar.subscribe((error) => {
+        seal(() => reject(error))
+      })
+
+      let value = await target
+
+      seal(() => resolve(value))
+    } catch (error) {
+      seal(() => reject(error))
+    }
+  })
 
   return promise as any
 }

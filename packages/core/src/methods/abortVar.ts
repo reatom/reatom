@@ -1,4 +1,4 @@
-import { top } from '../core'
+import { bind, top } from '../core'
 import type { AbortError, Unsubscribe } from '../utils'
 import { isAbort, throwIfAborted, toAbortError } from '../utils'
 import { Variable } from './variable'
@@ -86,25 +86,32 @@ export class AbortVariable extends Variable<
    * @returns {Function} Unsubscribe - Function to unsubscribe from abort events
    */
   subscribe(cb?: (error: AbortError) => void): AbortSubscription {
-    let controller = top()['var#abort'] ?? this.set()
+    let frame = top()
+    let controller = frame['var#abort'] ?? this.set()
 
     let un = new AbortController()
 
     let unsubscribe = () => un.abort()
 
-    function listener(this: AbortSignal) {
+    let listener = bind(function listener(signal: AbortSignal) {
       unsubscribe()
-      controller.abort(this.reason)
-      cb?.(controller.signal.reason)
-    }
+      controller.abort(signal.reason)
+      cb?.(signal.reason)
+    }, frame)
 
     this.find((parentController) => {
       if (parentController?.signal.aborted) {
-        listener.call(parentController.signal)
+        listener(parentController.signal)
         throw controller.signal.reason
       }
 
-      parentController?.signal.addEventListener('abort', listener, un)
+      parentController?.signal.addEventListener(
+        'abort',
+        (target) => {
+          listener(target.currentTarget as AbortSignal)
+        },
+        un,
+      )
       // do not return anything to traverse the whole tree
     })
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'test'
 
 import { action } from '../core'
-import { noop } from '../utils'
+import { noop, sleep } from '../utils'
 import { framePromise } from './framePromise'
 import { wrap } from './wrap'
 
@@ -18,7 +18,12 @@ test('framePromise resolve handling', async () => {
 
   const value = Math.random()
 
-  await wrap(identityPromise(value))
+  expect(await wrap(identityPromise(value))).toBe(value)
+
+  expect(resolvedValue).toBe(value)
+
+  // there was `missing async stack` before, do not delete to handle this
+  await wrap(sleep())
 
   expect(resolvedValue).toBe(value)
 })
