@@ -35,7 +35,10 @@ import {
   isFieldAtom,
   reatomField,
 } from './reatomField'
-import type { FieldSet, FieldSetValidation } from './reatomFieldSet'
+import type {
+  FieldSetValidation,
+  ValidationlessFieldSet,
+} from './reatomFieldSet'
 import { reatomFieldSet } from './reatomFieldSet'
 
 export interface FormFieldOptions<State = any, Value = State>
@@ -125,7 +128,7 @@ export interface Form<
   T extends FormInitState = FormInitState,
   SchemaState = any,
   SubmitReturn = void,
-> extends Omit<FieldSet<T>, 'validation'> {
+> extends ValidationlessFieldSet<T> {
   /**
    * Atom with validation state of the form, computed from all the fields in
    * `fieldsList`

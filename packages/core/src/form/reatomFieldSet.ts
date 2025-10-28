@@ -37,7 +37,7 @@ export interface FieldSetValidation {
   validating: undefined | Promise<{ errors: FieldSetFieldError[] }>
 }
 
-export interface FieldSet<T extends FormInitState>
+export interface ValidationlessFieldSet<T extends FormInitState>
   extends Computed<FormState<T>> {
   /** Fields from the init state */
   fields: FormFields<T>
@@ -63,6 +63,18 @@ export interface FieldSet<T extends FormInitState>
   focus: Computed<FieldFocus>
 
   /**
+   * Action to set initial values for each field or field array in the
+   * fieldset
+   */
+  init: Action<[initState: FormPartialState<T>], void>
+
+  /** Action to reset the state, the value, the validation, and the focus states. */
+  reset: Action<[initState?: FormPartialState<T>], void>
+}
+
+export interface FieldSet<T extends FormInitState>
+  extends ValidationlessFieldSet<T> {
+  /**
    * Atom with validation state of the fieldset, computed from all the fields in
    * `fieldsList`
    */
@@ -70,12 +82,6 @@ export interface FieldSet<T extends FormInitState>
     /** Action to trigger fieldset validation. */
     trigger: Action<[], FieldSetValidation> & AbortExt
   }
-
-  /** Action to set initial values for each field or field array in the fieldset */
-  init: Action<[initState: FormPartialState<T>], void>
-
-  /** Action to reset the state, the value, the validation, and the focus states. */
-  reset: Action<[initState?: FormPartialState<T>], void>
 }
 
 export const reatomFieldSet = <T extends FormInitState>(
