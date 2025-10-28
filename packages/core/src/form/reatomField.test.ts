@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from 'vitest'
+import z from 'zod'
 
 import { addCallHook, atom, notify, reatomEnum, sleep, wrap } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
@@ -278,6 +279,164 @@ test(`reset with initState`, async () => {
   field.reset(1000)
   expect(field()).toEqual(1000)
   expect(field() === field.initState()).toBe(true)
+})
+
+describe(`standard schema validation`, () => {
+  test('static', async () => {
+    const field = reatomField(123, {
+      name: 'field',
+      validate: z.number().min(100, 'min'),
+    })
+
+    field.validation.trigger()
+    notify()
+    expect(field.validation().error).toBeUndefined()
+
+    field.change(50)
+    field.validation.trigger()
+    notify()
+    expect(field.validation().error).toBe('min')
+
+    const asyncField = reatomField(123, {
+      name: 'asyncField',
+      validate: z.number().refine(async (value) => {
+        await wrap(sleep(1))
+        return value >= 100
+      }, 'min'),
+    })
+
+    asyncField.validation.trigger()
+    notify()
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: expect.any(Promise),
+    })
+
+    await wrap(asyncField.validation().validating)
+
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: undefined,
+    })
+
+    asyncField.reset(150)
+    asyncField.validation.trigger()
+
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: expect.any(Promise),
+    })
+
+    asyncField.reset(90)
+    asyncField.validation.trigger.abort()
+    notify()
+
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: undefined,
+    })
+
+    await wrap(sleep(1))
+
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: undefined,
+    })
+
+    asyncField.reset(90)
+    asyncField.validation.trigger()
+    notify()
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: expect.any(Promise),
+    })
+
+    await wrap(asyncField.validation().validating)
+
+    expect(asyncField.validation()).toMatchObject({
+      error: 'min',
+      validating: undefined,
+    })
+  })
+
+  test('dynamic', async () => {
+    const field = reatomField(90, {
+      name: 'field',
+      validateOnChange: true,
+      validate: ({ focus }) => {
+        if (focus.dirty) return z.number().min(100, 'min')
+      },
+    })
+
+    field.change(90)
+    notify()
+    expect(field.validation().error).toBeUndefined()
+
+    field.change(91)
+    notify()
+    expect(field.validation().error).toBe('min')
+
+    const asyncField = reatomField(90, {
+      name: 'asyncField',
+      validateOnChange: true,
+      validate: async ({ focus }) => {
+        await wrap(sleep(1))
+        if (focus.dirty)
+          return z.number().refine(async (value) => {
+            await wrap(sleep(1))
+            return value >= 100
+          }, 'min')
+      },
+    })
+
+    asyncField.validation.trigger()
+    notify();
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: expect.any(Promise),
+    })
+
+    await wrap(asyncField.validation().validating);
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: undefined,
+    });
+
+    asyncField.change(91)
+    notify()
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: expect.any(Promise),
+    })
+
+    asyncField.validation.trigger.abort();
+    notify()
+
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: undefined,
+    });
+
+    await wrap(sleep(1))
+
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: undefined,
+    });
+
+    asyncField.change(92)
+    notify()
+    expect(asyncField.validation()).toMatchObject({
+      error: undefined,
+      validating: expect.any(Promise),
+    })
+
+    await wrap(asyncField.validation().validating);
+    expect(asyncField.validation()).toMatchObject({
+      error: 'min',
+      validating: undefined,
+    }); 
+  })
 })
 
 describe(`reactivity of validate function`, () => {

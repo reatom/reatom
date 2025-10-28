@@ -169,13 +169,14 @@ export type FieldValidateOption<State = any, Value = State> = (meta: {
   value: Value
   focus: FieldFocus
   validation: FieldValidation
-}) => FieldValidateOptionResult | Promise<FieldValidateOptionResult>
+}) => FieldValidateOptionResult<State> | Promise<FieldValidateOptionResult<State>>
 
-export type FieldValidateOptionResult =
+export type FieldValidateOptionResult<State = any> =
   | string
   | string[]
   | FieldErrorBody
   | FieldErrorBody[]
+  | StandardSchemaV1<State>
   | void
   | undefined
 
@@ -437,17 +438,37 @@ export function reatomField<State, Value = State>(
         }) => {
           let promise
 
+          const transformStandardSchemaResult = (
+            result: StandardSchemaV1.Result<State> | undefined,
+          ) => {
+            if (!result?.issues?.length) return []
+
+            return result.issues.map((issue) => ({
+              source: 'validation',
+              message: issue.message,
+              meta: undefined,
+            }))
+          }
+
           try {
             if (typeof validateFn == 'function') {
-              const transformResult = (result: FieldValidateOptionResult) => {
+              const transformResult = (result: FieldValidateOptionResult<State>) => {
                 if (!result) return []
+
+                if(typeof result === 'object' && '~standard' in result) {
+                  let validatonResult = result['~standard'].validate(state)
+                  return validatonResult instanceof Promise
+                    ? validatonResult.then(transformStandardSchemaResult)
+                    : transformStandardSchemaResult(validatonResult)
+                }
 
                 const toFieldError = (
                   error: string | FieldErrorBody,
-                ): FieldError =>
-                  typeof error == 'string'
+                ): FieldError => {
+                  return typeof error == 'string'
                     ? { source: 'validation', message: error }
                     : Object.assign({ source: 'validation' }, error)
+                }
 
                 return Array.isArray(result)
                   ? result.map(toFieldError)
@@ -467,22 +488,11 @@ export function reatomField<State, Value = State>(
                   : transformResult(task)
             } else {
               const task = validateFn?.['~standard'].validate(state)
-              const transformResult = (
-                result: StandardSchemaV1.Result<State> | undefined,
-              ) => {
-                if (!result?.issues?.length) return []
-
-                return result.issues.map((issue) => ({
-                  source: 'validation',
-                  message: issue.message,
-                  meta: undefined,
-                }))
-              }
 
               promise =
                 task instanceof Promise
-                  ? task.then(transformResult)
-                  : transformResult(task)
+                  ? task.then(transformStandardSchemaResult)
+                  : transformStandardSchemaResult(task)
             }
           } catch (error) {
             promise = [{ source: 'validation', message: toError(error) }]
