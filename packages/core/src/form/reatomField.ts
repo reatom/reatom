@@ -169,7 +169,9 @@ export type FieldValidateOption<State = any, Value = State> = (meta: {
   value: Value
   focus: FieldFocus
   validation: FieldValidation
-}) => FieldValidateOptionResult<State> | Promise<FieldValidateOptionResult<State>>
+}) =>
+  | FieldValidateOptionResult<State>
+  | Promise<FieldValidateOptionResult<State>>
 
 export type FieldValidateOptionResult<State = any> =
   | string
@@ -447,10 +449,12 @@ export function reatomField<State, Value = State>(
 
           try {
             if (typeof validateFn == 'function') {
-              const transformResult = (result: FieldValidateOptionResult<State>) => {
+              const transformResult = (
+                result: FieldValidateOptionResult<State>,
+              ) => {
                 if (!result) return []
 
-                if(typeof result === 'object' && '~standard' in result) {
+                if (typeof result === 'object' && '~standard' in result) {
                   let validatonResult = result['~standard'].validate(state)
                   return validatonResult instanceof Promise
                     ? validatonResult.then(transformStandardSchemaResult)

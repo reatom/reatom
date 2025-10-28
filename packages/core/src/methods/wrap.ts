@@ -1,7 +1,7 @@
 import type { Frame } from '../core'
 import { STACK, top } from '../core'
 import type { Fn } from '../utils'
-import { isAbort, noop } from '../utils'
+import { noop } from '../utils'
 import { type AbortSubscription, abortVar } from './abortVar'
 
 /**
