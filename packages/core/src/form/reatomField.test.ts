@@ -4,7 +4,11 @@ import { addCallHook, atom, notify, reatomEnum, sleep, wrap } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
 
 test(`validateOnChange`, async () => {
-  const field = reatomField('', { name: 'fieldAtom', validateOnChange: true })
+  const name = 'validateOnChange'
+  const field = reatomField('', {
+    name: `${name}.field`,
+    validateOnChange: true,
+  })
   const changeFn = vi.fn()
   addCallHook(field.validation.trigger, changeFn)
 

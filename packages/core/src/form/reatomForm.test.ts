@@ -11,11 +11,13 @@ import {
 } from '.'
 
 test(`adding and removing fields`, async () => {
+  const name = 'addingAndRemovingFields'
+
   const form = reatomForm({
-    field: reatomField('initial', 'fieldAtom'),
+    field: reatomField('initial', `${name}.field`),
     list: experimental_fieldArray({
       initState: ['initial'],
-      create: (param) => reatomField(param, 'fieldAtom'),
+      create: (param) => reatomField(param, `${name}.field`),
     }),
   })
 
