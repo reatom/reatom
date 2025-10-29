@@ -316,6 +316,28 @@ const App = reatomComponent(() => {
 })
 ```
 
+#### Recursive type errors
+
+If you see "'child' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.ts(7023)" you just need to type the child function implicitly:
+
+```tsx /: RouteChild/
+const layoutRoute = reatomRoute({
+  async loader() {
+    /* ... */
+  },
+  child(children): RouteChild {
+    if (!layoutRoute.loader.ready()) return <Loader />
+    return (
+      <div>
+        <header>My App</header>
+        <main>${children()}</main>
+        <footer>© 2025</footer>
+      </div>
+    )
+  },
+})
+```
+
 ## Path Parameters
 
 You can define, validate and transform parameters using Zod schemas or other [Standard Schema](https://standardschema.dev/) compatible validation:
