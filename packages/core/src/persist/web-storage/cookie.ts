@@ -140,12 +140,13 @@ const reatomPersistCookie =
     })
   }
 
-let isCookieAvailable: boolean
-try {
-  isCookieAvailable = 'cookie' in globalThis.document
-} catch {
-  isCookieAvailable = false
-}
+let isCookieAvailable = /* @__PURE__ */ (() => {
+  try {
+    return 'cookie' in globalThis.document
+  } catch {
+    return false
+  }
+})()
 
 /**
  * Default cookie persistence adapter that automatically uses browser cookies or

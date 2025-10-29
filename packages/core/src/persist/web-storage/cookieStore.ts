@@ -137,12 +137,13 @@ const reatomPersistCookieStore =
     })
   }
 
-let isCookieStoreAvailable: boolean
-try {
-  isCookieStoreAvailable = 'cookieStore' in globalThis
-} catch {
-  isCookieStoreAvailable = false
-}
+let isCookieStoreAvailable = /* @__PURE__ */ (() => {
+  try {
+    return 'cookieStore' in globalThis
+  } catch {
+    return false
+  }
+})()
 
 /**
  * Modern Cookie Store API persistence adapter with automatic fallback to memory

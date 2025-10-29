@@ -229,12 +229,13 @@ export const reatomPersistIndexedDb = (
 }
 
 // Note: idb-keyval availability is checked dynamically at runtime
-let isIndexedDbAvailable: boolean
-try {
-  isIndexedDbAvailable = !!globalThis.indexedDB && !!globalThis.BroadcastChannel
-} catch {
-  isIndexedDbAvailable = false
-}
+let isIndexedDbAvailable = /* @__PURE__ */ (() => {
+  try {
+    return !!globalThis.indexedDB && !!globalThis.BroadcastChannel
+  } catch {
+    return false
+  }
+})()
 
 /**
  * Default IndexedDB persistence adapter with automatic fallback to memory

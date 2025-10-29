@@ -145,12 +145,13 @@ export const reatomPersistWebStorage = (
   })
 }
 
-let isWebStorageAvailable: boolean
-try {
-  isWebStorageAvailable = !!globalThis.localStorage
-} catch {
-  isWebStorageAvailable = false
-}
+let isWebStorageAvailable = /* @__PURE__ */ (() => {
+  try {
+    return !!globalThis.localStorage
+  } catch {
+    return false
+  }
+})()
 
 /**
  * Default localStorage persistence adapter with automatic fallback to memory

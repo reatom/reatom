@@ -174,12 +174,13 @@ export const reatomPersistBroadcastChannel = (
   })
 }
 
-let isBroadcastChannelAvailable
-try {
-  isBroadcastChannelAvailable = !!globalThis.BroadcastChannel
-} catch {
-  isBroadcastChannelAvailable = false
-}
+let isBroadcastChannelAvailable = /* @__PURE__ */ (() => {
+  try {
+    return !!globalThis.BroadcastChannel
+  } catch {
+    return false
+  }
+})()
 
 /**
  * Default BroadcastChannel persistence adapter with automatic fallback to
