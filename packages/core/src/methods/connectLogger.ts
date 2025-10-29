@@ -1,4 +1,4 @@
-import type { ActionState, AtomLike, Frame } from './core'
+import type { ActionState, AtomLike, Frame } from '../core'
 import {
   _enqueue,
   action,
@@ -7,9 +7,9 @@ import {
   isConnected,
   top,
   withMiddleware,
-} from './core'
-import type { Fn } from './utils'
-import { isBrowser } from './utils'
+} from '../core'
+import type { Fn } from '../utils'
+import { isBrowser } from '../utils'
 
 export let log = /* @__PURE__ */ (() =>
   action<[name: string, payload: any]>((_name, payload) => payload))()
@@ -277,3 +277,4 @@ export let connectLogger = () => {
 
   log.extend(logExt)
 }
+

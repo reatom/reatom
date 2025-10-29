@@ -1,7 +1,16 @@
 {
   "$schema": "https://typedoc-plugin-markdown.org/schema.json",
   "entryPoints": [
-    "packages/core",
+    "packages/core/src/async",
+    "packages/core/src/core",
+    "packages/core/src/form",
+    "packages/core/src/methods",
+    "packages/core/src/extensions",
+    "packages/core/src/persist",
+    "packages/core/src/primitives",
+    "packages/core/src/routing",
+    "packages/core/src/web",
+    "packages/core/src",
     "packages/lit",
     "packages/preact",
     "packages/react",
@@ -20,5 +29,7 @@
   "mergeReadme": false,
   "excludeScopesInPaths": true,
   "excludePrivate": true,
-  "excludeProtected": true
+  "excludeProtected": true,
+  "excludeNotDocumented": true,
+  "tsconfig": "tsconfig.json"
 }

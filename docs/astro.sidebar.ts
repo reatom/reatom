@@ -77,38 +77,44 @@ export const sidebar = [
         collapsed: false,
         items: [
           {
-            label: 'Overview',
+            label: 'Core API',
             link: '/reference/core',
           },
           {
-            label: 'Classes',
-            link: '/reference/core/classes',
+            label: 'Async',
+            link: '/reference/async',
           },
           {
-            label: 'Functions',
-            link: '/reference/core/functions',
+            label: 'Forms',
+            link: '/reference/form',
           },
           {
-            label: 'Variables',
-            link: '/reference/core/variables',
+            label: 'Routing',
+            link: '/reference/routing',
           },
           {
-            label: 'Type Aliases',
-            link: '/reference/core/type-aliases',
+            label: 'Persistence',
+            link: '/reference/persist',
           },
           {
-            label: 'Interfaces',
-            collapsed: true,
-            items: [
-              { label: 'A-C', link: '/reference/core/interfaces/interfaces-a-c' },
-              { label: 'D-F', link: '/reference/core/interfaces/interfaces-d-f' },
-              { label: 'G-I', link: '/reference/core/interfaces/interfaces-g-i' },
-              { label: 'J-L', link: '/reference/core/interfaces/interfaces-j-l' },
-              { label: 'M-O', link: '/reference/core/interfaces/interfaces-m-o' },
-              { label: 'P-R', link: '/reference/core/interfaces/interfaces-p-r' },
-              { label: 'S-T', link: '/reference/core/interfaces/interfaces-s-t' },
-              { label: 'U-Z', link: '/reference/core/interfaces/interfaces-u-z' },
-            ],
+            label: 'Primitives',
+            link: '/reference/primitives',
+          },
+          {
+            label: 'Methods',
+            link: '/reference/methods',
+          },
+          {
+            label: 'Extensions',
+            link: '/reference/extensions',
+          },
+          {
+            label: 'Web Utilities',
+            link: '/reference/web',
+          },
+          {
+            label: 'Utils',
+            link: '/reference/utils',
           },
         ],
       },

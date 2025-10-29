@@ -1,4 +1,5 @@
 export * from './abortVar'
+export * from './connectLogger'
 export * from './deatomize'
 export * from './effect'
 export * from './framePromise'

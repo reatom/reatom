@@ -1,5 +1,4 @@
 export * from './async'
-export * from './connectLogger'
 export * from './core'
 export * from './extensions'
 export * from './form'
