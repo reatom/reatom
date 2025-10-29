@@ -19,9 +19,9 @@ import {
 } from '../extensions'
 import { ifChanged, peek } from '../methods'
 import { _getPrevFrame } from '../methods/context'
+import type { RouteAtom } from '../routing'
 import type { Rec } from '../utils'
 import { onEvent } from './onEvent'
-import type { RouteAtom } from './route'
 
 /** URL atom interface that extends the base Atom type. */
 export interface UrlAtom extends Atom<URL> {

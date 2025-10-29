@@ -406,6 +406,7 @@ const createRouteFactory = (
       }, `${name}._children`)
 
       const child = computed(() => {
+        // FIXME memo route patch, do not subscribe to params changes
         return childFn && routeAtom() ? childFn(children) : null
       }, `${name}._child`)
 
