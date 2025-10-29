@@ -2,7 +2,7 @@ import { expect, test } from 'test'
 
 import { withAsync } from '../async'
 import { action, atom } from '../core'
-import { withChangeHook } from '../mixins'
+import { withChangeHook } from '../extensions'
 import { sleep } from '../utils'
 import { wrap } from '.'
 import { withRollback } from './transaction'

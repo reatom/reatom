@@ -1,8 +1,8 @@
 import { expect, subscribe, test, vi } from 'test'
 
 import { atom, computed, isAtom, isConnected, notify } from '../core'
+import { withChangeHook } from '../extensions'
 import { deatomize, isCausedBy } from '../methods'
-import { withChangeHook } from '../mixins'
 import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
 
 test('should respect initState, create and remove elements properly', () => {

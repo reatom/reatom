@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'test'
 
 import { action, atom } from '../core'
-import { withComputed } from '../mixins'
+import { withComputed } from '../extensions'
 import { noop, random } from '../utils'
 import { createMemStorage, reatomPersist } from './'
 

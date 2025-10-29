@@ -1,6 +1,6 @@
 import type { AtomLike } from '../core'
 import { action, bind, computed, isAtom, top } from '../core'
-import { withDynamicSubscription } from '../mixins/withDynamicSubscription'
+import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import type { Fn, Unsubscribe } from '../utils'
 import { isAbort, noop } from '../utils'
 import { getCalls } from './ifChanged'

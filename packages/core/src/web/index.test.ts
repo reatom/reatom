@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'test'
 
 import { atom } from '../core'
+import { withConnectHook } from '../extensions'
 import { wrap } from '../methods'
-import { withConnectHook } from '../mixins'
 import { sleep } from '../utils'
 import { onEvent } from './'
 

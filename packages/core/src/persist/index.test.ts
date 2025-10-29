@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'test'
 
 import { atom, notify } from '../core'
+import { withComputed } from '../extensions'
 import { wrap } from '../methods'
-import { withComputed } from '../mixins'
 import { sleep } from '../utils'
 import { createMemStorage, reatomPersist } from './'
 

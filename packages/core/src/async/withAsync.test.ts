@@ -1,8 +1,8 @@
 import { expect, test, vi } from 'test'
 
 import { _read, action, atom, computed } from '../core'
+import { withCallHook } from '../extensions'
 import { retryComputed, wrap } from '../methods'
-import { withCallHook } from '../mixins'
 import { noop, sleep } from '../utils'
 import { withAsync } from './withAsync'
 

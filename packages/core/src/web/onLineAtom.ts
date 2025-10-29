@@ -1,6 +1,6 @@
 import type { Atom } from '../core'
 import { atom, withMiddleware } from '../core'
-import { withConnectHook } from '../mixins'
+import { withConnectHook } from '../extensions'
 import { onEvent } from './onEvent'
 
 type OnlineAtom = Atom<boolean> & {

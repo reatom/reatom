@@ -1,5 +1,5 @@
+import type { AbortExt } from '../extensions'
 import type { NamedAbortController } from '../methods'
-import type { AbortExt } from '../mixins'
 import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
 import {

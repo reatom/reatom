@@ -1,7 +1,7 @@
 import { expect, test } from 'test'
 
 import { action, atom, computed } from '../core'
-import { withDynamicSubscription } from '../mixins/withDynamicSubscription'
+import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import { sleep } from '../utils'
 import { abortVar } from './abortVar'
 import { effect } from './effect'

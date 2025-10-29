@@ -1,5 +1,5 @@
 import { computed, withMiddleware } from '../core'
-import { withConnectHook } from '../mixins'
+import { withConnectHook } from '../extensions'
 import { onEvent } from './onEvent'
 
 /**

@@ -1,6 +1,6 @@
 import { expect, subscribe, test, vi } from 'test'
 
-import { withComputed } from '../mixins'
+import { withComputed } from '../extensions'
 import {
   _read,
   type Atom,

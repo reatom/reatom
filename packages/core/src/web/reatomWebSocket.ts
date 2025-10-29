@@ -1,7 +1,7 @@
 import type { Action, Atom } from '../core'
 import { action, atom, computed, named } from '../core'
+import { withConnectHook } from '../extensions'
 import { abortVar, wrap } from '../methods'
-import { withConnectHook } from '../mixins'
 import type { Unsubscribe } from '../utils'
 import { onEvent } from './onEvent'
 

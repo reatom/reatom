@@ -2,8 +2,8 @@ import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
 import type { Atom } from '../core'
 import { action, atom, computed } from '../core'
+import { withCallHook, withConnectHook } from '../extensions'
 import { effect, retryComputed, wrap } from '../methods'
-import { withCallHook, withConnectHook } from '../mixins'
 import { noop, sleep } from '../utils'
 import { withAsyncData } from './withAsyncData'
 

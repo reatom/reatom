@@ -2,7 +2,7 @@ import { expect, test, vi } from 'test'
 
 import { withAsyncData } from '../async'
 import { action, type Atom, atom, computed, notify } from '../core'
-import { withAbort } from '../mixins'
+import { withAbort } from '../extensions'
 import { identity, noop, sleep, throwAbort } from '../utils'
 import { take } from './take'
 import { wrap } from './wrap'

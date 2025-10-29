@@ -1,7 +1,7 @@
 import type { AsyncExt } from '../async'
 import type { Action, ActionState, Atom, GenericExt } from '../core'
 import { action, bind, isAction, top } from '../core'
-import { withCallHook } from '../mixins'
+import { withCallHook } from '../extensions'
 import type { Fn } from '../utils'
 import { isAbort } from '../utils'
 import { isCausedBy } from './isCausedBy'

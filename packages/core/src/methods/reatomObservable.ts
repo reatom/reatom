@@ -1,6 +1,6 @@
 import type { Atom, AtomState, Ext } from '../core'
 import { atom, named } from '../core'
-import { withConnectHook, withInit } from '../mixins'
+import { withConnectHook, withInit } from '../extensions'
 import { identity, type MaybeUnsubscribe } from '../utils'
 
 /**

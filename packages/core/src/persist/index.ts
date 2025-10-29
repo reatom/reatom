@@ -1,8 +1,8 @@
 import type { Atom, AtomState, Ext } from '../core'
 import { _enqueue, atom, top, withMiddleware } from '../core'
+import { withConnectHook } from '../extensions/withConnectHook'
+import { isInit } from '../extensions/withInit'
 import { wrap } from '../methods'
-import { withConnectHook } from '../mixins/withConnectHook'
-import { isInit } from '../mixins/withInit'
 import {
   type Fn,
   MAX_SAFE_TIMEOUT,

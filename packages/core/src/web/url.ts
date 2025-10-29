@@ -10,10 +10,15 @@ import {
   withMiddleware,
   withParams,
 } from '../core'
+import type { AbortExt } from '../extensions'
+import {
+  withAbort,
+  withChangeHook,
+  withComputed,
+  withInit,
+} from '../extensions'
 import { ifChanged, peek } from '../methods'
 import { _getPrevFrame } from '../methods/context'
-import type { AbortExt } from '../mixins'
-import { withAbort, withChangeHook, withComputed, withInit } from '../mixins'
 import type { Rec } from '../utils'
 import { onEvent } from './onEvent'
 import type { RouteAtom } from './route'

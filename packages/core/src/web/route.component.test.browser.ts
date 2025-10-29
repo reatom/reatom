@@ -1,8 +1,8 @@
 import { beforeEach, expect, test } from 'test'
 
 import { computed, context } from '../core'
+import { withAbort } from '../extensions'
 import { abortVar, effect, wrap } from '../methods'
-import { withAbort } from '../mixins'
 import { sleep } from '../utils'
 import { reatomRoute, type RouteChild } from './route'
 import { urlAtom } from './url'
