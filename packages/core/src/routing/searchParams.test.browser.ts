@@ -3,12 +3,12 @@ import { expect, test, vi } from 'test'
 import { atom } from '../core/atom'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
-import { searchParamsAtom, urlAtom, withSearchParams } from './url'
+import { urlAtom } from '../web/url'
+import { searchParamsAtom, withSearchParams } from './searchParams'
 
 test('syncFromSource', async () => {
   const syncMock = urlAtom.sync.set(() => vi.fn())
 
-  // check playwright meta
   expect(Object.keys(searchParamsAtom())).toEqual(['sessionId', 'iframeId'])
 
   expect(syncMock).toHaveBeenCalledTimes(0)
@@ -192,3 +192,4 @@ test('inactive subpath should not affect mutated atoms', async () => {
   expect(urlAtom().pathname).toBe('/other')
   expect(urlAtom().search).toBe('?test=3')
 })
+

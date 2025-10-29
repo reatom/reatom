@@ -4,8 +4,8 @@ import { computed, context } from '../core'
 import { withAbort } from '../extensions'
 import { abortVar, effect, wrap } from '../methods'
 import { sleep } from '../utils'
+import { urlAtom } from '../web/url'
 import { reatomRoute, type RouteChild } from './route'
-import { urlAtom } from './url'
 
 beforeEach(() => {
   urlAtom.routes = {}

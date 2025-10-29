@@ -5,8 +5,8 @@ import { computed } from '../core'
 import { withChangeHook } from '../extensions'
 import { effect, wrap } from '../methods'
 import { sleep } from '../utils'
+import { urlAtom } from '../web/url'
 import { reatomRoute } from './route'
-import { urlAtom } from './url'
 
 beforeEach(() => {
   urlAtom.routes = {}

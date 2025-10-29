@@ -12,7 +12,7 @@ import {
 } from '../'
 import type { Action, Computed } from '../core'
 import { action, computed, ReatomError } from '../core'
-import { urlAtom } from './url'
+import { urlAtom } from '../web/url'
 
 type MaybeVoid<T> = {} extends T ? T | void : T
 
