@@ -5,7 +5,9 @@ import { isObject } from '../utils'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
+/** @private */
 export const LL_PREV = /* @__PURE__ */ Symbol('Reatom linked list prev')
+/** @private */
 export const LL_NEXT = /* @__PURE__ */ Symbol('Reatom linked list next')
 
 /**
