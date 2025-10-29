@@ -217,7 +217,7 @@ export interface FormOptionsWithSchema<State, SubmitReturn>
    * The callback to validate form fields before submit, typed according to the
    * schema
    *
-   * @deprecated Renamed to `submitValidate`
+   * @deprecated Renamed to `validateBeforeSubmit`
    */
   validate?: (state: State) => any
 
@@ -246,7 +246,7 @@ export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn>
    * The callback to validate form fields before submit, typed according to the
    * raw form state
    *
-   * @deprecated Renamed to `submitValidate`
+   * @deprecated Renamed to `validateBeforeSubmit`
    */
   validate?: (state: FormState<T>) => any
 
