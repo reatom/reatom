@@ -564,7 +564,7 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
       const promise = triggerSchemaValidation()
       const schemaValidationResult =
         promise instanceof Promise ? await wrap(promise) : promise
-      if (!('value' in schemaValidationResult))
+      if (schemaValidationResult.issues)
         throw new Error(
           schemaValidationResult.issues[0]?.message ?? 'Unknown schema error',
         )

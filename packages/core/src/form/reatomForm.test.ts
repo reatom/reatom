@@ -170,6 +170,8 @@ describe('validation states', async () => {
   })
 
   test('correct states with schema', async () => {
+    const onSubmit = vi.fn()
+    
     const form = reatomForm(
       {
         field1: { initState: '' },
@@ -178,7 +180,7 @@ describe('validation states', async () => {
       {
         name: 'testForm',
         validateOnChange: true,
-        onSubmit: noop,
+        onSubmit,
         schema: z.object({
           field1: z.string().min(1, 'Too short'),
         }),
@@ -192,6 +194,8 @@ describe('validation states', async () => {
       triggered: true,
       validating: undefined,
     })
+
+    expect(onSubmit).not.toBeCalled()
   })
 })
 
