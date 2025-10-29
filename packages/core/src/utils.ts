@@ -564,8 +564,8 @@ export const nonNullable = <T>(value: T, message?: string): NonNullable<T> => {
   return value
 }
 
-const { toString } = Object.prototype
-const { toString: toStringArray } = []
+const toString = /* @__PURE__ */ Object.prototype.toString
+const toStringArray = /* @__PURE__ */ [].toString
 const visited = new WeakMap<{}, string>()
 
 /**
