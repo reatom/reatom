@@ -2,6 +2,7 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 import type {
   AbortExt,
+  AsyncDataExt,
   AsyncExt,
   AtomState,
   LinkedList,
@@ -25,6 +26,7 @@ import {
   type Rec,
   withAbort,
   withAsync,
+  withAsyncData,
   withCallHook,
   wrap,
 } from '../'
@@ -121,8 +123,7 @@ export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
 export type SubmitAction<Return> = Action<[], Promise<Return>> &
-  AsyncExt<[], Return, Error | undefined> &
-  AbortExt
+  AsyncDataExt<[], Return, Return | undefined, Error | undefined>
 
 export interface Form<
   T extends FormInitState = FormInitState,
@@ -597,14 +598,13 @@ export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn>(
     if (resetOnSubmit) fieldSet.reset()
     return result as SubmitReturn
   }, `${name}.onSubmit`).extend(
-    withAsync({ resetError: 'onFulfill' }),
+    withAsyncData({ resetError: 'onFulfill' }),
     (target) =>
       Object.assign(target, {
         error: target.error.actions((target) => ({
           reset: () => target.set(undefined),
         })),
       }),
-    withAbort(),
   )
 
   const validation = Object.assign(fieldSet.validation, {
