@@ -277,4 +277,3 @@ export let connectLogger = () => {
 
   log.extend(logExt)
 }
-

@@ -171,7 +171,7 @@ describe('validation states', async () => {
 
   test('correct states with schema', async () => {
     const onSubmit = vi.fn()
-    
+
     const form = reatomForm(
       {
         field1: { initState: '' },

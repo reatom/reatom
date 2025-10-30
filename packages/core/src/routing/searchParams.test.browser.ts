@@ -192,4 +192,3 @@ test('inactive subpath should not affect mutated atoms', async () => {
   expect(urlAtom().pathname).toBe('/other')
   expect(urlAtom().search).toBe('?test=3')
 })
-

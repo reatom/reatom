@@ -1,8 +1,8 @@
 import { expect, test } from 'test'
 
 import { sleep, wrap } from '..'
-import { getStackTrace } from './connectLogger'
 import { atom, computed, notify } from '../core'
+import { getStackTrace } from './connectLogger'
 
 test('calc deps graph', async () => {
   // Create atoms for a counter feature
@@ -66,4 +66,3 @@ test('BFS log simplification', () => {
                                            └─ c[#19] ─ b[#18]`.slice(1),
   )
 })
-

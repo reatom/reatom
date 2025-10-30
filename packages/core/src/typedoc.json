@@ -3,4 +3,3 @@
   "entryPoints": ["utils.ts"],
   "tsconfig": "../tsconfig.build.json"
 }
-

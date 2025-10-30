@@ -62,10 +62,7 @@ export interface ValidationlessFieldSet<T extends FormInitState>
    */
   focus: Computed<FieldFocus>
 
-  /**
-   * Action to set initial values for each field or field array in the
-   * fieldset
-   */
+  /** Action to set initial values for each field or field array in the fieldset */
   init: Action<[initState: FormPartialState<T>], void>
 
   /** Action to reset the state, the value, the validation, and the focus states. */
