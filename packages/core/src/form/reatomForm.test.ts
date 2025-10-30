@@ -742,3 +742,21 @@ test('subsequent validation', async () => {
   await wrap(form.submit()).catch(noop)
   expect(form.fields.email.validation().error).toBeFalsy()
 })
+
+test('submit with params and return type', async () => {
+  const form = reatomForm(
+    {
+      email: '',
+    },
+    {
+      name: 'emailOtpForm',
+      onSubmit: async (state, skipDebounce: boolean) => {
+        return { state, skipDebounce }
+      },
+    },
+  )
+
+  const result = await wrap(form.submit(true))
+  expect(result).toMatchObject({ state: { email: '' }, skipDebounce: true })
+  expect(form.submit.data()).toMatchObject({ state: { email: '' }, skipDebounce: true })
+})
