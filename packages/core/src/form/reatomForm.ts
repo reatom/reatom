@@ -535,7 +535,8 @@ export function reatomForm<
   fieldSet.reset.extend(
     withCallHook(() => {
       submitted.set(false)
-      submit.error.reset()
+      submit.error.set(undefined)
+      submit.data.set(undefined)
 
       if (!isCausedBy(submit)) submit.abort(`${name}.reset`)
     }),
@@ -631,15 +632,7 @@ export function reatomForm<
 
     if (resetOnSubmit) fieldSet.reset()
     return result as SubmitReturn
-  }, `${name}.onSubmit`).extend(
-    withAsyncData({ resetError: 'onFulfill' }),
-    (target) =>
-      Object.assign(target, {
-        error: target.error.actions((target) => ({
-          reset: () => target.set(undefined),
-        })),
-      }),
-  )
+  }, `${name}.onSubmit`).extend(withAsyncData({ resetError: 'onFulfill' }))
 
   const validation = Object.assign(fieldSet.validation, {
     trigger: triggerValidation,
