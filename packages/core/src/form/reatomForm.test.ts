@@ -758,5 +758,8 @@ test('submit with params and return type', async () => {
 
   const result = await wrap(form.submit(true))
   expect(result).toMatchObject({ state: { email: '' }, skipDebounce: true })
-  expect(form.submit.data()).toMatchObject({ state: { email: '' }, skipDebounce: true })
+  expect(form.submit.data()).toMatchObject({
+    state: { email: '' },
+    skipDebounce: true,
+  })
 })

@@ -122,14 +122,17 @@ export type DeepPartial<T, Skip = never> = {
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
-export type SubmitAction<Return, Params extends any[]> = Action<Params, Promise<Return>> &
+export type SubmitAction<Return, Params extends any[]> = Action<
+  Params,
+  Promise<Return>
+> &
   AsyncDataExt<Params, Return, Return | undefined, Error | undefined>
 
 export interface Form<
   T extends FormInitState = FormInitState,
   SchemaState = any,
   SubmitReturn = void,
-  SubmitParams extends any[] = []
+  SubmitParams extends any[] = [],
 > extends ValidationlessFieldSet<T> {
   /**
    * Atom with validation state of the form, computed from all the fields in
@@ -210,10 +213,16 @@ export interface BaseFormOptions {
   validateOnBlur?: boolean
 }
 
-export interface FormOptionsWithSchema<State, SubmitReturn, SubmitParams extends any[]>
-  extends BaseFormOptions {
+export interface FormOptionsWithSchema<
+  State,
+  SubmitReturn,
+  SubmitParams extends any[],
+> extends BaseFormOptions {
   /** The callback to process valid form data, typed according to the schema */
-  onSubmit?: (state: State, ...params: SubmitParams) => SubmitReturn | Promise<SubmitReturn>
+  onSubmit?: (
+    state: State,
+    ...params: SubmitParams
+  ) => SubmitReturn | Promise<SubmitReturn>
 
   /**
    * The callback to validate form fields before submit, typed according to the
@@ -236,13 +245,19 @@ export interface FormOptionsWithSchema<State, SubmitReturn, SubmitParams extends
   schema: StandardSchemaV1<unknown, State>
 }
 
-export interface FormOptionsWithoutSchema<T extends FormInitState, SubmitReturn, SubmitParams extends any[]>
-  extends BaseFormOptions {
+export interface FormOptionsWithoutSchema<
+  T extends FormInitState,
+  SubmitReturn,
+  SubmitParams extends any[],
+> extends BaseFormOptions {
   /**
    * The callback to process valid form data, typed according to the raw form
    * state
    */
-  onSubmit?: (state: FormState<T>, ...params: SubmitParams) => SubmitReturn | Promise<SubmitReturn>
+  onSubmit?: (
+    state: FormState<T>,
+    ...params: SubmitParams
+  ) => SubmitReturn | Promise<SubmitReturn>
 
   /**
    * The callback to validate form fields before submit, typed according to the
@@ -432,12 +447,25 @@ const resolveFieldByPath = <T extends FormInitState>(
   }
 }
 
-export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn, SubmitParams extends any[]>(
+export function reatomForm<
+  T extends FormInitState,
+  SchemaState,
+  SubmitReturn,
+  SubmitParams extends any[],
+>(
   initState: T | ((name: string) => T),
-  optionsWithSchema: FormOptionsWithSchema<SchemaState, SubmitReturn, SubmitParams>,
+  optionsWithSchema: FormOptionsWithSchema<
+    SchemaState,
+    SubmitReturn,
+    SubmitParams
+  >,
 ): Form<T, SchemaState, SubmitReturn, SubmitParams>
 
-export function reatomForm<T extends FormInitState, SubmitReturn, SubmitParams extends any[]>(
+export function reatomForm<
+  T extends FormInitState,
+  SubmitReturn,
+  SubmitParams extends any[],
+>(
   initState: T | ((name: string) => T),
   options?: FormOptionsWithoutSchema<T, SubmitReturn, SubmitParams>,
 ): Form<T, undefined, SubmitReturn, SubmitParams>
@@ -447,7 +475,12 @@ export function reatomForm<T extends FormInitState>(
   name?: string,
 ): Form<T, undefined, void, []>
 
-export function reatomForm<T extends FormInitState, SchemaState, SubmitReturn, SubmitParams extends any[]>(
+export function reatomForm<
+  T extends FormInitState,
+  SchemaState,
+  SubmitReturn,
+  SubmitParams extends any[],
+>(
   initState: T | ((name: string) => T),
   options:
     | string
