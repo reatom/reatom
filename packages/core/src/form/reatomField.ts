@@ -194,7 +194,7 @@ export interface FieldOptions<State = any, Value = State> {
    * The callback to compute the "value" data from the "state" data. By default,
    * it returns the "state" data without any transformations.
    */
-  fromState?: (state: State) => Value
+  fromState?: (state: State, self: FieldAtom<State, Value>) => Value
 
   /**
    * The callback used to determine whether the "value" has changed. By default,
@@ -210,7 +210,7 @@ export interface FieldOptions<State = any, Value = State> {
    * `change` action. By default, it returns the "value" data without any
    * transformations.
    */
-  toState?: (value: Value) => State
+  toState?: (value: Value, self: FieldAtom<State, Value>) => State
 
   /** The callback to validate the field. */
   validate?: FieldValidateOption<State, Value> | StandardSchemaV1<State>
@@ -368,9 +368,9 @@ export function reatomField<State, Value = State>(
   )
 
   const value: This['value'] = atom(
-    () => fromState(field()),
+    () => fromState(field(), field as This),
     `${name}.value`,
-  ).extend(withComputed(() => fromState(field())))
+  ).extend(withComputed(() => fromState(field(), field as This)))
 
   const focus = reatomRecord(fieldInitFocus, `${name}._focus`)
     .actions((target) => ({
@@ -379,7 +379,7 @@ export function reatomField<State, Value = State>(
     }))
     .extend(
       withComputed((state) => {
-        const dirty = isDirty(value(), fromState(initState()))
+        const dirty = isDirty(value(), fromState(initState(), field as This))
         return state.dirty === dirty ? state : { ...state, dirty }
       }),
     )
@@ -594,7 +594,7 @@ export function reatomField<State, Value = State>(
     const prevValue = value()
     if (!filter(newValue, prevValue)) return prevValue
 
-    field.set(toState(newValue))
+    field.set(toState(newValue, field as This))
     return value()
   }, `${name}._change`)
 

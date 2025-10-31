@@ -1,7 +1,15 @@
 import { describe, expect, test, vi } from 'vitest'
 import z from 'zod'
 
-import { addCallHook, atom, notify, reatomEnum, sleep, wrap } from '../'
+import {
+  addCallHook,
+  atom,
+  notify,
+  reatomEnum,
+  sleep,
+  withComputed,
+  wrap,
+} from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
 
 test(`validateOnChange`, async () => {
@@ -437,6 +445,44 @@ describe(`standard schema validation`, () => {
       validating: undefined,
     })
   })
+})
+
+test('reactivity of own meta', async () => {
+  const MASKED_FIELD_PLACEHOLDER = '•••••••••••••••'
+
+  const myField = reatomField('', {
+    name: 'myField',
+    fromState(value, self) {
+      if (value === '' && self.focus().active === false) {
+        return MASKED_FIELD_PLACEHOLDER
+      }
+      return value
+    },
+    toState(value) {
+      if (value === MASKED_FIELD_PLACEHOLDER) {
+        return ''
+      }
+      return value
+    },
+  })
+
+  expect(myField()).toBe('')
+  expect(myField.value()).toBe(MASKED_FIELD_PLACEHOLDER)
+
+  myField.change('123')
+  expect(myField()).toBe('123')
+  expect(myField.value()).toBe('123')
+
+  myField.focus.in()
+  expect(myField()).toBe('123')
+  expect(myField.value()).toBe('123')
+  myField.change('')
+  expect(myField()).toBe('')
+  expect(myField.value()).toBe('')
+
+  myField.focus.out()
+  expect(myField()).toBe('')
+  expect(myField.value()).toBe(MASKED_FIELD_PLACEHOLDER)
 })
 
 describe(`reactivity of validate function`, () => {
