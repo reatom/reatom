@@ -576,8 +576,7 @@ export function reatomField<State, Value = State>(
             }, `${target.name}.trigger.validationEffect`)()
           }
         }, `${target.name}.trigger`).extend(withAbort()),
-      }),
-      withAbort(),
+      })
     )
     .actions((target) => ({
       clearErrors: (...sources: FieldErrorSource[]) => {
