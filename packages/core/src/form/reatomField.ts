@@ -543,41 +543,39 @@ export function reatomField<State, Value = State>(
         },
       }),
     )
-    .extend(
-      (target) => ({
-        trigger: action(() => {
-          const validation = target()
+    .extend((target) => ({
+      trigger: action(() => {
+        const validation = target()
 
-          if (validation.triggered) return validation
+        if (validation.triggered) return validation
 
-          const { shouldValidate, keepErrorDuringValidating } =
-            fieldOptions.value()
-          if (!shouldValidate) return target.merge({ triggered: true })
+        const { shouldValidate, keepErrorDuringValidating } =
+          fieldOptions.value()
+        if (!shouldValidate) return target.merge({ triggered: true })
 
-          if (typeof validateFn !== 'function') {
+        if (typeof validateFn !== 'function') {
+          const propsToMerge = target.runValidation({
+            validation,
+            focus: focus(),
+            state: field(),
+            value: value(),
+            keepErrorDuringValidating,
+          })
+          return target.merge(propsToMerge)
+        } else {
+          return effect(() => {
             const propsToMerge = target.runValidation({
+              state: peek(field),
               validation,
-              focus: focus(),
-              state: field(),
-              value: value(),
+              focus: peek(focus),
+              value: peek(value),
               keepErrorDuringValidating,
             })
             return target.merge(propsToMerge)
-          } else {
-            return effect(() => {
-              const propsToMerge = target.runValidation({
-                state: peek(field),
-                validation,
-                focus: peek(focus),
-                value: peek(value),
-                keepErrorDuringValidating,
-              })
-              return target.merge(propsToMerge)
-            }, `${target.name}.trigger.validationEffect`)()
-          }
-        }, `${target.name}.trigger`).extend(withAbort()),
-      })
-    )
+          }, `${target.name}.trigger.validationEffect`)()
+        }
+      }, `${target.name}.trigger`).extend(withAbort()),
+    }))
     .actions((target) => ({
       clearErrors: (...sources: FieldErrorSource[]) => {
         target.errors.set((errors) =>
