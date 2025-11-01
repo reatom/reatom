@@ -1,6 +1,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 import {
+  abortVar,
   type AsyncDataExt,
   identity,
   isDeepEqual,
@@ -286,8 +287,11 @@ const createRouteFactory = (
     const loader = computed(async () => {
       let params = routeAtom()
 
-      // will be aborted after the route change
-      if (!params) return new Promise(noop)
+      if (!params) {
+        let controller = abortVar.get()!
+        controller.abort('unmatch')
+        throw controller.signal.reason
+      }
 
       const promise = optionsLoader(params)
 

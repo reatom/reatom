@@ -1,9 +1,9 @@
 import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
 import type { Atom } from '../core'
-import { action, atom, computed } from '../core'
+import { action, atom, computed, context } from '../core'
 import { withCallHook, withConnectHook } from '../extensions'
-import { effect, retryComputed, wrap } from '../methods'
+import { abortVar, effect, retryComputed, wrap } from '../methods'
 import { noop, sleep } from '../utils'
 import { withAsyncData } from './withAsyncData'
 
@@ -261,7 +261,9 @@ test('withAsyncData for computed retry', async () => {
 })
 
 test('Circle subscription', async () => {
-  const externalResource = atom(0).extend(
+  const name = 'circleSubscription'
+
+  const externalResource = atom(0, `${name}.externalResource`).extend(
     withConnectHook(() => {
       effect(() => {
         resource.data()
@@ -272,15 +274,66 @@ test('Circle subscription', async () => {
   const resource = computed(async () => {
     await wrap(sleep())
     return 'done'
-  }).extend(withAsyncData({ initState: 'init' }))
+  }, `${name}.resource`).extend(withAsyncData({ initState: 'init' }))
 
-  resource.data.extend(withConnectHook(externalResource.subscribe))
+  resource.data.extend(withConnectHook(() => externalResource.subscribe()))
 
   const track = subscribe(resource.data)
 
   await wrap(resource())
 
   expect(track.mock.calls.flat()).toEqual(['init', 'done'])
+})
+
+test('abort propagation', async () => {
+  const name = 'abortPropagation'
+
+  const counter = atom(0, `${name}.counter`)
+  const resource = computed(async () => {
+    const value = counter()
+    await wrap(sleep(value))
+    return value
+  }, `${name}.resource`).extend(withAsyncData())
+
+  const getDataFrame = () => context().state.store.get(resource.data)
+
+  resource.data.subscribe()
+
+  expect(() =>
+    getDataFrame()?.run(() => {
+      abortVar.subscribe()
+    }),
+  ).not.toThrow()
+
+  await wrap(sleep())
+
+  counter.set((s) => s + 1)
+  resource.data()
+  expect(() =>
+    getDataFrame()?.run(() => {
+      abortVar.subscribe()
+    }),
+  ).not.toThrow()
+
+  await wrap(sleep())
+
+  counter.set((s) => s + 1)
+  resource.data()
+  expect(() =>
+    getDataFrame()?.run(() => {
+      abortVar.subscribe()
+    }),
+  ).not.toThrow()
+
+  await wrap(sleep())
+
+  counter.set((s) => s + 1)
+  resource.data()
+  expect(() =>
+    getDataFrame()?.run(() => {
+      abortVar.subscribe()
+    }),
+  ).not.toThrow()
 })
 
 // TODO just predefine actions WITH PERSIST CACHE and you get a nicer version of FSM.

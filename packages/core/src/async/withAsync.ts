@@ -9,7 +9,7 @@ import {
   top,
   withMiddleware,
 } from '../core'
-import { getCalls, ifChanged } from '../methods'
+import { abortVar, getCalls, ifChanged } from '../methods'
 import type { Fn } from '../utils'
 import { assert, isAbort } from '../utils'
 
@@ -219,8 +219,12 @@ export let withAsync: {
       touched.add(promise)
 
       promise.then(
-        bind((payload) => onFulfill(payload, params), frame),
-        bind((error) => onReject(error, params), frame),
+        bind((payload) => {
+          abortVar.spawn(() => onFulfill(payload, params))
+        }, frame),
+        bind((error) => {
+          abortVar.spawn(() => onReject(error, params))
+        }, frame),
       )
 
       if (!target.__reatom.reactive) {

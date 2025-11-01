@@ -223,6 +223,7 @@ export function withAsyncData(
           typeof initState === 'function' ? () => initState : initState,
         computed(state) {
           if (target.__reatom.reactive) target().catch(noop)
+
           getCalls(asyncTarget.onFulfill).forEach(
             ({ payload: { payload, params } }) => {
               state = mapPayload(payload, params, state)

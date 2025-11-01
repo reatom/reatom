@@ -730,7 +730,9 @@ export let createAtom: {
       // Use computed property name to setup the function name for better stack traces
       [name](): State {
         if (target.__reatom.reactive && !SET_PARAMS && arguments.length) {
-          throw new ReatomError(`Can't write atom directly to "${name}"`)
+          throw new ReatomError(
+            `Can't call atom "${name}" with arguments, use .set instead`,
+          )
         }
         // TODO optimize
         let args = target.__reatom.reactive ? SET_PARAMS : arguments
