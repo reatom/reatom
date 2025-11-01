@@ -39,7 +39,7 @@ export function bindField<T = any>(
       notify()
     })
 
-    const controller = abortVar.get()!
+    const controller = abortVar.get()
 
     return { onChange, onBlur, onFocus, controller }
   }
@@ -49,7 +49,7 @@ export function bindField<T = any>(
   let ref = memoKey(field.name, () => ({
     current: create(),
   }))
-  if (ref.current.controller.signal.aborted) {
+  if (ref.current.controller?.signal.aborted) {
     ref.current = create()
   }
 
