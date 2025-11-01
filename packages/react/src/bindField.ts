@@ -1,5 +1,5 @@
 import type { FieldAtom, Rec } from '@reatom/core'
-import { memoKey, notify, wrap } from '@reatom/core'
+import { abortVar, memoKey, notify, wrap } from '@reatom/core'
 import type { ChangeEvent } from 'react'
 
 export function bindField<T = any>(
@@ -17,9 +17,7 @@ export function bindField<T = any>(
   onFocus: () => void
   error: undefined | string
 } {
-  const value = field()
-
-  const { onChange, onBlur, onFocus } = memoKey(field.name, () => {
+  const create = () => {
     const onChange = wrap((event: any) => {
       const isEvent = !!event?.currentTarget?.addEventListener
       const value = isEvent
@@ -41,8 +39,21 @@ export function bindField<T = any>(
       notify()
     })
 
-    return { onChange, onBlur, onFocus }
-  })
+    const controller = abortVar.get()!
+
+    return { onChange, onBlur, onFocus, controller }
+  }
+
+  const value = field.value()
+
+  let ref = memoKey(field.name, () => ({
+    current: create(),
+  }))
+  if (ref.current.controller.signal.aborted) {
+    ref.current = create()
+  }
+
+  const { onChange, onBlur, onFocus } = ref.current
 
   const { error } = field.validation()
 
