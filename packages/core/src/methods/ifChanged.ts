@@ -115,7 +115,7 @@ export const getCalls = <Params extends any[], Payload>(
     targetFrame = {
       error: null,
       state: [],
-      'var#abort': null,
+      'var#abort': undefined,
       atom: target,
       pubs: [frame.root.frame],
       subs: [],

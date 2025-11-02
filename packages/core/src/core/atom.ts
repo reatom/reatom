@@ -1,5 +1,5 @@
 import type { AbortExt } from '../extensions'
-import type { NamedAbortController } from '../methods'
+import type { ReatomAbortController } from '../methods'
 import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
 import {
@@ -164,7 +164,7 @@ export interface Frame<
   /** Current state of the atom */
   state: State
 
-  'var#abort': null | NamedAbortController
+  'var#abort': undefined | ReatomAbortController
 
   /** Reference to the atom itself */
   readonly atom: AtomLike<State, Params, Payload>
@@ -340,7 +340,7 @@ export let _copy = (frame: Frame) => {
   frame = {
     error: frame.error,
     state: frame.state,
-    'var#abort': null,
+    'var#abort': undefined,
     atom: frame.atom,
     pubs,
     subs: frame.subs,
@@ -748,7 +748,7 @@ export let createAtom: {
           frame = {
             error: null,
             state: undefined as State,
-            'var#abort': null,
+            'var#abort': undefined,
             atom: target,
             pubs: [null],
             subs: [],
@@ -999,7 +999,7 @@ context.start = (cb = top) => {
 
       frame: undefined as any,
     } satisfies RootState,
-    'var#abort': null,
+    'var#abort': undefined,
     atom: context as any,
     pubs: [null],
     subs: [],

@@ -3,7 +3,12 @@ import { action, context, named, ReatomError, top } from '../core'
 import type { Fn } from '../utils'
 import { identity } from '../utils'
 
-export interface AsyncVariableOptions<T, Params extends any[] = any[]> {
+type NonUndefined = NonNullable<unknown> | null
+
+export interface AsyncVariableOptions<
+  T extends NonUndefined,
+  Params extends any[] = any[],
+> {
   name?: string
   defaultValue?: T
   create?: (...params: Params) => T
@@ -19,7 +24,7 @@ export interface AsyncVariableOptions<T, Params extends any[] = any[]> {
  * @template T - Type of the stored value
  * @see {@link https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextvariable}
  */
-export class Variable<T, Params extends any[] = any[]> {
+export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
   protected _findReactiveStartIndex = 0
 
   protected create: (...params: Params) => T
@@ -143,7 +148,7 @@ export class Variable<T, Params extends any[] = any[]> {
    * @returns {boolean} True if the variable exists in the context
    */
   has(frame?: Frame): boolean {
-    return this.find((value) => value !== undefined, frame) === true
+    return this.find(undefined, frame) !== undefined
   }
 
   /**
@@ -228,9 +233,9 @@ export class Variable<T, Params extends any[] = any[]> {
  * @see {@link https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextvariable}
  */
 export let variable: {
-  <T>(name?: string): Variable<T, [T]>
+  <T extends NonUndefined>(name?: string): Variable<T, [T]>
 
-  <Params extends any[], Payload>(
+  <Params extends any[], Payload extends NonUndefined>(
     set: (...params: Params) => Payload,
     name?: string,
   ): Variable<Payload, Params>

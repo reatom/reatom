@@ -288,7 +288,7 @@ const createRouteFactory = (
       let params = routeAtom()
 
       if (!params) {
-        let controller = abortVar.get()!
+        let controller = abortVar.first()!
         controller.abort('unmatch')
         throw controller.signal.reason
       }

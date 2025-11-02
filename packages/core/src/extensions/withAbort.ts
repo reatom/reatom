@@ -1,6 +1,6 @@
 import type { Action, AssignerExt, Frame } from '../core'
 import { action, ReatomError, top } from '../core'
-import { NamedAbortController } from '../methods'
+import { ReatomAbortController } from '../methods'
 import { abortVar } from '../methods'
 import { _getPrevFrame } from '../methods/context'
 import type { Fn } from '../utils'
@@ -31,7 +31,7 @@ export let withAbort = (
       let prevController = prevFrame && abortVar.first(prevFrame)
       let prevState = frame.state
       let state = prevState
-      abortVar.set(new NamedAbortController(`${target.name}.withAbort`))
+      abortVar.set(new ReatomAbortController(`${target.name}.withAbort`))
 
       state = next(...params)
 

@@ -28,7 +28,7 @@ test('abort propagation', async () => {
   const componentLikeEffect = computed(() => {
     if (aRoute()) {
       effect(async () => {
-        abortVar.get()!.signal.addEventListener('abort', () => {
+        abortVar.first()!.signal.addEventListener('abort', () => {
           logs.push('a effect aborted')
         })
         logs.push('a effect started')

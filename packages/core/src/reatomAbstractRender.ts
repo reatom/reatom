@@ -106,6 +106,7 @@ export let reatomAbstractRender = <Props, Result>({
           abortVar.set()
           abortSubscription = abortVar.subscribe()
         }
+        abortSubscription.controller.spawned = true
 
         return { result: adapterRender(props) }
       }

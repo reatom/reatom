@@ -3,8 +3,21 @@ import type { AbortError, Unsubscribe } from '../utils'
 import { isAbort, throwIfAborted, toAbortError } from '../utils'
 import { Variable } from './variable'
 
-export class NamedAbortController extends AbortController {
-  constructor(public name: string) {
+/**
+ * Version of abort controller with explicit name for better debugging.
+ *
+ * May control variable propagation by setting the `spawned` flag (used
+ * internally to handle abort boundaries).
+ *
+ * @param name - The name of the abort controller
+ * @param spawned - Whether to traverse the frame tree beyond the current frame
+ *   (default: `false`)
+ */
+export class ReatomAbortController extends AbortController {
+  constructor(
+    public name: string,
+    public spawned: boolean = false,
+  ) {
     super()
   }
   override abort(reason?: any) {
@@ -15,14 +28,14 @@ export class NamedAbortController extends AbortController {
 }
 
 export interface AbortSubscription {
-  controller: NamedAbortController
+  controller: ReatomAbortController
   unsubscribe: Unsubscribe
   [Symbol.dispose]: Unsubscribe
   [Symbol.asyncDispose]: Unsubscribe
 }
 
 export class AbortVariable extends Variable<
-  NamedAbortController,
+  ReatomAbortController,
   [AbortController?]
 > {
   protected override _findReactiveStartIndex = 1
@@ -31,13 +44,14 @@ export class AbortVariable extends Variable<
     super({
       name: 'abort',
       create: (controller) => {
-        let namedController = new NamedAbortController(top().atom.name)
-        return controller instanceof NamedAbortController
+        let namedController = new ReatomAbortController(top().atom.name)
+        return controller instanceof ReatomAbortController
           ? controller
           : controller instanceof AbortController
             ? Object.assign(controller, {
                 name: namedController.name,
                 abort: namedController.abort,
+                spawned: false,
               })
             : namedController
       },
@@ -112,7 +126,10 @@ export class AbortVariable extends Variable<
         },
         un,
       )
-      // do not return anything to traverse the whole tree
+
+      return parentController?.spawned
+        ? false
+        : /* do nothing, continue the traverse */ undefined
     })
 
     return {
