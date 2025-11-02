@@ -32,6 +32,7 @@ export interface AbortSubscription {
   unsubscribe: Unsubscribe
   [Symbol.dispose]: Unsubscribe
   [Symbol.asyncDispose]: Unsubscribe
+  listenerController: AbortController
 }
 
 export class AbortVariable extends Variable<
@@ -103,9 +104,9 @@ export class AbortVariable extends Variable<
     let frame = top()
     let controller = frame['var#abort'] ?? this.set()
 
-    let un = new AbortController()
+    let listenerController = new AbortController()
 
-    let unsubscribe = () => un.abort()
+    let unsubscribe = () => listenerController.abort()
 
     let listener = bind(function listener(signal: AbortSignal) {
       unsubscribe()
@@ -124,7 +125,7 @@ export class AbortVariable extends Variable<
         (event) => {
           listener(event.target as AbortSignal)
         },
-        un,
+        listenerController,
       )
 
       return parentController?.spawned
@@ -137,6 +138,7 @@ export class AbortVariable extends Variable<
       unsubscribe,
       [Symbol.dispose]: unsubscribe,
       [Symbol.asyncDispose]: unsubscribe,
+      listenerController,
     }
   }
 
