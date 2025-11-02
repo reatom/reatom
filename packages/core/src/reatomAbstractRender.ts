@@ -1,4 +1,4 @@
-import { _enqueue, atom, bind, computed, type Frame } from './core'
+import { _enqueue, atom, bind, computed, type Frame, top } from './core'
 import { type AbortSubscription, abortVar, variable, wrap } from './methods'
 import { _getPrevFrame } from './methods/context'
 import type { Unsubscribe } from './utils'
@@ -92,7 +92,8 @@ export let reatomAbstractRender = <Props, Result>({
     let abortSubscription: AbortSubscription
 
     let _render = computed((state?: { result: Result }): { result: Result } => {
-      let pubs = _getPrevFrame()?.pubs ?? [null]
+      let frame = top()
+      let pubs = _getPrevFrame(frame)?.pubs ?? [null]
 
       _enqueue(() => (pubs.length = 1), 'cleanup')
 
@@ -106,7 +107,9 @@ export let reatomAbstractRender = <Props, Result>({
           abortVar.set()
           abortSubscription = abortVar.subscribe()
         }
+
         abortSubscription.controller.spawned = true
+        frame['var#abort'] = abortSubscription.controller
 
         return { result: adapterRender(props) }
       }
