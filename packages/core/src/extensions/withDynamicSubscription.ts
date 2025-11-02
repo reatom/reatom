@@ -23,7 +23,7 @@ export let withDynamicSubscription =
         unsubscribeOriginal()
         abortSubscription.controller.abort('unsubscribe')
       }
-    }, `${target.name}.subscribe`)
+    }, `${target.name}._subscribe`)
 
     return target
   }
