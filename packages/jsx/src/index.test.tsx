@@ -12,7 +12,8 @@ import {
 } from '@reatom/core'
 import { expect, test, vi } from 'vitest'
 
-import { Bind, DEBUG, h, type JSX, mount, stylesheet } from '.'
+// eslint-disable-next-line unused-imports/no-unused-imports
+import { Bind, DEBUG, h, hf, type JSX, mount, stylesheet } from '.'
 
 clearStack()
 

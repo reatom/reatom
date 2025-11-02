@@ -99,8 +99,8 @@ describe('parseClasses', () => {
 
       expect(classNameAtom()).toBe('a b c d e')
 
-      isBAtom(false)
-      stringAtom('dd')
+      isBAtom.set(false)
+      stringAtom.set('dd')
 
       expect(classNameAtom()).toBe('a c dd e')
     }))
