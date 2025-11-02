@@ -1,3 +1,4 @@
+import { action, context, top } from '../core'
 import { abortVar, wrap } from '../methods'
 import type { Fn, Unsubscribe } from '../utils'
 
@@ -97,19 +98,45 @@ export const onEvent: {
     cb: (value: Event) => any,
     options?: AddEventListenerOptions,
   ): Unsubscribe
-} = (target: EventTarget, type: string, listener: Fn) => {
-  if (!listener) {
+} = (
+  target: EventTarget,
+  type: string,
+  cb?: Fn,
+  options?: AddEventListenerOptions,
+) => {
+  if (!cb) {
     return new Promise((resolve) => {
-      let un = onEvent(target, type, (event) => {
-        un()
-        resolve(event)
-      })
+      let un = onEvent(
+        target,
+        type,
+        (event) => {
+          un()
+          resolve(event)
+        },
+        options,
+      )
     })
   }
 
+  let frame = top()
+  let name = frame.atom === context ? '' : `${frame.atom.name}.`
+  name += `onEvent.${Object.getPrototypeOf(target).constructor.name}.${type}`
+
   let abortSubscription = abortVar.subscribe()
 
-  target.addEventListener(type, wrap(listener), {
+  options?.signal?.addEventListener('abort', abortSubscription.unsubscribe, {
+    signal: abortSubscription.listenerController.signal,
+  })
+
+  let listener = wrap(
+    action((event: Event) => {
+      if (options?.once) abortSubscription.unsubscribe()
+      return cb(event)
+    }, name),
+  )
+
+  target.addEventListener(type, listener, {
+    ...options,
     signal: abortSubscription.controller.signal,
   })
 
