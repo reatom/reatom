@@ -632,7 +632,7 @@ export function reatomForm<
 
     if (resetOnSubmit) fieldSet.reset()
     return result as SubmitReturn
-  }, `${name}.onSubmit`).extend(withAsyncData({ resetError: 'onFulfill' }))
+  }, `${name}.submit`).extend(withAsyncData({ resetError: 'onFulfill' }))
 
   const validation = Object.assign(fieldSet.validation, {
     trigger: triggerValidation,
