@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { getStackTrace } from '../connectLogger'
+import { getStackTrace } from '../methods'
 import type { Frame } from './'
 import { _read, action, atom, computed, notify } from './'
 

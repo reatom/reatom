@@ -1,8 +1,8 @@
 import { expect, expectTypeOf, test } from 'test'
 
-import { getStackTrace } from '../connectLogger'
 import { atom, computed, context } from '../core'
 import { sleep } from '../utils'
+import { getStackTrace } from './'
 import { wrap } from './wrap'
 
 test('async frame stack', async () => {

@@ -99,7 +99,7 @@ test('different types of abort', async () => {
       'rerun',
       'rerun',
       expect.stringContaining(`${name}.nativeEffect.withAbort concurrent`),
-      expect.stringContaining(`${name}.nativeEffect.subscribe unsubscribe`),
+      expect.stringContaining(`${name}.nativeEffect._subscribe unsubscribe`),
     ])
   }, `${name}.doWithAbort`)
 
