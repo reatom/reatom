@@ -8,6 +8,7 @@ description: The history of Reatom
 - **Good primitive is more than a framework**
 - **Composition beats configuration**
 - **Explicit specific semantic, implicit general semantic**
+- **Compatibility is the hardest thing but it is worth it**
 
 ## Goal
 
@@ -19,6 +20,8 @@ Reatom is built for the long haul.
 We dropped our first Long Term Support (LTS) version (v1) in [December 2019](https://github.com/reatom/reatom/releases/tag/v1.0). And it was supported for a half of decade. We are always open to issues and PRs for older versions, if it will help you!
 
 We have [a lot of contributors](https://github.com/reatom/reatom/graphs/contributors) working on different packages. We are trying to build a super stable and predictable ecosystem. To achieve this, we welcome you to put your package into our monorepo and check the [contribution](/contributing) guidelines.
+
+### Versioning
 
 Since the 1k version (`1000`), Reatom uses epoch-based versioning inspired [by Antfu's post](https://antfu.me/posts/epoch-semver). The next epoch release (`2000`) will be in 2026-2027 and may include meaningful changes; the whole ecosystem will be migrated together with the core package. The classic major versions (`1001`, `1002`, `1042`) and other minor and patch versions follow standard SemVer and represent small changes in a general epoch context. `@alpha` tags denote pre-release versions.
 
