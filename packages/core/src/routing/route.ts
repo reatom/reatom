@@ -17,6 +17,20 @@ import { urlAtom } from '../web/url'
 
 type MaybeVoid<T> = {} extends T ? T | void : T
 
+/**
+ * Extracts parameter types from a route path pattern string.
+ *
+ * Extracts parameter names from path patterns like `:userId`, `:postId?`, etc.
+ * and creates a type mapping parameter names to their types.
+ *
+ * @example
+ *   type Params = PathParams<'users/:userId/posts/:postId?'>
+ *   // Params = { userId: string; postId?: string }
+ *
+ * @example
+ *   type Params = PathParams<':id'>
+ *   // Params = { id: string }
+ */
 export type PathParams<Path extends string = string> =
   Path extends `:${infer Param}/${infer Rest}`
     ? { [key in Param]: string } & PathParams<Rest>
@@ -30,9 +44,62 @@ export type PathParams<Path extends string = string> =
 
 export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, any>
 
-/** Redeclare this type for your framework */
+/**
+ * Type representing a rendered route component/child.
+ *
+ * Redeclare this type in your framework module to enable type-safe route
+ * rendering. This allows you to use framework-specific types (like JSX.Element,
+ * VNode, TemplateResult) as route children.
+ *
+ * @example
+ *   // For React/Preact
+ *   declare module '@reatom/core' {
+ *     interface RouteChild extends JSX.Element {}
+ *   }
+ *
+ * @example
+ *   // For Vue
+ *   declare module '@reatom/core' {
+ *     interface RouteChild extends VNode {}
+ *   }
+ *
+ * @example
+ *   // For Lit
+ *   declare module '@reatom/core' {
+ *     interface RouteChild extends TemplateResult {}
+ *   }
+ */
 export interface RouteChild {}
 
+/**
+ * Configuration options for creating a route.
+ *
+ * Routes can be created with just a path string, or with a full configuration
+ * object that includes validation schemas, data loaders, and render functions.
+ *
+ * @example
+ *   // Simple path-only route
+ *   const route = reatomRoute('users/:userId')
+ *
+ * @example
+ *   // Route with validation and loader
+ *   const route = reatomRoute({
+ *     path: 'users/:userId',
+ *     params: z.object({
+ *       userId: z.string().regex(/^\d+$/).transform(Number),
+ *     }),
+ *     search: z.object({ tab: z.enum(['posts', 'comments']).optional() }),
+ *     async loader(params) {
+ *       return fetch(`/api/users/${params.userId}`).then((r) => r.json())
+ *     },
+ *   })
+ *
+ * @example
+ *   // Search-only route (no path, preserves current pathname)
+ *   const dialogRoute = reatomRoute({
+ *     search: z.object({ dialog: z.enum(['login', 'signup']).optional() }),
+ *   })
+ */
 export interface RouteOptions<
   Path extends string = '',
   Params extends PathKeys<Path> = PathParams<Path>,
@@ -42,14 +109,78 @@ export interface RouteOptions<
   LoaderParams = Plain<ParamsOutput & SearchOutput>,
   Payload = LoaderParams,
 > {
+  /**
+   * Path pattern string. Use `:paramName` for required parameters and
+   * `:paramName?` for optional parameters.
+   *
+   * @example
+   *   'users/:userId'
+   *
+   * @example
+   *   'posts/:postId?'
+   *
+   * @example
+   *   'api/products/:productId/settings'
+   */
   path?: Path
 
+  /**
+   * Schema to validate and transform path parameters. Uses Standard Schema
+   * (compatible with Zod, Valibot, etc.).
+   *
+   * URL parameters are always strings, so validation schemas should accept
+   * strings and transform them to the desired types.
+   *
+   * @example
+   *   params: z.object({
+   *     userId: z.string().regex(/^\d+$/).transform(Number),
+   *   })
+   */
   params?: StandardSchemaV1<Params, ParamsOutput>
 
+  /**
+   * Schema to validate and transform search/query parameters. Uses Standard
+   * Schema (compatible with Zod, Valibot, etc.).
+   *
+   * Note: All search parameters should be optional in the schema.
+   *
+   * @example
+   *   search: z.object({
+   *     sort: z.enum(['asc', 'desc']).optional(),
+   *     page: z.string().transform(Number).default('1'),
+   *   })
+   */
   search?: StandardSchemaV1<Search, SearchOutput>
 
+  /**
+   * Async function that loads data when the route becomes active.
+   *
+   * Receives validated parameters (path + search params combined).
+   * Automatically aborted when navigating away from the route.
+   *
+   * @example
+   *   async loader({ userId, tab }) {
+   *   const user = await fetch(`/api/users/${userId}`).then(r => r.json())
+   *   return user
+   *   }
+   */
   loader?: (params: LoaderParams) => Promise<Payload>
 
+  /**
+   * Function that renders the route component. Receives an `outlet` computed
+   * that contains all active child route components.
+   *
+   * This enables framework-agnostic component composition where routes define
+   * their own components that are automatically composed hierarchically.
+   *
+   * @example
+   *   render({ outlet }) {
+   *   return html`<div>
+   *   <header>My App</header>
+   *   <main>${outlet().map(child => child)}</main>
+   *   </div>`
+   *   }
+   */
   render?: (options: { outlet: RouteAtom['outlet'] }) => RouteChild
 
   /** @deprecated Use `render({outlet})` instead */
@@ -158,10 +289,16 @@ const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   return validation.value
 }
 
+/**
+ * Route loader interface describing async data loading capabilities, mostly
+ * crafted from `withAsyncData` extension, see `loader` property of a route for
+ * examples.
+ */
 export interface RouteLoader<Params extends Rec = Rec, Payload = any>
   extends Computed<Promise<Payload>>,
     AsyncDataExt<[Params], Payload, undefined | Payload, Error | undefined> {}
 
+/** Route extension interface for route computed atom. */
 export interface RouteExt<
   Path extends string = string,
   Params extends PathKeys<Path> = PathParams<Path>,
@@ -170,23 +307,171 @@ export interface RouteExt<
   InputParams = Params,
   InputSearch = Search,
 > extends RouteMixin<Path, Params> {
+  /**
+   * Navigate to this route with the given parameters.
+   *
+   * Updates the browser URL and triggers route matching. For search-only
+   * routes, preserves the current pathname and only updates search parameters.
+   *
+   * @example
+   *   userRoute.go({ userId: '123' })
+   *   // Navigates to /users/123
+   *
+   * @example
+   *   searchRoute.go({ q: 'reatom', page: 2 }, true)
+   *   // Navigates to /search?q=reatom&page=2 and replaces history entry
+   *
+   * @example
+   *   homeRoute.go() // Navigate without parameters
+   *   // Navigates to /
+   *
+   * @param params - Route parameters (path + search). Can be omitted if route
+   *   has no required parameters.
+   * @param replace - If `true`, replaces current history entry instead of
+   *   creating a new one. Defaults to `false`.
+   * @returns The new URL object
+   */
   go: Action<
-    [params: MaybeVoid<InputParams & InputSearch>, replace?: boolean], // Updated signature: single optional object argument
+    [params: MaybeVoid<InputParams & InputSearch>, replace?: boolean],
     URL
   >
 
+  /**
+   * Async loader for fetching route data.
+   *
+   * Automatically executes when the route becomes active. Extended with
+   * `withAsyncData` extension, which provides loading state, error handling,
+   * and retry functionality, automatically rerun (and abort prev run) on params
+   * change, or just abort when navigating away.
+   *
+   * @example
+   *   const ready = userRoute.loader.ready()
+   *   const user = userRoute.loader.data()
+   *   const error = userRoute.loader.error()
+   *   userRoute.loader.retry()
+   */
   loader: RouteLoader<Plain<Params & Search>, Payload>
 
+  /**
+   * Computed atom indicating if the current URL exactly matches this route.
+   *
+   * Returns `true` only when the URL is an exact match (not a partial match).
+   * Useful for conditional rendering that should only appear on the exact
+   * route.
+   *
+   * @example
+   *   // At URL: /users/123
+   *   usersRoute.exact() // false (partial match)
+   *   userRoute.exact() // true (exact match)
+   *
+   * @example
+   *   // Only show component on exact route
+   *   {userRoute.exact() && <UserDetails />}
+   */
   exact: Computed<boolean>
 
+  /**
+   * Computed atom indicating if the current URL matches this route (partial or
+   * exact).
+   *
+   * Returns `true` when the route matches, `false` otherwise. More permissive
+   * than `exact()` - returns true for both exact and partial matches.
+   *
+   * Helpful to track the route active state, and to create a route model with
+   * memoization.
+   *
+   * Used under the hood of the `outlet` computed.
+   *
+   * @example
+   *   // At URL: /users/123/edit
+   *   usersRoute.match() // true (partial match)
+   *   userRoute.match() // true (partial match)
+   *   userEditRoute.match() // true (exact match)
+   */
+  match: Computed<boolean>
+
+  /**
+   * The path pattern string for this route.
+   *
+   * Helpful for matching links or other route-related logic.
+   *
+   * @example
+   *   '/users/:userId'
+   *
+   * @example
+   *   '/posts/:postId?'
+   */
   pattern: Path
 
+  /**
+   * Builds a URL path string for this route without navigating.
+   *
+   * Useful for creating links or programmatically constructing URLs. Includes
+   * search parameters if the route has a search schema.
+   *
+   * @example
+   *   userRoute.path({ userId: '123' })
+   *   // Returns: '/users/123'
+   *
+   * @example
+   *   searchRoute.path({ q: 'reatom', page: 2 })
+   *   // Returns: '/search?q=reatom&page=2'
+   *
+   * @example
+   *   // Use in links
+   *   <a href={userRoute.path({ userId: '123' })}>View User</a>
+   *
+   * @param params - Route parameters (path + search). Can be omitted if route
+   *   has no required parameters.
+   * @returns The URL path string (including search params if applicable)
+   */
   path: (params: MaybeVoid<InputParams & InputSearch>) => string
 
+  /**
+   * Registry of all child routes created from this route.
+   *
+   * Routes are automatically registered here when created via `.reatomRoute()`.
+   * Useful for accessing all child routes or implementing global route logic.
+   *
+   * @example
+   *   const layoutRoute = reatomRoute('dashboard')
+   *   const usersRoute = layoutRoute.reatomRoute('users')
+   *   const postsRoute = layoutRoute.reatomRoute('posts')
+   *
+   *   // Access all child routes
+   *   layoutRoute.routes // { 'dashboard/users': usersRoute, 'dashboard/posts': postsRoute }
+   */
   routes: Rec<RouteAtom>
 
+  /**
+   * Computed atom returning an array of all active child route components.
+   *
+   * Contains the rendered output from all child routes that are currently
+   * matched. Used in parent route `render` functions to compose child
+   * components.
+   *
+   * @example
+   *   const layoutRoute = reatomRoute({
+   *     render({ outlet }) {
+   *       return html`<div>
+   *         <main>${outlet().map((child) => child)}</main>
+   *       </div>`
+   *     },
+   *   })
+   */
   outlet: Computed<RouteChild[]>
 
+  /**
+   * Computed atom returning the rendered component for this route, or `null`.
+   *
+   * Returns the result of the route's `render` function when the route matches,
+   * `null` otherwise. Used to render route components in a component tree.
+   *
+   * @example
+   *   const App = reatomComponent(() => {
+   *     return layoutRoute.render() // Returns the rendered component or null
+   *   })
+   */
   render: Computed<null | RouteChild>
 
   /** @deprecated Use `outlet` instead */
@@ -196,6 +481,40 @@ export interface RouteExt<
   child: Computed<null | RouteChild>
 }
 
+/**
+ * A route atom that matches URLs and provides navigation, loading, and
+ * rendering.
+ *
+ * Routes are computed atoms that return route parameters when matched, or
+ * `null` when not matched. They also provide navigation actions, data loading,
+ * and component rendering capabilities.
+ *
+ * Routes can be created with `reatomRoute()` and nested using `.reatomRoute()`.
+ *
+ * @example
+ *   // Create a route
+ *   const userRoute = reatomRoute('users/:userId')
+ *
+ *   // Use as computed atom
+ *   const params = userRoute() // { userId: '123' } or null
+ *
+ *   // Navigate
+ *   userRoute.go({ userId: '456' })
+ *
+ *   // Create nested route
+ *   const userEditRoute = userRoute.reatomRoute('edit')
+ *   // Full path: /users/:userId/edit
+ *
+ * @example
+ *   // Route with validation and loader
+ *   const userRoute = reatomRoute({
+ *     path: 'users/:userId',
+ *     params: z.object({ userId: z.string().transform(Number) }),
+ *     async loader({ userId }) {
+ *       return fetch(`/api/users/${userId}`).then((r) => r.json())
+ *     },
+ *   })
+ */
 export interface RouteAtom<
   Path extends string = string,
   Params extends PathKeys<Path> = PathParams<Path>,
@@ -423,6 +742,8 @@ const createRouteFactory = (
 
       const routes: RouteAtom['routes'] = {}
 
+      const match = computed(() => routeAtom() !== null, `${name}.match`)
+
       const outlet = computed(() => {
         const result: RouteChild[] = []
         for (let pattern in routes) {
@@ -435,8 +756,7 @@ const createRouteFactory = (
       }, `${name}._outlet`)
 
       const render = computed(() => {
-        // FIXME memo route patch, do not subscribe to params changes
-        return renderFn && routeAtom() ? renderFn({ outlet }) : null
+        return renderFn && match() ? renderFn({ outlet }) : null
       }, `${name}._render`)
 
       const children = outlet
@@ -447,6 +767,7 @@ const createRouteFactory = (
         go,
         loader,
         exact,
+        match,
         pattern,
         path: getPath,
         routes,
@@ -465,6 +786,73 @@ const createRouteFactory = (
   }
 }
 
+/**
+ * Creates a new route atom with the given path pattern or configuration.
+ *
+ * Routes automatically sync with the browser URL and provide type-safe
+ * navigation, parameter validation, data loading, and component rendering.
+ *
+ * @example
+ *   // Simple path route
+ *   const homeRoute = reatomRoute('')
+ *   const aboutRoute = reatomRoute('about')
+ *   const userRoute = reatomRoute('users/:userId')
+ *
+ * @example
+ *   // Route with validation schemas
+ *   import { z } from 'zod'
+ *
+ *   const userRoute = reatomRoute({
+ *     path: 'users/:userId',
+ *     params: z.object({
+ *       userId: z.string().regex(/^\d+$/).transform(Number),
+ *     }),
+ *     search: z.object({
+ *       tab: z.enum(['posts', 'comments']).optional(),
+ *     }),
+ *   })
+ *
+ *   userRoute() // null
+ *   userRoute.go({ userId: '123', tab: 'posts' })
+ *   // URL: /users/123?tab=posts
+ *   userRoute() // { userId: 123, tab: 'posts' }
+ *
+ * @example
+ *   // Route with loader
+ *   const userRoute = reatomRoute({
+ *     path: 'users/:userId',
+ *     async loader({ userId }) {
+ *       const user = await fetch(`/api/users/${userId}`).then((r) =>
+ *         r.json(),
+ *       )
+ *       return user
+ *     },
+ *   })
+ *
+ * @example
+ *   // Search-only route (preserves pathname)
+ *   const dialogRoute = reatomRoute({
+ *     search: z.object({
+ *       dialog: z.enum(['login', 'signup']).optional(),
+ *     }),
+ *   })
+ *
+ * @example
+ *   // Route with component rendering
+ *   const layoutRoute = reatomRoute({
+ *     render({ outlet }) {
+ *       return html`<div>
+ *         <header>My App</header>
+ *         <main>${outlet().map((child) => child)}</main>
+ *       </div>`
+ *     },
+ *   })
+ *
+ * @param pathOrOptions - Either a path pattern string or a route configuration
+ *   object
+ * @param name - Optional name for the route atom (for debugging)
+ * @returns A new RouteAtom instance
+ */
 export let reatomRoute = /* @__PURE__ */ (() =>
   createRouteFactory(urlAtom as any) as RouteMixin<''>['reatomRoute'])()
 

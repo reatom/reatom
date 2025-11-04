@@ -616,7 +616,7 @@ export function reatomForm<
     }
 
     return state
-  }, `${name}.validation.triggerExt`).extend(withAsync(), withAbort())
+  }, `${name}.validation.trigger`).extend(withAsync(), withAbort())
 
   const submit = action(async (...params: SubmitParams) => {
     const state = await wrap(triggerValidation())

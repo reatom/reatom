@@ -1074,7 +1074,7 @@ const todosRoute = reatomRoute({
       )
 
       // ✅ Create local states fro the current route visit lifetime
-      const search = searchParamsAtom.lens('search', { replace: true })
+      const search = atom('', `${todosRoute.name}.search`)
 
       const filteredList = computed(() => {
         let todos = todosResource.data()
@@ -1090,6 +1090,7 @@ const todosRoute = reatomRoute({
       }, `${target.name}.filteredList`)
 
       return {
+        search,
         todosResource,
         filteredList,
       }
