@@ -935,6 +935,179 @@ This pattern provides:
 - **Perfect composition** - factories can create any state structure
 - **Type safety** - complete inference through the chain
 
+#### Loader Memoization and Stable Model Creation
+
+When using the factory pattern in route loaders, there's an important consideration: **loaders recompute whenever route parameters change**. This includes both path parameters and search parameters. If you create models (data fetching, computed atoms, etc.) directly in the loader, they will be recreated on every parameter change, causing you to lose their previous state.
+
+**The Problem:**
+
+Consider a todo app with tabs for filtering (`all`, `open`, `closed`). The todos list should only be fetched once, but we need a filtered view based on the active tab:
+
+```typescript
+const todosRoute = reatomRoute({
+  path: 'todos',
+  search: z.object({
+    tab: z.enum(['all', 'open', 'closed']).optional(),
+  }),
+  async loader(params) {
+    // ❌ Problem: This fetch runs every time `tab` changes!
+    // The todos list is refetched unnecessarily
+    const todos = await wrap(fetch('/api/todos').then((r) => r.json()))
+
+    // ❌ This computed is recreated on every tab change
+    const filteredList = computed(() => {
+      const tab = params.tab || 'all'
+      if (tab === 'all') return todos
+      if (tab === 'open') return todos.filter((t) => !t.completed)
+      return todos.filter((t) => t.completed)
+    }, 'filteredList')
+
+    return { todos, filteredList }
+  },
+})
+```
+
+When the user changes the `tab` search parameter (e.g., from `?tab=all` to `?tab=open`), the loader recomputes, refetching the todos list unnecessarily and recreating the filtered list computed.
+
+##### Solution 1: Separate Search Parameters
+
+Extract search parameters into separate atoms using `searchParamsAtom` or `withSearchParams`. This prevents the loader from recomputing when only search params change. Create the filtered list as a separate computed that depends on both the todos data and the tab.
+
+```typescript
+import { atom, computed, withSearchParams } from '@reatom/core'
+import { z } from 'zod'
+
+const todosRoute = reatomRoute({
+  path: 'todos',
+  // No search schema in route - handle separately
+  async loader(params) {
+    // ✅ Fetch only happens when route becomes active, not on tab changes
+    const todos = await wrap(fetch('/api/todos').then((r) => r.json()))
+
+    return { todos }
+  },
+})
+
+// Separate atom for tab search param
+const todosTab = atom<'all' | 'open' | 'closed'>('all', 'todosTab').extend(
+  withSearchParams('tab', (value) => {
+    if (value === 'all' || value === 'open' || value === 'closed') {
+      return value
+    }
+    return 'all'
+  }),
+)
+
+// ✅ Filtered list as separate computed that depends on both todos and tab
+const filteredTodos = computed(() => {
+  const todos = todosRoute.loader.data()?.todos || []
+  const tab = todosTab()
+
+  if (tab === 'all') return todos
+  if (tab === 'open') return todos.filter((t) => !t.completed)
+  return todos.filter((t) => t.completed)
+}, 'filteredTodos')
+```
+
+Now the loader only recomputes when navigating to/from the route, and the `tab` is managed separately. The `filteredTodos` computed reacts to both todos data and tab changes without refetching.
+
+##### Solution 2: Separate Model Atom
+
+Move model creation to separate computed atoms that extend the route. The loader of a route is a simple computed using `withAsyncData`, so you can reimplement it by yourself easily.Create a `todosResource` for data fetching, and a `filteredList` that depends on it.
+
+```typescript
+import { computed, withAsyncData, wrap } from '@reatom/core'
+
+const todosRoute = reatomRoute({
+  path: 'todos',
+  search: z.object({
+    tab: z.enum(['all', 'open', 'closed']).optional(),
+  }),
+}).extend((target) => {
+  // ✅ Todos data is fetched only when route matches, stable across tab changes
+  const todosResource = computed(async () => {
+    if (!target.match()) return []
+    return await wrap(fetch('/api/todos').then((r) => r.json()))
+  }, `${target.name}.todosResource`).extend(withAsyncData({ initState: [] }))
+
+  // ✅ Filtered list reacts to tab changes but uses stable todos data
+  const filteredList = computed(() => {
+    const todos = todosResource.data()
+
+    const tab = params.tab || 'all'
+    if (tab === 'all') return todos
+    if (tab === 'open') return todos.filter((t) => !t.completed)
+    return todos.filter((t) => t.completed)
+  }, `${target.name}.filteredList`)
+
+  return {
+    todosResource,
+    filteredList,
+  }
+})
+```
+
+The `todosResource` only fetches when the route matches and remains stable across tab changes. The `filteredList` computed reacts to tab changes but uses the stable `todosResource.data()` without triggering refetches.
+
+##### Solution 3: Memo Inside Loader
+
+Instead of creating the model statically in `extend`, create it dynamically using `memo` inside the loader. This is the same pattern as Solution 2, but the model is created inside the loader. It may be useful if you have a temporal (for the route) state, which you want to clear when the route becomes inactive (the meaning of the factory pattern).
+
+```typescript
+import { memo, computed, withAsyncData, wrap } from '@reatom/core'
+
+const todosRoute = reatomRoute({
+  path: 'todos',
+  search: z.object({
+    tab: z.enum(['all', 'open', 'closed']).optional(),
+  }),
+  async loader(params) {
+    const model = memo(() => {
+      // ✅ Track the route match to recreate the model on route remount
+      todosRoute.match()
+
+      const todosResource = computed(async () => {
+        if (!todosRoute.match()) return []
+        return await wrap(fetch('/api/todos').then((r) => r.json()))
+      }, `${todosRoute.name}.todosResource`).extend(
+        withAsyncData({ initState: [] }),
+      )
+
+      // ✅ Create local states fro the current route visit lifetime
+      const search = searchParamsAtom.lens('search', { replace: true })
+
+      const filteredList = computed(() => {
+        let todos = todosResource.data()
+
+        const tab = params.tab || 'all'
+
+        if (tab === 'open') todos = todos.filter((t) => !t.completed)
+        else if (tab === 'closed') todos = todos.filter((t) => t.completed)
+
+        const searchState = search().toLowerCase()
+
+        return todos.filter((t) => t.title.toLowerCase().includes(searchState))
+      }, `${target.name}.filteredList`)
+
+      return {
+        todosResource,
+        filteredList,
+      }
+    })
+
+    return model
+  },
+})
+```
+
+The `memo` functions ensure that the whole model is only created once when the loader first runs. The model lifetime controlled only by atoms read inside `memo` (which is only `match` in this case).
+
+**When to Use Each Solution:**
+
+- **Solution 1** (Separate Search Params): Best when search parameters are truly independent UI state that shouldn't affect your models (e.g., UI filters, view modes, sorting)
+- **Solution 2** (Separate Model Atom): Best when you want the model lifecycle tied to route matching rather than parameter changes
+- **Solution 3** (Memo): Best when you need fine-grained control over which parameters trigger model recreation, especially when some parameters should be stable
+
 ## Troubleshooting
 
 Summary of common errors and their solution
