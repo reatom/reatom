@@ -17,7 +17,12 @@ export const reatomRecord = <T extends Rec>(
     merge: (slice: Partial<T>) =>
       target.set((prev) => {
         for (const key in prev) {
-          if (!Object.is(prev[key], slice[key])) {
+          if (key in slice && !Object.is(prev[key], slice[key])) {
+            return { ...prev, ...slice }
+          }
+        }
+        for (const key in slice) {
+          if (!(key in prev)) {
             return { ...prev, ...slice }
           }
         }
