@@ -87,7 +87,7 @@ export let reatomComponent = <Props extends Rec = {}>(
   Component: (props: Props) => React.ReactNode,
   name?: string,
 ): ((props: Props) => React.ReactNode) => {
-  name ||= Component.name || named('Component')
+  name ||= named('Component', Component.name)
 
   return {
     [name](props: Props): React.ReactNode {

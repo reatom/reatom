@@ -58,6 +58,7 @@ export let effect = <T>(cb: () => T, name?: string) => {
     let topFrame = top()
     name = named(
       topFrame.atom === context ? 'effect' : `${topFrame.atom.name}.effect`,
+      cb.name,
     )
   }
 

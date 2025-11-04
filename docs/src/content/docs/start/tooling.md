@@ -22,6 +22,22 @@ root.render(<App />)
 
 ## Eslint
 
-We recommend using ESLint to enforce best practices and coding standards in your Reatom projects. We will publish our own eslint plugin for names autofix soon, but now you can use this plugin to automate your react components naming:
+We recommend using ESLint to enforce best practices and coding standards in your Reatom projects. We will publish our own ESLint plugin for name autofix soon, but you can use this plugin right now to automate `action`, `computed`, `effect` naming:
 
 - https://github.com/artalar/eslint-plugin-react-component-name
+
+```json
+{
+  "plugins": ["react-component-name"],
+  "rules": {
+    "prefer-arrow-callback": ["error", { "allowNamedFunctions": true }],
+
+    "react-component-name/react-component-name": [
+      "error",
+      {
+        "targets": ["action", "computed", "effect", "reatomComponent"]
+      }
+    ]
+  }
+}
+```

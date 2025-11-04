@@ -522,11 +522,13 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 }
 
 let i = 0
+// @ts-expect-error
 export let named: {
   <T extends string>(name: T): `${T}#${number}`
-  (name: string | TemplateStringsArray): `${string}#${number}`
-} = (name: string | TemplateStringsArray): `${string}#${number}` => {
-  return `${name}#${++i}`
+  (name: string, suffix: string): string
+  (name: string | TemplateStringsArray, suffix?: string): string
+} = (name: string | TemplateStringsArray, suffix): string => {
+  return `${suffix || name}#${++i}`
 }
 
 declare global {
@@ -716,7 +718,7 @@ export let createAtom: {
     initState?: State | (() => State)
     computed?: (prev: State | undefined) => State
   },
-  name: string = named('atom'),
+  name: string = named('atom', setup?.computed?.name),
 ): Atom<State> => {
   let precompiledComputed =
     setup.computed && atomMiddleware.bind(null, setup.computed)
