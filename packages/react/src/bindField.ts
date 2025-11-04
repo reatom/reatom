@@ -41,7 +41,7 @@ export function bindField<T = any>(
 
     const controller = abortVar.get()
 
-    return { onChange, onBlur, onFocus, controller }
+    return { onChange, onBlur, onFocus, field, controller }
   }
 
   const value = field.value()
@@ -49,7 +49,7 @@ export function bindField<T = any>(
   let ref = memoKey(field.name, () => ({
     current: create(),
   }))
-  if (ref.current.controller?.signal.aborted) {
+  if (ref.current.controller?.signal.aborted || ref.current.field !== field) {
     ref.current = create()
   }
 
