@@ -79,11 +79,9 @@ test('max overloads', () => {
 
 test('bind assigned functions', () => {
   const name = 'bindFunctions'
-  const number = atom(0, `${name}.number`).actions((target) => ({
-    inc: (to = 1) => target.set(target() + to),
+  const number = atom(0, `${name}.number`).extend((target) => ({
+    inc: action((to = 1) => target.set(target() + to), `${target.name}.inc`),
   }))
-
-  expectTypeOf(number.inc).toExtend<Action<[number?], number>>()
 
   expect(typeof number.inc).toBe('function')
   expect(isAction(number.inc)).toBeTruthy()

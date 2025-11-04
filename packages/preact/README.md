@@ -28,7 +28,7 @@ The primary API to bind atoms and actions to a component's lifetime is `reatomCo
 import { atom, wrap } from '@reatom/core'
 import { reatomComponent } from '@reatom/preact'
 
-export const page = atom(0, 'page').actions((target) => ({
+export const page = atom(0, 'page').extend((target) => ({
   next: () => target((state) => state + 1),
   prev: () => target((state) => Math.max(0, state - 1)),
 }))

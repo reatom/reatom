@@ -118,8 +118,6 @@ import { atom } from '@reatom/core'
 export const list = atom([], 'list')
   .extend((target) => ({
     isLoading: atom(false, `${target.name}.isLoading`),
-  }))
-  .actions((target) => ({
     async load(page: number) {
       target.isLoading.set(true)
       const response = await fetch(`/api/list?page=${page}`)

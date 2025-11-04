@@ -5,7 +5,7 @@ export const CODE_EXAMPLES = [
     description: 'Base building blocks example',
     code: `import { atom, computed, effect } from '@reatom/core'
 
-const counter = atom(0).actions((target) => ({
+const counter = atom(0).extend((target) => ({
   increment: (amount = 1) => target.set((prev) => prev + amount),
   decrement: (amount = 1) => target.set((prev) => prev - amount),
   reset: () => target.set(0),
@@ -27,8 +27,8 @@ counter.decrement(2)
         note: 'Create a state container',
       },
       {
-        pattern: 'actions(',
-        note: 'Assign relative actions (optional)',
+        pattern: '.extend',
+        note: 'Extend atom with methods (optional)',
       },
       {
         pattern: 'computed(',
@@ -51,7 +51,7 @@ const data = atom([])
   .extend(() => ({
     isLoading: atom(false),
   }))
-  .actions((target) => ({
+  .extend((target) => ({
     async load() {
       target.isLoading.set(true)
       const payload = await api.getData()

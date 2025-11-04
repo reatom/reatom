@@ -78,7 +78,11 @@ export interface AtomLike<
 
   set: unknown
 
-  /** Bind methods to the atom to extend its functionality. */
+  /**
+   * Bind methods to the atom to extend its functionality.
+   *
+   * @deprecated Use `extend` instead
+   */
   actions: Actions<this>
 
   /**

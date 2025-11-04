@@ -3,13 +3,13 @@ title: Actions
 description: Reatom actions and code organization
 ---
 
-import { Aside } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components'
 
 Action is a base Reatom primitive that **increases the quality of your code** in many ways: organization and readability, debugability, extensibility.
 
 The beauty of Reatom is that you don't need to use actions for simple updates, like `(value) => myAtom.set(value)`. Actions are useful for complex operations, like data mappings, API calls and other side effects.
 
-You can call actions anywhere just like regular functions. You can describe its parameters just like with regular functions. You can type your action function with generics as usual. `action` itself is a simple decorator which adds some extra features to your function, but does not limit you in any way.
+You can call actions anywhere just like regular functions. You can describe its parameters just like with regular functions. You can type your action function with TypeScript generics as usual. `action` itself is a simple decorator which adds some extra features to your function, but does not limit you in any way.
 
 ```ts
 import { atom, action } from '@reatom/core'
@@ -31,6 +31,8 @@ const loadList = action(async (page: number) => {
 loadList(1) // Promise
 ```
 
+Note that `action` is an optional feature and not required in your code, but it is always nice to use it.
+
 ## Naming
 
 Most Reatom units accept an optional name for debugging purposes. We highly recommend using it, as it helps to debug the runtime dataflow.
@@ -47,60 +49,36 @@ const loadList = action(async (page: number) => {
 That's better!
 
 <Aside type="tip">
-If you use some LLM code assistant it will help you to write related names for you. 
-Also, we have an eslint plugin for this: [check out tooling](/start/tooling/).
+  If you use some LLM code assistant it will help you to write related names for
+  you, but we have an eslint plugin to automate it. You can find the plugin and
+  useful logger in [out tooling section](/start/tooling/).
 </Aside>
 
-However, each atom has a `.actions` method to bind and name related actions.
+## Extend
 
-## Actions method
+Under the hood action is a special type of atom; it gives us the ability to reuse many patterns and extensions. In the next chapter, we will get to know extensions more closely, but for now, let's learn how to better organize our code.
 
-It accepts a callback for creating related methods, it is called immediately and returns the original atom. The callback accepts the processed `target` as an argument and should return an object with related methods.
-
-```ts del={10} ins={11} /\(target\)/
-import { atom, action } from '@reatom/core'
-
-export const list = atom([], 'list').actions(
-  (target) => ({
-    async load(page: number) {
-      isListLoading.set(true)
-      try {
-        const response = await fetch(`/api/list?page=${page}`)
-        const payload = await response.json()
-        list.set(payload)
-        target.set(payload)
-      } finally {
-        isListLoading.set(false)
-      }
-    },
-  }),
-)
-const isListLoading = atom(false, 'isListLoading')
-
-list.load(1) // returns Promise
-```
-
-`.actions` converts passed methods to actions with relevant names. The code becomes more elegant and better organized!
-
-But what if we want to proceed with this domain code organization and combine all things together? We have the `.extend` method for that!
+`extend` accept a callback with the processed target, which return an object to assign to the target.
 
 ```ts /target/
 import { atom, action } from '@reatom/core'
 
-export const list = atom([], 'list')
-  .extend((target) => ({
-    // describe things that you want to assign to the current atom
-    isLoading: atom(false, `${target.name}.isLoading`),
-  }))
-  .actions((target) => ({
-    async load(page: number) {
-      target.isLoading.set(true)
-      const response = await fetch(`/api/list?page=${page}`)
-      const payload = await response.json()
-      target.set(payload)
-      target.isLoading.set(false)
-    },
-  }))
+export const list = atom([], 'list').extend((target) => {
+  const isLoading = atom(
+    false,
+    // compute the name from the target
+    `${target.name}.isLoading`,
+  )
+  const load = action(async (page: number) => {
+    // ...
+  }, `${target.name}.load`)
+
+  // return things that you want to assign to the current atom
+  return {
+    isLoading,
+    load,
+  }
+})
 ```
 
 Now you can access your states in a clean and readable way:
@@ -111,7 +89,6 @@ import { reatomComponent } from '@reatom/react'
 import { list } from './model'
 
 const Paging = reatomComponent(() => {
-
   const [page, setPage] = React.useState(1)
 
   React.useEffect(() => {

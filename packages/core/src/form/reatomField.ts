@@ -100,8 +100,7 @@ export interface FieldLikeAtom<State = any> extends Atom<State> {
   __reatomField: true
 }
 
-export interface FieldAtom<State = any, Value = State>
-  extends FieldLikeAtom<State> {
+export interface FieldAtom<State = any, Value = State> extends FieldLikeAtom<State> {
   /**
    * Action for handling field changes, accepts the "value" parameter and
    * applies it to `toState` option.

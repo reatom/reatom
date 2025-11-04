@@ -73,6 +73,12 @@ export let isAction = (target: unknown): target is Action =>
  * @returns An action instance that can be called with the specified parameters
  */
 export let action: {
+  // special case for type inference of optional parameters
+  <Param, Payload = any>(
+    cb: (() => Payload) | ((param?: Param) => Payload),
+    name?: string,
+  ): Action<[Param?], Payload>
+
   <Params extends any[] = any[], Payload = any>(
     cb: (...params: Params) => Payload,
     name?: string,

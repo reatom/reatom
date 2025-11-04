@@ -1,7 +1,7 @@
 import { expectTypeOf, test } from 'test'
 
 import type { OverloadParameters } from '../utils'
-import { action } from './'
+import { type Action,action } from './'
 
 test('one generic action', () => {
   const a = action(<T extends string | number>(value: T): T => value)
@@ -24,6 +24,20 @@ test('one generic action', () => {
 
   expectTypeOf(a(1)).toBeNumber()
   expectTypeOf(a('')).toBeString()
+})
+
+test('optional parameter inference', () => {
+  const a = action((value: number = 1) => value)
+  //    ^?
+
+  expectTypeOf(a).toBeFunction()
+  expectTypeOf(a).toExtend<Action<[(number | undefined)?], number>>()
+
+  expectTypeOf(a).parameters.toEqualTypeOf<[number?]>()
+  expectTypeOf(a).returns.toEqualTypeOf<number>()
+
+  expectTypeOf(a()).toBeNumber()
+  expectTypeOf(a(1)).toBeNumber()
 })
 
 test('few generics action', () => {
