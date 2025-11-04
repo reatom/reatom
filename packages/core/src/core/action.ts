@@ -73,6 +73,14 @@ export let isAction = (target: unknown): target is Action =>
  * @returns An action instance that can be called with the specified parameters
  */
 export let action: {
+  // TODO support the second optional argument (currently falling to unknown in some cases)
+  // <Param1, Param2, Payload>(
+  //   cb:
+  //     | ((param1: Param1) => Payload)
+  //     | ((param1: Param1, param2?: Param2) => Payload),
+  //   name?: string,
+  // ): Action<[Param1, Param2?], Payload>
+
   // special case for type inference of optional parameters
   <Param, Payload = any>(
     cb: (() => Payload) | ((param?: Param) => Payload),

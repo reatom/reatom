@@ -192,18 +192,18 @@ userRoute() // { userId: '123' }
 
 ### Component Composition Pattern
 
-Reatom routing provides a **framework-agnostic component composition pattern** through the `child` option. This allows you to define components directly in your routes and compose them hierarchically, with automatic mounting/unmounting management - no framework coupling required!
+Reatom routing provides a **framework-agnostic component composition pattern** through the `render` option. This allows you to define components directly in your routes and compose them hierarchically, with automatic mounting/unmounting management - no framework coupling required!
 
-Each route may have a `child` function that returns a component. This component will be added automatically in the parent children list when the route is active/inactive.
+Each route may have a `render` function that returns a component. This component will be added automatically in the parent outlet list when the route is active/inactive.
 
 ```typescript
 import { reatomRoute } from '@reatom/core'
 
 const layoutRoute = reatomRoute({
-  child(children) {
+  render({ outlet }) {
     return html`<div>
       <header>My App</header>
-      <main>${children()}</main>
+      <main>${outlet().map((child) => child)}</main>
       <footer>© 2025</footer>
     </div>`
   },
@@ -211,7 +211,7 @@ const layoutRoute = reatomRoute({
 
 const aboutRoute = layoutRoute.reatomRoute({
   path: 'about',
-  child() {
+  render() {
     return html`<article>
       <h1>About</h1>
       <p>Welcome to our app!</p>
@@ -224,7 +224,7 @@ const userRoute = layoutRoute.reatomRoute({
   async loader({ userId }) {
     return api.getUser(userId)
   },
-  child() {
+  render() {
     if (!userRoute.loader.ready()) return html`<div>Loading...</div>`
     const user = userRoute.loader.data()
     return html`<article>
@@ -235,19 +235,19 @@ const userRoute = layoutRoute.reatomRoute({
 })
 ```
 
-Render your entire app by calling `.child()` on the root route:
+Render your entire app by calling `.render()` on the root route:
 
 ```typescript
 const App = computed(() => {
-  return html`<div>${layoutRoute.child()}</div>`
+  return html`<div>${layoutRoute.render()}</div>`
 })
 ```
 
 **How it works:**
 
-1. **`child` option** - Each route can define a `child` function that returns your component (string, object, or any type)
-2. **`children()` computed** - Returns an array of all active child routes' rendered components
-3. **Automatic rendering** - When the URL matches a route, its `child()` is called and added to parent's `children()`
+1. **`render` option** - Each route can define a `render` function that returns your component (string, object, or any type)
+2. **`outlet()` computed** - Returns an array of all active child routes' rendered components
+3. **Automatic rendering** - When the URL matches a route, its `render()` is called and added to parent's `outlet()`
 4. **Memory management** - Components are automatically cleaned up when routes become inactive
 5. **Layout routes** - Routes can omit the `path` to act as pure layout wrappers (always active)
 
@@ -281,18 +281,18 @@ declare module '@reatom/core' {
 
 Here is how it would look like in React:
 
-> IMPORTANT NOTE: you cannot use hooks inside `child` function, because it's not a React component.
+> IMPORTANT NOTE: you cannot use hooks inside `render` function, because it's not a React component.
 
 ```tsx
 import { reatomRoute } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
 const layoutRoute = reatomRoute({
-  child(children) {
+  render({ outlet }) {
     return (
       <div>
         <header>My App</header>
-        <main>${children()}</main>
+        <main>{outlet().map((child) => child)}</main>
         <footer>© 2025</footer>
       </div>
     )
@@ -302,7 +302,7 @@ const layoutRoute = reatomRoute({
 const About = React.lazy(() => import('./About'))
 const aboutRoute = layoutRoute.reatomRoute({
   path: 'about',
-  child() {
+  render() {
     return (
       <Suspense fallback={<div>Loading...</div>}>
         <About />
@@ -312,25 +312,25 @@ const aboutRoute = layoutRoute.reatomRoute({
 })
 
 const App = reatomComponent(() => {
-  return <div>{layoutRoute.child()}</div>
+  return <div>{layoutRoute.render()}</div>
 })
 ```
 
 #### Recursive type errors
 
-If you see "'child' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.ts(7023)" you just need to type the child function implicitly:
+If you see "'render' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.ts(7023)" you just need to type the render function implicitly:
 
 ```tsx /: RouteChild/
 const layoutRoute = reatomRoute({
   async loader() {
     /* ... */
   },
-  child(children): RouteChild {
+  render({ outlet }): RouteChild {
     if (!layoutRoute.loader.ready()) return <Loader />
     return (
       <div>
         <header>My App</header>
-        <main>${children()}</main>
+        <main>{outlet().map((child) => child)}</main>
         <footer>© 2025</footer>
       </div>
     )

@@ -50,6 +50,9 @@ export interface RouteOptions<
 
   loader?: (params: LoaderParams) => Promise<Payload>
 
+  render?: (options: { outlet: RouteAtom['outlet'] }) => RouteChild
+
+  /** @deprecated Use `render({outlet})` instead */
   child?: (children: RouteAtom['children']) => RouteChild
 }
 
@@ -159,15 +162,14 @@ export interface RouteLoader<Params extends Rec = Rec, Payload = any>
   extends Computed<Promise<Payload>>,
     AsyncDataExt<[Params], Payload, undefined | Payload, Error | undefined> {}
 
-export interface RouteAtom<
+export interface RouteExt<
   Path extends string = string,
   Params extends PathKeys<Path> = PathParams<Path>,
   Search extends Rec<string> = {},
   Payload = Plain<Params & Search>,
   InputParams = Params,
   InputSearch = Search,
-> extends Computed<null | Plain<Params & Search>>,
-    RouteMixin<Path, Params> {
+> extends RouteMixin<Path, Params> {
   go: Action<
     [params: MaybeVoid<InputParams & InputSearch>, replace?: boolean], // Updated signature: single optional object argument
     URL
@@ -183,10 +185,26 @@ export interface RouteAtom<
 
   routes: Rec<RouteAtom>
 
+  outlet: Computed<RouteChild[]>
+
+  render: Computed<null | RouteChild>
+
+  /** @deprecated Use `outlet` instead */
   children: Computed<RouteChild[]>
 
+  /** @deprecated Use `render` instead */
   child: Computed<null | RouteChild>
 }
+
+export interface RouteAtom<
+  Path extends string = string,
+  Params extends PathKeys<Path> = PathParams<Path>,
+  Search extends Rec<string> = {},
+  Payload = Plain<Params & Search>,
+  InputParams = Params,
+  InputSearch = Search,
+> extends Computed<null | Plain<Params & Search>>,
+    RouteExt<Path, Params, Search, Payload, InputParams, InputSearch> {}
 
 const getPatternName = (part: string) => {
   const start = part.startsWith(':') ? 1 : 0
@@ -216,7 +234,14 @@ const createRouteFactory = (
       search: searchSchema,
       loader: optionsLoader = identity,
       child: childFn,
+      render: renderFn = childFn && (({ outlet }) => childFn(outlet)),
     } = options
+
+    if (childFn) {
+      console.warn(
+        `[reatom] Route option \`child\` is deprecated. Use \`render({outlet})\` instead.`,
+      )
+    }
 
     if (subPath.startsWith('/')) {
       throw new Error(
@@ -328,7 +353,7 @@ const createRouteFactory = (
       })
     }, `${name}.exact`)
 
-    const go = action((params: void | any, replace = false) => {
+    const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
         const newUrl = new URL(getPath(params), url)
         if (isSearchOnlyRoute && url.pathname.startsWith(newUrl.pathname)) {
@@ -336,7 +361,7 @@ const createRouteFactory = (
         }
         return newUrl
       }, replace)
-    }, `${name}.go`)
+    }, `${name}.go`) as Action as RouteExt['go']
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {
       if (parent() === null) return null
@@ -398,21 +423,25 @@ const createRouteFactory = (
 
       const routes: RouteAtom['routes'] = {}
 
-      const children = computed(() => {
+      const outlet = computed(() => {
         const result: RouteChild[] = []
         for (let pattern in routes) {
-          let child = routes[pattern]!.child()
-          if (child) {
-            result.push(child)
+          let render = routes[pattern]!.render()
+          if (render != null) {
+            result.push(render)
           }
         }
         return result
-      }, `${name}._children`)
+      }, `${name}._outlet`)
 
-      const child = computed(() => {
+      const render = computed(() => {
         // FIXME memo route patch, do not subscribe to params changes
-        return childFn && routeAtom() ? childFn(children) : null
-      }, `${name}._child`)
+        return renderFn && routeAtom() ? renderFn({ outlet }) : null
+      }, `${name}._render`)
+
+      const children = outlet
+
+      const child = render
 
       return {
         go,
@@ -421,11 +450,13 @@ const createRouteFactory = (
         pattern,
         path: getPath,
         routes,
+        outlet,
+        render,
         children,
         child,
         reatomRoute,
         route: reatomRoute,
-      }
+      } as RouteExt
     }) as RouteAtom
 
     parent.routes[pattern] = urlAtom.routes[pattern] = routeAtom

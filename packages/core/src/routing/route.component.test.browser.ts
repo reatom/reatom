@@ -110,10 +110,10 @@ test('components', async () => {
   }
 
   const layoutRoute = reatomRoute({
-    child(children) {
+    render({ outlet }) {
       return html`<div>
         <header></header>
-        <main>${children().map((child) => child)}</main>
+        <main>${outlet().map((child) => child)}</main>
         <footer></footer>
       </div>`
     },
@@ -121,7 +121,7 @@ test('components', async () => {
 
   const aboutRoute = layoutRoute.reatomRoute({
     path: 'about',
-    child() {
+    render() {
       // const About = lazy(() => import('./About'))
       const About = () => 'About'
       return html`<article>${About()}</article>`
@@ -133,7 +133,7 @@ test('components', async () => {
     async loader() {
       return api.me()
     },
-    child(): RouteChild {
+    render(): RouteChild {
       return html`<article>
         ${userPageRoute.loader.ready() || 'Loading...'}
         ${userPageRoute.loader.data()}
@@ -143,7 +143,7 @@ test('components', async () => {
 
   // root.ts
   const App = computed(() => {
-    return html`${layoutRoute.child()}`
+    return html`${layoutRoute.render()}`
   })
 
   expect(App()).toBe(
