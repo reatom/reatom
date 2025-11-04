@@ -120,7 +120,7 @@ export const onEvent: {
 
   let frame = top()
   let name = frame.atom === context ? '' : `${frame.atom.name}.`
-  name += `onEvent.${Object.getPrototypeOf(target).constructor.name}.${type}`
+  name += `_onEvent.${Object.getPrototypeOf(target).constructor.name}.${type}`
 
   let abortSubscription = abortVar.subscribe()
 
