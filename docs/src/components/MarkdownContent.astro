@@ -1,10 +1,13 @@
 ---
 import DefaultMarkdownContent from '@astrojs/starlight/components/MarkdownContent.astro'
+import ReplScript from './ReplScript.astro'
 ---
 
 <DefaultMarkdownContent {...Astro.props as any}>
   <slot />
 </DefaultMarkdownContent>
+
+<ReplScript />
 
 <script>
   // prettier-ignore

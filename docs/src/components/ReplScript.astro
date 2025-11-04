@@ -1,0 +1,37 @@
+---
+// Component to provide LOAD method for loading @reatom/core in devtools
+---
+
+<script>
+  async function LOAD() {
+    // @ts-ignore
+    const Reatom = await import('https://esm.sh/@reatom/core@alpha')
+
+    for (const [key, value] of Object.entries(Reatom)) {
+      if (key === 'setTimeout') continue
+      try {
+        window[key] = value
+      } catch {
+        // nothing
+      }
+    }
+
+    Reatom.connectLogger()
+
+    console.log(
+      '%c✓ Reatom REPL Loaded',
+      'color: #bca4e0; font-size: 16px; font-weight: bold;',
+    )
+    console.log('%cTry:', 'font-weight: bold;')
+    console.log('const count = atom(0, "count"); count.set(5);')
+  }
+
+  // @ts-ignore
+  window.LOAD = LOAD
+
+  console.log(
+    'Call %cLOAD()%c to load @reatom/core in the console',
+    'font-weight: bold; color: #bca4e0;',
+    '',
+  )
+</script>
