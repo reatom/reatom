@@ -122,7 +122,7 @@ export function extend<This extends AtomLike>(
       }
       if (!result) throw new ReatomError('extension can not return nothing')
       for (let key in result as Rec) {
-        if (key in this)
+        if (key in this && (this as AtomLike & Rec)[key] !== result[key])
           throw new ReatomError(
             `extension can not override existing methods: ${key}`,
           )
