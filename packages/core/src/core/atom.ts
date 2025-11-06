@@ -559,9 +559,10 @@ export function _isPubsChanged(
     // try to reduce extra atom calls
     let pubFrame = frame.root.store.get(pubAtom)!
 
-    if (pubFrame.atom.__reatom.processing) {
-      // force to fail `Object.is` check
-      pubFreshState = pubFrame
+    if (pubFrame.atom.__reatom.processing && pubFrame.pubs[0] === null) {
+      // Cycle. Cache self last state, do not fall to recompute on pub old state
+      frame.pubs.push(pubs[i]!)
+      continue
     } else if (
       pubFrame.pubs.length === 1 ||
       (pubFrame.pubs[0] !== null && pubFrame.subs.length !== 0)
@@ -848,11 +849,6 @@ export let createAtom: {
           STACK.pop()
         } else if (topFrame.atom.__reatom.linking) {
           topFrame.pubs.push(frame)
-
-          // if (frame.atom.__reatom.processing) {
-          //   ;(topFrame.pubs[topFrame.pubs.length - 1] =
-          //     Object.create(frame)).state = frame.state
-          // }
         }
 
         if (frame.error != null) {
