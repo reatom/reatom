@@ -1,9 +1,10 @@
-import { describe, expect, test, vi } from 'vitest'
+import { describe, expect, expectTypeOf, test, vi } from 'vitest'
 import { z } from 'zod'
 
-import { noop, notify, reatomBoolean, sleep, withCallHook, wrap } from '../'
+import { type Atom,atom, noop, notify, reatomBoolean, sleep, withCallHook, wrap } from '../'
 import {
   experimental_fieldArray,
+  type FieldAtom,
   reatomField,
   reatomFieldSet,
   reatomForm,
@@ -29,6 +30,24 @@ test(`adding and removing fields`, async () => {
 
   form.fields.list.clear()
   expect(form.fields.list().size).toBe(0)
+})
+
+test(`fields type inference from init state`, () => {
+  const form = reatomForm({
+    string: reatomField(''),
+    stringExt: atom('').extend(withField()),
+    numberExt: atom(0).extend(withField({ fromState: (state) => String(state) })),
+    options: { initState: 123 },
+    optionsWithValue: { initState: 123, fromState: (state) => String(state) },
+    optionsWithGarbage: { initState: 123, garbage: true },
+  })
+
+  expectTypeOf(form.fields.string).toEqualTypeOf<FieldAtom<string, string>>()
+  expectTypeOf(form.fields.stringExt).toEqualTypeOf<Atom<string, [newState: string]> & FieldAtom<string, string>>()
+  expectTypeOf(form.fields.numberExt).toEqualTypeOf<Atom<number, [newState: number]> & FieldAtom<number, string>>()
+  expectTypeOf(form.fields.options).toEqualTypeOf<FieldAtom<number, number>>()
+  expectTypeOf(form.fields.optionsWithValue).toEqualTypeOf<FieldAtom<number, string>>()
+  expectTypeOf(form.fields.optionsWithGarbage).toBeNever()
 })
 
 test('focus states', () => {

@@ -99,7 +99,9 @@ export type FormFieldElement<
             ? FieldAtom<State>
             : T extends FieldOptions<State, infer Value>
               ? FieldAtom<State, Value>
-              : never
+              : { initState: State } extends T 
+                ? FieldAtom<State, State> 
+                : never
           : T extends Rec<unknown>
             ? { [K in keyof T]: FormFieldElement<T[K]> }
             : FieldAtom<T>
