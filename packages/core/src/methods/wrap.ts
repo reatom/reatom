@@ -1,7 +1,7 @@
 import type { Frame } from '../core'
 import { STACK, top } from '../core'
 import type { Fn } from '../utils'
-import { noop } from '../utils'
+import { isAbort, noop } from '../utils'
 import { type AbortSubscription, abortVar } from './abortVar'
 
 /**
@@ -76,7 +76,7 @@ export let wrap: {
     // prevent unhandled error for abort
     if (abortSubscription) {
       if (abortSubscription.controller.signal.aborted) promise?.catch(noop)
-      abortSubscription?.unsubscribe()
+      abortSubscription.unsubscribe()
     }
 
     queueMicrotask(() => void STACK.push(frame))
@@ -87,13 +87,23 @@ export let wrap: {
   promise = new Promise(async (resolve, reject) => {
     try {
       abortSubscription = abortVar.subscribe((error) => {
-        seal(() => reject(error))
+        if (promise) {
+          seal(() => reject(error))
+          seal = noop
+        }
       })
 
       let value = await target
 
       seal(() => resolve(value))
     } catch (error) {
+      if (isAbort(error)) {
+        if (promise) {
+          promise.catch(noop)
+        } else {
+          queueMicrotask(() => promise!.catch(noop))
+        }
+      }
       seal(() => reject(error))
     }
   })

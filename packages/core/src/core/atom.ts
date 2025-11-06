@@ -560,11 +560,9 @@ export function _isPubsChanged(
     let pubFrame = frame.root.store.get(pubAtom)!
 
     if (pubFrame.atom.__reatom.processing) {
-      frame.pubs.push(pubs[i]!)
-      continue
-    }
-
-    if (
+      // force to fail `Object.is` check
+      pubFreshState = pubFrame
+    } else if (
       pubFrame.pubs.length === 1 ||
       (pubFrame.pubs[0] !== null && pubFrame.subs.length !== 0)
     ) {
@@ -580,14 +578,14 @@ export function _isPubsChanged(
       pubFrame = frame.root.store.get(pubAtom)!
     }
 
-    frame.pubs.push(pubFrame)
-
     if (
       !Object.is(pubState, pubFreshState) ||
       !Object.is(pubError, pubFreshError)
     ) {
       frame.pubs = [null]
       return true
+    } else {
+      frame.pubs.push(pubFrame)
     }
   }
 
@@ -766,14 +764,12 @@ export let createAtom: {
           if (typeof initState === 'function') {
             try {
               STACK.push(frame)
-              if (reactive) target.__reatom.processing = true
               frame.state = initState() as State
             } catch (error) {
               frame.error = error ?? new ReatomError('Unknown error')
               frame.pubs[0] = topFrame.root.frame
               throw error
             } finally {
-              if (reactive) target.__reatom.processing = false
               STACK.pop()
             }
           } else {
@@ -852,6 +848,11 @@ export let createAtom: {
           STACK.pop()
         } else if (topFrame.atom.__reatom.linking) {
           topFrame.pubs.push(frame)
+
+          // if (frame.atom.__reatom.processing) {
+          //   ;(topFrame.pubs[topFrame.pubs.length - 1] =
+          //     Object.create(frame)).state = frame.state
+          // }
         }
 
         if (frame.error != null) {

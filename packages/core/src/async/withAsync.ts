@@ -187,7 +187,7 @@ export let withAsync: {
         computed: target.__reatom.reactive
           ? (state) => {
               target()
-              state
+              return state
             }
           : undefined,
       },
@@ -220,10 +220,10 @@ export let withAsync: {
 
       promise.then(
         bind((payload) => {
-          abortVar.spawn(() => onFulfill(payload, params))
+          abortVar.spawn(onFulfill, payload, params)
         }, frame),
         bind((error) => {
-          abortVar.spawn(() => onReject(error, params))
+          abortVar.spawn(onReject, error, params)
         }, frame),
       )
 

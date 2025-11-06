@@ -16,9 +16,9 @@ import { wrap } from '../methods'
  * plan the execution logic to handle potential retries safely.
  *
  * @example
- *   const fetchUser = action(async () => {
+ *   const fetchUserBooks = action(async () => {
  *     const id = user().id // `user` is a suspended atom
- *     const response = await fetch(`/api/users/${id}`)
+ *     const response = await fetch(`/api/users/${id}/books`)
  *     return response.json()
  *   }).extend(withSuspenseRetry())
  *

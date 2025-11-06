@@ -336,6 +336,29 @@ test('abort propagation', async () => {
   ).not.toThrow()
 })
 
+test('few calls in a row', async () => {
+  const name = 'fewCallsInRow'
+
+  const counter = atom(0, `${name}.counter`)
+  const resource = computed(async () => {
+    const value = counter()
+    await wrap(sleep(value))
+    return value
+  }, `${name}.resource`).extend(withAsyncData())
+
+  await wrap(resource())
+
+  counter.set((s) => s + 1)
+  resource()
+  // do NOT uncomment next line and read pending atom, as it removes the initial problem
+  // expect(resource.pending()).toBe(1)
+  counter.set((s) => s + 1)
+  const promise = resource()
+  await wrap(promise)
+
+  expect(resource.pending()).toBe(0)
+})
+
 // TODO just predefine actions WITH PERSIST CACHE and you get a nicer version of FSM.
 /*
 const askProfileSurvey = reatomFSM(

@@ -3,7 +3,8 @@ import { action, ReatomError, top } from '../core'
 import { ReatomAbortController } from '../methods'
 import { abortVar } from '../methods'
 import { _getPrevFrame } from '../methods/context'
-import type { Fn } from '../utils'
+import { throwIfAborted } from '../utils'
+import { type Fn } from '../utils'
 import { assert, isAbort, noop } from '../utils'
 
 export interface AbortExt {
@@ -51,19 +52,33 @@ export let withAbort = (
         : state.at(-1)?.payload
 
       if (maybePromise instanceof Promise) {
-        maybePromise = new Promise((res, rej) => {
-          let abortSubscription = abortVar.subscribe(rej)
-          ;(maybePromise as Promise<any>)
-            .then((value) => {
-              abortSubscription.unsubscribe()
-              res(value)
+        let sync = true
+        maybePromise = new Promise(async (res, rej) => {
+          let abortSubscription
+          try {
+            abortSubscription = abortVar.subscribe((error) => {
+              if (!sync) {
+                maybePromise.catch(noop)
+                rej(error)
+              }
             })
-            .catch((error) => {
-              if (isAbort(error)) maybePromise.catch(noop)
-              abortSubscription.unsubscribe()
-              rej(error)
-            })
+            let value = await maybePromise
+            throwIfAborted(abortSubscription.controller)
+            abortSubscription.unsubscribe()
+            res(value)
+          } catch (error) {
+            if (isAbort(error)) {
+              if (sync) {
+                queueMicrotask(() => maybePromise.catch(noop))
+              } else {
+                maybePromise.catch(noop)
+              }
+            }
+            abortSubscription?.unsubscribe()
+            rej(error)
+          }
         })
+        sync = false
 
         if (target.__reatom.reactive) {
           state = maybePromise

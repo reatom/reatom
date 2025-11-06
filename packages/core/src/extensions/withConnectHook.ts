@@ -2,7 +2,7 @@ import type { AtomLike, Ext } from '../core'
 import { action } from '../core'
 import { abortVar, wrap } from '../methods'
 import type { Unsubscribe } from '../utils'
-import { noop } from '../utils'
+import { isAbort, noop } from '../utils'
 import { withAbort } from './withAbort'
 import { withCallHook } from './withChangeHook'
 
@@ -16,14 +16,18 @@ export let withConnectHook =
 
     onConnect.extend(
       withCallHook(async () => {
-        let result = cb(target)
+        try {
+          let result = cb(target)
 
-        if (result instanceof Promise) {
-          result = await wrap(result)
-        }
+          if (result instanceof Promise) {
+            result = await wrap(result)
+          }
 
-        if (typeof result === 'function') {
-          abortVar.subscribe(result)
+          if (typeof result === 'function') {
+            abortVar.subscribe(result)
+          }
+        } catch (error) {
+          if (!isAbort(error)) throw error
         }
       }),
     )

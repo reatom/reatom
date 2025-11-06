@@ -1,4 +1,4 @@
-import { bind, top } from '../core'
+import { bind, type Frame, top } from '../core'
 import type { AbortError, Unsubscribe } from '../utils'
 import { isAbort, throwIfAborted, toAbortError } from '../utils'
 import { Variable } from './variable'
@@ -32,6 +32,11 @@ export interface AbortSubscription {
   unsubscribe: Unsubscribe
   [Symbol.dispose]: Unsubscribe
   [Symbol.asyncDispose]: Unsubscribe
+  /**
+   * Controller that managed the subscribtion itself, mostly for internal usage.
+   *
+   * @private
+   */
   listenerController: AbortController
 }
 
@@ -40,6 +45,20 @@ export class AbortVariable extends Variable<
   [AbortController?]
 > {
   protected override _findReactiveStartIndex = 1
+
+  override find<Result = ReatomAbortController>(
+    cb?: (payload: undefined | ReatomAbortController) => undefined | Result,
+    frame?: Frame,
+  ): undefined | Result {
+    let result: undefined | Result
+
+    super.find((controller) => {
+      result = cb?.(controller)
+      return result !== undefined || controller?.spawned ? true : undefined
+    }, frame)
+
+    return result
+  }
 
   constructor() {
     super({
@@ -117,6 +136,9 @@ export class AbortVariable extends Variable<
     this.find((parentController) => {
       if (parentController?.signal.aborted) {
         listener(parentController.signal)
+        // console.log(
+        //   new Error('ATTENTION, throw during abortVar subscribe find'),
+        // )
         throw controller.signal.reason
       }
 
@@ -128,9 +150,7 @@ export class AbortVariable extends Variable<
         listenerController,
       )
 
-      return parentController?.spawned
-        ? false
-        : /* do nothing, continue the traverse */ undefined
+      /* return nothing to continue the traverse */
     })
 
     return {
