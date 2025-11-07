@@ -80,6 +80,15 @@ pnpm rm @reatom/core @reatom/react && pnpm i @reatom/core@latest @reatom/react@l
 
 ## Migration from v3
 
+v1000 solves the most annoying problem of v3 - explicit context management. Now, as others signals libraries, Reatom operate context by global variable which is hidden from public API. **But** the ability to create your own custom context and scope your processes is still here! With:
+
+- `clearStack()` you can throw away the default context, and add runtime checks that there should be your custom context.
+- `context.start()` you can create your own context, for SSR handler or each test run. You should use it for React `reatomContext.Provider`, but the provider required only if you choose to start with clearStack.
+- `wrap` for context preservation across async boundaries. Check the rules above.
+
+
+New rules:
+
 - **NEVER** use `ctx` or `Ctx`. The API is context-based implicitly via `wrap`.
 - `ctx.schedule(() => promise)` -> `wrap(promise)`
 - `ctx.spy(dataAtom)` -> `data()`
