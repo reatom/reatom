@@ -5,10 +5,10 @@ description: The history of Reatom
 
 ## Zen
 
-- **Good primitive is more than a framework**
+- **Primitive outperform frameworks**
 - **Composition beats configuration**
-- **Explicit specific semantic, implicit general semantic**
-- **Compatibility is the hardest thing but it is worth it**
+- **Explicit specifics, implicit generics**
+- **Compatibility worth complexity**
 
 ## Goal
 
@@ -17,7 +17,7 @@ The main goal of Reatom is to be the best universal state manager for any kind o
 ## Evolution
 
 Reatom is built for the long haul.
-We dropped our first Long Term Support (LTS) version (v1) in [December 2019](https://github.com/reatom/reatom/releases/tag/v1.0). And it was supported for a half of decade. We are always open to issues and PRs for older versions, if it will help you!
+We dropped our first Long Term Support (LTS) version (v1) in [December 2019](https://github.com/reatom/reatom/releases/tag/v1.0). And it was supported for a half of decade. We are always open to is sues and PRs for older versions, if it will help you!
 
 We have [a lot of contributors](https://github.com/reatom/reatom/graphs/contributors) working on different packages. We are trying to build a super stable and predictable ecosystem. To achieve this, we welcome you to put your package into our monorepo and check the [contribution](/contributing) guidelines.
 
