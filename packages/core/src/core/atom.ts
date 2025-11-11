@@ -559,7 +559,10 @@ export function _isPubsChanged(
     // try to reduce extra atom calls
     let pubFrame = frame.root.store.get(pubAtom)!
 
-    if (pubFrame.atom.__reatom.processing && pubFrame.pubs[0] === null) {
+    if (
+      pubFrame.atom.__reatom.processing &&
+      Object.is(pubFrame.state, pubState)
+    ) {
       // Cycle. Cache self last state, do not fall to recompute on pub old state
       frame.pubs.push(pubs[i]!)
       continue
