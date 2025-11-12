@@ -19,7 +19,7 @@ root.render(<App />)
 For better logging, you can use built-in `log` function, it will forward all arguments to the native `console.log`.
 
 ```ts title="debug.ts"
-import { connectLogger, log } from 'reatom/core'
+import { connectLogger, log } from '@reatom/core'
 
 if (import.meta.env.MODE === 'development') {
   connectLogger()

@@ -1,3 +1,10 @@
-import { connectLogger } from "@reatom/core";
+import { connectLogger, log } from '@reatom/core'
 
-connectLogger()
+if (import.meta.env.MODE === 'development') {
+  connectLogger()
+}
+
+declare global {
+  var LOG: typeof log
+}
+globalThis.LOG = log
