@@ -11,8 +11,9 @@ import {
 import type { Fn } from '../utils'
 import { isBrowser } from '../utils'
 
-export let log = /* @__PURE__ */ (() =>
-  action<[name: string, payload: any]>((_name, payload) => payload))()
+export let LOG = /* @__PURE__ */ (() => {
+  return action<any[]>((...args) => args, 'LOG')
+})()
 
 let isSkip = (target: AtomLike) =>
   target.name.startsWith('_') || /\._/.test(target.name)
@@ -192,7 +193,13 @@ export let connectLogger = () => {
           `${title}${getSerial()}`,
           style + (error ? 'color: red;' : ''),
         )
-        if (isNodeEnv) console.log(error ?? payload)
+        if (isNodeEnv) {
+          if (target === LOG && !error) {
+            console.log(...payload)
+          } else {
+            console.log(error ?? payload)
+          }
+        }
         cb()
         const stack = getStackTrace()
         if (stack) {
@@ -200,9 +207,16 @@ export let connectLogger = () => {
           console.log(stack)
           console.groupEnd()
         }
-        if (!isNodeEnv) console.log('frame:', top())
+        if (!isNodeEnv && target !== LOG) console.log('frame:', top())
         console.groupEnd()
-        if (!isNodeEnv) console.log(error ?? payload)
+
+        if (!isNodeEnv) {
+          if (target === LOG && !error) {
+            console.log(...payload)
+          } else {
+            console.log(error ?? payload)
+          }
+        }
       } catch (error) {
         console.log('Reatom log error:', error)
       }
@@ -232,10 +246,6 @@ export let connectLogger = () => {
                   })
                 } else {
                   let call = (state as ActionState)[state.length - 1]
-
-                  if (target === log) {
-                    title = call?.params[0]
-                  }
 
                   if (error) {
                     logStack(undefined, error, () =>
@@ -275,5 +285,5 @@ export let connectLogger = () => {
   // @ts-ignore TODO
   globalThis.__REATOM.push(logExt)
 
-  log.extend(logExt)
+  LOG.extend(logExt)
 }

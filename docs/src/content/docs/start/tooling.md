@@ -5,12 +5,6 @@ description: The list of key tools for Reatom
 
 Reatom has incredible capabilities for debugging and tracing your code. We will publish our devtools soon, but now you can use `connectLogger` for simple (or not!) logging.
 
-```ts title="debug.ts"
-import { connectLogger } from 'reatom/core'
-
-connectLogger()
-```
-
 ```tsx title="main.tsx"
 import './debug' // import debug file before all other modules!
 import ReactDOM from 'react-dom/client'
@@ -18,6 +12,23 @@ import { App } from './app'
 
 const root = ReactDOM.createRoot(document.getElementById('root')!)
 root.render(<App />)
+```
+
+For better logging, you can use built-in `LOG` function, which will trace the call stack and forward all arguments to the native `console.log`.
+
+The profit of this is the more short name and that **you can put `LOG` everywhere**, logs will not be visible in production!
+
+```ts title="debug.ts"
+import { connectLogger, LOG } from 'reatom/core'
+
+if (import.meta.env.MODE === 'development') {
+  connectLogger()
+}
+
+declare global {
+  var LOG: typeof LOG
+}
+globalThis.LOG = LOG
 ```
 
 ## Eslint
