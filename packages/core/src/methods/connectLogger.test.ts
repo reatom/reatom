@@ -21,25 +21,31 @@ test('calc deps graph', async () => {
 
   // prettier-ignore
   expect(stack).toBe(
-`
-─ effect._subscribe ─ effect[#1] ┬─ counter[#2]
-                                 │
-                                 ├─ doubled[#3] ─ counter[#2]
-                                 │
-                                 └─ isEven[#4] ─ counter[#2]`.slice(1),
+    `
+─effect._subscribe
+ └─ effect[#1]
+    ├─ counter[#2]
+    ├─ doubled[#3]
+    │  └─ counter[#2]
+    └─ isEven[#4]
+       └─ counter[#2]`.slice(1),
   )
 
   counter.inc()
   await wrap(sleep())
+
   // prettier-ignore
   expect(stack).toBe(
 `
-─ effect._subscribe ─ effect[#5] ┬─ counter[#6] ─ counter.inc[#9]
-                                 │
-                                 ├─ doubled[#7] ─ counter[#6]
-                                 │
-                                 └─ isEven[#8] ─ counter[#6]`.slice(1),
-  )
+─effect._subscribe
+ └─ effect[#5]
+    ├─ counter[#6]
+    │  └─ counter.inc[#9]
+    ├─ doubled[#7]
+    │  └─ counter[#6]
+    └─ isEven[#8]
+       └─ counter[#6]`.slice(1),
+)
 })
 
 test('BFS log simplification', () => {
@@ -58,11 +64,16 @@ test('BFS log simplification', () => {
   a.set(1)
   notify()
 
+  // prettier-ignore
   expect(stack).toBe(
     // there should be NO ` ─ a[#20]` after the second `b[#18]`
     `
-─ effect._subscribe ─ effect[#16] ─ d[#17] ┬─ b[#18] ─ a[#20]
-                                           │
-                                           └─ c[#19] ─ b[#18]`.slice(1),
+─effect._subscribe
+ └─ effect[#16]
+    └─ d[#17]
+       ├─ b[#18]
+       │  └─ a[#20]
+       └─ c[#19]
+          └─ b[#18]`.slice(1),
   )
 })

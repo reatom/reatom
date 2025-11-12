@@ -11,7 +11,67 @@ import {
 import type { Fn } from '../utils'
 import { isBrowser } from '../utils'
 
-export let LOG = /* @__PURE__ */ (() => {
+/**
+ * A special logging action for debugging Reatom applications.
+ *
+ * `log` provides an enhanced logging experience with automatic tracing and
+ * production-safe output. It forwards all arguments to the native `console.log`
+ * while providing additional context about the call stack and dependencies.
+ *
+ * ## Key Benefits
+ *
+ * - **Short and handy name** - Easy to type and use throughout your codebase
+ * - **Automatic stack tracing** - Shows the relative call stack each time it's
+ *   called
+ * - **Use it everywhere** - Logs are only visible when `connectLogger()` is
+ *   active
+ * - **Production-safe** - Logs won't appear in production builds when logger is
+ *   not connected
+ * - **Context-aware** - Integrates with Reatom's dependency tracking system
+ * - **Extendable** - You can extend it with other extensions to add custom
+ *   behavior
+ *
+ * @example
+ *   import { log } from '@reatom/core'
+ *
+ *   // Make LOG available globally (recommended)
+ *   declare global {
+ *     var LOG: typeof log
+ *   }
+ *   globalThis.LOG = log
+ *
+ *   // Use anywhere in your code
+ *   const myAtom = atom((ctx) => {
+ *     const value = ctx.spy(someAtom)
+ *     LOG('Current value:', value)
+ *     return value * 2
+ *   })
+ *
+ * @example
+ *   // In actions
+ *   const myAction = action((ctx, payload) => {
+ *     LOG('Action called with:', payload)
+ *     // ... action logic
+ *   })
+ *
+ * @example
+ *   // Multiple arguments like console.log
+ *   LOG('Debug info:', { foo: 'bar' }, [1, 2, 3])
+ *
+ * @example
+ *   // Extend LOG with custom behavior using withCallHook
+ *   import { withCallHook } from '@reatom/core'
+ *
+ *   LOG.extend(
+ *     withCallHook((ctx, params) => {
+ *       // Send logs to a remote service
+ *       sendToAnalytics({ level: 'debug', args: params })
+ *     }),
+ *   )
+ *
+ * @see {@link connectLogger} - Must be called to enable logging output
+ */
+export let log = /* @__PURE__ */ (() => {
   return action<any[]>((...args) => args, 'LOG')
 })()
 
@@ -76,34 +136,38 @@ let prepareFrameStack = (frame: Frame): Node => {
  * representation of a Node structure with proper branch indentation and
  * connections.
  *
+ * @private
  * @example
  *   // For a node with children, might produce something like:
- *   // myNode ┬─ child1 ─ grandChild
- *   //        └─ child2
+ *   // myNode
+ *   //  ├─ child1
+ *   //  │  └─ grandChild
+ *   //  └─ child2
  *
  * @param {string} acc - The accumulator string that holds the current tree
  *   representation
- * @param {string} steps - Indentation padding string for proper alignment
+ * @param {string} prefix - The prefix string for the current line (indentation
+ *   and tree characters)
+ * @param {string} indent - The indentation string for child lines
  * @param {Node} node - The current node to process and display in the tree
  * @returns {string} A formatted string representation of the tree structure
  */
-export let concatTree = (acc: string, steps: string, node: Node): string => {
-  // if (steps.length > 200) return acc + ' [...]'
+export let concatTree = (
+  acc: string,
+  prefix: string,
+  indent: string,
+  node: Node,
+): string => {
+  acc += prefix + node.name
 
-  let { name, children } = node
-  acc += name
-  steps += ' '.repeat(acc.length)
+  let { children } = node
 
   for (let i = 0; i < children.length; i++) {
     let child = children[i]!
-    if (i === 0) {
-      let hasMore = children.length > 1
-      acc += concatTree(hasMore ? ' ┬─ ' : ' ─ ', steps, child)
-    } else {
-      let isLast = i === children.length - 1
-      acc += '\n' + steps + ' │\n' + steps
-      acc += concatTree(isLast ? ' └─ ' : ' ├─ ', steps, child)
-    }
+    let isLast = i === children.length - 1
+    let childPrefix = '\n' + indent + (isLast ? '└─ ' : '├─ ')
+    let childIndent = indent + (isLast ? '   ' : '│  ')
+    acc = concatTree(acc, childPrefix, childIndent, child)
   }
 
   return acc
@@ -117,21 +181,19 @@ export let concatTree = (acc: string, steps: string, node: Node): string => {
  * up through its publishers, using ASCII/Unicode characters to show
  * relationships.
  *
+ * @private
  * @example
  *   // Might produce output like:
- *   // ─ counter ┬─ doubleCounter
- *   //           └─ displayValue
+ *   // ─counter
+ *   //  ├─ doubleCounter
+ *   //  └─ displayValue
  *
- * @param {string} [acc='─ '] - Initial accumulator string for the result.
- *   Default is `'─ '`
- * @param {string} [steps=''] - Initial indentation padding for proper
- *   alignment. Default is `''`
  * @param {Frame} [frame=top()] - The starting frame to trace from (defaults to
  *   current top frame). Default is `top()`
  * @returns {string} A formatted string representation of the stack trace
  */
-export let getStackTrace = (acc = '─ ', steps = '', frame = top()): string => {
-  return concatTree(acc, steps, prepareFrameStack(frame))
+export let getStackTrace = (frame = top()): string => {
+  return concatTree('', '─', ' ', prepareFrameStack(frame))
 }
 
 let isNewLogStack = true
@@ -194,24 +256,22 @@ export let connectLogger = () => {
           style + (error ? 'color: red;' : ''),
         )
         if (isNodeEnv) {
-          if (target === LOG && !error) {
+          if (target === log && !error) {
             console.log(...payload)
           } else {
             console.log(error ?? payload)
           }
         }
         cb()
+        if (!isNodeEnv && target !== log) console.log('frame:', top())
         const stack = getStackTrace()
-        if (stack) {
-          console.groupCollapsed('stack:')
+        if (stack && stack.includes('\n')) {
           console.log(stack)
-          console.groupEnd()
         }
-        if (!isNodeEnv && target !== LOG) console.log('frame:', top())
         console.groupEnd()
 
         if (!isNodeEnv) {
-          if (target === LOG && !error) {
+          if (target === log && !error) {
             console.log(...payload)
           } else {
             console.log(error ?? payload)
@@ -254,11 +314,13 @@ export let connectLogger = () => {
                       ),
                     )
                   } else if (call) {
-                    logStack(call.payload, error, () =>
-                      call.params.forEach((param, i) =>
-                        console.log(`param ${i + 1}:`, param),
-                      ),
-                    )
+                    logStack(call.payload, error, () => {
+                      if (target !== log) {
+                        call.params.forEach((param, i) =>
+                          console.log(`param ${i + 1}:`, param),
+                        )
+                      }
+                    })
                   }
                 }
               }),
@@ -285,5 +347,5 @@ export let connectLogger = () => {
   // @ts-ignore TODO
   globalThis.__REATOM.push(logExt)
 
-  LOG.extend(logExt)
+  log.extend(logExt)
 }

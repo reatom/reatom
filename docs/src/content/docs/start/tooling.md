@@ -3,6 +3,8 @@ title: Tooling
 description: The list of key tools for Reatom
 ---
 
+## Logging
+
 Reatom has incredible capabilities for debugging and tracing your code. We will publish our devtools soon, but now you can use `connectLogger` for simple (or not!) logging.
 
 ```tsx title="main.tsx"
@@ -14,21 +16,41 @@ const root = ReactDOM.createRoot(document.getElementById('root')!)
 root.render(<App />)
 ```
 
-For better logging, you can use built-in `LOG` function, which will trace the call stack and forward all arguments to the native `console.log`.
-
-The profit of this is the more short name and that **you can put `LOG` everywhere**, logs will not be visible in production!
+For better logging, you can use built-in `log` function, it will forward all arguments to the native `console.log`.
 
 ```ts title="debug.ts"
-import { connectLogger, LOG } from 'reatom/core'
+import { connectLogger, log } from 'reatom/core'
 
 if (import.meta.env.MODE === 'development') {
   connectLogger()
 }
 
 declare global {
-  var LOG: typeof LOG
+  var LOG: typeof log
 }
-globalThis.LOG = LOG
+globalThis.LOG = log
+```
+
+### Log action
+
+`log` may give you huge DX impact:
+
+- the name is short name and handy
+- it will trace the relative call stack and show each time
+- **you can put it everywhere** and commit to the source code, logs will not be visible in production
+- you can extend it!
+
+`log` is an action, which means you can extend it with `withCallHook` or other action extensions to add custom behavior (e.g., sending logs to a remote service, filtering specific log types, etc.).
+
+```ts
+import { withCallHook } from '@reatom/core'
+
+LOG.extend(
+  withCallHook((params) => {
+    // Send logs to a remote service
+    sendToAnalytics({ level: 'debug', args: params })
+  }),
+)
 ```
 
 ## Eslint
