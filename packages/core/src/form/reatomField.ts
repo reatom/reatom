@@ -625,15 +625,15 @@ export function reatomField<State, Value = State>(
 
 export function withField<T extends Atom>(
   options?: Omit<FieldOptions<AtomState<T>, AtomState<T>>, 'name'>,
-): ((anAtom: T) => T & FieldAtom<AtomState<T>, AtomState<T>>) 
+): (anAtom: T) => T & FieldAtom<AtomState<T>, AtomState<T>>
 
 export function withField<T extends Atom, Value>(
   options?: Omit<FieldOptions<AtomState<T>, Value>, 'name'>,
-): ((anAtom: T) => T & FieldAtom<AtomState<T>, Value>) 
+): (anAtom: T) => T & FieldAtom<AtomState<T>, Value>
 
 export function withField<T extends Atom, Value = AtomState<T>>(
   options: Omit<FieldOptions<AtomState<T>, Value>, 'name'> = {},
-): ((anAtom: T) => T & FieldAtom<AtomState<T>, Value>) {
+): (anAtom: T) => T & FieldAtom<AtomState<T>, Value> {
   return (anAtom: T) =>
     reatomField(null as AtomState<T>, { name: anAtom.name, ...options }, anAtom)
 }
