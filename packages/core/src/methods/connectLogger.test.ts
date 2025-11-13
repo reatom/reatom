@@ -2,7 +2,7 @@ import { expect, test } from 'test'
 
 import { sleep, wrap } from '..'
 import { atom, computed, notify } from '../core'
-import { getStackTrace } from './connectLogger'
+import { getStackTrace } from './getStackTrace'
 
 test('calc deps graph', async () => {
   // Create atoms for a counter feature
