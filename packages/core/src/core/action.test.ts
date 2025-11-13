@@ -13,7 +13,7 @@ test('action', () => {
 test('action cause stack', () => {
   const name = 'actionCauseStack'
   const getTrace = (frame?: Frame) =>
-    getStackTrace(undefined, undefined, frame)
+    getStackTrace(frame)
       .replaceAll(`${name}.`, '')
       .replace(/\[#\d*\]/g, '')
   const a1 = atom(0, `${name}.a1`)
@@ -33,9 +33,9 @@ test('action cause stack', () => {
   act(1)
   notify()
 
-  expect(logData).toBe('─ log ─ a2 ─ a1 ─ act')
+  expect(logData).toBe('─log\n └─ a2\n    └─ a1\n       └─ act')
   expect(getTrace(_read(log)!).replaceAll('\n', ' ')).toBe(
-    '─ log ─ a2 ─ a1 ─ act',
+    '─log  └─ a2     └─ a1        └─ act',
   )
 })
 
