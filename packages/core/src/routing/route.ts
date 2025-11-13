@@ -568,7 +568,7 @@ const createRouteFactory = (
       )
     }
 
-    const isSearchOnlyRoute = !subPath && searchSchema
+    const hasNoExplicitPath = !('path' in options)
 
     let parentPattern = parent.pattern
 
@@ -653,6 +653,8 @@ const createRouteFactory = (
 
       if (params === null) return false
 
+      if (patternParts.length === 0 && hasNoExplicitPath) return true
+
       const pathname = urlAtom().pathname || '/'
 
       if (hasParams && pattern === pathname) return true
@@ -675,7 +677,7 @@ const createRouteFactory = (
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
         const newUrl = new URL(getPath(params), url)
-        if (isSearchOnlyRoute && url.pathname.startsWith(newUrl.pathname)) {
+        if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
           newUrl.pathname = url.pathname
         }
         return newUrl

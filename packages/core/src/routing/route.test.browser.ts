@@ -454,3 +454,38 @@ test('search-only route should preserve sub pathname', async () => {
   expect(urlAtom().pathname).toBe('/auth/email')
   expect(urlAtom().search).toBe('?dialog=signup')
 })
+
+test('exact for different types of routes', async () => {
+  const emptyPathRoute = reatomRoute('')
+  const nullPathRoute = reatomRoute({})
+  const searchOnlyRoute = reatomRoute({
+    search: z.object({ q: z.string().optional() }),
+  })
+  const someRoute = reatomRoute({ path: 'some' })
+
+  urlAtom.go('/')
+  await wrap(sleep())
+
+  expect(emptyPathRoute.exact()).toEqual(true)
+  expect(nullPathRoute.exact()).toEqual(true)
+  expect(searchOnlyRoute.exact()).toEqual(true)
+  expect(someRoute.exact()).toEqual(false)
+
+  for (const go of [
+    () => someRoute.go(),
+    () => searchOnlyRoute.go({ q: '123' }),
+    () => nullPathRoute.go(),
+  ]) {
+    go()
+    expect(emptyPathRoute.exact()).toEqual(false)
+    expect(nullPathRoute.exact()).toEqual(true)
+    expect(searchOnlyRoute.exact()).toEqual(true)
+    expect(someRoute.exact()).toEqual(true)
+  }
+
+  emptyPathRoute.go()
+  expect(emptyPathRoute.exact()).toEqual(true)
+  expect(nullPathRoute.exact()).toEqual(true)
+  expect(searchOnlyRoute.exact()).toEqual(true)
+  expect(someRoute.exact()).toEqual(false)
+})
