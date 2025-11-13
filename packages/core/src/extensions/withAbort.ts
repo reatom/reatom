@@ -53,6 +53,7 @@ export let withAbort = (
 
       if (maybePromise instanceof Promise) {
         let sync = true
+        let aborted = false
         maybePromise = new Promise(async (res, rej) => {
           let abortSubscription
           try {
@@ -68,17 +69,15 @@ export let withAbort = (
             res(value)
           } catch (error) {
             if (isAbort(error)) {
-              if (sync) {
-                queueMicrotask(() => maybePromise.catch(noop))
-              } else {
-                maybePromise.catch(noop)
-              }
+              aborted = true
+              maybePromise?.catch(noop)
             }
             abortSubscription?.unsubscribe()
             rej(error)
           }
         })
         sync = false
+        if (aborted) maybePromise.catch(noop)
 
         if (target.__reatom.reactive) {
           state = maybePromise

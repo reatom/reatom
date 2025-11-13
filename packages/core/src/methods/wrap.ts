@@ -84,6 +84,7 @@ export let wrap: {
     queueMicrotask(() => void STACK.pop())
   }
 
+  let aborted = false
   promise = new Promise(async (resolve, reject) => {
     try {
       abortSubscription = abortVar.subscribe((error) => {
@@ -98,15 +99,14 @@ export let wrap: {
       seal(() => resolve(value))
     } catch (error) {
       if (isAbort(error)) {
-        if (promise) {
-          promise.catch(noop)
-        } else {
-          queueMicrotask(() => promise!.catch(noop))
-        }
+        aborted = true
+
+        promise?.catch(noop)
       }
       seal(() => reject(error))
     }
   })
+  if (aborted) promise.catch(noop)
 
   return promise as any
 }
