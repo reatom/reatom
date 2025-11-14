@@ -1,6 +1,6 @@
 import type { Frame } from '../core'
 import { STACK, top } from '../core'
-import type { Fn } from '../utils'
+import { type Fn, throwAbort } from '../utils'
 import { isAbort, noop } from '../utils'
 import { type AbortSubscription, abortVar } from './abortVar'
 
@@ -95,6 +95,8 @@ export let wrap: {
       })
 
       let value = await target
+
+      if (frame.root !== frame.root.frame.state) throwAbort('context reset')
 
       seal(() => resolve(value))
     } catch (error) {

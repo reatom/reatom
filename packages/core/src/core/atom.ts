@@ -313,6 +313,41 @@ export interface ContextAtom extends AtomLike<RootState, [], RootFrame> {
    * @returns The new context frame
    */
   start(): RootFrame
+
+  /**
+   * Reset the context to throw away all accumulated states and related meta.
+   * Useful for tests, storybook, user logout and so on.
+   *
+   * Note that Reatom has `clearStack` and `context.start` to scope the context
+   * very strictly. `reset` is useful if you playing with the default global
+   * context.
+   *
+   * IMPORTANT: it does not abort any running effects.
+   *
+   * @example
+   *   import { atom, context } from '@reatom/core'
+   *   import { describe, test, beforeEach, expect } from 'vitest'
+   *
+   *   import { counter, doubled } from './my-feature'
+   *
+   *   describe('My feature', () => {
+   *     // Useful in test cleanup when user code is not strictly scoped with `clearStack`
+   *     beforeEach(() => {
+   *       context.reset()
+   *     })
+   *
+   *     test('counter increments', () => {
+   *       counter.set(5)
+   *       expect(doubled()).toBe(10)
+   *     })
+   *
+   *     test('default counter', () => {
+   *       // State is reset between tests, so counter starts at 0
+   *       expect(doubled()).toBe(0)
+   *     })
+   *   })
+   */
+  reset(): void
 }
 
 export class ReatomError extends Error {}
@@ -1018,6 +1053,12 @@ context.start = (cb = top) => {
   frame.state.frame = frame
 
   return frame.run(cb)
+}
+
+context.reset = () => {
+  let rootFrame = context()
+  // @ts-expect-error
+  ;(rootFrame.root = rootFrame.state = context.start().state).frame = rootFrame
 }
 
 /**
