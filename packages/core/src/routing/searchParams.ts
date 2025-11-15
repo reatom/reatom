@@ -172,45 +172,50 @@ export function withSearchParams<T = string>(
           ? (parse(sp[key]) as AtomState<Target>)
           : state
       }),
-      withComputed((state) => {
-        let currentPath = peek(urlAtom).pathname
-        let pubs = _getPrevFrame()?.pubs
-        let { initState } = target.__reatom
+      withComputed(
+        (state) => {
+          let currentPath = peek(urlAtom).pathname
+          let pubs = _getPrevFrame()?.pubs
+          let { initState } = target.__reatom
 
-        ifChanged(searchParamsAtom, (next, prev) => {
-          if (!prev) return
+          ifChanged(searchParamsAtom, (next, prev) => {
+            if (!prev) return
 
-          let prevSearchParamsFrame = pubs![1]!
-          let prevUrlFrame = prevSearchParamsFrame.pubs[1]!
-          const prevUrl = prevUrlFrame.state as URL
+            let prevSearchParamsFrame = pubs![1]!
+            let prevUrlFrame = prevSearchParamsFrame.pubs[1]!
+            const prevUrl = prevUrlFrame.state as URL
 
-          if (!isSubpath(currentPath, path)) {
-            if (key in prev && isSubpath(prevUrl.pathname, path)) {
-              state = typeof initState === 'function' ? initState() : initState
-            }
-            return
-          }
-
-          if (key in next) {
-            if (next[key] !== prev[key])
-              state = parse(next[key]) as AtomState<Target>
-          } else {
-            if (path === '' && currentPath !== prevUrl.pathname) {
-              state = typeof initState === 'function' ? initState() : initState
+            if (!isSubpath(currentPath, path)) {
+              if (key in prev && isSubpath(prevUrl.pathname, path)) {
+                state =
+                  typeof initState === 'function' ? initState() : initState
+              }
               return
             }
 
-            const prevState = serialize(state)
-            if (prevState !== undefined) {
-              _enqueue(() => {
-                searchParamsAtom.set(key, prevState, true)
-              }, 'hook')
-            }
-          }
-        })
+            if (key in next) {
+              if (next[key] !== prev[key])
+                state = parse(next[key]) as AtomState<Target>
+            } else {
+              if (path === '' && currentPath !== prevUrl.pathname) {
+                state =
+                  typeof initState === 'function' ? initState() : initState
+                return
+              }
 
-        return state
-      }, { tail: false }),
+              const prevState = serialize(state)
+              if (prevState !== undefined) {
+                _enqueue(() => {
+                  searchParamsAtom.set(key, prevState, true)
+                }, 'hook')
+              }
+            }
+          })
+
+          return state
+        },
+        { tail: false },
+      ),
       withChangeHook((state) => {
         let frame = top()
         let prevFrame = _getPrevFrame(frame)

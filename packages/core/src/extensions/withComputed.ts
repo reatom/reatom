@@ -15,10 +15,10 @@ import { _getPrevFrame } from '../methods/context'
  *   computed functionality.
  * @param {function} computed - A function that computes the new state based on
  *   the current state.
- * @param {Object} [options={}] - Configuration options.
- * @param {boolean} [options.tail=true] - Determines the order of the passed computed
- *   calling. ATTENTION: use `false` only for computed with fixed size of
- *   dependencies. Default is `true`
+ * @param {Object} [options={}] - Configuration options. Default is `{}`
+ * @param {boolean} [options.tail=true] - Determines the order of the passed
+ *   computed calling. ATTENTION: use `false` only for computed with fixed size
+ *   of dependencies. Default is `true`
  * @returns {Ext<Target>} The extended atom or action with computed
  *   functionality.
  */
