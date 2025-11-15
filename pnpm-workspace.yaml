@@ -41,7 +41,7 @@ catalog:
   mobx: latest
   mol_wire_lib: latest
   nanostores: latest
-  playwright: ^1.53.0
+  playwright: ^1.55.1
   preact: ^10.0.0
   prettier: ^3.5.3
   prettier-plugin-astro: ^0.14.1
