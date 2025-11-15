@@ -15,7 +15,8 @@ import { _getPrevFrame } from '../methods/context'
  *   computed functionality.
  * @param {function} computed - A function that computes the new state based on
  *   the current state.
- * @param {boolean} [tail=true] - Determines the order of the passed computed
+ * @param {Object} [options={}] - Configuration options.
+ * @param {boolean} [options.tail=true] - Determines the order of the passed computed
  *   calling. ATTENTION: use `false` only for computed with fixed size of
  *   dependencies. Default is `true`
  * @returns {Ext<Target>} The extended atom or action with computed
@@ -23,7 +24,7 @@ import { _getPrevFrame } from '../methods/context'
  */
 export let withComputed = <Target extends AtomLike>(
   computed: (state: AtomState<Target>) => AtomState<Target>,
-  tail = true,
+  { tail = true }: { tail?: boolean } = {},
 ): Ext<Target> =>
   withMiddleware(
     () =>
@@ -33,14 +34,17 @@ export let withComputed = <Target extends AtomLike>(
           state = computed(state)
         } else {
           let frame = top()
-          const pubs = _getPrevFrame(frame)?.pubs
+          const prevPubs = _getPrevFrame(frame)?.pubs
+          const isInit = !prevPubs
+
           state = computed(frame.state)
 
-          if (
-            !pubs ||
-            (pubs.length > frame.pubs.length &&
-              _isPubsChanged(frame, pubs, pubs.length + 1))
-          ) {
+          // TODO "recompute after set with zero deps"?
+          const hasMoreDeps = !isInit && prevPubs.length > frame.pubs.length
+          const isDepsChanged =
+            hasMoreDeps && _isPubsChanged(frame, prevPubs, frame.pubs.length)
+
+          if (isInit || isDepsChanged) {
             state = next(state)
           }
         }

@@ -584,8 +584,6 @@ export function _isPubsChanged(
   pubs: Frame['pubs'],
   from: number,
 ) {
-  frame.pubs = [null]
-
   for (let i = from; i < pubs.length; i++) {
     let { error: pubError, state: pubState, atom: pubAtom } = pubs[i]!
     let pubFreshState = pubState
@@ -621,7 +619,14 @@ export function _isPubsChanged(
       !Object.is(pubState, pubFreshState) ||
       !Object.is(pubError, pubFreshError)
     ) {
-      frame.pubs = [null]
+      if (from === 1) {
+        frame.pubs = [null]
+      } else {
+        while (from < frame.pubs.length) {
+          frame.pubs.pop()
+        }
+      }
+
       return true
     } else {
       frame.pubs.push(pubFrame)
@@ -649,7 +654,7 @@ function atomMiddleware(next: Fn) {
   let invalid =
     computed &&
     (dirty || (dependent && !subscribed)) &&
-    (!dependent || _isPubsChanged(frame, pubs, 1))
+    (!dependent || ((frame.pubs = [null]), _isPubsChanged(frame, pubs, 1)))
 
   // the second loop may come from push to emptyComputed
   while (push || invalid) {

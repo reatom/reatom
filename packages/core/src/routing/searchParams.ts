@@ -210,7 +210,7 @@ export function withSearchParams<T = string>(
         })
 
         return state
-      }, false),
+      }, { tail: false }),
       withChangeHook((state) => {
         let frame = top()
         let prevFrame = _getPrevFrame(frame)
