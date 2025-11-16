@@ -1,6 +1,14 @@
 import type { Fn } from '../utils'
 import type { AtomLike, AtomMeta } from './'
-import { _enqueue, createAtom, isAtom, named, ReatomError, STACK } from './'
+import {
+  _enqueue,
+  createAtom,
+  EXTENSIONS,
+  isAtom,
+  named,
+  ReatomError,
+  STACK,
+} from './'
 
 export interface ActionCall<Params extends any[] = any[], Payload = any> {
   params: Params
@@ -107,5 +115,7 @@ export let action: {
     middlewares: [actionMiddleware],
   } satisfies Partial<AtomMeta>)
 
-  return target.extend(...globalThis.__REATOM) as Action<Params, Payload>
+  return (
+    EXTENSIONS.length === 0 ? target : target.extend(...EXTENSIONS)
+  ) as Action<Params, Payload>
 }

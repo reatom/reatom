@@ -8,7 +8,7 @@ description: The list of key tools for Reatom
 Reatom has incredible capabilities for debugging and tracing your code. We will publish our devtools soon, but now you can use `connectLogger` for simple (or not!) logging.
 
 ```tsx title="main.tsx"
-import './debug' // import debug file before all other modules!
+import './setup' // import setup file before all other modules!
 import ReactDOM from 'react-dom/client'
 import { App } from './app'
 
@@ -18,7 +18,7 @@ root.render(<App />)
 
 For better logging, you can use built-in `log` function, it will forward all arguments to the native `console.log`.
 
-```ts title="debug.ts"
+```ts title="setup.ts"
 import { connectLogger, log } from '@reatom/core'
 
 if (import.meta.env.MODE === 'development') {
@@ -74,3 +74,34 @@ We recommend using ESLint to enforce best practices and coding standards in your
   }
 }
 ```
+
+## Global Extensions
+
+You can automatically track all Reatom entities (atoms and actions) in your application using global extensions. This is particularly useful for analytics, monitoring, debugging, or logging.
+
+Track user interactions by monitoring action calls:
+
+```ts title="analytics.ts"
+import { addGlobalExtension, isAction, withCallHook } from '@reatom/core'
+
+addGlobalExtension((target) => {
+  if (isAction(target)) {
+    target.extend(
+      withCallHook((payload, params) => {
+        analytics.track('action_called', {
+          action: target.name,
+          timestamp: Date.now(),
+          params: JSON.stringify(params),
+        })
+      }),
+    )
+  }
+  return target
+})
+```
+
+:::tip
+Call `addGlobalExtension` early in your application initialization, before creating any atoms or actions. Extensions are applied only to entities created after registration.
+:::
+
+You can learn more about extensions development in the [Extensions](../handbook/extensions.md) chapter.

@@ -569,13 +569,41 @@ export let named: {
   return `${suffix || name}#${++i}`
 }
 
-declare global {
-  // @ts-ignore TODO
-  var __REATOM: Array<Ext>
-}
+// declare global {
+//   var __REATOM: Array<Ext>
+// }
 // TODO put STACK to globalThis
+// @ts-ignore TODO
 if (globalThis.__REATOM) throw new ReatomError('package duplication')
-globalThis.__REATOM = []
+// @ts-ignore TODO
+export let EXTENSIONS: Array<Ext> = (globalThis.__REATOM = [])
+
+/**
+ * Registers a global extension that will be automatically applied to all atoms
+ * and actions created after registration.
+ *
+ * This function allows you to add behavior to all Reatom entities in your
+ * application, such as tracking, logging, analytics, or debugging capabilities.
+ * Extensions registered with this function will be applied before any local
+ * extensions defined on individual atoms.
+ *
+ * @example
+ *   import { addGlobalExtension, isAction, withCallHook } from '@reatom/core'
+ *
+ *   // Track all action calls for analytics
+ *   addGlobalExtension((target) => {
+ *     if (isAction(target)) {
+ *       target.extend(withCallHook(console.log))
+ *     }
+ *     return target
+ *   })
+ *
+ * @param extension - Extension function that receives an atom or action and
+ *   returns it (optionally modified)
+ */
+export let addGlobalExtension = (extension: Ext) => {
+  ;(globalThis as unknown as { __REATOM: Array<Ext> }).__REATOM.push(extension)
+}
 
 /** This MUTATES frame.pubs */
 export function _isPubsChanged(
@@ -912,9 +940,9 @@ export let createAtom: {
     },
   )
 
-  return globalThis.__REATOM.length === 0
+  return EXTENSIONS.length === 0
     ? target
-    : (target.extend(...globalThis.__REATOM) as typeof target)
+    : (target.extend(...EXTENSIONS) as typeof target)
 }
 
 /**
