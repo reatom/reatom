@@ -55,11 +55,14 @@ export let wrap: {
   target: T,
   frame = top(),
 ): T extends Fn ? ReturnType<T> : Promise<Awaited<T>> => {
+  let { root } = frame
+
   if (typeof target === 'function') {
     abortVar.throwIfAborted()
 
     return function wrap(...params: any) {
       return frame.run(() => {
+        if (root !== frame.root) throwAbort('context reset')
         abortVar.throwIfAborted()
         // @ts-expect-error
         return target(...params)
@@ -96,7 +99,7 @@ export let wrap: {
 
       let value = await target
 
-      if (frame.root !== frame.root.frame.state) throwAbort('context reset')
+      if (root !== frame.root) throwAbort('context reset')
 
       seal(() => resolve(value))
     } catch (error) {

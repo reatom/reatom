@@ -316,13 +316,12 @@ export interface ContextAtom extends AtomLike<RootState, [], RootFrame> {
 
   /**
    * Reset the context to throw away all accumulated states and related meta.
-   * Useful for tests, storybook, user logout and so on.
+   * Aborts `wrap`ed effects too. Useful for tests, storybook, user logout and
+   * so on.
    *
    * Note that Reatom has `clearStack` and `context.start` to scope the context
    * very strictly. `reset` is useful if you playing with the default global
    * context.
-   *
-   * IMPORTANT: it does not abort any running effects.
    *
    * @example
    *   import { atom, context } from '@reatom/core'
