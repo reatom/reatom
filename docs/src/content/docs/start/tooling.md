@@ -81,7 +81,7 @@ You can automatically track all Reatom entities (atoms and actions) in your appl
 
 Track user interactions by monitoring action calls:
 
-```ts title="analytics.ts"
+```ts title="setup.ts"
 import { addGlobalExtension, isAction, withCallHook } from '@reatom/core'
 
 addGlobalExtension((target) => {
@@ -100,8 +100,6 @@ addGlobalExtension((target) => {
 })
 ```
 
-:::tip
-Call `addGlobalExtension` early in your application initialization, before creating any atoms or actions. Extensions are applied only to entities created after registration.
-:::
+Call `addGlobalExtension` early in your application initialization before creating any atoms or actions, as in `connectLogger` example,. Extensions are applied only to entities created after registration.
 
 You can learn more about extensions development in the [Extensions](../handbook/extensions.md) chapter.
