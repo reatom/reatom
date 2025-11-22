@@ -2,6 +2,7 @@
 title: Extensions
 description: Documentation on the extension system in Reatom
 ---
+
 ## The Extension System
 
 Reatom features a powerful **Extension System** using the `.extend()` method. Extensions are reusable functions (often named `with...`) that add capabilities (like async handling, persistence, validation, etc.) or derived state to atoms and actions.
@@ -123,5 +124,27 @@ const persistentCounter = atom(0, 'persistentCounter').extend(
   // withPersist('counterKey') // Example using another hypothetical extension
 )
 ```
+
+### Middleware Order
+
+When composing multiple middlewares, keep in mind that they wrap each other. The last extension passed to `extend` will be the outer-most wrapper, meaning it executes _first_.
+
+```ts
+const counter = atom(0).extend(
+  withMiddleware(() => (next, ...args) => {
+    console.log('inner')
+    return next(...args)
+  }),
+  withMiddleware(() => (next, ...args) => {
+    console.log('outer')
+    return next(...args)
+  }),
+)
+
+counter()
+// Logs: "outer", then "inner"
+```
+
+---
 
 Reatom provides many built-in extensions, explore the ecosystem and create your own to build powerful, reusable abstractions!

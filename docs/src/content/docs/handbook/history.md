@@ -5,10 +5,12 @@ description: The history of Reatom
 
 ## Zen
 
-- **Primitive outperform frameworks**
+- **Primitives outperform frameworks**
 - **Composition beats configuration**
 - **Explicit specifics, implicit generics**
 - **Compatibility worth complexity**
+
+<!-- Our long term goal it is to add "Easy to use, hard to misuse" (To fall into the pit of success), but it is really hard to archive -->
 
 ## Goal
 
@@ -86,7 +88,6 @@ v1000 solves the most annoying problem of v3 - explicit context management. Now,
 - `context.start()` you can create your own context, for SSR handler or each test run. You should use it for React `reatomContext.Provider`, but the provider required only if you choose to start with clearStack.
 - `wrap` for context preservation across async boundaries. Check the rules above.
 
-
 New rules:
 
 - **NEVER** use `ctx` or `Ctx`. The API is context-based implicitly via `wrap`.
@@ -101,6 +102,8 @@ New rules:
 
 ### Methods
 
+- `reatomAsync(cb)` -> `action(cb).extend(withAsync())`
+- `reatomResource(cb)` -> `computed(cb).extend(withAsyncData())`
 - `reaction` -> `effect`
 - `anAtom.onChange(cb)` -> `anAtom.extend(withChangeHook(cb))`
 - `onConnect(anAtom, cb)` -> `anAtom.extend(withConnectHook(cb))`
