@@ -99,10 +99,10 @@ export const reatomPersistBroadcastChannel = (
 
   return reatomPersist({
     name: 'withBroadcastChannel',
-    get(key) {
+    get({ key }) {
       return memCacheAtom().get(key) ?? null
     },
-    set(key, rec) {
+    set({ key }, rec) {
       const memCache = memCacheAtom()
       memCache.set(key, rec)
 
@@ -117,7 +117,7 @@ export const reatomPersistBroadcastChannel = (
         console.warn('Failed to broadcast message:', error)
       }
     },
-    clear(key) {
+    clear({ key }) {
       const memCache = memCacheAtom()
       memCache.delete(key)
 
@@ -132,7 +132,7 @@ export const reatomPersistBroadcastChannel = (
         console.warn('Failed to broadcast clear message:', error)
       }
     },
-    subscribe(key, cb) {
+    subscribe({ key }, cb) {
       const memCache = memCacheAtom()
       const handler = (event: MessageEvent<BroadcastMessage>) => {
         if (event.data?.key !== key) return

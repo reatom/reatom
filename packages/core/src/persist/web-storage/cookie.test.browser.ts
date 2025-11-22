@@ -1,45 +1,25 @@
 import { expect, test } from 'test'
 
+import { wrap } from '../..'
 import { atom } from '../../core'
-import { withCookie } from './cookie'
+import { sleep } from '../../utils'
+import { parsePersistRecordCookie, withCookie } from './cookie'
 
-// Helper function to parse cookie data from document.cookie
-const getCookieData = (cookieName: string) => {
-  const cookieRow = document.cookie
-    .split('; ')
-    .find((row) => row.startsWith(`${cookieName}=`))
-
-  if (!cookieRow) return null
-
-  // Extract value after the first '=' to handle values that contain '='
-  const cookieValue = cookieRow.substring(cookieName.length + 1)
-
-  if (!cookieValue) return null
-
-  try {
-    const decodedValue = decodeURIComponent(cookieValue)
-    return JSON.parse(decodedValue)
-  } catch {
-    return cookieValue // Return raw value if not JSON
-  }
-}
-
-test('withCookie basic functionality', () => {
+test('withCookie basic functionality', async () => {
   const testAtom = atom('default', 'cookieTestAtom').extend(
-    withCookie()('test-cookie-key'),
+    withCookie('test-cookie-key'),
   )
 
   testAtom.set('cookie-value')
   expect(testAtom()).toBe('cookie-value')
 
+  await wrap(sleep())
+
   // Check if cookie was set with correct data structure
-  const cookieData = getCookieData('test-cookie-key')
+  const cookieData = parsePersistRecordCookie('test-cookie-key')!
   expect(cookieData).not.toBeNull()
-  expect(cookieData.data).toBe('cookie-value')
-  expect(typeof cookieData.id).toBe('number')
-  expect(typeof cookieData.timestamp).toBe('number')
-  expect(typeof cookieData.to).toBe('number')
-  expect(cookieData.version).toBe(0)
+  expect(cookieData?.data).toBe('cookie-value')
+  expect(cookieData?.version).toBe(0)
 
   // Clean up - set cookie with past expiration
   document.cookie = 'test-cookie-key=; max-age=-1'
@@ -48,17 +28,18 @@ test('withCookie basic functionality', () => {
 test('withCookie with custom attributes', () => {
   const testAtom = atom('default', 'cookieAttrsTestAtom').extend(
     withCookie({
+      key: 'test-cookie-attrs-key',
       maxAge: 3600, // 1 hour
       path: '/',
       sameSite: 'strict',
-    })('test-cookie-attrs-key'),
+    }),
   )
 
   testAtom.set('cookie-with-attrs')
   expect(testAtom()).toBe('cookie-with-attrs')
 
   // Check if cookie was set with correct data and expiration time
-  const cookieData = getCookieData('test-cookie-attrs-key')
+  const cookieData = parsePersistRecordCookie('test-cookie-attrs-key')!
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('cookie-with-attrs')
 
@@ -84,7 +65,7 @@ test('cookie restore state', () => {
   document.cookie = `test-cookie-restore=${cookieValue}`
 
   const testAtom = atom('default', 'cookieRestoreTestAtom').extend(
-    withCookie()('test-cookie-restore'),
+    withCookie('test-cookie-restore'),
   )
 
   // Should restore from cookie
@@ -97,15 +78,16 @@ test('cookie restore state', () => {
 test('cookie maxAge attribute setting', () => {
   const testAtom = atom('default', 'cookieExpirationTestAtom').extend(
     withCookie({
+      key: 'test-cookie-expiration',
       maxAge: 3600, // 1 hour
-    })('test-cookie-expiration'),
+    }),
   )
 
   testAtom.set('expires-later')
   expect(testAtom()).toBe('expires-later')
 
   // Check if cookie was set with correct data structure and expiration
-  const cookieData = getCookieData('test-cookie-expiration')
+  const cookieData = parsePersistRecordCookie('test-cookie-expiration')!
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('expires-later')
 
@@ -124,7 +106,7 @@ test('cookie maxAge attribute setting', () => {
 
 test('cookie encoding/decoding', () => {
   const testAtom = atom('default', 'cookieEncodingTestAtom').extend(
-    withCookie()('test-cookie-encoding'),
+    withCookie('test-cookie-encoding'),
   )
 
   // Test with special characters that need encoding
@@ -133,7 +115,7 @@ test('cookie encoding/decoding', () => {
   expect(testAtom()).toBe(specialValue)
 
   // Check if cookie was properly encoded and contains correct data
-  const cookieData = getCookieData('test-cookie-encoding')
+  const cookieData = parsePersistRecordCookie('test-cookie-encoding')!
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe(specialValue)
   expect(typeof cookieData.id).toBe('number')
@@ -147,7 +129,7 @@ test('cookie encoding/decoding', () => {
 
 test('cookie value updates', () => {
   const testAtom = atom('initial', 'cookieUpdateTestAtom').extend(
-    withCookie()('test-cookie-update'),
+    withCookie('test-cookie-update'),
   )
 
   // Set initial value
@@ -155,7 +137,7 @@ test('cookie value updates', () => {
   expect(testAtom()).toBe('first-value')
 
   // Verify cookie has correct data structure
-  let cookieData = getCookieData('test-cookie-update')
+  let cookieData = parsePersistRecordCookie('test-cookie-update')!
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('first-value')
 
@@ -167,7 +149,7 @@ test('cookie value updates', () => {
   expect(testAtom()).toBe('third-value')
 
   // Cookie should contain latest value with correct structure
-  cookieData = getCookieData('test-cookie-update')
+  cookieData = parsePersistRecordCookie('test-cookie-update')!
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('third-value')
   expect(typeof cookieData.id).toBe('number')
@@ -182,9 +164,10 @@ test('cookie value updates', () => {
 test('cookie with different domains and paths', () => {
   const testAtom = atom('default', 'cookieDomainTestAtom').extend(
     withCookie({
+      key: 'test-cookie-domain',
       path: '/test',
       // domain: 'localhost', // Can't test domain in vitest easily
-    })('test-cookie-domain'),
+    }),
   )
 
   testAtom.set('domain-test-value')
@@ -197,18 +180,19 @@ test('cookie with different domains and paths', () => {
 test('cookie with multiple attributes', () => {
   const testAtom = atom('default', 'cookieMultiAttrsTestAtom').extend(
     withCookie({
+      key: 'test-cookie-multi-attrs',
       maxAge: 7200, // 2 hours
       path: '/',
       sameSite: 'lax',
       secure: false, // false for test environment
-    })('test-cookie-multi-attrs'),
+    }),
   )
 
   testAtom.set('multi-attrs-value')
   expect(testAtom()).toBe('multi-attrs-value')
 
   // Verify cookie was set with correct data structure and expiration
-  const cookieData = getCookieData('test-cookie-multi-attrs')
+  const cookieData = parsePersistRecordCookie('test-cookie-multi-attrs')!
   expect(cookieData).not.toBeNull()
   expect(cookieData.data).toBe('multi-attrs-value')
 
@@ -238,7 +222,7 @@ test('cookie expired record handling', () => {
   document.cookie = `test-cookie-expired=${expiredCookieValue}`
 
   const testAtom = atom('default', 'cookieExpiredTestAtom').extend(
-    withCookie()('test-cookie-expired'),
+    withCookie('test-cookie-expired'),
   )
 
   // Should use default value since stored data is expired

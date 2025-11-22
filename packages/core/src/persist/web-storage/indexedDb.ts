@@ -133,10 +133,10 @@ export const reatomPersistIndexedDb = (
 
   return reatomPersist({
     name: 'withIndexedDb',
-    get(key) {
+    get({ key }) {
       return memCacheAtom().get(key) ?? null
     },
-    async set(key, rec) {
+    async set({ key }, rec) {
       const memCache = memCacheAtom()
       memCache.set(key, rec)
 
@@ -155,7 +155,7 @@ export const reatomPersistIndexedDb = (
         console.warn('Failed to write to IndexedDB:', error)
       }
     },
-    async clear(key) {
+    async clear({ key }) {
       const memCache = memCacheAtom()
       memCache.delete(key)
 
@@ -174,7 +174,7 @@ export const reatomPersistIndexedDb = (
         console.warn('Failed to clear from IndexedDB:', error)
       }
     },
-    subscribe(key, cb) {
+    subscribe({ key }, cb) {
       const memCache = memCacheAtom()
       const handler = (event: MessageEvent<BroadcastMessage>) => {
         if (event.data.key !== key) return

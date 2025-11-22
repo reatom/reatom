@@ -1,20 +1,10 @@
-import { type Atom, atom } from '../../core'
+import { atom } from '../../core'
 import {
   createMemStorage,
   type PersistRecord,
-  type PersistStorage,
   reatomPersist,
   type WithPersist,
 } from '../index'
-
-/**
- * Web storage persist interface that extends the base persist functionality
- * with a storage atom for managing the underlying storage mechanism.
- */
-export interface WithPersistWebStorage extends WithPersist {
-  /** Atom that holds the current storage instance */
-  storageAtom: Atom<PersistStorage>
-}
 
 /**
  * Creates a Web Storage API persistence adapter for Reatom atoms.
@@ -61,7 +51,7 @@ export interface WithPersistWebStorage extends WithPersist {
 export const reatomPersistWebStorage = (
   name: string,
   storage: Storage,
-): WithPersistWebStorage => {
+): WithPersist => {
   const memCacheAtom = atom(
     () => new Map<string, PersistRecord>(),
     `${name}._memCacheAtom`,
@@ -69,7 +59,7 @@ export const reatomPersistWebStorage = (
 
   return reatomPersist({
     name,
-    get(key) {
+    get({ key }) {
       try {
         const memCache = memCacheAtom()
         const dataStr = storage.getItem(key)
@@ -97,7 +87,7 @@ export const reatomPersistWebStorage = (
       }
       return null
     },
-    set(key, rec) {
+    set({ key }, rec) {
       const memCache = memCacheAtom()
       memCache.set(key, rec)
 
@@ -108,7 +98,7 @@ export const reatomPersistWebStorage = (
         console.warn('Failed to write to storage:', error)
       }
     },
-    clear(key) {
+    clear({ key }) {
       const memCache = memCacheAtom()
       memCache.delete(key)
 
@@ -119,7 +109,7 @@ export const reatomPersistWebStorage = (
         console.warn('Failed to clear from storage:', error)
       }
     },
-    subscribe(key, cb) {
+    subscribe({ key }, cb) {
       const memCache = memCacheAtom()
       const handler = (event: StorageEvent) => {
         if (event.storageArea === storage && event.key === key) {
@@ -197,7 +187,7 @@ let isWebStorageAvailable = /* @__PURE__ */ (() => {
  * @see {@link withSessionStorage} for session-only storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withLocalStorage: WithPersistWebStorage = /* @__PURE__ */ (() =>
+export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
   isWebStorageAvailable
     ? /* @__PURE__ */ reatomPersistWebStorage(
         'withLocalStorage',
@@ -247,7 +237,7 @@ export const withLocalStorage: WithPersistWebStorage = /* @__PURE__ */ (() =>
  * @see {@link withLocalStorage} for persistent cross-session storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withSessionStorage: WithPersistWebStorage = /* @__PURE__ */ (() =>
+export const withSessionStorage: WithPersist = /* @__PURE__ */ (() =>
   isWebStorageAvailable
     ? reatomPersistWebStorage('withSessionStorage', globalThis.sessionStorage)
     : reatomPersist(createMemStorage({ name: 'withSessionStorage' })))()

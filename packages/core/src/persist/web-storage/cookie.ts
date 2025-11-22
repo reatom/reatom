@@ -1,8 +1,8 @@
-import { type Atom, atom } from '../../core'
+import { atom } from '../../core'
 import {
   createMemStorage,
+  isPersistRecord,
   type PersistRecord,
-  type PersistStorage,
   reatomPersist,
   type WithPersist,
 } from '../index'
@@ -11,10 +11,8 @@ import {
  * Web storage persist interface that extends the base persist functionality
  * with a storage atom for managing the underlying storage mechanism.
  */
-export interface WithPersistWebStorage extends WithPersist {
-  /** Atom that holds the current storage instance */
-  storageAtom: Atom<PersistStorage>
-}
+export interface WithPersistCookie
+  extends WithPersist<unknown, CookieAttributes> {}
 
 /**
  * Configuration options for HTTP cookies following standard cookie attributes.
@@ -57,90 +55,108 @@ const converter = {
     ),
 }
 
-const reatomPersistCookie =
-  (name: string, document: Document) =>
-  (options: CookieAttributes = {}): WithPersistWebStorage => {
-    const now = Date.now()
-    const memCacheAtom = atom(
-      () => new Map<string, PersistRecord>(),
-      `${name}._memCacheAtom`,
-    )
+export const parsePersistRecordCookie = (
+  key: string,
+  cookie = document.cookie,
+): null | PersistRecord => {
+  const row = cookie
+    .split('; ')
+    .find((row) => row.startsWith(`${key}=`))
+  
+  if (!row) return null
+  
+  // Use slice to get everything after 'key=' to handle values containing '='
+  const stringValue = row.slice(key.length + 1)
 
-    return reatomPersist({
-      name,
-      get(key) {
-        try {
-          const cookie = document.cookie
+  if (!stringValue) return null
 
-          if (cookie === '') return null
+  try {
+    let value = JSON.parse(converter.read(stringValue))
+    if (isPersistRecord(value)) return value
+    return null
+  } catch {
+    return null
+  }
+}
 
-          const dataStr = cookie
-            .split('; ')
-            .find((row) => row.startsWith(`${key}=`))
-            ?.split('=')[1]
+export const reatomPersistCookie = (
+  name: string,
+  document: Document,
+): WithPersistCookie => {
+  const now = Date.now()
+  const memCacheAtom = atom(
+    () => new Map<string, PersistRecord>(),
+    `${name}._memCacheAtom`,
+  )
 
-          if (!dataStr) return null
+  return reatomPersist<unknown, CookieAttributes>({
+    name,
+    get({ key, ...options }) {
+      try {
+        const rec = parsePersistRecordCookie(key, document.cookie)
 
-          const rec: PersistRecord = JSON.parse(converter.read(dataStr))
+        if (!rec) return null
 
-          if (rec.to < Date.now()) {
-            // Record expired - clear it
-            document.cookie = `${key}=; max-age=-1`
-            return null
-          }
-
-          const memCache = memCacheAtom()
-          const cache = memCache.get(key)
-
-          // @ts-expect-error falsy `>=` with undefined is expected
-          if (cache?.id === rec.id || cache?.timestamp >= rec.timestamp) {
-            return cache!
-          }
-
-          memCache.set(key, rec)
-          return rec
-        } catch {
+        if (rec.to < Date.now()) {
+          // Record expired - clear it
+          document.cookie = `${key}=; max-age=-1`
           return null
         }
-      },
-      set(key, rec) {
-        // Handle TTL options
-        if (options.maxAge === undefined) {
-          if (options.expires === undefined) {
-            options.maxAge = Math.floor((rec.to - now) / 1000)
-          } else {
-            rec.to = options.expires.getTime()
-          }
-        } else {
-          rec.to = options.maxAge * 1000 + now
-        }
 
         const memCache = memCacheAtom()
+        const cache = memCache.get(key)
+
+        // @ts-expect-error falsy `>=` with undefined is expected
+        if (cache?.id === rec.id || cache?.timestamp >= rec.timestamp) {
+          return cache!
+        }
+
         memCache.set(key, rec)
-
-        try {
-          const value = converter.write(JSON.stringify(rec))
-          document.cookie = `${key}=${value}${stringifyAttrs(options)}`
-        } catch (error) {
-          // Cookie might be disabled or full - fail silently
-          console.warn('Failed to write cookie:', error)
+        return rec
+      } catch {
+        return null
+      }
+    },
+    set({ key, ...options }, rec) {
+      // Handle TTL options
+      if (options.maxAge === undefined) {
+        if (options.expires === undefined) {
+          options.maxAge = Math.floor((rec.to - now) / 1000)
+        } else {
+          rec.to = options.expires.getTime()
         }
-      },
-      clear(key) {
-        const memCache = memCacheAtom()
-        memCache.delete(key)
+      } else {
+        rec.to = options.maxAge * 1000 + now
+      }
 
-        try {
-          document.cookie = `${key}=; max-age=-1`
-        } catch (error) {
-          // Cookie might be disabled - fail silently
-          console.warn('Failed to clear cookie:', error)
-        }
-      },
-    })
-  }
+      const memCache = memCacheAtom()
+      memCache.set(key, rec)
 
-let isCookieAvailable = /* @__PURE__ */ (() => {
+      try {
+        const value = converter.write(JSON.stringify(rec))
+        document.cookie = `${key}=${value}${stringifyAttrs(options)}`
+      } catch (error) {
+        // Cookie might be disabled or full - fail silently
+        console.warn('Failed to write cookie:', error)
+      }
+    },
+    clear({ key, ...options }) {
+      const memCache = memCacheAtom()
+      memCache.delete(key)
+
+      try {
+        document.cookie = `${key}=; max-age=-1`
+      } catch (error) {
+        // Cookie might be disabled - fail silently
+        console.warn('Failed to clear cookie:', error)
+      }
+    },
+    // FIXME?
+    // subscribe: () => noop
+  })
+}
+
+export let isCookieAvailable = /* @__PURE__ */ (() => {
   try {
     return 'cookie' in globalThis.document
   } catch {
@@ -157,7 +173,6 @@ let isCookieAvailable = /* @__PURE__ */ (() => {
  * cases.
  *
  * @example
- *   ```typescript
  *   // Simple usage - stores in cookies with default settings
  *   const themeAtom = atom('light', 'themeAtom').extend(
  *   withCookie()('theme')
@@ -177,7 +192,6 @@ let isCookieAvailable = /* @__PURE__ */ (() => {
  *   const cartAtom = atom([], 'cartAtom').extend(
  *   withCookie()('shopping-cart')
  *   )
- *   ```
  *
  *   **Features:**
  *   - Automatic fallback to memory storage in non-browser environments
@@ -196,8 +210,9 @@ let isCookieAvailable = /* @__PURE__ */ (() => {
  * @see {@link CookieAttributes} for all available options
  * @see {@link reatomPersistCookie} for creating custom cookie adapters
  */
-export const withCookie: (options?: CookieAttributes) => WithPersistWebStorage =
-  /* @__PURE__ */ (() =>
-    isCookieAvailable
-      ? reatomPersistCookie('withCookie', globalThis.document)
-      : () => reatomPersist(createMemStorage({ name: 'withCookie' })))()
+export const withCookie: WithPersistCookie = /* @__PURE__ */ (() =>
+  isCookieAvailable
+    ? reatomPersistCookie('withCookie', globalThis.document)
+    : (reatomPersist(
+        createMemStorage({ name: 'withCookie' }),
+      ) as WithPersistCookie))()

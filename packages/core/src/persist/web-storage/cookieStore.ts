@@ -1,20 +1,19 @@
-import { type Atom, atom } from '../../core'
+import { atom } from '../../core'
+import { wrap } from '../../methods'
 import {
   createMemStorage,
+  isPersistRecord,
   type PersistRecord,
-  type PersistStorage,
   reatomPersist,
   type WithPersist,
 } from '../index'
 
 /**
  * Web storage persist interface that extends the base persist functionality
- * with a storage atom for managing the underlying storage mechanism.
+ * with cookie store specific options.
  */
-export interface WithPersistWebStorage extends WithPersist {
-  /** Atom that holds the current storage instance */
-  storageAtom: Atom<PersistStorage>
-}
+export interface WithPersistCookieStore
+  extends WithPersist<unknown, CookieStoreOptions> {}
 
 /**
  * Configuration options for Cookie Store API following standard cookie
@@ -27,117 +26,134 @@ export interface CookieStoreOptions {
   domain?: string
   /** Expiration date of the cookie as timestamp in milliseconds */
   expires?: number
-  /** Cookie name for the storage entry */
-  name?: string
   /** Path where the cookie is valid. Defaults to '/' */
   path?: string
   /** Controls when the cookie is sent with cross-site requests */
   sameSite?: 'strict' | 'lax' | 'none'
 }
 
-const reatomPersistCookieStore =
-  (name: string, cookieStore: CookieStore) =>
-  (options: CookieStoreOptions = {}): WithPersistWebStorage => {
-    const memCacheAtom = atom(
-      () => new Map<string, PersistRecord>(),
-      `${name}._memCacheAtom`,
-    )
+export const parsePersistRecordCookieStore = async (
+  key: string,
+  cookieStore = globalThis.cookieStore,
+): Promise<null | PersistRecord> => {
+  try {
+    const cookie = await cookieStore.get(key)
+    if (!cookie?.value) return null
 
-    return reatomPersist({
-      name,
-      async get(key) {
-        try {
-          const memCache = memCacheAtom()
-          const cookie = await cookieStore.get(key)
+    const value = JSON.parse(decodeURIComponent(cookie.value))
+    if (isPersistRecord(value)) return value
+    return null
+  } catch {
+    return null
+  }
+}
 
-          if (!cookie?.value) return null
+export const reatomPersistCookieStore = (
+  name: string,
+  cookieStore: CookieStore,
+): WithPersistCookieStore => {
+  const memCacheAtom = atom(
+    () => new Map<string, PersistRecord>(),
+    `${name}._memCacheAtom`,
+  )
 
-          const rec: PersistRecord = JSON.parse(
-            decodeURIComponent(cookie.value),
-          )
+  return reatomPersist<unknown, CookieStoreOptions>({
+    name,
+    async get({ key }) {
+      try {
+        const memCache = memCacheAtom()
+        const rec = await wrap(parsePersistRecordCookieStore(key, cookieStore))
 
-          if (rec.to < Date.now()) {
-            await cookieStore.delete(key)
-            return null
-          }
+        if (!rec) return null
 
-          const cache = memCache.get(key)
-          // @ts-expect-error falsy `>=` with undefined is expected
-          if (cache?.id === rec.id || cache?.timestamp >= rec.timestamp) {
-            return cache!
-          }
-
-          memCache.set(key, rec)
-          return rec
-        } catch {
+        if (rec.to < Date.now()) {
+          await cookieStore.delete(key)
           return null
         }
-      },
-      async set(key, rec) {
-        const memCache = memCacheAtom()
+
+        const cache = memCache.get(key)
+        // @ts-expect-error falsy `>=` with undefined is expected
+        if (cache?.id === rec.id || cache?.timestamp >= rec.timestamp) {
+          return cache!
+        }
+
         memCache.set(key, rec)
+        return rec
+      } catch {
+        return null
+      }
+    },
+    async set({ key, ...options }, rec) {
+      const memCache = memCacheAtom()
+      memCache.set(key, rec)
 
-        try {
-          const cookieOptions: CookieInit = {
-            ...options,
-            name: key,
-            value: encodeURIComponent(JSON.stringify(rec)),
-            expires: rec.to,
-          }
-
-          if (options.path === undefined) {
-            cookieOptions.path = '/'
-          }
-
-          await cookieStore.set(cookieOptions)
-        } catch (error) {
-          console.warn('Failed to write cookie:', error)
+      try {
+        let { expires } = options
+        if (expires === undefined) {
+          expires = rec.to
+        } else {
+          rec.to = expires
         }
-      },
-      async clear(key) {
-        const memCache = memCacheAtom()
-        memCache.delete(key)
-
-        try {
-          await cookieStore.delete(key)
-        } catch (error) {
-          console.warn('Failed to clear cookie:', error)
+        const cookieOptions: CookieInit = {
+          ...options,
+          name: key,
+          value: encodeURIComponent(JSON.stringify(rec)),
+          expires,
         }
-      },
-      subscribe(key, cb) {
-        const memCache = memCacheAtom()
-        const handler = (event: CookieChangeEvent) => {
-          for (const cookie of event.changed) {
-            if (cookie.name === key && cookie.value) {
-              try {
-                const rec: PersistRecord = JSON.parse(
-                  decodeURIComponent(cookie.value),
-                )
 
-                if (rec.id !== memCache.get(key)?.id) {
-                  memCache.set(key, rec)
-                  cb(rec)
-                }
-              } catch {
-                // Invalid JSON - ignore
+        if (options.path === undefined) {
+          cookieOptions.path = '/'
+        }
+
+        await cookieStore.set(cookieOptions)
+      } catch (error) {
+        console.warn('Failed to write cookie:', error)
+      }
+    },
+    async clear({ key }) {
+      const memCache = memCacheAtom()
+      memCache.delete(key)
+
+      try {
+        await cookieStore.delete(key)
+      } catch (error) {
+        console.warn('Failed to clear cookie:', error)
+      }
+    },
+    subscribe({ key }, cb) {
+      const memCache = memCacheAtom()
+      const handler = (event: CookieChangeEvent) => {
+        for (const cookie of event.changed) {
+          if (cookie.name === key && cookie.value) {
+            try {
+              const rec: PersistRecord = JSON.parse(
+                decodeURIComponent(cookie.value),
+              )
+
+              if (rec.id !== memCache.get(key)?.id) {
+                memCache.set(key, rec)
+                cb(rec)
               }
-            }
-          }
-
-          for (const cookie of event.deleted) {
-            if (cookie.name === key) {
-              memCache.delete(key)
+            } catch {
+              // Invalid JSON - ignore
             }
           }
         }
 
-        cookieStore.addEventListener('change', handler)
-        return () => cookieStore.removeEventListener('change', handler)
-      },
-    })
-  }
+        for (const cookie of event.deleted) {
+          if (cookie.name === key) {
+            memCache.delete(key)
+          }
+        }
+      }
 
-let isCookieStoreAvailable = /* @__PURE__ */ (() => {
+      cookieStore.addEventListener('change', handler)
+      return () => cookieStore.removeEventListener('change', handler)
+    },
+  })
+}
+
+export let isCookieStoreAvailable = /* @__PURE__ */ (() => {
   try {
     return 'cookieStore' in globalThis
   } catch {
@@ -208,9 +224,9 @@ let isCookieStoreAvailable = /* @__PURE__ */ (() => {
  * @see {@link CookieStoreOptions} for all available options
  * @see {@link withCookie} for synchronous document.cookie API alternative
  */
-export const withCookieStore: (
-  options?: CookieStoreOptions,
-) => WithPersistWebStorage = /* @__PURE__ */ (() =>
+export const withCookieStore: WithPersistCookieStore = /* @__PURE__ */ (() =>
   isCookieStoreAvailable
     ? reatomPersistCookieStore('withCookieStore', globalThis.cookieStore)
-    : () => reatomPersist(createMemStorage({ name: 'withCookieStore' })))()
+    : (reatomPersist(
+        createMemStorage({ name: 'withCookieStore' }),
+      ) as WithPersistCookieStore))()
