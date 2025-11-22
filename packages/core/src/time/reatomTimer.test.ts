@@ -47,7 +47,7 @@ describe('timer', { retry: 0 }, () => {
 		const timerAtom = reatomTimer({ interval: 10, delayMultiplier: 1 })
 
 		const track = subscribe(timerAtom.progress)
-		// track.calls.length = 0 // Reset call count
+		track.mockReset()
 
 		timerAtom.start(100)
 		let target = Date.now() + 100
