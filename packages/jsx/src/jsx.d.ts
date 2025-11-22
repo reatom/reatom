@@ -73,10 +73,8 @@ export namespace JSX {
     /**
      * Custom properties.
      * @example
-     * ```tsx
      * // <div style="--size: 16px; font-size: var(--size);"></div>
      * <div css:size="16px" css="font-size: var(--size);"></div>
-     * ```
      */
     [css: `css:${string}`]: string | number | false | null | undefined
   }
