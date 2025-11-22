@@ -26,11 +26,9 @@ export let SUSPENSE = new WeakMap<Promise<any>, SuspenseRecord>()
  * Uses an internal WeakMap cache to track promise states across calls.
  *
  * @example
- *   ;```ts
  *   const promise = Promise.resolve(42)
  *   await promise
  *   const value = settled(promise) // 42
- *   ```
  *
  * @param promise - The promise or synchronous value to check
  * @param fallback - The value to return if the promise is still pending
@@ -88,23 +86,21 @@ export type SuspenseExt<State> = {
  * - Automatically update when the promise resolves
  *
  * @example
- *   ;```ts
  *   const data = computed(async () => {
- *     const response = await fetch('/api/data')
- *     return response.json()
+ *   const response = await fetch('/api/data')
+ *   return response.json()
  *   }, 'data').extend(withSuspense())
  *
  *   // Subscribe to resolved values
  *   subscribe(data.suspended, (value) => {
- *     console.log('Resolved:', value)
+ *   console.log('Resolved:', value)
  *   })
  *
  *   // Use in React component with Suspense
  *   function Component() {
- *     const value = useAtom(data.suspended) // throws promise if pending
- *     return <div>{value}</div>
+ *   const value = useAtom(data.suspended) // throws promise if pending
+ *   return <div>{value}</div>
  *   }
- *   ```
  *
  * @param options - Configuration options
  * @param options.preserve - If true, preserves the previous state when
@@ -173,7 +169,6 @@ export let withSuspense =
  *   behavior may be inconsistent. Consider applying `withSuspense()` explicitly
  *   to control options.
  * @example
- *   ;```ts
  *   const data = computed(async () => {
  *     const response = await fetch('/api/data')
  *     return response.json()
@@ -191,7 +186,6 @@ export let withSuspense =
  *       throw promise // Re-throw errors
  *     }
  *   }, 'result')
- *   ```
  *
  * @param target - The atom to get the suspended value from
  * @returns The resolved value (Awaited<State>), or throws a promise/error

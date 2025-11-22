@@ -1,6 +1,6 @@
 import type { Fn, OverloadParameters, Rec } from '../utils'
 import type { Action, Atom, AtomLike, AtomState } from '.'
-import { computedParams, isAtom, ReatomError, top } from '.'
+import { atomMiddleware, computedParams, isAtom, ReatomError, top } from '.'
 
 /**
  * Extension function interface for modifying atoms and actions.
@@ -195,9 +195,21 @@ export type Middleware<Target extends AtomLike = AtomLike> = (
 export let withMiddleware: {
   <Target extends AtomLike>(
     cb: (target: Target) => Middleware<Target>,
+    options?: { reactive?: boolean },
+  ): GenericExt<Target>
+
+  <Target extends AtomLike, Result extends AtomLike = Target>(
+    cb: (target: Target) => Middleware<Target>,
+    options?: { reactive?: boolean },
+  ): Ext<Target, Result>
+
+  /** @deprecated */
+  <Target extends AtomLike>(
+    cb: (target: Target) => Middleware<Target>,
     tail?: boolean,
   ): GenericExt<Target>
 
+  /** @deprecated */
   <Target extends AtomLike, Result extends AtomLike = Target>(
     cb: (target: Target) => Middleware<Target>,
     tail?: boolean,
@@ -205,17 +217,30 @@ export let withMiddleware: {
 } =
   (
     cb: (target: AtomLike) => (next: Fn, ...params: any[]) => any,
-    tail = true,
+
+    options: boolean | { reactive?: boolean },
   ) =>
   (target: AtomLike) => {
+    let { reactive = false } =
+      typeof options === 'boolean' ? { reactive: options } : (options ?? {})
+
     let middleware = cb(target)
 
     if (typeof middleware !== 'function') {
       throw new ReatomError('function expected')
     }
 
-    if (tail) target.__reatom.middlewares.push(middleware)
-    else target.__reatom.middlewares.unshift(middleware)
+    if (reactive) {
+      const computedMiddlewareIdx =
+        target.__reatom.middlewares.indexOf(atomMiddleware)
+      if (computedMiddlewareIdx === -1)
+        throw new ReatomError(
+          "Can't apply reactive middleware to not reactive atom",
+        )
+      target.__reatom.middlewares.splice(computedMiddlewareIdx, 0, middleware)
+    } else {
+      target.__reatom.middlewares.push(middleware)
+    }
 
     return target
   }

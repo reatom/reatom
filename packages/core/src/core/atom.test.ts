@@ -10,6 +10,7 @@ import {
   createAtom,
   isConnected,
   notify,
+  withMiddleware,
   withTap,
 } from './'
 
@@ -377,4 +378,22 @@ test('bidirectional link', () => {
   double.set(10)
   notify()
   expect(context().state.store.get(single)!.state).toBe(5)
+})
+
+test('middlewares order', () => {
+  const name = 'middlewaresOrder'
+  let logs: number[] = []
+  const a = atom(0, `${name}.a`).extend(
+    withMiddleware(() => (next, ...args) => {
+      logs.push(1)
+      return next(...args)
+    }),
+    withMiddleware(() => (next, ...args) => {
+      logs.push(2)
+      return next(...args)
+    }),
+  )
+
+  expect(a()).toBe(0)
+  expect(logs).toEqual([2, 1])
 })

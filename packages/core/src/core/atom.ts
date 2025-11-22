@@ -664,7 +664,7 @@ export function _isPubsChanged(
 }
 
 /** The hurt of atom internal logic */
-function atomMiddleware(next: Fn) {
+export function atomMiddleware(next: Fn) {
   let frame = STACK[STACK.length - 1]!
 
   let push = arguments.length > 1
@@ -864,24 +864,21 @@ export let createAtom: {
           if (reactive) target.__reatom.processing = true
 
           middlewares: try {
-            let fn: Fn = identity
-
-            if (precompiledComputed !== undefined) {
-              if (
-                middlewares.length === 1 &&
-                middlewares[0] === atomMiddleware
-              ) {
-                newState = precompiledComputed.apply(
-                  null,
-                  // @ts-ignore TODO
-                  write ? args : [],
-                )
-                newError = null
-                break middlewares
-              }
-
-              fn = setup.computed!
+            if (
+              precompiledComputed !== undefined &&
+              middlewares.length === 1 &&
+              middlewares[0] === atomMiddleware
+            ) {
+              newState = precompiledComputed.apply(
+                null,
+                // @ts-ignore TODO
+                write ? args : [],
+              )
+              newError = null
+              break middlewares
             }
+
+            let fn: Fn = setup.computed ?? identity
 
             for (let middleware of middlewares) {
               // TODO is `.bind` fast enough?
