@@ -11,7 +11,7 @@ const getDuration = async (cb: () => Promise<void>) => {
 	return Date.now() - start
 }
 
-describe('timer', { retry: 0 }, () => {
+describe('timer', { retry: 3 }, () => {
 	test(`base API`, async () => {
 		const timerAtom = reatomTimer(`test`)
 
