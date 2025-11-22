@@ -1,6 +1,6 @@
 import { type Action, action, type Atom, atom, type AtomLike, named, ReatomError, top } from "../core"
+import { addChangeHook } from "../extensions"
 import { wrap } from "../methods"
-import { addChangeHook } from "../mixins"
 import { type BooleanAtom, reatomBoolean } from "../primitives"
 import { MAX_SAFE_TIMEOUT, noop, sleep } from "../utils"
 
