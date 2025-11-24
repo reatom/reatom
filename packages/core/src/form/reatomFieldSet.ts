@@ -77,7 +77,7 @@ export interface FieldSet<T extends FormInitState>
    */
   validation: Computed<FieldSetValidation> & {
     /** Action to trigger fieldset validation. */
-    trigger: Action<[], FieldSetValidation> & AbortExt
+    trigger: Action<[forFields?: FieldAtom[]], FieldSetValidation> & AbortExt
   }
 }
 
@@ -144,8 +144,8 @@ export const reatomFieldSet = <T extends FormInitState>(
 
     return validation
   }, `${name}.validation`).extend(withMemo(), (target) => ({
-    trigger: action(() => {
-      for (const field of fieldsList()) {
+    trigger: action((forFields: FieldAtom[] = fieldsList()) => {
+      for (const field of forFields) {
         if (!field.validation().triggered) field.validation.trigger()
       }
 

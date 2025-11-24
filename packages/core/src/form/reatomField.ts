@@ -160,6 +160,13 @@ export interface FieldAtom<State = any, Value = State>
      */
     validateOnBlur: boolean | undefined
 
+    /**
+     * Defines if the validation should be triggered on the top-level form submit.
+     *
+     * @default true
+     */
+    validateOnSubmit: boolean | undefined
+
     shouldValidate: boolean | undefined
   }>
 }
@@ -253,6 +260,13 @@ export interface FieldOptions<State = any, Value = State> {
    * @default false
    */
   validateOnBlur?: boolean
+
+  /**
+   * Defines if the validation should be triggered on the top-level form submit.
+   *
+   * @default true
+   */
+  validateOnSubmit?: boolean
 }
 
 export const fieldInitFocus: FieldFocus = {
@@ -312,6 +326,7 @@ export function reatomField<State, Value = State>(
     {
       validateOnChange: restOptions.validateOnChange,
       validateOnBlur: restOptions.validateOnBlur,
+      validateOnSubmit: restOptions.validateOnSubmit,
       keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
       keepErrorOnChange: restOptions.keepErrorOnChange,
       shouldValidate: undefined as boolean | undefined,
@@ -322,6 +337,7 @@ export function reatomField<State, Value = State>(
       const {
         validateOnChange,
         validateOnBlur,
+        validateOnSubmit,
         keepErrorDuringValidating,
         keepErrorOnChange,
         shouldValidate,
@@ -330,6 +346,7 @@ export function reatomField<State, Value = State>(
       return {
         validateOnChange: validateOnChange ?? false,
         validateOnBlur: validateOnBlur ?? false,
+        validateOnSubmit: validateOnSubmit ?? true,
         keepErrorDuringValidating: keepErrorDuringValidating ?? false,
         keepErrorOnChange: keepErrorOnChange ?? !validateOnChange,
         shouldValidate: shouldValidate ?? !!validateFn,

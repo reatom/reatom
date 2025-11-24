@@ -533,6 +533,35 @@ test('form should correctly initialize field options', async () => {
   expect(form.fields.fieldWithDefault.options().validateOnChange).toBe(false)
 })
 
+test('form should not trigger submit validation if validationOnSubmit set to false', async () => {
+  const form = reatomForm(
+    {
+      age: 12,
+      email: reatomField('test', { 
+        validate: z.string().email()
+      }),
+    },
+    {
+      validateOnSubmit: false,
+      validateBeforeSubmit: () => validateBeforeSubmitFn()
+    },
+  )
+
+  const validateBeforeSubmitFn = vi.fn()
+
+  await wrap(form.submit().catch(noop))
+
+  expect(validateBeforeSubmitFn).toHaveBeenCalled()
+  expect(form.validation().errors.length).toBeFalsy()
+
+  form.fields.email.options.merge({ validateOnSubmit: true })
+
+  await wrap(form.submit().catch(noop))
+
+  expect(validateBeforeSubmitFn).toHaveBeenCalled()
+  expect(form.validation().errors.length).toBe(1)
+})
+
 test('validating through form schema and placing errors to corresponding fields', async () => {
   const form = reatomForm(
     {
