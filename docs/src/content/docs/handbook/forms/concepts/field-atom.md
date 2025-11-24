@@ -119,6 +119,19 @@ dateMask.set('DD.MM.YYYY')
 ```
 After this, the `dateField` state now becomes `null` because we changed the date format. This may seem like functionality that should be inside a reactive validation callback, but this specific case can be useful if there are computed atoms from the field's `state` that should remain consistent even after changing the date format
 
+### `initState` atom
+This atom contains the initial field value that was passed as an argument to the `reatomField` constructor. This is a separate state against which the field's dirty status is calculated, and which will be set as the current value for the field after calling the field's `reset` method.
+
+You can also modify this state using the `reset` method by passing an argument to it:
+```ts
+const usernameField = reatomField('later', 'usernameField')
+
+const saveUsername = action(async (username: string) => {
+  await wrap(syncUsername(username));
+  usernameField.reset(username)
+}, 'saveUsername').extend(withAsync())
+```
+
 ## Validation and concurrency
 Like all form fields in the world, a field can have validation rules defined. For `reatomField`, validation rules consist of two parts: field validity checking through the `validate` callback in form creation options and defining validation trigger conditions.
 Speaking of the `validate` callback, it allows using both synchronous and asynchronous functions and even Standard Schema compatible validation schemas.

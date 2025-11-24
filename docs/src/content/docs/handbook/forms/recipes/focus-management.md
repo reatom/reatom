@@ -2,7 +2,7 @@
 title: Focus management
 ---
 
-### Autofocus on error
+### Auto focus on error
 
 This recipe demonstrates how to automatically focus on the first field with a validation error after a form submission fails. This improves user experience by directing their attention to the field that needs correction.
 

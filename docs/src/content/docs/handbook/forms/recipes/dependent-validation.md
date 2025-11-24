@@ -27,7 +27,7 @@ const loginForm = reatomForm(name => {
     password,
     confirmPassword,
   }
-}), 'loginForm')
+}, 'loginForm')
 ```
 
 The first validation of `confirmPassword` will be triggered on blur event and then on every change of `password` field due to [reactive nature of `validate` callback](/handbook/forms/concepts/reactive-validation/)
