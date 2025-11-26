@@ -12,6 +12,15 @@ import {
 import { abortVar, getCalls, ifChanged } from '../methods'
 import type { Fn } from '../utils'
 import { assert, isAbort } from '../utils'
+import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
+
+let defaultStatus = computed(() => {
+  throw new ReatomError(
+    'status is turned off by default, you need to activate it explicitly in options',
+  )
+}, 'defaultStatus').extend((target) => ({
+  reset: action(() => target(), `${target.name}.reset`),
+})) as AsyncStatusAtom
 
 /**
  * Extension interface added by {@link withAsync} to atoms or actions that return
@@ -79,6 +88,15 @@ export interface AsyncExt<
 
   /** Atom containing the most recent error or undefined if no error has occurred */
   error: Atom<undefined | Error>
+
+  /**
+   * Atom that tracks the current status of async operations including lifecycle
+   * state, timing information, and retry functionality. Must be explicitly enabled
+   * via the `status` option in {@link withAsync} configuration.
+   *
+   * @throws {ReatomError} When accessed without being enabled in options
+   */
+  status: AsyncStatusAtom
 }
 
 /**
@@ -107,6 +125,15 @@ export type AsyncOptions<Err = Error, EmptyErr = undefined> = {
    * - Null: Never automatically reset errors
    */
   resetError?: null | 'onCall' | 'onFulfill'
+
+  /**
+   * Whether to enable the `status` atom for detailed async operation tracking.
+   * When enabled, provides access to lifecycle state, timing information, and
+   * retry functionality through the `status` property.
+   *
+   * @default false
+   */
+  status?: boolean
 }
 
 /**
@@ -148,6 +175,7 @@ export let withAsync: {
       parseError = (e: any) => (e instanceof Error ? e : new Error(String(e))),
       emptyError,
       resetError = 'onCall',
+      status = false,
     } = options ?? {}
 
     let onFulfill: AsyncExt['onFulfill'] = action((payload, params) => {
@@ -248,5 +276,6 @@ export let withAsync: {
         pending,
         error,
       }),
+      status ? withAsyncStatus() : () => ({ status: defaultStatus }),
     ) satisfies AtomLike & AsyncExt
   }
