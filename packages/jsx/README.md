@@ -260,15 +260,121 @@ Behind the scenes, the runtime:
 
 #### Why css-prop?
 
-It's important to note that Reatom doesn't process passed styles and put it as is to the DOM, but you may use [native nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Using_CSS_nesting), so DX is still perfect.
+Every styling approach forces trade-offs. CSS-modules and SFC style tags split your component across files. Tailwind requires learning a new vocabulary and clutters your markup. Styled-components and Linaria add runtime overhead or complex build pipelines.
 
-Unlike css-modules or SFC style tags, the `css` prop doesn't force you to duplicate component structure across separate files. Unlike utility-first frameworks (Tailwind), it uses standard CSS without additional mental overhead. Unlike styled-components or Linaria, it has zero runtime overhead and no build complexity.
+The `css` prop takes a different path: **just write CSS where you use it**. No preprocessing, no new syntax to learn — Reatom passes your styles directly to the DOM. You still get [native CSS nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Using_CSS_nesting), readable class names in DevTools (`Component_ab12cd`), and zero build complexity.
 
-The key advantage is architectural: inline styles naturally encourage better code organization. When a component grows large with many styles, the path of least resistance is to **extract the entire component** (keeping styles inline), not just move styles to a separate file. This maintains high cohesion and low coupling — the foundation of maintainable architecture.
+But the real win is architectural. When styles live inline, growing components naturally want to be **extracted as new components** — not split into separate style files. This keeps markup and styles together, maintaining high cohesion and low coupling. The path of least resistance leads to better code organization.
 
 > Tip: wrapping logic in components improves generated class readability and traceability.
 
-> The example below is correctly formatted by Prettier and has syntax highlighting provided by the [vscode-styled-components](https://marketplace.visualstudio.com/items?itemName=styled-components.vscode-styled-components) extension.
+> Prettier formats `css` template literals correctly, and the [vscode-styled-components](https://marketplace.visualstudio.com/items?itemName=styled-components.vscode-styled-components) extension provides syntax highlighting.
+
+#### CSS Mixins
+
+Since styles are just strings, you can build your own design system with plain JavaScript — no framework magic required.
+
+Mix utilities with custom CSS when needed:
+
+```tsx title="Component.tsx"
+<div
+  css={`
+    ${card}
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  `}
+/>
+```
+
+Use them directly — no template literals needed for simple cases:
+
+```tsx title="Article.tsx"
+<main css={center}>
+  <article css={card}>
+    <h1 css={text(colors.text)}>Hello</h1>
+    <button css={bg(colors.primary) + px(4) + py(2) + rounded}>Click me</button>
+  </article>
+</main>
+```
+
+Your design tokens and utilities:
+
+```ts title="styles.ts"
+// Tokens
+export const colors = {
+  primary: '#3b82f6',
+  surface: '#f8fafc',
+  text: '#1e293b',
+}
+export const space = [0, 4, 8, 16, 24, 32, 48] as const
+export type Size = 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+// Utilities — just strings and functions
+export const flex = 'display: flex;'
+export const flexCenter = 'justify-content: center; align-items: center;'
+export const rounded = 'border-radius: 8px;'
+
+export const p = (n: Size) => `padding: ${space[n]}px;`
+export const px = (n: Size) => `padding-inline: ${space[n]}px;`
+export const py = (n: Size) => `padding-block: ${space[n]}px;`
+export const bg = (color: string) => `background: ${color};`
+export const text = (color: string) => `color: ${color};`
+
+export const card = bg(colors.surface) + rounded + p(4)
+export const center = flex + flexCenter
+```
+
+This gives you the composability of utility-first CSS with full CSS power — all type-safe, all just JavaScript.
+
+#### Conditional Styles with Attributes
+
+We have built-in [class names parsing](#class-or-classname-props) and a reactive helper [`reatomClassName`](#reatomclassname-class-names-reactivity). But often it's simpler and more effective to use native attributes for conditional styles — the attribute becomes both the state indicator and the CSS selector target.
+
+```tsx
+const Accordion = ({ title, children }) => {
+  const open = atom(false)
+
+  return (
+    <details
+      open={open}
+      css={`
+        article {
+          display: grid;
+          grid-template-rows: 0fr;
+          transition: grid-template-rows 0.2s;
+        }
+        &[open] article {
+          grid-template-rows: 1fr;
+        }
+      `}
+    >
+      <summary on:click={open.toggle}>{title}</summary>
+      <article>
+        <div css="overflow: hidden;">{children}</div>
+      </article>
+    </details>
+  )
+}
+```
+
+Works with ARIA and standard attributes — accessible and styleable in one:
+
+```tsx
+<nav aria-busy={loading} css="&[aria-busy] { opacity: 0.5; }">
+  {/* shows loading state to screen readers AND applies style */}
+</nav>
+
+<button disabled={submitting} css="&[disabled] { cursor: wait; }">
+  {/* native disabled behavior AND custom style */}
+</button>
+```
+
+Why this pattern works best:
+
+- **Single source of truth** — attribute is both the reactive binding and style condition
+- **Accessible by default** — ARIA attributes communicate state to assistive technologies
+- **Inspectable** — attributes are visible in DevTools, debugging is trivial
+- **Testable** — query by semantic selectors (`[aria-current]`, `[disabled]`) instead of class names
 
 ### Components
 
