@@ -13,7 +13,7 @@ import {
 } from '../'
 import type { Action, Computed } from '../core'
 import { action, computed, ReatomError } from '../core'
-import { urlAtom } from '../web/url'
+import { type UrlAtom, urlAtom } from '../web/url'
 
 type MaybeVoid<T> = {} extends T ? T | void : T
 
@@ -531,16 +531,10 @@ const getPatternName = (part: string) => {
   return start || end ? part.slice(start, end) : part
 }
 
-const createRouteFactory = (
-  parent: Computed & {
-    pattern: string
-    routes: Rec<RouteAtom>
-    loader?: RouteLoader
-  },
-  name?: string,
-) => {
+const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
   return function reatomRoute(
     pathOrOptions: string | RouteOptions<string, any, any, any>,
+    name?: string,
   ): RouteAtom<string> {
     const options =
       typeof pathOrOptions === 'string'
@@ -639,7 +633,7 @@ const createRouteFactory = (
 
       const promise = optionsLoader(params)
 
-      if (parent.loader) {
+      if ('loader' in parent) {
         if (promise instanceof Promise) promise.catch(noop)
         await wrap(parent.loader())
       }
@@ -685,7 +679,7 @@ const createRouteFactory = (
     }, `${name}.go`) as Action as RouteExt['go']
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {
-      if (parent() === null) return null
+      if ('match' in parent && !parent.match!()) return null
 
       const url = urlAtom()
       const pathname = url.pathname
@@ -725,9 +719,10 @@ const createRouteFactory = (
         return null
       }
 
-      let result = { ...validatedParams }
+      let result = validatedParams
 
       if (validatedSearch) {
+        result = { ...validatedParams }
         for (const key in validatedSearch) {
           if (key in result) {
             throw new ReatomError(
@@ -856,7 +851,7 @@ const createRouteFactory = (
  * @returns A new RouteAtom instance
  */
 export let reatomRoute = /* @__PURE__ */ (() =>
-  createRouteFactory(urlAtom as any) as RouteMixin<''>['reatomRoute'])()
+  createRouteFactory(urlAtom) as RouteMixin<''>['reatomRoute'])()
 
 /** @deprecated Use `reatomRoute` instead */
 export let route = reatomRoute

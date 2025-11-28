@@ -1,9 +1,8 @@
-import type { Action, Atom, Computed } from '../core'
+import type { Action, Atom } from '../core'
 import {
   _enqueue,
   action,
   atom,
-  computed,
   STACK,
   top,
   withMiddleware,
@@ -41,13 +40,8 @@ export interface UrlAtom extends Atom<URL> {
    */
   go: (path: string, replace?: boolean) => URL
 
-  /**
-   * Create a computed atom that checks if the current path matches a given
-   * pattern.
-   *
-   * @param path The path pattern to match against
-   */
-  match: (path: string) => Computed<boolean>
+  /** @deprecated Use `reatomRoute` instead */
+  match?: never
 
   /**
    * Whether to intercept link clicks for SPA navigation.
@@ -80,6 +74,8 @@ export interface UrlAtom extends Atom<URL> {
   syncFromSource: Action<[url: URL, replace?: boolean], URL>
 
   routes: Rec<RouteAtom>
+
+  pattern: '/'
 }
 
 /** Create the URL atom with the new Reatom API. */
@@ -185,13 +181,6 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
     .actions((target) => ({
       go(path: string, replace?: boolean) {
         return target.set((url) => new URL(path, url), replace)
-      },
-
-      match(path: string) {
-        return computed(
-          () => target().pathname.startsWith(path),
-          `urlAtom.match[${path}]`,
-        )
       },
 
       syncFromSource(url: URL, replace?: boolean) {
