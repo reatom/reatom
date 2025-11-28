@@ -53,7 +53,7 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
   }
 
   /**
-   * Gets the passed frame value of the variable
+   * Gets the frame value of the variable. Traverse the whole stack to find it.
    *
    * @param {Frame} [frame] - Optional frame to check (defaults to current top
    *   frame)
@@ -62,6 +62,27 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
    */
   get(frame?: Frame): undefined | T {
     return this.find(identity, frame)
+  }
+
+  /**
+   * Gets the value of the variable and throws an error if it is not found in
+   * the frame stack.
+   *
+   * This method is a stricter version of `get()` that ensures the variable has
+   * been set to a value. Use this when you expect the variable to always be
+   * defined and want to fail fast if it is not.
+   *
+   * @param {Frame} [frame] - Optional frame to check (defaults to current top
+   *   frame)
+   * @returns {T} The current value (guaranteed to be defined)
+   * @throws {ReatomError} If the variable is not set (undefined)
+   */
+  require(frame?: Frame): T {
+    let value = this.find(identity, frame)
+    if (value === undefined) {
+      throw new ReatomError('Variable is not set')
+    }
+    return value
   }
 
   /**
