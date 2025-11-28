@@ -1,5 +1,5 @@
 import type { AtomLike, AtomState, Ext } from '../core'
-import { ReatomError, top } from '../core'
+import { ReatomError, top, withMiddleware } from '../core'
 import { assert, isShallowEqual } from '../utils'
 
 export let withMemo =
@@ -15,11 +15,14 @@ export let withMemo =
       'withMemo can be used only with atoms',
       ReatomError,
     )
-
-    target.__reatom.middlewares.push(function memoExt(next, ...params) {
-      let prevState = top().state
-      let nextState = next(...params)
-      return isEqual(prevState, nextState) ? prevState : nextState
-    })
-    return target
+    return target.extend(
+      withMiddleware(
+        () =>
+          function withMemo(next, ...params) {
+            let prevState = top().state
+            let nextState = next(...params)
+            return isEqual(prevState, nextState) ? prevState : nextState
+          },
+      ),
+    )
   }
