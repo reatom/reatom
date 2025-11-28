@@ -357,7 +357,7 @@ export function reatomField<State, Value = State>(
 
   field.extend(
     withChangeHook(() => {
-      if (isCausedBy(reset)) return
+      if (isCausedBy(reset, 1)) return
 
       focus.merge({ touched: true })
       validation.trigger.abort('change')

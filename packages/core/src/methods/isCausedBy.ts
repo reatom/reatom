@@ -17,6 +17,8 @@ import { top } from '../core'
  *   }
  *
  * @param {AtomLike} target - The atom to check if it's part of the causal chain
+ * @param {number} [depth=Infinity] - The depth of the causal chain to check.
+ *   Default is `Infinity`
  * @param {Frame} [frame=top()] - The frame to check (defaults to the current
  *   top frame). Default is `top()`
  * @returns {boolean} True if the target atom is part of the causal chain, false
@@ -24,13 +26,17 @@ import { top } from '../core'
  */
 export let isCausedBy = (
   target: AtomLike,
+  depth = Infinity,
   frame = top(),
   visited = new Set<Frame>(),
-): boolean =>
-  frame.pubs.some(
+): boolean => {
+  depth--
+  return frame.pubs.some(
     (pub) =>
       pub &&
       (pub.atom === target ||
-        (!visited.has(pub) &&
-          (visited.add(pub), isCausedBy(target, pub, visited)))),
+        (depth >= 0 &&
+          !visited.has(pub) &&
+          (visited.add(pub), isCausedBy(target, depth, pub, visited)))),
   )
+}
