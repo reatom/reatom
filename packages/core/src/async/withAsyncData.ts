@@ -6,6 +6,7 @@ import { getCalls } from '../methods'
 import { identity, noop } from '../utils'
 import type { AsyncExt, AsyncOptions } from './withAsync'
 import { withAsync } from './withAsync'
+import type { AsyncStatusAtom } from './withAsyncStatus'
 
 /**
  * Extension interface added by {@link withAsyncData} to atoms or actions that
@@ -21,6 +22,7 @@ export interface AsyncDataExt<
   Params extends any[] = any[],
   Payload = any,
   State = any,
+  InitState = State,
   Error = any,
 > extends AsyncExt<Params, Payload, Error>,
     AbortExt {
@@ -28,7 +30,10 @@ export interface AsyncDataExt<
    * Atom that stores the fetched data Updated automatically when the async
    * operation completes successfully
    */
-  data: Atom<State>
+  data: Atom<InitState | State>
+
+  /** Status atom that includes the data property */
+  status: AsyncStatusAtom<State, InitState>
 }
 
 /**
@@ -80,7 +85,7 @@ export function withAsyncData<Err = Error, EmptyErr = undefined>(
 ): <T extends AtomLike>(
   target: T,
 ) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
-  ? AsyncDataExt<Params, Payload, undefined | Payload, Err | EmptyErr>
+  ? AsyncDataExt<Params, Payload, Payload, undefined, Err | EmptyErr>
   : never
 
 /**
@@ -117,7 +122,7 @@ export function withAsyncData<
 ): (
   target: T,
 ) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
-  ? AsyncDataExt<Params, Payload, Payload, Err | EmptyErr>
+  ? AsyncDataExt<Params, Payload, Payload, Payload, Err | EmptyErr>
   : never
 
 /**
@@ -148,7 +153,7 @@ export function withAsyncData<
 ): (
   target: T,
 ) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
-  ? AsyncDataExt<Params, Payload, State | Payload, Err | EmptyErr>
+  ? AsyncDataExt<Params, Payload, State, Payload, Err | EmptyErr>
   : never
 
 /**
@@ -184,7 +189,7 @@ export function withAsyncData<
 ): (
   target: T,
 ) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
-  ? AsyncDataExt<Params, Payload, State, Err | EmptyErr>
+  ? AsyncDataExt<Params, Payload, State, State, Err | EmptyErr>
   : never
 
 /**
@@ -215,8 +220,6 @@ export function withAsyncData(
 ): (target: AtomLike<any, any[], Promise<any>>) => any {
   const { initState, mapPayload = identity, ...asyncOptions } = options
   return (target: AtomLike<Promise<any>>) => {
-    let asyncTarget = target.extend(withAbort(), withAsync(asyncOptions))
-
     let data = createAtom(
       {
         initState:
@@ -238,8 +241,14 @@ export function withAsyncData(
       reset: () => target.set(() => initState),
     }))
 
+    let asyncTarget = target.extend(
+      () => ({ data }),
+      withAbort(),
+      withAsync(asyncOptions),
+    )
+
     asyncTarget.onFulfill.extend(withCallHook(() => data()))
 
-    return { data }
+    return target
   }
 }

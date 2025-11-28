@@ -359,6 +359,66 @@ test('few calls in a row', async () => {
   expect(resource.pending()).toBe(0)
 })
 
+test('status includes data property', async () => {
+  const name = 'statusWithData'
+  const fetch = action(
+    async (param: number) => param + 1,
+    `${name}.fetch`,
+  ).extend(withAsyncData({ status: true }))
+
+  expectTypeOf(fetch.data).toExtend<Atom<undefined | number>>()
+
+  const status = fetch.status()
+
+  expectTypeOf(status.data).toExtend<number | undefined>()
+  if (status.isFulfilled) {
+    expectTypeOf(status.data).toExtend<number>()
+  }
+
+  const statusInitial = fetch.status()
+
+  expect(statusInitial.data).toBeUndefined()
+  expect(statusInitial.isPending).toBe(false)
+  expect(statusInitial.isEverPending).toBe(false)
+
+  const promise = fetch(5)
+  const statusPending = fetch.status()
+  expect(statusPending.data).toBeUndefined()
+  expect(statusPending.isPending).toBe(true)
+  expect(statusPending.isFirstPending).toBe(true)
+
+  await wrap(promise)
+  const statusFulfilled = fetch.status()
+  expect(statusFulfilled.data).toBe(6)
+  expect(statusFulfilled.isPending).toBe(false)
+  expect(statusFulfilled.isFulfilled).toBe(true)
+  expect(statusFulfilled.isSettled).toBe(true)
+})
+
+test('status includes data property with initState', async () => {
+  const name = 'statusWithDataInitState'
+  const fetch = action(
+    async (param: number) => param + 1,
+    `${name}.fetch`,
+  ).extend(withAsyncData({ initState: 0, status: true }))
+
+  expectTypeOf(fetch.data).toExtend<Atom<number>>()
+
+  const statusInitial = fetch.status()
+  expect(statusInitial.data).toBe(0)
+  expect(statusInitial.isPending).toBe(false)
+
+  const promise = fetch(10)
+  const statusPending = fetch.status()
+  expect(statusPending.data).toBe(0)
+  expect(statusPending.isPending).toBe(true)
+
+  await wrap(promise)
+  const statusFulfilled = fetch.status()
+  expect(statusFulfilled.data).toBe(11)
+  expect(statusFulfilled.isFulfilled).toBe(true)
+})
+
 // TODO just predefine actions WITH PERSIST CACHE and you get a nicer version of FSM.
 /*
 const askProfileSurvey = reatomFSM(

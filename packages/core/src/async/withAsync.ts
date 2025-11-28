@@ -96,7 +96,7 @@ export interface AsyncExt<
    *
    * @throws {ReatomError} When accessed without being enabled in options
    */
-  status: AsyncStatusAtom
+  status: AsyncStatusAtom<any, any>
 }
 
 /**

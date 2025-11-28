@@ -28,6 +28,8 @@ const neverPending: AsyncStatusNeverPending = {
   // isNeverPending: true,
   isEverSettled: false,
   // isNeverSettled: true,
+
+  data: undefined as never,
 }
 
 const firstPending: AsyncStatusFirstPending = {
@@ -42,6 +44,8 @@ const firstPending: AsyncStatusFirstPending = {
   // isNeverPending: false,
   isEverSettled: false,
   // isNeverSettled: true,
+
+  data: undefined as never,
 }
 
 const fulfilled: AsyncStatusFulfilled = {
@@ -56,6 +60,8 @@ const fulfilled: AsyncStatusFulfilled = {
   // isNeverPending: false,
   isEverSettled: true,
   // isNeverSettled: false,
+
+  data: undefined as never,
 }
 
 const rejected: AsyncStatusRejected = {
@@ -70,6 +76,8 @@ const rejected: AsyncStatusRejected = {
   // isNeverPending: false,
   isEverSettled: true,
   // isNeverSettled: false,
+
+  data: undefined as never,
 }
 
 const firstAborted: AsyncStatusFirstAborted = {
@@ -81,6 +89,8 @@ const firstAborted: AsyncStatusFirstAborted = {
   isFirstPending: false,
   isEverPending: true,
   isEverSettled: false,
+
+  data: undefined as never,
 }
 
 const anotherPending: AsyncStatusAnotherPending = {
@@ -95,12 +105,14 @@ const anotherPending: AsyncStatusAnotherPending = {
   // isNeverPending: false,
   isEverSettled: true,
   // isNeverSettled: false,
+
+  data: undefined as never,
 }
 
 test('withAsyncStatus', async () => {
   const fetchData = action(async (shouldTrow = false) => {
     if (shouldTrow) throw new Error('withAsyncStatus test error')
-  }, 'fetchData').extend(withAsync())
+  }, 'fetchData').extend(withAsync({ status: true }))
 
   expect(fetchData.status()).toEqual(neverPending)
 
@@ -123,7 +135,7 @@ test('withAsyncStatus', async () => {
 
 test('withAsyncStatus parallel requests', async () => {
   const fetchData = action((delay = 10) => sleep(delay), 'fetchData').extend(
-    withAsync(),
+    withAsync({ status: true }),
   )
 
   expect(fetchData.status()).toEqual(neverPending)
@@ -134,7 +146,10 @@ test('withAsyncStatus parallel requests', async () => {
 
   const p2 = fetchData(100)
 
-  expect(fetchData.status()).toEqual({ ...firstPending, isFirstPending: false })
+  expect(fetchData.status()).toEqual({
+    ...firstPending,
+    isFirstPending: false,
+  })
 
   await wrap(p1)
 
@@ -149,9 +164,11 @@ test('withAsyncStatus parallel requests', async () => {
 })
 
 test('reset during pending', async () => {
-  const fetchData = action(async () => {}, 'fetchData').extend(withAsync())
+  const fetchData = action(async () => {}, 'fetchData').extend(
+    withAsync({ status: true }),
+  )
 
-  expect(fetchData.status()).toBe(asyncStatusInitState)
+  expect(fetchData.status()).toMatchObject(asyncStatusInitState)
 
   fetchData()
   expect(fetchData.status().isPending).toBe(true)
@@ -168,9 +185,9 @@ test('do not reject on abort', async () => {
     const err = new Error('Aborted')
     err.name = 'AbortError'
     throw err
-  }, 'fetchData').extend(withAsync())
+  }, 'fetchData').extend(withAsync({ status: true }))
 
-  expect(fetchData.status()).toBe(asyncStatusInitState)
+  expect(fetchData.status()).toMatchObject(asyncStatusInitState)
 
   fetchData().catch(noop)
   fetchData().catch(noop)
@@ -188,9 +205,9 @@ test('isEverSettled after abort', async () => {
       err.name = 'AbortError'
       throw err
     }
-  }, 'fetchData').extend(withAsync())
+  }, 'fetchData').extend(withAsync({ status: true }))
 
-  expect(fetchData.status()).toBe(asyncStatusInitState)
+  expect(fetchData.status()).toMatchObject(asyncStatusInitState)
   await wrap(fetchData())
   expect(fetchData.status().isFulfilled).toBe(true)
   expect(fetchData.status()).toEqual({
@@ -202,6 +219,8 @@ test('isEverSettled after abort', async () => {
     isFirstPending: false,
     isEverPending: true,
     isEverSettled: true,
+
+    data: undefined as never,
   } satisfies AsyncStatusFulfilled)
 
   shouldAbort = true
@@ -217,6 +236,8 @@ test('isEverSettled after abort', async () => {
     isFirstPending: false,
     isEverPending: true,
     isEverSettled: true,
+
+    data: undefined as never,
   } satisfies AsyncStatusAbortedPending)
 })
 
@@ -228,7 +249,7 @@ test('restore isFulfilled after abort', async () => {
       err.name = 'AbortError'
       throw err
     }
-  }, 'fetchData').extend(withAsync())
+  }, 'fetchData').extend(withAsync({ status: true }))
 
   await wrap(fetchData())
   expect(fetchData.status()).toEqual({
@@ -240,6 +261,8 @@ test('restore isFulfilled after abort', async () => {
     isFirstPending: false,
     isEverPending: true,
     isEverSettled: true,
+
+    data: undefined as never,
   } satisfies AsyncStatusFulfilled)
 
   shouldAbort = true
@@ -258,5 +281,7 @@ test('restore isFulfilled after abort', async () => {
     isFirstPending: false,
     isEverPending: true,
     isEverSettled: true,
+
+    data: undefined as never,
   } satisfies AsyncStatusAbortedFulfill)
 })

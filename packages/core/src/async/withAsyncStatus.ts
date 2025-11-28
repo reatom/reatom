@@ -12,7 +12,7 @@ import {
 } from '../core'
 import { withComputed } from '../extensions'
 import { withMemo } from '../extensions/withMemo'
-import { getCalls, memoKey } from '../methods'
+import { getCalls, memoKey, peek } from '../methods'
 import { isAbort } from '../utils'
 import type { AsyncExt } from './withAsync'
 import type {
@@ -26,22 +26,23 @@ import type {
 export * from './withAsyncStatus.types'
 
 /**
- * Atom that tracks the detailed status of async operations.
- * Provides boolean flags for current state and historical state tracking.
+ * Atom that tracks the detailed status of async operations. Provides boolean
+ * flags for current state and historical state tracking.
  */
-export interface AsyncStatusAtom extends Computed<AsyncStatus> {
+export interface AsyncStatusAtom<State = never, InitState = State>
+  extends Computed<AsyncStatus<State, InitState>> {
   /**
-   * Resets the status atom to initial state, clearing all history flags.
-   * Useful when you want to treat the next async call as a "first" call again.
+   * Resets the status atom to initial state, clearing all history flags. Useful
+   * when you want to treat the next async call as a "first" call again.
    */
-  reset: Action<[], AsyncStatusNeverPending>
+  reset: Action<[], AsyncStatusNeverPending<State, InitState>>
 }
 
 /**
- * Initial state for async status tracking.
- * Represents a state where no async operation has ever been initiated.
+ * Initial state for async status tracking. Represents a state where no async
+ * operation has ever been initiated.
  */
-export const asyncStatusInitState: AsyncStatus = {
+export const asyncStatusInitState: AsyncStatus<any, any> = {
   isPending: false,
   isFulfilled: false,
   isRejected: false,
@@ -50,6 +51,8 @@ export const asyncStatusInitState: AsyncStatus = {
   isFirstPending: false,
   isEverPending: false,
   isEverSettled: false,
+
+  data: undefined as never,
 }
 
 /**
@@ -58,34 +61,41 @@ export const asyncStatusInitState: AsyncStatus = {
  * current state, first-time flags, and historical tracking.
  *
  * This extension is typically used internally by {@link withAsync} when the
- * `status` option is enabled, but can also be applied directly to any atom
- * that has a `pending` computed.
+ * `status` option is enabled, but can also be applied directly to any atom that
+ * has a `pending` computed.
  *
  * **Status Properties:**
  *
  * Current state flags (mutually exclusive when settled):
+ *
  * - `isPending` - An async operation is currently in progress
  * - `isFulfilled` - The last completed operation succeeded
  * - `isRejected` - The last completed operation failed (non-abort errors only)
  * - `isSettled` - The operation has completed (either fulfilled or rejected)
  *
  * Historical tracking flags:
- * - `isFirstPending` - This is the first-ever pending state (useful for initial loading UI)
+ *
+ * - `isFirstPending` - This is the first-ever pending state (useful for initial
+ *   loading UI)
  * - `isEverPending` - At least one async operation has been started
  * - `isEverSettled` - At least one async operation has completed
  *
  * **Abort Handling:**
  *
- * Aborted operations are treated specially - they don't set `isRejected` to true.
- * After an abort, the status returns to the last settled state (fulfilled/rejected)
- * if one exists, otherwise it goes to a "first aborted" state.
+ * Aborted operations are treated specially - they don't set `isRejected` to
+ * true. After an abort, the status returns to the last settled state
+ * (fulfilled/rejected) if one exists, otherwise it goes to a "first aborted"
+ * state.
  *
  * **Named Status Types:**
  *
- * Each possible status state has a corresponding TypeScript type for precise type narrowing:
+ * Each possible status state has a corresponding TypeScript type for precise
+ * type narrowing:
+ *
  * - {@link AsyncStatusNeverPending} - Initial state, no operation started yet
  * - {@link AsyncStatusFirstPending} - First async operation in progress
- * - {@link AsyncStatusAnotherPending} - Subsequent operation in progress (after settlement)
+ * - {@link AsyncStatusAnotherPending} - Subsequent operation in progress (after
+ *   settlement)
  * - {@link AsyncStatusFulfilled} - Last operation completed successfully
  * - {@link AsyncStatusRejected} - Last operation failed with an error
  * - {@link AsyncStatusFirstAborted} - First operation was aborted before settling
@@ -94,8 +104,10 @@ export const asyncStatusInitState: AsyncStatus = {
  * - {@link AsyncStatusAbortedReject} - Rejected state restored after abort
  *
  * Union types:
+ *
  * - {@link AsyncStatusPending} - Any pending state (First | Another | Aborted)
- * - {@link AsyncStatusAbortedSettle} - Any post-abort settled state (Fulfill | Reject)
+ * - {@link AsyncStatusAbortedSettle} - Any post-abort settled state (Fulfill |
+ *   Reject)
  * - {@link AsyncStatus} - Union of all possible status states
  *
  * @example
@@ -119,13 +131,13 @@ export const asyncStatusInitState: AsyncStatus = {
  *   const status = fetchUser.status()
  *
  *   if (status.isFirstPending) {
- *     return <Skeleton /> // Show skeleton only on first load
+ *   return <Skeleton /> // Show skeleton only on first load
  *   }
  *   if (status.isPending) {
- *     return <Spinner /> // Show spinner on subsequent loads
+ *   return <Spinner /> // Show spinner on subsequent loads
  *   }
  *   if (status.isRejected) {
- *     return <ErrorMessage />
+ *   return <ErrorMessage />
  *   }
  *
  * @example
@@ -133,19 +145,32 @@ export const asyncStatusInitState: AsyncStatus = {
  *   fetchUser.status.reset()
  *   fetchUser.status().isEverPending // false
  *
- * @returns An object containing the `status` computed atom with a `reset` action
+ * @returns An object containing the `status` computed atom with a `reset`
+ *   action
  */
 export const withAsyncStatus =
-  <Target extends AtomLike & Pick<AsyncExt, 'pending'>>() =>
-  (target: Target): { status: AsyncStatusAtom } => {
+  <
+    State = never,
+    InitState = State,
+    Target extends AtomLike & Pick<AsyncExt, 'pending'> = AtomLike &
+      Pick<AsyncExt, 'pending'>,
+  >() =>
+  (target: Target): { status: AsyncStatusAtom<State, InitState> } => {
+    const targetHasData = 'data' in target
+    const getDataValue = () =>
+      targetHasData ? peek(() => (target as any).data()) : (undefined as never)
+
     const getMeta = () =>
       memoKey('meta', () => ({
         lastSettledStatus: null as null | 'fulfilled' | 'rejected',
         uniqueKey: {},
       }))
 
-    const status = atom<AsyncStatus>(
-      asyncStatusInitState,
+    const status = atom<AsyncStatus<State, InitState>>(
+      () =>
+        (target as any).data
+          ? { ...asyncStatusInitState, data: getDataValue() }
+          : asyncStatusInitState,
       `${target.name}.status`,
     ).extend(
       (target) => ({
@@ -156,8 +181,11 @@ export const withAsyncStatus =
               meta.lastSettledStatus = null
               meta.uniqueKey = {}
 
-              return asyncStatusInitState
-            }) as AsyncStatusNeverPending,
+              return {
+                ...asyncStatusInitState,
+                data: getDataValue(),
+              }
+            }) as AsyncStatusNeverPending<State, InitState>,
           `${target.name}.reset`,
         ),
       }),
@@ -182,7 +210,9 @@ export const withAsyncStatus =
             isFirstPending: !state.isEverPending,
             isEverPending: true,
             isEverSettled: state.isEverSettled,
-          } as AsyncStatus
+
+            data: getDataValue(),
+          } as AsyncStatus<State, InitState>
 
           promise.then(
             bind(() => {
@@ -203,7 +233,9 @@ export const withAsyncStatus =
                   isFirstPending: false,
                   isEverPending: true,
                   isEverSettled: true,
-                } as AsyncStatus
+
+                  data: getDataValue(),
+                } as AsyncStatus<State, InitState>
               })
             }),
             bind((error) => {
@@ -221,6 +253,8 @@ export const withAsyncStatus =
               }
 
               status.set((state) => {
+                const currentData = getDataValue()
+
                 if (!aborted) {
                   return {
                     isPending,
@@ -231,7 +265,9 @@ export const withAsyncStatus =
                     isFirstPending: false,
                     isEverPending: true,
                     isEverSettled: true,
-                  } as AsyncStatus
+
+                    data: currentData,
+                  } as AsyncStatus<State, InitState>
                 }
 
                 if (state.isEverSettled && !isPending) {
@@ -244,7 +280,9 @@ export const withAsyncStatus =
                     isFirstPending: false,
                     isEverPending: true,
                     isEverSettled: true,
-                  } as AsyncStatusAbortedSettle
+
+                    data: currentData,
+                  } as AsyncStatusAbortedSettle<State, InitState>
                 }
 
                 return {
@@ -256,10 +294,12 @@ export const withAsyncStatus =
                   isFirstPending: false,
                   isEverPending: true,
                   isEverSettled: state.isEverSettled,
+
+                  data: currentData,
                 } as
-                  | AsyncStatusAbortedPending
-                  | AsyncStatusFirstAborted
-                  | AsyncStatusAbortedPending
+                  | AsyncStatusAbortedPending<State, InitState>
+                  | AsyncStatusFirstAborted<State, InitState>
+                  | AsyncStatusAbortedPending<State, InitState>
               })
             }),
           )
