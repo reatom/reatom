@@ -1,14 +1,76 @@
-import { type Frame, ReatomError, STACK } from '@reatom/core'
 import {
-  type Accessor,
-  createContext,
-  from,
-  getOwner,
-  useContext,
-} from 'solid-js'
+  type Action,
+  type AtomLike,
+  type AtomState,
+  bind,
+  type Frame,
+  isAction,
+  ReatomError,
+  type RootState,
+  STACK,
+} from '@reatom/core'
+import { type Accessor, createContext, from, useContext } from 'solid-js'
 
+/**
+ * Solid.js context for providing the Reatom frame to the component tree.
+ *
+ * Required for SSR and isolated testing.
+ *
+ * Use this context with Solid's `Provider` component to make Reatom atoms
+ * accessible throughout your component hierarchy. When not provided, the global
+ * stack frame is used as a fallback.
+ *
+ * @example
+ *   import { reatomContext } from '@reatom/solid'
+ *   import { clearStack, context } from '@reatom/core'
+ *
+ *   clearStack()
+ *
+ *   function App() {
+ *   return <reatomContext.Provider value={context.start()}><App /></reatomContext.Provider>
+ *   }
+ */
 export const reatomContext = createContext<null | Frame>(null)
 
+/**
+ * Extension interface that adds a Solid.js accessor to atoms.
+ *
+ * When applied via `withSolid()`, atoms gain a `.solid` property that returns a
+ * reactive Solid.js accessor, enabling seamless integration with Solid's
+ * reactivity system.
+ *
+ * @template State The type of the atom's state
+ * @see {@link withSolid} for applying this extension to atoms
+ */
+export interface SolidExt<State> {
+  solid: Accessor<State>
+}
+
+/**
+ * Hook to get the current Reatom frame from Solid.js context.
+ *
+ * Required for SSR and isolated testing.
+ *
+ * Returns the frame provided via `reatomContext.Provider`, or falls back to the
+ * global stack frame if no provider is found. Throws an error if neither is
+ * available.
+ *
+ * @example
+ *   import { useFrame } from '@reatom/solid'
+ *   import { atom, wrap } from '@reatom/core'
+ *
+ *   const count = atom(0, 'count')
+ *
+ *   function Counter() {
+ *   const frame = useFrame()
+ *   const increment = wrap(() => count((s) => s + 1), frame)
+ *
+ *   return <button onClick={increment}>Increment</button>
+ *   }
+ *
+ * @returns {Frame} The current Reatom frame
+ * @throws {ReatomError} If no frame is available in context or global stack
+ */
 export let useFrame = (): Frame => {
   let frame = useContext(reatomContext) ?? STACK[0]
 
@@ -21,42 +83,158 @@ export let useFrame = (): Frame => {
   return frame
 }
 
-// @ts-ignore
-export const useAtom: {
-  <T extends Atom>(
-    atom: T,
-  ): [
-    get: Accessor<AtomState<T>>,
-    updater: T extends Fn<[Ctx, ...infer Args], infer Res>
-      ? Fn<Args, Res>
-      : undefined,
-    atom: T,
-  ]
-  <T>(
-    computed: (ctx: CtxSpy) => T,
-    name?: string,
-  ): [get: Accessor<T>, updater: undefined, atom: Atom<T>]
-  <T>(
-    init: T,
-    name?: string,
-  ): [get: Accessor<T>, updater: Fn<[T | Fn<[T, Ctx], T>], T>, atom: AtomMut<T>]
-} = (init, name): [any, any, Atom] => {
-  const theAtom: Atom = isAtom(init)
-    ? init
-    : atom(
-        init,
-        name ??
-          __count(
-            `${
-              getOwner()?.owner?.name?.replace('[solid-refresh]', '') ?? 'use'
-            }Atom`,
-          ),
-      )
-  const ctx = useCtx()
+let solidMap = new WeakMap<RootState, WeakMap<AtomLike, Accessor<any>>>()
+
+/**
+ * Internal hook that creates and caches a Solid.js accessor for an atom.
+ *
+ * This hook manages a cache of accessors per root state and atom, ensuring that
+ * the same accessor instance is reused across renders. The accessor subscribes
+ * to the atom and updates when the atom's state changes.
+ *
+ * @template State The type of the atom's state
+ * @param {AtomLike<State>} target The atom to create an accessor for
+ * @param {Frame} [frame] Optional frame to use (defaults to useFrame())
+ * @returns {Accessor<State>} A Solid.js accessor that reactively tracks the
+ *   atom's state
+ */
+let useAccessor = <State>(
+  target: AtomLike<State>,
+  frame = useFrame(),
+): Accessor<State> => {
+  let atomMap = solidMap.get(frame.root)
+
+  if (!atomMap) {
+    atomMap = new WeakMap()
+    solidMap.set(frame.root, atomMap)
+  }
+
+  let accessor = atomMap.get(target)
+
+  if (!accessor) {
+    atomMap.set(
+      target,
+      (accessor = from(
+        // @ts-ignore
+        (set) => target.subscribe(bind(set, frame)),
+        frame.run(target),
+      )),
+    )
+  }
+
+  return accessor
+}
+
+/**
+ * Creates an extension that adds a `.solid` accessor property to atoms.
+ *
+ * The `.solid` property returns a Solid.js accessor that reactively tracks the
+ * atom's state. This enables seamless integration between Reatom atoms and
+ * Solid.js components without needing to call hooks manually.
+ *
+ * Note: Actions are passed through unchanged, as they don't have state to
+ * track.
+ *
+ * @example
+ *   import { atom } from '@reatom/core'
+ *   import { withSolid } from '@reatom/solid'
+ *
+ *   const count = atom(0, 'count').extend(withSolid())
+ *
+ *   function Counter() {
+ *   return <div>Count: {count.solid()}</div>
+ *   }
+ *
+ * @example
+ *   // You may setup `.solid` accessor to ALL atoms and actions automatically
+ *   // but make it in "setup" file and import it before any other imports
+ *   import { EXTENSIONS } from '@reatom/core'
+ *   import { withSolid } from '@reatom/solid'
+ *
+ *   EXTENSIONS.push(withSolid())
+ *
+ *   declare module '@reatom/core' {
+ *     interface Atom<State> extends SolidExt<State> {}
+ *     interface Computed<State> extends SolidExt<State> {}
+ *   }
+ *
+ * @template Target The type of the atom or action being extended
+ * @returns An extension function that adds the `.solid` property to atoms
+ */
+export let withSolid =
+  <Target extends AtomLike>() =>
+  (
+    target: Target,
+  ): Target extends Action ? Target : SolidExt<AtomState<Target>> => {
+    // @ts-expect-error
+    if (isAction(target)) return target
+
+    // @ts-expect-error
+    return {
+      get solid() {
+        return useAccessor(target)
+      },
+    }
+  }
+
+/**
+ * Hook to use a Reatom atom within a Solid.js component.
+ *
+ * Returns a tuple containing a Solid.js accessor for the atom's state and
+ * optionally a setter function if the atom has a `set` method. The accessor
+ * automatically subscribes to the atom and triggers component re-renders when
+ * the state changes.
+ *
+ * @example
+ *   import { atom } from '@reatom/core'
+ *   import { useAtom } from '@reatom/solid'
+ *
+ *   const count = atom(0, 'count')
+ *
+ *   function Counter() {
+ *   const [state, setState] = useAtom(count)
+ *
+ *   return (
+ *   <div>
+ *   <span>Count: {state()}</span>
+ *   <button onClick={() => setState((s) => s + 1)}>Increment</button>
+ *   </div>
+ *   )
+ *   }
+ *
+ * @example
+ *   import { computed } from '@reatom/core'
+ *   import { useAtom } from '@reatom/solid'
+ *
+ *   const doubled = computed(() => count() * 2, 'doubled')
+ *
+ *   function DoubledDisplay() {
+ *   const [state] = useAtom(doubled)
+ *   return <div>Doubled: {state()}</div>
+ *   }
+ *
+ * @template State The type of the atom's state
+ * @template Params The parameter types for the atom's setter (if any)
+ * @param {AtomLike<State, Params>} target The atom to use
+ * @returns {[Accessor<State>, ((...params: Params) => State) | undefined]} A
+ *   tuple of [accessor, setter]. The setter is undefined for atoms without a
+ *   `set` method (like computed atoms).
+ */
+export const useAtom = <State, Params extends any[]>(
+  target: AtomLike<State, Params>,
+): [
+  state: Accessor<State>,
+  setState: Params extends [] ? undefined : (...params: Params) => State,
+] => {
+  const frame = useFrame()
 
   return [
-    from((set) => ctx.subscribe(theAtom, set)),
-    typeof theAtom === 'function' ? bind(ctx, theAtom) : undefined,
-    theAtom,
+    useAccessor(target, frame),
+    // @ts-expect-error
+    target.set && bind(target.set, frame),
   ]
 }
+
+// function getUseAtomName() {
+//   return named`${getOwner()?.owner?.name?.replace('[solid-refresh]', '') ?? 'use'}Atom`
+// }
