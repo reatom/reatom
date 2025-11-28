@@ -97,6 +97,8 @@ New rules:
 - `atom(callback)` -> `computed(callback)`
 - `dataAtom(ctx, newState)` -> `data.set(newState)`
 - `dataAtom(ctx, (state) => newState)` -> `data.set((state) => newState)`
+- `ctx.spy(dataAtom, callback)` -> `ifChanged(data, callback)`
+- `ctx.spy(doSome, callback)` -> `getCalls(doSome).forEach(callback)`
 - Type `Atom` -> `AtomLike`
 - Type `AtomMut` -> `Atom`
 
