@@ -226,6 +226,15 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
  * particular execution context. Variables created with this function can be
  * accessed and modified within their frame context.
  *
+ * Also, it can be used as IoC/DI container replacement:
+ *
+ * | IoC/DI Concept  | Variable Equivalent             |
+ * | --------------- | ------------------------------- |
+ * | Token/Key       | `variable<T>('name')`           |
+ * | Provider        | `.run(impl, fn)` / `.set(impl)` |
+ * | Inject/Resolve  | `.require()` or `.get()`        |
+ * | Container scope | Execution context (frame stack) |
+ *
  * @example
  *   // Simple variable with string values
  *   const currentUser = variable<string>('currentUser')
@@ -247,6 +256,60 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
  *   }, 'userRole')
  *
  *   userRole.set('admin', ['read', 'write', 'delete'])
+ *
+ * @example
+ *   // Using variable as IoC/DI container replacement
+ *   // Step 1: Define service interface (DI contract)
+ *   interface Logger {
+ *     log: (message: string) => void
+ *   }
+ *
+ *   // Step 2: Create a variable as DI token/key
+ *   const loggerVar = variable<Logger>('logger')
+ *
+ *   // Step 3: Inject dependency in atoms/actions via `require()`
+ *   const fetchData = action(async (url: string) => {
+ *     const logger = loggerVar.require()
+ *     logger.log(`Fetching ${url}`)
+ *     const response = await wrap(fetch(url))
+ *     logger.log(`Fetched ${url}`)
+ *     return response.json()
+ *   }, 'fetchData')
+ *
+ *   // Step 4: Provide implementation at application entry point
+ *   loggerVar.run(console, () => {
+ *     fetchData('/api/users') // uses console as logger
+ *   })
+ *
+ *   // In tests, provide a mock implementation
+ *   const mockLogger = { log: vi.fn() }
+ *   loggerVar.run(mockLogger, () => {
+ *     fetchData('/api/users') // uses mock logger
+ *   })
+ *
+ * @example
+ *   // Variable with creation function for lazy initialization
+ *   // Useful when the dependency needs configuration or is expensive to create
+ *   const dbVar = variable(
+ *     (connectionString: string) => new Database(connectionString),
+ *     'db',
+ *   )
+ *
+ *   // Inside a main process function, use `.set()` instead of `.run()`
+ *   // This is handy when you control the whole feature lifecycle
+ *   const initApp = action(async () => {
+ *     // `.set()` creates and binds the value to the current frame
+ *     const db = dbVar.set(process.env.DATABASE_URL)
+ *
+ *     // All subsequent calls in this frame can access the db
+ *     await loadUsers() // uses dbVar.require() internally
+ *     await loadPosts() // uses dbVar.require() internally
+ *   }, 'initApp')
+ *
+ *   const loadUsers = action(async () => {
+ *     const db = dbVar.require()
+ *     return db.query('SELECT * FROM users')
+ *   }, 'loadUsers')
  *
  * @template T - The type of the simple variable (when used with just a name)
  * @template Params - Types of parameters for the setter function
