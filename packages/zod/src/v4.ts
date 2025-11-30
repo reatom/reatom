@@ -409,19 +409,17 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
               name: named(name),
               extend,
             })
-            return isObject ? value : { value }
+            return isObject ? (value as Rec) : { value }
           },
-          initState: (state as any[] | undefined)?.map(
-            (itemInitState: any) => {
-              const value = reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
-                sync,
-                initState: itemInitState,
-                name: named(name),
-                extend,
-              })
-              return isObject ? value : { value }
-            },
-          ),
+          initState: (state as any[] | undefined)?.map((itemInitState: any) => {
+            const value = reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
+              sync,
+              initState: itemInitState,
+              name: named(name),
+              extend,
+            })
+            return isObject ? (value as Rec) : { value }
+          }),
         },
         name,
       )
