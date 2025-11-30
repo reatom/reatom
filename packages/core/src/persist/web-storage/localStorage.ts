@@ -1,5 +1,5 @@
-import { atom } from '../../core'
 import {
+  assertPersistRecord,
   createMemStorage,
   type PersistRecord,
   reatomPersist,
@@ -52,80 +52,38 @@ export const reatomPersistWebStorage = (
   name: string,
   storage: Storage,
 ): WithPersist => {
-  const memCacheAtom = atom(
-    () => new Map<string, PersistRecord>(),
-    `${name}._memCacheAtom`,
-  )
-
   return reatomPersist({
     name,
     get({ key }) {
-      try {
-        const memCache = memCacheAtom()
-        const dataStr = storage.getItem(key)
+      const dataStr = storage.getItem(key)
 
-        if (dataStr) {
-          const rec: PersistRecord = JSON.parse(dataStr)
+      if (dataStr) {
+        const rec: PersistRecord = JSON.parse(dataStr)
 
-          if (rec.to < Date.now()) {
-            // Record expired - clear it
-            storage.removeItem(key)
-            return null
-          }
-
-          const cache = memCache.get(key)
-          // @ts-expect-error falsy `>=` with undefined is expected
-          if (cache?.id === rec.id || cache?.timestamp >= rec.timestamp) {
-            return cache!
-          }
-
-          memCache.set(key, rec)
-          return rec
+        if (rec.to < Date.now()) {
+          storage.removeItem(key)
+          return null
         }
-      } catch {
-        return null
+
+        return rec
       }
       return null
     },
     set({ key }, rec) {
-      const memCache = memCacheAtom()
-      memCache.set(key, rec)
-
-      try {
-        storage.setItem(key, JSON.stringify(rec))
-      } catch (error) {
-        // Storage might be full or disabled - fail silently
-        console.warn('Failed to write to storage:', error)
-      }
+      storage.setItem(key, JSON.stringify(rec))
     },
     clear({ key }) {
-      const memCache = memCacheAtom()
-      memCache.delete(key)
-
-      try {
-        storage.removeItem(key)
-      } catch (error) {
-        // Storage might be disabled - fail silently
-        console.warn('Failed to clear from storage:', error)
-      }
+      storage.removeItem(key)
     },
-    subscribe({ key }, cb) {
-      const memCache = memCacheAtom()
+    subscribe({ key, cache }, cb) {
       const handler = (event: StorageEvent) => {
         if (event.storageArea === storage && event.key === key) {
           if (event.newValue === null) {
-            memCache.delete(key)
+            cache?.delete(key)
           } else {
-            try {
-              const rec: PersistRecord = JSON.parse(event.newValue)
-
-              if (rec.id !== memCache.get(key)?.id) {
-                memCache.set(key, rec)
-                cb(rec)
-              }
-            } catch {
-              // Invalid JSON - ignore
-            }
+            const rec = JSON.parse(event.newValue)
+            assertPersistRecord(rec, name)
+            cb(rec)
           }
         }
       }

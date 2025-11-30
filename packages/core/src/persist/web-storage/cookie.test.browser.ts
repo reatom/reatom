@@ -1,9 +1,14 @@
-import { expect, test } from 'test'
+import { afterEach, expect, test } from 'test'
 
+// import { cdp } from '@vitest/'
 import { wrap } from '../..'
-import { atom } from '../../core'
+import { atom, ReatomError } from '../../core'
 import { sleep } from '../../utils'
-import { parsePersistRecordCookie, withCookie } from './cookie'
+import { parseCookieValue, withCookie } from './cookie'
+
+afterEach(() => {
+  document.cookie = ''
+})
 
 test('withCookie basic functionality', async () => {
   const testAtom = atom('default', 'cookieTestAtom').extend(
@@ -15,53 +20,15 @@ test('withCookie basic functionality', async () => {
 
   await wrap(sleep())
 
-  // Check if cookie was set with correct data structure
-  const cookieData = parsePersistRecordCookie('test-cookie-key')!
+  // Check if cookie was set with pure data (not PersistRecord JSON)
+  const cookieData = parseCookieValue('test-cookie-key')
   expect(cookieData).not.toBeNull()
-  expect(cookieData?.data).toBe('cookie-value')
-  expect(cookieData?.version).toBe(0)
-
-  // Clean up - set cookie with past expiration
-  document.cookie = 'test-cookie-key=; max-age=-1'
-})
-
-test('withCookie with custom attributes', () => {
-  const testAtom = atom('default', 'cookieAttrsTestAtom').extend(
-    withCookie({
-      key: 'test-cookie-attrs-key',
-      maxAge: 3600, // 1 hour
-      path: '/',
-      sameSite: 'strict',
-    }),
-  )
-
-  testAtom.set('cookie-with-attrs')
-  expect(testAtom()).toBe('cookie-with-attrs')
-
-  // Check if cookie was set with correct data and expiration time
-  const cookieData = parsePersistRecordCookie('test-cookie-attrs-key')!
-  expect(cookieData).not.toBeNull()
-  expect(cookieData.data).toBe('cookie-with-attrs')
-
-  // Verify expiration time is approximately 1 hour from now (3600 seconds)
-  const expectedExpiration = Date.now() + 3600 * 1000
-  const actualExpiration = cookieData.to
-  expect(Math.abs(actualExpiration - expectedExpiration)).toBeLessThan(1000) // Within 1 second
-
-  // Clean up
-  document.cookie = 'test-cookie-attrs-key=; max-age=-1; path=/'
+  expect(cookieData).toBe('cookie-value')
 })
 
 test('cookie restore state', () => {
-  // Pre-set a cookie
-  const record = {
-    data: 'restored-cookie-value',
-    id: 1,
-    timestamp: Date.now(),
-    to: Date.now() + 10000,
-    version: 0,
-  }
-  const cookieValue = encodeURIComponent(JSON.stringify(record))
+  // Pre-set a cookie with pure string data (new format)
+  const cookieValue = encodeURIComponent('restored-cookie-value')
   document.cookie = `test-cookie-restore=${cookieValue}`
 
   const testAtom = atom('default', 'cookieRestoreTestAtom').extend(
@@ -70,61 +37,53 @@ test('cookie restore state', () => {
 
   // Should restore from cookie
   expect(testAtom()).toBe('restored-cookie-value')
-
-  // Clean up
-  document.cookie = 'test-cookie-restore=; max-age=-1'
 })
 
-test('cookie maxAge attribute setting', () => {
-  const testAtom = atom('default', 'cookieExpirationTestAtom').extend(
+test('withCookie with custom attributes', () => {
+  const testAtom = atom('default', 'cookieAttrsTestAtom').extend(
     withCookie({
-      key: 'test-cookie-expiration',
-      maxAge: 3600, // 1 hour
+      key: 'test-cookie-attrs-key',
+      maxAge: 3600,
+      path: '/',
+      sameSite: 'strict',
     }),
   )
 
-  testAtom.set('expires-later')
-  expect(testAtom()).toBe('expires-later')
+  testAtom.set('cookie-with-attrs')
+  expect(testAtom()).toBe('cookie-with-attrs')
 
-  // Check if cookie was set with correct data structure and expiration
-  const cookieData = parsePersistRecordCookie('test-cookie-expiration')!
+  const cookieData = parseCookieValue('test-cookie-attrs-key')
   expect(cookieData).not.toBeNull()
-  expect(cookieData.data).toBe('expires-later')
+  expect(cookieData).toBe('cookie-with-attrs')
 
-  // Verify expiration time is approximately 1 hour from now (3600 seconds)
-  const expectedExpiration = Date.now() + 3600 * 1000
-  const actualExpiration = cookieData.to
-  expect(Math.abs(actualExpiration - expectedExpiration)).toBeLessThan(1000) // Within 1 second
+  const rawCookie = document.cookie
+  expect(rawCookie).toContain('test-cookie-attrs-key')
 
-  // Test that atom continues to work with expiration set
   testAtom.set('updated-value')
   expect(testAtom()).toBe('updated-value')
 
-  // Clean up
-  document.cookie = 'test-cookie-expiration=; max-age=-1'
+  const updatedCookieData = parseCookieValue('test-cookie-attrs-key')
+  expect(updatedCookieData).toBe('updated-value')
 })
 
 test('cookie encoding/decoding', () => {
-  const testAtom = atom('default', 'cookieEncodingTestAtom').extend(
-    withCookie('test-cookie-encoding'),
+  const testAtom = atom(['default'], 'myList').extend(
+    withCookie({
+      key: 'test-cookie-encoding',
+      fromSnapshot: (str) => JSON.parse(str) as string[],
+      toSnapshot: (state) => JSON.stringify(state),
+    }),
   )
 
   // Test with special characters that need encoding
-  const specialValue = 'value with spaces & symbols = 100%'
+  const specialValue = ['value with spaces & symbols = 100%']
   testAtom.set(specialValue)
   expect(testAtom()).toBe(specialValue)
 
-  // Check if cookie was properly encoded and contains correct data
-  const cookieData = parsePersistRecordCookie('test-cookie-encoding')!
+  // Check if cookie was properly encoded (stored as JSON string)
+  const cookieData = parseCookieValue('test-cookie-encoding')
   expect(cookieData).not.toBeNull()
-  expect(cookieData.data).toBe(specialValue)
-  expect(typeof cookieData.id).toBe('number')
-  expect(typeof cookieData.timestamp).toBe('number')
-  expect(typeof cookieData.to).toBe('number')
-  expect(cookieData.version).toBe(0)
-
-  // Clean up
-  document.cookie = 'test-cookie-encoding=; max-age=-1'
+  expect(JSON.parse(cookieData!)).toEqual(specialValue)
 })
 
 test('cookie value updates', () => {
@@ -136,10 +95,10 @@ test('cookie value updates', () => {
   testAtom.set('first-value')
   expect(testAtom()).toBe('first-value')
 
-  // Verify cookie has correct data structure
-  let cookieData = parsePersistRecordCookie('test-cookie-update')!
+  // Verify cookie has pure data
+  let cookieData = parseCookieValue('test-cookie-update')
   expect(cookieData).not.toBeNull()
-  expect(cookieData.data).toBe('first-value')
+  expect(cookieData).toBe('first-value')
 
   // Update the value multiple times
   testAtom.set('second-value')
@@ -148,33 +107,10 @@ test('cookie value updates', () => {
   testAtom.set('third-value')
   expect(testAtom()).toBe('third-value')
 
-  // Cookie should contain latest value with correct structure
-  cookieData = parsePersistRecordCookie('test-cookie-update')!
+  // Cookie should contain latest value as pure data
+  cookieData = parseCookieValue('test-cookie-update')
   expect(cookieData).not.toBeNull()
-  expect(cookieData.data).toBe('third-value')
-  expect(typeof cookieData.id).toBe('number')
-  expect(typeof cookieData.timestamp).toBe('number')
-  expect(typeof cookieData.to).toBe('number')
-  expect(cookieData.version).toBe(0)
-
-  // Clean up
-  document.cookie = 'test-cookie-update=; max-age=-1'
-})
-
-test('cookie with different domains and paths', () => {
-  const testAtom = atom('default', 'cookieDomainTestAtom').extend(
-    withCookie({
-      key: 'test-cookie-domain',
-      path: '/test',
-      // domain: 'localhost', // Can't test domain in vitest easily
-    }),
-  )
-
-  testAtom.set('domain-test-value')
-  expect(testAtom()).toBe('domain-test-value')
-
-  // Clean up
-  document.cookie = 'test-cookie-domain=; max-age=-1; path=/test'
+  expect(cookieData).toBe('third-value')
 })
 
 test('cookie with multiple attributes', () => {
@@ -191,47 +127,100 @@ test('cookie with multiple attributes', () => {
   testAtom.set('multi-attrs-value')
   expect(testAtom()).toBe('multi-attrs-value')
 
-  // Verify cookie was set with correct data structure and expiration
-  const cookieData = parsePersistRecordCookie('test-cookie-multi-attrs')!
+  // Verify cookie was set with pure data
+  const cookieData = parseCookieValue('test-cookie-multi-attrs')
   expect(cookieData).not.toBeNull()
-  expect(cookieData.data).toBe('multi-attrs-value')
-
-  // Verify expiration time is approximately 2 hours from now (7200 seconds)
-  const expectedExpiration = Date.now() + 7200 * 1000
-  const actualExpiration = cookieData.to
-  expect(Math.abs(actualExpiration - expectedExpiration)).toBeLessThan(1000) // Within 1 second
+  expect(cookieData).toBe('multi-attrs-value')
 
   // Test that the atom works correctly with all attributes
   testAtom.set('updated-multi-attrs-value')
   expect(testAtom()).toBe('updated-multi-attrs-value')
-
-  // Clean up
-  document.cookie = 'test-cookie-multi-attrs=; max-age=-1; path=/'
 })
 
-test('cookie expired record handling', () => {
-  // Pre-set an expired cookie
-  const expiredRecord = {
-    data: 'expired-data',
-    id: 1,
-    timestamp: Date.now() - 2000,
-    to: Date.now() - 1000, // Already expired
-    version: 0,
-  }
-  const expiredCookieValue = encodeURIComponent(JSON.stringify(expiredRecord))
-  document.cookie = `test-cookie-expired=${expiredCookieValue}`
+test('cookie handles non-existent cookie gracefully', () => {
+  // Ensure no cookie exists
+  document.cookie = 'test-cookie-nonexistent=; max-age=-1'
 
-  const testAtom = atom('default', 'cookieExpiredTestAtom').extend(
-    withCookie('test-cookie-expired'),
+  const testAtom = atom('default', 'cookieNonExistentTestAtom').extend(
+    withCookie('test-cookie-nonexistent'),
   )
 
-  // Should use default value since stored data is expired
+  // Should use default value when cookie doesn't exist
   expect(testAtom()).toBe('default')
 
   // Setting new value should work normally
   testAtom.set('new-value')
   expect(testAtom()).toBe('new-value')
 
-  // Clean up
-  document.cookie = 'test-cookie-expired=; max-age=-1'
+  // Verify cookie was set
+  const cookieData = parseCookieValue('test-cookie-nonexistent')
+  expect(cookieData).toBe('new-value')
 })
+
+test('multiple cookies do not intersect', () => {
+  const atomA = atom('default-a', 'atomA').extend(withCookie('cookie-a'))
+  const atomB = atom('default-b', 'atomB').extend(withCookie('cookie-b'))
+  const atomC = atom('default-c', 'atomC').extend(withCookie('cookie-c'))
+
+  atomA.set('value-a')
+  atomB.set('value-b')
+  atomC.set('value-c')
+
+  expect(atomA()).toBe('value-a')
+  expect(atomB()).toBe('value-b')
+  expect(atomC()).toBe('value-c')
+
+  expect(parseCookieValue('cookie-a')).toBe('value-a')
+  expect(parseCookieValue('cookie-b')).toBe('value-b')
+  expect(parseCookieValue('cookie-c')).toBe('value-c')
+
+  atomB.set('updated-value-b')
+
+  expect(atomA()).toBe('value-a')
+  expect(atomB()).toBe('updated-value-b')
+  expect(atomC()).toBe('value-c')
+
+  expect(parseCookieValue('cookie-a')).toBe('value-a')
+  expect(parseCookieValue('cookie-b')).toBe('updated-value-b')
+  expect(parseCookieValue('cookie-c')).toBe('value-c')
+})
+
+test('cookies with special characters in values do not affect other cookies', () => {
+  const atomSpecial = atom('', 'atomSpecial').extend(
+    withCookie('cookie-special'),
+  )
+  const atomNormal = atom('', 'atomNormal').extend(withCookie('cookie-normal'))
+  const atomSymbols = atom('', 'atomSymbols').extend(
+    withCookie('cookie-symbols'),
+  )
+
+  atomSpecial.set('value=with=equals')
+  atomNormal.set('normal-value')
+  atomSymbols.set('a&b=c;d')
+
+  expect(atomSpecial()).toBe('value=with=equals')
+  expect(atomNormal()).toBe('normal-value')
+  expect(atomSymbols()).toBe('a&b=c;d')
+
+  expect(parseCookieValue('cookie-special')).toBe('value=with=equals')
+  expect(parseCookieValue('cookie-normal')).toBe('normal-value')
+  expect(parseCookieValue('cookie-symbols')).toBe('a&b=c;d')
+
+  atomSymbols.set('updated&value=new;semicolon')
+
+  expect(atomSpecial()).toBe('value=with=equals')
+  expect(atomNormal()).toBe('normal-value')
+  expect(atomSymbols()).toBe('updated&value=new;semicolon')
+})
+
+// test('cookie subscribe throws error', () => {
+//   const storage = withCookie.storageAtom()
+//   expect(() => {
+//     storage.subscribe?.({ key: 'test-key' }, () => {})
+//   }).toThrow(ReatomError)
+//   expect(() => {
+//     storage.subscribe?.({ key: 'test-key' }, () => {})
+//   }).toThrow(
+//     'document.cookie has no ability to subscribe to changes. Use withCookieStore instead',
+//   )
+// })

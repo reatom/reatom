@@ -1,4 +1,4 @@
-import { type Atom, atom } from '../../core'
+import { type Atom } from '../../core'
 import {
   createMemStorage,
   type PersistRecord,
@@ -119,11 +119,6 @@ export const reatomPersistIndexedDb = (
 ): WithPersistWebStorage => {
   const postMessage = (msg: BroadcastMessage) => channel.postMessage(msg)
 
-  const memCacheAtom = atom(
-    () => new Map<string, PersistRecord>(),
-    `withIndexedDb._memCacheAtom`,
-  )
-
   let store: any
   const getStore = async () => {
     const idbLib = await checkIdb()
@@ -131,15 +126,13 @@ export const reatomPersistIndexedDb = (
     return (store ??= idbLib.createStore(dbName, 'atoms'))
   }
 
+  // @ts-ignore TODO
   return reatomPersist({
     name: 'withIndexedDb',
-    get({ key }) {
-      return memCacheAtom().get(key) ?? null
+    get() {
+      return null
     },
     async set({ key }, rec) {
-      const memCache = memCacheAtom()
-      memCache.set(key, rec)
-
       try {
         const idbLib = await checkIdb()
         const store = await getStore()
@@ -156,9 +149,6 @@ export const reatomPersistIndexedDb = (
       }
     },
     async clear({ key }) {
-      const memCache = memCacheAtom()
-      memCache.delete(key)
-
       try {
         const idbLib = await checkIdb()
         const store = await getStore()
@@ -175,26 +165,35 @@ export const reatomPersistIndexedDb = (
       }
     },
     subscribe({ key }, cb) {
-      const memCache = memCacheAtom()
       const handler = (event: MessageEvent<BroadcastMessage>) => {
         if (event.data.key !== key) return
 
         try {
-          if (event.data._type === 'pull' && memCache.has(key)) {
-            postMessage({
-              _type: 'push',
-              key,
-              rec: memCache.get(key)!,
-            })
+          if (event.data._type === 'pull') {
+            // We can't access cache here directly, but reatomPersist wrapper handles pull?
+            // Wait, reatomPersist wrapper doesn't handle 'pull' logic for us.
+            // We need to respond to pull if we have data.
+            // But we don't have access to cache!
+            // And we can't easily read from IDB sync.
+            // Maybe we should read from IDB and push?
+            ;(async () => {
+              try {
+                const idbLib = await checkIdb()
+                const store = await getStore()
+                if (idbLib && store) {
+                  const rec = await idbLib.get(key, store)
+                  if (rec) {
+                    postMessage({ _type: 'push', key, rec })
+                  }
+                }
+              } catch {
+                // ignore
+              }
+            })()
           } else if (event.data._type === 'push') {
             const { rec } = event.data
-            if (rec === null) {
-              memCache.delete(key)
-            } else {
-              if (rec.id !== memCache.get(key)?.id) {
-                memCache.set(key, rec)
-                cb(rec)
-              }
+            if (rec !== null) {
+              cb(rec)
             }
           }
         } catch (error) {
@@ -204,24 +203,21 @@ export const reatomPersistIndexedDb = (
 
       channel.addEventListener('message', handler)
 
-      // Load initial data from IndexedDB if not in memory cache
-      if (!memCache.has(key)) {
-        ;(async () => {
-          try {
-            const idbLib = await checkIdb()
-            const store = await getStore()
-            if (idbLib && store) {
-              const rec = await idbLib.get(key, store)
-              if (rec && rec.id !== memCache.get(key)?.id) {
-                memCache.set(key, rec)
-                cb(rec)
-              }
+      // Load initial data from IndexedDB
+      ;(async () => {
+        try {
+          const idbLib = await checkIdb()
+          const store = await getStore()
+          if (idbLib && store) {
+            const rec = await idbLib.get(key, store)
+            if (rec) {
+              cb(rec)
             }
-          } catch (error) {
-            console.warn('Failed to load from IndexedDB:', error)
           }
-        })()
-      }
+        } catch (error) {
+          console.warn('Failed to load from IndexedDB:', error)
+        }
+      })()
 
       return () => channel.removeEventListener('message', handler)
     },
@@ -306,4 +302,6 @@ export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ (() =>
         'reatom_default',
         new BroadcastChannel('reatom_withIndexedDb_default'),
       )
-    : reatomPersist(createMemStorage({ name: 'withIndexedDb' })))()
+    : (reatomPersist(
+        createMemStorage({ name: 'withIndexedDb' }),
+      ) as unknown as WithPersistWebStorage))()

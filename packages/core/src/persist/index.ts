@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-import type { Atom, AtomState, Ext } from '../core'
+import type { Atom, AtomLike, AtomState, Ext } from '../core'
 import {
   _set,
   atom,
@@ -16,15 +16,17 @@ import { memoKey } from '../methods/memo'
 import {
   type Fn,
   MAX_SAFE_TIMEOUT,
+  noop,
   random,
   type Rec,
+  type Shallow,
   type Unsubscribe,
 } from '../utils'
 
 export interface PersistRecord<Snapshot = unknown> {
   data: Snapshot
-  // Is it needed?
   id: number
+  // TODO remove?
   timestamp: number
   version: number | string
   /** Time stamp after which the record is cleared. */
@@ -43,8 +45,23 @@ export let isPersistRecord = (value: unknown): value is PersistRecord => {
   )
 }
 
+export function assertPersistRecord(
+  value: unknown,
+  storage?: string,
+): asserts value is PersistRecord {
+  if (!isPersistRecord(value))
+    throw new ReatomError(`Wrong persist record in ${storage ?? 'storage'}`)
+}
+
+export interface PersistStorageCacheOption {
+  cache?: Map<string, PersistRecord>
+}
+
+export type PersistCache = Map<string, PersistRecord>
+
 export interface PersistStorage<Snapshot = unknown, Options extends Rec = {}> {
   name: string
+  cache: PersistCache
   get(
     options: Options & { key: string },
   ): null | PersistRecord<Snapshot> | Promise<null | PersistRecord<Snapshot>>
@@ -77,8 +94,10 @@ export interface SyncPersistStorage<
 export interface WithPersistOptions<State = unknown, Snapshot = unknown> {
   /** Key of the storage record. */
   key: string
+
   /** Custom snapshot serializer. */
   toSnapshot?: (state: State) => Snapshot
+
   /** Custom snapshot deserializer. */
   fromSnapshot?: (snapshot: Snapshot, state?: State) => State
 
@@ -93,12 +112,14 @@ export interface WithPersistOptions<State = unknown, Snapshot = unknown> {
     persistRecord: PersistRecord<Snapshot>,
     version: number | string,
   ) => State
+
   /**
    * Determines whether the atom is updated on storage updates.
    *
    * @defaultValue true
    */
   subscribe?: boolean
+
   /**
    * Number of milliseconds from the snapshot creation time after which it will
    * be deleted.
@@ -106,6 +127,7 @@ export interface WithPersistOptions<State = unknown, Snapshot = unknown> {
    * @defaultValue MAX_SAFE_TIMEOUT
    */
   time?: number
+
   /**
    * Version of the stored snapshot. Triggers `migration`.
    *
@@ -117,12 +139,23 @@ export interface WithPersistOptions<State = unknown, Snapshot = unknown> {
   // suspense?: boolean
 }
 
+export type WithRequiredPersistOptions<State, Snapshot> = WithPersistOptions<
+  State,
+  Snapshot
+> &
+  Shallow<
+    Required<
+      Pick<WithPersistOptions<State, Snapshot>, 'fromSnapshot' | 'toSnapshot'>
+    >
+  >
+
 export interface WithPersist<Snapshot = unknown, Options extends Rec = {}> {
-  <Target extends Atom>(
-    key: string,
-  ): (target: Target) => {} extends Options ? Target : never
-  <Target extends Atom>(
-    options: WithPersistOptions<AtomState<Target>, Snapshot> & Options,
+  <Target extends AtomLike>(
+    options: AtomState<Target> extends Snapshot
+      ?
+          | ({} extends Options ? string : never)
+          | (Options & WithPersistOptions<AtomState<Target>, Snapshot>)
+      : Options & WithRequiredPersistOptions<AtomState<Target>, Snapshot>,
   ): Ext<Target>
 
   /**
@@ -132,15 +165,97 @@ export interface WithPersist<Snapshot = unknown, Options extends Rec = {}> {
   storageAtom: Atom<PersistStorage<Snapshot>>
 }
 
-export const reatomPersist = <
-  Snapshot = unknown,
-  // TODO infer options from adapter to the extension
-  Options extends Rec = {},
->(
-  storage: PersistStorage<Snapshot, Options>,
+export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
+  storage: Omit<
+    PersistStorage<Snapshot, Options & { cache: PersistCache }>,
+    'cache'
+  >,
 ): WithPersist<Snapshot, Options> => {
-  const storageAtom = atom(storage, `storageAtom#${storage.name}`)
+  const storageAtom = atom((): PersistStorage<Snapshot, Options> => {
+    let cache: PersistCache = new Map()
 
+    return {
+      name: storage.name,
+      cache,
+      // @ts-ignore TODO
+      get(options) {
+        try {
+          let cacheRec = cache.get(options.key)
+
+          if (cacheRec !== undefined) {
+            if (cacheRec.to > Date.now()) {
+              return cacheRec
+            }
+            cache.delete(options.key)
+          }
+
+          let recOrPromise = storage.get({ ...options, cache })
+
+          if (recOrPromise instanceof Promise) {
+            return recOrPromise.then(
+              bind((rec) => {
+                if (rec && rec.to >= Date.now() && !cache.has(options.key)) {
+                  cache.set(options.key, rec)
+                }
+                return rec
+              }),
+            )
+          }
+
+          let rec = recOrPromise
+
+          if (!rec || rec.to < Date.now()) return null
+
+          cache.set(options.key, rec)
+
+          return rec
+        } catch (error) {
+          console.warn(`Error in storage ${storage.name}`)
+          console.log(error)
+          return null
+        }
+      },
+      set(options, rec) {
+        try {
+          cache.set(options.key, rec)
+          return storage.set({ ...options, cache }, rec)
+        } catch (error) {
+          console.warn(`Error in storage ${storage.name}`)
+          console.log(error)
+          /* ignore */
+        }
+      },
+      clear(options) {
+        try {
+          cache.delete(options.key)
+          return storage.clear?.({ ...options, cache })
+        } catch (error) {
+          console.warn(`Error in storage ${storage.name}`)
+          console.log(error)
+          /* ignore */
+        }
+      },
+      subscribe:
+        storage.subscribe &&
+        function subscribe(options, callback) {
+          try {
+            return storage.subscribe!(
+              { ...options, cache },
+              bind((rec) => {
+                cache.set(options.key, rec)
+                callback(rec)
+              }, top().root.frame),
+            )
+          } catch (error) {
+            console.warn(`Error in storage ${storage.name}`)
+            console.log(error)
+            return noop
+          }
+        },
+    }
+  }, `storageAtom#${storage.name}`)
+
+  // @ts-ignore TODO
   return Object.assign(
     function withPersist<Target extends Atom>(
       options: string | WithPersistOptions<AtomState<Target>, Snapshot>,
@@ -216,7 +331,7 @@ export const reatomPersist = <
           version,
         })
 
-        if (storage.subscribe) {
+        if (subscribe) {
           function withProactivePersist(next: Fn, ...params: any[]) {
             let frame = top()
 
@@ -232,7 +347,7 @@ export const reatomPersist = <
               ref.persistRecord = persistRecord
 
               if (persistRecord instanceof Promise) {
-                persistRecord.then(bind(revalidate))
+                persistRecord.then(bind(revalidate, frame.root.frame))
               } else if (persistRecord) {
                 frame.state = fromPersistRecord(persistRecord, frame.state)
               }
@@ -280,10 +395,13 @@ export const reatomPersist = <
           )
         }
 
-        if (storage.subscribe && subscribe) {
+        if (subscribe) {
           target.extend(
             withConnectHook(() =>
-              storage.subscribe!(storageOptions as ThisOptions, revalidate),
+              storageAtom().subscribe?.(
+                storageOptions as ThisOptions,
+                revalidate,
+              ),
             ),
           )
         }
@@ -380,6 +498,7 @@ export const createMemStorage = ({
 
   return {
     name,
+    cache: new Map(),
     get: (options) => snapshotAtom()[options.key] ?? null,
     set: (options, rec) => {
       if (mutable) {

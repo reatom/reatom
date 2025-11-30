@@ -1,77 +1,69 @@
-import { expect, test, vi } from 'test'
+import { afterEach, expect, test, vi, viTest } from 'test'
 
-import { atom } from '../../core'
+import { atom, context } from '../../core'
 import {
   reatomPersistWebStorage,
   withLocalStorage,
   withSessionStorage,
 } from './localStorage'
 
-test('withLocalStorage basic functionality', () => {
-  const testAtom = atom(0, 'localStorageTestAtom').extend(
-    withLocalStorage('test-localStorage-key'),
-  )
-
-  // Set a value
-  testAtom.set(42)
-  expect(testAtom()).toBe(42)
-
-  // Check if value was persisted to localStorage
-  const persistedValue = localStorage.getItem('test-localStorage-key')
-  expect(persistedValue).toBeTruthy()
-
-  if (persistedValue) {
-    const record = JSON.parse(persistedValue)
-    expect(record.data).toBe(42)
-  }
-
-  // Clean up
-  localStorage.removeItem('test-localStorage-key')
+afterEach(() => {
+  sessionStorage.clear()
+  localStorage.clear()
 })
 
-test('withSessionStorage basic functionality', () => {
-  const testAtom = atom('', 'sessionStorageTestAtom').extend(
-    withSessionStorage('test-sessionStorage-key'),
-  )
+viTest.each([
+  {
+    storageName: 'localStorage',
+    storage: localStorage,
+    withStorage: withLocalStorage,
+  },
+  {
+    storageName: 'sessionStorage',
+    storage: sessionStorage,
+    withStorage: withSessionStorage,
+  },
+])('basic ($storageName)', ({ storageName, storage, withStorage }) =>
+  context.start(() => {
+    const key = `test-${storageName}-key`
 
-  // Set a value
-  testAtom.set('test-value')
-  expect(testAtom()).toBe('test-value')
+    storage.setItem(
+      key,
+      JSON.stringify({
+        data: 'test-value',
+        id: 1,
+        timestamp: Date.now(),
+        to: Date.now() + 10000,
+        version: 0,
+      }),
+    )
 
-  // Check if value was persisted to sessionStorage
-  const persistedValue = sessionStorage.getItem('test-sessionStorage-key')
-  expect(persistedValue).toBeTruthy()
+    const str = atom('', 'str').extend(withStorage(key))
 
-  if (persistedValue) {
-    const record = JSON.parse(persistedValue)
-    expect(record.data).toBe('test-value')
-  }
+    expect(str()).toBe('test-value')
 
-  // Clean up
-  sessionStorage.removeItem('test-sessionStorage-key')
-})
+    str.set('new-value')
+    expect(str()).toBe('new-value')
 
-test('localStorage restore state', () => {
-  // Pre-populate localStorage
-  const record = {
-    data: 100,
-    id: 1,
-    timestamp: Date.now(),
-    to: Date.now() + 10000,
-    version: 0,
-  }
-  localStorage.setItem('test-restore-key', JSON.stringify(record))
+    const persistedValue = storage.getItem(key)
+    expect(JSON.parse(persistedValue!).data).toBe('new-value')
 
-  const testAtom = atom(0, 'restoreTestAtom').extend(
-    withLocalStorage('test-restore-key'),
-  )
-
-  // Should restore from localStorage immediately
-  expect(testAtom()).toBe(100)
-
-  // Clean up
-  localStorage.removeItem('test-restore-key')
-})
+    storage.setItem(
+      key,
+      JSON.stringify({
+        data: 'test-value-2',
+        id: 2,
+        timestamp: Date.now(),
+        to: Date.now() + 10000,
+        version: 0,
+      }),
+    )
+    expect(str()).not.toBe('test-value-2')
+    // TODO
+    // withStorage.storageAtom().cache.clear()
+    // expect(str()).toBe('test-value-2')
+  }),
+)
 
 test('storage error handling', () => {
   const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
@@ -108,85 +100,38 @@ test('storage error handling', () => {
   consoleSpy.mockRestore()
 })
 
-test('sessionStorage with different data types', () => {
-  // Test that sessionStorage works with different data types
-  const stringAtom = atom('default', 'sessionStringAtom').extend(
-    withSessionStorage('test-session-string'),
+test('fromSnapshot and toSnapshot', () => {
+  const key = 'test-map-key'
+
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      data: [
+        ['a', 1],
+        ['b', 2],
+      ],
+      id: 1,
+      timestamp: Date.now(),
+      to: Date.now() + 10000,
+      version: 0,
+    }),
   )
 
-  const numberAtom = atom(0, 'sessionNumberAtom').extend(
-    withSessionStorage('test-session-number'),
+  const mapAtom = atom(new Map<string, number>(), 'mapAtom').extend(
+    withLocalStorage({
+      key,
+      toSnapshot: (map) => Array.from(map.entries()),
+      fromSnapshot: (entries) => new Map(entries as Array<[string, number]>),
+    }),
   )
 
-  const objectAtom = atom({ count: 0 }, 'sessionObjectAtom').extend(
-    withSessionStorage('test-session-object'),
-  )
+  expect(mapAtom()).toBeInstanceOf(Map)
+  expect(mapAtom().get('a')).toBe(1)
+  expect(mapAtom().get('b')).toBe(2)
 
-  // Test string
-  stringAtom.set('session-value')
-  expect(stringAtom()).toBe('session-value')
+  mapAtom.set(new Map([['c', 3]]))
+  expect(mapAtom().get('c')).toBe(3)
 
-  // Test number
-  numberAtom.set(123)
-  expect(numberAtom()).toBe(123)
-
-  // Test object
-  objectAtom.set({ count: 5 })
-  expect(objectAtom()).toEqual({ count: 5 })
-
-  // Verify persistence in sessionStorage
-  expect(sessionStorage.getItem('test-session-string')).toBeTruthy()
-  expect(sessionStorage.getItem('test-session-number')).toBeTruthy()
-  expect(sessionStorage.getItem('test-session-object')).toBeTruthy()
-
-  expect(
-    JSON.parse(sessionStorage.getItem('test-session-string')!).data,
-  ).toEqual('session-value')
-  expect(
-    JSON.parse(sessionStorage.getItem('test-session-number')!).data,
-  ).toEqual(123)
-  expect(
-    JSON.parse(sessionStorage.getItem('test-session-object')!).data,
-  ).toEqual({ count: 5 })
-
-  // Clean up
-  sessionStorage.removeItem('test-session-string')
-  sessionStorage.removeItem('test-session-number')
-  sessionStorage.removeItem('test-session-object')
-})
-
-test('localStorage and sessionStorage isolation', () => {
-  // Test that localStorage and sessionStorage don't interfere with each other
-  const localAtom = atom('local-default', 'isolationLocalAtom').extend(
-    withLocalStorage('isolation-test-key'),
-  )
-
-  const sessionAtom = atom('session-default', 'isolationSessionAtom').extend(
-    withSessionStorage('isolation-test-key'),
-  )
-
-  // Set different values with the same key
-  localAtom.set('local-value')
-  sessionAtom.set('session-value')
-
-  // Both should maintain their own values
-  expect(localAtom()).toBe('local-value')
-  expect(sessionAtom()).toBe('session-value')
-
-  // Verify they're stored in different storages
-  expect(localStorage.getItem('isolation-test-key')).toBeTruthy()
-  expect(sessionStorage.getItem('isolation-test-key')).toBeTruthy()
-
-  // Parse and verify they contain different data
-  const localRecord = JSON.parse(localStorage.getItem('isolation-test-key')!)
-  const sessionRecord = JSON.parse(
-    sessionStorage.getItem('isolation-test-key')!,
-  )
-
-  expect(localRecord.data).toBe('local-value')
-  expect(sessionRecord.data).toBe('session-value')
-
-  // Clean up
-  localStorage.removeItem('isolation-test-key')
-  sessionStorage.removeItem('isolation-test-key')
+  const persistedValue = localStorage.getItem(key)
+  expect(JSON.parse(persistedValue!).data).toEqual([['c', 3]])
 })

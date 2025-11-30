@@ -2,7 +2,6 @@
 export type { BroadcastMessage } from './broadcastChannel'
 export type { CookieAttributes } from './cookie'
 export type { CookieStoreOptions } from './cookieStore'
-export type { WithPersistWebStorage } from './localStorage'
 
 // Functions
 export {

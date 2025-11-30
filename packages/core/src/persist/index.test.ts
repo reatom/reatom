@@ -31,12 +31,12 @@ describe('base', () => {
     expect(a2()).toBe(2)
 
     const storage = withSomePersist.storageAtom()
-    expect(storage.get({ key: 'a1' })?.data).toBe(11)
+    expect((await wrap(storage.get({ key: 'a1' })))?.data).toBe(11)
 
     a1.set(12)
     a1.set((state) => (state ? state : state))
     expect(a1()).toBe(12)
-    expect(storage.get({ key: 'a1' })?.data).toBe(12)
+    expect((await wrap(storage.get({ key: 'a1' })))?.data).toBe(12)
   })
 
   // test('should persist and update cache atom correctly', async () => {
@@ -204,9 +204,6 @@ describe('should memoize a computer', () => {
 describe('should not accept an action', () => {
   test('should throw an error', () => {
     const testAction = action(() => {})
-    expect(() =>
-      // @ts-expect-error - action is not reactive and should throw
-      testAction.extend(withSomePersist('test')),
-    ).toThrow()
+    expect(() => testAction.extend(withSomePersist('test'))).toThrow()
   })
 })

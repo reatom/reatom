@@ -82,6 +82,8 @@ test('cookieStore restore state', async () => {
     withCookieStore('test-cookie-store-restore'),
   )
 
+  testAtom()
+
   await wrap(sleep(100))
 
   expect(testAtom()).toBe('restored-cookie-store-value')
