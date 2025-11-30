@@ -102,7 +102,12 @@ export type ZodAtomization<T extends z.ZodFirstPartySchemaTypes, Union = never, 
                             : T extends z.ZodDate
                               ? Atom<(Date & Intersection) | Union, [Date | string | number | Union]>
                               : T extends z.ZodArray<infer T>
-                                ? LinkedListAtom<[void | Partial<z.infer<T>>], { value: ZodAtomization<T> }> // TODO Union and Intersection for LL
+                                ? LinkedListAtom<
+                                    [void | Partial<z.infer<T>>],
+                                    T extends z.ZodObject<any>
+                                      ? ZodAtomization<T>
+                                      : { value: ZodAtomization<T> }
+                                  > // TODO Union and Intersection for LL
                                 : T extends z.ZodTuple<infer Tuple>
                                   ? Atom<(z.infer<Tuple[number]> & Intersection) | Union>
                                   : T extends z.ZodObject<infer Shape>
@@ -369,25 +374,29 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
     }
     case z.ZodFirstPartyTypeKind.ZodArray: {
       // TODO @artalar generate a better name, instead of using `named`
+      const isObject =
+        def.type._def.typeName === z.ZodFirstPartyTypeKind.ZodObject
       theAtom = reatomLinkedList(
         {
-          create: (itemInitState) => ({
-            value: reatomZod(def.type, {
+          create: (itemInitState) => {
+            const value = reatomZod(def.type, {
               sync,
               initState: itemInitState,
               name: named(name),
               extend,
-            }),
-          }),
+            })
+            return isObject ? value : { value }
+          },
           initState: (state as any[] | undefined)?.map(
-            (itemInitState: any) => ({
-              value: reatomZod(def.type, {
+            (itemInitState: any) => {
+              const value = reatomZod(def.type, {
                 sync,
                 initState: itemInitState,
                 name: named(name),
                 extend,
-              }),
-            }),
+              })
+              return isObject ? value : { value }
+            },
           ),
         },
         name,

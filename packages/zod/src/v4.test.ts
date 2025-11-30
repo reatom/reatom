@@ -49,7 +49,7 @@ test('array', () => {
 
   model.objects.create({ name: 'kek' })
   expect(model.objects.array().length).toBe(1)
-  expect(model.objects.array()[0]!.value.name).toSatisfy(isAtom)
+  expect(model.objects.array()[0]!.name).toSatisfy(isAtom)
 })
 
 test('right values for effects', async () => {

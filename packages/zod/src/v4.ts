@@ -105,7 +105,12 @@ export type ZodAtomization<T extends z.core.$ZodType, Union = never, Intersectio
                                 : T extends z.core.$ZodDate
                                   ? Atom<(Date & Intersection) | Union, [newState: Date | string | number]>
                                   : T extends z.core.$ZodArray<infer T>
-                                    ? LinkedListAtom<[param: z.infer<T>], { value: ZodAtomization<T>}> // TODO Union and Intersection for LL
+                                    ? LinkedListAtom<
+                                        [param: z.infer<T>],
+                                        T extends z.core.$ZodObject<any>
+                                          ? ZodAtomization<T>
+                                          : { value: ZodAtomization<T> }
+                                      > // TODO Union and Intersection for LL
                                     : T extends z.core.$ZodTuple<infer Tuple>
                                       ? Atom<(z.infer<Tuple[number]> & Intersection) | Union>
                                       : T extends z.core.$ZodObject<infer Shape>
@@ -394,25 +399,28 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
     }
     case 'array': {
       // TODO @artalar generate a better name, instead of using `named`
+      const isObject = def.element._zod.def.type === 'object'
       theAtom = reatomLinkedList(
         {
-          create: (itemInitState) => ({
-            value: reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
+          create: (itemInitState) => {
+            const value = reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
               sync,
               initState: itemInitState,
               name: named(name),
               extend,
-            }),
-          }),
+            })
+            return isObject ? value : { value }
+          },
           initState: (state as any[] | undefined)?.map(
-            (itemInitState: any) => ({
-              value: reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
+            (itemInitState: any) => {
+              const value = reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
                 sync,
                 initState: itemInitState,
                 name: named(name),
                 extend,
-              }),
-            }),
+              })
+              return isObject ? value : { value }
+            },
           ),
         },
         name,
