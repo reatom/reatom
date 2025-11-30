@@ -3,7 +3,7 @@ import { expect, test } from 'test'
 import { action, atom, computed, isConnected } from '../core'
 import { withSuspenseInit } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
-import { sleep } from '../utils'
+import { sleep, throwAbort } from '../utils'
 import { abortVar } from './abortVar'
 import { effect } from './effect'
 import { wrap } from './wrap'
@@ -144,9 +144,7 @@ test('rerun on suspended dependency', async () => {
     return 1
   }).extend(withSuspenseInit())
 
-  const resourceB = atom<{ username: string; age: number }>(
-    () => null as never,
-  ).extend(
+  const resourceB = atom<{ username: string; age: number }>(throwAbort).extend(
     withSuspenseInit(async () => {
       await sleep()
       return { username: 'unnamed', age: 12 }

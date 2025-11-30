@@ -124,6 +124,7 @@ export type DeepPartial<T, Skip = never> = {
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
+// FIXME change the order of generics in break release
 export type SubmitAction<Return, Params extends any[]> = Action<
   Params,
   Promise<Return>

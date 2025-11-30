@@ -171,3 +171,24 @@ test('withChangeHandler', () => {
 
   expectTypeOf(a).toExtend<Atom<number>>()
 })
+
+// Currently not supported
+// test.skip('input payload change computed', () => {
+//   const name = 'middlewareInputComputed'
+
+//   const obj = atom({ prop: 0 }, `${name}.a`)
+//   const b = computed(() => obj().prop, `${name}.b`).extend(
+//     withParams((value: number) => {
+//       obj.set({ prop: value })
+//       return undefined
+//     }),
+//   )
+
+//   expectTypeOf(b).toExtend<AtomLike<number, [number]>>()
+
+//   expect(obj()).toEqual({ prop: 0 })
+//   expect(b()).toBe(0)
+//   expect(b.set(3)).toBe(3)
+//   expect(obj()).toEqual({ prop: 3 })
+//   expect(b()).toBe(3)
+// })

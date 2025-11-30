@@ -18,7 +18,6 @@ export const silentQueuesErrors = () => {
   }
 }
 
-// TODO decorate chainable methods too
 /**
  * Enhanced version of Vitest's test function that automatically wraps test
  * callbacks in Reatom's context to ensure proper atom tracking and execution
@@ -42,14 +41,13 @@ export const silentQueuesErrors = () => {
  * @param fn - The test function to execute within Reatom context
  * @returns The result of the Vitest test execution
  */
-export const test = Object.assign(
-  (name: string, fn: () => void | Promise<void>) =>
-    viTest(name, () => {
-      Reflect.defineProperty(fn, 'name', { value: name })
-      return context.start(fn)
-    }),
-  viTest,
-) as typeof viTest
+export const test = ((name: string, fn: () => void | Promise<void>) =>
+  viTest(name, () => {
+    Reflect.defineProperty(fn, 'name', { value: name })
+    return context.start(fn)
+  })) as typeof viTest
+
+export { viTest }
 
 /**
  * Creates a mock subscriber for an atom that tracks all atom updates using
