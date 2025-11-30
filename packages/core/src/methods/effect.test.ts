@@ -7,6 +7,7 @@ import { sleep } from '../utils'
 import { abortVar } from './abortVar'
 import { effect } from './effect'
 import { wrap } from './wrap'
+import { memo } from 'react'
 
 test("effect didn't connect to reactive parent", async () => {
   const name = 'effectReactiveParent'
@@ -115,21 +116,20 @@ test('rerun on suspended dependency', async () => {
     })
   )
 
-  const resourceB = atom<number>(() => (null as never)).extend(
+  const resourceB = atom<{ username: string; age: number }>(() => (null as never)).extend(
     withSuspenseInit(async () => {
       await sleep()
-      return 2;
+      return { username: 'unnamed', age: 12 };
     })
   )
 
   const { promise: testCompleted, resolve: completeTest } = Promise.withResolvers()
 
-  // could be fixed if the callback will be async
   effect(() => {
     const value = resourceA()
     expect(value).toBe(1)
-    const a = resourceB()
-    expect(a).toBe(2)
+    const age = memo(() => resourceB().age)
+    expect(age).toBe(12)
     completeTest(undefined)
   })
 
