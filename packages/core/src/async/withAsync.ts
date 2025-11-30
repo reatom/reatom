@@ -91,8 +91,8 @@ export interface AsyncExt<
 
   /**
    * Atom that tracks the current status of async operations including lifecycle
-   * state, timing information, and retry functionality. Must be explicitly enabled
-   * via the `status` option in {@link withAsync} configuration.
+   * state, timing information, and retry functionality. Must be explicitly
+   * enabled via the `status` option in {@link withAsync} configuration.
    *
    * @throws {ReatomError} When accessed without being enabled in options
    */

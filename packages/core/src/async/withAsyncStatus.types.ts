@@ -51,10 +51,7 @@ export interface AsyncStatusAbortedPending<State = never, InitState = State> {
   data: [State] extends [never] ? never : InitState | State
 }
 
-export interface AsyncStatusAbortedFulfill<
-  State = never,
-  _InitState = State,
-> {
+export interface AsyncStatusAbortedFulfill<State = never, _InitState = State> {
   isPending: false
   isFulfilled: true
   isRejected: false

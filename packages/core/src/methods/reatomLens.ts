@@ -3,18 +3,18 @@ import { createAtom } from '../core'
 
 type LensKey = string | number | symbol
 
-type LensValue<T, K extends LensKey> = T extends Map<infer MapKey, infer MapValue>
-  ? K extends MapKey
-    ? MapValue | undefined
-    : never
-  : T extends ReadonlyArray<infer V>
-    ? K extends number
-      ? V | undefined
+type LensValue<T, K extends LensKey> =
+  T extends Map<infer MapKey, infer MapValue>
+    ? K extends MapKey
+      ? MapValue | undefined
       : never
-    : K extends keyof T
-      ? T[K]
-      : never
-
+    : T extends ReadonlyArray<infer V>
+      ? K extends number
+        ? V | undefined
+        : never
+      : K extends keyof T
+        ? T[K]
+        : never
 
 const defaultGet = <T, K extends LensKey>(
   parent: T,
@@ -48,11 +48,7 @@ const defaultSet = <T, K extends LensKey>(
     const index = key as number
     const currentValue = parent[index]
     if (Object.is(currentValue, value)) return parent
-    return [
-      ...parent.slice(0, index),
-      value,
-      ...parent.slice(index + 1),
-    ] as T
+    return [...parent.slice(0, index), value, ...parent.slice(index + 1)] as T
   }
   if (typeof parent === 'object' && parent !== null) {
     const currentValue = (parent as Record<K, LensValue<T, K>>)[key]
@@ -130,7 +126,11 @@ export const reatomLens = <
   key: Key,
   options?: {
     get?: (parent: AtomState<Parent>, key: Key) => Value
-    set?: (parent: AtomState<Parent>, key: Key, value: Value) => AtomState<Parent>
+    set?: (
+      parent: AtomState<Parent>,
+      key: Key,
+      value: Value,
+    ) => AtomState<Parent>
   },
   name?: string,
 ): Atom<Value> => {
@@ -144,8 +144,7 @@ export const reatomLens = <
     value: Value,
   ) => AtomState<Parent>
 
-  const lensName =
-    name ?? `${parent.name}.${String(key)}`
+  const lensName = name ?? `${parent.name}.${String(key)}`
 
   const lensAtom = createAtom(
     {
@@ -171,4 +170,3 @@ export const reatomLens = <
     },
   }) as Atom<Value>
 }
-

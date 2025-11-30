@@ -313,20 +313,20 @@ describe('types', () => {
 
   test('should infer correct type with custom get and set', () => {
     const dataAtom = atom({ nested: { deep: { value: 42 } } })
-    const deepAtom = reatomLens<
-      typeof dataAtom,
+    const deepAtom = reatomLens<typeof dataAtom, 'nested', number | undefined>(
+      dataAtom,
       'nested',
-      number | undefined
-    >(dataAtom, 'nested', {
-      get: (parent) => parent.nested?.deep?.value,
-      set: (parent, _, value) => ({
-        ...parent,
-        nested: {
-          ...parent.nested,
-          deep: { ...parent.nested.deep, value: value ?? 0 },
-        },
-      }),
-    })
+      {
+        get: (parent) => parent.nested?.deep?.value,
+        set: (parent, _, value) => ({
+          ...parent,
+          nested: {
+            ...parent.nested,
+            deep: { ...parent.nested.deep, value: value ?? 0 },
+          },
+        }),
+      },
+    )
 
     expectTypeOf(deepAtom()).toEqualTypeOf<number | undefined>()
   })

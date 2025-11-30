@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'test'
 
 // import { cdp } from '@vitest/'
 import { wrap } from '../..'
-import { atom, ReatomError } from '../../core'
+import { atom } from '../../core'
 import { sleep } from '../../utils'
 import { parseCookieValue, withCookie } from './cookie'
 

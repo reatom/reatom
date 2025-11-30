@@ -97,11 +97,11 @@ test('withSuspense', async () => {
 })
 
 test('withSuspenseInit', async () => {
-  const data = atom<number>(() => (null as never)).extend(
+  const data = atom<number>(() => null as never).extend(
     withSuspenseInit(async () => {
       await sleep()
-      return 1;
-    })
+      return 1
+    }),
   )
 
   expect(() => data()).toThrowError(Promise)
