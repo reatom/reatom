@@ -3,7 +3,7 @@ import { expect, subscribe, test } from 'test'
 import { atom, computed, isConnected, notify } from '../core'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
-import { suspense, withSuspense } from './withSuspense'
+import { suspense, withSuspense, withSuspenseInit } from './withSuspense'
 
 test('suspense', async () => {
   const name = 'suspense'
@@ -94,4 +94,17 @@ test('withSuspense', async () => {
   await wrap(sleep())
   expect(track).toBeCalledTimes(2)
   expect(track).toBeCalledWith(1)
+})
+
+test('withSuspenseInit', async () => {
+  const data = atom<number>(() => (null as never)).extend(
+    withSuspenseInit(async () => {
+      await sleep()
+      return 1;
+    })
+  )
+
+  expect(() => data()).toThrowError(Promise)
+  await wrap(sleep())
+  expect(data()).toBe(1)
 })

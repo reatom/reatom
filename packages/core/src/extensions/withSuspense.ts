@@ -1,6 +1,7 @@
 import type { AtomLike, AtomState, Computed, Ext } from '../core'
-import { _set, createAtom, top } from '../core'
+import { _set, bind, createAtom, top } from '../core'
 import { wrap } from '../methods'
+import { withInit } from './withInit'
 
 /**
  * Internal suspense cache record tracking promise state. Do not use it
@@ -195,3 +196,20 @@ export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
     ? (target as AtomLike & SuspenseExt<State>)
     : target.extend(withSuspense())
   ).suspended()
+
+export const withSuspenseInit =
+  <Target extends AtomLike>(
+    cb: (
+      state?: AtomState<Target>
+    ) => AtomState<Target> | Promise<AtomState<Target>>
+  ): Ext<Target> =>
+  (target) =>
+    target.extend(
+      withInit((initState: AtomState<Target>) => {
+        let result = cb(initState);
+        if (result instanceof Promise) {
+          throw result.then(bind(target.set));
+        }
+        return result;
+      })
+    );

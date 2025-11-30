@@ -1,6 +1,7 @@
 import { expect, test } from 'test'
 
 import { action, atom, computed } from '../core'
+import { withSuspenseInit } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import { sleep } from '../utils'
 import { abortVar } from './abortVar'
@@ -104,4 +105,33 @@ test('different types of abort', async () => {
   }, `${name}.doWithAbort`)
 
   await doWithAbort()
+})
+
+test('rerun on suspended dependency', async () => {
+  const resourceA = atom<number>(() => (null as never)).extend(
+    withSuspenseInit(async () => {
+      await sleep()
+      return 1;
+    })
+  )
+
+  const resourceB = atom<number>(() => (null as never)).extend(
+    withSuspenseInit(async () => {
+      await sleep()
+      return 2;
+    })
+  )
+
+  const { promise: testCompleted, resolve: completeTest } = Promise.withResolvers()
+
+  // could be fixed if the callback will be async
+  effect(() => {
+    const value = resourceA()
+    expect(value).toBe(1)
+    const a = resourceB()
+    expect(a).toBe(2)
+    completeTest(undefined)
+  })
+
+  await testCompleted
 })
