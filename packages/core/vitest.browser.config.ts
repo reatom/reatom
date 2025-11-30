@@ -1,4 +1,4 @@
-/// <reference types="vitest/config" />
+import { playwright } from '@vitest/browser-playwright'
 import { resolve } from 'path'
 import { defineConfig } from 'vitest/config'
 
@@ -16,7 +16,7 @@ export default defineConfig({
     // fileParallelism: false,
     browser: {
       enabled: true,
-      provider: 'playwright',
+      provider: playwright(),
       headless: true,
       screenshotFailures: false,
       instances: [

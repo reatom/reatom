@@ -39,7 +39,7 @@
     "csstype": "catalog:"
   },
   "devDependencies": {
-    "@vitest/browser": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "playwright": "catalog:"
   },
   "author": "artalar",

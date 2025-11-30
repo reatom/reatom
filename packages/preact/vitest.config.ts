@@ -1,6 +1,6 @@
-/// <reference types="vitest/config" />
-import { defineConfig } from 'vitest/config'
 import preact from '@preact/preset-vite'
+import { playwright } from '@vitest/browser-playwright'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [preact()],
@@ -8,7 +8,7 @@ export default defineConfig({
     include: ['./src/**/*.test.tsx'],
     browser: {
       enabled: true,
-      provider: 'playwright',
+      provider: playwright(),
       headless: true,
       screenshotFailures: false,
       instances: [

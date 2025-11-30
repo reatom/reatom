@@ -30,6 +30,7 @@
     "@reatom/core": "workspace:^"
   },
   "devDependencies": {
+    "@vitest/browser-playwright": "catalog:",
     "vite": "catalog:"
   },
   "author": "kaifaty",

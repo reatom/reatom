@@ -1,4 +1,4 @@
-/// <reference types="vitest/config" />
+import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
@@ -6,7 +6,7 @@ export default defineConfig({
     include: ['./src/**/*.test.ts'],
     browser: {
       enabled: true,
-      provider: 'playwright',
+      provider: playwright(),
       headless: true,
       screenshotFailures: false,
       instances: [
