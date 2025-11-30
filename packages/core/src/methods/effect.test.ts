@@ -1,13 +1,12 @@
 import { expect, test } from 'test'
 
-import { action, atom, computed } from '../core'
+import { action, atom, computed, isConnected } from '../core'
 import { withSuspenseInit } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import { sleep } from '../utils'
 import { abortVar } from './abortVar'
 import { effect } from './effect'
 import { wrap } from './wrap'
-import { memo } from 'react'
 
 test("effect didn't connect to reactive parent", async () => {
   const name = 'effectReactiveParent'
@@ -108,27 +107,60 @@ test('different types of abort', async () => {
   await doWithAbort()
 })
 
+test('rerun on conditional dependency', async () => {
+  const resourceA = atom(1)
+
+  // also test error handling for the init
+  const resourceB = atom<number>(() => {
+    throw 42
+  })
+
+  const { promise: testCompleted, resolve: completeTest } =
+    Promise.withResolvers()
+
+  effect(() => {
+    const valueA = resourceA()
+    if (valueA !== 2) return
+    const valueB = resourceB()
+    if (valueB === 2) completeTest(undefined)
+  })
+
+  await wrap(sleep())
+
+  resourceA.set(2)
+
+  await wrap(sleep())
+
+  expect(isConnected(resourceB)).toBe(true)
+
+  resourceB.set(2)
+
+  await testCompleted
+})
+
 test('rerun on suspended dependency', async () => {
-  const resourceA = atom<number>(() => (null as never)).extend(
+  const resourceA = atom(async () => {
+    await sleep()
+    return 1
+  }).extend(withSuspenseInit())
+
+  const resourceB = atom<{ username: string; age: number }>(
+    () => null as never,
+  ).extend(
     withSuspenseInit(async () => {
       await sleep()
-      return 1;
-    })
+      return { username: 'unnamed', age: 12 }
+    }),
   )
 
-  const resourceB = atom<{ username: string; age: number }>(() => (null as never)).extend(
-    withSuspenseInit(async () => {
-      await sleep()
-      return { username: 'unnamed', age: 12 };
-    })
-  )
-
-  const { promise: testCompleted, resolve: completeTest } = Promise.withResolvers()
+  const { promise: testCompleted, resolve: completeTest } =
+    Promise.withResolvers()
 
   effect(() => {
     const value = resourceA()
     expect(value).toBe(1)
-    const age = memo(() => resourceB().age)
+    // const age = memo(() => resourceB().age)
+    const age = resourceB().age
     expect(age).toBe(12)
     completeTest(undefined)
   })

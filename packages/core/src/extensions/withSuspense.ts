@@ -1,4 +1,4 @@
-import type { AtomLike, AtomState, Computed, Ext } from '../core'
+import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
 import { _set, bind, createAtom, top } from '../core'
 import { wrap } from '../methods'
 import { withInit } from './withInit'
@@ -197,19 +197,88 @@ export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
     : target.extend(withSuspense())
   ).suspended()
 
-export const withSuspenseInit =
+/**
+ * Extension that enables asynchronous initialization for synchronous atoms.
+ * This feature bridges async data loading with sync atom semantics.
+ *
+ * During initialization, if the result is a Promise, it throws the promise
+ * (suspense pattern) and schedules setting the atom's state when resolved.
+ * After initialization completes, the atom operates fully synchronously.
+ *
+ * This is perfect for local-first architectures: load data asynchronously on
+ * init, then work with it synchronously. Combine with `withChangeHook` to sync
+ * changes back to a server or database.
+ *
+ * **Without callback**: Transforms `Atom<Promise<State>>` into `Atom<State>`.
+ * The atom's async initializer is unwrapped, and consumers receive the resolved
+ * value.
+ *
+ * @example
+ *   const userSettings = atom(async () => {
+ *     const response = await fetch('/api/settings')
+ *     return response.json()
+ *   }).extend(withSuspenseInit())
+ *   // Type: Atom<Settings> (not Atom<Promise<Settings>>)
+ *
+ *   effect(() => {
+ *     // After init completes, reads are synchronous
+ *     const settings = userSettings()
+ *     console.log(settings.theme)
+ *   })
+ *
+ * @example
+ *   // With callback: Provides an async initializer for any atom type, keeping the original state type.
+ *   // Local-first pattern: async init + sync operations + sync-back
+ *   const todos = atom<Todo[]>([]).extend(
+ *     withSuspenseInit(async () => {
+ *       const cached = await indexedDB.get('todos')
+ *       return cached ?? []
+ *     }),
+ *     withChangeHook((newState) => {
+ *       // Sync changes back to storage
+ *       indexedDB.set('todos', newState)
+ *     }),
+ *   )
+ *
+ * @example
+ *   // Typed async init with custom default
+ *   const profile = atom<{ username: string; age: number }>(
+ *     throwAbort,
+ *   ).extend(
+ *     withSuspenseInit(async () => {
+ *       const data = await fetchProfile()
+ *       return data ?? { username: 'guest', age: 0 }
+ *     }),
+ *   )
+ *
+ * @overload
+ * @overload
+ * @param cb - Async or sync initializer function. Receives the current init
+ *   state and returns the new state (or Promise of it).
+ * @returns Extension that unwraps `Atom<Promise<State>>` to `Atom<State>`
+ * @returns Extension that initializes the atom with the callback result
+ */
+export let withSuspenseInit: {
+  <State>(): Ext<Atom<Promise<State>>, Atom<State>>
+
   <Target extends AtomLike>(
     cb: (
-      state?: AtomState<Target>
-    ) => AtomState<Target> | Promise<AtomState<Target>>
+      state?: AtomState<Target>,
+    ) => AtomState<Target> | Promise<AtomState<Target>>,
+  ): Ext<Target>
+} =
+  <Target extends AtomLike>(
+    cb?: (
+      state?: AtomState<Target>,
+    ) => AtomState<Target> | Promise<AtomState<Target>>,
   ): Ext<Target> =>
   (target) =>
     target.extend(
       withInit((initState: AtomState<Target>) => {
-        let result = cb(initState);
+        let result = cb ? cb(initState) : initState
         if (result instanceof Promise) {
-          throw result.then(bind(target.set));
+          throw result.then(bind(_set.bind(undefined, target)))
         }
-        return result;
-      })
-    );
+        return result
+      }),
+    )

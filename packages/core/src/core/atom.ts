@@ -692,17 +692,17 @@ export function atomMiddleware(next: Fn) {
       try {
         frame.atom.__reatom.linking = true
         frame.state = newState = next(newState)
+        frame.error = null
       } finally {
         frame.atom.__reatom.linking = false
-      }
-      frame.error = null
-      frame.pubs[0] = frame.root.frame
-      // TODO
-      // Object.freeze(frame.pubs)
+        frame.pubs[0] ??= frame.root.frame
+        // TODO
+        // Object.freeze(frame.pubs)
 
-      if (frame.subs.length) {
-        // TODO may be a bug with resubscribing
-        relink(frame, pubs)
+        if (frame.subs.length) {
+          // TODO may be a bug with resubscribing
+          relink(frame, pubs)
+        }
       }
     }
 
@@ -841,6 +841,9 @@ export let createAtom: {
               frame.pubs[0] = topFrame.root.frame
               throw error
             } finally {
+              if (topFrame.atom.__reatom.linking) {
+                topFrame.pubs.push(frame)
+              }
               STACK.pop()
             }
           } else {
