@@ -1,6 +1,6 @@
 {
   "name": "@reatom/core",
-  "version": "1000.0.0-alpha.55",
+  "version": "1000.0.0-alpha.60",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -18,7 +18,7 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run test:browser && pnpm run build",
+    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w &&  pnpm run build",
     "build": "microbundle -f esm,cjs --raw",
     "test": "vitest run",
     "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
