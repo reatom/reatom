@@ -61,13 +61,8 @@
   "dependencies": {
     "@standard-schema/spec": "catalog:"
   },
-  "peerDependencies": {
+  "optionalDependencies": {
     "idb-keyval": "*"
-  },
-  "peerDependenciesMeta": {
-    "idb-keyval": {
-      "optional": true
-    }
   },
   "devDependencies": {
     "@artalar/act": "latest",
@@ -76,11 +71,13 @@
     "@preact/signals-core": "latest",
     "@types/node": "latest",
     "@types/ws": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "@webreflection/signal": "latest",
     "alien-signals": "catalog:",
     "cellx": "latest",
     "dexnode": "catalog:",
     "effector": "latest",
+    "idb-keyval": "^6.2.2",
     "jotai": "catalog:",
     "mobx": "latest",
     "mol_wire_lib": "latest",
