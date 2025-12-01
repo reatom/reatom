@@ -296,7 +296,7 @@ const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
  */
 export interface RouteLoader<Params extends Rec = Rec, Payload = any>
   extends Computed<Promise<Payload>>,
-    AsyncDataExt<[Params], Payload, undefined | Payload, Error | undefined> {}
+    AsyncDataExt<[Params], Payload, Payload, undefined, Error | undefined> {}
 
 /** Route extension interface for route computed atom. */
 export interface RouteExt<

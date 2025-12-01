@@ -489,3 +489,20 @@ test('exact for different types of routes', async () => {
   expect(searchOnlyRoute.exact()).toEqual(true)
   expect(someRoute.exact()).toEqual(false)
 })
+
+test('loader data types', async () => {
+  const route = reatomRoute({
+    async loader() {
+      return 42
+    },
+  })
+
+  const status = route.loader.status()
+  expectTypeOf(status.data).toExtend<number | undefined>()
+
+  if (!status.isFulfilled) {
+    /* return */
+  } else {
+    expectTypeOf(status.data).toExtend<number>()
+  }
+})
