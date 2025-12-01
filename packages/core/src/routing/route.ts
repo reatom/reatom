@@ -640,7 +640,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       const result = await promise
       return result
-    }, `${name}.loader`).extend(withAsyncData()) as unknown as RouteLoader
+    }, `${name}.loader`).extend(
+      withAsyncData({ status: true }),
+    ) as unknown as RouteLoader
 
     const exact = computed(() => {
       const params = routeAtom()
