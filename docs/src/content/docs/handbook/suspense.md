@@ -7,9 +7,7 @@ The suspense pattern provides a way to handle asynchronous initialization of glo
 
 The key advantage of suspense is that it removes "async coloring" from your code — you don't need to handle `Promise` types throughout your codebase. This eliminates data interface leaking and keeps derived computations simple. Your code focuses on the happy path of data usage without constantly checking for loading or error states. However, this simplicity comes with a trade-off: when you need fine-grained control over loading states, error handling, or request cancellation, the suspense pattern becomes much more complex to work with.
 
-**⚠️ Important**: Suspense is recommended **only for global states** like user authentication, application settings, or configuration data that loads once when the app starts. For dynamic data fetching and page-specific content, use the more flexible [`withAsync` and `withAsyncData`](./async) patterns instead.
-
-## When to Use Suspense
+**⚠️ Important**: Suspense is recommended **only for global states** like user data or other settings that loads once when the app starts. For dynamic data fetching and page-specific content, use the more flexible [`withAsync` and `withAsyncData`](./async) patterns instead.
 
 ### ✅ Good Use Cases
 
@@ -17,15 +15,6 @@ The key advantage of suspense is that it removes "async coloring" from your code
 - **Application settings** — global configuration that doesn't change during the session
 - **Feature flags** — loaded once and used throughout the app
 - **Locale/i18n data** — language resources loaded at initialization
-
-### ❌ Avoid Suspense For
-
-- **Page-specific data** — data that changes when navigating between routes
-- **Search results** — dynamic data based on user input
-- **Paginated lists** — data that updates frequently
-- **Form data** — dynamic content that remounts with components
-
-For these cases, [`withAsyncData`](./async#async-data-fetching) provides better control over loading states and its composition, error handling, and request cancellation.
 
 ## API Overview
 
