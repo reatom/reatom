@@ -23,6 +23,7 @@ export const sidebar = [
       'handbook/extensions',
       'handbook/async-context',
       'handbook/async',
+      'handbook/suspense',
       'handbook/lifecycle',
       'handbook/routing',
       'handbook/sampling',
