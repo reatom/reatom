@@ -5,7 +5,9 @@ description: Use suspense for global state initialization with React Suspense in
 
 The suspense pattern provides a way to handle asynchronous initialization of global state in your application. It integrates seamlessly with React Suspense boundaries, throwing promises during pending states to let Suspense handle loading UI.
 
-> **⚠️ Important**: Suspense is recommended **only for global states** like user authentication, application settings, or configuration data that loads once when the app starts. For dynamic data fetching and page-specific content, use the more flexible [`withAsync` and `withAsyncData`](./async) patterns instead.
+The key advantage of suspense is that it removes "async coloring" from your code — you don't need to handle `Promise` types throughout your codebase. This eliminates data interface leaking and keeps derived computations simple. Your code focuses on the happy path of data usage without constantly checking for loading or error states. However, this simplicity comes with a trade-off: when you need fine-grained control over loading states, error handling, or request cancellation, the suspense pattern becomes much more complex to work with.
+
+**⚠️ Important**: Suspense is recommended **only for global states** like user authentication, application settings, or configuration data that loads once when the app starts. For dynamic data fetching and page-specific content, use the more flexible [`withAsync` and `withAsyncData`](./async) patterns instead.
 
 ## When to Use Suspense
 
@@ -135,7 +137,7 @@ const todos = atom<Todo[]>([]).extend(
 
 ## withSuspenseRetry
 
-When an async action needs to read from suspended atoms, `withSuspenseRetry` automatically retries the action until all suspensions are resolved:
+This helper for a more advanced use case when an async action needs to read from suspended atoms, `withSuspenseRetry` automatically retries the action until all suspensions are resolved:
 
 ```ts
 import { action, wrap } from '@reatom/core'
