@@ -8,7 +8,7 @@ import {
   withMiddleware,
 } from '../core'
 import type { Fn } from '../utils'
-import { isBrowser } from '../utils'
+import { isAbort, isBrowser } from '../utils'
 import { getSerial, getStackTrace, isSkip } from './getStackTrace'
 
 /**
@@ -108,12 +108,19 @@ export let connectLogger = () => {
     if (isSkip(target)) return target
 
     let title = `%c ${target.name}`
+    let isOnReject = target.name.endsWith('.onReject')
+    let isOnFulfill = target.name.endsWith('.onFulfill')
     let style = ''
+    let abortStyle =
+      'font-size: 10px; font-weight: 400; background: #F0F0F020; color: #F0F0F070'
+    let errorStyle = 'background: tomato;'
     if (isNodeEnv) {
       let nodeReactiveStyle = '\x1b[44m\x1b[37m' // blue background, white text
       let nodeActionStyle = '\x1b[43m\x1b[30m' // yellow background, black text
       let nodeResetStyle = '\x1b[0m'
       title = `${target.__reatom.reactive ? nodeReactiveStyle : nodeActionStyle} ${target.name} ${nodeResetStyle}`
+      abortStyle = '\x1b[103m\x1b[90m' // light yellow background, gray text
+      errorStyle = '\x1b[101m\x1b[30m' // bright red (tomato-like) background, black text
     } else {
       let color = target.__reatom.reactive
         ? 'background: #151134; color: white;'
@@ -123,6 +130,7 @@ export let connectLogger = () => {
 
     let logStack = (payload: any, error: any, cb: Fn) => {
       try {
+        const isAborted = isAbort(error)
         if (isNewLogStack) {
           isNewLogStack = false
           setTimeout(() => {
@@ -130,14 +138,20 @@ export let connectLogger = () => {
           })
           console.log('--- ' + new Date().toISOString() + ' ----')
         }
-        console.groupCollapsed(
-          `${title}${getSerial()}`,
-          style + (error ? 'color: red;' : ''),
-        )
+        let _title = title
+        let _style = style
+        if (isAborted) {
+          _title = `AbortError: ${error.message} ${title}`
+          if (!isNodeEnv) _title = `%c ${_title.replace('%c ', '')}`
+          _style += abortStyle
+        } else if (error) {
+          _style += errorStyle
+        }
+        console.groupCollapsed(`${_title}${getSerial()}`, _style)
         if (isNodeEnv) {
           if (target === log && !error) {
             console.log(...payload)
-          } else {
+          } else if (!isAborted) {
             console.log(error ?? payload)
           }
         }
@@ -152,7 +166,7 @@ export let connectLogger = () => {
         if (!isNodeEnv) {
           if (target === log && !error) {
             console.log(...payload)
-          } else {
+          } else if (!isAborted) {
             console.log(error ?? payload)
           }
         }
@@ -186,6 +200,10 @@ export let connectLogger = () => {
                 } else {
                   let call = (state as ActionState)[state.length - 1]
 
+                  if (isOnReject && call) {
+                    error = call.payload?.error
+                  }
+
                   if (error) {
                     logStack(undefined, error, () =>
                       params.forEach((param, i) =>
@@ -193,9 +211,13 @@ export let connectLogger = () => {
                       ),
                     )
                   } else if (call) {
-                    logStack(call.payload, error, () => {
+                    let { payload } = call
+                    if (isOnFulfill) {
+                      payload = call.payload?.payload
+                    }
+                    logStack(payload, error, () => {
                       if (target !== log) {
-                        call.params.forEach((param, i) =>
+                        params.forEach((param, i) =>
                           console.log(`param ${i + 1}:`, param),
                         )
                       }
