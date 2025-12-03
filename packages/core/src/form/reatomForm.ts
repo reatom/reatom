@@ -61,13 +61,13 @@ type FormInitStateElement =
   | bigint
   | Date
   | FieldAtom
-  | FormFieldOptions
+  | FormFieldOptions 
   | FormFieldArray<any>
   | Array<FormInitStateElement>
-  | { [key: string]: FormInitStateElement }
+  | FormInitState
 
 export type FormInitState = {
-  [key: string]: FormInitStateElement | FormInitState
+  [key: string]: FormInitStateElement
 }
 
 type ExtractFieldArray<T> = {
@@ -84,9 +84,8 @@ export type FormFieldArrayAtom<
   initState: Atom<LinkedList<LLNode<FormFieldElement<Node>>>>
 }
 
-export type FormFieldElement<
-  T extends FormInitStateElement | unknown = FormInitStateElement,
-> = T extends FieldLikeAtom
+export type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> 
+  = T extends FieldLikeAtom
   ? T
   : T extends Date
     ? FieldAtom<T>
