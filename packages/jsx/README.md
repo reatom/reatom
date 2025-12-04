@@ -249,24 +249,25 @@ const Component = () => (<input
 This will be compiled to:
 
 ```tsx
-<div class="Component_ab12cd" style="--size: 3"></div>
+<div data-reatom-style="1" data-reatom-name="Component" style="--size: 3"></div>
 ```
 
 Behind the scenes, the runtime:
 
-- Creates a scoped class name (`Component_*`)
-- Inserts the CSS rule once
+- Generates a unique style ID and sets it as `data-reatom-style` attribute
+- Inserts the CSS rule once using attribute selector (`[data-reatom-style="1"]`)
 - Applies dynamic values as inline CSS variables (`--size`)
+- Sets `data-reatom-name` attribute with the component name for better DevTools traceability
 
 #### Why css-prop?
 
 Every styling approach forces trade-offs. CSS-modules and SFC style tags split your component across files. Tailwind requires learning a new vocabulary and clutters your markup. Styled-components and Linaria add runtime overhead or complex build pipelines.
 
-The `css` prop takes a different path: **just write CSS where you use it**. No preprocessing, no new syntax to learn — Reatom passes your styles directly to the DOM. You still get [native CSS nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Using_CSS_nesting), readable class names in DevTools (`Component_ab12cd`), and zero build complexity.
+The `css` prop takes a different path: **just write CSS where you use it**. No preprocessing, no new syntax to learn — Reatom passes your styles directly to the DOM. You still get [native CSS nesting](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_nesting/Using_CSS_nesting), readable component names in DevTools via `data-reatom-name` attribute, and zero build complexity.
 
 But the real win is architectural. When styles live inline, growing components naturally want to be **extracted as new components** — not split into separate style files. This keeps markup and styles together, maintaining high cohesion and low coupling. The path of least resistance leads to better code organization.
 
-> Tip: wrapping logic in components improves generated class readability and traceability.
+> Tip: wrapping logic in components improves `data-reatom-name` readability and traceability.
 
 > Prettier formats `css` template literals correctly, and the [vscode-styled-components](https://marketplace.visualstudio.com/items?itemName=styled-components.vscode-styled-components) extension provides syntax highlighting.
 
