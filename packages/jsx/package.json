@@ -1,6 +1,6 @@
 {
   "name": "@reatom/jsx",
-  "version": "1000.0.0-alpha.60",
+  "version": "1000.0.0-alpha.61",
   "publishConfig": {
     "tag": "alpha"
   },
