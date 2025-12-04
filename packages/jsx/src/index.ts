@@ -12,7 +12,6 @@ import {
   isObject,
   isWritableAtom,
   type LinkedList,
-  type LinkedListLikeAtom,
   LL_NEXT,
   type LLNode,
   noop,
@@ -22,7 +21,7 @@ import {
   wrap,
 } from '@reatom/core'
 
-import type { AttributesAtomMaybe, JSX } from './jsx'
+import type { AttributesAtomMaybe, JSX, LinkedListJSXAtom } from './jsx'
 import { reatomClassName } from './utils'
 
 declare type JSXElement = JSX.Element
@@ -187,7 +186,7 @@ let walk = (
   } else if (isLinkedListAtom(children)) {
     walkLinkedList(dom, element as JSX.Element, children as any)
   } else if (isAtom(children)) {
-    element.append(walkAtom(dom, children))
+    element.append(walkAtom(dom, children as AtomLike<JSX.ElementChildren>))
   } else if (typeof children === 'function') {
     walk(dom, element, computed(children as () => any))
   } else if (!isSkipped(children)) {
@@ -212,7 +211,7 @@ let walkAtom = (
 let walkLinkedList = (
   dom: DomApis,
   element: JSX.Element,
-  list: LinkedListLikeAtom<LinkedList<LLNode<JSX.Element>>>,
+  list: LinkedListJSXAtom,
 ) => {
   let lastVersion = -1
 
@@ -284,7 +283,7 @@ let walkLinkedList = (
     let unSubscribe = list.subscribe(noop)
     let rootFrame = context()
     let unChange = addChangeHook(list, (state) => {
-      if (rootFrame === context()) cb(state)
+      if (rootFrame === context()) cb(state as LinkedList<LLNode<JSX.Element>>)
     })
 
     return () => {
@@ -295,7 +294,7 @@ let walkLinkedList = (
 
   let state = list()
   // check if change hook wasn't called by initialization
-  if (lastVersion === -1) cb(state)
+  if (lastVersion === -1) cb(state as LinkedList<LLNode<JSX.Element>>)
 }
 
 interface LiveDocumentFragment extends DocumentFragment {

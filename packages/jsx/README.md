@@ -25,6 +25,7 @@ Set up TypeScript to use the JSX runtime:
 ```json
 {
   "compilerOptions": {
+    "moduleResolution": "bundler",
     "jsx": "preserve",
     "jsxImportSource": "@reatom/jsx"
   }

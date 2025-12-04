@@ -20,7 +20,7 @@ clearStack()
 DEBUG.extend(withInit(() => false))
 
 const parent = atom(() => {
-  const main = <main /> as HTMLElement
+  const main = (<main />) as HTMLElement
   window.document.body.appendChild(main)
 
   return main
@@ -152,9 +152,9 @@ test('spreads', () =>
       id: '1',
       'attr:b': '2',
       'on:click': clickTrack as Fn,
-      '$spread': {
+      $spread: {
         class: () => ['aaa', atom('bbb')],
-        '$spread': {
+        $spread: {
           'style:color': 'red',
         },
       },
@@ -176,7 +176,9 @@ test('spreads', () =>
 
 test.skip('spreads difference', () =>
   context.start(async () => {
-    const props = atom<Partial<Record<'class' | 'id', string>>>({class: 'class'})
+    const props = atom<Partial<Record<'class' | 'id', string>>>({
+      class: 'class',
+    })
     const element = (<div $spread={props} />) as HTMLDivElement
 
     mount(parent(), element)
@@ -184,7 +186,7 @@ test.skip('spreads difference', () =>
     expect(element.className).toBe('class')
     expect(element.id).toBe('')
 
-    props.set({id: 'id'})
+    props.set({ id: 'id' })
     await wrap(sleep())
     expect(element.className).toBe('')
     expect(element.id).toBe('id')
@@ -252,7 +254,9 @@ test('fragment as child', () =>
 test('array children', () =>
   context.start(async () => {
     const n = atom(1)
-    const list = computed(() => Array.from({ length: n() }, (_, i) => <li>{i + 1}</li>))
+    const list = computed(() =>
+      Array.from({ length: n() }, (_, i) => <li>{i + 1}</li>),
+    )
 
     const element = (
       <ul>
@@ -426,9 +430,7 @@ test('custom component', () =>
 
     await wrap(sleep())
     expect(<Component />).toBeInstanceOf(window.HTMLElement)
-    expect(((<Component draggable />) as HTMLElement).draggable).toBe(
-      true,
-    )
+    expect(((<Component draggable />) as HTMLElement).draggable).toBe(true)
     expect(((<Component>123</Component>) as HTMLElement).innerText).toBe('123')
   }))
 
@@ -647,7 +649,11 @@ test('class handles complex correctly', () =>
   context.start(async () => {
     const isBAtom = atom(true)
     const stringAtom = atom('d')
-    const element = <div class={() => ['a', { b: isBAtom }, ['c'], stringAtom, () => 'e']}></div>
+    const element = (
+      <div
+        class={() => ['a', { b: isBAtom }, ['c'], stringAtom, () => 'e']}
+      ></div>
+    )
 
     mount(parent(), element)
     await wrap(sleep())
@@ -989,8 +995,8 @@ test('role property', () =>
 
 test('list property', () =>
   context.start(async () => {
-    const element = <input list="list"></input> as HTMLInputElement
-    const list = <datalist id="list"></datalist> as HTMLDataListElement
+    const element = (<input list="list"></input>) as HTMLInputElement
+    const list = (<datalist id="list"></datalist>) as HTMLDataListElement
     mount(
       parent(),
       <div>
@@ -1009,8 +1015,8 @@ test('list property', () =>
 
 test('form property', () =>
   context.start(async () => {
-    const element = <input form="form"></input> as HTMLInputElement
-    const form = <form id="form"></form> as HTMLFormElement
+    const element = (<input form="form"></input>) as HTMLInputElement
+    const form = (<form id="form"></form>) as HTMLFormElement
     mount(
       parent(),
       <div>
@@ -1150,7 +1156,8 @@ test('preserves atom connection when moved within DOM', () =>
   }))
 
 /**
- * @todo `second.subscribe` is called twice with the same DocumentFragment so the second time the children are deleted.
+ * @todo `second.subscribe` is called twice with the same DocumentFragment so
+ *   the second time the children are deleted.
  */
 test.skip('fragment as child in double atom', () =>
   context.start(async () => {

@@ -5,7 +5,6 @@ Respectfully copied from https://github.com/ryansolid/dom-expressions/blob/ae71a
 import type {
   AtomLike,
   LinkedList,
-  LinkedListLikeAtom,
   LLNode,
 } from '@reatom/core'
 import type * as csstype from 'csstype'
@@ -16,6 +15,8 @@ type Primitive =
   | boolean
   | null
   | undefined
+
+type LinkedListJSXAtom = AtomLike<LinkedList<LLNode<Element>>> & {__reatomLinkedList: true}
 
 type AtomOrGetterMaybe<T = any> = T | AtomLike<T> | (() => T)
 
@@ -214,7 +215,7 @@ export namespace JSX {
       AttrAttributes,
       OnAttributes<T>,
       CustomEventHandlers<T> {
-    children?: ElementChildren | LinkedListLikeAtom<LinkedList<LLNode<Element>>>
+    children?: ElementChildren | LinkedListJSXAtom
     innerHTML?: string | null | undefined
     innerText?: string | number | null | undefined
     textContent?: string | number | null | undefined
