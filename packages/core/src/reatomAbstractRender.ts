@@ -87,7 +87,7 @@ export let reatomAbstractRender = <Props, Result>({
 
     let changedVar = variable<boolean>()
 
-    let _props = atom({} as Props, `${name}._props`)
+    let _props = atom({} as Props, `_${name}.props`)
 
     let abortSubscription: AbortSubscription
 
@@ -127,7 +127,7 @@ export let reatomAbstractRender = <Props, Result>({
       }
 
       return { result: state?.result as Result }
-    }, `${name}._render`)
+    }, `_${name}`)
 
     let render = bind((props: Props) => {
       try {
