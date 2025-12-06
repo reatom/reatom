@@ -121,10 +121,13 @@ const addLL = <Node extends LLNode>(
   if (node === after) return
 
   if (after) {
-    // updateLL(node as Node, after, after[LL_PREV])
+    const nextNode = after[LL_NEXT]
     ;(node as Node)[LL_PREV] = after
-    ;(node as Node)[LL_NEXT] = after[LL_NEXT]
+    ;(node as Node)[LL_NEXT] = nextNode
     after[LL_NEXT] = node as Node
+    if (nextNode) {
+      nextNode[LL_PREV] = node as Node
+    }
     if (state.tail === after) {
       state.tail = node as Node
     }

@@ -211,3 +211,123 @@ test('should accept only initState and key optionally', () => {
   expect(keys()).toStrictEqual(['0', '2'])
   expect(track).toBeCalledWith(['0', '2'])
 })
+
+test('should maintain linked list integrity after moves', () => {
+  const validateIntegrity = <
+    T extends { [LL_PREV]: unknown; [LL_NEXT]: unknown },
+  >(
+    head: T | null,
+  ) => {
+    let prev = null
+    let current = head
+    while (current) {
+      if (current[LL_PREV] !== prev) {
+        throw new Error(
+          'Linked list integrity violation: incorrect LL_PREV pointer',
+        )
+      }
+      prev = current
+      current = current[LL_NEXT] as T | null
+    }
+  }
+
+  const list = reatomLinkedList((n: number) => ({ n }))
+
+  const one = list.create(1)
+  const two = list.create(2)
+  const three = list.create(3)
+  const four = list.create(4)
+  notify()
+
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([1, 2, 3, 4])
+
+  list.move(one, two)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([2, 1, 3, 4])
+
+  list.move(four, null)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([4, 2, 1, 3])
+
+  list.move(one, three)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([4, 2, 3, 1])
+
+  list.move(four, one)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([2, 3, 1, 4])
+
+  list.move(one, null)
+  list.move(two, one)
+  list.move(three, two)
+  list.move(four, three)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([1, 2, 3, 4])
+})
+
+test('should maintain linked list integrity after swaps', () => {
+  const validateIntegrity = <
+    T extends { [LL_PREV]: unknown; [LL_NEXT]: unknown },
+  >(
+    head: T | null,
+  ) => {
+    let prev = null
+    let current = head
+    while (current) {
+      if (current[LL_PREV] !== prev) {
+        throw new Error(
+          'Linked list integrity violation: incorrect LL_PREV pointer',
+        )
+      }
+      prev = current
+      current = current[LL_NEXT] as T | null
+    }
+  }
+
+  const list = reatomLinkedList((n: number) => ({ n }))
+
+  const one = list.create(1)
+  const two = list.create(2)
+  const three = list.create(3)
+  const four = list.create(4)
+  notify()
+
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([1, 2, 3, 4])
+
+  list.swap(one, two)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([2, 1, 3, 4])
+
+  list.swap(one, two)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([1, 2, 3, 4])
+
+  list.swap(one, three)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([3, 2, 1, 4])
+
+  list.swap(one, four)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([3, 2, 4, 1])
+
+  list.swap(three, one)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([1, 2, 4, 3])
+
+  list.swap(four, two)
+  notify()
+  validateIntegrity(list().head)
+  expect(list.array().map(({ n }) => n)).toEqual([1, 4, 2, 3])
+})
