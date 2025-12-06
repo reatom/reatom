@@ -1,5 +1,6 @@
 import type { Action, Atom, Computed } from '../core'
 import { action, atom, computed, isAtom, named, ReatomError } from '../core'
+import { peek } from '../methods'
 import type { Fn, Rec } from '../utils'
 import { isObject } from '../utils'
 
@@ -568,7 +569,7 @@ export function reatomLinkedList<
         }
 
         for (let head = ll.head; head; head = head[LL_NEXT]) {
-          const node = cb(head) as LLNode<T>
+          const node = peek(() => cb(head)) as LLNode<T>
           addLL(mapList, node, mapList.tail)
           mapList.map.set(head, node)
           hooks.onCreate?.(node)
