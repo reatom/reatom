@@ -578,6 +578,10 @@ if (globalThis.__REATOM) throw new ReatomError('package duplication')
 // @ts-ignore TODO
 export let EXTENSIONS: Array<Ext> = (globalThis.__REATOM = [])
 
+// FIXME: use it in all static in-bundle atoms
+/** @private */
+export let __GLOBAL_ATOMS: Array<AtomLike> = []
+
 /**
  * Registers a global extension that will be automatically applied to all atoms
  * and actions created after registration.
@@ -602,7 +606,8 @@ export let EXTENSIONS: Array<Ext> = (globalThis.__REATOM = [])
  *   returns it (optionally modified)
  */
 export let addGlobalExtension = (extension: Ext) => {
-  ;(globalThis as unknown as { __REATOM: Array<Ext> }).__REATOM.push(extension)
+  EXTENSIONS.push(extension)
+  __GLOBAL_ATOMS.forEach(extension)
 }
 
 /** This MUTATES frame.pubs */

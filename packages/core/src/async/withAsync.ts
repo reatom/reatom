@@ -123,6 +123,8 @@ export type AsyncOptions<Err = Error, EmptyErr = undefined> = {
    * - 'onCall': Reset error when the async operation starts (default)
    * - 'onFulfill': Reset error only when the operation succeeds
    * - Null: Never automatically reset errors
+   * 
+   * @default 'onCall'
    */
   resetError?: null | 'onCall' | 'onFulfill'
 
