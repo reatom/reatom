@@ -3,6 +3,8 @@ import {
   _enqueue,
   action,
   bind,
+  isAction,
+  isAtom,
   isConnected,
   top,
   withMiddleware,
@@ -10,6 +12,11 @@ import {
 import type { Fn } from '../utils'
 import { isAbort, isBrowser } from '../utils'
 import { getSerial, getStackTrace, isSkip } from './getStackTrace'
+
+let maybeAtomLog = (thing: any) =>
+  isAtom(thing)
+    ? `[${isAction(thing) ? 'Action' : 'Atom'} ${thing.name}]`
+    : thing
 
 /**
  * A special logging action for debugging Reatom applications.
@@ -152,7 +159,7 @@ export let connectLogger = () => {
           if (target === log && !error) {
             console.log(...payload)
           } else if (!isAborted) {
-            console.log(error ?? payload)
+            console.log(error ?? maybeAtomLog(payload))
           }
         }
         cb()
@@ -167,7 +174,7 @@ export let connectLogger = () => {
           if (target === log && !error) {
             console.log(...payload)
           } else if (!isAborted) {
-            console.log(error ?? payload)
+            console.log(error ?? maybeAtomLog(payload))
           }
         }
       } catch (error) {
@@ -194,7 +201,8 @@ export let connectLogger = () => {
                   }
 
                   logStack(state, error, () => {
-                    console.log('prev:', prevState)
+                    console.log('new  state:', maybeAtomLog(state))
+                    console.log('prev state:', maybeAtomLog(prevState))
                     console.log('connected:', isConnected(target))
                   })
                 } else {
@@ -207,7 +215,7 @@ export let connectLogger = () => {
                   if (error) {
                     logStack(undefined, error, () =>
                       params.forEach((param, i) =>
-                        console.log(`param ${i + 1}:`, param),
+                        console.log(`param ${i + 1}:`, maybeAtomLog(param)),
                       ),
                     )
                   } else if (call) {
@@ -218,7 +226,7 @@ export let connectLogger = () => {
                     logStack(payload, error, () => {
                       if (target !== log) {
                         params.forEach((param, i) =>
-                          console.log(`param ${i + 1}:`, param),
+                          console.log(`param ${i + 1}:`, maybeAtomLog(param)),
                         )
                       }
                     })
