@@ -1,4 +1,5 @@
 import {
+  _read,
   action,
   addChangeHook,
   assert,
@@ -15,6 +16,7 @@ import {
   LL_NEXT,
   type LLNode,
   noop,
+  peek,
   ReatomError,
   type Rec,
   type Unsubscribe,
@@ -45,9 +47,9 @@ type DomApis = Pick<
   | 'DocumentFragment'
 >
 
-export let DOM = atom(globalThis.window, 'jsx.DOM')
+export let DOM = atom(globalThis.window, '_jsx.DOM')
 
-export let DEBUG = atom(true, 'jsx.DEBUG')
+export let DEBUG = atom(true, '_jsx.DEBUG')
 
 let stylesCount = 0
 let styles: Rec<string> = {}
@@ -498,7 +500,7 @@ let setStyleProp = (
 }
 
 export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
-  let dom = DOM()
+  let dom = _read(DOM)?.state ?? peek(DOM)
 
   if (isAtom(tag)) {
     // FIXME we need types refactoring
@@ -541,7 +543,7 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       : dom.document.createElement(tag)
 
     // For debug
-    if (name && DEBUG()) element.setAttribute('data-reatom-name', name)
+    if (name && peek(DEBUG)) element.setAttribute('data-reatom-name', name)
   }
 
   if ('children' in props) children = props.children
