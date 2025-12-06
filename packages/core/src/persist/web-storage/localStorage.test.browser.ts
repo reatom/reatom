@@ -1,4 +1,4 @@
-import { afterEach, expect, test, vi, viTest } from 'test'
+import { afterEach, expect, expectTypeOf, test, vi, viTest } from 'test'
 
 import { atom, context } from '../../core'
 import {
@@ -121,7 +121,10 @@ test('fromSnapshot and toSnapshot', () => {
     withLocalStorage({
       key,
       toSnapshot: (map) => Array.from(map.entries()),
-      fromSnapshot: (entries) => new Map(entries as Array<[string, number]>),
+      fromSnapshot: (entries) => {
+        expectTypeOf(entries).toEqualTypeOf<[string, number][]>()
+        return new Map(entries)
+      },
     }),
   )
 
