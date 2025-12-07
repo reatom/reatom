@@ -1,0 +1,2 @@
+node --experimental-strip-types ./tools/prepare-commit-msg.ts "$1" "$2"
+
