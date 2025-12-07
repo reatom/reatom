@@ -1,9 +1,6 @@
 {
   "name": "@reatom/jsx",
-  "version": "1000.0.0-alpha.65",
-  "publishConfig": {
-    "tag": "alpha"
-  },
+  "version": "1000.0.0",
   "sideEffects": false,
   "description": "Reatom for jsx",
   "exports": {
@@ -27,7 +24,7 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "pnpm run build",
+    "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "microbundle -f esm,cjs && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch=true"
