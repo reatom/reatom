@@ -1,9 +1,6 @@
 {
   "name": "@reatom/react",
-  "version": "1000.0.0-alpha.50",
-  "publishConfig": {
-    "tag": "alpha"
-  },
+  "version": "1000.0.0",
   "private": false,
   "description": "Reatom adapter for React",
   "exports": {
