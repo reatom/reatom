@@ -18,9 +18,10 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run test:browser && pnpm run build",
+    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run build",
     "build": "microbundle -f esm,cjs --raw",
-    "test": "vitest run",
+    "test": "pnpm run test:unit && pnpm run test:browser",
+    "test:unit": "vitest run",
     "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
     "test:watch": "vitest",
     "deopt": "dexnode deopt.js",
