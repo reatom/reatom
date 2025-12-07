@@ -342,8 +342,10 @@ test('should create many items at once', () => {
   expect(nodes.length).toBe(4)
   expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
   expect(list().size).toBe(4)
-  expect(list().changes.length).toBe(4)
-  expect(list().changes.every((c) => c.kind === 'create')).toBe(true)
+  expect(list().changes.length).toBe(1)
+  expect(list().changes[0]!.kind).toBe('createMany')
+  const change = list().changes[0] as { kind: 'createMany'; nodes: typeof nodes }
+  expect(change.nodes).toEqual(nodes)
 })
 
 test('should remove many items at once', () => {
@@ -360,8 +362,10 @@ test('should remove many items at once', () => {
   expect(removedCount).toBe(2)
   expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 3])
   expect(list().size).toBe(2)
-  expect(list().changes.length).toBe(2)
-  expect(list().changes.every((c) => c.kind === 'remove')).toBe(true)
+  expect(list().changes.length).toBe(1)
+  expect(list().changes[0]!.kind).toBe('removeMany')
+  const change = list().changes[0] as { kind: 'removeMany'; nodes: typeof nodes }
+  expect(change.nodes).toEqual([nodes[1], nodes[3]])
 })
 
 test('should handle removeMany with already removed nodes', () => {
@@ -383,15 +387,19 @@ test('should handle removeMany with already removed nodes', () => {
 
 test('should track createMany and removeMany with reatomMap', () => {
   const list = reatomLinkedList((n: number) => ({ n }))
-  const { array } = list.reatomMap(({ n }) => ({ doubled: n * 2 }))
-  const track = subscribe(computed(() => array().map(({ doubled }) => doubled)))
+  const mapped = list.reatomMap(({ n }) => ({ doubled: n * 2 }))
+  const track = subscribe(computed(() => mapped.array().map(({ doubled }) => doubled)))
 
   list.createMany([[1], [2], [3]])
   notify()
   expect(track.mock.lastCall?.[0]).toEqual([2, 4, 6])
+  expect(mapped().changes.length).toBe(1)
+  expect(mapped().changes[0]!.kind).toBe('createMany')
 
   const nodes = list.array()
   list.removeMany([nodes[0]!, nodes[2]!])
   notify()
   expect(track.mock.lastCall?.[0]).toEqual([4])
+  expect(mapped().changes.length).toBe(1)
+  expect(mapped().changes[0]!.kind).toBe('removeMany')
 })

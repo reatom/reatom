@@ -23,7 +23,9 @@ export type LLNode<T extends Rec = Rec> = T & {
 
 type LLChanges<Node extends LLNode> =
   | { kind: 'create'; node: Node }
+  | { kind: 'createMany'; nodes: Node[] }
   | { kind: 'remove'; node: Node }
+  | { kind: 'removeMany'; nodes: Node[] }
   | { kind: 'swap'; a: Node; b: Node }
   | { kind: 'move'; node: Node; after: null | Node }
   | { kind: 'clear' }
@@ -437,7 +439,7 @@ export function reatomLinkedList<
 
   const batch = action(batchFn, `${name}._batch`)
 
-  const createNode = (params: Params): LLNode<Node> => {
+  const addNode = (params: Params): LLNode<Node> => {
     const node = userCreate(...params) as LLNode<Node>
 
     if (!isObject(node) && typeof node !== 'function')
@@ -449,12 +451,10 @@ export function reatomLinkedList<
 
     addLL(STATE!, node, STATE!.tail)
 
-    STATE!.changes.push({ kind: 'create', node })
-
     return node
   }
 
-  const removeNode = (node: LLNode<Node>): boolean => {
+  const delNode = (node: LLNode<Node>): boolean => {
     throwNotModel(node)
 
     if (
@@ -466,13 +466,15 @@ export function reatomLinkedList<
 
     removeLL(STATE!, node)
 
-    STATE!.changes.push({ kind: 'remove', node })
-
     return true
   }
 
   const create = action((...params: Params): LLNode<Node> => {
-    return batchFn(() => createNode(params))
+    return batchFn(() => {
+      const node = addNode(params)
+      STATE!.changes.push({ kind: 'create', node })
+      return node
+    })
   }, `${name}.create`)
 
   const createMany = action(
@@ -481,8 +483,10 @@ export function reatomLinkedList<
         const nodes: Array<LLNode<Node>> = []
 
         for (const params of paramsArray) {
-          nodes.push(createNode(params))
+          nodes.push(addNode(params))
         }
+
+        STATE!.changes.push({ kind: 'createMany', nodes })
 
         return nodes
       })
@@ -491,20 +495,28 @@ export function reatomLinkedList<
   )
 
   const remove = action((node: LLNode<Node>): boolean => {
-    return batchFn(() => removeNode(node))
+    return batchFn(() => {
+      const result = delNode(node)
+      if (result) STATE!.changes.push({ kind: 'remove', node })
+      return result
+    })
   }, `${name}.remove`)
 
   const removeMany = action((nodes: Array<LLNode<Node>>): number => {
     return batchFn(() => {
-      let removedCount = 0
+      const removedNodes: Array<LLNode<Node>> = []
 
       for (const node of nodes) {
-        if (removeNode(node)) {
-          removedCount++
+        if (delNode(node)) {
+          removedNodes.push(node)
         }
       }
 
-      return removedCount
+      if (removedNodes.length > 0) {
+        STATE!.changes.push({ kind: 'removeMany', nodes: removedNodes })
+      }
+
+      return removedNodes.length
     })
   }, `${name}.removeMany`)
 
@@ -639,12 +651,36 @@ export function reatomLinkedList<
               hooks.onCreate?.(node)
               break
             }
+            case 'createMany': {
+              const nodes: Array<LLNode<T>> = []
+              for (const originNode of change.nodes) {
+                const node = cb(originNode) as LLNode<T>
+                addLL(mapList, node, mapList.tail)
+                mapList.map.set(originNode, node)
+                nodes.push(node)
+                hooks.onCreate?.(node)
+              }
+              mapList.changes.push({ kind: 'createMany', nodes })
+              break
+            }
             case 'remove': {
               const node = mapList.map.get(change.node)!
               removeLL(mapList, node)
               mapList.map.delete(change.node)
               mapList.changes.push({ kind: 'remove', node })
               hooks.onRemove?.(node, change.node)
+              break
+            }
+            case 'removeMany': {
+              const nodes: Array<LLNode<T>> = []
+              for (const originNode of change.nodes) {
+                const node = mapList.map.get(originNode)!
+                removeLL(mapList, node)
+                mapList.map.delete(originNode)
+                nodes.push(node)
+                hooks.onRemove?.(node, originNode)
+              }
+              mapList.changes.push({ kind: 'removeMany', nodes })
               break
             }
             case 'swap': {
@@ -785,3 +821,4 @@ export function reatomLinkedList<
 
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>
   thing?.__reatomLinkedList === true
+
