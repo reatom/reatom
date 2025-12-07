@@ -99,6 +99,20 @@ const dateField = reatomField<Date | null, string>(null, {
 })
 ```
 
+### `toState` abort
+You can cancel state computation on `change` action call by throwing an abort error inside the callback. This is useful to make `state` and `value` independent of each other while preserving consistency when possible:
+
+```ts
+const numberField = reatomField(0, {
+  fromState: (state) => state.toString(),
+  toState: (value: string) => {
+    const parsed = Number(value)
+    return isNaN(parsed) ? throwAbort() : parsed
+  }
+});
+```
+For this atom, any `value` string will be valid, but `state` will only be changed once the `value` becomes transformable to `state`.
+
 ### `toState` reactivity
 Since the `toState` transformer executes in the context of computing the `value` computed atom, it's possible to reactively use atoms inside it, which allows maintaining the field state more consistently by adding new dependencies to `value`:
 

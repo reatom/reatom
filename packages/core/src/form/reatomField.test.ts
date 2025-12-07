@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest'
 import z from 'zod'
 
-import { addCallHook, atom, notify, reatomEnum, sleep, wrap } from '../'
+import { addCallHook, atom, notify, reatomEnum, sleep, throwAbort, wrap } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
 
 test(`validateOnChange`, async () => {
@@ -120,7 +120,7 @@ test(`toState and fromState`, async () => {
     {
       name: 'fieldAtom',
       fromState: (state) => state.value,
-      toState: (value) => ({ label, value }),
+      toState: (value: number) => ({ label, value }),
     },
   )
 
@@ -194,6 +194,28 @@ test(`value atom should be writable`, async () => {
 
   field.change('Oct 27 2025 25:00')
   expect(field()).toBe(null)
+})
+
+test('toState abort', () => {
+  const numberField = reatomField(0, {
+    fromState: (state) => state.toString(),
+    toState: (value: string) => {
+      const parsed = Number(value)
+      return isNaN(parsed) ? throwAbort() : parsed
+    }
+  });
+
+  numberField.change('-')
+  expect(numberField()).toBe(0)
+
+  numberField.change('-1')
+  expect(numberField()).toBe(-1)
+
+  numberField.change('-')
+  expect(numberField()).toBe(-1)
+
+  numberField.set(10)
+  expect(numberField.value()).toBe('10')
 })
 
 test(`validation concurrency`, async () => {

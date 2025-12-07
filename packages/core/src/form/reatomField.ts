@@ -197,6 +197,25 @@ export interface FieldOptions<State = any, Value = State> {
   fromState?: (state: State, self: FieldAtom<State, Value>) => Value
 
   /**
+   * The callback to transform the "state" data from the "value" data from the
+   * `change` action. By default, it returns the "value" data without any
+   * transformations.
+   * 
+   * It's also possible to abort the computation and left the state unchaged
+   * by throwing abort error inside the callback
+   * 
+   * @example
+   * const numberField = reatomField(0, {
+   *  fromState: (state) => state.toString(),
+   *  toState: (value: string) => {
+   *    const parsed = Number(value)
+   *    return isNaN(parsed) ? throwAbort() : parsed
+   *  }
+   * });
+   */
+  toState?: (value: Value, self: FieldAtom<State, Value>) => State
+
+  /**
    * The callback used to determine whether the "value" has changed. By default,
    * it utilizes `isDeepEqual` from reatom/utils.
    */
@@ -204,13 +223,6 @@ export interface FieldOptions<State = any, Value = State> {
 
   /** The name of the field and all related atoms and actions. */
   name?: string
-
-  /**
-   * The callback to transform the "state" data from the "value" data from the
-   * `change` action. By default, it returns the "value" data without any
-   * transformations.
-   */
-  toState?: (value: Value, self: FieldAtom<State, Value>) => State
 
   /** The callback to validate the field. */
   validate?: FieldValidateOption<State, Value> | StandardSchemaV1<State>
@@ -255,6 +267,22 @@ export interface FieldOptions<State = any, Value = State> {
   validateOnBlur?: boolean
 }
 
+export interface TransformableFieldOptions<State, Value> extends 
+  Omit<FieldOptions<State, Value>, 'fromState' | 'toState'> {
+  /**
+   * The callback to compute the "value" data from the "state" data. By default,
+   * it returns the "state" data without any transformations.
+   */
+  fromState: (state: State, self: FieldAtom<State, Value>) => Value
+
+  /**
+   * The callback to transform the "state" data from the "value" data from the
+   * `change` action. By default, it returns the "value" data without any
+   * transformations.
+   */
+  toState: (value: Value, self: FieldAtom<State, Value>) => State
+}
+
 export const fieldInitFocus: FieldFocus = {
   active: false,
   dirty: false,
@@ -280,7 +308,7 @@ export function reatomField<State>(
 
 export function reatomField<State, Value>(
   _initState: State,
-  options?: string | FieldOptions<State, Value>,
+  options: TransformableFieldOptions<State, Value>,
 ): FieldAtom<State, Value>
 
 export function reatomField<State, A extends Atom<State>, Value = State>(
@@ -291,7 +319,7 @@ export function reatomField<State, A extends Atom<State>, Value = State>(
 
 export function reatomField<State, Value = State>(
   _initState: State,
-  options: string | FieldOptions<State, Value> = {},
+  options: string | FieldOptions<State, Value> | TransformableFieldOptions<State, Value> = {},
   stateAtom?: Atom<State>,
 ): FieldAtom<State, Value> {
   interface This extends FieldAtom<State, Value> {}
@@ -596,8 +624,16 @@ export function reatomField<State, Value = State>(
     const prevValue = value()
     if (!filter(newValue, prevValue)) return prevValue
 
-    field.set(toState(newValue, field as This))
-    return value()
+    value.set(newValue)
+
+    try {
+      field.set(toState(newValue, field as This))
+    }
+    catch (error) {
+      if(!isAbort(error))
+        throw error
+    }
+    return newValue
   }, `${name}._change`)
 
   const reset: This['reset'] = action((...args) => {
@@ -628,7 +664,7 @@ export function withField<T extends Atom>(
 ): (anAtom: T) => T & FieldAtom<AtomState<T>, AtomState<T>>
 
 export function withField<T extends Atom, Value>(
-  options?: Omit<FieldOptions<AtomState<T>, Value>, 'name'>,
+  options?: Omit<TransformableFieldOptions<AtomState<T>, Value>, 'name'>,
 ): (anAtom: T) => T & FieldAtom<AtomState<T>, Value>
 
 export function withField<T extends Atom, Value = AtomState<T>>(
