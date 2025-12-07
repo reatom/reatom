@@ -88,23 +88,25 @@ export type FormFieldElement<
   ? T
   : T extends Date
     ? FieldAtom<T>
-    : T extends Array<infer Item>
-      ? Item extends FormInitStateElement
-        ? FormFieldArrayAtom<Item, Item>
-        : never
-      : T extends FormFieldArray<infer Param, infer Node>
-        ? FormFieldArrayAtom<Param, Node>
-        : T extends FieldOptions & { initState: infer State }
-          ? T extends FieldOptions<State, State>
-            ? FieldAtom<State>
-            : T extends FieldOptions<State, infer Value>
-              ? FieldAtom<State, Value>
-              : { initState: State } extends T
-                ? FieldAtom<State, State>
-                : never
-          : T extends Rec<unknown>
-            ? { [K in keyof T]: FormFieldElement<T[K]> }
-            : FieldAtom<T>
+    : T extends boolean 
+      ? FieldAtom<boolean> 
+      : T extends Array<infer Item>
+        ? Item extends FormInitStateElement
+          ? FormFieldArrayAtom<Item, Item>
+          : never
+        : T extends FormFieldArray<infer Param, infer Node>
+          ? FormFieldArrayAtom<Param, Node>
+          : T extends FieldOptions & { initState: infer State }
+            ? T extends FieldOptions<State, State>
+              ? FieldAtom<State>
+              : T extends FieldOptions<State, infer Value>
+                ? FieldAtom<State, Value>
+                : { initState: State } extends T
+                  ? FieldAtom<State, State>
+                  : never
+            : T extends Rec<unknown>
+              ? { [K in keyof T]: FormFieldElement<T[K]> }
+              : FieldAtom<T>
 
 export type FormFields<T extends FormInitState = FormInitState> = {
   [K in keyof T]: FormFieldElement<T[K]>
