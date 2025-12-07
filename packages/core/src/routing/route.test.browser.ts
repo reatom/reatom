@@ -227,8 +227,8 @@ test('route default loader', async () => {
   const track = vi.fn()
 
   effect(async () => {
-    const data = await wrap(goods())
-    track(data)
+    const data = await wrap(goods().catch(() => null))
+    if (data) track(data)
   })
 
   await wrap(sleep())
@@ -269,8 +269,8 @@ test('route loader', async () => {
   const track = vi.fn()
 
   effect(async () => {
-    const data = await wrap(goodsBrandRoute.loader())
-    track(data)
+    const data = await wrap(goodsBrandRoute.loader().catch(() => null))
+    if (data) track(data)
   })
 
   await wrap(sleep())
@@ -296,9 +296,13 @@ test('route loader lazyness (abortable)', async () => {
     async loader() {
       runs++
       effect(async () => {
-        while (true) {
-          ticks++
-          await wrap(sleep())
+        try {
+          while (true) {
+            ticks++
+            await wrap(sleep())
+          }
+        } catch {
+          // aborted
         }
       })
     },

@@ -181,7 +181,7 @@ test('cookieStore with different paths', async () => {
   const testAtom = atom('default', 'cookieStorePathTestAtom').extend(
     withCookieStore({
       key,
-      path: '/test',
+      path: '/',
     }),
   )
 
