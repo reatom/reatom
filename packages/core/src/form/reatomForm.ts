@@ -88,8 +88,8 @@ export type FormFieldElement<
   ? T
   : T extends Date
     ? FieldAtom<T>
-    : T extends boolean 
-      ? FieldAtom<boolean> 
+    : T extends boolean
+      ? FieldAtom<boolean>
       : T extends Array<infer Item>
         ? Item extends FormInitStateElement
           ? FormFieldArrayAtom<Item, Item>
@@ -126,8 +126,7 @@ export type DeepPartial<T, Skip = never> = {
 export type FormPartialState<T extends FormInitState = FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
-// FIXME change the order of generics in break release
-export type SubmitAction<Return, Params extends any[]> = Action<
+export type SubmitAction<Params extends any[], Return> = Action<
   Params,
   Promise<Return>
 > &
@@ -168,7 +167,7 @@ export interface Form<
    * `onSubmit` options handler. Check the additional options properties of
    * async action: https://reatom.dev/handbook/async/.
    */
-  submit: SubmitAction<SubmitReturn, SubmitParams>
+  submit: SubmitAction<SubmitParams, SubmitReturn>
 
   /** Atom with submitted state of the form */
   submitted: Computed<boolean>
