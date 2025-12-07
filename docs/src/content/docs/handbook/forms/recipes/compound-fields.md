@@ -2,7 +2,7 @@
 title: Compound fields
 ---
 
-С помощью [fieldsets](/handbook/forms/concepts/fieldset/) мы можем создавать независимые группы полей, получая возможность взаимодействовать именно с этой группой полей практически как с формой, либо это можно воспринимать как линзы.
+Using [fieldsets](/handbook/forms/concepts/fieldset/), we can create independent groups of fields, allowing us to interact with this group of fields almost like a form, or it can be perceived as lenses.
 
 ```ts
 import { bindField, reatomComponent } from "@reatom/react";
@@ -24,8 +24,9 @@ const reatomMinMaxFieldSet = (name: string) => {
 
   const max = reatomField(100, {
     name: `${name}.max`,
+    fromState: (state) => state.toString(),
     toState: toNumber,
-    validate: ({ state }) => state > 0 ? "Max must be greater than 0" : undefined,
+    validate: ({ state }) => state <= 0 ? "Max must be greater than 0" : undefined,
     validateOnBlur: true,
   });
 
@@ -33,7 +34,7 @@ const reatomMinMaxFieldSet = (name: string) => {
 };
 ```
 
-Теперь для нас возможно взаимодействовать с этими полями как с одним целым, просчитывая `focus`, `validation` состояния для всех полей сразу, или даже сбрасывая значение каждого поля одним вызовом метода `reset`
+Now we can interact with these fields as a single unit, calculating `focus` and `validation` states for all fields at once, or even resetting the value of each field with a single call to the `reset` method.
 
 ```tsx
 const minMaxFieldSet = reatomMinMaxFieldSet("minMaxFieldSet");
