@@ -19,6 +19,7 @@
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@eslint/js": "catalog:",
+    "@preact/signals-core": "catalog:",
     "@standard-schema/spec": "catalog:",
     "@types/node": "latest",
     "eslint": "catalog:",
@@ -32,6 +33,7 @@
     "typedoc-plugin-markdown": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
+    "vite-plugin-solid": "catalog:",
     "vitest": "catalog:",
     "zx": "catalog:"
   },
@@ -50,5 +52,5 @@
     "prettier-plugin-astro": "catalog:",
     "prettier-plugin-jsdoc": "catalog:"
   },
-  "packageManager": "pnpm@10.18.3"
+  "packageManager": "pnpm@10.24.0"
 }
