@@ -5,7 +5,7 @@ import type { ChangeEvent } from 'react'
 export function bindField<T = any>(
   field: FieldAtom<any, T>,
 ): {
-  value: T
+  value: T extends boolean ? undefined : T
   checked: T extends boolean ? boolean : undefined
   onChange: (
     value:
