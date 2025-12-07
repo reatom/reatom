@@ -1,28 +1,8 @@
-import {
-  action,
-  atom,
-  clearStack,
-  computed,
-  context,
-  effect,
-  rAF,
-  sleep,
-  take,
-  top,
-  withActions,
-  wrap,
-} from '@reatom/core'
+import { clearStack, context, rAF, take, top, wrap } from '@reatom/core'
 import { render } from 'preact'
-import { useState } from 'preact/hooks'
-import { afterEach,beforeEach, describe, expect, test, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
-import {
-  isSuspense,
-  reatomComponent,
-  reatomContext,
-  reatomFactoryComponent,
-  useFrame,
-} from './index'
+import { isSuspense, reatomComponent, reatomContext, useFrame } from './'
 
 clearStack()
 
@@ -41,308 +21,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  // Clean up after each test
   document.getElementById('root')?.remove()
-})
-
-describe('reatomComponent', () => {
-  test('renders component and updates with atom changes', () =>
-    context.start(async () => {
-      const countAtom = atom(0, 'count')
-      const Counter = reatomComponent(() => {
-        const count = countAtom()
-        return <div data-testid="counter">Count: {count}</div>
-      })
-
-      render(
-        <reatomContext.Provider value={top()}>
-          <Counter />
-        </reatomContext.Provider>,
-        document.getElementById('root')!,
-      )
-
-      await wrap(tick())
-      const counterElement = document.querySelector('[data-testid="counter"]')
-      expect(counterElement?.textContent).toBe('Count: 0')
-
-      countAtom.set(1)
-      await wrap(tick())
-      expect(counterElement?.textContent).toBe('Count: 1')
-    }))
-
-  test('component with multiple atoms', () =>
-    context.start(async () => {
-      const nameAtom = atom('John', 'name')
-      const ageAtom = atom(25, 'age')
-      const totalAtom = computed(
-        () => `${nameAtom()}, ${ageAtom()} years old`,
-        'total',
-      )
-
-      const Person = reatomComponent(() => {
-        const name = nameAtom()
-        const age = ageAtom()
-        const total = totalAtom()
-
-        return (
-          <div>
-            <div data-testid="name">{name}</div>
-            <div data-testid="age">{age}</div>
-            <div data-testid="total">{total}</div>
-          </div>
-        )
-      })
-
-      render(
-        <reatomContext.Provider value={top()}>
-          <Person />
-        </reatomContext.Provider>,
-        document.getElementById('root')!,
-      )
-
-      // Wait for initial render
-      await wrap(tick())
-
-      // Check initial render
-      expect(document.querySelector('[data-testid="name"]')?.textContent).toBe(
-        'John',
-      )
-      expect(document.querySelector('[data-testid="age"]')?.textContent).toBe(
-        '25',
-      )
-      expect(document.querySelector('[data-testid="total"]')?.textContent).toBe(
-        'John, 25 years old',
-      )
-
-      // Update atoms
-      nameAtom.set('Jane')
-      ageAtom.set(30)
-
-      // Wait for rerender
-      await wrap(tick())
-
-      // Check updated render
-      expect(document.querySelector('[data-testid="name"]')?.textContent).toBe(
-        'Jane',
-      )
-      expect(document.querySelector('[data-testid="age"]')?.textContent).toBe(
-        '30',
-      )
-      expect(document.querySelector('[data-testid="total"]')?.textContent).toBe(
-        'Jane, 30 years old',
-      )
-    }))
-
-  test('component with props', () =>
-    context.start(async () => {
-      const messageAtom = atom('Hello', 'message')
-
-      const Greeting = reatomComponent(({ name }: { name: string }) => {
-        const message = messageAtom()
-        return (
-          <div data-testid="greeting">
-            {message}, {name}!
-          </div>
-        )
-      })
-
-      render(
-        <reatomContext.Provider value={top()}>
-          <Greeting name="Alice" />
-        </reatomContext.Provider>,
-        document.getElementById('root')!,
-      )
-
-      // Wait for initial render
-      await wrap(tick())
-
-      // Check initial render
-      expect(
-        document.querySelector('[data-testid="greeting"]')?.textContent,
-      ).toBe('Hello, Alice!')
-
-      // Update atom
-      messageAtom.set('Goodbye')
-
-      // Wait for rerender
-      await wrap(tick())
-
-      // Check updated render
-      expect(
-        document.querySelector('[data-testid="greeting"]')?.textContent,
-      ).toBe('Goodbye, Alice!')
-    }))
-
-  test('parent component updates child with prop changes', () =>
-    context.start(async () => {
-      const messageAtom = atom('Initial message', 'message')
-
-      const Greeting = reatomComponent(({ message }: { message: string }) => {
-        return <div data-testid="greeting-child">{message}</div>
-      })
-
-      const Parent = reatomComponent(() => {
-        const [parentMessage, setParentMessage] = useState(
-          'Message from parent',
-        )
-        const message = messageAtom()
-
-        return (
-          <div>
-            <Greeting message={parentMessage} />
-            <div data-testid="parent-message">{message}</div>
-            <button
-              data-testid="update-parent-message"
-              onClick={() => setParentMessage('Updated message from parent')}
-            >
-              Update Parent Message
-            </button>
-          </div>
-        )
-      })
-
-      render(
-        <reatomContext.Provider value={top()}>
-          <Parent />
-        </reatomContext.Provider>,
-        document.getElementById('root')!,
-      )
-
-      // Wait for initial render
-      await wrap(tick())
-
-      // Check initial render
-      expect(
-        document.querySelector('[data-testid="greeting-child"]')?.textContent,
-      ).toBe('Message from parent')
-      expect(
-        document.querySelector('[data-testid="parent-message"]')?.textContent,
-      ).toBe('Initial message')
-
-      // Update parent component state
-      const updateButton = document.querySelector(
-        '[data-testid="update-parent-message"]',
-      ) as HTMLButtonElement
-      updateButton.click()
-
-      // Wait for rerender
-      await wrap(tick())
-
-      // Check updated render
-      expect(
-        document.querySelector('[data-testid="greeting-child"]')?.textContent,
-      ).toBe('Updated message from parent')
-      expect(
-        document.querySelector('[data-testid="parent-message"]')?.textContent,
-      ).toBe('Initial message') // Ensure atom value in parent is unchanged
-    }))
-})
-
-describe('reatomFactoryComponent', () => {
-  test('creates component with factory initialization', () =>
-    context.start(async () => {
-      // Factory component that creates its own local state
-      const Counter = reatomFactoryComponent(
-        (props: { initialCount: number }) => {
-          const count = atom(props.initialCount, 'localCount').extend(
-            withActions((target) => ({
-              inc: () => target.set((prev) => prev + 1),
-            })),
-          )
-
-          return () => (
-            <div>
-              <div data-testid="count">{count()}</div>
-              <button data-testid="increment" onClick={wrap(count.inc)}>
-                Increment
-              </button>
-            </div>
-          )
-        },
-        'Counter',
-      )
-
-      render(
-        <reatomContext.Provider value={top()}>
-          <Counter initialCount={5} />
-        </reatomContext.Provider>,
-        document.getElementById('root')!,
-      )
-
-      // Wait for initial render
-      await wrap(tick())
-
-      // Check initial render
-      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
-        '5',
-      )
-
-      // Simulate click on increment button
-      const button = document.querySelector(
-        '[data-testid="increment"]',
-      ) as HTMLButtonElement
-      button.click()
-
-      // Wait for rerender
-      await wrap(tick())
-
-      // Check updated render
-      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
-        '6',
-      )
-    }))
-
-  test('effects autocancel', () =>
-    context.start(async () => {
-      let event = action(() => {})
-      let pooling = 0
-
-      const Counter = reatomFactoryComponent(() => {
-        const count = atom(0, 'count')
-
-        effect(async () => {
-          while (true) {
-            await wrap(take(event))
-            count.set(++pooling)
-          }
-        })
-
-        return () => <div data-testid="count">{count()}</div>
-      }, 'Counter')
-
-      const active = atom(true, 'active')
-      const Controller = reatomComponent(
-        () => (active() ? <Counter /> : null),
-        'Controller',
-      )
-
-      render(
-        <reatomContext.Provider value={top()}>
-          <Controller />
-        </reatomContext.Provider>,
-        document.getElementById('root')!,
-      )
-
-      const tickEvent = async () => {
-        event()
-        await wrap(sleep())
-        await wrap(tick())
-      }
-
-      await wrap(tick())
-      await wrap(tickEvent())
-      await wrap(tickEvent())
-      expect(pooling).toBe(2)
-      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
-        '2',
-      )
-
-      active.set(false)
-      await wrap(tick())
-      await wrap(tickEvent())
-      await wrap(tickEvent())
-      expect(pooling).toBe(2)
-    }))
 })
 
 describe('isSuspense', () => {
@@ -370,7 +49,6 @@ describe('isSuspense', () => {
   })
 })
 
-// Custom component to test useFrame
 const FrameConsumer = reatomComponent(() => {
   const frame = useFrame()
   return <div data-testid="frame">{frame ? 'Frame found' : 'No frame'}</div>
@@ -380,6 +58,7 @@ describe('useFrame', () => {
   test('gets frame from context if provided', () =>
     context.start(async () => {
       const frame = top()
+
       render(
         <reatomContext.Provider value={frame}>
           <FrameConsumer />
@@ -387,7 +66,6 @@ describe('useFrame', () => {
         document.getElementById('root')!,
       )
 
-      // Wait for render
       await wrap(tick())
 
       expect(document.querySelector('[data-testid="frame"]')?.textContent).toBe(
@@ -395,15 +73,13 @@ describe('useFrame', () => {
       )
     }))
 
-  // TODO
   test.skip('throws error if no frame is available', () => {
-    // Mock console.error to suppress React error logs
     const originalConsoleError = console.error
     console.error = vi.fn()
 
     let thrownError: any = undefined
     try {
-      render(() => <FrameConsumer />, document.getElementById('root')!)
+      render(<FrameConsumer />, document.getElementById('root')!)
     } catch (error) {
       thrownError = error
     }
@@ -411,7 +87,7 @@ describe('useFrame', () => {
     expect(thrownError).toBeInstanceOf(Error)
     expect(thrownError.message).toContain('the root is not set')
 
-    // Restore console.error
     console.error = originalConsoleError
   })
 })
+

@@ -1,4 +1,4 @@
-Reatom adapter for [preact](https://preactjs.com).
+Reatom adapter for [Preact](https://github.com/preactjs/preact).
 
 ## Installation
 
@@ -8,9 +8,70 @@ npm i @reatom/preact
 
 > Read [the handbook](https://www.reatom.dev/handbook) first for production usage.
 
+## Using Atoms in JSX
+
+The primary way to use Reatom atoms in Preact JSX is with `toPreact`, which converts atoms to [Preact Signals](https://preactjs.com/guide/v10/signals/).
+
+### `toPreact`
+
+Converts a Reatom atom to a Preact signal. The signal is lazily connected to the atom - it subscribes only when the signal itself gets subscribers.
+
+```tsx
+import { atom, computed } from '@reatom/core'
+import { toPreact } from '@reatom/preact'
+
+const countAtom = atom(0, 'count')
+
+// In Preact component - signal is reactive
+const Counter = () => <div>{toPreact(countAtom)}</div>
+
+// Direct JSX binding - can be called repeatedly in render
+const inputAtom = atom('', 'input')
+const Input = () => <input value={toPreact(inputAtom)} />
+
+// With computed atoms (returns ReadonlySignal)
+const doubleAtom = computed(() => countAtom() * 2, 'double')
+const doubleSignal = toPreact(doubleAtom) // ReadonlySignal<number>
+```
+
+### `withPreact`
+
+Extension that adds a `.preact` property with a Preact signal synchronized with the target atom.
+
+```tsx
+import { atom, computed } from '@reatom/core'
+import { withPreact } from '@reatom/preact'
+
+const countAtom = atom(0, 'count').extend(withPreact())
+
+// In Preact component:
+const Counter = () => <div>{countAtom.preact}</div>
+
+// Writable - setting signal value updates the atom
+countAtom.preact.value = 5
+
+// Computed atom - signal is read-only
+const doubleAtom = computed(() => countAtom() * 2, 'double').extend(withPreact())
+// doubleAtom.preact is ReadonlySignal<number>
+```
+
+You can setup `.preact` accessor to ALL atoms automatically by using `addGlobalExtension`. Do this in a "setup" file and import it before any other imports:
+
+```tsx
+import { addGlobalExtension } from '@reatom/core'
+import { withPreact, type PreactExt, type PreactReadonlyExt } from '@reatom/preact'
+
+addGlobalExtension(withPreact())
+
+declare module '@reatom/core' {
+  interface Atom<State> extends PreactExt<State> {}
+  interface Computed<State> extends PreactReadonlyExt<State> {}
+}
+```
+
 ## Binding Atoms to Components
 
-Reatom offers powerful ways to integrate state management directly into your Preact components, ensuring reactivity and proper lifecycle management.
+Reatom offers powerful ways to integrate state management directly into your Preact components, ensuring reactivity and proper lifecycle management. It is an alternative to Preact signals, if you want to stick only to one reactive primitive.
 
 ### `reatomComponent`
 
@@ -19,7 +80,7 @@ The primary API to bind atoms and actions to a component's lifetime is `reatomCo
 **Features:**
 
 - **Reactive Reads:** Simply call an atom (`myAtom()`) within the component function to read its value and subscribe to updates. The component will automatically re-render when the atom changes.
-- **Standard Preact:** Use any other Preact hooks (`useState`, `useEffect`, etc.), accept props, and return any valid `ReactNode` as usual.
+- **Standard Preact:** Use any other Preact hooks (`useState`, `useEffect`, etc.), accept props, and return any valid `ComponentChildren` as usual.
 - **Context Preservation:** Event handlers should be wrapped with `wrap()` (e.g., `onClick={wrap(myAction)}`) to preserve the reactive context, especially for async operations or actions updating state.
 - **No Hooks Rules for Atoms:** Call and subscribe to atoms conditionally within your render logic without violating Preact's rules of hooks.
 - **Automatic Cleanup:** Integrates with Reatom's abort context. Effects or async operations triggered from within the component (using `wrap` or implicitly by actions) are automatically aborted if the component unmounts before completion, preventing race conditions and memory leaks.
@@ -161,7 +222,7 @@ const Counter = reatomFactoryComponent<{ initialCount: number; step?: number }>(
 `reatomFactoryComponent` combined with `effect` is excellent for managing resources that need cleanup. It is more powerful and precise primitive than `useEffect`, as it isn't coupled with rerenders.
 
 ```tsx
-import { atom, effect, wrap, sleep, isAbort } from '@reatom/core'
+import { atom, effect, wrap, sleep } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/preact'
 
 const IntervalLogger = reatomFactoryComponent<{ intervalMs: number }>(
@@ -193,453 +254,18 @@ const IntervalLogger = reatomFactoryComponent<{ intervalMs: number }>(
 
 `reatomFactoryComponent` provides a robust and elegant way to build stateful, effectful components with automatic lifecycle management, leveraging the power of Reatom's core primitives like `atom` and `effect`.
 
-<!-- ### useAtom
-
-`useAtom` is your main hook, when you need to describe reusable logic in hight order hook. It accepts an atom to read it value and subscribes to the changes, or a primitive value to create a new mutable atom and subscribe to it. It alike `useState`, but with many additional features. It returns a tuple of `[state, setState, theAtom, ctx]`. `theAtom` is a reference to the passed or created atom.
-
-In a component:
-
-```tsx
-import { action, atom } from '@reatom/core'
-import { useAction, useAtom } from '@reatom/preact'
-
-// base mutable atom
-const inputAtom = atom('', 'inputAtom')
-// computed readonly atom
-const greetingAtom = atom(
-  (ctx) => `Hello, ${ctx.spy(inputAtom)}!`,
-  'greetingAtom',
-)
-// action to do things
-const onChange = action(
-  (ctx, event: Preact.ChangeEvent<HTMLInputElement>) =>
-    inputAtom(ctx, event.currentTarget.value),
-  'onChange',
-)
-
-export const Greeting = () => {
-  const [input] = useAtom(inputAtom)
-  const [greeting] = useAtom(greetingAtom)
-  const handleChange = useAction(onChange)
-
-  return (
-    <>
-      <input value={input} onChange={handleChange} />
-      {greeting}
-    </>
-  )
-}
-```
-
-We recommend to setup [logger](https://www.reatom.dev/package/logger) here.
-
-## Use atom selector
-
-Another use case for the hook is describing additional computations inside a component (create temporal computed atom). It is possible to put a reducer function to `useState`, which will create a new computed atom (`setState` will be `undefined` in this case).
-
-```ts
-import { useAtom } from '@reatom/preact'
-import { goodsAtom } from '~/goods/model'
-
-export const GoodsItem = ({ idx }: { idx: number }) => {
-  const [element] = useAtom((ctx) => ctx.spy(goodsAtom)[idx], [idx])
-
-  return <some-jsx {...element} />
-}
-```
-
-The reducer function is just the same as in `atom` function. You could `spy` a few other atoms. It will be called only when the dependencies change, so you could use conditions and Reatom will optimize your dependencies and subscribes only to the necessary atoms.
-
-```ts
-import { useAtom } from '@reatom/preact'
-import { activeAtom, goodsAtom } from '~/goods/model'
-
-export const GoodsItem = ({ idx }: { idx: number }) => {
-  const [element] = useAtom(
-    (ctx) => (ctx.spy(activeAtom) === idx ? ctx.spy(list)[idx] : null),
-    [idx],
-  )
-
-  if (!element) return null
-
-  return <some-jsx {...element} />
-}
-```
-
-### Advanced usage
-
-Check this out!
-
-```js
-export const Greeting = ({ initialGreeting = '' }) => {
-  const [input, setInput, inputAtom] = useAtom(initialGreeting)
-  const [greeting] = useAtom(
-    (ctx) => `Hello, ${ctx.spy(inputAtom)}!`,
-    [inputAtom],
-  )
-  // you could do this
-  const handleChange = useCallback(
-    (event) => setInput(event.currentTarget.value),
-    [setInput],
-  )
-  // OR this
-  const handleChange = useAction(
-    (ctx, event) => inputAtom(ctx, event.currentTarget.value),
-    [inputAtom],
-  )
-
-  return (
-    <>
-      <input value={input} onChange={handleChange} />
-      {greeting}
-    </>
-  )
-}
-```
-
-What, why? In the example bellow we creating "inline" atoms, which will live only during the component lifetime. Here are the benefits of this pattern instead of using regular hooks:
-
-- You could depend your atoms by a props (deps changing will cause the callback rerun, the atom will the same).
-- Easy access to services, in case you use reatom as a DI.
-- Component inline atoms could be used for other computations, which could prevent rerenders ([see above](#prevent-rerenders)).
-- Created actions and atoms will be visible in logger / debugger with async `cause` tracking, which is much better for debugging than `useEffect`.
-- Unify codestyle for any state (local and global) description.
-- Easy to refactor to global state.
-
-### Lazy reading
-
-[As preact docs says](https://reactjs.org/docs/hooks-faq.html#how-to-read-an-often-changing-value-from-usecallback), sometimes you need a callback, which depends on often changed value, but you don't want to change a reference of this handler, to not broke memoization of children components which depends on the current. In this case, you could use atom and read it value lazily.
-
-Here is a standard preact code, `handleSubmit` reference is recreating on each `input` change and rerender.
-
-```js
-const [input, setInput] = useState('')
-const handleSubmit = useCallback(
-  () => props.onSubmit(input),
-  [props.onSubmit, input],
-)
-```
-
-Here `handleSubmit` reference is stable and doesn't depend on `input`, but have access to it last value.
-
-```js
-const [input, setInput, inputAtom, ctx] = useAtom('')
-const handleSubmit = useCallback(
-  () => props.onSubmit(ctx.get(inputAtom)),
-  [props.onSubmit, inputAtom, ctx],
-)
-```
-
-Btw, you could use `useAction`.
-
-```js
-const [input, setInput, inputAtom] = useAtom('')
-const handleSubmit = useAction(
-  (ctx) => props.onChange(ctx.get(inputAtom)),
-  [props.onChange, inputAtom],
-)
-```
-
-### Prevent rerenders
-
-`useAtom` accepts third argument `shouldSubscribe` which is `true` by default. But sometimes you have a set of computations not all of which you need in the render. In this case you could use atoms from `useAtom` without subscribing to it values.
-
-Here is how could you share data created and managed in parent, but used in children.
-
-```ts
-const [filter, setFilter, filterAtom] = useAtom('', [], false)
-const [data, setData, dataAtom] = useAtom([], [], false)
-const handleSubmit = useAction(
-  (ctx) =>
-    ctx.schedule(() =>
-      fetch(`api/search?q=${ctx.get(filterAtom)}`)
-        .then((res) => res.json())
-        .then(setData),
-    ),
-  [filterAtom, dataAtom],
-)
-
-return (
-  <>
-    <Filter atom={filterAtom} />
-    <Table atom={dataAtom} />
-    {/* this will not rerender by filters or data changes */}
-    <OtherComponent />
-  </>
-)
-```
-
-Here is another example of in-render computations which could be archived without rerender.
-
-[![codesandbox](https://codesandbox.io/static/img/play-codesandbox.svg)](https://codesandbox.io/s/elegant-forest-w2106l?file=/src/App.tsx)
-
-```js
-// this component will not rerender by `inputAtom` change, only by `numbers` change
-const [, , inputAtom] = useAtom('', [], false)
-const handleChange = useAction(
-  (ctx, event) => inputAtom(ctx, event.currentTarget.value),
-  [inputAtom],
-)
-const [numbers] = useAtom(
-  (ctx) => ctx.spy(inputAtom).replace(/\D/g, ''),
-  [inputAtom],
-)
-
-return (
-  <>
-    <input onChange={handleChange} />
-    numbers: {numbers}
-  </>
-)
-
-// onChange "q" - no rerender
-// onChange "qw" - no rerender
-// onChange "qw1" - rerender
-// onChange "qw1e" - no rerender
-```
-
-## Use action
-
-To bind your actions to relative context you need to use `useAction`, it will just remove the first `ctx` parameter from your action and return a function which accepts all other needed parameters.
-
-```tsx
-const pageAtom = atom(0, 'pageAtom')
-const next = action((ctx) => pageAtom(ctx, (page) => page + 1), 'pageAtom.next')
-const prev = action(
-  (ctx) => pageAtom(ctx, (page) => Math.max(1, page - 1)),
-  'pageAtom.prev',
-)
-
-export const Paging = () => {
-  const [page] = useAtom(pageAtom)
-  const handleNext = useAction(next)
-  const handlePrev = useAction(prev)
-
-  return (
-    <>
-      <button onClick={handlePrev}>prev</button>
-      {page}
-      <button onClick={handleNext}>next</button>
-    </>
-  )
-}
-```
-
-`useAction` accepts any function with `ctx` parameter, not only `action`, so you can write inline function, use props, and it will still memoized and return the same stable function reference, just like [useEvent](https://github.com/reactjs/rfcs/blob/useevent/text/0000-useevent.md)
-
-```tsx
-export const Paging = ({ pageAtom }: { pageAtom: Atom<number> }) => {
-  const [page] = useAtom(pageAtom)
-  const handleNext = useAction((ctx) => pageAtom(ctx, (page) => page + 1))
-  const handlePrev = useAction((ctx) =>
-    pageAtom(ctx, (page) => Math.max(1, page - 1)),
-  )
-
-  return (
-    <>
-      <button onClick={handlePrev}>prev</button>
-      {page}
-      <button onClick={handleNext}>next</button>
-    </>
-  )
-}
-```
-
-Also, you can use `useAction` to get an atom setter without subscribing to it.
-
-```tsx
-export const PagingAction = ({ pageAtom }: { pageAtom: Atom<number> }) => {
-  const setPage = useAction(pageAtom)
-
-  return (
-    <>
-      <button onClick={() => setPage((page) => Math.max(1, page - 1))}>
-        prev
-      </button>
-      <button onClick={() => setPage((page) => page + 1)}>next</button>
-    </>
-  )
-}
-```
-
-## Use update
-
-`useUpdate` is a similar to `useEffect` hook, but it allows you to subscribe to atoms and receive it values in the callback. Important semantic difference is that subscription to atoms works as [`onChange` hook](https://www.reatom.dev/handbook#lifecycle) and your callback will call during transaction, so you need to schedule an effects, but could mutate an atoms without batching. Subscriptions to a values works like regular `useEffect` hook.
-
-The most common use case for this hook is to synchronize some state from a props or context to an atom.
-
-```tsx
-import { action, atom } from '@reatom/core'
-import { useAction, useUpdate } from '@reatom/preact'
-import Form from 'form-library'
-
-const formValuesAtom = atom({})
-const submit = action((ctx) => api.submit(ctx.get(formValuesAtom)))
-
-const Sync = () => {
-  const { values } = useFormState()
-  useUpdate((ctx, values) => formValuesAtom(ctx, values), [values])
-  return null
-}
-// or just
-const Sync = () => useUpdate(formValuesAtom, [useFormState().values])
-
-export const MyForm = () => {
-  const handleSubmit = useAction(submit)
-
-  return (
-    <Form onSubmit={handleSubmit}>
-      <Sync />
-      .....
-    </Form>
-  )
-}
-```
-
-And it works well in the opposite direction, you could synchronise an atom's data with the local state, or do any other kind of effect. You can use `useUpdate` as a safety replacement for `onChange` + `useEffect`.
-
-For example, you need a controlled input from the passed atom.
-
-Here is a naive implementation:
-
-```tsx
-export const Item = ({ itemAtom }) => {
-  const [value, setValue] = Preact.useState('')
-
-  Preact.useEffect(() => {
-    const cleanup = itemAtom.onChange((ctx, state) => setValue(state))
-    // DO NOT FORGET TO RETURN THE CLEANUP
-    return cleanup
-  }, [itemAtom])
-
-  return (
-    <input value={value} onChange={(e) => setValue(e.currentTarget.value)} />
-  )
-}
-```
-
-Here is a simpler and more reliable implementation:
-
-```tsx
-export const Item = ({ itemAtom }) => {
-  const [value, setValue] = Preact.useState(itemAtom)
-
-  useUpdate((ctx, state) => setValue(state), [itemAtom])
-
-  return (
-    <input value={value} onChange={(e) => setValue(e.currentTarget.value)} />
-  )
-}
-```
-
-## Use atom promise
-
-If you have an atom with a promise and want to use its value directly, you could use `useAtomPromise`. This function relies on [Preact Suspense](https://preact.dev/reference/preact/Suspense) and throws the promise until it resolves. It can be useful with [reatomResource](https://www.reatom.dev/package/async/#reatomresource).
-
-```tsx
-import { atom, reatomResource } from '@reatom/framework'
-import { useAtom, useAction, useAtomPromise } from '@reatom/preact'
-
-const pageAtom = atom(1, 'pageAtom')
-const listReaction = reatomResource(async (ctx) => {
-  const page = ctx.spy(pageAtom)
-  const response = await ctx.schedule(() => fetch(`/api/list?page=${page}`))
-  if (!response.ok) throw new Error(response.statusText)
-  return response.json()
-})
-
-export const List = () => {
-  const [page] = useAtom(pageAtom)
-  const prev = useAction((ctx) =>
-    pageAtom(ctx, (state) => Math.max(1, state - 1)),
-  )
-  const next = useAction((ctx) => pageAtom(ctx, (state) => state + 1))
-  const list = useAtomPromise(listReaction.promiseAtom)
-
-  return (
-    <section>
-      <ul>
-        {list.map((el) => (
-          <li key={el.id}>...</li>
-        ))}
-      </ul>
-      <hr />
-      <button onClick={prev}>prev</button>
-      {page}
-      <button onClick={next}>next</button>
-    </section>
-  )
-}
-```
-
-## Use context creator
-
-Sometimes, you can only create `ctx` inside a Preact component, for example, in SSR. For that case, we have the `useCreateCtx` hook.
-
-```tsx
-export const App = () => {
-  const ctx = useCreateCtx((ctx) => {
-    // do not use logger in a server (SSR)
-    if (typeof window !== 'undefined') {
-      connectLogger(ctx)
-    }
-  })
-
-  return (
-    <reatomContext.Provider value={ctx}>
-      <Component {...pageProps} />
-    </reatomContext.Provider>
-  )
-}
-```
-
-## Examples
-
-- [Migration from RTK to Reatom](https://github.com/artalar/RTK-entities-basic-example/pull/1/files#diff-43162f68100a9b5eb2e58684c7b9a5dc7b004ba28fd8a4eb6461402ec3a3a6c6) (2 times less code, -8kB gzip)
-
-## Setup batching for old Preact
-
-For Preact 16 and 17 you need to setup batching by yourself in the root of your app.
-
-For `preact-dom`:
-
-```js
-import { unstable_batchedUpdates } from 'preact-dom'
-import { createCtx } from '@reatom/core'
-import { setupBatch, withBatching } from '@reatom/preact'
-
-setupBatch(unstable_batchedUpdates)
-const ctx = withBatching(createCtx())
-```
-
-For `preact-native`:
-
-```js
-import { unstable_batchedUpdates } from 'preact-native'
-import { createCtx } from '@reatom/core'
-import { setupBatch } from '@reatom/preact'
-
-setupBatch(unstable_batchedUpdates)
-const ctx = withBatching(createCtx())
-```
--->
-
 ## Setup context
 
-Optionally, you need to set up the main context once and wrap your application in a provider at the top level. This is **required** if you have called `clearStack()` (recommended).
+Optionally, you need to set up the main context once and wrap your application in a provider at the top level. This is **required** only if you have called `clearStack()` (recommended).
 
 ```jsx
-import { context, connectLogger, clearStack } from '@reatom/core'
+import { clearStack, frame } from '@reatom/core'
 import { reatomContext } from '@reatom/preact'
 import { Main } from './path/to/an/Main'
 
-// Recommended: Disable default context for predictability
 clearStack()
 
-const rootFrame = context.start()
-if (import.meta.env.DEV) {
-  rootFrame.run(connectLogger)
-}
+const rootFrame = frame()
 
 export const App = () => (
   <reatomContext.Provider value={rootFrame}>
@@ -647,3 +273,29 @@ export const App = () => (
   </reatomContext.Provider>
 )
 ```
+
+## Form Binding
+
+### `bindField`
+
+Helper function to bind a Reatom field atom to form inputs in Preact.
+
+```tsx
+import { field } from '@reatom/core'
+import { reatomComponent } from '@reatom/preact'
+import { bindField } from '@reatom/preact'
+
+const nameField = field('', 'name')
+
+const NameInput = reatomComponent(
+  () => <input {...bindField(nameField)} />,
+  'NameInput',
+)
+```
+
+The `bindField` function returns an object with:
+- `value` / `checked` - the current field value (uses `checked` for boolean fields)
+- `onChange` - handler for value changes
+- `onBlur` - handler for blur events (triggers `field.focus.out()`)
+- `onFocus` - handler for focus events (triggers `field.focus.in()`)
+- `error` - validation error message if any

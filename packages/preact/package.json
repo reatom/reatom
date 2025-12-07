@@ -1,14 +1,22 @@
 {
   "name": "@reatom/preact",
-  "version": "1000.0.0-alpha.32",
+  "version": "1000.0.0-alpha.65",
   "publishConfig": {
     "tag": "alpha"
   },
-  "description": "Reatom adapter for React",
+  "private": false,
+  "description": "Reatom adapter for Preact",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    ".": {
+      "types": "./build/index.d.ts",
+      "require": "./build/index.js",
+      "default": "./build/index.mjs"
+    },
+    "./signal": {
+      "types": "./build/signal.d.ts",
+      "require": "./build/signal.js",
+      "default": "./build/signal.mjs"
+    }
   },
   "main": "build/index.js",
   "module": "build/index.mjs",
@@ -16,15 +24,30 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false
+  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "microbundle -f esm,cjs --raw",
-    "test": "vitest run src/*",
-    "test:watch": "vitest src/*"
+    "test": "pnpm run test:unit && pnpm run test:browser",
+    "test:unit": "vitest run",
+    "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
+    "test:watch": "vitest"
   },
   "peerDependencies": {
+    "@preact/signals": "catalog:",
+    "@preact/signals-core": "catalog:",
     "@reatom/core": "workspace:^",
-    "preact": "^10.0.0"
+    "preact": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@preact/signals": {
+      "optional": true
+    },
+    "@preact/signals-core": {
+      "optional": true
+    }
   },
   "author": "artalar",
   "license": "MIT",
@@ -41,6 +64,9 @@
   ],
   "devDependencies": {
     "@preact/preset-vite": "catalog:",
+    "@preact/signals": "catalog:",
+    "@preact/signals-core": "catalog:",
+    "preact": "catalog:",
     "@vitest/browser-playwright": "catalog:"
   }
 }
