@@ -45,7 +45,6 @@ export interface AsyncStatusAbortedPending<State = never, InitState = State> {
 
   isFirstPending: false
   isEverPending: true
-  // FIXME its broke data infer
   isEverSettled: boolean
 
   data: [State] extends [never] ? never : InitState | State

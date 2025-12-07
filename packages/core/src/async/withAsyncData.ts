@@ -1,8 +1,8 @@
-import type { Atom, AtomLike } from '../core'
-import { createAtom, withActions } from '../core'
+import type { Action, Atom, AtomLike } from '../core'
+import { action, createAtom, withActions } from '../core'
 import type { AbortExt } from '../extensions'
 import { withAbort, withCallHook } from '../extensions'
-import { getCalls } from '../methods'
+import { getCalls, reset } from '../methods'
 import { identity, noop } from '../utils'
 import type { AsyncExt, AsyncOptions } from './withAsync'
 import { withAsync } from './withAsync'
@@ -30,10 +30,31 @@ export interface AsyncDataExt<
    * Atom that stores the fetched data Updated automatically when the async
    * operation completes successfully
    */
-  data: Atom<InitState | State>
+  data: Atom<InitState | State> & {
+    reset: Action<[], InitState>
+  }
 
   /** Status atom that includes the data property */
   status: AsyncStatusAtom<State, InitState>
+
+  /**
+   * Action that resets the async data atom by clearing its dependencies and
+   * resetting the data atom to its initial state. This is useful for
+   * invalidating cached data and forcing a re-fetch on next access.
+   *
+   * Note: This action does not re-trigger the async operation automatically.
+   * Use `retry` if you want to reset and immediately re-fetch.
+   */
+  reset: Action<[], void>
+
+  /**
+   * Action that retries the async operation by resetting dependencies and
+   * re-evaluating the computed function. This is useful for manually
+   * refreshing data or recovering from errors.
+   *
+   * @returns The promise from the re-triggered async operation
+   */
+  retry: Action<[], Promise<Payload>>
 }
 
 /**
@@ -243,8 +264,18 @@ export function withAsyncData(
       })),
     )
 
+    let asyncDataReset = action(() => {
+      reset(target)
+      data.reset()
+    }, `${target.name}.reset`)
+
+    let asyncDataRetry = action(() => {
+      reset(target)
+      return target() as Promise<any>
+    }, `${target.name}.retry`)
+
     let asyncTarget = target.extend(
-      () => ({ data }),
+      () => ({ data, reset: asyncDataReset, retry: asyncDataRetry }),
       withAbort(),
       withAsync(asyncOptions),
     )

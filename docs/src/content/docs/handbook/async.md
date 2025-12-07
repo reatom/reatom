@@ -400,6 +400,139 @@ api.onSettle.subscribe((result) => {
 })
 ```
 
+## Status Tracking
+
+For more fine-grained control over async operation states, use the `status` option. Unlike the simple `ready()` and `error()` helpers, the `status` atom provides detailed information about the lifecycle of your async operations, including first-time loading detection and historical tracking.
+
+### Enabling Status
+
+Enable status tracking by passing `status: true` to `withAsync`:
+
+```ts
+const fetchUser = action(async (id: string) => {
+  const response = await wrap(fetch(`/api/users/${id}`))
+  return await wrap(response.json())
+}, 'fetchUser').extend(withAsync({ status: true }))
+
+// Access the status atom
+fetchUser.status() // { isPending: false, isFirstPending: false, ... }
+```
+
+### Status Properties
+
+The status object provides several boolean flags organized into two categories:
+
+**Current State Flags** (mutually exclusive when settled):
+
+| Property      | Description                                          |
+| ------------- | ---------------------------------------------------- |
+| `isPending`   | An async operation is currently in progress          |
+| `isFulfilled` | The last completed operation succeeded               |
+| `isRejected`  | The last completed operation failed (non-abort only) |
+| `isSettled`   | The operation has completed (fulfilled or rejected)  |
+
+**Historical Tracking Flags**:
+
+| Property        | Description                                                  |
+| --------------- | ------------------------------------------------------------ |
+| `isFirstPending`| This is the first-ever pending state (great for skeletons)   |
+| `isEverPending` | At least one async operation has been started                |
+| `isEverSettled` | At least one async operation has completed                   |
+
+### First Load vs Subsequent Loads
+
+The `isFirstPending` flag is particularly useful for differentiating between initial loading states and subsequent refreshes:
+
+```tsx
+const UserProfile = reatomComponent(() => {
+  const status = fetchUser.status()
+
+  if (status.isFirstPending) {
+    // Show skeleton only on first load
+    return <ProfileSkeleton />
+  }
+
+  if (status.isPending) {
+    // Show subtle spinner on subsequent loads
+    return (
+      <>
+        <Profile data={fetchUser.data()} />
+        <RefreshSpinner />
+      </>
+    )
+  }
+
+  if (status.isRejected) {
+    return <ErrorMessage />
+  }
+
+  return <Profile data={fetchUser.data()} />
+})
+```
+
+### Abort Handling
+
+Aborted operations are treated specially - they don't set `isRejected` to true. After an abort, the status returns to the last settled state (fulfilled/rejected) if one exists:
+
+```ts
+const fetchData = action(async () => {
+  const controller = abortVar.getController()
+  const response = await wrap(
+    fetch('/api/data', { signal: controller?.signal }),
+  )
+  return await wrap(response.json())
+}, 'fetchData').extend(withAsync({ status: true }), withAbort())
+
+await wrap(fetchData())
+// status: { isFulfilled: true, isSettled: true, ... }
+
+fetchData.abort()
+// status remains: { isFulfilled: true, isSettled: true, ... }
+// (restored to last settled state, not marked as rejected)
+```
+
+### Resetting Status
+
+You can reset the status to its initial state using the `reset` action. This is useful when you want to treat the next async call as a "first" call again:
+
+```ts
+const fetchUser = action(async (id: string) => {
+  return await wrap(api.getUser(id))
+}, 'fetchUser').extend(withAsync({ status: true }))
+
+// After some operations...
+fetchUser.status().isEverPending // true
+fetchUser.status().isEverSettled // true
+
+// Reset to initial state
+fetchUser.status.reset()
+
+fetchUser.status().isEverPending // false
+fetchUser.status().isEverSettled // false
+
+// Next call will have isFirstPending: true
+fetchUser('123')
+fetchUser.status().isFirstPending // true
+```
+
+### Status with Data
+
+When using `withAsyncData` with `status: true`, the status object also includes a `data` property that mirrors the current data state:
+
+```ts
+const searchResults = computed(async () => {
+  const query = searchQuery()
+  if (!query.trim()) return []
+
+  const response = await wrap(fetch(`/api/search?q=${encodeURIComponent(query)}`))
+  return await wrap(response.json())
+}, 'searchResults').extend(withAsyncData({ initState: [], status: true }))
+
+const status = searchResults.status()
+// status.data contains the current search results
+// status.isPending, status.isFirstPending, etc. are also available
+```
+
 ## Best Practices
 
 ### 1. Choose the Right Extension

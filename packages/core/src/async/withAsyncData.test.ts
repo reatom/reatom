@@ -419,6 +419,81 @@ test('status includes data property with initState', async () => {
   expect(statusFulfilled.isFulfilled).toBe(true)
 })
 
+test('reset action resets dependencies and data', async () => {
+  const name = 'resetAction'
+  let callCount = 0
+  const param = atom(1, `${name}.param`)
+  const resource = computed(async () => {
+    callCount++
+    const value = param()
+    await wrap(sleep())
+    return value * 10
+  }, `${name}.resource`).extend(withAsyncData({ initState: 0 }))
+
+  resource.data.subscribe()
+  await wrap(sleep())
+
+  expect(resource.data()).toBe(10)
+  expect(callCount).toBe(1)
+
+  resource.reset()
+
+  expect(resource.data()).toBe(0)
+
+  await wrap(resource())
+
+  expect(resource.data()).toBe(10)
+  expect(callCount).toBe(2)
+})
+
+test('retry action after error', async () => {
+  const name = 'retryActionAfterError'
+  let shouldFail = true
+  const resource = computed(async () => {
+    await wrap(sleep())
+    if (shouldFail) throw new Error('Test error')
+    return 'Success'
+  }, `${name}.resource`).extend(withAsyncData())
+
+  resource()
+  await wrap(sleep())
+
+  expect(resource.error()).instanceOf(Error)
+  expect(resource.data()).toBeUndefined()
+
+  shouldFail = false
+  await wrap(resource.retry())
+
+  expect(resource.error()).toBeUndefined()
+  expect(resource.data()).toBe('Success')
+})
+
+test('reset action does not auto re-fetch', async () => {
+  const name = 'resetActionNoAutoFetch'
+  let callCount = 0
+  const resource = computed(async () => {
+    callCount++
+    await wrap(sleep())
+    return callCount
+  }, `${name}.resource`).extend(withAsyncData({ initState: 0 }))
+
+  resource.data.subscribe()
+  await wrap(sleep())
+
+  expect(resource.data()).toBe(1)
+  expect(callCount).toBe(1)
+
+  resource.reset()
+
+  expect(resource.data()).toBe(0)
+  expect(callCount).toBe(1)
+
+  await wrap(resource())
+
+  expect(callCount).toBe(2)
+  expect(resource.data()).toBe(2)
+})
+
 // TODO just predefine actions WITH PERSIST CACHE and you get a nicer version of FSM.
 /*
 const askProfileSurvey = reatomFSM(
