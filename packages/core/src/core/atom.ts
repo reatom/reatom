@@ -2,14 +2,7 @@ import type { AbortExt } from '../extensions'
 import type { ReatomAbortController } from '../methods'
 import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
-import {
-  _enqueue,
-  type Actions,
-  actions,
-  type Extend,
-  extend,
-  isAction,
-} from './'
+import { _enqueue, type Extend, extend, isAction } from './'
 
 let identity = <T>(value: T): T => value
 
@@ -77,13 +70,6 @@ export interface AtomLike<
   (...params: Params): Payload
 
   set: unknown
-
-  /**
-   * Bind methods to the atom to extend its functionality.
-   *
-   * @deprecated Use `extend` instead
-   */
-  actions: Actions<this>
 
   /**
    * Extension system to add capabilities to atoms. Allows adding middleware,
@@ -737,8 +723,6 @@ let castAtom = <T extends AtomLike>(
   meta: Omit<AtomMeta, 'processing' | 'linking' | 'onConnect'>,
 ): T =>
   Object.assign(target, {
-    actions,
-
     extend,
 
     set(...params: any) {

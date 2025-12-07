@@ -27,11 +27,11 @@ function isReatomContextCallee(node: estree.Node): boolean {
   ) {
     return true
   }
-  // .actions(...)
+  // .extend(withActions(...))
   if (
     node.type === 'MemberExpression' &&
     node.property.type === 'Identifier' &&
-    node.property.name === 'actions'
+    node.property.name === 'extend'
   ) {
     return true
   }
@@ -55,11 +55,11 @@ function isReatomContext(node: estree.Node, context: Rule.RuleContext): boolean 
       ) {
         if (parent.arguments[0] === node) return true
       }
-      // .actions(target => ({ ... }))
+      // .extend(withActions(target => ({ ... })))
       if (
         parent.callee.type === 'MemberExpression' &&
         parent.callee.property.type === 'Identifier' &&
-        parent.callee.property.name === 'actions'
+        parent.callee.property.name === 'extend'
       ) {
         if (parent.arguments[0] === node) return true
       }

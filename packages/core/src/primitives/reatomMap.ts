@@ -1,6 +1,6 @@
 import type { Action, AtomLike } from '../core'
 import type { Computed } from '../core'
-import { _set, action, atom, computed, named } from '../core'
+import { _set, action, atom, computed, named, withActions } from '../core'
 
 type StateInit<Key, Value> =
   | Map<Key, Value>
@@ -72,25 +72,27 @@ export const reatomMap = <Key, Value>(
         ),
       }),
     )
-    .actions((target) => ({
-      getOrCreate: (key: Key, creator: () => Value) => {
-        const state = target()
-        if (state.has(key)) return state.get(key)!
+    .extend(
+      withActions((target) => ({
+        getOrCreate: (key: Key, creator: () => Value) => {
+          const state = target()
+          if (state.has(key)) return state.get(key)!
 
-        const value = creator()
-        target.set(key, value)
-        return value
-      },
-      delete: (key: Key) =>
-        target.setState((prev) => {
-          if (!prev.has(key)) return prev
-          const next = new Map(prev)
-          next.delete(key)
-          return next
-        }),
-      clear: () => target.setState(new Map()),
-      reset: () => target.setState(atomInitState),
-    }))
+          const value = creator()
+          target.set(key, value)
+          return value
+        },
+        delete: (key: Key) =>
+          target.setState((prev) => {
+            if (!prev.has(key)) return prev
+            const next = new Map(prev)
+            next.delete(key)
+            return next
+          }),
+        clear: () => target.setState(new Map()),
+        reset: () => target.setState(atomInitState),
+      })),
+    )
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))

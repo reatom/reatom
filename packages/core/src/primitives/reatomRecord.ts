@@ -1,5 +1,5 @@
 import type { Action, Atom } from '../core'
-import { atom, named } from '../core'
+import { atom, named, withActions } from '../core'
 import type { Fn, Rec } from '../utils'
 import { omit } from '../utils'
 
@@ -13,46 +13,48 @@ export const reatomRecord = <T extends Rec>(
   initState: Exclude<T, Fn>,
   name: string = named('recordAtom'),
 ): RecordAtom<T> =>
-  atom(initState, name).actions((target) => ({
-    merge: (slice: Partial<T>) =>
-      target.set((prev) => {
-        for (const key in prev) {
-          if (key in slice && !Object.is(prev[key], slice[key])) {
-            return { ...prev, ...slice }
-          }
-        }
-        for (const key in slice) {
-          if (!(key in prev)) {
-            return { ...prev, ...slice }
-          }
-        }
-        return prev
-      }),
-    omit: (...keys: Array<keyof T>) =>
-      target.set((prev) => {
-        if (keys.some((key) => key in prev)) return omit(prev, keys) as any
-        return prev
-      }),
-    reset: (...keys: (keyof T)[]) =>
-      target.set(
-        // @ts-ignore
-        (prev) => {
-          if (keys.length === 0) return initState
-          const next = {} as T
-          let changed = false
+  atom(initState, name).extend(
+    withActions((target) => ({
+      merge: (slice: Partial<T>) =>
+        target.set((prev) => {
           for (const key in prev) {
-            if (keys.includes(key)) {
-              if (key in initState) {
-                next[key] = initState[key]
-                changed ||= !Object.is(prev[key], initState[key])
-              } else {
-                changed ||= key in prev
-              }
-            } else {
-              next[key] = prev[key]
+            if (key in slice && !Object.is(prev[key], slice[key])) {
+              return { ...prev, ...slice }
             }
           }
-          return changed ? next : prev
-        },
-      ),
-  }))
+          for (const key in slice) {
+            if (!(key in prev)) {
+              return { ...prev, ...slice }
+            }
+          }
+          return prev
+        }),
+      omit: (...keys: Array<keyof T>) =>
+        target.set((prev) => {
+          if (keys.some((key) => key in prev)) return omit(prev, keys) as any
+          return prev
+        }),
+      reset: (...keys: (keyof T)[]) =>
+        target.set(
+          // @ts-ignore
+          (prev) => {
+            if (keys.length === 0) return initState
+            const next = {} as T
+            let changed = false
+            for (const key in prev) {
+              if (keys.includes(key)) {
+                if (key in initState) {
+                  next[key] = initState[key]
+                  changed ||= !Object.is(prev[key], initState[key])
+                } else {
+                  changed ||= key in prev
+                }
+              } else {
+                next[key] = prev[key]
+              }
+            }
+            return changed ? next : prev
+          },
+        ),
+    })),
+  )

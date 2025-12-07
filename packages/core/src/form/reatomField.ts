@@ -23,6 +23,7 @@ import {
   type Rec,
   type RecordAtom,
   withAbort,
+  withActions,
   withCallHook,
   withChangeHook,
   withComputed,
@@ -406,10 +407,12 @@ export function reatomField<State, Value = State>(
   ).extend(withComputed(() => fromState(field(), field as This)))
 
   const focus = reatomRecord(fieldInitFocus, `${name}._focus`)
-    .actions((target) => ({
-      in: () => target.merge({ active: true }),
-      out: () => target.merge({ active: false, touched: true }),
-    }))
+    .extend(
+      withActions((target) => ({
+        in: () => target.merge({ active: true }),
+        out: () => target.merge({ active: false, touched: true }),
+      })),
+    )
     .extend(
       withComputed((state) => {
         const dirty = isDirty(value(), fromState(initState(), field as This))
@@ -609,16 +612,18 @@ export function reatomField<State, Value = State>(
         }
       }, `${target.name}.trigger`).extend(withAbort()),
     }))
-    .actions((target) => ({
-      clearErrors: (...sources: FieldErrorSource[]) => {
-        target.errors.set((errors) =>
-          sources.length
-            ? errors.filter((e) => !sources.includes(e.source))
-            : [],
-        )
-        return target()
-      },
-    }))
+    .extend(
+      withActions((target) => ({
+        clearErrors: (...sources: FieldErrorSource[]) => {
+          target.errors.set((errors) =>
+            sources.length
+              ? errors.filter((e) => !sources.includes(e.source))
+              : [],
+          )
+          return target()
+        },
+      })),
+    )
 
   const change: This['change'] = action((newValue) => {
     const prevValue = value()

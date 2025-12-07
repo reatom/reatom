@@ -1,14 +1,16 @@
 import { expect, test } from 'test'
 
 import { sleep, wrap } from '..'
-import { atom, computed, notify } from '../core'
+import { atom, computed, notify, withActions } from '../core'
 import { getStackTrace } from './getStackTrace'
 
 test('calc deps graph', async () => {
   // Create atoms for a counter feature
-  const counter = atom(0, 'counter').actions((target) => ({
-    inc: () => target.set((s) => s + 1),
-  }))
+  const counter = atom(0, 'counter').extend(
+    withActions((target) => ({
+      inc: () => target.set((s) => s + 1),
+    })),
+  )
   const doubled = computed(() => counter() * 2, 'doubled')
   const isEven = computed(() => counter() % 2 === 0, 'isEven')
 

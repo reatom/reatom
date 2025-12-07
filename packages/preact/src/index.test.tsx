@@ -1,26 +1,28 @@
-import { test, expect, describe, vi, beforeEach, afterEach } from 'vitest'
-import { render } from 'preact'
 import {
+  action,
   atom,
   clearStack,
-  context,
-  top,
   computed,
-  wrap,
-  rAF,
-  take,
+  context,
   effect,
+  rAF,
   sleep,
-  action,
+  take,
+  top,
+  withActions,
+  wrap,
 } from '@reatom/core'
+import { render } from 'preact'
+import { useState } from 'preact/hooks'
+import { afterEach,beforeEach, describe, expect, test, vi } from 'vitest'
+
 import {
+  isSuspense,
   reatomComponent,
   reatomContext,
   reatomFactoryComponent,
-  isSuspense,
   useFrame,
 } from './index'
-import { useState } from 'preact/hooks'
 
 clearStack()
 
@@ -242,10 +244,10 @@ describe('reatomFactoryComponent', () => {
       // Factory component that creates its own local state
       const Counter = reatomFactoryComponent(
         (props: { initialCount: number }) => {
-          const count = atom(props.initialCount, 'localCount').actions(
-            (target) => ({
+          const count = atom(props.initialCount, 'localCount').extend(
+            withActions((target) => ({
               inc: () => target.set((prev) => prev + 1),
-            }),
+            })),
           )
 
           return () => (

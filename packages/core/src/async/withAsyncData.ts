@@ -1,5 +1,5 @@
 import type { Atom, AtomLike } from '../core'
-import { createAtom } from '../core'
+import { createAtom, withActions } from '../core'
 import type { AbortExt } from '../extensions'
 import { withAbort, withCallHook } from '../extensions'
 import { getCalls } from '../methods'
@@ -236,10 +236,12 @@ export function withAsyncData(
         },
       },
       `${target.name}.data`,
-    ).actions((target) => ({
-      /** Resets the data atom to its initial state */
-      reset: () => target.set(() => initState),
-    }))
+    ).extend(
+      withActions((target) => ({
+        /** Resets the data atom to its initial state */
+        reset: () => target.set(() => initState),
+      })),
+    )
 
     let asyncTarget = target.extend(
       () => ({ data }),

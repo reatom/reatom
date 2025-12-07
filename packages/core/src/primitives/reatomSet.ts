@@ -1,5 +1,5 @@
 import type { Action, Atom, Computed } from '../core'
-import { atom, computed, named, withParams } from '../core'
+import { atom, computed, named, withActions, withParams } from '../core'
 
 type StateInit<Value> = Set<Value> | ConstructorParameters<typeof Set<Value>>[0]
 const createSet = <Value>(init: StateInit<Value>) =>
@@ -26,30 +26,32 @@ export const reatomSet = <T>(
         typeof init === 'function' ? init : createSet(init),
       ),
     )
-    .actions((target) => ({
-      add: (el: T) =>
-        target.set((prev) => (prev.has(el) ? prev : new Set(prev).add(el))),
-      delete: (el: T) =>
-        target.set((prev) => {
-          if (!prev.has(el)) return prev
-          const next = new Set(prev)
-          next.delete(el)
-          return next
-        }),
-      toggle: (el: T) =>
-        target.set((prev) => {
-          if (!prev.has(el)) return new Set(prev).add(el)
-          const next = new Set(prev)
-          next.delete(el)
-          return next
-        }),
-      clear: () =>
-        target.set((prev) => {
-          if (prev.size === 0) return prev
-          return new Set<T>()
-        }),
-      reset: () => target.set(atomInitState),
-    }))
+    .extend(
+      withActions((target) => ({
+        add: (el: T) =>
+          target.set((prev) => (prev.has(el) ? prev : new Set(prev).add(el))),
+        delete: (el: T) =>
+          target.set((prev) => {
+            if (!prev.has(el)) return prev
+            const next = new Set(prev)
+            next.delete(el)
+            return next
+          }),
+        toggle: (el: T) =>
+          target.set((prev) => {
+            if (!prev.has(el)) return new Set(prev).add(el)
+            const next = new Set(prev)
+            next.delete(el)
+            return next
+          }),
+        clear: () =>
+          target.set((prev) => {
+            if (prev.size === 0) return prev
+            return new Set<T>()
+          }),
+        reset: () => target.set(atomInitState),
+      })),
+    )
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))

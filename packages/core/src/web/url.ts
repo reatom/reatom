@@ -5,6 +5,7 @@ import {
   atom,
   STACK,
   top,
+  withActions,
   withMiddleware,
   withParams,
 } from '../core'
@@ -178,12 +179,14 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
       }),
     )
 
-    .actions((target) => ({
-      go(path: string, replace?: boolean) {
-        return target.set((url) => new URL(path, url), replace)
-      },
+    .extend(
+      withActions((target) => ({
+        go(path: string, replace?: boolean) {
+          return target.set((url) => new URL(path, url), replace)
+        },
 
-      syncFromSource(url: URL, replace?: boolean) {
-        return urlAtom.set(url, replace)
-      },
-    })))()
+        syncFromSource(url: URL, replace?: boolean) {
+          return urlAtom.set(url, replace)
+        },
+      })),
+    ))()

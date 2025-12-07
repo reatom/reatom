@@ -178,20 +178,20 @@ tester.run('wrap-rule', wrapRule, {
     },
     {
       code: `
-        import { atom } from "@reatom/core";
-        const anAtom = atom(0).actions(target => ({
+        import { atom, withActions } from "@reatom/core";
+        const anAtom = atom(0).extend(withActions(target => ({
           doAsync: async () => {
             await Promise.resolve();
           }
-        }));
+        })));
       `,
       output: `
-        import { atom, wrap } from "@reatom/core";
-        const anAtom = atom(0).actions(target => ({
+        import { atom, wrap, withActions } from "@reatom/core";
+        const anAtom = atom(0).extend(withActions(target => ({
           doAsync: async () => {
             await wrap(Promise.resolve());
           }
-        }));
+        })));
       `,
       errors: [{ messageId: 'awaitMissingWrap' }],
     },

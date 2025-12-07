@@ -1,5 +1,13 @@
 import type { Action, Atom, AtomState, Computed } from '../core'
-import { _enqueue, action, atom, computed, named, top } from '../core'
+import {
+  _enqueue,
+  action,
+  atom,
+  computed,
+  named,
+  top,
+  withActions,
+} from '../core'
 import { withChangeHook, withComputed, withInit } from '../extensions'
 import { ifChanged, peek } from '../methods'
 import { _getPrevFrame } from '../methods/context'
@@ -78,14 +86,16 @@ export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
         }, 'searchParamsAtom.set'),
       }),
     )
-    .actions(() => ({
-      del: (key: string, replace = false) => {
-        const url = urlAtom()
-        const newUrl = new URL(url.href)
-        newUrl.searchParams.delete(key)
-        urlAtom.set(newUrl, replace)
-      },
-    }))
+    .extend(
+      withActions(() => ({
+        del: (key: string, replace = false) => {
+          const url = urlAtom()
+          const newUrl = new URL(url.href)
+          newUrl.searchParams.delete(key)
+          urlAtom.set(newUrl, replace)
+        },
+      })),
+    )
     .extend(
       () =>
         ({

@@ -9,6 +9,7 @@ import {
   sleep,
   take,
   top,
+  withActions,
   wrap,
 } from '@reatom/core'
 import ReactDOM from 'react-dom/client'
@@ -43,10 +44,10 @@ describe('reatomFactoryComponent', () => {
       // Factory component that creates its own local state
       const Counter = reatomFactoryComponent(
         (props: { initialCount: number }) => {
-          const count = atom(props.initialCount, 'localCount').actions(
-            (target) => ({
+          const count = atom(props.initialCount, 'localCount').extend(
+            withActions((target) => ({
               inc: () => target.set((prev) => prev + 1),
-            }),
+            })),
           )
 
           return () => (
