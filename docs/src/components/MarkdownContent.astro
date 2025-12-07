@@ -16,7 +16,6 @@ import ReplScript from './ReplScript.astro'
   const codeBlocks = document.querySelectorAll('.expressive-code')
   await Promise.all(
     [...(codeBlocks as NodeListOf<HTMLElement>)].map(async (block) => {
-      console.log(block)
       const content = block.innerText
       if (!MermaidTypes.some((type) => content.startsWith(type))) {
         console.log('not a mermaid block')
