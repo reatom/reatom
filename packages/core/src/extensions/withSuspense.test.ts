@@ -96,13 +96,24 @@ test('withSuspense', async () => {
   expect(track).toBeCalledWith(1)
 })
 
-test('withSuspenseInit', async () => {
+test('withSuspenseInit callback', async () => {
   const data = atom<number>(() => null as never).extend(
     withSuspenseInit(async () => {
       await sleep()
       return 1
     }),
   )
+
+  expect(() => data()).toThrowError(Promise)
+  await wrap(sleep())
+  expect(data()).toBe(1)
+})
+
+test('withSuspenseInit unwrap', async () => {
+  const data = atom(async () => {
+    await sleep()
+    return 1
+  }).extend(withSuspenseInit())
 
   expect(() => data()).toThrowError(Promise)
   await wrap(sleep())

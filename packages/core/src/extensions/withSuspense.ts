@@ -130,7 +130,7 @@ export let withSuspense =
             let result = settled(promise, promise)
             if (result === promise) {
               promise.then(
-                wrap((value) => _set(target.suspended!, value)),
+                wrap((value) => _set(target.suspended!, () => value)),
                 wrap((error) => {
                   try {
                     _set(target.suspended!, () => {
@@ -277,7 +277,7 @@ export let withSuspenseInit: {
       withInit((initState: AtomState<Target>) => {
         let result = cb ? cb(initState) : initState
         if (result instanceof Promise) {
-          throw result.then(bind(_set.bind(undefined, target)))
+          throw result.then(bind((value) => _set(target, () => value)))
         }
         return result
       }),
