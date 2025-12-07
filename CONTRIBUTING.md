@@ -25,7 +25,7 @@ If you want to report a bug, create a reproduction using StackBlitz or CodeSandb
    ```
    Replace `<PACKAGE_NAME>` with the relevant package name like `persist` or `npm-react`
 5. [make changes](#coding-guide) and [commit them](#commit-messages)
-6. upload feature branch and create a [Pull Request](https://github.com/reatom/reatom/compare) to merge changes to `v3`
+6. upload feature branch and create a [Pull Request](https://github.com/reatom/reatom/compare) to merge changes to `v1000`
 7. link your PR to the issue using a [closing keyword](https://help.github.com/en/articles/closing-issues-using-keywords) or provide changes description with motivation and explanation in the comment (example: `fix #74`)
 8. wait until a team member responds
 
