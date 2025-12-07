@@ -233,6 +233,13 @@ let walkLinkedList = (
           appendBatch ??= dom.document.createDocumentFragment()
 
           appendBatch.append(change.node)
+        } else if (change.kind === 'createMany') {
+          appendBatch ??= dom.document.createDocumentFragment()
+
+          for (let node of change.nodes) {
+            throwNativeFragment(node)
+            appendBatch.append(node)
+          }
         } else if (appendBatch) {
           element.append(appendBatch)
           appendBatch = undefined
@@ -246,6 +253,17 @@ let walkLinkedList = (
             fragment.end.remove()
           } else {
             element.removeChild(change.node)
+          }
+        } else if (change.kind === 'removeMany') {
+          for (let node of change.nodes) {
+            if (isLiveFragment(node)) {
+              let fragment = node.__reatomFragment
+              fragment.update()
+              fragment.start.remove()
+              fragment.end.remove()
+            } else {
+              element.removeChild(node)
+            }
           }
         }
         // TODO support fragments

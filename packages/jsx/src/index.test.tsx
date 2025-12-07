@@ -924,6 +924,74 @@ test('linked list', () =>
     )
   }))
 
+test('linked list createMany', () =>
+  context.start(async () => {
+    const list = reatomLinkedList((value: number) => <span>{value}</span>)
+
+    const container = <div>{list}</div>
+    mount(parent(), container)
+
+    await wrap(sleep())
+    expect(container.innerHTML).toBe('')
+
+    const nodes = list.createMany([[1], [2], [3]])
+    await wrap(sleep())
+    expect(container.innerHTML).toBe('<span>1</span><span>2</span><span>3</span>')
+    expect(list.array()).toEqual(nodes)
+
+    list.createMany([[4], [5]])
+    await wrap(sleep())
+    expect(container.innerHTML).toBe(
+      '<span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>',
+    )
+  }))
+
+test('linked list removeMany', () =>
+  context.start(async () => {
+    const list = reatomLinkedList((value: number) => <span>{value}</span>)
+    const [one, two, three, four] = list.createMany([[1], [2], [3], [4]])
+
+    const container = <div>{list}</div>
+    mount(parent(), container)
+
+    await wrap(sleep())
+    expect(container.innerHTML).toBe(
+      '<span>1</span><span>2</span><span>3</span><span>4</span>',
+    )
+
+    list.removeMany([two!, four!])
+    await wrap(sleep())
+    expect(container.innerHTML).toBe('<span>1</span><span>3</span>')
+
+    list.removeMany([one!, three!])
+    await wrap(sleep())
+    expect(container.innerHTML).toBe('')
+  }))
+
+test('linked list createMany and removeMany with reatomMap', () =>
+  context.start(async () => {
+    const list = reatomLinkedList((value: number) => atom(value))
+    const jsxList = list.reatomMap((n) => <span>{n}</span>)
+
+    const container = <div>{jsxList}</div>
+    mount(parent(), container)
+
+    await wrap(sleep())
+    expect(container.innerHTML).toBe('')
+    expect(isConnected(list)).toBe(true)
+    expect(isConnected(jsxList)).toBe(true)
+
+    const nodes = list.createMany([[1], [2], [3]])
+    await wrap(sleep())
+    expect(parent().innerText).toBe('123')
+    expect(list.array()).toEqual(nodes)
+
+    list.removeMany([nodes[0]!, nodes[2]!])
+    await wrap(sleep())
+    expect(parent().innerText).toBe('2')
+    expect(list.array()).toEqual([nodes[1]])
+  }))
+
 const expectHtmlElementProperty = <
   Tag extends keyof JSX.HTMLElementTags,
   Property extends keyof JSX.HTMLElementTags[Tag],
