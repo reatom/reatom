@@ -843,8 +843,7 @@ export let createAtom: {
               frame.state = initState() as State
             } catch (error) {
               frame.error = error ?? new ReatomError('Unknown error')
-              frame.pubs[0] = topFrame.root.frame
-              throw error
+              // do nothing, need to try walk through the main process
             } finally {
               if (topFrame.atom.__reatom.linking) {
                 topFrame.pubs.push(frame)

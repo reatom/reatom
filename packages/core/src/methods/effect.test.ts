@@ -108,12 +108,14 @@ test('different types of abort', async () => {
 })
 
 test('rerun on conditional dependency', async () => {
-  const resourceA = atom(1)
+  const name = `conditionRerun`
+
+  const resourceA = atom(1, `${name}.resourceA`)
 
   // also test error handling for the init
   const resourceB = atom<number>(() => {
     throw 42
-  })
+  }, `${name}.resourceB`)
 
   const { promise: testCompleted, resolve: completeTest } =
     Promise.withResolvers()
@@ -123,7 +125,7 @@ test('rerun on conditional dependency', async () => {
     if (valueA !== 2) return
     const valueB = resourceB()
     if (valueB === 2) completeTest(undefined)
-  })
+  }, `${name}.effect`)
 
   await wrap(sleep())
 
@@ -139,15 +141,17 @@ test('rerun on conditional dependency', async () => {
 })
 
 test('rerun on suspended dependency', async () => {
+  const name = `suspendedRerun`
+
   const resourceA = atom(async () => {
     await sleep()
-    return 1
-  }).extend(withSuspenseInit())
+    return 'a'
+  }, `${name}.resourceA`).extend(withSuspenseInit())
 
-  const resourceB = atom<{ username: string; age: number }>(throwAbort).extend(
+  const resourceB = atom<string>(throwAbort, `${name}.resourceB`).extend(
     withSuspenseInit(async () => {
       await sleep()
-      return { username: 'unnamed', age: 12 }
+      return 'b'
     }),
   )
 
@@ -155,13 +159,13 @@ test('rerun on suspended dependency', async () => {
     Promise.withResolvers()
 
   effect(() => {
-    const value = resourceA()
-    expect(value).toBe(1)
-    // const age = memo(() => resourceB().age)
-    const age = resourceB().age
-    expect(age).toBe(12)
+    const a = resourceA()
+    expect(a).toBe('a')
+
+    const b = resourceB()
+    expect(b).toBe('b')
     completeTest(undefined)
-  })
+  }, `${name}.effect`)
 
   await testCompleted
 })
