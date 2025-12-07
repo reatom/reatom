@@ -470,17 +470,20 @@ export function reatomLinkedList<
     return batchFn(() => createNode(params))
   }, `${name}.create`)
 
-  const createMany = action((paramsArray: Array<Params>): Array<LLNode<Node>> => {
-    return batchFn(() => {
-      const nodes: Array<LLNode<Node>> = []
+  const createMany = action(
+    (paramsArray: Array<Params>): Array<LLNode<Node>> => {
+      return batchFn(() => {
+        const nodes: Array<LLNode<Node>> = []
 
-      for (const params of paramsArray) {
-        nodes.push(createNode(params))
-      }
+        for (const params of paramsArray) {
+          nodes.push(createNode(params))
+        }
 
-      return nodes
-    })
-  }, `${name}.createMany`)
+        return nodes
+      })
+    },
+    `${name}.createMany`,
+  )
 
   const remove = action((node: LLNode<Node>): boolean => {
     return batchFn(() => removeNode(node))

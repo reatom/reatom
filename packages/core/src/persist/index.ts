@@ -91,7 +91,6 @@ export interface SyncPersistStorage<
   ): Unsubscribe
 }
 
-
 export interface WithPersistOptions<State = unknown, Snapshot = unknown> {
   /** Key of the storage record. */
   key: string
