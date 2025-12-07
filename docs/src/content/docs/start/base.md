@@ -8,7 +8,7 @@ description: Learn the base Reatom primitives
 Reatom is a framework agnostic library with various adapters for different frameworks. By default all docs and examples are written for React, but you can reuse each code example with any other framework.
 
 ```bash
-npm install @reatom/core@alpha @reatom/react@alpha
+npm install @reatom/core @reatom/react
 ```
 
 ## Template

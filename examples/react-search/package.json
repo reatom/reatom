@@ -11,11 +11,12 @@
   "dependencies": {
     "@mantine/core": "^7.17.4",
     "@mantine/hooks": "^7.17.4",
-    "@reatom/core": "alpha",
-    "@reatom/react": "alpha",
+    "@reatom/core": "1000.*.*",
+    "@reatom/react": "1000.*.*",
     "@tabler/icons-react": "^3.31.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.1.2",

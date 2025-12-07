@@ -33,7 +33,7 @@ A powerful reactive state management library designed to become your go-to resou
 ## Installation
 
 ```bash
-npm install @reatom/core@alpha @reatom/react@alpha
+npm install @reatom/core @reatom/react
 ```
 
 ## Quick Start

@@ -8,8 +8,8 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@reatom/core": "workspace:*",
-    "@reatom/react": "workspace:*",
+    "@reatom/core": "1000.*.*",
+    "@reatom/react": "1000.*.*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "idb-keyval": "^6.2.1"

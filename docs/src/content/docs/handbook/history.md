@@ -25,7 +25,7 @@ We have [a lot of contributors](https://github.com/reatom/reatom/graphs/contribu
 
 ### Versioning
 
-Since the 1k version (`1000`), Reatom uses epoch-based versioning inspired [by Antfu's post](https://antfu.me/posts/epoch-semver). The next epoch release (`2000`) will be in 2026-2027 and may include meaningful changes; the whole ecosystem will be migrated together with the core package. The classic major versions (`1001`, `1002`, `1042`) and other minor and patch versions follow standard SemVer and represent small changes in a general epoch context. `@alpha` tags denote pre-release versions.
+Since the 1k version (`1000`), Reatom uses epoch-based versioning inspired [by Antfu's post](https://antfu.me/posts/epoch-semver). The next epoch release (`2000`) will be in 2026-2027 and may include meaningful changes; the whole ecosystem will be migrated together with the core package. The classic major versions (`1001`, `1002`, `1042`) and other minor and patch versions follow standard SemVer and represent small changes in a general epoch context.
 
 ## How performant Reatom is?
 

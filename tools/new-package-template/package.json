@@ -1,9 +1,6 @@
 {
   "name": null,
-  "version": "1000.0.0-alpha.0",
-  "publishConfig": {
-    "tag": "alpha"
-  },
+  "version": "1000.0.0",
   "description": null,
   "private": false,
   "sideEffects": false,
