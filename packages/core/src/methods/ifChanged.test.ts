@@ -4,7 +4,7 @@ import { _read, action, type ActionState, atom, computed } from '../core'
 import { notify } from '../core'
 import { sleep } from '../utils'
 import { effect } from './effect'
-import { getCalls, ifCalled, ifChanged } from './ifChanged'
+import { getCalls, ifChanged } from './ifChanged'
 import { wrap } from './wrap'
 
 test('ifChanged', () => {
@@ -63,7 +63,7 @@ test('ifCalled', async () => {
   const sum = action((a: number, b: number) => a + b, `${name}.sum`)
   const log = vi.fn<(payload: number, params: [number, number]) => any>()
   const data = computed((state = 0) => {
-    ifCalled(sum, log)
+    getCalls(sum).forEach(({ payload, params }) => log(payload, params))
     return state
   }, `${name}.data`)
   data.subscribe()
@@ -86,7 +86,7 @@ test('ifCalled skip duplicates', async () => {
   const param = atom(0, `${name}.param`)
   const data = computed(() => {
     param()
-    ifCalled(sum, log)
+    getCalls(sum).forEach(({ payload, params }) => log(payload, params))
   }, `${name}.data`)
   data.subscribe()
 

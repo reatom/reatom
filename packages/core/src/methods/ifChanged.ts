@@ -135,12 +135,3 @@ export const getCalls = <Params extends any[], Payload>(
 
   return calls
 }
-
-/** @deprecated Use `getCalls` instead */
-export const ifCalled = <Params extends any[], Payload>(
-  target: Action<Params, Payload>,
-  cb: (payload: Payload, params: Params) => void,
-) => {
-  const newCalls = getCalls(target)
-  newCalls.forEach(({ payload, params }) => peek(cb, payload, params))
-}

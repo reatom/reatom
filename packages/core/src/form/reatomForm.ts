@@ -231,14 +231,6 @@ export interface FormOptionsWithSchema<
   /**
    * The callback to validate form fields before submit, typed according to the
    * schema
-   *
-   * @deprecated Renamed to `validateBeforeSubmit`
-   */
-  validate?: (state: State) => any
-
-  /**
-   * The callback to validate form fields before submit, typed according to the
-   * schema
    */
   validateBeforeSubmit?: (state: State) => any
 
@@ -262,14 +254,6 @@ export interface FormOptionsWithoutSchema<
     state: FormState<T>,
     ...params: SubmitParams
   ) => SubmitReturn | Promise<SubmitReturn>
-
-  /**
-   * The callback to validate form fields before submit, typed according to the
-   * raw form state
-   *
-   * @deprecated Renamed to `validateBeforeSubmit`
-   */
-  validate?: (state: FormState<T>) => any
 
   /**
    * The callback to validate form fields before submit, typed according to the
@@ -498,8 +482,7 @@ export function reatomForm<
     name = named('form'),
     onSubmit,
     resetOnSubmit = false,
-    validate,
-    validateBeforeSubmit = validate,
+    validateBeforeSubmit,
     validateOnBlur = false,
     validateOnChange = false,
     keepErrorDuringValidating = false,

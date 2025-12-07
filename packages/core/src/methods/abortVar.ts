@@ -207,7 +207,3 @@ export class AbortVariable extends Variable<
  * @type {AbortVariable}
  */
 export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
-
-/** @deprecated Use `abortVar.spawn` instead */
-export let spawn: AbortVariable['spawn'] = /* @__PURE__ */ (() =>
-  abortVar.spawn)()

@@ -20,7 +20,7 @@ test('route basic functionality', async () => {
   const profilesRoute = reatomRoute('profiles')
   const profileRoute = reatomRoute('profiles/:profileId')
   const postRoute = reatomRoute('posts/:postId?')
-  const postCommentsRoute = postRoute.route({
+  const postCommentsRoute = postRoute.reatomRoute({
     path: 'comments/:commentId',
     search: z.object({ sort: z.string().optional() }),
   })
@@ -119,10 +119,10 @@ test('route basic functionality', async () => {
 
 test('route chainable functionality', async () => {
   const apiRoute = reatomRoute('api')
-  const productsRoute = apiRoute.route('products')
-  const productDetailsRoute = productsRoute.route(':productId')
-  const productSettingsRoute = productDetailsRoute.route('settings')
-  const productItemsRoute = productDetailsRoute.route('items/:itemId?')
+  const productsRoute = apiRoute.reatomRoute('products')
+  const productDetailsRoute = productsRoute.reatomRoute(':productId')
+  const productSettingsRoute = productDetailsRoute.reatomRoute('settings')
+  const productItemsRoute = productDetailsRoute.reatomRoute('items/:itemId?')
 
   urlAtom.go('/')
   await wrap(sleep())
@@ -242,7 +242,7 @@ test('route default loader', async () => {
 
 test('route loader', async () => {
   const goodsRoute = reatomRoute('goods/:category')
-  const goodsBrandRoute = goodsRoute.route({
+  const goodsBrandRoute = goodsRoute.reatomRoute({
     path: ':brand',
     search: z.object({
       sort: z.enum(['asc', 'desc']).optional(),

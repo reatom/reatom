@@ -182,9 +182,6 @@ export interface RouteOptions<
    *   }
    */
   render?: (options: { outlet: RouteAtom['outlet'] }) => RouteChild
-
-  /** @deprecated Use `render({outlet})` instead */
-  child?: (children: RouteAtom['children']) => RouteChild
 }
 
 export interface RouteMixin<
@@ -265,8 +262,6 @@ export interface RouteMixin<
     Plain<SubSearch>
   >
 
-  /** @deprecated Use `reatomRoute` instead */
-  route: this['reatomRoute']
 }
 
 function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
@@ -474,11 +469,6 @@ export interface RouteExt<
    */
   render: Computed<null | RouteChild>
 
-  /** @deprecated Use `outlet` instead */
-  children: Computed<RouteChild[]>
-
-  /** @deprecated Use `render` instead */
-  child: Computed<null | RouteChild>
 }
 
 /**
@@ -546,15 +536,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       params: paramsSchema,
       search: searchSchema,
       loader: optionsLoader = identity,
-      child: childFn,
-      render: renderFn = childFn && (({ outlet }) => childFn(outlet)),
+      render: renderFn,
     } = options
-
-    if (childFn) {
-      console.warn(
-        `[reatom] Route option \`child\` is deprecated. Use \`render({outlet})\` instead.`,
-      )
-    }
 
     if (subPath.startsWith('/')) {
       throw new Error(
@@ -758,10 +741,6 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         return renderFn && match() ? renderFn({ outlet }) : null
       }, `${name}._render`)
 
-      const children = outlet
-
-      const child = render
-
       return {
         go,
         loader,
@@ -772,10 +751,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         routes,
         outlet,
         render,
-        children,
-        child,
         reatomRoute,
-        route: reatomRoute,
       } as RouteExt
     }) as RouteAtom
 
@@ -855,8 +831,6 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 export let reatomRoute = /* @__PURE__ */ (() =>
   createRouteFactory(urlAtom) as RouteMixin<''>['reatomRoute'])()
 
-/** @deprecated Use `reatomRoute` instead */
-export let route = reatomRoute
 
 /**
  * A computed atom that indicates whether the current URL matches any defined

@@ -202,27 +202,14 @@ export let withMiddleware: {
     cb: (target: Target) => Middleware<Target>,
     options?: { reactive?: boolean },
   ): Ext<Target, Result>
-
-  /** @deprecated */
-  <Target extends AtomLike>(
-    cb: (target: Target) => Middleware<Target>,
-    tail?: boolean,
-  ): GenericExt<Target>
-
-  /** @deprecated */
-  <Target extends AtomLike, Result extends AtomLike = Target>(
-    cb: (target: Target) => Middleware<Target>,
-    tail?: boolean,
-  ): Ext<Target, Result>
 } =
   (
     cb: (target: AtomLike) => (next: Fn, ...params: any[]) => any,
 
-    options: boolean | { reactive?: boolean },
+    options?: { reactive?: boolean },
   ) =>
   (target: AtomLike) => {
-    let { reactive = false } =
-      typeof options === 'boolean' ? { reactive: options } : (options ?? {})
+    let { reactive = false } = options ?? {}
 
     let middleware = cb(target)
 

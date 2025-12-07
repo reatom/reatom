@@ -75,7 +75,7 @@ export interface WebSocketOptions {
   name?: string
 }
 
-export const reatomWebSocket = <T = any>(
+export const experimental_reatomWebSocket = <T = any>(
   options: WebSocketOptions | string,
 ): WebSocketAtom<T> => {
   const {

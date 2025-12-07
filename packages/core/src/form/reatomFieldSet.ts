@@ -49,14 +49,6 @@ export interface ValidationlessFieldSet<T extends FormInitState>
   fieldArraysList: Computed<FormFieldArrayAtom[]>
 
   /**
-   * Atom with the state of the fieldset, computed from all the fields in
-   * `fieldsList`
-   *
-   * @deprecated Use target atom instead
-   */
-  fieldsState: Computed<FormState<T>>
-
-  /**
    * Atom with focus state of the fieldset, computed from all the fields in
    * `fieldsList`
    */
@@ -191,7 +183,6 @@ export const reatomFieldSet = <T extends FormInitState>(
     fields,
     fieldsList,
     fieldArraysList,
-    fieldsState,
     focus,
     validation,
     init,

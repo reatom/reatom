@@ -157,6 +157,3 @@ export let memo = <State>(
 
   return memoAtom()
 }
-
-/** @deprecated Use `memo` instead */
-export let select = memo

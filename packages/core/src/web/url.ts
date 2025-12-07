@@ -41,9 +41,6 @@ export interface UrlAtom extends Atom<URL> {
    */
   go: (path: string, replace?: boolean) => URL
 
-  /** @deprecated Use `reatomRoute` instead */
-  match?: never
-
   /**
    * Whether to intercept link clicks for SPA navigation.
    *
