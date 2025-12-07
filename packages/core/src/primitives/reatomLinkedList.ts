@@ -51,7 +51,9 @@ export interface LinkedListAtom<
   batch: Action<[cb: Fn]>
 
   create: Action<Params, LLNode<Node>>
+  createMany: Action<[Array<Params>], Array<LLNode<Node>>>
   remove: Action<[LLNode<Node>], boolean>
+  removeMany: Action<[Array<LLNode<Node>>], number>
   swap: Action<[a: LLNode<Node>, b: LLNode<Node>], void>
   move: Action<[node: LLNode<Node>, after: null | LLNode<Node>], void>
   clear: Action<[], void>
@@ -430,43 +432,73 @@ export function reatomLinkedList<
 
   const batch = action(batchFn, `${name}._batch`)
 
+  const createNode = (params: Params): LLNode<Node> => {
+    const node = userCreate(...params) as LLNode<Node>
+
+    if (!isObject(node) && typeof node !== 'function')
+      throw new ReatomError(
+        `reatomLinkedList can operate only with objects or functions, received "${node}".`,
+      )
+
+    throwModel(node)
+
+    addLL(STATE!, node, STATE!.tail)
+
+    STATE!.changes.push({ kind: 'create', node })
+
+    return node
+  }
+
+  const removeNode = (node: LLNode<Node>): boolean => {
+    throwNotModel(node)
+
+    if (
+      node[LL_PREV] === null &&
+      node[LL_NEXT] === null &&
+      STATE!.tail !== node
+    )
+      return false
+
+    removeLL(STATE!, node)
+
+    STATE!.changes.push({ kind: 'remove', node })
+
+    return true
+  }
+
   const create = action((...params: Params): LLNode<Node> => {
-    return batchFn(() => {
-      const node = userCreate(...params) as LLNode<Node>
-
-      if (!isObject(node) && typeof node !== 'function')
-        throw new ReatomError(
-          `reatomLinkedList can operate only with objects or functions, received "${node}".`,
-        )
-
-      throwModel(node)
-
-      addLL(STATE!, node, STATE!.tail)
-
-      STATE!.changes.push({ kind: 'create', node })
-
-      return node
-    })
+    return batchFn(() => createNode(params))
   }, `${name}.create`)
 
-  const remove = action((node: LLNode<Node>): boolean => {
+  const createMany = action((paramsArray: Array<Params>): Array<LLNode<Node>> => {
     return batchFn(() => {
-      throwNotModel(node)
+      const nodes: Array<LLNode<Node>> = []
 
-      if (
-        node[LL_PREV] === null &&
-        node[LL_NEXT] === null &&
-        STATE!.tail !== node
-      )
-        return false
+      for (const params of paramsArray) {
+        nodes.push(createNode(params))
+      }
 
-      removeLL(STATE!, node)
-
-      STATE!.changes.push({ kind: 'remove', node })
-
-      return true
+      return nodes
     })
+  }, `${name}.createMany`)
+
+  const remove = action((node: LLNode<Node>): boolean => {
+    return batchFn(() => removeNode(node))
   }, `${name}.remove`)
+
+  const removeMany = action((nodes: Array<LLNode<Node>>): number => {
+    return batchFn(() => {
+      let removedCount = 0
+
+      for (const node of nodes) {
+        if (removeNode(node)) {
+          removedCount++
+        }
+      }
+
+      return removedCount
+    })
+  }, `${name}.removeMany`)
 
   const swap = action((a: LLNode<Node>, b: LLNode<Node>): void => {
     return batchFn(() => {
@@ -720,7 +752,9 @@ export function reatomLinkedList<
   return Object.assign(linkedList, {
     batch,
     create,
+    createMany,
     remove,
+    removeMany,
     swap,
     move,
     clear,

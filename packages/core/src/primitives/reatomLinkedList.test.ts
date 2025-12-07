@@ -331,3 +331,67 @@ test('should maintain linked list integrity after swaps', () => {
   validateIntegrity(list().head)
   expect(list.array().map(({ n }) => n)).toEqual([1, 4, 2, 3])
 })
+
+test('should create many items at once', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const track = subscribe(list.array)
+
+  const nodes = list.createMany([[1], [2], [3], [4]])
+  notify()
+
+  expect(nodes.length).toBe(4)
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
+  expect(list().size).toBe(4)
+  expect(list().changes.length).toBe(4)
+  expect(list().changes.every((c) => c.kind === 'create')).toBe(true)
+})
+
+test('should remove many items at once', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const track = subscribe(list.array)
+
+  const nodes = list.createMany([[1], [2], [3], [4]])
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
+
+  const removedCount = list.removeMany([nodes[1]!, nodes[3]!])
+  notify()
+
+  expect(removedCount).toBe(2)
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 3])
+  expect(list().size).toBe(2)
+  expect(list().changes.length).toBe(2)
+  expect(list().changes.every((c) => c.kind === 'remove')).toBe(true)
+})
+
+test('should handle removeMany with already removed nodes', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+
+  const nodes = list.createMany([[1], [2], [3]])
+  notify()
+
+  list.remove(nodes[1]!)
+  notify()
+
+  const removedCount = list.removeMany([nodes[0]!, nodes[1]!, nodes[2]!])
+  notify()
+
+  expect(removedCount).toBe(2)
+  expect(list.array().map(({ n }) => n)).toEqual([])
+  expect(list().size).toBe(0)
+})
+
+test('should track createMany and removeMany with reatomMap', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const { array } = list.reatomMap(({ n }) => ({ doubled: n * 2 }))
+  const track = subscribe(computed(() => array().map(({ doubled }) => doubled)))
+
+  list.createMany([[1], [2], [3]])
+  notify()
+  expect(track.mock.lastCall?.[0]).toEqual([2, 4, 6])
+
+  const nodes = list.array()
+  list.removeMany([nodes[0]!, nodes[2]!])
+  notify()
+  expect(track.mock.lastCall?.[0]).toEqual([4])
+})
