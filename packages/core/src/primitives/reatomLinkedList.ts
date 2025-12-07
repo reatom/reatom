@@ -36,8 +36,9 @@ export interface LinkedList<Node extends LLNode = LLNode> {
   changes: Array<LLChanges<Node>>
 }
 
-export interface LinkedListLikeAtom<T extends LinkedList = LinkedList>
-  extends Atom<T> {
+export interface LinkedListLikeAtom<
+  T extends LinkedList = LinkedList,
+> extends Atom<T> {
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
 
   __reatomLinkedList: true
@@ -103,13 +104,17 @@ export interface LinkedListAtom<
 }
 
 // TODO rename to `DerivedLinkedList`
-export interface LinkedListDerivedState<Node extends LLNode, T extends LLNode>
-  extends LinkedList<T> {
+export interface LinkedListDerivedState<
+  Node extends LLNode,
+  T extends LLNode,
+> extends LinkedList<T> {
   map: WeakMap<Node, T>
 }
 
-export interface LinkedListDerivedAtom<Node extends LLNode, T extends LLNode>
-  extends Computed<LinkedListDerivedState<Node, T>> {
+export interface LinkedListDerivedAtom<
+  Node extends LLNode,
+  T extends LLNode,
+> extends Computed<LinkedListDerivedState<Node, T>> {
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
 
   __reatomLinkedList: true

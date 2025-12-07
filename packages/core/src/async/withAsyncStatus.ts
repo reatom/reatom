@@ -29,8 +29,10 @@ export * from './withAsyncStatus.types'
  * Atom that tracks the detailed status of async operations. Provides boolean
  * flags for current state and historical state tracking.
  */
-export interface AsyncStatusAtom<State = never, InitState = State>
-  extends Computed<AsyncStatus<State, InitState>> {
+export interface AsyncStatusAtom<
+  State = never,
+  InitState = State,
+> extends Computed<AsyncStatus<State, InitState>> {
   /**
    * Resets the status atom to initial state, clearing all history flags. Useful
    * when you want to treat the next async call as a "first" call again.

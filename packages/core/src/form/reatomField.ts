@@ -101,8 +101,10 @@ export interface FieldLikeAtom<State = any> extends Atom<State> {
   __reatomField: true
 }
 
-export interface FieldAtom<State = any, Value = State>
-  extends FieldLikeAtom<State> {
+export interface FieldAtom<
+  State = any,
+  Value = State,
+> extends FieldLikeAtom<State> {
   /**
    * Action for handling field changes, accepts the "value" parameter and
    * applies it to `toState` option.
@@ -201,18 +203,18 @@ export interface FieldOptions<State = any, Value = State> {
    * The callback to transform the "state" data from the "value" data from the
    * `change` action. By default, it returns the "value" data without any
    * transformations.
-   * 
-   * It's also possible to abort the computation and left the state unchaged
-   * by throwing abort error inside the callback
-   * 
+   *
+   * It's also possible to abort the computation and left the state unchaged by
+   * throwing abort error inside the callback
+   *
    * @example
-   * const numberField = reatomField(0, {
-   *  fromState: (state) => state.toString(),
-   *  toState: (value: string) => {
-   *    const parsed = Number(value)
-   *    return isNaN(parsed) ? throwAbort() : parsed
-   *  }
-   * });
+   *   const numberField = reatomField(0, {
+   *     fromState: (state) => state.toString(),
+   *     toState: (value: string) => {
+   *       const parsed = Number(value)
+   *       return isNaN(parsed) ? throwAbort() : parsed
+   *     },
+   *   })
    */
   toState?: (value: Value, self: FieldAtom<State, Value>) => State
 
@@ -268,8 +270,10 @@ export interface FieldOptions<State = any, Value = State> {
   validateOnBlur?: boolean
 }
 
-export interface TransformableFieldOptions<State, Value> extends 
-  Omit<FieldOptions<State, Value>, 'fromState' | 'toState'> {
+export interface TransformableFieldOptions<State, Value> extends Omit<
+  FieldOptions<State, Value>,
+  'fromState' | 'toState'
+> {
   /**
    * The callback to compute the "value" data from the "state" data. By default,
    * it returns the "state" data without any transformations.
@@ -320,7 +324,10 @@ export function reatomField<State, A extends Atom<State>, Value = State>(
 
 export function reatomField<State, Value = State>(
   _initState: State,
-  options: string | FieldOptions<State, Value> | TransformableFieldOptions<State, Value> = {},
+  options:
+    | string
+    | FieldOptions<State, Value>
+    | TransformableFieldOptions<State, Value> = {},
   stateAtom?: Atom<State>,
 ): FieldAtom<State, Value> {
   interface This extends FieldAtom<State, Value> {}
@@ -633,10 +640,8 @@ export function reatomField<State, Value = State>(
 
     try {
       field.set(toState(newValue, field as This))
-    }
-    catch (error) {
-      if(!isAbort(error))
-        throw error
+    } catch (error) {
+      if (!isAbort(error)) throw error
     }
     return newValue
   }, `${name}._change`)

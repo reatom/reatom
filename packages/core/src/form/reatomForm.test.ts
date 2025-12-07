@@ -46,13 +46,13 @@ test(`fields type inference from init state`, () => {
     string: reatomField(''),
     stringExt: atom('').extend(withField()),
     numberExt: atom(0).extend(
-      withField({ 
+      withField({
         fromState: (state) => String(state),
         toState: (value: string) => Number(value),
       }),
     ),
     options: { initState: 123 },
-    optionsWithValue: { 
+    optionsWithValue: {
       initState: 123,
       fromState: (state) => String(state),
       toState: (value) => Number(value),

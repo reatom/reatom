@@ -43,6 +43,6 @@ export let withSuspenseRetry =
               }
             }
           },
-        false,
+        { reactive: true },
       ),
     )

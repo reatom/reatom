@@ -16,12 +16,16 @@ export interface ActionCall<Params extends any[] = any[], Payload = any> {
 }
 
 /** Autoclearable array of processed events */
-export interface ActionState<Params extends any[] = any[], Payload = any>
-  extends Array<ActionCall<Params, Payload>> {}
+export interface ActionState<
+  Params extends any[] = any[],
+  Payload = any,
+> extends Array<ActionCall<Params, Payload>> {}
 
 /** Logic container with atom features */
-export interface Action<Params extends any[] = any[], Payload = any>
-  extends AtomLike<ActionState<Params, Payload>, Params, Payload> {}
+export interface Action<
+  Params extends any[] = any[],
+  Payload = any,
+> extends AtomLike<ActionState<Params, Payload>, Params, Payload> {}
 
 export type GenericAction<T extends Fn> = T &
   Action<Parameters<T>, ReturnType<T>>

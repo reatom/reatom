@@ -11,8 +11,10 @@ import {
  * Web storage persist interface that extends the base persist functionality
  * with a storage atom for managing the underlying storage mechanism.
  */
-export interface WithPersistCookie
-  extends WithPersist<string, CookieAttributes> {}
+export interface WithPersistCookie extends WithPersist<
+  string,
+  CookieAttributes
+> {}
 
 /**
  * Configuration options for HTTP cookies following standard cookie attributes.

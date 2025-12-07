@@ -261,7 +261,6 @@ export interface RouteMixin<
     Plain<Params & SubParams>,
     Plain<SubSearch>
   >
-
 }
 
 function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
@@ -290,7 +289,8 @@ const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
  * examples.
  */
 export interface RouteLoader<Params extends Rec = Rec, Payload = any>
-  extends Computed<Promise<Payload>>,
+  extends
+    Computed<Promise<Payload>>,
     AsyncDataExt<[Params], Payload, Payload, undefined, Error | undefined> {}
 
 /** Route extension interface for route computed atom. */
@@ -468,7 +468,6 @@ export interface RouteExt<
    *   })
    */
   render: Computed<null | RouteChild>
-
 }
 
 /**
@@ -512,7 +511,9 @@ export interface RouteAtom<
   Payload = Plain<Params & Search>,
   InputParams = Params,
   InputSearch = Search,
-> extends Computed<null | Plain<Params & Search>>,
+>
+  extends
+    Computed<null | Plain<Params & Search>>,
     RouteExt<Path, Params, Search, Payload, InputParams, InputSearch> {}
 
 const getPatternName = (part: string) => {
@@ -830,7 +831,6 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
  */
 export let reatomRoute = /* @__PURE__ */ (() =>
   createRouteFactory(urlAtom) as RouteMixin<''>['reatomRoute'])()
-
 
 /**
  * A computed atom that indicates whether the current URL matches any defined

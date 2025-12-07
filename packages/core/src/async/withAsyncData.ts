@@ -24,8 +24,8 @@ export interface AsyncDataExt<
   State = any,
   InitState = State,
   Error = any,
-> extends AsyncExt<Params, Payload, Error>,
-    AbortExt {
+>
+  extends AsyncExt<Params, Payload, Error>, AbortExt {
   /**
    * Atom that stores the fetched data Updated automatically when the async
    * operation completes successfully
@@ -49,8 +49,8 @@ export interface AsyncDataExt<
 
   /**
    * Action that retries the async operation by resetting dependencies and
-   * re-evaluating the computed function. This is useful for manually
-   * refreshing data or recovering from errors.
+   * re-evaluating the computed function. This is useful for manually refreshing
+   * data or recovering from errors.
    *
    * @returns The promise from the re-triggered async operation
    */

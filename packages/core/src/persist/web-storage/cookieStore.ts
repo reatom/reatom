@@ -10,8 +10,10 @@ import {
  * Web storage persist interface that extends the base persist functionality
  * with cookie store specific options.
  */
-export interface WithPersistCookieStore
-  extends WithPersist<unknown, CookieStoreOptions> {}
+export interface WithPersistCookieStore extends WithPersist<
+  unknown,
+  CookieStoreOptions
+> {}
 
 /**
  * Configuration options for Cookie Store API following standard cookie

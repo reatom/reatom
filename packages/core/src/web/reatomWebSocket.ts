@@ -13,8 +13,9 @@ export interface WebSocketMessage<T = any> {
   type: 'message' | 'error'
 }
 
-export interface WebSocketAtom<T = any>
-  extends Atom<Array<WebSocketMessage<T>>> {
+export interface WebSocketAtom<T = any> extends Atom<
+  Array<WebSocketMessage<T>>
+> {
   /** Current connection state */
   readyState: Atom<WebSocketReadyState>
   /** Current WebSocket instance (null if not connected) */

@@ -101,8 +101,10 @@ export interface AtomLike<
  *
  * @template State - The type of state stored in the atom
  */
-export interface Atom<State = any, Params extends any[] = [newState: State]>
-  extends AtomLike<State, []> {
+export interface Atom<
+  State = any,
+  Params extends any[] = [newState: State],
+> extends AtomLike<State, []> {
   /**
    * Update the atom's state using a function that receives the previous state
    *

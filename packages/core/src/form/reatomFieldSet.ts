@@ -37,8 +37,9 @@ export interface FieldSetValidation {
   validating: undefined | Promise<{ errors: FieldSetFieldError[] }>
 }
 
-export interface ValidationlessFieldSet<T extends FormInitState>
-  extends Computed<FormState<T>> {
+export interface ValidationlessFieldSet<
+  T extends FormInitState,
+> extends Computed<FormState<T>> {
   /** Fields from the init state */
   fields: FormFields<T>
 
@@ -61,8 +62,9 @@ export interface ValidationlessFieldSet<T extends FormInitState>
   reset: Action<[initState?: FormPartialState<T>], void>
 }
 
-export interface FieldSet<T extends FormInitState>
-  extends ValidationlessFieldSet<T> {
+export interface FieldSet<
+  T extends FormInitState,
+> extends ValidationlessFieldSet<T> {
   /**
    * Atom with validation state of the fieldset, computed from all the fields in
    * `fieldsList`

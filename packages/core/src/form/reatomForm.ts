@@ -43,8 +43,10 @@ import type {
 } from './reatomFieldSet'
 import { reatomFieldSet } from './reatomFieldSet'
 
-export interface FormFieldOptions<State = any, Value = State>
-  extends FieldOptions<State, Value> {
+export interface FormFieldOptions<
+  State = any,
+  Value = State,
+> extends FieldOptions<State, Value> {
   initState: State
 }
 
