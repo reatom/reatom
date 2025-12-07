@@ -9,7 +9,14 @@ import {
   type RootState,
   STACK,
 } from '@reatom/core'
-import { type Accessor, createContext, from, useContext } from 'solid-js'
+import {
+  type Accessor,
+  createContext,
+  createSignal,
+  getListener,
+  onCleanup,
+  useContext,
+} from 'solid-js'
 
 /**
  * Solid.js context for providing the Reatom frame to the component tree.
@@ -83,14 +90,21 @@ export let useFrame = (): Frame => {
   return frame
 }
 
-let solidMap = new WeakMap<RootState, WeakMap<AtomLike, Accessor<any>>>()
+type AccessorCache = {
+  accessor: Accessor<unknown>
+  count: number
+  unsubscribe: null | (() => void)
+}
+
+let solidMap = new WeakMap<RootState, WeakMap<AtomLike, AccessorCache>>()
 
 /**
  * Internal hook that creates and caches a Solid.js accessor for an atom.
  *
  * This hook manages a cache of accessors per root state and atom, ensuring that
- * the same accessor instance is reused across renders. The accessor subscribes
- * to the atom and updates when the atom's state changes.
+ * the same accessor instance is reused across renders. The accessor lazily
+ * subscribes to the atom only when accessed within a tracking context
+ * (like inside a component or effect), and unsubscribes when no longer observed.
  *
  * @template State The type of the atom's state
  * @param {AtomLike<State>} target The atom to create an accessor for
@@ -109,20 +123,39 @@ let useAccessor = <State>(
     solidMap.set(frame.root, atomMap)
   }
 
-  let accessor = atomMap.get(target)
+  let cache = atomMap.get(target)
 
-  if (!accessor) {
-    atomMap.set(
-      target,
-      (accessor = from(
-        // @ts-ignore
-        (set) => target.subscribe(bind(set, frame)),
-        frame.run(target),
-      )),
-    )
+  if (!cache) {
+    let [read, write] = createSignal(frame.run(target), { equals: false })
+    let setState = (state: State) => write(() => state)
+
+    let accessorCache: AccessorCache = {
+      accessor: () => {
+        let state = read()
+
+        if (getListener()) {
+          if (accessorCache.count++ === 0) {
+            accessorCache.unsubscribe = target.subscribe(bind(setState, frame))
+          }
+
+          onCleanup(() => {
+            if (--accessorCache.count === 0) {
+              accessorCache.unsubscribe!()
+              accessorCache.unsubscribe = null
+            }
+          })
+        }
+
+        return state
+      },
+      count: 0,
+      unsubscribe: null,
+    }
+
+    atomMap.set(target, (cache = accessorCache))
   }
 
-  return accessor
+  return cache.accessor as Accessor<State>
 }
 
 /**
@@ -146,12 +179,12 @@ let useAccessor = <State>(
  *   }
  *
  * @example
- *   // You may setup `.solid` accessor to ALL atoms and actions automatically
+ *   // You may setup `.solid` accessor to ALL atoms automatically
  *   // but make it in "setup" file and import it before any other imports
- *   import { EXTENSIONS } from '@reatom/core'
+ *   import { addGlobalExtension } from '@reatom/core'
  *   import { withSolid } from '@reatom/solid'
  *
- *   EXTENSIONS.push(withSolid())
+ *   addGlobalExtension(withSolid())
  *
  *   declare module '@reatom/core' {
  *     interface Atom<State> extends SolidExt<State> {}

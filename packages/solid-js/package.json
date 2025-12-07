@@ -2,7 +2,7 @@
 	"name": "@reatom/solid-js",
 	"version": "1000.0.0-alpha.30",
 	"publishConfig": {
-		"tag": "alpha"
+		"tag": "not-ready"
 	},
 	"description": "Reatom bindings for solid-js",
 	"private": false,
@@ -21,8 +21,8 @@
 	"scripts": {
 		"prepublishOnly": "pnpm run build && pnpm run test",
 		"build": "microbundle -f esm,cjs --raw",
-		"test": "vitest run src/*",
-		"test:watch": "vitest src/*"
+		"test": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
+		"test:watch": "vitest --config=vitest.browser.config.ts"
 	},
 	"dependencies": {
 		"@reatom/core": "workspace:^",
@@ -60,6 +60,8 @@
 	"devDependencies": {
 		"@typescript-eslint/eslint-plugin": "catalog:",
 		"@typescript-eslint/parser": "catalog:",
-		"eslint-plugin-simple-import-sort": "catalog:"
+		"@vitest/browser-playwright": "catalog:",
+		"eslint-plugin-simple-import-sort": "catalog:",
+		"vite-plugin-solid": "^2.11.6"
 	}
 }

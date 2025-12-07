@@ -1,0 +1,24 @@
+import solid from 'vite-plugin-solid'
+import { playwright } from '@vitest/browser-playwright'
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  plugins: [solid()],
+  test: {
+    name: '@reatom/solid-js-browser',
+    include: ['./src/**/*.test.tsx'],
+    browser: {
+      enabled: true,
+      provider: playwright(),
+      headless: true,
+      screenshotFailures: false,
+      instances: [
+        {
+          name: 'solid-chromium',
+          browser: 'chromium',
+        },
+      ],
+    },
+  },
+})
+
