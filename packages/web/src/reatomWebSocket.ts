@@ -149,8 +149,10 @@ export function reatomWebSocket<T = unknown>(
   }, `${name}.latestMessage`)
 
   // Internal state for reconnection logic
-  let reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null
-  let reconnectAttemptsCount = 0
+  const reconnectTimeoutIdAtom = atom<ReturnType<typeof setTimeout> | null>(
+    null,
+    `${name}.reconnectTimeoutId`,
+  )
 
   // Helper to add a message with maxMessages limit
   function addMessage(ctx: Ctx, message: WebSocketMessage<T>) {
@@ -175,9 +177,11 @@ export function reatomWebSocket<T = unknown>(
       prevSocket.close()
     }
     // Clear the reconnect timeout before setting a new one
-    if (reconnectTimeoutId) {
-      clearTimeout(reconnectTimeoutId)
-      reconnectTimeoutId = null
+    const prevTimeoutId = ctx.get(reconnectTimeoutIdAtom)
+
+    if (prevTimeoutId) {
+      clearTimeout(prevTimeoutId)
+      reconnectTimeoutIdAtom(ctx, null)
     }
     readyState(ctx, 'CONNECTING')
     error(ctx, null)
@@ -190,7 +194,6 @@ export function reatomWebSocket<T = unknown>(
       readyState(ctx, 'OPEN')
       connectedAt(ctx, Date.now())
       reconnectAttempts(ctx, 0)
-      reconnectAttemptsCount = 0
       error(ctx, null)
     })
     onEvent(ctx, ws, 'message', (event) => {
@@ -216,27 +219,28 @@ export function reatomWebSocket<T = unknown>(
       closedAt(ctx, Date.now())
       socket(ctx, null)
 
+      const attempts = ctx.get(reconnectAttempts)
+
       if (
         ctx.get(autoReconnectAtom) &&
-        (maxReconnectAttempts === 0 ||
-          reconnectAttemptsCount < maxReconnectAttempts)
+        (maxReconnectAttempts === 0 || attempts < maxReconnectAttempts)
       ) {
-        reconnectAttemptsCount++
-        reconnectAttempts(ctx, reconnectAttemptsCount)
-        if (reconnectTimeoutId) {
-          clearTimeout(reconnectTimeoutId)
-        }
-        const delay = getReconnectDelay(
-          strategy,
-          reconnectDelay,
-          reconnectAttemptsCount,
-        )
+        const nextAttempts = attempts + 1
 
-        reconnectTimeoutId = setTimeout(() => {
+        reconnectAttempts(ctx, nextAttempts)
+        const prevTimeoutId = ctx.get(reconnectTimeoutIdAtom)
+
+        if (prevTimeoutId) {
+          clearTimeout(prevTimeoutId)
+        }
+        const delay = getReconnectDelay(strategy, reconnectDelay, nextAttempts)
+        const timeoutId = setTimeout(() => {
           if (ctx.get(autoReconnectAtom)) {
             connect(ctx)
           }
         }, delay)
+
+        reconnectTimeoutIdAtom(ctx, timeoutId)
       }
     })
     onEvent(ctx, ws, 'error', (event) => {
@@ -252,9 +256,11 @@ export function reatomWebSocket<T = unknown>(
     onCtxAbort(ctx, () => {
       ws.close()
       socket(ctx, null)
-      if (reconnectTimeoutId) {
-        clearTimeout(reconnectTimeoutId)
-        reconnectTimeoutId = null
+      const prevTimeoutId = ctx.get(reconnectTimeoutIdAtom)
+
+      if (prevTimeoutId) {
+        clearTimeout(prevTimeoutId)
+        reconnectTimeoutIdAtom(ctx, null)
       }
     })
   }, `${name}.connect`)
@@ -270,10 +276,11 @@ export function reatomWebSocket<T = unknown>(
       socket(ctx, null)
       readyState(ctx, 'CLOSED')
       reconnectAttempts(ctx, 0)
-      reconnectAttemptsCount = 0
-      if (reconnectTimeoutId) {
-        clearTimeout(reconnectTimeoutId)
-        reconnectTimeoutId = null
+      const prevTimeoutId = ctx.get(reconnectTimeoutIdAtom)
+
+      if (prevTimeoutId) {
+        clearTimeout(prevTimeoutId)
+        reconnectTimeoutIdAtom(ctx, null)
       }
     },
     `${name}.disconnect`,
