@@ -344,7 +344,10 @@ test('should create many items at once', () => {
   expect(list().size).toBe(4)
   expect(list().changes.length).toBe(1)
   expect(list().changes[0]!.kind).toBe('createMany')
-  const change = list().changes[0] as { kind: 'createMany'; nodes: typeof nodes }
+  const change = list().changes[0] as {
+    kind: 'createMany'
+    nodes: typeof nodes
+  }
   expect(change.nodes).toEqual(nodes)
 })
 
@@ -364,7 +367,10 @@ test('should remove many items at once', () => {
   expect(list().size).toBe(2)
   expect(list().changes.length).toBe(1)
   expect(list().changes[0]!.kind).toBe('removeMany')
-  const change = list().changes[0] as { kind: 'removeMany'; nodes: typeof nodes }
+  const change = list().changes[0] as {
+    kind: 'removeMany'
+    nodes: typeof nodes
+  }
   expect(change.nodes).toEqual([nodes[1], nodes[3]])
 })
 
@@ -388,7 +394,9 @@ test('should handle removeMany with already removed nodes', () => {
 test('should track createMany and removeMany with reatomMap', () => {
   const list = reatomLinkedList((n: number) => ({ n }))
   const mapped = list.reatomMap(({ n }) => ({ doubled: n * 2 }))
-  const track = subscribe(computed(() => mapped.array().map(({ doubled }) => doubled)))
+  const track = subscribe(
+    computed(() => mapped.array().map(({ doubled }) => doubled)),
+  )
 
   list.createMany([[1], [2], [3]])
   notify()

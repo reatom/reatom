@@ -821,4 +821,3 @@ export function reatomLinkedList<
 
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>
   thing?.__reatomLinkedList === true
-
