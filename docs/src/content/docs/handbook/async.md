@@ -283,53 +283,34 @@ const filteredResults = computed(async () => {
 
 ### Optimistic Updates
 
-Implement optimistic updates with automatic rollback on error:
+For optimistic updates you can use `withTransaction` and `withRollback` extensions! Marked atoms will automatically rollback the changes inside a transaction action if it fails.
 
 ```ts
-const userList = atom([], 'userList')
+import {
+  action,
+  atom,
+  withAsync,
+  withRollback,
+  withTransaction,
+  wrap,
+} from '@reatom/core'
 
-const updateUser = action(async (userId: string, updates: Partial<User>) => {
+const user = atom<null | User>(null, 'user').extend(withRollback())
+
+const updateUser = action(async (update: Partial<User>) => {
+  user.set((state) => ({ ...state, ...update }))
+
   const response = await wrap(
-    fetch(`/api/users/${userId}`, {
+    fetch(`/api/users/${user().id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updates),
+      body: JSON.stringify(update),
     }),
   )
 
   if (!response.ok) throw new Error('Update failed')
   return await wrap(response.json())
-}, 'updateUser').extend(withAsync())
-
-updateUser.subscribe(({ promise, params }) => {
-  const [userId, updates] = params;
-  const currentList = userList();
-
-  const originalUserData = currentList.find((user) => user.id === userId);
-
-  if (!originalUserData) return;
-
-  const newUserData = { ...originalUserData, ...updates };
-
-  // Optimistic update
-  const optimisticList = currentList.map((user) =>
-    user.id === userId ? newUserData : user,
-  );
-  userList.set(optimisticList);
-
-  // Rollback on error
-  promise.catch(() => {
-    const currentUserData = userList().find((user) => user.id === userId);
-
-    // If user deleted or was changed do nothing
-    if (!currentUserData || currentUserData !== newUserData) return;
-
-    // Replace to original userData
-    userList.set((prev) =>
-      prev.map((user) => (user.id === userId ? originalUserData : user)),
-    );
-  });
-});
+}, 'updateUser').extend(withAsync(), withTransaction())
 ```
 
 ### Manual Abort Control
@@ -447,11 +428,11 @@ The status object provides several boolean flags organized into two categories:
 
 **Historical Tracking Flags**:
 
-| Property        | Description                                                  |
-| --------------- | ------------------------------------------------------------ |
-| `isFirstPending`| This is the first-ever pending state (great for skeletons)   |
-| `isEverPending` | At least one async operation has been started                |
-| `isEverSettled` | At least one async operation has completed                   |
+| Property         | Description                                                |
+| ---------------- | ---------------------------------------------------------- |
+| `isFirstPending` | This is the first-ever pending state (great for skeletons) |
+| `isEverPending`  | At least one async operation has been started              |
+| `isEverSettled`  | At least one async operation has completed                 |
 
 ### First Load vs Subsequent Loads
 
@@ -538,7 +519,9 @@ const searchResults = computed(async () => {
   const query = searchQuery()
   if (!query.trim()) return []
 
-  const response = await wrap(fetch(`/api/search?q=${encodeURIComponent(query)}`))
+  const response = await wrap(
+    fetch(`/api/search?q=${encodeURIComponent(query)}`),
+  )
   return await wrap(response.json())
 }, 'searchResults').extend(withAsyncData({ initState: [], status: true }))
 
