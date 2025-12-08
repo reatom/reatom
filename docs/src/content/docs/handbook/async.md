@@ -375,24 +375,30 @@ const api = action(async (data: any) => {
 }, 'api').extend(withAsync())
 
 // Handle successful completion
-api.onFulfill.subscribe(({ payload, params }) => {
-  console.log('API call succeeded:', payload)
-  // payload: the resolved value
-  // params: the original parameters passed to the action
-})
+api.onFulfill.extend(
+  withCallHook(({ payload, params }) => {
+    console.log('API call succeeded:', payload)
+    // payload: the resolved value
+    // params: the original parameters passed to the action
+  }),
+)
 
 // Handle errors
-api.onReject.subscribe(({ error, params }) => {
-  console.error('API call failed:', error)
-  // error: the thrown error
-  // params: the original parameters passed to the action
-})
+api.onReject.extend(
+  withCallHook(({ error, params }) => {
+    console.error('API call failed:', error)
+    // error: the thrown error
+    // params: the original parameters passed to the action
+  }),
+)
 
 // Handle completion (success or failure)
-api.onSettle.subscribe((result) => {
-  console.log('API call completed')
-  // result: either { payload, params } or { error, params }
-})
+api.onSettle.extend(
+  withCallHook((result) => {
+    console.log('API call completed')
+    // result: either { payload, params } or { error, params }
+  }),
+)
 ```
 
 ## Status Tracking
