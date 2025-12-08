@@ -311,6 +311,23 @@ function main() {
       return
     }
 
+    const shouldBumpVersion = parsed.type === 'fix' || parsed.type === 'feat' || parsed.breaking
+
+    if (!shouldBumpVersion) {
+      if (!parsed.scope) {
+        const newFirstLine = buildCommitMessage(
+          parsed.type,
+          detectedScopes,
+          parsed.breaking,
+          parsed.description,
+        )
+        const newMessage = restOfMessage ? `${newFirstLine}\n${restOfMessage}` : newFirstLine
+        fs.writeFileSync(commitMsgFile, newMessage)
+        console.log(`Commit message updated with scope(s): ${detectedScopes.join(', ')}`)
+      }
+      return
+    }
+
     const bumpType = determineBumpType(parsed.type, parsed.breaking)
     const packagePaths = getPackagePathsFromScopes(detectedScopes)
 
