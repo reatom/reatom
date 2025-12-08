@@ -16,7 +16,8 @@ type WebSocketStrategy =
   | { type: 'exponential'; maxDelayMs?: number }
   | { type: 'exponentialJitter'; maxDelayMs?: number }
 
-export interface WebSocketAtom<T = any> extends AtomMut<Array<WebSocketMessage<T>>> {
+export interface WebSocketAtom<T = any>
+  extends AtomMut<Array<WebSocketMessage<T>>> {
   /** Current connection state */
   readyState: AtomMut<WebSocketReadyState>
   /** Current WebSocket instance (null if not connected) */
@@ -63,27 +64,19 @@ function getReconnectDelay(
   reconnectDelay: number,
   reconnectAttemptsCount: number,
 ): number {
-  if (strategy.type === 'exponential') {
-    let delay = reconnectDelay * Math.pow(2, reconnectAttemptsCount - 1)
-
-    if (strategy.maxDelayMs && delay > strategy.maxDelayMs) {
-      delay = strategy.maxDelayMs
-    }
-    return delay
+  if (strategy.type === 'fixed') {
+    return reconnectDelay
   }
 
-  if (strategy.type === 'exponentialJitter') {
-    let delay =
-      reconnectDelay * Math.pow(2, reconnectAttemptsCount - 1) +
-      Math.random() * 100
+  const jitter = strategy.type === 'exponentialJitter' ? Math.random() * 100 : 0
 
-    if (strategy.maxDelayMs && delay > strategy.maxDelayMs) {
-      delay = strategy.maxDelayMs
-    }
-    return delay
+  let delay = reconnectDelay * Math.pow(2, reconnectAttemptsCount - 1) + jitter
+
+  if (strategy.maxDelayMs && delay > strategy.maxDelayMs) {
+    delay = strategy.maxDelayMs
   }
 
-  return reconnectDelay
+  return delay
 }
 
 export interface WebSocketOptions {
@@ -107,7 +100,9 @@ export interface WebSocketOptions {
   name?: string
 }
 
-export function reatomWebSocket<T = unknown>(options: WebSocketOptions | string) {
+export function reatomWebSocket<T = unknown>(
+  options: WebSocketOptions | string,
+) {
   const {
     url,
     protocols = [],
