@@ -63,7 +63,7 @@ import ShikiCodeBlock from './ShikiCodeBlock.astro'
     { pattern: 'const', note: 'Variable declaration keyword' }
   ]}
   filename="example.tsx"
-  playgroundUrl="https://stackblitz.com/github/artalar/reatom/tree/v1000/examples/react-search"
+  playgroundUrl="https://stackblitz.com/github/reatom/reatom/tree/v1000/examples/react-search"
 />
 ```
 
