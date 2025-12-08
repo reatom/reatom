@@ -68,7 +68,7 @@ const User = reatomComponent(() => {
 
 If you have a list of users and need to perform CRUD operations (paging, sorting, adding) on it, you should wrap it in an atom too:
 
-> Check out our simple primitives for working with arrays: [reatomArray](/package/primitives#reatomarray)
+> Check out our simple primitives for working with arrays: [reatomArray](/reference/primitives#reatomarray)
 
 ```ts
 // DTO
