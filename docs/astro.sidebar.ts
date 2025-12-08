@@ -26,6 +26,7 @@ export const sidebar = [
       'handbook/suspense',
       'handbook/lifecycle',
       'handbook/routing',
+      'handbook/persist',
       'handbook/sampling',
       {
         label: 'Forms',
@@ -96,7 +97,7 @@ export const sidebar = [
           },
           {
             label: 'Persistence',
-            link: '/reference/persist',
+            link: '/handbook/persist',
           },
           {
             label: 'Primitives',

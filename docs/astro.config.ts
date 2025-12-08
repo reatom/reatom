@@ -22,27 +22,11 @@ export default defineConfig({
         // TODO
         // starlightLinksValidator(),
         starlightLlmsTxt({
-          // Configure multiple LLM output files
-          output: [
-            {
-              // Small focused file with start docs + references to handbook
-              filename: 'llms-start.txt',
-              include: ['start/**/*'],
-              transformContent: (content, frontmatter, url) => {
-                // Add handbook references at the end of start docs
-                let transformedContent = content;
-                
-                // Add reference links to corresponding handbook docs
-                if (url.includes('/start/')) {
-                  const docName = url.split('/').pop() || 'index';
-                  const handbookUrl = url.replace('/start/', '/handbook/');
-                  
-                  transformedContent += `\n\n📖 **For advanced information, see:** [${frontmatter.title || docName} Handbook](${handbookUrl})\n`;
-                  
-                  // Add general handbook references
-                  transformedContent += `\n**Comprehensive guides available in handbook:**
+          projectName: 'Reatom',
+          description: 'A state management library for JavaScript with atomic approach, powerful primitives, and framework integrations.',
+          details: `**Comprehensive guides available in handbook:**
 - [Routing Handbook](/handbook/routing) - Advanced routing patterns, nested routes, computed factory
-- [Forms Handbook](/handbook/forms) - Complex form validation, async handling, field dependencies  
+- [Forms Handbook](/handbook/forms) - Complex form validation, async handling, field dependencies
 - [Persistence Handbook](/handbook/persist) - Advanced data persistence strategies
 - [Async Context Handbook](/handbook/async-context) - Complex async state management
 - [Events Handbook](/handbook/events) - Advanced event handling patterns
@@ -51,18 +35,36 @@ export default defineConfig({
 - [Atomization Handbook](/handbook/atomization) - Advanced atom composition patterns
 - [Sampling Handbook](/handbook/sampling) - Performance optimization techniques
 - [Async Handbook](/handbook/async) - Advanced async patterns and utilities
-- [History Handbook](/handbook/history) - Navigation and history management\n`;
-                }
-                
-                return transformedContent;
-              }
+- [History Handbook](/handbook/history) - Navigation and history management
+- [Suspense Handbook](/handbook/suspense) - React Suspense integration`,
+          customSets: [
+            {
+              label: 'Getting Started',
+              description: `Quick start documentation for Reatom - basics, actions, extensions, forms, routing, and tooling
+
+For advanced information, see the handbook:
+- /handbook/routing - Advanced routing patterns, nested routes, computed factory
+- /handbook/forms - Complex form validation, async handling, field dependencies
+- /handbook/persist - Advanced data persistence strategies
+- /handbook/async-context - Complex async state management
+- /handbook/events - Advanced event handling patterns
+- /handbook/lifecycle - Component lifecycle management
+- /handbook/extensions - Creating and using extensions
+- /handbook/atomization - Advanced atom composition patterns
+- /handbook/sampling - Performance optimization techniques
+- /handbook/async - Advanced async patterns and utilities
+- /handbook/history - Navigation and history management
+- /handbook/suspense - React Suspense integration`,
+              paths: ['start/**'],
             },
             {
-              // Complete documentation file (existing behavior)
-              filename: 'llms.txt',
-              // Include all docs by default (no include/exclude means all)
-            }
-          ]
+              label: 'Handbook',
+              description: 'Comprehensive guides and advanced patterns for Reatom',
+              paths: ['handbook/**'],
+            },
+          ],
+          // Promote start pages to top of full/small files
+          promote: ['index*', 'start/**'],
         }),
       ],
       components: {

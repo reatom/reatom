@@ -66,7 +66,7 @@ const configuredAtom = atom('default', 'configured').extend(
   withLocalStorage({
     key: 'my-data',
     version: 2,
-    migration: (record) => {
+    migration: (record, currentVersion) => {
       if (record.version === 1) {
         return `migrated-${record.data}`
       }
@@ -356,9 +356,12 @@ const configuredAtom = atom({ name: '', age: 0 }).extend(
       age: snapshot.a,
     }),
 
+    // Schema validation (Standard Schema compatible - Zod, Valibot, ArkType, etc.)
+    // schema: UserDataSchema,
+
     // Version migration
     version: 2,
-    migration: (record) => {
+    migration: (record, currentVersion) => {
       if (record.version === 1) {
         // Migrate from v1 to v2
         return { name: record.data.userName, age: record.data.userAge }
@@ -377,15 +380,16 @@ const configuredAtom = atom({ name: '', age: 0 }).extend(
 
 ### Configuration Reference
 
-| Option         | Type                  | Default            | Description                         |
-| -------------- | --------------------- | ------------------ | ----------------------------------- |
-| `key`          | `string`              | **required**       | Unique key for storage              |
-| `toSnapshot`   | `(state) => any`      | `identity`         | Serialize state before saving       |
-| `fromSnapshot` | `(snapshot) => state` | `identity`         | Deserialize state after loading     |
-| `version`      | `number`              | `0`                | Version number for migration        |
-| `migration`    | `(record) => state`   | `undefined`        | Migrate old data to current version |
-| `time`         | `number`              | `MAX_SAFE_TIMEOUT` | TTL in milliseconds                 |
-| `subscribe`    | `boolean`             | `true`             | Enable cross-tab synchronization    |
+| Option         | Type                       | Default            | Description                           |
+| -------------- | -------------------------- | ------------------ | ------------------------------------- |
+| `key`          | `string`                   | **required**       | Unique key for storage                |
+| `toSnapshot`   | `(state) => any`           | `identity`         | Serialize state before saving         |
+| `fromSnapshot` | `(snapshot) => state`      | `identity`         | Deserialize state after loading       |
+| `schema`       | `StandardSchemaV1`         | `undefined`        | Schema to validate and transform data |
+| `version`      | `number \| string`         | `0`                | Version number for migration          |
+| `migration`    | `(record, version) => state` | `undefined`      | Migrate old data to current version   |
+| `time`         | `number`                   | `MAX_SAFE_TIMEOUT` | TTL in milliseconds                   |
+| `subscribe`    | `boolean`                  | `true`             | Enable cross-tab synchronization      |
 
 ## Cross-Tab Synchronization
 
@@ -413,7 +417,7 @@ const userAtom = atom({ name: '', preferences: {} }).extend(
   withLocalStorage({
     key: 'user',
     version: 3,
-    migration: (record) => {
+    migration: (record, currentVersion) => {
       const data = record.data
 
       // Migrate from v1: { userName } -> { name, preferences }
@@ -431,6 +435,35 @@ const userAtom = atom({ name: '', preferences: {} }).extend(
   }),
 )
 ```
+
+## Schema Validation
+
+Use [Standard Schema](https://github.com/standard-schema/standard-schema) compatible libraries (Zod, Valibot, ArkType, etc.) for automatic validation and transformation:
+
+```typescript
+import { z } from 'zod'
+
+const UserSchema = z.object({
+  name: z.string().min(1),
+  age: z.number().int().positive(),
+})
+
+const userAtom = atom({ name: '', age: 0 }).extend(
+  withLocalStorage({
+    key: 'user',
+    schema: UserSchema,
+  }),
+)
+
+// Data is automatically validated when restored from storage
+// If validation fails, an error is thrown
+```
+
+The schema option provides:
+
+- **Automatic validation** on data restore from storage
+- **Type transformation** if your schema includes transforms
+- **Clear error messages** when persisted data doesn't match the expected format
 
 ## Custom Serialization
 
@@ -528,7 +561,7 @@ const formAtomWithMigration = atom(initialState).extend(
         return initialState
       }
     },
-    migration: (record) => {
+    migration: (record, currentVersion) => {
       if (record.version === 1) {
         try {
           // Migrate from v1 format
@@ -569,22 +602,22 @@ const apiCacheAtom = atom(null).extend(
 Create your own storage backends by implementing the `PersistStorage` interface:
 
 ```typescript
-import { PersistStorage } from '@reatom/core/persist'
+import { PersistStorage, reatomPersist } from '@reatom/core/persist'
 
 // Example: Custom localStorage implementation
-const createCustomStorage = (name: string): PersistStorage => ({
+const createCustomStorage = (name: string): Omit<PersistStorage, 'cache'> => ({
   name,
-  get: (key) => {
+  get: ({ key }) => {
     const item = localStorage.getItem(`${name}:${key}`)
     return item ? JSON.parse(item) : null
   },
-  set: (key, record) => {
+  set: ({ key }, record) => {
     localStorage.setItem(`${name}:${key}`, JSON.stringify(record))
   },
-  clear: (key) => {
+  clear: ({ key }) => {
     localStorage.removeItem(`${name}:${key}`)
   },
-  subscribe: (key, callback) => {
+  subscribe: ({ key }, callback) => {
     const handler = (event: StorageEvent) => {
       if (event.key === `${name}:${key}` && event.newValue) {
         callback(JSON.parse(event.newValue))
@@ -595,14 +628,18 @@ const createCustomStorage = (name: string): PersistStorage => ({
   },
 })
 
+// Use with reatomPersist to create the persist adapter
+const withMyStorage = reatomPersist(createCustomStorage('my-app'))
+const myAtom = atom('').extend(withMyStorage('my-key'))
+
 // Example: async storage (IndexedDB, API, etc.)
-const createAsyncStorage = (): PersistStorage => ({
+const createAsyncStorage = (): Omit<PersistStorage, 'cache'> => ({
   name: 'async-storage',
-  get: async (key) => {
+  get: async ({ key }) => {
     const response = await fetch(`/api/storage/${key}`)
     return response.ok ? await response.json() : null
   },
-  set: async (key, record) => {
+  set: async ({ key }, record) => {
     await fetch(`/api/storage/${key}`, {
       method: 'POST',
       body: JSON.stringify(record),
@@ -616,22 +653,28 @@ const createAsyncStorage = (): PersistStorage => ({
 The complete `PersistStorage` interface:
 
 ```typescript
-interface PersistStorage {
+interface PersistStorage<Snapshot = unknown, Options extends Rec = {}> {
   name: string
-  get(key: string): null | PersistRecord | Promise<null | PersistRecord>
-  set(key: string, rec: PersistRecord): void | Promise<void>
-  clear?(key: string): void | Promise<void>
+  cache: Map<string, PersistRecord>
+  get(
+    options: Options & { key: string },
+  ): null | PersistRecord<Snapshot> | Promise<null | PersistRecord<Snapshot>>
+  set(
+    options: Options & { key: string },
+    rec: PersistRecord<Snapshot>,
+  ): void | Promise<void>
+  clear?(options: Options & { key: string }): void | Promise<void>
   subscribe?(
-    key: string,
-    callback: (record: PersistRecord) => void,
+    options: Options & { key: string },
+    callback: (record: PersistRecord<Snapshot>) => void,
   ): Unsubscribe
 }
 
-interface PersistRecord {
-  data: any // Your serialized state
+interface PersistRecord<Snapshot = unknown> {
+  data: Snapshot // Your serialized state
   id: number // Unique record ID
   timestamp: number // When record was created
-  version: number // Your version number
+  version: number | string // Your version number
   to: number // Expiration timestamp
 }
 ```
@@ -686,7 +729,7 @@ withLocalStorage('app-settings')
 withLocalStorage({
   key: 'user-preferences',
   version: 1, // Start with version 1
-  migration: (record) => {
+  migration: (record, currentVersion) => {
     // Handle future migrations here
     return record.data
   },
