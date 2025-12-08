@@ -2,13 +2,15 @@
 title: Form
 ---
 
+# Initialization
+
 # Submit
 
-## Concurrency
+# Concurrency
 
-## Custom params and return data
+# Custom params and return data
 
-## Errors behaviour
+# Errors behaviour
 
-## Default options for fields
+# Default options for fields
 

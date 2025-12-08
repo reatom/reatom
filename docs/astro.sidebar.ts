@@ -38,9 +38,9 @@ export const sidebar = [
             items: [
               'handbook/forms/concepts/field-atom',
               'handbook/forms/concepts/reactive-validation',
-              'handbook/forms/concepts/field-array',
+              // 'handbook/forms/concepts/field-array',
               'handbook/forms/concepts/fieldset',
-              'handbook/forms/concepts/form',
+              // 'handbook/forms/concepts/form',
             ]
           },
           {
@@ -55,11 +55,11 @@ export const sidebar = [
               'handbook/forms/recipes/fields-factory',
               'handbook/forms/recipes/abstract-components',
               'handbook/forms/recipes/compound-fields',
-              'handbook/forms/recipes/wizard-forms',
-              'handbook/forms/recipes/persistence',
+              // 'handbook/forms/recipes/wizard-forms',
+              // 'handbook/forms/recipes/persistence',
             ]
           },
-          'handbook/forms/migration/react-hook-form'
+          // 'handbook/forms/migration/react-hook-form'
         ]
       }
     ],
