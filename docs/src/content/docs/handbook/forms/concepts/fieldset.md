@@ -50,7 +50,9 @@ const form = reatomFieldSet(name => ({
 ```
 
 ### ~~Field options object~~
->  **Deprecated**. This legacy method of field initialization will be removed in the future major release due to type inference bugs and complexity. Use direct `reatomField` or `reatomFieldArray` definitions instead
+:::caution
+**Deprecated**. This legacy method of field initialization will be removed in the future major release due to type inference bugs and complexity. Use direct `reatomField` or `reatomFieldArray` definitions instead
+:::
 
 By passing an object with `initState` property, you can initialize a `reatomField`/`reatomFieldArray` with a value as its default, and pass additional options for the field.
 ```ts
@@ -101,6 +103,8 @@ The behavior of the `validation` atom of a field set is slightly more complex du
 > Some experts consider disabling submit buttons an <a href="https://gomakethings.com/dont-disable-buttons/" target="_blank">anti-pattern</a>
 2) In the `errors` state, as expected, all errors from all fields are accumulated, but with a reference to the field in which the error occurred
 3) If at least one field of the field set is in the process of asynchronous validation, **then `validating` will store a `Promise`** that will wait for the completion of all asynchronous validations. The result will return a list of all errors as in the `errors` state
+
+Just like with a regular field, this atom has a `trigger` action assigned to it, which sequentially calls `trigger` on all fields in the field set
 
 ### Behavior with disabled fields
 When fields are disabled, they no longer automatically trigger their own validation. In field sets, these disabled fields are excluded from the `validation` and `focus` computations, meaning they are not considered in the validation process according to the schema/etc. This ensures that disabled fields do not affect the validation status of the form or field set they belong to.

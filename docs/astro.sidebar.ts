@@ -38,9 +38,9 @@ export const sidebar = [
             items: [
               'handbook/forms/concepts/field-atom',
               'handbook/forms/concepts/reactive-validation',
-              // 'handbook/forms/concepts/field-array',
+              'handbook/forms/concepts/field-array',
               'handbook/forms/concepts/fieldset',
-              // 'handbook/forms/concepts/form',
+              'handbook/forms/concepts/form',
             ]
           },
           {
