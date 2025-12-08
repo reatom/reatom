@@ -31,7 +31,7 @@ export const sidebar = [
         label: 'Forms',
         items: [
           'handbook/forms/introduction',
-          'handbook/forms/comparison',
+          // 'handbook/forms/comparison',
           {
             label: 'Concepts',
             items: [
