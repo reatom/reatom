@@ -1,7 +1,5 @@
 # JSX
 
-An **EXPERIMENTAL** JSX runtime for building high-performance reactive DOM UIs with [@reatom/core](https://www.reatom.dev/package/core).
-
 ## Features
 
 - **⚡️ Zero re-renders:** reactive bindings update DOM directly
