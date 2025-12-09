@@ -13,6 +13,7 @@
     "prettify": "prettier --write */**/**/*.{js,ts,md}",
     "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
     "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
+    "lint:md": "remark --rc-path .remark-lint.json --ext md,mdx --quiet --frail packages/*/README.md docs/src/content/",
     "autodocs": "typedoc && tsx tools/cleanup-autodocs.ts"
   },
   "dependencies": {
@@ -28,6 +29,9 @@
     "husky": "catalog:",
     "microbundle": "catalog:",
     "prettier": "catalog:",
+    "remark-cli": "^12.0.1",
+    "remark-lint": "^10.0.1",
+    "remark-lint-expressive-code-label": "^0.1.0",
     "tsx": "catalog:",
     "typedoc": "catalog:",
     "typedoc-plugin-markdown": "catalog:",

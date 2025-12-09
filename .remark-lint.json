@@ -1,0 +1,4 @@
+{
+  "extensions": ["md", "mdx"],
+  "plugins": ["remark-lint", ["remark-lint-expressive-code-label", "warn"]]
+}
