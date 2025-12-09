@@ -85,8 +85,16 @@ export let isSuspense = (thing: unknown) =>
 
 export let reatomComponent = <Props extends Rec = {}>(
   Component: (props: Props) => React.ReactNode,
-  name?: string,
+  options?: string | { deps?: Array<string>; name?: string },
 ): ((props: Props) => React.ReactNode) => {
+  let deps: Array<string> = []
+  let name: string | undefined
+  if (typeof options === 'object') {
+    deps = options.deps ?? []
+    name = options.name
+  } else {
+    name = options
+  }
   name ||= named('Component', Component.name)
 
   return {
@@ -117,10 +125,10 @@ export let reatomComponent = <Props extends Rec = {}>(
             rerender,
             name,
           }),
-        [frame],
+        [frame, ...deps.map((name) => props[name])],
       )
 
-      React.useEffect(mount, [mount])
+      React.useEffect(mount, [mount, ...deps.map((name) => props[name])])
 
       let { result } = render(props)
       if (isSuspense(result)) throw result
@@ -130,21 +138,27 @@ export let reatomComponent = <Props extends Rec = {}>(
 }
 
 export let reatomFactoryComponent = <Props extends Rec = {}>(
-  init: (initProps: Props) => (props: Props) => React.ReactNode,
-  name?: string,
-): ((props: Props) => React.ReactNode) =>
-  reatomComponent(
+  init: (
+    initProps: Props,
+    options: { name: string },
+  ) => (props: Props) => React.ReactNode,
+  options?: string | { deps?: Array<string>; name?: string },
+): ((props: Props) => React.ReactNode) => {
+  const deps = typeof options === 'object' ? (options.deps ?? []) : []
+
+  return reatomComponent(
     (props) =>
       React.useMemo(() => {
         const frame = top()
         try {
           // @ts-expect-error internals
           frame.atom.__reatom.linking = false
-          return init(props)
+          return init(props, { name: frame.atom.name })
         } finally {
           // @ts-expect-error internals
           frame.atom.__reatom.linking = true
         }
-      }, [])(props),
-    name,
+      }, deps.map((name) => props[name]))(props),
+    options,
   )
+}
