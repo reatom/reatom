@@ -73,7 +73,7 @@ describe('useFrame', () => {
       )
     }))
 
-  test.skip('throws error if no frame is available', () => {
+  test('throws error if no frame is available', () => {
     const originalConsoleError = console.error
     console.error = vi.fn()
 

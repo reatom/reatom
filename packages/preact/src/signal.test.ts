@@ -114,6 +114,19 @@ describe('toPreact', () => {
 
       dispose()
     }))
+
+  test('lazy init', () =>
+    context.start(() => {
+      let externalState = 0
+      const count = atom(() => ++externalState, 'count')
+
+      const countSignal = toPreact(count)
+
+      expect(externalState).toBe(0)
+
+      expect(countSignal.value).toBe(1)
+      expect(externalState).toBe(1)
+    }))
 })
 
 describe('withPreact', () => {

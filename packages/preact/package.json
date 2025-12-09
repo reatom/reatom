@@ -12,6 +12,11 @@
       "require": "./build/index.js",
       "default": "./build/index.mjs"
     },
+    "./auto": {
+      "types": "./build/auto.d.ts",
+      "require": "./build/auto.js",
+      "default": "./build/auto.mjs"
+    },
     "./signal": {
       "types": "./build/signal.d.ts",
       "require": "./build/signal.js",
