@@ -19,7 +19,7 @@ jobs:
           node-version: '24.2'
           cache: pnpm
       - name: Install dependencies
-        run: pnpm ci --ignore-scripts
+        run: pnpm install --ignore-scripts
       - name: Run prettier check
         id: prettier_check
         continue-on-error: true
