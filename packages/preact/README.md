@@ -107,7 +107,7 @@ const count = atom(0, 'count')
 const Counter = () => (
   <div>
     Count: {count()}
-    <button onClick={wrap(() => count((c) => c + 1))}>+</button>
+    <button onClick={wrap(() => count.set((c) => c + 1))}>+</button>
   </div>
 )
 ```
