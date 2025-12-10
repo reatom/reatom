@@ -125,14 +125,14 @@ export const sidebar = [
         label: '@reatom/react',
         link: '/reference/react',
       },
-      {
-        label: '@reatom/vue',
-        link: '/reference/vue',
-      },
-      {
-        label: '@reatom/lit',
-        link: '/reference/lit',
-      },
+      // {
+      //   label: '@reatom/vue',
+      //   link: '/reference/vue',
+      // },
+      // {
+      //   label: '@reatom/lit',
+      //   link: '/reference/lit',
+      // },
       {
         label: '@reatom/preact',
         link: '/reference/preact',

@@ -58,7 +58,7 @@ test('ifChanged few parents', () => {
   expect(log).toBeCalledTimes(8)
 })
 
-test('ifCalled', async () => {
+test('getCalls', async () => {
   const name = 'ifChanged'
   const sum = action((a: number, b: number) => a + b, `${name}.sum`)
   const log = vi.fn<(payload: number, params: [number, number]) => any>()
@@ -79,7 +79,7 @@ test('ifCalled', async () => {
   expect(log).toBeCalledWith(3, [1, 2])
 })
 
-test('ifCalled skip duplicates', async () => {
+test('getCalls skip duplicates', async () => {
   const name = 'ifChangedDuplicates'
   const sum = action((a: number, b: number) => a + b, `${name}.sum`)
   const log = vi.fn<(payload: number, params: [number, number]) => any>()

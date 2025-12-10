@@ -4,7 +4,7 @@ import {
   clearStack,
   context,
   effect,
-  ifCalled,
+  getCalls,
   rAF,
   sleep,
   take,
@@ -161,7 +161,7 @@ describe('reatomFactoryComponent', () => {
         })
 
         effect(() => {
-          ifCalled(event, () => {
+          getCalls(event).forEach(() => {
             ++poolingTrack
           })
         })

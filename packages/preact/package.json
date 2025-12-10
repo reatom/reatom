@@ -1,9 +1,6 @@
 {
   "name": "@reatom/preact",
-  "version": "1000.0.0-alpha.65",
-  "publishConfig": {
-    "tag": "alpha"
-  },
+  "version": "1000.0.0",
   "private": false,
   "description": "Reatom adapter for Preact",
   "exports": {
@@ -11,6 +8,11 @@
       "types": "./build/index.d.ts",
       "require": "./build/index.js",
       "default": "./build/index.mjs"
+    },
+    "./auto": {
+      "types": "./build/auto.d.ts",
+      "require": "./build/auto.js",
+      "default": "./build/auto.mjs"
     },
     "./signal": {
       "types": "./build/signal.d.ts",
@@ -29,7 +31,7 @@
   },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "microbundle -i src/index.ts -i src/auto.ts -i src/signal.ts -f esm,cjs --raw",
     "test": "pnpm run test:unit && pnpm run test:browser",
     "test:unit": "vitest run",
     "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",

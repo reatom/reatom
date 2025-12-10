@@ -79,6 +79,7 @@ pnpm rm @reatom/core @reatom/react && pnpm i @reatom/core@latest @reatom/react@l
 - [en discord](https://discord.gg/EPAKK5SNFh)
 - [en github discussion](https://github.com/reatom/reatom/discussions)
 - [ru telegram](https://t.me/reatom_ru)
+- [llms.txt](https://v1000.reatom.dev/_llms-txt/getting-started.txt)
 
 ## Migration from v3
 

@@ -11,7 +11,7 @@ import {
   top,
   wrap,
 } from '@reatom/core'
-import type { ComponentChildren, ComponentClass } from 'preact'
+import type { ComponentChildren, ComponentClass, ComponentType } from 'preact'
 import { Component, createContext } from 'preact'
 import { useContext, useEffect, useMemo } from 'preact/hooks'
 
@@ -71,18 +71,32 @@ export let isSuspense = (thing: unknown) =>
   thing instanceof Promise ||
   (thing instanceof Error && thing.message.startsWith('Suspense Exception'))
 
+let isClassComponent = (
+  Component: ComponentType<any>,
+): Component is ComponentClass<any> =>
+  Component.prototype && typeof Component.prototype.render === 'function'
+
 export let reatomComponent = <Props extends Rec = {}>(
-  UserComponent: (props: Props) => ComponentChildren,
+  UserComponent: ComponentType<Props>,
   name?: string,
 ): ComponentClass<Props> => {
-  name ||= named('Component', UserComponent.name)
+  name ||= named('Component', UserComponent.displayName || UserComponent.name)
 
-  return class ReatomComponent extends Component<Props> {
+  let ComponentClass = Component as ComponentClass<Props>
+
+  if (isClassComponent(UserComponent)) {
+    ComponentClass = UserComponent
+    UserComponent = UserComponent.prototype.render
+  }
+
+  return class ReatomComponent extends ComponentClass {
     static override displayName = name
     static override contextType = reatomContext
 
-    _render!: (props: Props) => { result: ComponentChildren }
-    _unmount!: () => void
+    __reatom!: {
+      render: (props: Props) => { result: ComponentChildren }
+      unmount: () => void
+    }
 
     constructor(props: Props) {
       super(props)
@@ -99,7 +113,9 @@ export let reatomComponent = <Props extends Rec = {}>(
         frame,
         render: (props: Props) => {
           try {
-            return UserComponent(props)
+            this.props = props
+            // @ts-expect-error
+            return UserComponent.call(this, props)
           } catch (error) {
             if (isSuspense(error)) {
               return error as never
@@ -111,16 +127,19 @@ export let reatomComponent = <Props extends Rec = {}>(
         name: name!,
       })
 
-      this._render = render
-      this._unmount = mount()
+      this.__reatom = {
+        render,
+        unmount: mount(),
+      }
     }
 
     override componentWillUnmount() {
-      this._unmount()
+      this.__reatom.unmount()
+      super.componentWillUnmount?.()
     }
 
     override render() {
-      let { result } = this._render(this.props)
+      let { result } = this.__reatom.render(this.props)
       if (isSuspense(result)) throw result
       return result
     }

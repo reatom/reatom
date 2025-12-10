@@ -4,6 +4,7 @@ import {
   computed,
   context,
   rAF,
+  sleep,
   take,
   top,
   wrap,
@@ -210,5 +211,37 @@ describe('reatomComponent', () => {
         document.querySelector('[data-testid="parent-message"]')?.textContent,
       ).toBe('Initial message')
     }))
-})
 
+  test('automatic reatomComponent with options hook', () =>
+    context.start(async () => {
+      await wrap(import('./auto'))
+
+      const count = atom(0, 'count')
+      const Counter = () => (
+        <div
+          data-testid="counter"
+          onClick={wrap(() => {
+            count.set((s) => s + 1)
+          })}
+        >
+          Count: {count()}
+        </div>
+      )
+
+      render(
+        <reatomContext.Provider value={top()}>
+          <Counter />
+        </reatomContext.Provider>,
+        document.getElementById('root')!,
+      )
+
+      await wrap(tick())
+      const counterElement = document.querySelector('[data-testid="counter"]') as HTMLDivElement
+      expect(counterElement?.textContent).toBe('Count: 0')
+
+      setTimeout(() => counterElement?.click())
+      await wrap(sleep())
+      await wrap(tick())
+      expect(counterElement?.textContent).toBe('Count: 1')
+    }))
+})

@@ -5,7 +5,7 @@ import {
   computed,
   context,
   effect,
-  ifCalled,
+  getCalls,
   rAF,
   sleep,
   take,
@@ -152,7 +152,10 @@ describe('useAtom', () => {
         return (
           <div>
             <div data-testid="count">{count()}</div>
-            <button data-testid="increment" onClick={() => setCount!(count() + 1)}>
+            <button
+              data-testid="increment"
+              onClick={() => setCount!(count() + 1)}
+            >
               Increment
             </button>
           </div>
@@ -716,4 +719,3 @@ describe('cleanup and effects', () => {
       expect(document.querySelector('[data-testid="count"]')).toBeNull()
     }))
 })
-

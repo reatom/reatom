@@ -73,6 +73,45 @@ declare module '@reatom/core' {
 
 Reatom offers powerful ways to integrate state management directly into your Preact components, ensuring reactivity and proper lifecycle management. It is an alternative to Preact signals, if you want to stick only to one reactive primitive.
 
+### Automatic Tracking
+
+The easiest way to use Reatom with Preact is to enable automatic tracking. This patches Preact's `options.vnode` hook to automatically wrap all function components with `reatomComponent`, so you can use atoms directly without any manual wrapping.
+
+**Option 1: Import for side effect (recommended)**
+
+Simply import the `/auto` entry point once at the top of your application:
+
+```tsx
+import '@reatom/preact/auto'
+```
+
+**Option 2: Manual setup**
+
+If you need more control over when auto-tracking is installed:
+
+```tsx
+import { installAutoTracking } from '@reatom/preact'
+
+installAutoTracking()
+```
+
+After enabling auto-tracking, all your components become reactive:
+
+```tsx
+import '@reatom/preact/auto'
+import { atom, wrap } from '@reatom/core'
+
+const count = atom(0, 'count')
+
+// No need to wrap with reatomComponent - it's automatic!
+const Counter = () => (
+  <div>
+    Count: {count()}
+    <button onClick={wrap(() => count.set((c) => c + 1))}>+</button>
+  </div>
+)
+```
+
 ### `reatomComponent`
 
 The primary API to bind atoms and actions to a component's lifetime is `reatomComponent`. It wraps your regular Preact component function, placing it within a Reatom reactive context.
