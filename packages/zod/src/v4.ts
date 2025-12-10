@@ -32,8 +32,7 @@ import { z } from 'zod/v4'
 export interface ZodAtom<_T> {}
 
 export interface Atom<T = any, Params extends any[] = [newState: T]>
-  extends ZodAtom<T>,
-    ReatomAtom<T, Params> {}
+  extends ZodAtom<T>, ReatomAtom<T, Params> {}
 
 export interface Computed<T = any> extends ZodAtom<T>, ReatomComputed<T> {}
 
@@ -47,20 +46,18 @@ type EnumAtom<
 > = ZodAtom<T> & ReatomEnumAtom<T, Format>
 
 export interface RecordAtom<T extends Rec>
-  extends ZodAtom<T>,
-    ReatomRecordAtom<T> {}
+  extends ZodAtom<T>, ReatomRecordAtom<T> {}
 
 export interface MapAtom<Key, Element>
-  extends ZodAtom<[Key, Element]>,
-    ReatomMapAtom<Key, Element> {}
+  extends ZodAtom<[Key, Element]>, ReatomMapAtom<Key, Element> {}
 
 export interface SetAtom<T> extends ZodAtom<[T]>, ReatomSetAtom<T> {}
 
 export interface LinkedListAtom<
   Params extends any[] = any[],
   Model extends Rec = Rec,
-> extends ZodAtom<Array<Model>>,
-    ReatomLinkedListAtom<Params, Model> {}
+>
+  extends ZodAtom<Array<Model>>, ReatomLinkedListAtom<Params, Model> {}
 
 type DistributeIntersection<U, T> = U extends any ? U & T : never
 type OnlyStringKeys<T> = Exclude<T, number | symbol>

@@ -49,7 +49,7 @@ import { reatomComponent } from '@reatom/react'
 const User = reatomComponent(() => {
   const currentUser = user()
   if (!currentUser) return null
-  
+
   const name = currentUser.name()
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>

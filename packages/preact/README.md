@@ -51,7 +51,9 @@ const Counter = () => <div>{countAtom.preact}</div>
 countAtom.preact.value = 5
 
 // Computed atom - signal is read-only
-const doubleAtom = computed(() => countAtom() * 2, 'double').extend(withPreact())
+const doubleAtom = computed(() => countAtom() * 2, 'double').extend(
+  withPreact(),
+)
 // doubleAtom.preact is ReadonlySignal<number>
 ```
 
@@ -59,7 +61,11 @@ You can setup `.preact` accessor to ALL atoms automatically by using `addGlobalE
 
 ```tsx
 import { addGlobalExtension } from '@reatom/core'
-import { withPreact, type PreactExt, type PreactReadonlyExt } from '@reatom/preact'
+import {
+  withPreact,
+  type PreactExt,
+  type PreactReadonlyExt,
+} from '@reatom/preact'
 
 addGlobalExtension(withPreact())
 
@@ -333,6 +339,7 @@ const NameInput = reatomComponent(
 ```
 
 The `bindField` function returns an object with:
+
 - `value` / `checked` - the current field value (uses `checked` for boolean fields)
 - `onChange` - handler for value changes
 - `onBlur` - handler for blur events (triggers `field.focus.out()`)

@@ -103,8 +103,8 @@ let solidMap = new WeakMap<RootState, WeakMap<AtomLike, AccessorCache>>()
  *
  * This hook manages a cache of accessors per root state and atom, ensuring that
  * the same accessor instance is reused across renders. The accessor lazily
- * subscribes to the atom only when accessed within a tracking context
- * (like inside a component or effect), and unsubscribes when no longer observed.
+ * subscribes to the atom only when accessed within a tracking context (like
+ * inside a component or effect), and unsubscribes when no longer observed.
  *
  * @template State The type of the atom's state
  * @param {AtomLike<State>} target The atom to create an accessor for

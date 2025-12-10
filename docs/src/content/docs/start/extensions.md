@@ -9,7 +9,7 @@ The beauty of extensions is that they compose perfectly - you can combine multip
 
 Let's rewrite the data loading example from the [actions](/start/actions/) section using extensions, which add async tracking:
 
-```ts /withAsyncData(?:\\(.+}\\))?/ title="src/model.ts"
+```ts /withAsyncData(?:\(.+}\))?/ title="src/model.ts"
 import { atom, action, withAsyncData } from '@reatom/core'
 
 const fetchList = action(async (page: number) => {
@@ -86,7 +86,7 @@ Let's examine how to use this loading model in a component.
 
 Now let's connect our reactive model to the UI using `reatomComponent`. This is a regular React component enhanced with computed capabilities - it automatically tracks atom dependencies and triggers re-renders only when subscribed atoms change, ensuring optimal performance. You can call atoms directly as functions and use their actions just like regular functions - no hooks required, no restrictions on conditional logic or loops. At the same time, you can use regular React hooks, accept props, and do anything you would normally do in a React component.
 
-```tsx title="src/Results.tsx" /page\\.next|page\\.prev|(?:page|ready|data|search)\\(\\)|search.set\\(.+\\)/
+```tsx title="src/Results.tsx" /page\.next|page\.prev|(?:page|ready|data|search)\(\)|search.set\(.+\)/
 import React from 'react'
 import { reatomComponent } from '@reatom/react'
 import { search, page, listResource } from './model'

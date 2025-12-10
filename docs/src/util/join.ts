@@ -1,4 +1,8 @@
-export function joinBy<Left, Right>(left: Left[], right: Right[], eq: (left: Left, right: Right) => boolean): Array<[Left, Right]> {
+export function joinBy<Left, Right>(
+  left: Left[],
+  right: Right[],
+  eq: (left: Left, right: Right) => boolean,
+): Array<[Left, Right]> {
   let result = []
 
   let tmpRight = right.slice()

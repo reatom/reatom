@@ -4,11 +4,13 @@ const ctx = {
 }
 const item = {}
 
-const cb = () => {return item}
+const cb = () => {
+  return item
+}
 
 const getItem = () => {
-  ctx.schedule(cb);
-  ctx.schedule(cb, -1);
+  ctx.schedule(cb)
+  ctx.schedule(cb, -1)
 }
 
 export default getItem

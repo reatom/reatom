@@ -23,7 +23,8 @@ export default defineConfig({
         // starlightLinksValidator(),
         starlightLlmsTxt({
           projectName: 'Reatom',
-          description: 'A state management library for JavaScript with atomic approach, powerful primitives, and framework integrations.',
+          description:
+            'A state management library for JavaScript with atomic approach, powerful primitives, and framework integrations.',
           details: `**Comprehensive guides available in handbook:**
 - [Routing Handbook](/handbook/routing) - Advanced routing patterns, nested routes, computed factory
 - [Forms Handbook](/handbook/forms) - Complex form validation, async handling, field dependencies
@@ -59,7 +60,8 @@ For advanced information, see the handbook:
             },
             {
               label: 'Handbook',
-              description: 'Comprehensive guides and advanced patterns for Reatom',
+              description:
+                'Comprehensive guides and advanced patterns for Reatom',
               paths: ['handbook/**'],
             },
           ],

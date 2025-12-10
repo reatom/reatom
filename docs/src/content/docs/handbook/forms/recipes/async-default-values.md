@@ -16,9 +16,7 @@ const fetchDefaultValues = async () => {
 const formResource = computed(async () => {
   const defaultValues = await wrap(fetchDefaultValues())
   return reatomForm(defaultValues, 'form')
-}, 'formResource').extend(
-  withAsyncData()
-)
+}, 'formResource').extend(withAsyncData())
 ```
 
 The advantage of this approach is that the initial form values are loaded lazily due to the fundamental lazy mechanics of computed atoms, while you have no other option but to subscribe to this atom and get the form instance from it.
@@ -26,14 +24,14 @@ The advantage of this approach is that the initial form values are loaded lazily
 ```tsx
 export const App = reatomComponent(() => {
   const form = formResource.data()
-  if(!form) return 'Loading...'
+  if (!form) return 'Loading...'
 
   return (
     <div>
       <h1>Edit your profile data</h1>
 
-      <input {...bindField(form.fields.name)} placeholder='Your name' />
-      <input {...bindField(form.fields.email)} placeholder='Your email' />
+      <input {...bindField(form.fields.name)} placeholder="Your name" />
+      <input {...bindField(form.fields.email)} placeholder="Your email" />
     </div>
   )
 })
@@ -42,6 +40,7 @@ export const App = reatomComponent(() => {
 ## With suspense
 
 Another advantage of this approach is that it's very easy to integrate suspense into it, interacting with the form in a synchronous manner. To do this, we'll use [`withSuspense`](/handbook/suspense/#withsuspense) with the `preserve: true` parameter:
+
 ```diff lang="tsx"
 import { withSuspense } from '@reatom/core'
 
@@ -55,6 +54,7 @@ const formResource = computed(async () => {
 ```
 
 Now the component can access the form synchronously. On the first access, when the form instance hasn't been created yet, a promise will be thrown, which React will catch and handle through the parent `<Suspense />`. Subsequent recomputations of the computed atom will update the `suspended` atom as usual, without throwing a loading promise
+
 ```tsx
 export const App = reatomComponent(() => {
   const form = formResource.suspended()
@@ -63,8 +63,8 @@ export const App = reatomComponent(() => {
     <div>
       <h1>Edit your profile data</h1>
 
-      <input {...bindField(form.fields.name)} placeholder='Your name' />
-      <input {...bindField(form.fields.email)} placeholder='Your email' />
+      <input {...bindField(form.fields.name)} placeholder="Your name" />
+      <input {...bindField(form.fields.email)} placeholder="Your email" />
     </div>
   )
 })

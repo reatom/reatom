@@ -8,7 +8,7 @@ import {
   wrap,
 } from '@reatom/core'
 import type { App, Ref } from 'vue'
-import { customRef,inject, onScopeDispose } from 'vue'
+import { customRef, inject, onScopeDispose } from 'vue'
 
 const ReatomContextKey = 'ReatomContextKey'
 

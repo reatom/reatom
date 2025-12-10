@@ -16,14 +16,14 @@ The results above is a median value in percent from a fastest library for each i
 
 ## Results
 
-### Intel(R)_Core(TM)_Ultra_9_185H
+### Intel(R)\_Core(TM)\_Ultra_9_185H
 
-![](./popular_chart_Intel(R)_Core(TM)_Ultra_9_185H.svg)
+![](<./popular_chart_Intel(R)_Core(TM)_Ultra_9_185H.svg>)
 
 <details>
 <summary>all results</summary>
 
-![](./all_chart_Intel(R)_Core(TM)_Ultra_9_185H.svg)
+![](<./all_chart_Intel(R)_Core(TM)_Ultra_9_185H.svg>)
 
 </details>
 

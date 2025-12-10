@@ -59,9 +59,15 @@ let styles: Rec<string> = {}
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/adoptedStyleSheets
  * @see https://measurethat.net/Benchmarks/Show/5920
  */
-export let stylesheet = atom(() => DOM().document.head.appendChild(DOM().document.createElement('style')).sheet!, 'jsx.stylesheet')
+export let stylesheet = atom(
+  () =>
+    DOM().document.head.appendChild(DOM().document.createElement('style'))
+      .sheet!,
+  'jsx.stylesheet',
+)
 let name = ''
-let named = (element: Node, key: string) => `${name}.${element.nodeName.toLowerCase()}._${key}`
+let named = (element: Node, key: string) =>
+  `${name}.${element.nodeName.toLowerCase()}._${key}`
 
 interface Meta {
   subscribes: (() => Unsubscribe)[]
@@ -89,9 +95,7 @@ let unlink = (node: Node, subscribe: () => () => void) => {
  * @see https://www.measurethat.net/Benchmarks/Show/7818
  */
 let propertiesAsAttributes = new Set([
-  /**
-   * Numeric attributes with a default value other than 0.
-   */
+  /** Numeric attributes with a default value other than 0. */
   'height',
   'high',
   'low',
@@ -102,31 +106,23 @@ let propertiesAsAttributes = new Set([
   'start',
   'width',
 
-  /**
-   * Numeric properties with a default value other than 0.
-   */
+  /** Numeric properties with a default value other than 0. */
   // 'colspan',
   // 'rowspan',
   // 'maxlength',
   // 'minlength',
   // 'tabindex',
 
-  /**
-   * Properties with value HTMLElement.
-   */
+  /** Properties with value HTMLElement. */
   'form',
   'list',
 
-  /**
-   * Setting the value to an empty string must be explicit.
-   */
+  /** Setting the value to an empty string must be explicit. */
   'download',
   'href',
   'role',
 ])
-/**
- * @see https://developer.mozilla.org/en-US/docs/Glossary/Boolean/HTML
- */
+/** @see https://developer.mozilla.org/en-US/docs/Glossary/Boolean/HTML */
 let booleanAttributes = new Set([
   'allowfullscreen',
   'allowpaymentrequest',
@@ -175,8 +171,9 @@ let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
 
 /**
- * @todo Explore adding elements to a DocumentFragment before adding them to a Document.
  * @see https://www.measurethat.net/Benchmarks/Show/13274
+ * @todo Explore adding elements to a DocumentFragment before adding them to a
+ *   Document.
  */
 let walk = (
   dom: DomApis,
@@ -202,9 +199,8 @@ let walkAtom = (
 ): DocumentFragment => {
   let fragment = createLiveFragment(dom, anAtom.name)
 
-  unlink(
-    fragment.__reatomFragment.start,
-    () => anAtom.subscribe(fragment.__reatomFragment.update),
+  unlink(fragment.__reatomFragment.start, () =>
+    anAtom.subscribe(fragment.__reatomFragment.update),
   )
 
   return fragment
@@ -371,6 +367,7 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
 
   /**
    * @todo Show warning if isAtom(value) && !isAction(value).
+   *
    * @todo Convert to named action.
    */
   if (key === 'ref') {
@@ -380,6 +377,7 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
 
   /**
    * @todo Show warning if isAtom(value) && !isAction(value).
+   *
    * @todo Remove previous event listener.
    */
   if (key.startsWith('on:')) {
@@ -398,6 +396,7 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
 
   /**
    * @todo Show warning if isAction(value).
+   *
    * @todo Revert previous value.
    */
   if (key === '$spread') {
@@ -405,7 +404,9 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     if (isAtom(value) && !isAction(value)) {
       unlink(element, () => value.subscribe(spread))
     } else if (typeof value === 'function') {
-      unlink(element, () => computed(value, named(element, key)).subscribe(spread))
+      unlink(element, () =>
+        computed(value, named(element, key)).subscribe(spread),
+      )
     } else {
       spread(value)
     }
@@ -440,7 +441,9 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
   if (isAtom(value) && !isAction(value)) {
     unlink(element, () => value.subscribe(setter))
   } else if (typeof value === 'function') {
-    unlink(element, () => computed(value, named(element, key)).subscribe(setter))
+    unlink(element, () =>
+      computed(value, named(element, key)).subscribe(setter),
+    )
   } else {
     setter(value)
   }
@@ -484,8 +487,10 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
      * @see https://measurethat.net/Benchmarks/Show/31249
      */
     if (key === 'class') key = 'className'
-    /** @note element.valueAsNumber = '' // element.value === '0' */
-    else if (key === 'valueAsNumber') key = 'value'
+    /** @note element.valueAsNumber = '' // element.value === '0' */ else if (
+      key === 'valueAsNumber'
+    )
+      key = 'value'
 
     /** @note element.valueAsDate = '' // Uncaught TypeError: Failed to convert value to 'object'. */
     // @ts-ignore
@@ -503,7 +508,8 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
      * that other frameworks generally stringify `false`.
      */
     let isBool = booleanAttributes.has(key)
-    if (value == null || (isBool && value === false)) element.removeAttribute(key)
+    if (value == null || (isBool && value === false))
+      element.removeAttribute(key)
     else element.setAttribute(key, isBool && value === true ? '' : value)
   }
 }
@@ -575,6 +581,7 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
 
 /**
  * Fragment.
+ *
  * @todo Describe a function as a component.
  */
 export let hf = () => {}
@@ -586,6 +593,7 @@ export let mount = (target: Element, child: Element): void => {
   /**
    * @note The moved node creates two mutations: deletion then addition.
    * @todo Moving an node in the DOM unsubscribes and resubscribes to atoms.
+   *
    * @todo Call `observer.disconnect()` after unmounting the application.
    */
   let observer = new dom.MutationObserver(
@@ -594,11 +602,17 @@ export let mount = (target: Element, child: Element): void => {
         mutation.addedNodes.forEach((addedNode) => {
           let iterator = dom.document.createNodeIterator(addedNode, 1 | 128)
           while (iterator.nextNode()) {
-            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
-            meta?.subscribes.forEach((subscribe) => meta.unsubscribes.push(subscribe()))
+            let meta = (iterator.referenceNode as any)[symbol] as
+              | Meta
+              | undefined
+            meta?.subscribes.forEach((subscribe) =>
+              meta.unsubscribes.push(subscribe()),
+            )
           }
           while (iterator.previousNode()) {
-            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            let meta = (iterator.referenceNode as any)[symbol] as
+              | Meta
+              | undefined
             if (meta) {
               let unmount = meta.mount?.(iterator.referenceNode)
               if (typeof unmount === 'function') meta.unmount = unmount
@@ -608,7 +622,9 @@ export let mount = (target: Element, child: Element): void => {
         mutation.removedNodes.forEach((removedNode) => {
           let iterator = dom.document.createNodeIterator(removedNode, 1 | 128)
           while (iterator.nextNode()) {
-            let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+            let meta = (iterator.referenceNode as any)[symbol] as
+              | Meta
+              | undefined
             if (meta) {
               if (meta.unsubscribes.length > 0) {
                 meta.unsubscribes.forEach((unsubscribe) => unsubscribe())
@@ -632,8 +648,8 @@ export let mount = (target: Element, child: Element): void => {
 }
 
 /**
- * This simple utility needed only for syntax highlighting and it just concatenates all passed strings.
- * Falsy values are ignored, except for `0`.
+ * This simple utility needed only for syntax highlighting and it just
+ * concatenates all passed strings. Falsy values are ignored, except for `0`.
  */
 export let css = (strings: TemplateStringsArray, ...values: any[]) => {
   let result = ''
