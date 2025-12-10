@@ -7,8 +7,6 @@ jobs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - name: Install git
-        run: apk add git
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
