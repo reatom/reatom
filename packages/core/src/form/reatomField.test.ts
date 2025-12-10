@@ -312,7 +312,7 @@ test(`reset with initState`, async () => {
 })
 
 describe(`standard schema validation`, () => {
-  viTest.skip('static', async () => {
+  test('static', async () => {
     const field = reatomField(123, {
       name: 'field',
       validate: z.number().min(100, 'min'),
@@ -389,7 +389,7 @@ describe(`standard schema validation`, () => {
     })
   })
 
-  viTest.skip('dynamic', async () => {
+  test('dynamic', async () => {
     const field = reatomField(90, {
       name: 'field',
       validateOnChange: true,
@@ -440,7 +440,7 @@ describe(`standard schema validation`, () => {
     })
 
     asyncField.validation.trigger.abort()
-    notify()
+    await wrap(asyncField.validation().validating)
 
     expect(asyncField.validation()).toMatchObject({
       error: undefined,
@@ -551,7 +551,6 @@ describe(`reactivity of validate function`, () => {
       validate: async () => {
         const burger = burgerField.value()
         const pickupTime = pickupTimeField.value()
-        console.log({ burger, pickupTime })
 
         const cookingTime = await wrap(fetchBurgerCookingTime(burger))
         if (cookingTime > pickupTime) return 'cookTooLong'
@@ -561,40 +560,45 @@ describe(`reactivity of validate function`, () => {
     pickupTimeField.change(8)
     await wrap(sleep())
 
-    await expect(
-      pickupTimeField.validation().validating,
-    ).resolves.toMatchObject({
-      errors: [
-        {
-          source: 'validation',
-          message: 'cookTooLong',
-        },
-      ],
-    })
+    await wrap(
+      expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+        errors: [
+          {
+            source: 'validation',
+            message: 'cookTooLong',
+          },
+        ],
+      }),
+    )
 
     burgerField.change('Cheeseburger')
     await wrap(sleep())
 
-    await expect(
-      pickupTimeField.validation().validating,
-    ).resolves.toMatchObject({
-      errors: [],
-    })
+    await wrap(
+      expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+        errors: [],
+      }),
+    )
 
     burgerField.change('Krabby Patty')
     await wrap(sleep())
     pickupTimeField.change(3)
     await wrap(sleep())
 
-    await expect(
-      pickupTimeField.validation().validating,
-    ).resolves.toMatchObject({
-      errors: [
-        {
-          source: 'validation',
-          message: 'cookTooLong',
-        },
-      ],
+    expect(pickupTimeField.validation()).toMatchObject({
+      error: undefined,
+      validating: expect.any(Promise),
     })
+
+    await wrap(
+      expect(pickupTimeField.validation().validating).resolves.toMatchObject({
+        errors: [
+          {
+            source: 'validation',
+            message: 'cookTooLong',
+          },
+        ],
+      }),
+    )
   })
 })

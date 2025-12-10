@@ -500,7 +500,7 @@ export function reatomField<State, Value = State>(
                 if (typeof result === 'object' && '~standard' in result) {
                   let validatonResult = result['~standard'].validate(state)
                   return validatonResult instanceof Promise
-                    ? validatonResult.then(transformStandardSchemaResult)
+                    ? validatonResult.then(wrap(transformStandardSchemaResult))
                     : transformStandardSchemaResult(validatonResult)
                 }
 
@@ -526,17 +526,21 @@ export function reatomField<State, Value = State>(
 
               promise =
                 task instanceof Promise
-                  ? task.then(transformResult)
+                  ? task.then(wrap(transformResult))
                   : transformResult(task)
             } else {
               const task = validateFn?.['~standard'].validate(state)
 
               promise =
                 task instanceof Promise
-                  ? task.then(transformStandardSchemaResult)
+                  ? task.then(wrap(transformStandardSchemaResult))
                   : transformStandardSchemaResult(task)
             }
           } catch (error) {
+            // TODO: abort error might get here, should to handle it properly
+            // if (isAbort(error))
+            //   throw error
+
             promise = [{ source: 'validation', message: toError(error) }]
           }
 
@@ -553,7 +557,10 @@ export function reatomField<State, Value = State>(
 
                 return { errors }
               } catch (error) {
-                if (isAbort(error)) return { errors: target.errors() }
+                if (isAbort(error)) {
+                  target.merge({ validating: undefined })
+                  return { errors: target.errors() }
+                }
 
                 const validationErrors = [
                   { source: 'validaton', message: toError(error) },
