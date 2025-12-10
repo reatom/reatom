@@ -14,16 +14,16 @@ If you want to report a bug, create a reproduction using StackBlitz or CodeSandb
 
 1. fork and clone the repository
 2. create a development branch from `v1000`
-3. install dependencies from the root of the repo (`node@18` and `npm@8` are required):
+3. install dependencies from the root of the repo (Node 24.2.0 and `pnpm@10.25.0` are recommended):
    ```sh
-   npm install
+   pnpm install
    ```
-   Note: this command installs dependencies for all packages, but only builds packages included in `@reatom/framework`, like `core`, `utils`, `async`, etc.
+   Note: this command installs dependencies for all packages, but only builds `@reatom/core`.
 4. build the package you are editing from the root of the repo:
    ```sh
-   npx turbo run build --filter=<PACKAGE_NAME>
+   pnpm --filter <PACKAGE_NAME> run build
    ```
-   Replace `<PACKAGE_NAME>` with the relevant package name like `persist` or `npm-react`
+   Replace `<PACKAGE_NAME>` with the relevant package name like `@reatom/react`
 5. [make changes](#coding-guide) and [commit them](#commit-messages)
 6. upload feature branch and create a [Pull Request](https://github.com/reatom/reatom/compare) to merge changes to `v1000`
 7. link your PR to the issue using a [closing keyword](https://help.github.com/en/articles/closing-issues-using-keywords) or provide changes description with motivation and explanation in the comment (example: `fix #74`)
@@ -34,24 +34,23 @@ If you want to report a bug, create a reproduction using StackBlitz or CodeSandb
 The goal of Reatom ecosystem is to provide adapters for Web APIs and popular npm modules. Therefore, the process of creating a new package is almost identical to editing an existing one ([Sending a Pull Request](#sending-a-pull-request)), but you should also create the package using an interactive script ran in the repository root:
 
 ```sh
-npm run package-generator
+pnpm run package-generator
 ```
 
-Add needed dependencies by running `npm install` in your package's directory. If you're making an adapter for a particular npm library (like `@reatom/npm-react` for React), the library should be saved as peer: `npm install --save-peer <LIBRARY>`
+Add needed dependencies by running `pnpm install` in the repository root. To add a dependency to a specific package, use `pnpm --filter <PACKAGE_NAME> add <LIBRARY>` or update the package's `package.json` and then run `pnpm install` from the repository root. If you're making an adapter for a particular npm library (like `@reatom/react` for React), add the library as a peer dependency using `pnpm --filter <PACKAGE_NAME> add --save-peer <LIBRARY>`.
 
 <!-- ??? -->
 <!-- To add dependencies, add them manually to the `package.json` of the new package and install them from the root of the repo. -->
 
-### Package naming rule
-
-Packages that integrate Reatom with external APIs should have their names prefixed with API or library source kind: `node-`, `npm-`, `web-`. For example, [`@reatom/npm-history`](https://reatom.dev/package/npm-history) provides an adapter for the [`history`](https://npmjs.com/history) package. Similarly, a potential adapter for [Web History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) would be named `@reatom/web-history`.
+<!-- ??? -->
+<!-- To add new Package naming rule. -->
 
 ## Coding guide
 
 - bug fixes should also add tests that reproduce the addressed bug
 - all new features should be tested and documented
 <!-- - always use `@ts-expect-error` instead of `@ts-ignore` -->
-- use `// @ts-ignore` if you not sure why error appears or you think it could be better, use `// @ts-expect-error` if you sure that error is a mistake <!-- ??? -->
+- use `// @ts-ignore` if you're not sure why an error appears or you think it's acceptable to suppress it temporarily. Use `// @ts-expect-error` if you're certain the error is a false positive and you want TypeScript to expect it.
 
 ## Commit messages
 
@@ -76,7 +75,7 @@ Commit messages should follow the [Conventional Commits](https://conventionalcom
 
 ### Allowed `<scope>`
 
-Package directory name. Eg: `/packages/effects` is scoped as `effects`.
+Package directory name. Eg: `/packages/react` is scoped as `react`.
 
 ### `<description>` rules
 
@@ -88,6 +87,6 @@ Package directory name. Eg: `/packages/effects` is scoped as `effects`.
 ### Commit message examples
 
 ```
-docs: fix typo in npm-react
+docs: fix typo in react
 fix(core): add check for atoms with equal ids
 ```
