@@ -2328,8 +2328,8 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/type
      */
     type?: /**
-       * A push button with no default behavior displaying the value of the
-       * value attribute, empty by default.
+       * A push button with no default behavior displaying the value of the value
+       * attribute, empty by default.
        */
       | 'button'
       /** A check box allowing single values to be selected/deselected. */

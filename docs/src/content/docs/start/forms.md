@@ -54,7 +54,7 @@ Each field atom includes meta atoms like `validation`, `focus`, and others, whic
 
 ## Framework bindings
 
-```tsx title="LoginForm.tsx" /bindField\(.+\)/ /loginForm.submit\(\)/ /submit\.ready\(\)/
+```tsx title="LoginForm.tsx" /bindField(.+)/ /loginForm.submit()/ /submit.ready()/
 import { reatomComponent, bindField } from '@reatom/react'
 import { Button, TextInput, PasswordInput, Stack, Alert } from '@mantine/core'
 import { loginForm } from './loginForm'
