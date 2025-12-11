@@ -16,7 +16,7 @@ jobs:
           cache: true
       - name: Install dependencies
         run: |
-          pnpm install --ignore-scripts
+          pnpm install
           pnpx playwright install --with-deps chromium
       - name: Run tests
         run: node --run test
