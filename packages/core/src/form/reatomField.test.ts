@@ -312,7 +312,7 @@ test(`reset with initState`, async () => {
 })
 
 describe(`standard schema validation`, () => {
-  viTest.skip('static', async () => {
+  test('static', async () => {
     const field = reatomField(123, {
       name: 'field',
       validate: z.number().min(100, 'min'),
@@ -330,8 +330,13 @@ describe(`standard schema validation`, () => {
     const asyncField = reatomField(123, {
       name: 'asyncField',
       validate: z.number().refine(async (value) => {
-        await wrap(sleep(1))
-        return value >= 100
+        try {
+          await wrap(sleep(1))
+          return value >= 100
+        } catch {
+          // TODO zod's refine leak unhandled promise rejection =(
+          return false
+        }
       }, 'min'),
     })
 
