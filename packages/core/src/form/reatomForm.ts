@@ -114,9 +114,7 @@ export type FormFields<T extends FormInitState> = {
   [K in keyof T]: FormFieldElement<T[K]>
 }
 
-export type FormState<T extends FormInitState> = Deatomize<
-  FormFields<T>
->
+export type FormState<T extends FormInitState> = Deatomize<FormFields<T>>
 
 export type DeepPartial<T, Skip = never> = {
   [K in keyof T]?: T[K] extends Skip
@@ -125,8 +123,10 @@ export type DeepPartial<T, Skip = never> = {
       ? DeepPartial<T[K], Skip>
       : T[K]
 }
-export type FormPartialState<T extends FormInitState> =
-  DeepPartial<FormState<T>, Array<unknown>>
+export type FormPartialState<T extends FormInitState> = DeepPartial<
+  FormState<T>,
+  Array<unknown>
+>
 
 export type SubmitAction<Params extends any[], Return> = Action<
   Params,

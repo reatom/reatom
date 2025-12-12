@@ -147,7 +147,10 @@ export const reatomFieldSet = <T extends FormInitState>(
     }, `${target.name}.trigger`).extend(withAbort()),
   }))
 
-  const reinitState = (initState: FormPartialState<T>, fields: FormFields) => {
+  const reinitState = (
+    initState: FormPartialState<T>,
+    fields: FormFields<any>,
+  ) => {
     for (const [key, value] of Object.entries(initState as Rec)) {
       const keyValue = fields[key] as unknown
       if (isLinkedListAtom(keyValue)) {
@@ -162,7 +165,7 @@ export const reatomFieldSet = <T extends FormInitState>(
         key in fields &&
         !isAtom(keyValue)
       ) {
-        reinitState(value, keyValue as unknown as FormFields)
+        reinitState(value, keyValue as unknown as FormFields<any>)
       } else if (isAtom(keyValue)) {
         // @ts-ignore
         keyValue.initState.set(value)

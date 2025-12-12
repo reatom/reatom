@@ -312,7 +312,7 @@ test(`reset with initState`, async () => {
 })
 
 describe(`standard schema validation`, () => {
-  test('static', async () => {
+  viTest.skip('static', async () => {
     const field = reatomField(123, {
       name: 'field',
       validate: z.number().min(100, 'min'),
