@@ -110,11 +110,11 @@ export type FormFieldElement<
               ? { [K in keyof T]: FormFieldElement<T[K]> }
               : FieldAtom<T>
 
-export type FormFields<T extends FormInitState = FormInitState> = {
+export type FormFields<T extends FormInitState> = {
   [K in keyof T]: FormFieldElement<T[K]>
 }
 
-export type FormState<T extends FormInitState = FormInitState> = Deatomize<
+export type FormState<T extends FormInitState> = Deatomize<
   FormFields<T>
 >
 
@@ -125,7 +125,7 @@ export type DeepPartial<T, Skip = never> = {
       ? DeepPartial<T[K], Skip>
       : T[K]
 }
-export type FormPartialState<T extends FormInitState = FormInitState> =
+export type FormPartialState<T extends FormInitState> =
   DeepPartial<FormState<T>, Array<unknown>>
 
 export type SubmitAction<Params extends any[], Return> = Action<
@@ -135,10 +135,10 @@ export type SubmitAction<Params extends any[], Return> = Action<
   AsyncDataExt<Params, Return, Return | undefined, Error | undefined>
 
 export interface Form<
-  T extends FormInitState = FormInitState,
+  T extends FormInitState,
   SchemaState = any,
-  SubmitReturn = void,
-  SubmitParams extends any[] = [],
+  SubmitReturn = any,
+  SubmitParams extends any[] = any[],
 > extends ValidationlessFieldSet<T> {
   /**
    * Atom with validation state of the form, computed from all the fields in
