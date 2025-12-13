@@ -1,3 +1,9 @@
+## 1000.1.0 (2025-12-13)
+
+### Feat
+
+- **methods**: add createAndRun to variable
+
 ## 1000.0.4 (2025-12-12)
 
 ### Fix

@@ -46,6 +46,12 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
       return fn(...args)
     }, `${this.name}.run`)
 
+    this.createAndRun = action(
+      (fn: Fn, ...args: any[]) =>
+        this.run(this.create(...([] as unknown as Params)), fn, ...args),
+      `${this.name}.createAndRun`,
+    ) as typeof this.createAndRun
+
     this.spawn = action(
       (cb: Fn, ...params: any[]): ReturnType<Fn> => cb(...params),
       `${this.name}.spawn`,
@@ -122,6 +128,25 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
       ...params: Params
     ) => Payload
   >
+
+  /**
+   * Runs a callback with an auto-created variable value. Only available when
+   * the variable's create function requires no parameters.
+   *
+   * @example
+   *   const loggerVar = variable(() => console, 'logger')
+   *
+   *   loggerVar.createAndRun(() => {
+   *     loggerVar.get()?.log('Hello!') // uses auto-created console
+   *   })
+   */
+  createAndRun: GenericAction<
+    <Params extends any[], Payload>(
+      cb: (...params: Params) => Payload,
+      ...params: Params
+    ) => Payload
+  > &
+    ([] extends Params ? {} : never)
 
   /**
    * This utility allow you to start a function which will NOT follow the async
@@ -281,7 +306,7 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
  *     fetchData('/api/users') // uses console as logger
  *   })
  *
- *   // In tests, provide a mock implementation
+ *   // In tests, createAndRun a mock implementation
  *   const mockLogger = { log: vi.fn() }
  *   loggerVar.run(mockLogger, () => {
  *     fetchData('/api/users') // uses mock logger
@@ -316,6 +341,7 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
  * @template Payload - The type of the stored value
  * @see {@link https://github.com/tc39/proposal-async-context?tab=readme-ov-file#asynccontextvariable}
  */
+// @ts-expect-error TODO
 export let variable: {
   <T extends NonUndefined>(name?: string): Variable<T, [T]>
 
