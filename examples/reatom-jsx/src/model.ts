@@ -5,7 +5,6 @@ import {
   LL_NEXT,
   LL_PREV,
   reatomLinkedList,
-  withChangeHook,
 } from '@reatom/core'
 
 export type ListElement = LLNode<Atom<string>>
@@ -13,21 +12,6 @@ export type ListElement = LLNode<Atom<string>>
 export const list = reatomLinkedList(
   (init: string) => atom(init, `list#${init}`),
   'list',
-).extend(
-  withChangeHook((state) => {
-    let prev = null
-    let next = state.head
-    let path = ''
-
-    while (next) {
-      if (prev !== next[LL_PREV]) {
-        throw new Error(`List collision: ${path}`)
-      }
-      path += `${next.name} - `
-      prev = next
-      next = next[LL_NEXT]
-    }
-  }),
 )
 
 export const moveDown = action((input: ListElement) => {
