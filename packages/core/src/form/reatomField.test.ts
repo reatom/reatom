@@ -292,9 +292,9 @@ test(`validation concurrency with conditional debounce`, async () => {
 
       await wrap(sleep(1))
       return state === TAKEN_NAME ? 'taken' : undefined
-    },  
+    },
     validateOnBlur: true,
-    validateOnChange: true
+    validateOnChange: true,
   })
 
   nameField.change('e')
@@ -304,24 +304,41 @@ test(`validation concurrency with conditional debounce`, async () => {
   nameField.focus.out()
   await wrap(sleep())
   expect(nameField.validation()).toMatchObject({ error: 'short' })
-  
+
   nameField.change(TAKEN_NAME)
   await wrap(sleep())
   nameField.change(TAKEN_NAME + 'h')
   await wrap(sleep())
-  await wrap(expect(nameField.validation().validating).resolves.toMatchObject({ errors: [] }))
-  expect(nameField.validation()).toMatchObject({ error: undefined, validating: undefined })
+  await wrap(
+    expect(nameField.validation().validating).resolves.toMatchObject({
+      errors: [],
+    }),
+  )
+  expect(nameField.validation()).toMatchObject({
+    error: undefined,
+    validating: undefined,
+  })
 
   nameField.change(TAKEN_NAME)
   await wrap(sleep())
   nameField.change('ek')
   await wrap(sleep(1))
-  expect(nameField.validation()).toMatchObject({ error: 'short', validating: undefined  })
+  expect(nameField.validation()).toMatchObject({
+    error: 'short',
+    validating: undefined,
+  })
 
   nameField.change(TAKEN_NAME)
   await wrap(sleep())
-  await wrap(expect(nameField.validation().validating).resolves.toMatchObject({ errors: [{ message: 'taken' }] }))
-  expect(nameField.validation()).toMatchObject({ validating: undefined, error: 'taken' })
+  await wrap(
+    expect(nameField.validation().validating).resolves.toMatchObject({
+      errors: [{ message: 'taken' }],
+    }),
+  )
+  expect(nameField.validation()).toMatchObject({
+    validating: undefined,
+    error: 'taken',
+  })
 })
 
 test(`withField and initState derivation`, async () => {
