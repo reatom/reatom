@@ -17,33 +17,22 @@
 </div>
 
 <script>
+  const prefersReducedMotion = window.matchMedia(
+    '(prefers-reduced-motion: reduce)',
+  ).matches
+
+  await new Promise(
+    (resolve) => !prefersReducedMotion && setTimeout(resolve, 3000),
+  )
+  // @ts-ignore
+  const { default: createRegl } = await import('regl')
+  const glMatrix = await import('gl-matrix')
+
   const INACTIVITY_TIMEOUT = 30000
   const overlay = document.getElementById('screensaver-overlay')
   let inactivityTimer = null
   let reglInstance = null
-  let scriptsLoaded = false
   let isActive = false
-
-  function loadScript(src) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script')
-      script.src = src
-      script.onload = resolve
-      script.onerror = reject
-      document.head.appendChild(script)
-    })
-  }
-
-  async function loadScripts() {
-    if (scriptsLoaded) return
-    await loadScript(
-      'https://cdnjs.cloudflare.com/ajax/libs/regl/2.1.1/regl.min.js',
-    )
-    await loadScript(
-      'https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js',
-    )
-    scriptsLoaded = true
-  }
 
   function resetInactivityTimer() {
     if (inactivityTimer) {
@@ -57,13 +46,12 @@
     inactivityTimer = setTimeout(showScreensaver, INACTIVITY_TIMEOUT)
   }
 
-  async function showScreensaver() {
+  function showScreensaver() {
     if (isActive) return
     isActive = true
     overlay.classList.remove('hidden')
 
     if (!reglInstance) {
-      await loadScripts()
       initRegl()
     }
   }
@@ -106,7 +94,7 @@
     const bgColor = cssColorToArray('#151134')
     const fgColor = cssColorToArray('#c73be7')
 
-    reglInstance = createREGL({
+    reglInstance = createRegl({
       container: document.querySelector('#display'),
       pixelRatio: Math.min(2, globalThis.devicePixelRatio),
       extensions: ['ANGLE_instanced_arrays'],
@@ -138,7 +126,7 @@
       precision mediump float;
       
       attribute vec2 position;
-      attribute vec4 offset; // Смещение инстансов
+      attribute vec4 offset; // Instance offset
       attribute float instanceId; // instanceId
       
       uniform mat4 projection, view, model;
@@ -487,7 +475,7 @@
         tubeOffsets[i][1] = Math.sin(z * 0.7 + time) * 0.15
         tubeOffsets[i][2] = z
 
-        // Копируем значения для сортировки
+        // Copy values for sorting
         sortedOffsets[i] = [...tubeOffsets[i]]
       }
 
@@ -527,16 +515,7 @@
     position: fixed;
     inset: 0;
     z-index: 9999;
-    transition: opacity 0.5s ease-in-out;
-  }
-
-  .screensaver-overlay:before {
-    content: '';
-    position: absolute;
-    z-index: -1;
-    width: 100%;
-    height: 100%;
-    background: black;
+    transition: opacity 1s ease-in-out;
   }
 
   .screensaver-overlay.hidden {
