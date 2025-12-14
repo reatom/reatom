@@ -16,31 +16,6 @@ const VERSION = JSON.parse(
   ),
 ).version
 
-async function updateReleasePlease(pkgName: string) {
-  const rpManifest = JSON.parse(
-    await fs.promises.readFile(
-      path.join(process.cwd(), '.release-please-manifest.json'),
-      'utf-8',
-    ),
-  )
-  rpManifest[`packages/${pkgName}`] = VERSION
-  await fs.promises.writeFile(
-    path.join(process.cwd(), '.release-please-manifest.json'),
-    JSON.stringify(rpManifest, null, 2),
-  )
-
-  const rpConfig = JSON.parse(
-    await fs.promises.readFile(
-      path.join(process.cwd(), 'release-please-config.json'),
-      'utf-8',
-    ),
-  )
-  rpConfig.packages[`packages/${pkgName}`] = {}
-  await fs.promises.writeFile(
-    path.join(process.cwd(), 'release-please-config.json'),
-    JSON.stringify(rpConfig, null, 2),
-  )
-}
 
 main()
 async function main() {
@@ -92,8 +67,6 @@ async function main() {
   pkgReadme = pkgReadme.replaceAll('{{name}}', pkgName)
   pkgReadme = pkgReadme.replaceAll('{{description}}', description)
   await fs.promises.writeFile(pkgReadmePath, pkgReadme)
-
-  await updateReleasePlease(pkgName)
 
   console.log(`\n🍾 Done! Package created in directory "${pkg}"`)
 
