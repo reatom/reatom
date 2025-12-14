@@ -1,0 +1,556 @@
+<div id="screensaver-overlay" class="screensaver-overlay hidden">
+  <div id="display"></div>
+  <input
+    type="color"
+    value="#151134"
+    id="bgColor"
+    class="color-input"
+    style="display: none;"
+  />
+  <input
+    type="color"
+    value="#5e2f8e"
+    id="fgColor"
+    class="color-input"
+    style="display: none;"
+  />
+</div>
+
+<script>
+  const INACTIVITY_TIMEOUT = 30000
+  const overlay = document.getElementById('screensaver-overlay')
+  let inactivityTimer = null
+  let reglInstance = null
+  let scriptsLoaded = false
+  let isActive = false
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = src
+      script.onload = resolve
+      script.onerror = reject
+      document.head.appendChild(script)
+    })
+  }
+
+  async function loadScripts() {
+    if (scriptsLoaded) return
+    await loadScript(
+      'https://cdnjs.cloudflare.com/ajax/libs/regl/2.1.1/regl.min.js',
+    )
+    await loadScript(
+      'https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/3.4.2/gl-matrix-min.js',
+    )
+    scriptsLoaded = true
+  }
+
+  function resetInactivityTimer() {
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer)
+    }
+
+    if (isActive) {
+      hideScreensaver()
+    }
+
+    inactivityTimer = setTimeout(showScreensaver, INACTIVITY_TIMEOUT)
+  }
+
+  async function showScreensaver() {
+    if (isActive) return
+    isActive = true
+    overlay.classList.remove('hidden')
+
+    if (!reglInstance) {
+      await loadScripts()
+      initRegl()
+    }
+  }
+
+  function hideScreensaver() {
+    if (!isActive) return
+    isActive = false
+    overlay.classList.add('hidden')
+  }
+
+  const activityEvents = [
+    'mousemove',
+    'mousedown',
+    'keydown',
+    'touchstart',
+    'scroll',
+  ]
+  activityEvents.forEach((event) => {
+    document.addEventListener(event, resetInactivityTimer, { passive: true })
+  })
+
+  resetInactivityTimer()
+
+  function cssColorToArray(hex) {
+    if (hex.startsWith('#')) hex = hex.slice(1)
+    if (hex.length === 3)
+      hex = hex
+        .split('')
+        .map((c) => c + c)
+        .join('')
+
+    const r = parseInt(hex.slice(0, 2), 16) / 255
+    const g = parseInt(hex.slice(2, 4), 16) / 255
+    const b = parseInt(hex.slice(4, 6), 16) / 255
+
+    return [r, g, b]
+  }
+
+  function initRegl() {
+    const bgColor = cssColorToArray('#151134')
+    const fgColor = cssColorToArray('#c73be7')
+
+    reglInstance = createREGL({
+      container: document.querySelector('#display'),
+      pixelRatio: Math.min(2, globalThis.devicePixelRatio),
+      extensions: ['ANGLE_instanced_arrays'],
+    })
+    const regl = reglInstance
+    const { mat4 } = glMatrix
+
+    const depth = 12
+    const step = 2
+    const length = Math.floor(depth / step)
+    const tubeOffsets = []
+    const tubeIndexes = []
+
+    let index = 0
+
+    for (let i = 0; i < length; i++) {
+      const x = Math.sin(i) * 0.2
+      const y = 0
+      const z = step * i - 10
+
+      tubeOffsets.push([x, y, z, 0.4])
+      tubeIndexes.push([index++])
+    }
+
+    const offsetBuffer = regl.buffer(tubeOffsets)
+
+    const drawPlane = regl({
+      vert: `
+      precision mediump float;
+      
+      attribute vec2 position;
+      attribute vec4 offset; // Смещение инстансов
+      attribute float instanceId; // instanceId
+      
+      uniform mat4 projection, view, model;
+      uniform float time;
+      
+      varying vec2 uv;
+      varying float vInstanceId;
+      varying vec4 vWorldPosition;
+      varying float vRadius;
+      varying float vFog;
+  
+      void main() {
+        vec3 pos = vec3(position, 0.0) + offset.xyz;
+        uv = 0.5 * (position + 1.0);
+        vec4 worldPosition = model * vec4(pos, 1.0);
+        float fogFactor = smoothstep(-5.1, 3.0, worldPosition.z);
+        
+        vInstanceId = instanceId;
+        vWorldPosition = worldPosition;
+        vRadius = offset.a;
+        vFog = fogFactor;
+        
+        gl_Position = projection * view * worldPosition;
+      }
+    `,
+
+      frag: `
+      precision mediump float;
+      
+      varying vec2 uv;
+      varying float vInstanceId;
+      varying vec4 vWorldPosition;
+      varying float vRadius;
+      varying float vFog;
+      
+      uniform vec4 fogColor;
+      uniform float time;
+      uniform vec3 color;
+      
+      float PI = 3.14159;
+      
+      float ripple(vec4 p, float rad, float freq, float amp, float time) {
+        return 
+          sin(rad) * amp
+          + sin(p.x * freq) * amp 
+          + sin(p.y * freq) * amp
+          + sin((p.z * 0.01) * freq) * amp
+          + sin(time * 0.01) * amp
+          ;
+      }
+      
+      float angle(vec2 p1, vec2 p2) {
+        vec2 d = vec2(
+          p2.x - p1.x,
+          p2.y - p1.y
+        );
+        
+        return atan(d.y, d.x);
+      }
+      
+      float circle(vec2 c, float r) {
+        float dist = distance(uv, c);
+        float radians = angle(uv, c);
+        
+        float amount = pow(sin(time * 0.0001), 8.0);
+        float morphed = ripple(vWorldPosition, radians, 5.0, 1.0, 1.0);
+        float flowers = ripple(vWorldPosition, radians * 7.0, 5.0, 0.01, time * 0.01);
+        
+        float timeline = mod(time * 0.0003, 5.0);
+        
+        // float inner = r + morphed;
+        float inner = flowers;
+        
+        if (timeline > 0.0 && timeline < 1.0) {
+          inner = mix(flowers, morphed, timeline);
+        }
+        if (timeline >= 1.0 && timeline < 2.0) {
+          inner = mix(morphed, r, timeline - 1.0);
+        }
+        if (timeline >= 2.0 && timeline < 3.0) {
+          inner = r;
+        }
+        if (timeline >= 3.0 && timeline < 4.0) {
+          inner = mix(r, flowers, timeline - 3.0);
+        }
+        if (timeline >= 4.0 && timeline < 5.0) {
+          inner = flowers;
+        }
+        
+        float outer = inner + 0.03;
+        
+        float main = dist > inner && dist < outer ? 1.0 : 0.0;
+        float lightDiff = vFog * 0.02;
+        float light = smoothstep(inner - lightDiff, inner, dist) - smoothstep(outer, outer + lightDiff, dist);
+        
+        return main + light;
+      }
+      
+      float circles3(vec2 c, float d, float radians) {
+        float circles = circle(vec2(
+          c.x + cos(radians + PI * 1.3 * d) * 0.33,
+          c.y + sin(radians + PI * 1.3 * d) * 0.33
+        ), 0.07);
+        
+        circles += circle(vec2(
+          c.x + cos(radians + PI * 1.54 * d) * 0.35,
+          c.y + sin(radians + PI * 1.54 * d) * 0.35
+        ), 0.045);
+        
+        circles += circle(vec2(
+          c.x + cos(radians + PI * 1.73 * d) * 0.37,
+          c.y + sin(radians + PI * 1.73 * d) * 0.37
+        ), 0.025);
+        
+        return circles;
+      }
+
+      void main() {
+        vec3 diffuse = color;
+        
+        diffuse.r += vWorldPosition.z * 0.1;
+        diffuse.b -= vWorldPosition.z * 0.1;
+        
+        float timeFactor = sin(vWorldPosition.z - 3.0);
+        float radians = timeFactor;
+        vec2 c = vec2(0.5);
+       
+        float circles = circle(c, 0.4);
+        circles += circle(vec2(
+          c.x + cos(radians) * 0.075,
+          c.y + sin(radians) * 0.075
+        ), 0.25);
+        
+        circles += circle(vec2(
+          c.x + cos(radians + PI) * 0.31,
+          c.y + sin(radians + PI) * 0.31
+        ), 0.087);
+        
+        circles += circles3(c, 1.0, radians);
+        circles += circles3(c, -1.0, radians);
+        
+        gl_FragColor = vec4(
+          mix(fogColor.rgb, diffuse, vFog) * circles,
+          circles
+        );
+      }
+    `,
+
+      attributes: {
+        position: [
+          [-3, -3],
+          [3, -3],
+          [3, 3],
+          [-3, -3],
+          [3, 3],
+          [-3, 3],
+        ],
+        offset: {
+          buffer: regl.prop('offset'),
+          divisor: 1,
+        },
+        instanceId: {
+          buffer: regl.prop('instancesBuffer'),
+          divisor: 1,
+        },
+      },
+
+      uniforms: {
+        projection: ({ viewportWidth, viewportHeight }) =>
+          mat4.perspective(
+            [],
+            Math.PI / 4,
+            viewportWidth / viewportHeight,
+            0.01,
+            100,
+          ),
+        view: () => mat4.lookAt([], [0, 0, 3], [0, 0, 0], [0, 1, 0]),
+
+        model: ({}, props) => mat4.identity([]),
+        time: regl.prop('time'),
+        fogColor: regl.prop('fogColor'),
+        color: regl.prop('color'),
+      },
+      blend: {
+        enable: true,
+        func: {
+          srcRGB: 'src alpha',
+          srcAlpha: 'src alpha',
+          dstRGB: 'one minus src alpha',
+          dstAlpha: 'one minus src alpha',
+        },
+      },
+      count: 6,
+      instances: regl.prop('instancesCount'),
+    })
+
+    const colors = [
+      '#189fb4',
+      '#00b1c9',
+      '#0077ff',
+      '#054fd8',
+      '#216c79',
+      '#245380',
+      '#253d5f',
+      '#2b2f59',
+    ]
+
+    const createDrawParticles = (regl) => {
+      const NUM_PARTICLES = 1000
+      const particles = new Array(NUM_PARTICLES).fill({}).map((a, i) => ({
+        // position: [Math.random() * 2 - 1, Math.random() * 2 - 1],
+        position: [
+          1 + Math.cos(i / 1) * (i / NUM_PARTICLES),
+          1 + Math.sin(i / 1) * (i / NUM_PARTICLES),
+        ],
+        // velocity: [Math.random() * 0.01 - 0.005, Math.random() * 0.01 - 0.005],
+        velocity: [
+          Math.cos(Math.PI / 2 + i / 1) * Math.random() * 0.01 - 0.005,
+          Math.sin(Math.PI / 2 + i / 1) * Math.random() * 0.01 - 0.005,
+        ],
+        life: Math.random() * 100,
+        size: Math.random() * 10.5 + 0.5,
+        color: [
+          ...cssColorToArray(colors[Math.floor(Math.random() * colors.length)]),
+          0.5,
+        ],
+      }))
+
+      const particleBuffer = regl.buffer(
+        particles.map((p) => [
+          p.position[0],
+          p.position[1],
+          p.velocity[0],
+          p.velocity[1],
+          p.life,
+          p.size,
+          p.color[0],
+          p.color[1],
+          p.color[2],
+          p.color[3],
+        ]),
+      )
+
+      return regl({
+        depth: { enable: false },
+        frag: `
+      precision mediump float;
+
+      varying vec4 fragColor;
+
+      void main() {
+        gl_FragColor = fragColor;
+      }
+    `,
+        vert: `
+      precision mediump float;
+
+      attribute vec2 position;
+      attribute vec2 velocity;
+      attribute float life;
+      attribute float size;
+      attribute vec4 color;
+
+      uniform float time;
+      
+      varying vec3 vPosition;
+      varying vec4 fragColor;
+
+      void main() {
+          vec2 newPosition = mod(position + velocity * time, vec2(2.0)) - 1.0;
+          
+          fragColor = color;
+          vPosition = vec3(newPosition, 0.0);
+
+          gl_Position = vec4(newPosition, 0, 1);
+          gl_PointSize = size;
+      }
+    `,
+
+        attributes: {
+          position: {
+            buffer: particleBuffer,
+            stride: 10 * 4,
+            offset: 0,
+          },
+          velocity: {
+            buffer: particleBuffer,
+            stride: 10 * 4,
+            offset: 2 * 4,
+          },
+          life: {
+            buffer: particleBuffer,
+            stride: 10 * 4,
+            offset: 4 * 4,
+          },
+          size: {
+            buffer: particleBuffer,
+            stride: 10 * 4,
+            offset: 5 * 4,
+          },
+          color: {
+            buffer: particleBuffer,
+            stride: 10 * 4,
+            offset: 6 * 4,
+          },
+        },
+
+        uniforms: {
+          time: () => performance.now() * 0.01,
+          lightPosition: regl.prop('lightPosition'),
+          specularColor: regl.prop('specularColor'),
+        },
+
+        blend: {
+          enable: true,
+          func: {
+            srcRGB: 'src alpha',
+            srcAlpha: 'src alpha',
+            dstRGB: 'one minus src alpha',
+            dstAlpha: 'one minus src alpha',
+          },
+        },
+
+        count: NUM_PARTICLES,
+        primitive: 'points',
+      })
+    }
+
+    const drawParticles = createDrawParticles(regl)
+
+    let prevTime = performance.now() / 1000
+
+    const sortedOffsets = new Array(length)
+
+    setInterval(() => {
+      const time = performance.now() / 1000
+      const delta = time - prevTime
+
+      for (let i = 0; i < tubeOffsets.length; i++) {
+        let z = tubeOffsets[i][2] + delta
+        if (z > 3) {
+          z = -depth + 3.5
+        }
+
+        tubeOffsets[i][0] = Math.cos(z * 0.7 + time) * 0.15
+        tubeOffsets[i][1] = Math.sin(z * 0.7 + time) * 0.15
+        tubeOffsets[i][2] = z
+
+        // Копируем значения для сортировки
+        sortedOffsets[i] = [...tubeOffsets[i]]
+      }
+
+      sortedOffsets.sort((a, b) => a[2] - b[2])
+
+      offsetBuffer.subdata(sortedOffsets)
+
+      prevTime = time
+    }, 10)
+
+    regl.frame(() => {
+      const bgColor = cssColorToArray(document.querySelector('#bgColor').value)
+      const fgColor = cssColorToArray(document.querySelector('#fgColor').value)
+      const fogColor = [...bgColor, 1]
+
+      regl.clear({
+        color: fogColor,
+        depth: 1,
+      })
+
+      drawParticles({})
+
+      drawPlane({
+        offset: offsetBuffer,
+        instancesBuffer: tubeIndexes,
+        instancesCount: tubeIndexes.length,
+        time: performance.now(),
+        color: fgColor,
+        fogColor,
+      })
+    })
+  }
+</script>
+
+<style>
+  .screensaver-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    transition: opacity 0.5s ease-in-out;
+  }
+
+  .screensaver-overlay:before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    background: black;
+  }
+
+  .screensaver-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #display {
+    position: absolute;
+    inset: 0;
+  }
+
+  #display canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+</style>
