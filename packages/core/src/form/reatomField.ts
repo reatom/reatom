@@ -538,8 +538,8 @@ export function reatomField<State, Value = State>(
             }
           } catch (error) {
             // TODO: abort error might get here, should to handle it properly
-            // if (isAbort(error))
-            //   throw error
+            if (isAbort(error))
+              throw error
 
             promise = [{ source: 'validation', message: toError(error) }]
           }
