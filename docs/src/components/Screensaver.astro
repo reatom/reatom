@@ -60,6 +60,12 @@
     if (!isActive) return
     isActive = false
     overlay.classList.add('hidden')
+
+    if (reglInstance) {
+      reglInstance.destroy()
+      reglInstance = null
+      document.getElementById('display').innerHTML = ''
+    }
   }
 
   const activityEvents = [
@@ -113,7 +119,7 @@
     for (let i = 0; i < length; i++) {
       const x = Math.sin(i) * 0.2
       const y = 0
-      const z = step * i - 10
+      const z = (depth / length) * i - 10
 
       tubeOffsets.push([x, y, z, 0.4])
       tubeIndexes.push([index++])
@@ -142,7 +148,7 @@
         vec3 pos = vec3(position, 0.0) + offset.xyz;
         uv = 0.5 * (position + 1.0);
         vec4 worldPosition = model * vec4(pos, 1.0);
-        float fogFactor = smoothstep(-5.1, 3.0, worldPosition.z);
+        float fogFactor = smoothstep(-8.0, 2.5, worldPosition.z);
         
         vInstanceId = instanceId;
         vWorldPosition = worldPosition;
@@ -167,6 +173,10 @@
       uniform vec3 color;
       
       float PI = 3.14159;
+      
+      float easeInOutCubic(float t) {
+        return t < 0.5 ? 4.0 * t * t * t : 1.0 - pow(-2.0 * t + 2.0, 3.0) / 2.0;
+      }
       
       float ripple(vec4 p, float rad, float freq, float amp, float time) {
         return 
@@ -195,22 +205,24 @@
         float morphed = ripple(vWorldPosition, radians, 5.0, 1.0, 1.0);
         float flowers = ripple(vWorldPosition, radians * 7.0, 5.0, 0.01, time * 0.01);
         
-        float timeline = mod(time * 0.0003, 5.0);
+        float timeline = mod(time * 0.00015, 5.0);
         
-        // float inner = r + morphed;
         float inner = flowers;
         
         if (timeline > 0.0 && timeline < 1.0) {
-          inner = mix(flowers, morphed, timeline);
+          float phase = easeInOutCubic(timeline);
+          inner = mix(flowers, morphed, phase);
         }
         if (timeline >= 1.0 && timeline < 2.0) {
-          inner = mix(morphed, r, timeline - 1.0);
+          float phase = easeInOutCubic(timeline - 1.0);
+          inner = mix(morphed, r, phase);
         }
         if (timeline >= 2.0 && timeline < 3.0) {
           inner = r;
         }
         if (timeline >= 3.0 && timeline < 4.0) {
-          inner = mix(r, flowers, timeline - 3.0);
+          float phase = easeInOutCubic(timeline - 3.0);
+          inner = mix(r, flowers, phase);
         }
         if (timeline >= 4.0 && timeline < 5.0) {
           inner = flowers;
@@ -295,16 +307,8 @@
       },
 
       uniforms: {
-        projection: ({ viewportWidth, viewportHeight }) =>
-          mat4.perspective(
-            [],
-            Math.PI / 4,
-            viewportWidth / viewportHeight,
-            0.01,
-            100,
-          ),
-        view: () => mat4.lookAt([], [0, 0, 3], [0, 0, 0], [0, 1, 0]),
-
+        projection: regl.prop('projection'),
+        view: regl.prop('view'),
         model: ({}, props) => mat4.identity([]),
         time: regl.prop('time'),
         fogColor: regl.prop('fogColor'),
@@ -457,13 +461,19 @@
 
     const drawParticles = createDrawParticles(regl)
 
-    let prevTime = performance.now() / 1000
+    const projectionMatrix = mat4.create()
+    const viewMatrix = mat4.create()
+    const sortedOffsets = new Array(length).fill(null).map(() => [0, 0, 0, 0])
+    
+    const bgColorInput = document.querySelector('#bgColor') as HTMLInputElement
+    const fgColorInput = document.querySelector('#fgColor') as HTMLInputElement
 
-    const sortedOffsets = new Array(length)
+    let prevTime = 0
 
-    setInterval(() => {
-      const time = performance.now() / 1000
-      const delta = time - prevTime
+    regl.frame(({ time, viewportWidth, viewportHeight }) => {
+      const currentTime = time
+      const delta = prevTime === 0 ? 0 : currentTime - prevTime
+      prevTime = currentTime
 
       for (let i = 0; i < tubeOffsets.length; i++) {
         let z = tubeOffsets[i][2] + delta
@@ -471,24 +481,34 @@
           z = -depth + 3.5
         }
 
-        tubeOffsets[i][0] = Math.cos(z * 0.7 + time) * 0.15
-        tubeOffsets[i][1] = Math.sin(z * 0.7 + time) * 0.15
+        tubeOffsets[i][0] = Math.cos(z * 0.7 + currentTime) * 0.15
+        tubeOffsets[i][1] = Math.sin(z * 0.7 + currentTime) * 0.15
         tubeOffsets[i][2] = z
 
-        // Copy values for sorting
-        sortedOffsets[i] = [...tubeOffsets[i]]
+        sortedOffsets[i][0] = tubeOffsets[i][0]
+        sortedOffsets[i][1] = tubeOffsets[i][1]
+        sortedOffsets[i][2] = tubeOffsets[i][2]
+        sortedOffsets[i][3] = tubeOffsets[i][3]
       }
 
       sortedOffsets.sort((a, b) => a[2] - b[2])
-
       offsetBuffer.subdata(sortedOffsets)
 
-      prevTime = time
-    }, 10)
+      const t = currentTime * 0.1
+      const eyeX = Math.sin(t * 0.3) * 0.15
+      const eyeY = Math.cos(t * 0.2) * 0.1
+      mat4.lookAt(viewMatrix, [eyeX, eyeY, 3], [0, 0, 0], [0, 1, 0])
 
-    regl.frame(() => {
-      const bgColor = cssColorToArray(document.querySelector('#bgColor').value)
-      const fgColor = cssColorToArray(document.querySelector('#fgColor').value)
+      mat4.perspective(
+        projectionMatrix,
+        Math.PI / 4,
+        viewportWidth / viewportHeight,
+        0.01,
+        100,
+      )
+
+      const bgColor = cssColorToArray(bgColorInput.value)
+      const fgColor = cssColorToArray(fgColorInput.value)
       const fogColor = [...bgColor, 1]
 
       regl.clear({
@@ -505,6 +525,8 @@
         time: performance.now(),
         color: fgColor,
         fogColor,
+        projection: projectionMatrix,
+        view: viewMatrix,
       })
     })
   }
