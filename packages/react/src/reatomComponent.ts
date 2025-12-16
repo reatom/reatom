@@ -148,17 +148,20 @@ export let reatomFactoryComponent = <Props extends Rec = {}>(
 
   return reatomComponent(
     (props) =>
-      React.useMemo(() => {
-        const frame = top()
-        try {
-          // @ts-expect-error internals
-          frame.atom.__reatom.linking = false
-          return init(props, { name: frame.atom.name })
-        } finally {
-          // @ts-expect-error internals
-          frame.atom.__reatom.linking = true
-        }
-      }, deps.map((name) => props[name]))(props),
+      React.useMemo(
+        () => {
+          const frame = top()
+          try {
+            // @ts-expect-error internals
+            frame.atom.__reatom.linking = false
+            return init(props, { name: frame.atom.name })
+          } finally {
+            // @ts-expect-error internals
+            frame.atom.__reatom.linking = true
+          }
+        },
+        deps.map((name) => props[name]),
+      )(props),
     options,
   )
 }

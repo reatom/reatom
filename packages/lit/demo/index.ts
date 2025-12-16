@@ -4,11 +4,11 @@ import { LitElement, html } from 'lit'
 
 const timer = atom(0, 'timer')
 const count = atom(0, 'count').mix((target) => ({
-  increment: () => target((state) => state + 1)
+  increment: () => target((state) => state + 1),
 }))
 
 setInterval(() => {
-  timer(state => state + 1)
+  timer((state) => state + 1)
 }, 1_000)
 
 const RenderCountElement = withReatomElement(

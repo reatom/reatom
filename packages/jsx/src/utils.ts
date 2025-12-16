@@ -4,8 +4,10 @@ import type { JSX } from './jsx'
 
 // @see https://github.com/JedWatson/classnames
 // @see https://vuejs.org/guide/essentials/class-and-style.html#binding-html-classes
-export let reatomClassName = (value: JSX.ClassNameValue, name: string = named('classNameAtom')): Computed<string> =>
-  computed(() => parseClasses(value), name)
+export let reatomClassName = (
+  value: JSX.ClassNameValue,
+  name: string = named('classNameAtom'),
+): Computed<string> => computed(() => parseClasses(value), name)
 
 let parseClasses = (value: JSX.ClassNameValue): string => {
   let className = ''
