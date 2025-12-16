@@ -97,8 +97,8 @@ let isNewLogStack = true
  * - Error information when exceptions occur
  *
  * The logger adapts to the environment, using different formatting for browser
- * and Node.js. Private atoms (those with names starting with '_' or containing
- * '._') are not logged.
+ * and Node.js. Private atoms (those with names starting with `_` or containing
+ * `._`) are not logged.
  *
  * @example
  *   // Connect the logger at application startup
