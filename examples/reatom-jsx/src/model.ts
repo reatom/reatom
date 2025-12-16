@@ -1,11 +1,5 @@
 import type { Atom, LLNode } from '@reatom/core'
-import {
-  action,
-  atom,
-  LL_NEXT,
-  LL_PREV,
-  reatomLinkedList,
-} from '@reatom/core'
+import { action, atom, LL_NEXT, LL_PREV, reatomLinkedList } from '@reatom/core'
 
 export type ListElement = LLNode<Atom<string>>
 
