@@ -512,22 +512,39 @@ test('loader data types', async () => {
 })
 
 test('exactOnly should not render on children', async () => {
-  const rootRoute = reatomRoute({
-    path: '',
+  const parentRoute = reatomRoute({
+    path: 'project',
     exactOnly: true,
     render() {
       return true
     },
   })
-  const childRoute = reatomRoute('child')
 
-  rootRoute.go()
+  urlAtom.go('/project/child')
   await wrap(sleep())
-  expect(rootRoute.exact()).toBe(true)
-  expect(rootRoute.render()).toBeTruthy()
+  expect(parentRoute.render()).toBeFalsy()
+})
+
+test('exactOnly should not affect children', async () => {
+  const parentRoute = reatomRoute({
+    path: 'project',
+    exactOnly: true,
+    render() {
+      return true
+    },
+  })
+  const childRoute = parentRoute.reatomRoute({
+    path: 'child',
+
+    render() {
+      return true
+    },
+  })
 
   childRoute.go()
   await wrap(sleep())
-  expect(rootRoute.exact()).toBe(false)
-  expect(rootRoute.render()).toBeFalsy()
+  expect(parentRoute.render()).toBeFalsy()
+  expect(parentRoute.match()).toBeTruthy()
+  expect(childRoute.render()).toBeTruthy()
+  expect(childRoute.match()).toBeTruthy()
 })
