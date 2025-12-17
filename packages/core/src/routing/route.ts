@@ -124,12 +124,6 @@ export interface RouteOptions<
    */
   path?: Path
 
-  /**
-   * Make `path` matches only exact matches
-   * 
-   * @see {RouteExt.exact}
-   */
-  exactOnly?: boolean,
 
   /**
    * Schema to validate and transform path parameters. Uses Standard Schema
@@ -189,6 +183,13 @@ export interface RouteOptions<
    *   }
    */
   render?: (options: { outlet: RouteAtom['outlet'] }) => RouteChild
+
+  /**
+   * Render only on exact path matches
+   * 
+   * @see RouteExt.exact
+   */
+  exactRender?: boolean,
 }
 
 export interface RouteMixin<
@@ -545,7 +546,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       search: searchSchema,
       loader: optionsLoader = identity,
       render: renderFn,
-      exactOnly = false
+      exactRender = false
     } = options
 
     if (subPath.startsWith('/')) {
@@ -747,7 +748,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       }, `${name}._outlet`)
 
       const render = computed(() => {
-        return renderFn && (exactOnly ? exact() : match()) ? renderFn({ outlet }) : null
+        return renderFn && (exactRender ? exact() : match()) ? renderFn({ outlet }) : null
       }, `${name}._render`)
 
       return {
