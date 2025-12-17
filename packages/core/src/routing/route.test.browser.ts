@@ -510,3 +510,41 @@ test('loader data types', async () => {
     expectTypeOf(status.data).toExtend<number>()
   }
 })
+
+test('exactRender should not render on children match', async () => {
+  const parentRoute = reatomRoute({
+    path: 'project',
+    exactRender: true,
+    render() {
+      return true
+    },
+  })
+
+  urlAtom.go('/project/child')
+  await wrap(sleep())
+  expect(parentRoute.render()).toBeFalsy()
+})
+
+test('exactRender should not affect children', async () => {
+  const parentRoute = reatomRoute({
+    path: 'project',
+    exactRender: true,
+    render() {
+      return true
+    },
+  })
+  const childRoute = parentRoute.reatomRoute({
+    path: 'child',
+
+    render() {
+      return true
+    },
+  })
+
+  childRoute.go()
+  await wrap(sleep())
+  expect(parentRoute.render()).toBeFalsy()
+  expect(parentRoute.match()).toBeTruthy()
+  expect(childRoute.render()).toBeTruthy()
+  expect(childRoute.match()).toBeTruthy()
+})
