@@ -510,3 +510,24 @@ test('loader data types', async () => {
     expectTypeOf(status.data).toExtend<number>()
   }
 })
+
+test('exactOnly should not render on children', async () => {
+  const rootRoute = reatomRoute({
+    path: '',
+    exactOnly: true,
+    render() {
+      return true
+    },
+  })
+  const childRoute = reatomRoute('child')
+
+  rootRoute.go()
+  await wrap(sleep())
+  expect(rootRoute.exact()).toBe(true)
+  expect(rootRoute.render()).toBeTruthy()
+
+  childRoute.go()
+  await wrap(sleep())
+  expect(rootRoute.exact()).toBe(false)
+  expect(rootRoute.render()).toBeFalsy()
+})
