@@ -125,6 +125,13 @@ export interface RouteOptions<
   path?: Path
 
   /**
+   * Make `path` matches only exact matches
+   * 
+   * @see {RouteExt.exact}
+   */
+  exactOnly?: boolean,
+
+  /**
    * Schema to validate and transform path parameters. Uses Standard Schema
    * (compatible with Zod, Valibot, etc.).
    *
@@ -538,6 +545,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       search: searchSchema,
       loader: optionsLoader = identity,
       render: renderFn,
+      exactOnly = false
     } = options
 
     if (subPath.startsWith('/')) {
@@ -739,7 +747,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       }, `${name}._outlet`)
 
       const render = computed(() => {
-        return renderFn && match() ? renderFn({ outlet }) : null
+        return renderFn && (exactOnly ? exact() : match()) ? renderFn({ outlet }) : null
       }, `${name}._render`)
 
       return {
