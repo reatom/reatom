@@ -1,6 +1,7 @@
 ---
 // Hero Section Component
-const base = import.meta.env.BASE_URL
+
+import { resolveBase } from './resolve-base'
 ---
 
 <!-- Hero Section -->
@@ -49,7 +50,7 @@ const base = import.meta.env.BASE_URL
       <!-- Call-to-Action Buttons -->
       <div class="cta-container">
         <a
-          href={`${base}/start/base`}
+          href={resolveBase(`/start/base`)}
           class="cta-button cta-primary"
           aria-label="Get started with Reatom documentation"
         >
