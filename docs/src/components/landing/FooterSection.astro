@@ -1,5 +1,7 @@
 ---
 // Footer Section Component
+
+const base = import.meta.env.BASE_URL
 ---
 
 <!-- Footer Section -->
@@ -46,7 +48,7 @@
       <!-- Repeat CTA Buttons from Hero -->
       <div class="footer-cta-container">
         <a
-          href="/start/base"
+          href={`${base}/start/base`}
           class="footer-cta-button footer-cta-primary"
           aria-label="Get started with Reatom documentation"
         >
@@ -105,7 +107,7 @@
           <h3 class="footer-section-title">Documentation</h3>
           <ul class="footer-links">
             <li>
-              <a href="/references" class="footer-link">
+              <a href={`${base}/references`} class="footer-link">
                 <span>Complete Documentation</span>
                 <span class="footer-link-description"
                   >Guides and API reference</span
@@ -113,7 +115,7 @@
               </a>
             </li>
             <li>
-              <a href="/start/base" class="footer-link">
+              <a href={`${base}/start/base`} class="footer-link">
                 <span>Getting Started</span>
                 <span class="footer-link-description">Quick start guide</span>
               </a>

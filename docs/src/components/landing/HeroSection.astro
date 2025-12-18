@@ -1,5 +1,6 @@
 ---
 // Hero Section Component
+const base = import.meta.env.BASE_URL
 ---
 
 <!-- Hero Section -->
@@ -48,7 +49,7 @@
       <!-- Call-to-Action Buttons -->
       <div class="cta-container">
         <a
-          href="/start/base"
+          href={`${base}/start/base`}
           class="cta-button cta-primary"
           aria-label="Get started with Reatom documentation"
         >
