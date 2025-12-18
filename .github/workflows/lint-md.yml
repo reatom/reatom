@@ -26,6 +26,6 @@ jobs:
         with:
           cache: true
 
-      - run: pnpm ci --ignore-scripts
+      - run: pnpm install --ignore-scripts
 
       - run: node --run lint:md
