@@ -3,7 +3,7 @@ title: Forms
 description: Getting started with forms in Reatom
 ---
 
-Reatom has a very advanced form management system to handle complex cases in a type-safe and performant way. You can read more about it in the [form handbook section](/handbook/forms). But in this guide, we'll introduce only the basics.
+Reatom has a very advanced form management system to handle complex cases in a type-safe and performant way. You can read more about it in the [form handbook section](/handbook/forms/introduction). But in this guide, we'll introduce only the basics.
 
 ## Creating a form
 
