@@ -7,8 +7,6 @@ jobs:
     timeout-minutes: 30
     runs-on: ubuntu-latest
     steps:
-      - name: Install git
-        run: apk add git
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -17,7 +15,12 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24.2'
-          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@1e1c8eafbd745f64b1ef30a7d7ed7965034c486c
+        with:
+          cache: true
+
       - name: Install dependencies
         run: pnpm install --ignore-scripts
       - name: Run prettier check

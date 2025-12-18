@@ -8,13 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v6
         with:
           node-version: '24.2'
-          cache: pnpm
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@1e1c8eafbd745f64b1ef30a7d7ed7965034c486c
+        with:
+          cache: true
+
       - name: Install dependencies
         run: |
           pnpm install --ignore-scripts
           pnpx playwright install --with-deps chromium
+
       - name: Run tests
-        run: node --run test
+        run: pnpm run --filter @reatom/core test
