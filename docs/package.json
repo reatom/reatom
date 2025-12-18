@@ -27,7 +27,8 @@
     "shiki": "^3.4.2",
     "starlight-links-validator": "^0.15.0",
     "starlight-llms-txt": "^0.5.1",
-    "sucrase": "^3.35.0"
+    "sucrase": "^3.35.0",
+    "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "prettier": "^3.5.3",
