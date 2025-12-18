@@ -13,10 +13,19 @@ jobs:
   remark-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v6
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
         with:
-          node-version: '24.2.0'
-          cache: pnpm
+          node-version: "24.2"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@1e1c8eafbd745f64b1ef30a7d7ed7965034c486c
+        with:
+          cache: true
+
       - run: pnpm ci --ignore-scripts
+
       - run: node --run lint:md
