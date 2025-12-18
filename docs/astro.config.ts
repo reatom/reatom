@@ -5,6 +5,7 @@ import starlightLlmsTxt from 'starlight-llms-txt'
 
 import { sidebar } from './astro.sidebar'
 import { devServerFileWatcher } from './config/integrations/dev-server-file-watcher'
+import { markdownBaseLinks } from './config/integrations/markdown-links-base'
 
 // https://astro.build/config
 export default defineConfig({
@@ -23,7 +24,8 @@ export default defineConfig({
         // starlightLinksValidator(),
         starlightLlmsTxt({
           projectName: 'Reatom',
-          description: 'A state management library for JavaScript with atomic approach, powerful primitives, and framework integrations.',
+          description:
+            'A state management library for JavaScript with atomic approach, powerful primitives, and framework integrations.',
           details: `**Comprehensive guides available in handbook:**
 - [Routing Handbook](/handbook/routing) - Advanced routing patterns, nested routes, computed factory
 - [Forms Handbook](/handbook/forms) - Complex form validation, async handling, field dependencies
@@ -59,7 +61,8 @@ For advanced information, see the handbook:
             },
             {
               label: 'Handbook',
-              description: 'Comprehensive guides and advanced patterns for Reatom',
+              description:
+                'Comprehensive guides and advanced patterns for Reatom',
               paths: ['handbook/**'],
             },
           ],
@@ -100,6 +103,7 @@ For advanced information, see the handbook:
         baseUrl: 'https://github.com/reatom/reatom/edit/v1000/docs/',
       },
     }),
+    markdownBaseLinks(),
   ],
   // Process images with sharp: https://docs.astro.build/en/guides/assets/#using-sharp
   image: {
