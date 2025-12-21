@@ -370,13 +370,49 @@ const Accordion = ({ title, children }) => {
 Works with ARIA and standard attributes — accessible and styleable in one:
 
 ```tsx
-<nav aria-busy={loading} css="&[aria-busy] { opacity: 0.5; }">
-  {/* shows loading state to screen readers AND applies style */}
+// Loading state indicator
+<nav aria-busy={loading} css="&[aria-busy='true'] { opacity: 0.5; }">
+  {children}
 </nav>
+```
 
-<button disabled={submitting} css="&[disabled] { cursor: wait; }">
-  {/* native disabled behavior AND custom style */}
+```tsx
+// Invalid form field
+<input
+  aria-invalid={hasError}
+  css="&[aria-invalid='true'] { border-color: red; }"
+/>
+```
+
+```tsx
+// Active tab or custom listbox option
+<button
+  role="tab"
+  aria-selected={selected}
+  css={`
+    &[aria-selected='true'] {
+      border-bottom: 2px solid currentColor;
+    }
+  `}
+>
+  {label}
 </button>
+```
+
+```tsx
+// Disabled control (alternative to :disabled that works on any element)
+<div
+  role="button"
+  aria-disabled={disabled}
+  css={`
+    &[aria-disabled='true'] {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+  `}
+>
+  {children}
+</div>
 ```
 
 Why this pattern works best:
