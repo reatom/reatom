@@ -1,4 +1,4 @@
-import type { ActionState, AtomLike } from '../core'
+import type { ActionState, AtomLike, Frame } from '../core'
 import {
   _enqueue,
   action,
@@ -101,14 +101,30 @@ let isNewLogStack = true
  * `._`) are not logged.
  *
  * @example
- *   // Connect the logger at application startup
- *   import { connectLogger } from '@reatom/core'
- *
  *   connectLogger()
  *
- * @returns {void}
+ * @example
+ *   connectLogger({ match: (name) => name.startsWith('myFeature.') })
+ *
+ * @example
+ *   // Highlight specific atoms with custom colors
+ *   connectLogger({
+ *     match: (name) => (name.includes('important') ? '#ff6b6b' : true),
+ *   })
+ *
+ * @param options.match - Optional matcher to control which atoms/actions are
+ *   logged. Return `true` to log, `false` to skip, or a color string to log
+ *   with custom background (browser only).
  */
-export let connectLogger = () => {
+export let connectLogger = ({
+  match,
+}: {
+  /**
+   * Return `true` to log, `false` to skip, or a color string (e.g. `'#ff0000'`)
+   * to log with custom background (browser only)
+   */
+  match?: (name: string, frame: Frame) => boolean | string
+} = {}) => {
   let isNodeEnv = !isBrowser()
 
   let logExt = <T extends AtomLike>(target: T): T => {
@@ -135,7 +151,7 @@ export let connectLogger = () => {
       style = `${color}font-size: 12px; font-weight: 600; padding: 0.15em;  padding-right: 1ch;`
     }
 
-    let logStack = (payload: any, error: any, cb: Fn) => {
+    let logStack = (payload: any, error: any, cb: Fn, filterColor?: string) => {
       try {
         const isAborted = isAbort(error)
         if (isNewLogStack) {
@@ -147,6 +163,12 @@ export let connectLogger = () => {
         }
         let _title = title
         let _style = style
+        if (!isNodeEnv && filterColor) {
+          _style = _style.replace(
+            /background: [^;]+;/,
+            `background: ${filterColor};`,
+          )
+        }
         if (isAborted) {
           _title = `AbortError: ${error.message} ${title}`
           if (!isNodeEnv) _title = `%c ${_title.replace('%c ', '')}`
@@ -191,20 +213,31 @@ export let connectLogger = () => {
             // enqueue log BEFORE `next` call to arrange logs with the order of atoms and actions call
             _enqueue(
               bind(() => {
+                let frame = top()
+                let matchResult = match?.(target.name, frame) ?? true
+                if (!matchResult) return
+                let filterColor =
+                  typeof matchResult === 'string' ? matchResult : undefined
+
                 if (target.__reatom.reactive) {
                   if (Object.is(prevState, state)) return
 
-                  let inits = top().root.inits
+                  let inits = frame.root.inits
                   if (!inits.has(initKey)) {
                     inits.set(initKey, null)
                     if (params.length === 0) return
                   }
 
-                  logStack(state, error, () => {
-                    console.log('new  state:', maybeAtomLog(state))
-                    console.log('prev state:', maybeAtomLog(prevState))
-                    console.log('connected:', isConnected(target))
-                  })
+                  logStack(
+                    state,
+                    error,
+                    () => {
+                      console.log('new  state:', maybeAtomLog(state))
+                      console.log('prev state:', maybeAtomLog(prevState))
+                      console.log('connected:', isConnected(target))
+                    },
+                    filterColor,
+                  )
                 } else {
                   let call = (state as ActionState)[state.length - 1]
 
@@ -213,23 +246,32 @@ export let connectLogger = () => {
                   }
 
                   if (error) {
-                    logStack(undefined, error, () =>
-                      params.forEach((param, i) =>
-                        console.log(`param ${i + 1}:`, maybeAtomLog(param)),
-                      ),
+                    logStack(
+                      undefined,
+                      error,
+                      () =>
+                        params.forEach((param, i) =>
+                          console.log(`param ${i + 1}:`, maybeAtomLog(param)),
+                        ),
+                      filterColor,
                     )
                   } else if (call) {
                     let { payload } = call
                     if (isOnFulfill) {
                       payload = call.payload?.payload
                     }
-                    logStack(payload, error, () => {
-                      if (target !== log) {
-                        params.forEach((param, i) =>
-                          console.log(`param ${i + 1}:`, maybeAtomLog(param)),
-                        )
-                      }
-                    })
+                    logStack(
+                      payload,
+                      error,
+                      () => {
+                        if (target !== log) {
+                          params.forEach((param, i) =>
+                            console.log(`param ${i + 1}:`, maybeAtomLog(param)),
+                          )
+                        }
+                      },
+                      filterColor,
+                    )
                   }
                 }
               }),

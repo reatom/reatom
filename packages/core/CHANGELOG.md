@@ -1,3 +1,9 @@
+## 1000.4.0 (2025-12-21)
+
+### Feat
+
+- **methods**: add logger match option
+
 ## 1000.3.1 (2025-12-21)
 
 ### Fix

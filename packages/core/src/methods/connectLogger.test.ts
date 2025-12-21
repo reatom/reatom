@@ -1,7 +1,8 @@
-import { expect, test } from 'test'
+import { expect, test, vi } from 'test'
 
 import { sleep, wrap } from '..'
 import { atom, computed, notify, withActions } from '../core'
+import { connectLogger } from './connectLogger'
 import { getStackTrace } from './getStackTrace'
 
 test('calc deps graph', async () => {
@@ -78,4 +79,32 @@ test('BFS log simplification', () => {
        └─ c[#19]
           └─ b[#18]`.slice(1),
   )
+})
+
+test('connectLogger match', () => {
+  const consoleSpy = vi
+    .spyOn(console, 'groupCollapsed')
+    .mockImplementation(() => {})
+  vi.spyOn(console, 'log').mockImplementation(() => {})
+  vi.spyOn(console, 'groupEnd').mockImplementation(() => {})
+
+  connectLogger({
+    match: (name) => name === 'allowed',
+  })
+
+  const allowed = atom(0, 'allowed')
+  const blocked = atom(0, 'blocked')
+
+  allowed.subscribe(() => {})
+  blocked.subscribe(() => {})
+
+  allowed.set(1)
+  blocked.set(1)
+  notify()
+
+  const logs = consoleSpy.mock.calls.map((call) => call[0])
+  expect(logs.some((log) => String(log).includes('allowed'))).toBe(true)
+  expect(logs.some((log) => String(log).includes('blocked'))).toBe(false)
+
+  vi.restoreAllMocks()
 })
