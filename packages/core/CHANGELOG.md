@@ -1,3 +1,9 @@
+## 1000.3.1 (2025-12-21)
+
+### Fix
+
+- **extensions**: withSuspenseRetry middleware order
+
 ## 1000.3.0 (2025-12-21)
 
 ### Feat
