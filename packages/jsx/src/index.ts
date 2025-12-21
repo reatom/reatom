@@ -586,15 +586,33 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
  */
 export let hf = () => {}
 
-export let mount = (target: Element, child: Element): void => {
+export let mount = (
+  target: Element,
+  child: Element,
+): { unmount: Unsubscribe } => {
   let dom = DOM()
   let symbol = metaSymbol()
+
+  let cleanupNode = (node: Node) => {
+    let iterator = dom.document.createNodeIterator(node, 1 | 128)
+    while (iterator.nextNode()) {
+      let meta = (iterator.referenceNode as any)[symbol] as Meta | undefined
+      if (meta) {
+        if (meta.unsubscribes.length > 0) {
+          meta.unsubscribes.forEach((unsubscribe) => unsubscribe())
+          meta.unsubscribes = []
+        }
+        if (meta.unmount) {
+          meta.unmount(iterator.referenceNode)
+          meta.unmount = undefined
+        }
+      }
+    }
+  }
 
   /**
    * @note The moved node creates two mutations: deletion then addition.
    * @todo Moving an node in the DOM unsubscribes and resubscribes to atoms.
-   *
-   * @todo Call `observer.disconnect()` after unmounting the application.
    */
   let observer = new dom.MutationObserver(
     wrap((mutationsList) => {
@@ -619,21 +637,7 @@ export let mount = (target: Element, child: Element): void => {
             }
           }
         })
-        mutation.removedNodes.forEach((removedNode) => {
-          let iterator = dom.document.createNodeIterator(removedNode, 1 | 128)
-          while (iterator.nextNode()) {
-            let meta = (iterator.referenceNode as any)[symbol] as
-              | Meta
-              | undefined
-            if (meta) {
-              if (meta.unsubscribes.length > 0) {
-                meta.unsubscribes.forEach((unsubscribe) => unsubscribe())
-                meta.unsubscribes = []
-              }
-              meta.unmount?.(iterator.referenceNode)
-            }
-          }
-        })
+        mutation.removedNodes.forEach((removedNode) => cleanupNode(removedNode))
       }
     }),
   )
@@ -645,6 +649,14 @@ export let mount = (target: Element, child: Element): void => {
   // TODO fix
   // target.append(...[child].flat(Infinity))
   target.append(child)
+
+  return {
+    unmount: () => {
+      observer.disconnect()
+      cleanupNode(child)
+      child.remove()
+    },
+  }
 }
 
 /**

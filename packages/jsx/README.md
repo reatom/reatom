@@ -98,8 +98,18 @@ if (import.meta.env.MODE === 'development') {
 }
 
 // Mount the app within the created context
-mount(document.getElementById('app')!, <App />)
+const { unmount } = mount(document.getElementById('app')!, <App />)
+
+// Later, to unmount and cleanup:
+// unmount()
 ```
+
+The `mount` function returns an `unmount` property callback (similar to React's `root.unmount()`). When called, it:
+
+1. Disconnects the internal MutationObserver
+2. Unsubscribes from all reactive atoms
+3. Calls all `ref` unmount callbacks
+4. Removes the element from the DOM
 
 ## Reference
 
