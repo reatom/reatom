@@ -1,3 +1,15 @@
+## 1000.3.0 (2025-12-21)
+
+### Feat
+
+- **routing**: add exactRender option
+
+## 1000.2.0 (2025-12-21)
+
+### Feat
+
+- **routing**: add exactRender option
+
 ## 1000.1.0 (2025-12-13)
 
 ### Feat
