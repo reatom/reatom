@@ -1,8 +1,8 @@
-import { clearStack, context, rAF, take, top, wrap } from '@reatom/core'
+import { clearStack, context, rAF, take, wrap } from '@reatom/core'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
-import { isSuspense, reatomComponent, reatomContext, useFrame } from './'
+import { isSuspense, useFrame } from './'
 
 clearStack()
 
@@ -50,51 +50,31 @@ describe('isSuspense', () => {
   })
 })
 
-// Custom component to test useFrame
-const FrameConsumer = reatomComponent(() => {
-  const frame = useFrame()
-  return <div data-testid="frame">{frame ? 'Frame found' : 'No frame'}</div>
-})
-
-describe('useFrame', () => {
-  test('gets frame from context if provided', () =>
-    context.start(async () => {
-      const frame = top()
-      const root = ReactDOM.createRoot(document.getElementById('root')!)
-
-      root.render(
-        <reatomContext.Provider value={frame}>
-          <FrameConsumer />
-        </reatomContext.Provider>,
-      )
-
-      // Wait for render
-      await wrap(tick())
-
-      expect(document.querySelector('[data-testid="frame"]')?.textContent).toBe(
-        'Frame found',
-      )
-    }))
-
-  // TODO
-  test.skip('throws error if no frame is available', () => {
+// TODO
+test('throws error if no frame is available', () =>
+  context.start(async () => {
     // Mock console.error to suppress React error logs
     const originalConsoleError = console.error
     console.error = vi.fn()
 
-    const root = ReactDOM.createRoot(document.getElementById('root')!)
-
     let thrownError: any = undefined
-    try {
-      root.render(<FrameConsumer />)
-    } catch (error) {
-      thrownError = error
+    let Component = () => {
+      try {
+        useFrame()
+      } catch (error) {
+        thrownError = error
+      }
+      return 42
     }
+
+    const root = ReactDOM.createRoot(document.getElementById('root')!)
+    root.render(<Component />)
+
+    await wrap(tick())
 
     expect(thrownError).toBeInstanceOf(Error)
     expect(thrownError.message).toContain('the root is not set')
 
     // Restore console.error
     console.error = originalConsoleError
-  })
-})
+  }))

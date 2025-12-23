@@ -229,4 +229,62 @@ describe('reatomComponent', () => {
         document.querySelector('[data-testid="parent-message"]')?.textContent,
       ).toBe('Initial message') // Ensure atom value in parent is unchanged
     }))
+
+  test('works with React hooks (useState, useEffect)', () =>
+    context.start(async () => {
+      let effectRunCount = 0
+      let cleanupRunCount = 0
+
+      const Counter = reatomComponent(() => {
+        const [count, setCount] = React.useState(0)
+
+        React.useEffect(() => {
+          effectRunCount++
+          return () => {
+            cleanupRunCount++
+          }
+        }, [count])
+
+        return (
+          <div>
+            <span data-testid="count">{count}</span>
+            <button
+              data-testid="increment"
+              onClick={() => setCount((c) => c + 1)}
+            >
+              Increment
+            </button>
+          </div>
+        )
+      })
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <Counter />
+        </reatomContext.Provider>,
+      )
+
+      await wrap(tick())
+      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
+        '0',
+      )
+      expect(effectRunCount).toBe(1)
+      expect(cleanupRunCount).toBe(0)
+
+      const button = document.querySelector(
+        '[data-testid="increment"]',
+      ) as HTMLButtonElement
+      button.click()
+      await wrap(tick())
+
+      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
+        '1',
+      )
+      expect(effectRunCount).toBe(2)
+      expect(cleanupRunCount).toBe(1)
+
+      root.unmount()
+      expect(cleanupRunCount).toBe(2)
+    }))
 })
