@@ -1,23 +1,23 @@
-import { atom, action } from '@reatom/core'
+import { atom, action, computed } from '@reatom/core';
 
-type Page = 'search' | 'issueDetail'
+type Page = 'search' | 'issueDetail';
 
-export const currentPageAtom = atom<Page>('search', 'navigation.currentPage')
-const issueIdAtom = atom<string | null>(null, 'navigation.issueId')
+const issueIdAtom = atom<string | null>(null, 'navigation.issueId');
+export const currentPageAtom = computed<Page>(
+  () => (issueIdAtom() ? 'issueDetail' : 'search'),
+  'navigation.currentPage'
+);
 
 const navigateToSearch = action(() => {
-  currentPageAtom.set('search')
-  issueIdAtom.set(null)
-}, 'navigation.navigateToSearch')
+  issueIdAtom.set(null);
+}, 'navigation.navigateToSearch');
 
 const navigateToIssueDetail = action((issueId: string) => {
-  currentPageAtom.set('issueDetail')
-  issueIdAtom.set(issueId)
-}, 'navigation.navigateToIssueDetail')
+  issueIdAtom.set(issueId);
+}, 'navigation.navigateToIssueDetail');
 
 export const navigation = {
-  currentPageAtom,
   issueIdAtom,
   navigateToSearch,
   navigateToIssueDetail,
-}
+};
