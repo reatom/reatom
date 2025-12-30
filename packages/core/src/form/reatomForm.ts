@@ -217,6 +217,14 @@ export interface BaseFormOptions {
    * @default false
    */
   validateOnBlur?: boolean
+
+  /**
+   * Defines if the validation should be triggered on the form submit by default
+   * for all fields.
+   *
+   * @default true
+   */
+  validateOnSubmit?: boolean
 }
 
 export interface FormOptionsWithSchema<
@@ -486,6 +494,7 @@ export function reatomForm<
     resetOnSubmit = false,
     validateBeforeSubmit,
     validateOnBlur = false,
+    validateOnSubmit = true,
     validateOnChange = false,
     keepErrorDuringValidating = false,
     keepErrorOnChange = !validateOnChange,
@@ -500,6 +509,7 @@ export function reatomForm<
         field.options.set((options) => ({
           validateOnChange: options.validateOnChange ?? validateOnChange,
           validateOnBlur: options.validateOnBlur ?? validateOnBlur,
+          validateOnSubmit: options.validateOnSubmit ?? validateOnSubmit,
           keepErrorDuringValidating:
             options.keepErrorDuringValidating ?? keepErrorDuringValidating,
           keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
@@ -576,7 +586,11 @@ export function reatomForm<
 
   const origTriggerValidation = fieldSet.validation.trigger
   const triggerValidation = action(async () => {
-    const status = origTriggerValidation()
+    const fieldsToValidate = isCausedBy(submit)
+      ? fieldSet.fieldsList().filter((field) => field.options().validateOnSubmit)
+      : fieldSet.fieldsList()
+
+    const status = origTriggerValidation(fieldsToValidate)
     const validationResult = status.validating
       ? await wrap(status.validating)
       : status

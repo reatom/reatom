@@ -154,6 +154,7 @@ Speaking of the `validate` callback, it allows using both synchronous and asynch
 By default, validation does not happen automatically and is only called programmatically through the `field.validation.trigger()` action, but it's possible to configure validation triggers on certain events in the field creation options:
 * `validateOnChange` - validation on value change
 * `validateOnBlur` - validation on blur
+* `validateOnSubmit` - validation on submit of a form that related to the field
 
 ### Validation callback
 In any validation callback, you can either throw errors or return their message as string or a `FieldError` object, which allows setting arbitrary error sources and even metadata:
