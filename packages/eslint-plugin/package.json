@@ -55,6 +55,7 @@
   "devDependencies": {
     "@eslint/js": "catalog:",
     "@types/eslint": "catalog:",
+    "@types/estree": "catalog:",
     "@typescript-eslint/rule-tester": "catalog:",
     "eslint": "catalog:",
     "typescript-eslint": "catalog:"

@@ -9,14 +9,10 @@ const CALLBACK_FUNCS = [
   'requestAnimationFrame',
   'queueMicrotask',
 ]
-const NODE_CALLBACK_FUNCS = ['process.nextTick']
 
 function isReatomContextCallee(node: estree.Node): boolean {
   // action(...), computed(...), effect(...)
-  if (
-    node.type === 'Identifier' &&
-    reatomFactoryPattern.test(node.name)
-  ) {
+  if (node.type === 'Identifier' && reatomFactoryPattern.test(node.name)) {
     return true
   }
   // .extend(...)
@@ -38,7 +34,11 @@ function isReatomContextCallee(node: estree.Node): boolean {
   return false
 }
 
-function isReatomContext(node: estree.Node, context: Rule.RuleContext): boolean {
+function isReatomContext(
+  node: estree.Node,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _context: Rule.RuleContext,
+): boolean {
   // Walk up the AST to see if this function is passed to a reatom context
   let parent = (node as any).parent
   while (parent) {
@@ -78,11 +78,12 @@ function isWrapped(node: estree.Node): boolean {
   )
 }
 
-function findImportDeclaration(sourceCode: Rule.RuleContext['sourceCode']): estree.ImportDeclaration | undefined {
+function findImportDeclaration(
+  sourceCode: Rule.RuleContext['sourceCode'],
+): estree.ImportDeclaration | undefined {
   return sourceCode.ast.body.find(
     (n: any) =>
-      n.type === 'ImportDeclaration' &&
-      n.source.value === '@reatom/core',
+      n.type === 'ImportDeclaration' && n.source.value === '@reatom/core',
   ) as estree.ImportDeclaration | undefined
 }
 
@@ -96,7 +97,8 @@ export const wrapRule: Rule.RuleModule = {
     },
     fixable: 'code',
     messages: {
-      awaitMissingWrap: 'Await expression in Reatom context must be wrapped with `wrap`.',
+      awaitMissingWrap:
+        'Await expression in Reatom context must be wrapped with `wrap`.',
       callbackMissingWrap:
         "Callback for '{{name}}' in Reatom context must be wrapped with `wrap`.",
     },
@@ -117,13 +119,16 @@ export const wrapRule: Rule.RuleModule = {
       if (hasWrap) return null
       // Insert wrap into the import specifiers
       if (importDecl.specifiers.length > 0) {
-        const lastSpecifier = importDecl.specifiers[importDecl.specifiers.length - 1]
+        const lastSpecifier =
+          importDecl.specifiers[importDecl.specifiers.length - 1]
         if (lastSpecifier) {
           return fixer.insertTextAfter(lastSpecifier, `, wrap`)
         }
       } else {
         // No specifiers, insert wrap as the first specifier
-        const importStart = importDecl.source.range ? importDecl.source.range[0] : null
+        const importStart = importDecl.source.range
+          ? importDecl.source.range[0]
+          : null
         if (importStart !== null) {
           // This is a rare case, but for safety
           return fixer.insertTextBefore(importDecl.source, 'wrap, ')

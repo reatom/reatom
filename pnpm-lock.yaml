@@ -30,6 +30,9 @@ catalogs:
     '@types/eslint':
       specifier: ^9.6.1
       version: 9.6.1
+    '@types/estree':
+      specifier: ^1.0.5
+      version: 1.0.8
     '@types/react':
       specifier: ^18.2.0
       version: 18.3.22
@@ -414,6 +417,9 @@ importers:
       '@types/eslint':
         specifier: 'catalog:'
         version: 9.6.1
+      '@types/estree':
+        specifier: 'catalog:'
+        version: 1.0.8
       '@typescript-eslint/rule-tester':
         specifier: 'catalog:'
         version: 8.49.0(eslint@9.27.0(jiti@2.6.1))(typescript@5.9.3)
@@ -9112,7 +9118,7 @@ snapshots:
 
   '@types/eslint@9.6.1':
     dependencies:
-      '@types/estree': 1.0.7
+      '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15
 
   '@types/estree-jsx@1.0.5':

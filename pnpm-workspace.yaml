@@ -14,6 +14,7 @@ catalog:
   '@preact/signals-core': ^1.6.0
   '@standard-schema/spec': ^1.0.0
   '@types/eslint': ^9.6.1
+  "@types/estree": ^1.0.5
   '@types/node': latest
   '@types/react': ^18.2.0
   '@types/react-dom': ^18.2.0
