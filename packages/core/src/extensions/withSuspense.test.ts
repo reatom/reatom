@@ -142,17 +142,29 @@ test('correct handling of conditional suspense computeds', async () => {
     return suspenseProxy()
   })
 
-  const afterRender = Promise.withResolvers()
+  const suspenseRetry = async (cb: () => unknown) => {
+    while(true) {
+      try {
+        return cb()
+      }
+      catch (error) {
+        if(error instanceof Promise)
+          await wrap(error)
+        else 
+          throw error
+      }
+    }
+  }
 
-  const render = effect(() => {
-    const result = component()
-    afterRender.resolve(undefined)
-    return result;
-  })
+  await wrap(expect(suspenseRetry(component)).resolves.toBe(true))
+  suspenseProxyDep.set(1)
+  await wrap(expect(suspenseRetry(component)).resolves.toBe(false))
 
-  await wrap(afterRender.promise);
-  expect(render()).toBe(true)
+  suspenseProxyDep.set(0)
+  await wrap(sleep())
+  expect(component()).toBe(true)
+
   suspenseProxyDep.set(1)
   await wrap(sleep())
-  expect(render()).toBe(false)
+  expect(component()).toBe(false)
 })
