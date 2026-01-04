@@ -66,6 +66,6 @@ export const withReactiveProperty =
     )
 
     return {
-      [`${String(property)}Computed`]: computedProperty,
+      [`${property}Computed`]: computedProperty,
     } as Record<`${K}Computed`, Computed<T[K]>>
   }

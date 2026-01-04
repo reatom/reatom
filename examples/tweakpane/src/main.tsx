@@ -76,9 +76,7 @@ const mount = action(() => {
       )}
     </reatomContext.Provider>,
   )
-  unmount.impl.set(() => () => {
-    return root.unmount()
-  })
+  unmount.impl.set(() => () => root.unmount())
 }, 'renderApp').extend(withButton({ title: 'Mount App' }, appSettings))
 
 mount.button.extend(

@@ -11,7 +11,7 @@ const StringDemo = reatomFactoryComponent(() => {
     withBinding({ label: 'Message' }, stringFolder),
   )
 
-  const themeAtom = atom<''>('', 'theme').extend(
+  const themeAtom = atom<string>('', 'theme').extend(
     withBinding(
       {
         label: 'Theme List',
