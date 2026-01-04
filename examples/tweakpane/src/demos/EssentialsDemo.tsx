@@ -1,10 +1,12 @@
 import {
+  abortVar,
   action,
   atom,
   effect,
   getCalls,
   reatomRoute,
   sleep,
+  withConnectHook,
   withParams,
 } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
@@ -87,20 +89,24 @@ const EssentialsDemo = reatomFactoryComponent(() => {
     getCalls(buttonGridAction)
   })
 
-  effect(() => {
-    const api = fpsGraphBlade()
+  fpsGraphBlade.extend(
+    withConnectHook((target) => {
+      const api = target()
 
-    let frameId: number
-    const render = async () => {
-      api.begin()
-      await sleep(Math.random() * 10)
-      api.end()
-      frameId = requestAnimationFrame(render)
-    }
-    render()
+      let frameId: number
+      const render = async () => {
+        api.begin()
+        await sleep(Math.random() * 10)
+        api.end()
+        frameId = requestAnimationFrame(render)
+      }
+      render()
 
-    return () => cancelAnimationFrame(frameId)
-  })
+      return () => cancelAnimationFrame(frameId)
+    }),
+  )
+
+  abortVar.subscribe(fpsGraphBlade.subscribe())
 
   return () => (
     <section>
