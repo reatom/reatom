@@ -5,6 +5,7 @@ import {
   bind,
   type Computed,
   computed,
+  type EnumAtom,
   type Frame,
   isAction,
   isWritableAtom,
@@ -67,17 +68,46 @@ export const reatomPaneFolder = (
     `${parent.name}.${params.title}`,
   ).extend(withDisposable())
 
+/**
+ * Creates a tabbed container for organizing Tweakpane controls.
+ *
+ * @example
+ * // Simple usage with string array
+ * const tabs = reatomPaneTab(['Shape', 'Motion', 'Style'])
+ *
+ * // With additional params
+ * const tabs = reatomPaneTab({ pages: ['Tab 1', 'Tab 2'], index: 1 })
+ *
+ * // With explicit parent
+ * const folder = reatomPaneFolder({ title: 'Settings' })
+ * const tabs = reatomPaneTab(['General', 'Advanced'], folder)
+ *
+ * // Access tab pages for binding
+ * const size = atom(10).extend(withBinding({ label: 'Size' }, tabs.pages[0]))
+ */
 export const reatomPaneTab = (
-  params: TabParams,
+  params: string[] | (Omit<TabParams, 'pages'> & { pages: string[] | TabParams['pages'] }),
   parent: AtomLike<BladeRackApi> = rootPane,
-) =>
-  computed(() => parent().addTab(params), `${parent.name}.tabs`) //
-    .extend(withDisposable(), (target) => ({
-      pages: params.pages.map((_, i) =>
-        computed(() => target().pages[i], `${target.name}.page.${i}`) //
-          .extend(withDisposable()),
+) => {
+  const normalizedParams: TabParams = Array.isArray(params)
+    ? { pages: params.map((title) => ({ title })) }
+    : {
+        ...params,
+        pages: params.pages.map((p) =>
+          typeof p === 'string' ? { title: p } : p,
+        ),
+      }
+  return computed(
+    () => parent().addTab(normalizedParams),
+    `${parent.name}.tabs`,
+  ).extend(withDisposable(), (target) => ({
+    pages: normalizedParams.pages.map((_, i) =>
+      computed(() => target().pages[i], `${target.name}.page.${i}`).extend(
+        withDisposable(),
       ),
-    }))
+    ),
+  }))
+}
 
 export const reatomPaneSeparator = (
   params: BaseParams,
@@ -88,6 +118,11 @@ export const reatomPaneSeparator = (
     `${parent.name}.separator`,
   ).extend(withDisposable())
 
+const isEnumAtom = (target: Atom<unknown>): target is EnumAtom<string> =>
+  'enum' in target &&
+  typeof target.enum === 'object' &&
+  target.enum !== null
+
 const toBindingObject = <T>(target: Atom<T>, ctx: Frame) => ({
   get value() {
     return bind(() => target(), ctx)()
@@ -97,12 +132,31 @@ const toBindingObject = <T>(target: Atom<T>, ctx: Frame) => ({
   },
 })
 
+/**
+ * Creates a bidirectional binding between a Reatom atom and a Tweakpane control.
+ *
+ * Automatically detects enum atoms (created with `reatomEnum`) and generates
+ * options from the enum values.
+ *
+ * @example
+ * // Basic usage
+ * const volume = atom(0.5).extend(withBinding({ label: 'Volume', min: 0, max: 1 }))
+ *
+ * // With enum atom - options are auto-generated
+ * const shape = reatomEnum(['circle', 'square', 'triangle'], 'shape')
+ *   .extend(withBinding({ label: 'Shape' }))
+ */
 export const withBinding =
   <T>(
     bindingParams: BindingParams,
     parent: AtomLike<BladeRackApi> = rootPane,
   ) =>
   (target: Atom<T>) => {
+    // Auto-detect enum atoms and generate options
+    const params: BindingParams = isEnumAtom(target)
+      ? { options: target.enum, ...bindingParams }
+      : bindingParams
+
     const bindingAtom = computed(() => {
       const parentApi = parent()
 
@@ -110,7 +164,7 @@ export const withBinding =
       const bindingApi = parentApi.addBinding(
         bindingObject,
         'value',
-        bindingParams,
+        params,
       )
       bindingApi.on(
         'change',

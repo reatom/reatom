@@ -21,10 +21,7 @@ const UIComponentsDemo = reatomFactoryComponent(() => {
   const doAction2 = action(() => void alert('Action 2 triggered!'), 'doAction2') //
     .extend(withButton({ title: 'Do Action 2', index: 2 }, buttonFolder))
 
-  const tab = reatomPaneTab(
-    { pages: [{ title: 'Parameters' }, { title: 'Advanced' }] },
-    folder,
-  )
+  const tab = reatomPaneTab(['Parameters', 'Advanced'], folder)
 
   // Page 1: Parameters
   const volumeAtom = atom(50, 'volume').extend(

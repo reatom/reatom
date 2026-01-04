@@ -1,5 +1,6 @@
 import { reatomComponent } from '@reatom/react'
 
+import { animationRoute } from './demos/AnimationDemo'
 import { booleanRoute } from './demos/BooleanDemo'
 import { colorRoute } from './demos/ColorDemo'
 import { essentialsRoute } from './demos/EssentialsDemo'
@@ -85,6 +86,9 @@ export const App = reatomComponent(() => {
           <li style={{ marginBottom: '0.25rem' }}>
             <a href="/essentials">Essentials Plugin</a>
           </li>
+          <li style={{ marginBottom: '0.25rem' }}>
+            <a href="/animation">Animation</a>
+          </li>
         </ul>
       </nav>
       <main style={{ flex: 1, padding: '2rem', maxWidth: '640px' }}>
@@ -97,6 +101,7 @@ export const App = reatomComponent(() => {
         {pointRoute.render()}
         {monitorRoute.render()}
         {essentialsRoute.render()}
+        {animationRoute.render()}
 
         {(location.pathname === '/' || location.pathname === '') && (
           <div>
