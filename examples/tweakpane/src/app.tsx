@@ -1,12 +1,13 @@
+import { urlAtom } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
 import { animationRoute } from './demos/AnimationDemo'
 import { booleanRoute } from './demos/BooleanDemo'
 import { colorRoute } from './demos/ColorDemo'
 import { essentialsRoute } from './demos/EssentialsDemo'
+import { mixerRoute } from './demos/MixerDemo'
 import { monitorRoute } from './demos/MonitorDemo'
 import { numberRoute } from './demos/NumberDemo'
-import { overviewRoute } from './demos/OverviewDemo'
 import { pointRoute } from './demos/PointDemo'
 import { stringRoute } from './demos/StringDemo'
 import { uiComponentsRoute } from './demos/UIComponentsDemo'
@@ -42,11 +43,23 @@ export const App = reatomComponent(() => {
           Extensions as integration adapters
         </p>
 
-        <ul style={{ listStyle: 'none', padding: 0 }}>
-          <li style={{ marginBottom: '0.5rem' }}>
-            <a href="/overview" style={{ fontWeight: 'bold' }}>
-              Overview
-            </a>
+        <h4
+          style={{
+            margin: '0 0 0.5rem 0',
+            fontSize: '0.75rem',
+            color: '#666',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+          }}
+        >
+          Showcases
+        </h4>
+        <ul style={{ listStyle: 'none', padding: 0, fontSize: '0.9rem' }}>
+          <li style={{ marginBottom: '0.25rem' }}>
+            <a href="/mixer">Audio Mixer</a>
+          </li>
+          <li style={{ marginBottom: '0.25rem' }}>
+            <a href="/animation">Animation</a>
           </li>
         </ul>
 
@@ -86,13 +99,11 @@ export const App = reatomComponent(() => {
           <li style={{ marginBottom: '0.25rem' }}>
             <a href="/essentials">Essentials Plugin</a>
           </li>
-          <li style={{ marginBottom: '0.25rem' }}>
-            <a href="/animation">Animation</a>
-          </li>
         </ul>
       </nav>
       <main style={{ flex: 1, padding: '2rem', maxWidth: '640px' }}>
-        {overviewRoute.render()}
+        {mixerRoute.render()}
+        {animationRoute.render()}
         {uiComponentsRoute.render()}
         {numberRoute.render()}
         {stringRoute.render()}
@@ -101,9 +112,8 @@ export const App = reatomComponent(() => {
         {pointRoute.render()}
         {monitorRoute.render()}
         {essentialsRoute.render()}
-        {animationRoute.render()}
 
-        {(location.pathname === '/' || location.pathname === '') && (
+        {(urlAtom().pathname === '/' || urlAtom().pathname === '') && (
           <div>
             <h2>Tweakpane + Reatom</h2>
             <p style={{ fontSize: '1.1rem', lineHeight: 1.6 }}>
@@ -113,7 +123,7 @@ export const App = reatomComponent(() => {
             </p>
             <p style={{ marginTop: '1rem' }}>
               <a
-                href="/overview"
+                href="/mixer"
                 style={{
                   display: 'inline-block',
                   padding: '0.5rem 1rem',
@@ -123,7 +133,7 @@ export const App = reatomComponent(() => {
                   borderRadius: '4px',
                 }}
               >
-                View Overview
+                View Audio Mixer
               </a>
             </p>
           </div>

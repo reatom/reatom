@@ -28,20 +28,14 @@ const NumberDemo = reatomFactoryComponent(() => {
 
   const listQualityAtom = atom(0, 'listQuality').extend(
     withBinding(
-      {
-        label: 'List',
-        options: { low: 0, medium: 50, high: 100 },
-      },
+      { label: 'List', options: { low: 0, medium: 50, high: 100 } },
       numberFolder,
     ),
   )
 
   const formattedAtom = atom(0, 'formatted').extend(
     withBinding(
-      {
-        label: 'Formatted',
-        format: (v) => v.toFixed(6),
-      },
+      { label: 'Formatted', format: (v) => v.toFixed(6) },
       numberFolder,
     ),
   )

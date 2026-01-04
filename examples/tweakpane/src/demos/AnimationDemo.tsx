@@ -20,14 +20,13 @@ import { reatomFactoryComponent } from '@reatom/react'
 import { reatomPaneTab, withBinding, withButton } from '../tweakpane'
 import { withReactiveProperty } from '../withReactiveProperty'
 
-
 const withFixedValue = <T,>(condition: () => boolean, fixedValue: T) =>
   withMiddleware<AtomLike<T>>(() => {
     return (next, ...params) => {
       return condition() ? fixedValue : next(...params)
     }
   })
-  
+
 const AnimationDemo = reatomFactoryComponent(() => {
   const canvasAtom = atom<HTMLCanvasElement | null>(null, 'canvas')
   const prefersReduced = reatomMediaQuery('(prefers-reduced-motion: reduce)')
@@ -35,8 +34,10 @@ const AnimationDemo = reatomFactoryComponent(() => {
   const tabs = reatomPaneTab(['Shape', 'Motion', 'Style'])
 
   // --- Shape parameters ---
-  const shapeType = reatomEnum(['circle', 'square', 'triangle'], 'shape.type')
-    .extend(withBinding({ label: 'Type' }, tabs.pages[0]))
+  const shapeType = reatomEnum(
+    ['circle', 'square', 'triangle'],
+    'shape.type',
+  ).extend(withBinding({ label: 'Type' }, tabs.pages[0]))
 
   const size = reatomNumber(60, 'shape.size').extend(
     withBinding({ label: 'Size', min: 20, max: 150, step: 1 }, tabs.pages[0]),
@@ -63,7 +64,6 @@ const AnimationDemo = reatomFactoryComponent(() => {
     ),
   )
 
-
   const radius = reatomNumber(120, 'motion.radius').extend(
     withBinding(
       { label: 'Orbit Radius', min: 50, max: 200, step: 1 },
@@ -72,17 +72,17 @@ const AnimationDemo = reatomFactoryComponent(() => {
   )
 
   const wobble = reatomNumber(0, 'motion.wobble').extend(
-    withBinding(
-      { label: 'Wobble', min: 0, max: 30, step: 1 },
-      tabs.pages[1],
-    ),
+    withBinding({ label: 'Wobble', min: 0, max: 30, step: 1 }, tabs.pages[1]),
   )
 
   const paused = reatomBoolean(false, 'motion.paused')
 
   // --- Style parameters ---
   const hue = reatomNumber(200, 'style.hue').extend(
-    withBinding({ label: 'Base Hue', min: 0, max: 360, step: 1 }, tabs.pages[2]),
+    withBinding(
+      { label: 'Base Hue', min: 0, max: 360, step: 1 },
+      tabs.pages[2],
+    ),
   )
 
   const saturation = reatomNumber(80, 'style.saturation').extend(
@@ -100,38 +100,21 @@ const AnimationDemo = reatomFactoryComponent(() => {
   )
 
   const trail = reatomNumber(0.5, 'style.trail').extend(
-    withBinding(
-      { label: 'Trail', min: 0, max: 1, step: 0.01 },
-      tabs.pages[2],
-    ),
-    withFixedValue(prefersReduced, 0)
+    withBinding({ label: 'Trail', min: 0, max: 1, step: 0.01 }, tabs.pages[2]),
+    withFixedValue(prefersReduced, 0),
   )
 
-  trail.binding.extend(
-    withReactiveProperty(
-      'disabled',
-      prefersReduced,
-    ),
-  )
+  trail.binding.extend(withReactiveProperty('disabled', prefersReduced))
 
   const blink = reatomNumber(0, 'style.blink').extend(
-    withBinding(
-      { label: 'Blink', min: 0, max: 1, step: 0.01 },
-      tabs.pages[2],
-    ),
+    withBinding({ label: 'Blink', min: 0, max: 1, step: 0.01 }, tabs.pages[2]),
   )
 
-  blink.binding.extend(
-    withReactiveProperty(
-      'disabled',
-      prefersReduced,
-    ),
-  )
+  blink.binding.extend(withReactiveProperty('disabled', prefersReduced))
 
   const bgColor = reatomString('#050505', 'style.bgColor').extend(
     withBinding({ label: 'Background', color: { type: 'int' } }, tabs.pages[2]),
   )
-
 
   const time = reatomNumber(0, 'animation._time')
 
@@ -160,7 +143,11 @@ const AnimationDemo = reatomFactoryComponent(() => {
     // Use power curve for perceptual linearity: 0 = no trail, 1 = max trail
     const bg = bgColor()
     const trailAlpha = Math.pow(1 - trail(), 3)
-    ctx.fillStyle = bg + Math.round(trailAlpha * 255).toString(16).padStart(2, '0')
+    ctx.fillStyle =
+      bg +
+      Math.round(trailAlpha * 255)
+        .toString(16)
+        .padStart(2, '0')
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
     const n = count()
@@ -203,10 +190,9 @@ const AnimationDemo = reatomFactoryComponent(() => {
     }
   }, 'canvasRender')
 
-  const togglePause = action(
-    () => paused.set((p) => !p),
-    'togglePause',
-  ).extend(withButton({ title: '' }))
+  const togglePause = action(() => paused.set((p) => !p), 'togglePause').extend(
+    withButton({ title: '' }),
+  )
 
   togglePause.button.extend(
     withReactiveProperty(

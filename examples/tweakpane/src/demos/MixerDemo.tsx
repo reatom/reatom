@@ -1,4 +1,5 @@
 import {
+  abortVar,
   action,
   atom,
   computed,
@@ -13,8 +14,8 @@ import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding, withButton } from '../tweakpane'
 import { withReactiveProperty } from '../withReactiveProperty'
 
-const OverviewDemo = reatomFactoryComponent(() => {
-  const storagePrefix = 'tweakpane.overview'
+const MixerDemo = reatomFactoryComponent(() => {
+  const storagePrefix = 'tweakpane.mixer'
 
   // Folders
   const mainFolder = reatomPaneFolder({ title: 'Audio Mixer' }).extend(
@@ -23,9 +24,13 @@ const OverviewDemo = reatomFactoryComponent(() => {
       computed(
         (): string =>
           `Audio Mixer (${status()}, ${isAdvanced() ? 'Advanced' : 'Simple'})`,
+        'mixer.folderTitle',
       ),
+      // explicit controller to abort subscription on computed since we introduce circular dependency
+      abortVar.subscribe().listenerController,
     ),
   )
+
   const advancedFolder = reatomPaneFolder(
     { title: 'Advanced' },
     mainFolder,
@@ -39,7 +44,10 @@ const OverviewDemo = reatomFactoryComponent(() => {
   // Atoms with deep composition: localStorage + searchParams + binding
   const masterVolume = atom(0.7, 'mixer.volume').extend(
     withLocalStorage(`${storagePrefix}.volume`),
-    withSearchParams('volume', { parse: (v) => (v ? parseFloat(v) : 0.7) }),
+    withSearchParams('volume', {
+      parse: (v) => (v ? parseFloat(v) : undefined),
+      serialize: (v) => (v ?? 0).toFixed(2),
+    }),
     withBinding({ label: 'Volume', min: 0, max: 1, step: 0.01 }, mainFolder),
   )
 
@@ -120,11 +128,12 @@ const OverviewDemo = reatomFactoryComponent(() => {
 
   return () => (
     <section>
-      <h3>Overview</h3>
+      <h3>Audio Mixer</h3>
 
       <p style={{ marginBottom: '1.5rem', lineHeight: 1.6 }}>
-        Reatom owns the state. Tweakpane controls are reactive endpoints. Try{' '}
-        <a href="?volume=0.5&mode=advanced">?volume=0.5&mode=advanced</a>
+        Deep composition with <code>withLocalStorage</code>,{' '}
+        <code>withSearchParams</code>, and <code>withBinding</code>. Try{' '}
+        <a href="?volume=0.7&mode=advanced">?volume=0.7&mode=advanced</a>
       </p>
 
       <h4>State</h4>
@@ -185,9 +194,9 @@ const OverviewDemo = reatomFactoryComponent(() => {
       </p>
     </section>
   )
-}, 'OverviewDemo')
+}, 'MixerDemo')
 
-export const overviewRoute = reatomRoute({
-  path: 'overview',
-  render: () => <OverviewDemo />,
+export const mixerRoute = reatomRoute({
+  path: 'mixer',
+  render: () => <MixerDemo />,
 })
