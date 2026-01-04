@@ -14,6 +14,7 @@ import { Pre } from '../components/Pre'
 import {
   reatomPaneFolder,
   reatomFpsGraph,
+  withBinding,
   withButtonGrid,
   withCubicBezier,
   withRadioGrid,
@@ -71,8 +72,16 @@ const EssentialsDemo = reatomFactoryComponent(() => {
     ),
   )
 
-  // 4. FPS Graph
-  const fpsGraphBlade = reatomFpsGraph({ label: 'FPS Graph', rows: 2 }, folder)
+  // 4. Range Slider
+  const rangeAtom = atom({ min: 16, max: 48 }, 'range').extend(
+    withBinding({ label: 'Range', min: 0, max: 100, step: 1 }, folder),
+  )
+
+  // 5. FPS Graph
+  const fpsGraphBlade = reatomFpsGraph(
+    { label: 'FPS Graph', rows: 3, max: 140 },
+    folder,
+  )
 
   effect(() => {
     getCalls(buttonGridAction)
@@ -99,6 +108,7 @@ const EssentialsDemo = reatomFactoryComponent(() => {
       <p>Components from the @tweakpane/plugin-essentials.</p>
       <Pre label="Radio">{scaleAtom()}</Pre>
       <Pre label="Bezier">{JSON.stringify(bezierAtom())}</Pre>
+      <Pre label="Range">{JSON.stringify(rangeAtom())}</Pre>
     </section>
   )
 }, 'EssentialsDemo')
