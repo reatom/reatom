@@ -1,7 +1,7 @@
 import { expect, subscribe, test } from 'test'
 
 import { atom, computed, isConnected, notify } from '../core'
-import { wrap } from '../methods'
+import { effect, wrap } from '../methods'
 import { sleep } from '../utils'
 import { suspense, withSuspense, withSuspenseInit } from './withSuspense'
 
@@ -118,4 +118,53 @@ test('withSuspenseInit unwrap', async () => {
   expect(() => data()).toThrowError(Promise)
   await wrap(sleep())
   expect(data()).toBe(1)
+})
+
+test('correct handling of conditional suspense computeds', async () => {
+  const suspenseAtom = atom(async () => {
+    await wrap(sleep())
+    return true;
+  }).extend(withSuspenseInit())
+
+  const otherSuspenseAtom = atom(async () => {
+    await wrap(sleep())
+    return false;
+  }).extend(withSuspenseInit())
+
+  const suspenseProxyDep = atom(0)
+
+  const suspenseProxy = computed(() => {
+    suspenseProxyDep()
+    return suspenseProxyDep() ? otherSuspenseAtom() : suspenseAtom()
+  })
+
+  const component = computed(() => {
+    return suspenseProxy()
+  })
+
+  const suspenseRetry = async (cb: () => unknown) => {
+    while(true) {
+      try {
+        return cb()
+      }
+      catch (error) {
+        if(error instanceof Promise)
+          await wrap(error)
+        else 
+          throw error
+      }
+    }
+  }
+
+  await wrap(expect(suspenseRetry(component)).resolves.toBe(true))
+  suspenseProxyDep.set(1)
+  await wrap(expect(suspenseRetry(component)).resolves.toBe(false))
+
+  suspenseProxyDep.set(0)
+  await wrap(sleep())
+  expect(component()).toBe(true)
+
+  suspenseProxyDep.set(1)
+  await wrap(sleep())
+  expect(component()).toBe(false)
 })
