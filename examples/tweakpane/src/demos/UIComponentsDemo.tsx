@@ -1,4 +1,4 @@
-import { action, atom, effect, getCalls, reatomRoute } from '@reatom/core'
+import { action, atom, effect, getCalls } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { Pre } from '../components/Pre'
@@ -10,7 +10,7 @@ import {
   withButton,
 } from '../tweakpane'
 
-const UIComponentsDemo = reatomFactoryComponent(() => {
+export const UIComponentsDemo = reatomFactoryComponent(() => {
   const folder = reatomPaneFolder({ title: 'UI Components' })
 
   // 1. Buttons
@@ -68,8 +68,3 @@ const UIComponentsDemo = reatomFactoryComponent(() => {
     )
   }
 }, 'UIComponentsDemo')
-
-export const uiComponentsRoute = reatomRoute({
-  path: 'ui-components',
-  render: () => <UIComponentsDemo />,
-})

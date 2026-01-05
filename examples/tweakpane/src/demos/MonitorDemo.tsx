@@ -1,16 +1,9 @@
-import {
-  atom,
-  effect,
-  reatomRoute,
-  sleep,
-  withComputed,
-  wrap,
-} from '@reatom/core'
+import { atom, effect, sleep, withComputed, wrap } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { reatomPaneFolder, withBinding } from '../tweakpane'
 
-const MonitorDemo = reatomFactoryComponent(() => {
+export const MonitorDemo = reatomFactoryComponent(() => {
   const monitorFolder = reatomPaneFolder({ title: 'Monitor' })
 
   // --- Buffer (History) ---
@@ -113,8 +106,3 @@ const MonitorDemo = reatomFactoryComponent(() => {
     </section>
   )
 }, 'MonitorDemo')
-
-export const monitorRoute = reatomRoute({
-  path: 'monitor',
-  render: () => <MonitorDemo />,
-})

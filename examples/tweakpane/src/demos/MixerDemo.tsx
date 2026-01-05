@@ -3,7 +3,6 @@ import {
   action,
   atom,
   computed,
-  reatomRoute,
   withLocalStorage,
   withSearchParams,
   wrap,
@@ -14,7 +13,7 @@ import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding, withButton } from '../tweakpane'
 import { withReactiveProperty } from '../withReactiveProperty'
 
-const MixerDemo = reatomFactoryComponent(() => {
+export const MixerDemo = reatomFactoryComponent(() => {
   const storagePrefix = 'tweakpane.mixer'
 
   // Folders
@@ -195,8 +194,3 @@ const MixerDemo = reatomFactoryComponent(() => {
     </section>
   )
 }, 'MixerDemo')
-
-export const mixerRoute = reatomRoute({
-  path: 'mixer',
-  render: () => <MixerDemo />,
-})

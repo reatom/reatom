@@ -1,10 +1,10 @@
-import { atom, reatomRoute } from '@reatom/core'
+import { atom } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding } from '../tweakpane'
 
-const NumberDemo = reatomFactoryComponent(() => {
+export const NumberDemo = reatomFactoryComponent(() => {
   const numberFolder = reatomPaneFolder({ title: 'Number' })
 
   const speedAtom = atom(0.5, 'speed').extend(
@@ -54,8 +54,3 @@ const NumberDemo = reatomFactoryComponent(() => {
     )
   }
 }, 'NumberDemo')
-
-export const numberRoute = reatomRoute({
-  path: 'number',
-  render: () => <NumberDemo />,
-})

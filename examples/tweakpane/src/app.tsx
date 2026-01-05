@@ -1,16 +1,6 @@
-import { urlAtom } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
-import { animationRoute } from './demos/AnimationDemo'
-import { booleanRoute } from './demos/BooleanDemo'
-import { colorRoute } from './demos/ColorDemo'
-import { essentialsRoute } from './demos/EssentialsDemo'
-import { mixerRoute } from './demos/MixerDemo'
-import { monitorRoute } from './demos/MonitorDemo'
-import { numberRoute } from './demos/NumberDemo'
-import { pointRoute } from './demos/PointDemo'
-import { stringRoute } from './demos/StringDemo'
-import { uiComponentsRoute } from './demos/UIComponentsDemo'
+import { rootRoute } from './routes'
 
 export const App = reatomComponent(() => {
   return (
@@ -30,7 +20,7 @@ export const App = reatomComponent(() => {
         }}
       >
         <h3 style={{ marginTop: 0, marginBottom: '0.75rem' }}>
-          Tweakpane + Reatom
+          <a href="/">Tweakpane + Reatom</a>
         </h3>
         <p
           style={{
@@ -102,42 +92,7 @@ export const App = reatomComponent(() => {
         </ul>
       </nav>
       <main style={{ flex: 1, padding: '2rem', maxWidth: '640px' }}>
-        {mixerRoute.render()}
-        {animationRoute.render()}
-        {uiComponentsRoute.render()}
-        {numberRoute.render()}
-        {stringRoute.render()}
-        {booleanRoute.render()}
-        {colorRoute.render()}
-        {pointRoute.render()}
-        {monitorRoute.render()}
-        {essentialsRoute.render()}
-
-        {(urlAtom().pathname === '/' || urlAtom().pathname === '') && (
-          <div>
-            <h2>Tweakpane + Reatom</h2>
-            <p style={{ fontSize: '1.1rem', lineHeight: 1.6 }}>
-              This example shows how Reatom extensions embed Tweakpane controls
-              as reactive endpoints. Reatom owns the state; Tweakpane rents
-              access.
-            </p>
-            <p style={{ marginTop: '1rem' }}>
-              <a
-                href="/mixer"
-                style={{
-                  display: 'inline-block',
-                  padding: '0.5rem 1rem',
-                  background: '#0ea5e9',
-                  color: 'white',
-                  textDecoration: 'none',
-                  borderRadius: '4px',
-                }}
-              >
-                View Audio Mixer
-              </a>
-            </p>
-          </div>
-        )}
+        {rootRoute.render()}
       </main>
     </div>
   )

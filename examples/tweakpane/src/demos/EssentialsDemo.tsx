@@ -4,7 +4,6 @@ import {
   atom,
   effect,
   getCalls,
-  reatomRoute,
   sleep,
   withConnectHook,
   withParams,
@@ -14,15 +13,15 @@ import type { TpButtonGridEvent } from '@tweakpane/plugin-essentials/dist/types/
 
 import { Pre } from '../components/Pre'
 import {
-  reatomPaneFolder,
   reatomFpsGraph,
+  reatomPaneFolder,
   withBinding,
   withButtonGrid,
   withCubicBezier,
   withRadioGrid,
 } from '../tweakpane'
 
-const EssentialsDemo = reatomFactoryComponent(() => {
+export const EssentialsDemo = reatomFactoryComponent(() => {
   const folder = reatomPaneFolder({ title: 'Essentials' })
 
   // 1. Radio Grid
@@ -118,8 +117,3 @@ const EssentialsDemo = reatomFactoryComponent(() => {
     </section>
   )
 }, 'EssentialsDemo')
-
-export const essentialsRoute = reatomRoute({
-  path: 'essentials',
-  render: () => <EssentialsDemo />,
-})

@@ -10,7 +10,6 @@ import {
   reatomEnum,
   reatomMediaQuery,
   reatomNumber,
-  reatomRoute,
   reatomString,
   withMiddleware,
   wrap,
@@ -27,7 +26,7 @@ const withFixedValue = <T,>(condition: () => boolean, fixedValue: T) =>
     }
   })
 
-const AnimationDemo = reatomFactoryComponent(() => {
+export const AnimationDemo = reatomFactoryComponent(() => {
   const canvasAtom = atom<HTMLCanvasElement | null>(null, 'canvas')
   const prefersReduced = reatomMediaQuery('(prefers-reduced-motion: reduce)')
 
@@ -258,8 +257,3 @@ const AnimationDemo = reatomFactoryComponent(() => {
     </section>
   )
 }, 'AnimationDemo')
-
-export const animationRoute = reatomRoute({
-  path: 'animation',
-  render: () => <AnimationDemo />,
-})

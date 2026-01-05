@@ -1,10 +1,10 @@
-import { atom, reatomRoute } from '@reatom/core'
+import { atom } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding } from '../tweakpane'
 
-const BooleanDemo = reatomFactoryComponent(() => {
+export const BooleanDemo = reatomFactoryComponent(() => {
   const booleanFolder = reatomPaneFolder({ title: 'Boolean Controls' })
 
   const enabledAtom = atom(false, 'enabled').extend(
@@ -26,8 +26,3 @@ const BooleanDemo = reatomFactoryComponent(() => {
     )
   }
 }, 'BooleanDemo')
-
-export const booleanRoute = reatomRoute({
-  path: 'boolean',
-  render: () => <BooleanDemo />,
-})

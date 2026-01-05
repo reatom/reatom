@@ -10,6 +10,7 @@ import {
   withConnectHook,
   wrap,
 } from '@reatom/core'
+import type { Formatter } from '@tweakpane/core'
 import type { BindingParams, ListParamsOptions } from 'tweakpane'
 
 import { type BladeRackApi, rootPane, withDisposable } from './core'
@@ -45,8 +46,9 @@ const toBindingObject = <T>(target: Atom<T>, ctx: Frame) => ({
  */
 export const withBinding =
   <T>(
-    bindingParams: Omit<BindingParams, 'options'> & {
+    bindingParams: Omit<BindingParams, 'options' | 'format'> & {
       options?: ListParamsOptions<T>
+      format?: Formatter<T>
     },
     parent: AtomLike<BladeRackApi> = rootPane,
   ) =>

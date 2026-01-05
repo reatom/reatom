@@ -1,9 +1,10 @@
-import { atom, reatomRoute } from '@reatom/core'
+import { atom } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
-import { reatomPaneFolder, withBinding } from '../tweakpane'
-import { Pre } from '../components/Pre'
 
-const PointDemo = reatomFactoryComponent(() => {
+import { Pre } from '../components/Pre'
+import { reatomPaneFolder, withBinding } from '../tweakpane'
+
+export const PointDemo = reatomFactoryComponent(() => {
   const pointFolder = reatomPaneFolder({ title: 'Point' })
 
   const point2dAtom = atom({ x: 50, y: 25 }, 'point2d').extend(
@@ -85,8 +86,3 @@ const PointDemo = reatomFactoryComponent(() => {
     )
   }
 }, 'PointDemo')
-
-export const pointRoute = reatomRoute({
-  path: 'point',
-  render: () => <PointDemo />,
-})

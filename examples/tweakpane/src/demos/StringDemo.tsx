@@ -1,10 +1,10 @@
-import { atom, reatomRoute } from '@reatom/core'
+import { atom } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding } from '../tweakpane'
 
-const StringDemo = reatomFactoryComponent(() => {
+export const StringDemo = reatomFactoryComponent(() => {
   const stringFolder = reatomPaneFolder({ title: 'String' })
 
   const messageAtom = atom('hello, world', 'message').extend(
@@ -35,8 +35,3 @@ const StringDemo = reatomFactoryComponent(() => {
     )
   }
 }, 'StringDemo')
-
-export const stringRoute = reatomRoute({
-  path: 'string',
-  render: () => <StringDemo />,
-})

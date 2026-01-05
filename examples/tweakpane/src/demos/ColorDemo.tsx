@@ -1,10 +1,10 @@
-import { atom, reatomRoute } from '@reatom/core'
+import { atom } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding } from '../tweakpane'
 
-const ColorDemo = reatomFactoryComponent(() => {
+export const ColorDemo = reatomFactoryComponent(() => {
   const colorFolder = reatomPaneFolder({ title: 'Color' })
 
   const colorRgbAtom = atom({ r: 255, g: 0, b: 55 }, 'colorRgb').extend(
@@ -69,8 +69,3 @@ const ColorDemo = reatomFactoryComponent(() => {
     )
   }
 }, 'ColorDemo')
-
-export const colorRoute = reatomRoute({
-  path: 'color',
-  render: () => <ColorDemo />,
-})
