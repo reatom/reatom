@@ -108,6 +108,7 @@ The integration provides the following primitives:
 - **`reatomPaneFolder`** - Creates folders as reactive containers
 - **`reatomPaneTab`** - Creates tabs with reactive pages
 - **`reatomPaneSeparator`** - Adds separators to a parent rack
+ - **`reatomDisposable`** - Helper to create lazy disposable reactive resources (manages creation and automatic disposal when unsubscribed)
 - **`withBinding`** - Creates bidirectional bindings between atoms and Tweakpane controls
 - **`withBlade`** - Generic blade creation for custom views
 - **`withButton`** - Binds actions to Tweakpane buttons

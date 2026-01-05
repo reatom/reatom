@@ -2,7 +2,6 @@ import {
   type Atom,
   type AtomLike,
   bind,
-  computed,
   type EnumAtom,
   type Frame,
   top,
@@ -13,7 +12,7 @@ import {
 import type { Formatter } from '@tweakpane/core'
 import type { BindingParams, ListParamsOptions } from 'tweakpane'
 
-import { type BladeRackApi, rootPane, withDisposable } from './core'
+import { type BladeRackApi, reatomDisposable,rootPane } from './core'
 
 const isEnumAtom = (target: Atom<unknown>): target is EnumAtom<string> =>
   'enum' in target && typeof target.enum === 'object' && target.enum !== null
@@ -58,7 +57,7 @@ export const withBinding =
       ? { options: target.enum, ...bindingParams }
       : bindingParams
 
-    const bindingAtom = computed(() => {
+    const bindingAtom = reatomDisposable(() => {
       const parentApi = parent()
 
       const bindingObject = toBindingObject(target, top().root.frame)
@@ -74,7 +73,7 @@ export const withBinding =
         }),
       )
       return bindingApi
-    }, `${parent.name}.${target.name}.binding`).extend(withDisposable())
+    }, `${parent.name}.${target.name}.binding`)
 
     target.extend(
       withConnectHook(() => bindingAtom.subscribe()),

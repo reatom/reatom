@@ -1,7 +1,6 @@
 import {
   type Action,
   type AtomLike,
-  computed,
   isAction,
   isWritableAtom,
   withConnectHook,
@@ -13,8 +12,8 @@ import type { BaseBladeParams, ButtonParams } from 'tweakpane'
 import {
   type BladeRackApi,
   type Disposable,
+  reatomDisposable,
   rootPane,
-  withDisposable,
 } from './core'
 
 /**
@@ -36,11 +35,11 @@ import {
 export const withButton =
   (params: ButtonParams, parent: AtomLike<BladeRackApi> = rootPane) =>
   <T extends Action>(target: T) => {
-    const buttonAtom = computed(() => {
+    const buttonAtom = reatomDisposable(() => {
       const btnApi = parent().addButton(params)
       btnApi.on('click', wrap(target))
       return btnApi
-    }, `${parent.name}.${target.name}.button`).extend(withDisposable())
+    }, `${parent.name}.${target.name}.button`)
 
     target.extend(withConnectHook(() => buttonAtom.subscribe()))
 
@@ -59,7 +58,7 @@ export const withBlade =
     parent: AtomLike<BladeRackApi> = rootPane,
   ) =>
   <T extends AtomLike<any> | Action<any>>(target: T) => {
-    const bladeAtom = computed(() => {
+    const bladeAtom = reatomDisposable(() => {
       const parentApi = parent()
       const bladeApi = parentApi.addBlade(params) as any
 
@@ -73,7 +72,7 @@ export const withBlade =
       }
 
       return bladeApi as Api
-    }, `${parent.name}.${target.name}.blade`).extend(withDisposable())
+    }, `${parent.name}.${target.name}.blade`)
 
     target.extend(withConnectHook(() => bladeAtom.subscribe()))
 

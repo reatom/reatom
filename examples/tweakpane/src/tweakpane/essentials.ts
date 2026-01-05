@@ -1,11 +1,11 @@
-import { type AtomLike, computed } from '@reatom/core'
+import { type AtomLike } from '@reatom/core'
 import type { BaseInputParams } from '@tweakpane/core'
 import type { FpsGraphBladeApi } from '@tweakpane/plugin-essentials/dist/types/fps-graph/api/fps-graph'
 import type { BaseBladeParams } from 'tweakpane'
 
 import { withBinding } from './bindings'
 import { withBlade } from './blades'
-import { type BladeRackApi, rootPane, withDisposable } from './core'
+import { type BladeRackApi, reatomDisposable,rootPane } from './core'
 
 export type RadioGridParams = {
   groupName: string
@@ -83,11 +83,11 @@ export const reatomFpsGraph = (
   params: FpsGraphParams,
   parent: AtomLike<BladeRackApi> = rootPane,
 ) =>
-  computed(
+  reatomDisposable(
     () =>
       parent().addBlade({
         view: 'fpsgraph',
         ...params,
       }) as unknown as FpsGraphBladeApi,
     `${parent.name}.fpsGraph`,
-  ).extend(withDisposable())
+  )

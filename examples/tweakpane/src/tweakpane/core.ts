@@ -1,9 +1,11 @@
 import {
+  abortVar,
   type AtomLike,
-  type Computed,
   computed,
-  retryComputed,
-  withConnectHook,
+  named,
+  reset,
+  withAbort,
+  withDisconnectHook,
 } from '@reatom/core'
 import type {
   BaseParams,
@@ -19,18 +21,40 @@ import { type FolderParams, Pane, type TabParams } from 'tweakpane'
 export type BladeRackApi = FolderApi | RackApi | TabPageApi
 
 export type Disposable = { dispose: () => void; controller: Controller }
-
 /**
- * Helper extension to invoke the `dispose` method of a Tweakpane controller
- * when the computed atom is recomputed or unmounted.
+ * Create a lazy reactive disposable resource.
+ *
+ * This helper wraps creation of external resources (Tweakpane instances,
+ * folders, tabs, blades, etc.) in a computed atom so the resource is created
+ * only when the atom is subscribed to and disposed automatically when the
+ * atom is disconnected or when the global `abortVar` fires.
+ *
+ * The returned computed atom is extended with lifecycle helpers that:
+ * - attach an abort controller via `withAbort()`
+ * - dispose and reset the resource when the atom is disconnected
+ *
+ * @template T Resource type which must provide a `dispose()` method and a `controller`.
+ * @param create Factory that creates and returns the disposable resource.
+ * @param name Optional debugging name passed to the underlying computed atom.
+ * @returns A computed atom that yields the created resource and manages its lifecycle.
  */
-export const withDisposable = <T extends Disposable>() =>
-  withConnectHook((target: Computed<T>) => {
-    if (target().controller.viewProps.get('disposed')) {
-      retryComputed(target)
-    }
-    return () => target().dispose()
-  })
+export const reatomDisposable = <T extends Disposable>(
+  create: () => T,
+  name: string = named('disposable')
+) => {
+  const resource = computed(() => {
+    const disposable = create()
+    abortVar.subscribe(() => disposable.dispose())
+    return disposable
+  }, name).extend(
+    withAbort(),
+    withDisconnectHook(() => {
+      resource.abort('disconnect')
+      reset(resource)
+    })
+  )
+  return resource
+}
 
 export type PaneConfig = ConstructorParameters<typeof Pane>[0]
 
@@ -44,11 +68,11 @@ export type PaneConfig = ConstructorParameters<typeof Pane>[0]
  * @param params.name - Unique debugging name for the atom
  */
 export const reatomPane = (params: PaneConfig & { name: string }) =>
-  computed(() => {
+  reatomDisposable(() => {
     const pane = new Pane(params)
     pane.registerPlugin(EssentialsPlugin)
     return pane
-  }, `tweakpane.pane.${params.name}`).extend(withDisposable())
+  }, `tweakpane.pane.${params.name}`)
 
 /** Global default Tweakpane instance */
 export const rootPane = reatomPane({ name: 'rootPane' })
@@ -63,11 +87,10 @@ export const reatomPaneFolder = (
   params: FolderParams,
   parent: AtomLike<BladeRackApi> = rootPane,
 ) =>
-  computed(
+  reatomDisposable(
     () => parent().addFolder(params),
     `${parent.name}.${params.title}`,
-  ).extend(withDisposable())
-
+  )
 /**
  * Creates a tab interface with multiple pages.
  *
@@ -93,14 +116,12 @@ export const reatomPaneTab = (
           typeof p === 'string' ? { title: p } : p,
         ),
       }
-  return computed(
+  return reatomDisposable(
     () => parent().addTab(normalizedParams),
     `${parent.name}.tabs`,
-  ).extend(withDisposable(), (target) => ({
+  ).extend((target) => ({
     pages: normalizedParams.pages.map((_, i) =>
-      computed(() => target().pages[i], `${target.name}.page.${i}`).extend(
-        withDisposable(),
-      ),
+      reatomDisposable(() => target().pages[i], `${target.name}.page.${i}`)
     ),
   }))
 }
@@ -115,7 +136,7 @@ export const reatomPaneSeparator = (
   params: BaseParams,
   parent: AtomLike<BladeRackApi> = rootPane,
 ) =>
-  computed(
+  reatomDisposable(
     () => parent().addBlade({ view: 'separator', ...params }),
     `${parent.name}.separator`,
-  ).extend(withDisposable())
+  )
