@@ -897,7 +897,6 @@ export let createAtom: {
           }
 
           if (
-            !dirty &&
             subscribed &&
             (!Object.is(state, frame.state) || !Object.is(error, frame.error))
           ) {
