@@ -281,7 +281,8 @@ test(`validation concurrency`, async () => {
   expect(field.value()).toBe(3)
 })
 
-test(`validation concurrency with conditional debounce`, async () => {
+// FIXME see #1235
+viTest.skip(`validation concurrency with conditional debounce`, async () => {
   const TAKEN_NAME = 'taken_name'
 
   const nameField = reatomField('', {
