@@ -11,6 +11,7 @@ Reatom has a very advanced form management system to handle complex cases in a t
 import { reatomForm } from '@reatom/core'
 
 export const loginForm = reatomForm(
+  //
   {
     username: '',
     password: '',
