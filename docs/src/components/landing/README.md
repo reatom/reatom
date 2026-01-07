@@ -16,7 +16,8 @@ This directory contains components specific to the landing page of the Reatom do
 
 **Problem**: Multiple `ShikiCodeBlock` components on the same page shared the same tooltip ID (`code-tooltip`), causing conflicts.
 
-**Solution**: 
+**Solution**:
+
 - Generated unique component IDs using `Math.random().toString(36).slice(2, 9)`
 - Added `data-component-id` attributes to scope each component instance
 - Created unique tooltip IDs: `code-tooltip-${componentId}`
@@ -26,6 +27,7 @@ This directory contains components specific to the landing page of the Reatom do
 **Problem**: Tooltips only worked for elements present at initial page load and didn't work after content toggling.
 
 **Solution**:
+
 - Implemented event delegation on the component wrapper
 - Added `MutationObserver` to detect dynamically added content
 - Created reusable `TooltipManager` utility class in `utils/tooltips.ts`
@@ -35,6 +37,7 @@ This directory contains components specific to the landing page of the Reatom do
 **Problem**: Risk of duplicating tooltip logic across components.
 
 **Solution**:
+
 - Extracted tooltip functionality into `src/utils/tooltips.ts`
 - Created reusable `TooltipManager` class with configurable options
 - Provided factory functions for easy initialization
@@ -44,6 +47,7 @@ This directory contains components specific to the landing page of the Reatom do
 **Problem**: No cleanup of event listeners, potential memory leaks.
 
 **Solution**:
+
 - Proper event listener cleanup in `TooltipManager`
 - Scoped event handlers to component instances
 - Storage of manager references for future cleanup
@@ -59,9 +63,7 @@ import ShikiCodeBlock from './ShikiCodeBlock.astro'
 
 <ShikiCodeBlock
   code={`const example = "Hello World"`}
-  annotations={[
-    { pattern: 'const', note: 'Variable declaration keyword' }
-  ]}
+  annotations={[{ pattern: 'const', note: 'Variable declaration keyword' }]}
   filename="example.tsx"
   playgroundUrl="https://stackblitz.com/github/reatom/reatom/tree/v1000/examples/react-search"
 />
@@ -93,12 +95,12 @@ The `TooltipManager` class provides:
 
 ```typescript
 interface TooltipConfig {
-  componentId: string           // Required: Unique component identifier
-  tooltipSelector?: string      // Default: '.code-tooltip'
-  triggerSelector?: string      // Default: '.code-annotation'
-  dataAttribute?: string        // Default: 'data-note'
-  position?: 'top' | 'bottom' | 'auto'  // Default: 'auto'
-  offset?: number              // Default: 10
+  componentId: string // Required: Unique component identifier
+  tooltipSelector?: string // Default: '.code-tooltip'
+  triggerSelector?: string // Default: '.code-annotation'
+  dataAttribute?: string // Default: 'data-note'
+  position?: 'top' | 'bottom' | 'auto' // Default: 'auto'
+  offset?: number // Default: 10
 }
 ```
 
@@ -114,28 +116,32 @@ const manager = createTooltipManager({
   triggerSelector: '.interactive-element',
   dataAttribute: 'data-tooltip-text',
   position: 'bottom',
-  offset: 15
+  offset: 15,
 })
 ```
 
 ## Best Practices
 
 ### 1. Component Isolation
+
 - Always generate unique component IDs
 - Use `data-component-id` for scoping
 - Avoid global selectors within components
 
 ### 2. Event Management
+
 - Use event delegation for dynamic content
 - Store cleanup functions for proper resource management
 - Prefer scoped event handlers over global ones
 
 ### 3. Accessibility
+
 - Include proper ARIA attributes (`role="tooltip"`)
 - Ensure keyboard navigation works
 - Provide alternative access methods for tooltip content
 
 ### 4. Performance
+
 - Use `MutationObserver` sparingly and with targeted selectors
 - Cleanup observers when components are destroyed
 - Debounce expensive operations like positioning calculations
@@ -150,6 +156,7 @@ const manager = createTooltipManager({
 ### No Duplication Found ✅
 
 The review confirmed that:
+
 - `ShikiCodeBlock.astro` is the only syntax highlighting component in the landing section
 - `MarkdownContent.astro` serves a different purpose (Mermaid diagrams)
 - No conflicting tooltip implementations exist
@@ -174,4 +181,4 @@ The review confirmed that:
 
 - Watch for memory leaks in long-lived pages
 - Monitor mutation observer performance
-- Consider virtual scrolling for large code examples 
+- Consider virtual scrolling for large code examples

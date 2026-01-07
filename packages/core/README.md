@@ -102,7 +102,7 @@ const Counter = reatomComponent(() => (
       {counter()} is {isEven() ? 'even' : 'odd'}
     </p>
 
-    <button onClick={() => counter.set(v => v + 1)}>Increment</button>
+    <button onClick={() => counter.set((v) => v + 1)}>Increment</button>
   </section>
 ))
 ```

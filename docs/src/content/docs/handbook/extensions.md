@@ -43,8 +43,10 @@ export interface ResetExt<State> {
 // Extension Factory returning the assigner function directly
 export const withReset =
   <Target extends AtomLike>(
-    initialValue: AtomState<Target>, // Get initial value type from Atom
-  ): Ext<Target, ResetExt<AtomState<Target>>> => // Define extension input/output types
+    // Get initial value type from Atom
+    initialValue: AtomState<Target>,
+    // Define extension input/output types
+  ): Ext<Target, ResetExt<AtomState<Target>>> =>
   // Return the extension function
   (target) =>
     // target is the atom being extended

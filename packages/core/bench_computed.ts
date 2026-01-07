@@ -400,9 +400,8 @@ const testComputers = setupComputersTest({
   //   return (i) => store.dispatch(a.entry(i))
   // },
   async reatom({ listener, startCreation, endCreation }) {
-    const { atom, computed, context, wrap, notify, clearStack } = await import(
-      './build'
-    )
+    const { atom, computed, context, wrap, notify, clearStack } =
+      await import('./build')
 
     startCreation()
 
@@ -565,9 +564,8 @@ const testComputers = setupComputersTest({
     return (i) => entry(i)
   },
   async wonka({ listener, startCreation, endCreation }) {
-    const { makeSubject, pipe, map, subscribe, combine, sample } = await import(
-      'wonka'
-    )
+    const { makeSubject, pipe, map, subscribe, combine, sample } =
+      await import('wonka')
 
     const ccombine = <A, B>(
       sourceA: WSource<A>,

@@ -2,6 +2,7 @@
 title: Sampling
 description: Documentation on sampling states and events in Reatom
 ---
+
 **To debounce, to abort, or to wrap? How to handle concurrent user input without losing your mind!**
 
 I am the author of the Reatom state manager, and today I want to share with you a comparison between traditional debounce patterns and Reatom's modern concurrency model. This tackles a problem every developer faces: efficiently handling rapid-fire user input that triggers asynchronous operations.
@@ -344,15 +345,16 @@ This dual nature of actions as both callable functions and observable events cre
 The `take` operator is a powerful tool for orchestrating asynchronous workflows by allowing you to `await` the next update of an atom or the next call of an action. This enables writing procedural-style logic that reacts to state changes and events. Always use `wrap(take(target))` to ensure proper Reatom context propagation.
 
 For instance, you can wait for a form to become valid before proceeding:
+
 ```javascript
 // Simplified concept
-const formIsValid = atom(false, 'formIsValid');
+const formIsValid = atom(false, 'formIsValid')
 const submitAction = action(async () => {
   if (!formIsValid()) {
-    await wrap(take(formIsValid, (isValid) => isValid || throwAbort())); // Wait for formIsValid to be true
+    await wrap(take(formIsValid, (isValid) => isValid || throwAbort())) // Wait for formIsValid to be true
   }
   // Proceed with submission...
-}, 'submitAction');
+}, 'submitAction')
 ```
 
 `take` also supports conditional waiting by providing a filter function as its second argument, allowing you to wait for specific state conditions or action payloads.
@@ -369,13 +371,14 @@ For integrating with external event sources like DOM elements or WebSockets, Rea
 
 ```javascript
 // Conceptual usage
-const button = document.getElementById('myButton');
+const button = document.getElementById('myButton')
 const handleClick = action(async () => {
-  await wrap(onEvent(button, 'click'));
+  await wrap(onEvent(button, 'click'))
   // Button was clicked, proceed...
-}, 'handleClick');
+}, 'handleClick')
 ```
-`onEvent` is also useful for the "checkpoint pattern" to avoid race conditions: start listening for an event *before* an unrelated long-running async operation, ensuring the event isn't missed if it fires during the operation.
+
+`onEvent` is also useful for the "checkpoint pattern" to avoid race conditions: start listening for an event _before_ an unrelated long-running async operation, ensuring the event isn't missed if it fires during the operation.
 
 ## Benefits Over Traditional Approaches
 

@@ -115,17 +115,16 @@ Actions help organize complex operations:
 ```typescript
 import { atom } from '@reatom/core'
 
-export const list = atom([], 'list')
-  .extend((target) => ({
-    isLoading: atom(false, `${target.name}.isLoading`),
-    async load(page: number) {
-      target.isLoading.set(true)
-      const response = await fetch(`/api/list?page=${page}`)
-      const payload = await response.json()
-      target.set(payload)
-      target.isLoading.set(false)
-    },
-  }))
+export const list = atom([], 'list').extend((target) => ({
+  isLoading: atom(false, `${target.name}.isLoading`),
+  async load(page: number) {
+    target.isLoading.set(true)
+    const response = await fetch(`/api/list?page=${page}`)
+    const payload = await response.json()
+    target.set(payload)
+    target.isLoading.set(false)
+  },
+}))
 
 list.load(1)
 console.log(list.isLoading())

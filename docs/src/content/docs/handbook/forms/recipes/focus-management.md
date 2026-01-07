@@ -12,21 +12,26 @@ Each field has an `elementRef` property that can be used to store a reference to
 import { reatomForm, withCallHook } from '@reatom/core'
 import { z } from 'zod'
 
-const form = reatomForm({
-  email: '',
-  age: 12
-}, {
-  schema: z.object({
-    email: z.string().email(),
-    age: z.number().min(18),
-  })
-})
+const form = reatomForm(
+  {
+    email: '',
+    age: 12,
+  },
+  {
+    schema: z.object({
+      email: z.string().email(),
+      age: z.number().min(18),
+    }),
+  },
+)
 
 form.submit.onReject.extend(
   withCallHook(() => {
-    const errorField = form.fieldsList().find(field => !!field.validation().error);
-    errorField?.elementRef()?.focus();
-  })
+    const errorField = form
+      .fieldsList()
+      .find((field) => !!field.validation().error)
+    errorField?.elementRef()?.focus()
+  }),
 )
 ```
 

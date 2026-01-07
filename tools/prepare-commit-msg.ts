@@ -110,7 +110,9 @@ function getScopesFromFiles(files: string[]): string[] {
 }
 
 function getStagedFiles(): string[] {
-  const output = execSync('git diff --cached --name-only', { encoding: 'utf-8' })
+  const output = execSync('git diff --cached --name-only', {
+    encoding: 'utf-8',
+  })
   return output
     .trim()
     .split('\n')
@@ -181,7 +183,10 @@ function getPackagePathsFromScopes(scopes: string[]): string[] {
   return Array.from(packagePaths)
 }
 
-function updatePackageVersion(packagePath: string, bumpType: BumpType): string | null {
+function updatePackageVersion(
+  packagePath: string,
+  bumpType: BumpType,
+): string | null {
   const packageJsonPath = path.join(packagePath, 'package.json')
 
   if (!fs.existsSync(packageJsonPath)) {
@@ -231,18 +236,28 @@ function updateChangelog(
 
   if (existingContent.includes(versionHeader)) {
     const versionHeaderIndex = existingContent.indexOf(versionHeader)
-    const afterVersionHeader = existingContent.slice(versionHeaderIndex + versionHeader.length)
+    const afterVersionHeader = existingContent.slice(
+      versionHeaderIndex + versionHeader.length,
+    )
 
     if (afterVersionHeader.includes(typeHeader)) {
-      const typeHeaderIndex = existingContent.indexOf(typeHeader, versionHeaderIndex)
+      const typeHeaderIndex = existingContent.indexOf(
+        typeHeader,
+        versionHeaderIndex,
+      )
       const afterTypeHeader = typeHeaderIndex + typeHeader.length
-      const nextSectionMatch = existingContent.slice(afterTypeHeader).match(/\n###?\s/)
+      const nextSectionMatch = existingContent
+        .slice(afterTypeHeader)
+        .match(/\n###?\s/)
       const insertPosition = nextSectionMatch
         ? afterTypeHeader + (nextSectionMatch.index ?? 0)
-        : afterTypeHeader + existingContent.slice(afterTypeHeader).indexOf('\n\n')
+        : afterTypeHeader +
+          existingContent.slice(afterTypeHeader).indexOf('\n\n')
 
       const actualInsertPosition =
-        insertPosition > afterTypeHeader ? insertPosition : existingContent.length
+        insertPosition > afterTypeHeader
+          ? insertPosition
+          : existingContent.length
 
       const beforeInsert = existingContent.slice(0, actualInsertPosition)
       const afterInsert = existingContent.slice(actualInsertPosition)
@@ -250,7 +265,9 @@ function updateChangelog(
     } else {
       const nextVersionMatch = afterVersionHeader.match(/\n## /)
       const insertPosition = nextVersionMatch
-        ? versionHeaderIndex + versionHeader.length + (nextVersionMatch.index ?? 0)
+        ? versionHeaderIndex +
+          versionHeader.length +
+          (nextVersionMatch.index ?? 0)
         : versionHeaderIndex + versionHeader.length
 
       const beforeInsert = existingContent.slice(0, insertPosition)
@@ -272,7 +289,9 @@ function capitalizeFirst(str: string): string {
 
 function stageFiles(files: string[]): void {
   if (files.length === 0) return
-  execSync(`git add ${files.map((f) => `"${f}"`).join(' ')}`, { encoding: 'utf-8' })
+  execSync(`git add ${files.map((f) => `"${f}"`).join(' ')}`, {
+    encoding: 'utf-8',
+  })
 }
 
 function main() {
@@ -284,7 +303,11 @@ function main() {
       return
     }
 
-    if (commitSource === 'merge' || commitSource === 'squash' || commitSource === 'commit') {
+    if (
+      commitSource === 'merge' ||
+      commitSource === 'squash' ||
+      commitSource === 'commit'
+    ) {
       return
     }
 
@@ -306,12 +329,15 @@ function main() {
       return
     }
 
-    const detectedScopes = parsed.scope ? parsed.scope.split(',') : getScopesFromFiles(stagedFiles)
+    const detectedScopes = parsed.scope
+      ? parsed.scope.split(',')
+      : getScopesFromFiles(stagedFiles)
     if (detectedScopes.length === 0) {
       return
     }
 
-    const shouldBumpVersion = parsed.type === 'fix' || parsed.type === 'feat' || parsed.breaking
+    const shouldBumpVersion =
+      parsed.type === 'fix' || parsed.type === 'feat' || parsed.breaking
 
     if (!shouldBumpVersion) {
       if (!parsed.scope) {
@@ -321,9 +347,13 @@ function main() {
           parsed.breaking,
           parsed.description,
         )
-        const newMessage = restOfMessage ? `${newFirstLine}\n${restOfMessage}` : newFirstLine
+        const newMessage = restOfMessage
+          ? `${newFirstLine}\n${restOfMessage}`
+          : newFirstLine
         fs.writeFileSync(commitMsgFile, newMessage)
-        console.log(`Commit message updated with scope(s): ${detectedScopes.join(', ')}`)
+        console.log(
+          `Commit message updated with scope(s): ${detectedScopes.join(', ')}`,
+        )
       }
       return
     }
@@ -365,9 +395,13 @@ function main() {
         parsed.breaking,
         parsed.description,
       )
-      const newMessage = restOfMessage ? `${newFirstLine}\n${restOfMessage}` : newFirstLine
+      const newMessage = restOfMessage
+        ? `${newFirstLine}\n${restOfMessage}`
+        : newFirstLine
       fs.writeFileSync(commitMsgFile, newMessage)
-      console.log(`Commit message updated with scope(s): ${detectedScopes.join(', ')}`)
+      console.log(
+        `Commit message updated with scope(s): ${detectedScopes.join(', ')}`,
+      )
     }
   } catch (error) {
     console.error('prepare-commit-msg hook error (non-fatal):', error)

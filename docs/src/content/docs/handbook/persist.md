@@ -380,16 +380,16 @@ const configuredAtom = atom({ name: '', age: 0 }).extend(
 
 ### Configuration Reference
 
-| Option         | Type                       | Default            | Description                           |
-| -------------- | -------------------------- | ------------------ | ------------------------------------- |
-| `key`          | `string`                   | **required**       | Unique key for storage                |
-| `toSnapshot`   | `(state) => any`           | `identity`         | Serialize state before saving         |
-| `fromSnapshot` | `(snapshot) => state`      | `identity`         | Deserialize state after loading       |
-| `schema`       | `StandardSchemaV1`         | `undefined`        | Schema to validate and transform data |
-| `version`      | `number \| string`         | `0`                | Version number for migration          |
-| `migration`    | `(record, version) => state` | `undefined`      | Migrate old data to current version   |
-| `time`         | `number`                   | `MAX_SAFE_TIMEOUT` | TTL in milliseconds                   |
-| `subscribe`    | `boolean`                  | `true`             | Enable cross-tab synchronization      |
+| Option         | Type                         | Default            | Description                           |
+| -------------- | ---------------------------- | ------------------ | ------------------------------------- |
+| `key`          | `string`                     | **required**       | Unique key for storage                |
+| `toSnapshot`   | `(state) => any`             | `identity`         | Serialize state before saving         |
+| `fromSnapshot` | `(snapshot) => state`        | `identity`         | Deserialize state after loading       |
+| `schema`       | `StandardSchemaV1`           | `undefined`        | Schema to validate and transform data |
+| `version`      | `number \| string`           | `0`                | Version number for migration          |
+| `migration`    | `(record, version) => state` | `undefined`        | Migrate old data to current version   |
+| `time`         | `number`                     | `MAX_SAFE_TIMEOUT` | TTL in milliseconds                   |
+| `subscribe`    | `boolean`                    | `true`             | Enable cross-tab synchronization      |
 
 ## Cross-Tab Synchronization
 

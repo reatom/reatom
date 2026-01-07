@@ -9,4 +9,3 @@
 ### Feat
 
 - **react**: add deps options to reatomComponent
-
