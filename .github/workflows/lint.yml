@@ -31,10 +31,12 @@ jobs:
       - name: Fail if there no auto fix
         if: steps.prettier_check.outputs.PRETTIER_EXIT_CODE == 2
         run: exit 2
+
       - name: Run prettier
         id: prettier_run
         if: steps.prettier_check.outputs.PRETTIER_EXIT_CODE == 1
         run: node --run prettify
+
       - name: Commit and push changes
         if: ${{ success() && steps.prettier_run.conclusion == 'success' }}
         run: |
@@ -42,7 +44,10 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git commit -am "chore: run prettier"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:$HEAD_REF
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+
       - name: Upload artifact to trigger app for forks
         if: ${{ failure() }}
         run: |
@@ -61,4 +66,6 @@ jobs:
           name: flow
           path: 'flow-comment.json'
       - name: Exit with prettier
-        run: exit ${{ steps.prettier_check.outputs.PRETTIER_EXIT_CODE }}
+        run: exit $PRETTIER_EXIT_CODE
+        env:
+          PRETTIER_EXIT_CODE: ${{ steps.prettier_check.outputs.PRETTIER_EXIT_CODE }}
