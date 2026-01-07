@@ -1,11 +1,16 @@
 name: Preview
 
-on: 
+on:
   pull_request:
   workflow_dispatch:
 
 jobs:
   lint:
     uses: ./.github/workflows/lint.yml
+
   test:
     uses: ./.github/workflows/test.yml
+    
+  publish-preview:
+    needs: test
+    uses: ./.github/workflows/publish-preview.yml
