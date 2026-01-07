@@ -124,7 +124,6 @@ export interface RouteOptions<
    */
   path?: Path
 
-
   /**
    * Schema to validate and transform path parameters. Uses Standard Schema
    * (compatible with Zod, Valibot, etc.).
@@ -186,10 +185,10 @@ export interface RouteOptions<
 
   /**
    * Render only on exact path matches
-   * 
+   *
    * @see RouteExt.exact
    */
-  exactRender?: boolean,
+  exactRender?: boolean
 }
 
 export interface RouteMixin<
@@ -546,7 +545,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       search: searchSchema,
       loader: optionsLoader = identity,
       render: renderFn,
-      exactRender = false
+      exactRender = false,
     } = options
 
     if (subPath.startsWith('/')) {
@@ -748,7 +747,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       }, `${name}._outlet`)
 
       const render = computed(() => {
-        return renderFn && (exactRender ? exact() : match()) ? renderFn({ outlet }) : null
+        return renderFn && (exactRender ? exact() : match())
+          ? renderFn({ outlet })
+          : null
       }, `${name}._render`)
 
       return {

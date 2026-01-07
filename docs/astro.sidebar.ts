@@ -41,7 +41,7 @@ export const sidebar = [
               'handbook/forms/concepts/field-array',
               'handbook/forms/concepts/fieldset',
               'handbook/forms/concepts/form',
-            ]
+            ],
           },
           {
             label: 'Recipes',
@@ -57,11 +57,11 @@ export const sidebar = [
               'handbook/forms/recipes/compound-fields',
               // 'handbook/forms/recipes/wizard-forms',
               // 'handbook/forms/recipes/persistence',
-            ]
+            ],
           },
           // 'handbook/forms/migration/react-hook-form'
-        ]
-      }
+        ],
+      },
     ],
   }),
 

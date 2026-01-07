@@ -7,12 +7,12 @@ You may have noticed that when validating a form using validation schemas, as a 
 ```ts {5-7}
 export declare namespace StandardSchemaV1 {
   export interface Props<Input = unknown, Output = Input> {
-    readonly version: 1;
-    readonly vendor: string;
+    readonly version: 1
+    readonly vendor: string
     readonly validate: (
-      value: unknown
-    ) => Result<Output> | Promise<Result<Output>>;
-    readonly types?: Types<Input, Output> | undefined;
+      value: unknown,
+    ) => Result<Output> | Promise<Result<Output>>
+    readonly types?: Types<Input, Output> | undefined
   }
 }
 ```
@@ -26,15 +26,15 @@ We propose a different approach that will prevent scaring users with premature e
 Let's assume we have the following form that is validated through Zod:
 
 ```ts
-import { reatomForm } from "@reatom/core";
-import { bindField, reatomComponent } from "@reatom/react";
-import { z } from "zod/v4";
+import { reatomForm } from '@reatom/core'
+import { bindField, reatomComponent } from '@reatom/react'
+import { z } from 'zod/v4'
 
 const form = reatomForm(
   {
-    username: "",
-    email: "",
-    password: "",
+    username: '',
+    email: '',
+    password: '',
   },
   {
     validateOnBlur: true,
@@ -43,31 +43,25 @@ const form = reatomForm(
       email: z.email(),
       password: z.string().min(6),
     }),
-  }
-);
+  },
+)
 ```
 
 Then let's simply not display errors for fields that don't have the `triggered` flag set in the `validation` atom:
 
-```tsx {11} {19} {27}
-const { email, password, username } = form.fields;
+```tsx {7} {13} {21}
+const { email, password, username } = form.fields
 
 const Form = reatomComponent(() => (
   <form>
     <label>
-      <input
-        type="text"
-        placeholder="Your username"
-        {...bindField(username)}
-      />
-      {username.validation().triggered && <span>{username.validation().error}</span>}
+      <input type="text" placeholder="Your username" {...bindField(username)} />
+      {username.validation().triggered && (
+        <span>{username.validation().error}</span>
+      )}
     </label>
     <label>
-      <input
-        type="email"
-        placeholder="Your email"
-        {...bindField(email)}
-      />
+      <input type="email" placeholder="Your email" {...bindField(email)} />
       {email.validation().triggered && <span>{email.validation().error}</span>}
     </label>
     <label>
@@ -76,10 +70,12 @@ const Form = reatomComponent(() => (
         placeholder="Your password"
         {...bindField(password)}
       />
-      {password.validation().triggered && <span>{password.validation().error}</span>}
+      {password.validation().triggered && (
+        <span>{password.validation().error}</span>
+      )}
     </label>
   </form>
-));
+))
 ```
 
 The idea here is "let's only display field errors if each field has had its own validation called". When validating by schemas, errors are assigned to fields without the `triggered` flag, because in fact it was not the validation of these fields that was called, but the validation of the schema.

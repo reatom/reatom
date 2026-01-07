@@ -16,7 +16,6 @@ const VERSION = JSON.parse(
   ),
 ).version
 
-
 main()
 async function main() {
   do {

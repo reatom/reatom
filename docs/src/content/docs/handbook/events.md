@@ -2,6 +2,7 @@
 title: Events
 description: Documentation on events in Reatom
 ---
+
 **Sampling states and events with atoms and actions: The reactive event pattern that will change how you think about data flow!**
 
 I am the author of the Reatom state manager, and today I want to introduce you to one of the most powerful yet underappreciated patterns in reactive programming: sampling states and events using atoms and actions.

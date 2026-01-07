@@ -10,16 +10,16 @@ The simplest solution is to create an effect that reacts to form state changes. 
 
 ```ts
 effect(async () => {
-    form() // subscribe to changes of all form fields
+  form() // subscribe to changes of all form fields
 
-    // select only dirty from focus atom
-    const dirty = memo(() => form.focus().dirty) 
-    if(!dirty) return
+  // select only dirty from focus atom
+  const dirty = memo(() => form.focus().dirty)
+  if (!dirty) return
 
-    // async debounce, delay submit by 300ms
-    await wrap(sleep(300))
+  // async debounce, delay submit by 300ms
+  await wrap(sleep(300))
 
-    form.submit().catch(noop)
+  form.submit().catch(noop)
 })
 ```
 

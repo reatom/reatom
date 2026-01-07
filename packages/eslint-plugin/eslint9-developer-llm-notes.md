@@ -28,23 +28,23 @@ Recommended plugin entrypoint structure:
 
 ```typescript
 // for ESM
-import type { ESLint } from 'eslint';
+import type { ESLint } from 'eslint'
 
 const plugin: ESLint.Plugin = {
   meta: {},
   configs: {},
   rules: {},
   processors: {},
-};
-export default plugin;
+}
+export default plugin
 
 // OR for CommonJS
-import type { ESLint } from 'eslint';
+import type { ESLint } from 'eslint'
 
 const plugin: ESLint.Plugin = {
   /* ... */
-};
-module.exports = plugin;
+}
+module.exports = plugin
 ```
 
 If distributed via npm, the module exporting the plugin object should be the default export.
@@ -54,7 +54,7 @@ If distributed via npm, the module exporting the plugin object should be the def
 It's recommended to provide `name` and `version` in a `meta` object for easier debugging and caching.
 
 ```typescript
-import type { ESLint } from 'eslint';
+import type { ESLint } from 'eslint'
 
 const plugin: ESLint.Plugin = {
   meta: {
@@ -62,19 +62,19 @@ const plugin: ESLint.Plugin = {
     version: '1.2.3',
   },
   // ...
-};
+}
 ```
 
 The `meta.name` should match the npm package name, and `meta.version` should match the npm package version. This can be read from `package.json`:
 
 ```typescript
-import fs from 'fs';
-import { URL } from 'url';
-import type { ESLint } from 'eslint';
+import fs from 'fs'
+import { URL } from 'url'
+import type { ESLint } from 'eslint'
 
 const pkg = JSON.parse(
   fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'),
-);
+)
 
 const plugin: ESLint.Plugin = {
   meta: {
@@ -82,8 +82,8 @@ const plugin: ESLint.Plugin = {
     version: pkg.version,
   },
   // ...
-};
-export default plugin;
+}
+export default plugin
 ```
 
 Alternatively, `name` and `version` can be exposed at the root of the plugin object.
@@ -93,7 +93,7 @@ Alternatively, `name` and `version` can be exposed at the root of the plugin obj
 Plugins expose custom rules via a `rules` object (key-value map of rule ID to rule definition). Rule IDs should not contain `/`.
 
 ```typescript
-import type { Rule } from 'eslint';
+import type { Rule } from 'eslint'
 
 const plugin: { rules: Record<string, Rule.RuleModule> } = {
   // ...
@@ -101,19 +101,19 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
     'dollar-sign': {
       create(context: Rule.RuleContext) {
         // rule implementation ...
-        return {};
+        return {}
       },
     },
   },
-};
+}
 ```
 
 To use a plugin rule in `eslint.config.ts`:
 
 ```typescript
 // eslint.config.ts
-import { defineConfig } from 'eslint/config';
-import example from 'eslint-plugin-example';
+import { defineConfig } from 'eslint/config'
+import example from 'eslint-plugin-example'
 
 export default defineConfig([
   {
@@ -124,7 +124,7 @@ export default defineConfig([
       'example/dollar-sign': 'error', // rule prefixed with namespace
     },
   },
-]);
+])
 ```
 
 #### Processors in Plugins
@@ -132,31 +132,37 @@ export default defineConfig([
 Plugins expose [processors](https://eslint.org/docs/latest/extend/custom-processors) via a `processors` object.
 
 ```typescript
-import type { ESLint } from 'eslint';
+import type { ESLint } from 'eslint'
 
 const plugin: { processors: Record<string, ESLint.Processor> } = {
   // ...
   processors: {
     'processor-name': {
-      preprocess(text: string, filename: string): Array<string | { text: string; filename: string }> {
+      preprocess(
+        text: string,
+        filename: string,
+      ): Array<string | { text: string; filename: string }> {
         /* ... */
-        return [text];
+        return [text]
       },
-      postprocess(messages: Array<Array<ESLint.Linter.LintMessage>>, filename: string): Array<ESLint.Linter.LintMessage> {
+      postprocess(
+        messages: Array<Array<ESLint.Linter.LintMessage>>,
+        filename: string,
+      ): Array<ESLint.Linter.LintMessage> {
         /* ... */
-        return messages[0];
+        return messages[0]
       },
     },
   },
-};
+}
 ```
 
 To use a plugin processor in `eslint.config.ts`:
 
 ```typescript
 // eslint.config.ts
-import { defineConfig } from 'eslint/config';
-import example from 'eslint-plugin-example';
+import { defineConfig } from 'eslint/config'
+import example from 'eslint-plugin-example'
 
 export default defineConfig([
   {
@@ -166,7 +172,7 @@ export default defineConfig([
     },
     processor: 'example/processor-name',
   },
-]);
+])
 ```
 
 #### Configs in Plugins
@@ -174,7 +180,7 @@ export default defineConfig([
 Bundle configurations within a plugin using the `configs` key. This is useful for sharing recommended rule sets.
 
 ```typescript
-import type { ESLint } from 'eslint';
+import type { ESLint } from 'eslint'
 
 const plugin: ESLint.Plugin = {
   meta: {
@@ -184,7 +190,7 @@ const plugin: ESLint.Plugin = {
   rules: {
     /* ... */
   },
-};
+}
 
 // Assign configs after plugin definition to reference `plugin`
 Object.assign(plugin.configs, {
@@ -203,15 +209,15 @@ Object.assign(plugin.configs, {
       },
     },
   ],
-});
+})
 ```
 
 To use a plugin config in `eslint.config.ts`:
 
 ```typescript
 // eslint.config.ts
-import { defineConfig } from 'eslint/config';
-import example from 'eslint-plugin-example';
+import { defineConfig } from 'eslint/config'
+import example from 'eslint-plugin-example'
 
 export default defineConfig([
   {
@@ -221,7 +227,7 @@ export default defineConfig([
     },
     extends: ['example/recommended'], // Extends the 'recommended' config from 'example' plugin
   },
-]);
+])
 ```
 
 ##### Backwards Compatibility for Legacy Configs (eslintrc)
@@ -231,9 +237,9 @@ Legacy configs can be prefixed with `"legacy-"`.
 If maintaining old names (e.g., `"recommended"`), flat configs can be prefixed with `"flat/"` (e.g., `"flat/recommended"`).
 
 ```typescript
-import type { ESLint } from 'eslint';
+import type { ESLint } from 'eslint'
 
-declare const plugin: ESLint.Plugin; // Assuming plugin is defined elsewhere
+declare const plugin: ESLint.Plugin // Assuming plugin is defined elsewhere
 
 Object.assign(plugin.configs, {
   // flat config format
@@ -245,7 +251,7 @@ Object.assign(plugin.configs, {
   recommended: {
     /* ... eslintrc config object ... */
   },
-});
+})
 ```
 
 The `defineConfig()` helper will first look for `recommended`, then `flat/recommended`.
@@ -311,8 +317,8 @@ touch enforce-foo-bar.ts
 
 ```typescript
 // enforce-foo-bar.ts
-import type { Rule } from 'eslint';
-import type { AST } from '@typescript-eslint/utils';
+import type { Rule } from 'eslint'
+import type { AST } from '@typescript-eslint/utils'
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -321,11 +327,11 @@ const rule: Rule.RuleModule = {
   create(context: Rule.RuleContext) {
     return {
       // TODO: add callback function(s)
-    };
+    }
   },
-};
+}
 
-export default rule;
+export default rule
 ```
 
 ### Step 3: Add Rule Metadata
@@ -334,8 +340,8 @@ ESLint uses metadata when running the rule.
 
 ```typescript
 // enforce-foo-bar.ts
-import type { Rule } from 'eslint';
-import type { AST } from '@typescript-eslint/utils';
+import type { Rule } from 'eslint'
+import type { AST } from '@typescript-eslint/utils'
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -349,11 +355,11 @@ const rule: Rule.RuleModule = {
   },
   create(context: Rule.RuleContext) {
     /* ... */
-    return {};
+    return {}
   },
-};
+}
 
-export default rule;
+export default rule
 ```
 
 Refer to [Rule Structure](https://eslint.org/docs/latest/extend/custom-rules#rule-structure) for more on metadata.
@@ -365,8 +371,8 @@ This example handles `VariableDeclarator` nodes.
 
 ```typescript
 // enforce-foo-bar.ts
-import type { Rule } from 'eslint';
-import type { AST } from '@typescript-eslint/utils';
+import type { Rule } from 'eslint'
+import type { AST } from '@typescript-eslint/utils'
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -377,12 +383,16 @@ const rule: Rule.RuleModule = {
       VariableDeclarator(node: AST.Node) {
         // Ensure node is a VariableDeclarator for type safety
         if (node.type !== 'VariableDeclarator') {
-          return;
+          return
         }
 
         // Check if a `const` variable declaration
         // node.parent should be a VariableDeclaration
-        if (node.parent && node.parent.type === 'VariableDeclaration' && node.parent.kind === 'const') {
+        if (
+          node.parent &&
+          node.parent.type === 'VariableDeclaration' &&
+          node.parent.kind === 'const'
+        ) {
           // Check if variable name is `foo`
           if (node.id.type === 'Identifier' && node.id.name === 'foo') {
             // Check if value of variable is "bar"
@@ -400,18 +410,18 @@ const rule: Rule.RuleModule = {
                   notBar: node.init.value,
                 },
                 fix(fixer: Rule.Fixer) {
-                  return fixer.replaceText(node.init as AST.Node, '"bar"');
+                  return fixer.replaceText(node.init as AST.Node, '"bar"')
                 },
-              });
+              })
             }
           }
         }
       },
-    };
+    }
   },
-};
+}
 
-export default rule;
+export default rule
 ```
 
 ### Step 5: Set up Testing
@@ -433,12 +443,12 @@ Add a test script to `package.json`:
 
 ```typescript
 // enforce-foo-bar.test.ts
-import { RuleTester } from 'eslint';
-import rule from './enforce-foo-bar'; // Use import for TS
+import { RuleTester } from 'eslint'
+import rule from './enforce-foo-bar' // Use import for TS
 
 const ruleTester = new RuleTester({
   languageOptions: { ecmaVersion: 2015 }, // For `const`
-});
+})
 
 ruleTester.run(
   'enforce-foo-bar', // rule name
@@ -449,13 +459,18 @@ ruleTester.run(
       {
         code: "const foo = 'baz';",
         output: 'const foo = "bar";', // Expected output after autofix
-        errors: [{ message: 'Value other than "bar" assigned to `const foo`. Unexpected value: baz.' }], // Use message for simpler tests
+        errors: [
+          {
+            message:
+              'Value other than "bar" assigned to `const foo`. Unexpected value: baz.',
+          },
+        ], // Use message for simpler tests
       },
     ],
   },
-);
+)
 
-console.log('All tests passed!');
+console.log('All tests passed!')
 ```
 
 ### Step 7: Bundle the Custom Rule in a Plugin
@@ -465,16 +480,16 @@ Plugins are exported JavaScript objects. Rules are in the `rules` object.
 
 ```typescript
 // eslint-plugin-example.ts
-import type { ESLint } from 'eslint';
-import fooBarRule from './enforce-foo-bar'; // Use import for TS
+import type { ESLint } from 'eslint'
+import fooBarRule from './enforce-foo-bar' // Use import for TS
 
 const plugin: ESLint.Plugin = {
   rules: {
     'enforce-foo-bar': fooBarRule,
   },
-};
+}
 
-export default plugin;
+export default plugin
 ```
 
 ### Step 8: Use the Plugin Locally
@@ -483,8 +498,8 @@ Create `eslint.config.ts` (flat configuration).
 
 ```typescript
 // eslint.config.ts
-import { defineConfig } from 'eslint/config';
-import eslintPluginExample from './eslint-plugin-example'; // Local plugin
+import { defineConfig } from 'eslint/config'
+import eslintPluginExample from './eslint-plugin-example' // Local plugin
 
 export default defineConfig([
   {
@@ -502,7 +517,7 @@ export default defineConfig([
       'example/enforce-foo-bar': 'error',
     },
   },
-]);
+])
 ```
 
 Create `example.ts` to test:
@@ -510,10 +525,10 @@ Create `example.ts` to test:
 ```typescript
 // example.ts
 function correctFooBar(): void {
-  const foo = 'bar';
+  const foo = 'bar'
 }
 function incorrectFoo(): void {
-  const foo = 'baz'; /* Problem! */
+  const foo = 'baz' /* Problem! */
 }
 ```
 
@@ -542,7 +557,11 @@ Example `package.json` snippet:
   "keywords": ["eslint", "eslintplugin", "eslint-plugin"],
   "author": "",
   "license": "ISC",
-  "devDependencies": { "eslint": "^9.0.0", "@typescript-eslint/parser": "^7.0.0", "@typescript-eslint/utils": "^7.0.0" }
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/utils": "^7.0.0"
+  }
 }
 ```
 
@@ -555,8 +574,8 @@ Update `eslint.config.ts` to import from the installed package:
 
 ```typescript
 // eslint.config.ts
-import { defineConfig } from 'eslint/config';
-import eslintPluginExample from 'eslint-plugin-example'; // From npm
+import { defineConfig } from 'eslint/config'
+import eslintPluginExample from 'eslint-plugin-example' // From npm
 
 export default defineConfig([
   {
@@ -574,7 +593,7 @@ export default defineConfig([
       'example/enforce-foo-bar': 'error',
     },
   },
-]);
+])
 ```
 
 Run ESLint: `npx eslint example.ts`.
@@ -601,8 +620,8 @@ Source: [https://eslint.org/docs/latest/extend/custom-rules](https://eslint.org/
 A rule exports an object with `meta` and `create` properties.
 
 ```typescript
-import type { Rule } from 'eslint';
-import type { AST } from '@typescript-eslint/utils';
+import type { Rule } from 'eslint'
+import type { AST } from '@typescript-eslint/utils'
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -623,11 +642,11 @@ const rule: Rule.RuleModule = {
     return {
       // Visitor methods for AST nodes (e.g., Identifier, FunctionExpression:exit)
       // Event handlers for code path analysis (e.g., onCodePathStart)
-    };
+    }
   },
-};
+}
 
-export default rule;
+export default rule
 ```
 
 - `meta.type`:
@@ -691,18 +710,18 @@ Example: `context.report({ node: node, message: "Unexpected identifier" });`
 ##### Using Message Placeholders
 
 ```typescript
-import type { Rule } from 'eslint';
-import type { AST } from '@typescript-eslint/utils';
+import type { Rule } from 'eslint'
+import type { AST } from '@typescript-eslint/utils'
 
 // Assuming context is Rule.RuleContext and node is AST.Node
-declare const context: Rule.RuleContext;
-declare const node: AST.Node & { name: string }; // Assuming node has a name property
+declare const context: Rule.RuleContext
+declare const node: AST.Node & { name: string } // Assuming node has a name property
 
 context.report({
   node: node,
   message: 'Unexpected identifier: {{ identifier }}',
   data: { identifier: node.name },
-});
+})
 ```
 
 ##### `messageId`s
@@ -711,8 +730,8 @@ Recommended for managing messages. Store messages in `meta.messages`.
 
 ```typescript
 // Rule file
-import type { Rule } from 'eslint';
-import type { AST } from '@typescript-eslint/utils';
+import type { Rule } from 'eslint'
+import type { AST } from '@typescript-eslint/utils'
 
 const rule: Rule.RuleModule = {
   meta: {
@@ -728,26 +747,26 @@ const rule: Rule.RuleModule = {
             node,
             messageId: 'avoidName',
             data: { name: 'foo' },
-          });
+          })
         }
       },
-    };
+    }
   },
-};
+}
 
-export default rule;
+export default rule
 
 // Test file
-import { RuleTester } from 'eslint';
+import { RuleTester } from 'eslint'
 // Assuming 'rule' is imported from the rule file
-declare const rule: Rule.RuleModule;
+declare const rule: Rule.RuleModule
 
-const ruleTester = new RuleTester();
+const ruleTester = new RuleTester()
 
 ruleTester.run('avoid-name', rule, {
   valid: ['bar'],
   invalid: [{ code: 'foo', errors: [{ messageId: 'avoidName' }] }],
-});
+})
 ```
 
 ##### Applying Fixes
@@ -785,14 +804,14 @@ For fixes not suitable for automatic application. Use `suggest` key in `context.
 Each suggestion object: `{ desc | messageId, fix(fixer) }`.
 
 ```typescript
-import type { Rule } from 'eslint';
-import type { AST } from '@typescript-eslint/utils';
+import type { Rule } from 'eslint'
+import type { AST } from '@typescript-eslint/utils'
 
 // Assuming context is Rule.RuleContext, node is AST.Node, character is string, range is [number, number]
-declare const context: Rule.RuleContext;
-declare const node: AST.Node;
-declare const character: string;
-declare const range: [number, number];
+declare const context: Rule.RuleContext
+declare const node: AST.Node
+declare const character: string
+declare const range: [number, number]
 
 context.report({
   node: node,
@@ -803,12 +822,12 @@ context.report({
       messageId: 'removeEscape', // or desc: "Remove the `\\`."
       data: { character }, // data for this specific suggestion message
       fix: function (fixer: Rule.Fixer) {
-        return fixer.removeRange(range);
+        return fixer.removeRange(range)
       },
     },
     // ... other suggestions
   ],
-});
+})
 ```
 
 Suggestions are stand-alone changes, not part of multipass autofixing.
@@ -960,19 +979,18 @@ This section outlines best practices and a typical workflow for developing ESLin
 ### Development Workflow (TDD-Focused)
 
 1.  **Define the Problem & Rule Idea:**
-
     - Clearly articulate the code pattern you want to enforce or discourage.
     - What specific Reatom concept or best practice does this relate to?
     - What should the error message be? Should it be specific to Reatom?
     - Crucially, how should the code be _autofixed_?
 
 2.  **Set up Rule and Test Files:**
-
     - Create `my-reatom-rule.ts` and `my-reatom-rule.test.ts`.
     - In `my-reatom-rule.ts`, stub out the basic rule structure:
+
       ```typescript
-      import type { Rule } from 'eslint';
-      import type { AST } from '@typescript-eslint/utils';
+      import type { Rule } from 'eslint'
+      import type { AST } from '@typescript-eslint/utils'
 
       const rule: Rule.RuleModule = {
         meta: {
@@ -993,25 +1011,28 @@ This section outlines best practices and a typical workflow for developing ESLin
         create(context: Rule.RuleContext) {
           return {
             // Visitor methods will be added based on tests
-          };
+          }
         },
-      };
+      }
 
-      export default rule;
+      export default rule
       ```
 
 3.  **Write Tests First (using `RuleTester`):**
-
     - **Valid Cases:** Start with examples of code that _should not_ trigger the rule. These define the "correct" Reatom patterns.
 
       ```typescript
       // my-reatom-rule.test.ts
-      import { RuleTester } from 'eslint';
-      import rule from '../rules/my-reatom-rule'; // Adjust path as needed
+      import { RuleTester } from 'eslint'
+      import rule from '../rules/my-reatom-rule' // Adjust path as needed
 
       const ruleTester = new RuleTester({
-        languageOptions: { ecmaVersion: 2020, sourceType: 'module', parser: '@typescript-eslint/parser' }, // Adjust as needed
-      });
+        languageOptions: {
+          ecmaVersion: 2020,
+          sourceType: 'module',
+          parser: '@typescript-eslint/parser',
+        }, // Adjust as needed
+      })
 
       ruleTester.run('my-reatom-rule', rule, {
         valid: [
@@ -1022,7 +1043,7 @@ This section outlines best practices and a typical workflow for developing ESLin
         invalid: [
           // To be filled next
         ],
-      });
+      })
       ```
 
     - **Invalid Cases & Autofixes:** For each way the rule can be violated:
@@ -1050,11 +1071,11 @@ This section outlines best practices and a typical workflow for developing ESLin
     - Run tests. They should fail because the rule logic isn't implemented yet.
 
 4.  **Implement Rule Logic (`create` function and visitors):**
-
     - Iteratively write the minimal code in `my-reatom-rule.ts` to make the failing tests pass, one by one.
     - Use AST explorer tools (like [astexplorer.net](https://astexplorer.net/)) to understand the AST structure of the code patterns you're targeting.
     - Focus on identifying the relevant AST nodes and properties.
     - Implement the `fix(fixer)` function within `context.report()` to provide the autofix logic. Ensure the fixer operations match the `output` in your tests.
+
       ```typescript
       // my-reatom-rule.ts
       import type { Rule } from 'eslint';
@@ -1088,13 +1109,11 @@ This section outlines best practices and a typical workflow for developing ESLin
       ```
 
 5.  **Refactor and Add More Tests:**
-
     - Once tests pass, refactor the rule logic for clarity and efficiency.
     - Think of more edge cases or variations of valid/invalid code and add tests for them. This is crucial for robust rules.
     - Consider testing with different Reatom versions or related libraries if the rule interacts with them.
 
 6.  **Documentation:**
-
     - Ensure `meta.docs.description` is clear.
     - Add examples of correct and incorrect code in the rule's documentation file (if separate from these notes).
     - Explain any options the rule accepts.

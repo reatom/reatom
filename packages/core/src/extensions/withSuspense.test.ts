@@ -123,12 +123,12 @@ test('withSuspenseInit unwrap', async () => {
 test('correct handling of conditional suspense computeds', async () => {
   const suspenseAtom = atom(async () => {
     await wrap(sleep())
-    return true;
+    return true
   }).extend(withSuspenseInit())
 
   const otherSuspenseAtom = atom(async () => {
     await wrap(sleep())
-    return false;
+    return false
   }).extend(withSuspenseInit())
 
   const suspenseProxyDep = atom(0)
@@ -143,15 +143,12 @@ test('correct handling of conditional suspense computeds', async () => {
   })
 
   const suspenseRetry = async (cb: () => unknown) => {
-    while(true) {
+    while (true) {
       try {
         return cb()
-      }
-      catch (error) {
-        if(error instanceof Promise)
-          await wrap(error)
-        else 
-          throw error
+      } catch (error) {
+        if (error instanceof Promise) await wrap(error)
+        else throw error
       }
     }
   }

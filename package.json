@@ -10,9 +10,8 @@
     "package-generator": "tsx tools/new-package.ts",
     "actualize-issue-templates": "tsx ./tools/actualize-issue-templates.ts",
     "update": "npx pnpm-check-updates -u",
-    "prettify": "prettier --write */**/**/*.{js,ts,md}",
-    "prettify:check": "prettier --check */**/**/*.{js,ts,md}",
-    "prettify:watch": "onchange */**/**/*.{js,ts,md} -- prettier --write {{changed}}",
+    "prettify": "prettier --write \"**/*.{js,ts,md}\"",
+    "prettify:check": "prettier --check \"**/*.{js,ts,md}\"",
     "lint:md": "remark --rc-path .remark-lint.json --ext md,mdx --quiet --frail packages/*/README.md docs/src/content/",
     "autodocs": "typedoc && tsx tools/cleanup-autodocs.ts"
   },

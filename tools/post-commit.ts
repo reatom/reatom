@@ -5,7 +5,9 @@ import { execSync } from 'node:child_process'
 const SKIP_ENV_VAR = 'REATOM_SKIP_POST_COMMIT'
 
 function getStagedFiles(): string[] {
-  const output = execSync('git diff --cached --name-only', { encoding: 'utf-8' })
+  const output = execSync('git diff --cached --name-only', {
+    encoding: 'utf-8',
+  })
   return output
     .trim()
     .split('\n')
@@ -13,7 +15,9 @@ function getStagedFiles(): string[] {
 }
 
 function hasRelevantStagedFiles(files: string[]): boolean {
-  return files.some((file) => file.endsWith('package.json') || file.endsWith('CHANGELOG.md'))
+  return files.some(
+    (file) => file.endsWith('package.json') || file.endsWith('CHANGELOG.md'),
+  )
 }
 
 function main() {
@@ -43,4 +47,3 @@ function main() {
 }
 
 main()
-

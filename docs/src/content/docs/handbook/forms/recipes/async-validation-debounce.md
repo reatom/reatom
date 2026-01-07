@@ -7,12 +7,16 @@ This recipe implements debounced validation for a field. Thanks to reatom's conc
 ```ts
 import { reatomField, sleep, abortVar, wrap } from '@reatom/core'
 
-const usernameField = reatomField('', {
-  validate: async ({ state }) => {
-    await wrap(sleep(300));
-    const response = await wrap(fetch(`/api/usernames?username=${state}`));
-    const { taken } = await wrap(response.json());
-	  if(taken) return 'This username already taken'
-  }
-}, 'usernameField')
+const usernameField = reatomField(
+  '',
+  {
+    validate: async ({ state }) => {
+      await wrap(sleep(300))
+      const response = await wrap(fetch(`/api/usernames?username=${state}`))
+      const { taken } = await wrap(response.json())
+      if (taken) return 'This username already taken'
+    },
+  },
+  'usernameField',
+)
 ```

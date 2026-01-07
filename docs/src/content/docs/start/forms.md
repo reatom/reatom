@@ -7,11 +7,13 @@ Reatom has a very advanced form management system to handle complex cases in a t
 
 ## Creating a form
 
-```ts title="loginForm.ts" {"Initial state": 4-9} {"For debugging": 22-23} 
+<!-- prettier-ignore-start -->
+
+```ts title="loginForm.ts" {"Initial state": 4-9} {"For debugging": 22-23}
 import { reatomForm } from '@reatom/core'
 
 export const loginForm = reatomForm(
-  
+
   {
     username: '',
     password: '',
@@ -29,11 +31,13 @@ export const loginForm = reatomForm(
       return await api.login(values)
     },
     validateOnBlur: true,
-    
+
     name: 'loginForm',
   },
 )
 ```
+
+<!-- prettier-ignore-end -->
 
 The first argument defines your form structure (`initState`). It doesn't have to be flat - you can nest fields in logical groups using objects. For each key, define the default value, and Reatom will derive the field type from the primitive value.
 
@@ -45,8 +49,8 @@ The form instance itself (`loginForm`) has a `submit` action, of course, and com
 
 ```ts
 loginForm.fields satisfies {
-  username: FieldAtom<string, string>,
-  password: FieldAtom<string, string>,
+  username: FieldAtom<string, string>
+  password: FieldAtom<string, string>
   passwordDouble: FieldAtom<string, string>
 }
 ```
@@ -55,7 +59,7 @@ Each field atom includes meta atoms like `validation`, `focus`, and others, whic
 
 ## Framework bindings
 
-```tsx title="LoginForm.tsx" /bindField\\(.+\\)/ /loginForm.submit\\(\\)/ /submit\\.ready\\(\\)/
+```tsx title="LoginForm.tsx" /bindField(.+)/ /loginForm.submit()/ /submit.ready()/
 import { reatomComponent, bindField } from '@reatom/react'
 import { Button, TextInput, PasswordInput, Stack, Alert } from '@mantine/core'
 import { loginForm } from './loginForm'

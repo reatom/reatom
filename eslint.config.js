@@ -1,9 +1,9 @@
-import js from "@eslint/js";
+import js from '@eslint/js'
 // import reatomPlugin from "@reatom/eslint-plugin";
-import simpleImportSort from "eslint-plugin-simple-import-sort";
-import unusedImports from "eslint-plugin-unused-imports";
-import globals from "globals";
-import tseslint from "typescript-eslint";
+import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import unusedImports from 'eslint-plugin-unused-imports'
+import globals from 'globals'
+import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   js.configs.recommended,
@@ -18,21 +18,21 @@ export default tseslint.config(
   // },
   {
     plugins: {
-      "unused-imports": unusedImports,
+      'unused-imports': unusedImports,
     },
     rules: {
-      "unused-imports/no-unused-imports": "error",
-      "unused-imports/no-unused-vars": [
-        "warn",
+      'unused-imports/no-unused-imports': 'error',
+      'unused-imports/no-unused-vars': [
+        'warn',
         {
-          vars: "all",
-          varsIgnorePattern: "^_",
-          args: "after-used",
-          argsIgnorePattern: "^_",
+          vars: 'all',
+          varsIgnorePattern: '^_',
+          args: 'after-used',
+          argsIgnorePattern: '^_',
         },
       ],
-      "@typescript-eslint/no-unused-vars": "off", // Disabled in favor of unused-imports/no-unused-vars
-      "@typescript-eslint/no-explicit-any": "off", // Life is hard
+      '@typescript-eslint/no-unused-vars': 'off', // Disabled in favor of unused-imports/no-unused-vars
+      '@typescript-eslint/no-explicit-any': 'off', // Life is hard
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-unused-expressions': 'warn',
       'prefer-const': 'off',
@@ -48,11 +48,11 @@ export default tseslint.config(
   },
   {
     plugins: {
-      "simple-import-sort": simpleImportSort,
+      'simple-import-sort': simpleImportSort,
     },
     rules: {
-      "simple-import-sort/imports": "error",
-      "simple-import-sort/exports": "error",
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
     },
   },
   {
@@ -63,9 +63,9 @@ export default tseslint.config(
         ...globals.es2021,
       },
       parserOptions: {
-        project: ["./tsconfig.json"], // Adjust if your tsconfig is located elsewhere
+        project: ['./tsconfig.json'], // Adjust if your tsconfig is located elsewhere
       },
     },
-    files: ["**/*.ts", "**/*.tsx"],
-  }
-);
+    files: ['**/*.ts', '**/*.tsx'],
+  },
+)
