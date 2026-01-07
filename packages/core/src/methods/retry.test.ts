@@ -17,7 +17,7 @@ test('action retry disabled by default', async () => {
 // FIXME see #1234
 viTest.skip(
   'retryComputed should recalculate dependent computeds',
-  async (ctx) => {
+  async () => {
     const computedA = computed(() => Math.random(), 'computedA')
     const computedB = computed(() => computedA() * 10, 'computedB')
 
