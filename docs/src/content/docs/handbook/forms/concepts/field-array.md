@@ -43,7 +43,7 @@ const form = reatomForm({
     initState: [{ number: '123-456-7890', priority: false }],
     create: ({ number, priority }, name) => ({
       number: { initState: number, validateOnChange: true },
-      priority: reatomBoolean(priority, `${name}.priority`).pipe(withField())
+      priority: reatomBoolean(priority, `${name}.priority`).extend(withField())
     })
   }),
 }, 'form')
