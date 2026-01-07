@@ -7,11 +7,13 @@ Reatom has a very advanced form management system to handle complex cases in a t
 
 ## Creating a form
 
+<!-- prettier-ignore-start -->
+
 ```ts title="loginForm.ts" {"Initial state": 4-9} {"For debugging": 22-23}
 import { reatomForm } from '@reatom/core'
 
 export const loginForm = reatomForm(
-  //
+
   {
     username: '',
     password: '',
@@ -34,6 +36,8 @@ export const loginForm = reatomForm(
   },
 )
 ```
+
+<!-- prettier-ignore-end -->
 
 The first argument defines your form structure (`initState`). It doesn't have to be flat - you can nest fields in logical groups using objects. For each key, define the default value, and Reatom will derive the field type from the primitive value.
 
