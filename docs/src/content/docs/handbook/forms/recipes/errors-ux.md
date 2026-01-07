@@ -49,7 +49,7 @@ const form = reatomForm(
 
 Then let's simply not display errors for fields that don't have the `triggered` flag set in the `validation` atom:
 
-```tsx {11} {19} {27}
+```tsx {7} {13} {21}
 const { email, password, username } = form.fields
 
 const Form = reatomComponent(() => (
