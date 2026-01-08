@@ -54,25 +54,25 @@ The core API selection is approximate and may not be fully accurate.
         <td>Bundle size</td>
         <td>
             <img 
-                src="https://deno.bundlejs.com/badge?q=@reatom/core,@reatom/react&treeshake=[{+reatomForm,reatomFieldSet+}],[{+reatomComponent,useAtom+}]&config={"esbuild":{"external":["react"]}}" 
+                src="https://deno.bundlejs.com/badge?q=@reatom/core,@reatom/react&treeshake=[{+reatomForm,reatomFieldSet+}],[{+reatomComponent,useAtom+}]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" 
                 alt="reatom core and form bundle size"
             >
         </td>
         <td>
             <img 
-                src="https://deno.bundlejs.com/badge?q=@tanstack/react-form&treeshake=[{+useStore,useForm,useField,useFieldGroup+}]&config={"esbuild":{"external":["react"]}}" 
+                src="https://deno.bundlejs.com/badge?q=@tanstack/react-form&treeshake=[{+useStore,useForm,useField,useFieldGroup+}]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" 
                 alt="tanstack form bundle size"
             >
         </td>
         <td>
             <img 
-                src="https://deno.bundlejs.com/badge?q=react-hook-form&treeshake=[{+useForm,useFormState,useFormContext,useWatch,watch,useFieldArray,useController,Controller,createFormControl+}]&config={"esbuild":{"external":["react"]}}" 
+                src="https://deno.bundlejs.com/badge?q=react-hook-form&treeshake=[{+useForm,useFormState,useFormContext,useWatch,watch,useFieldArray,useController,Controller,createFormControl+}]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" 
                 alt="react-hook-form bundle size"
             >
         </td>
         <td>
             <img 
-                src="https://deno.bundlejs.com/badge?q=valibot,@formisch/react&treeshake=[{+object,string,number,pipe,email,minLength,maxLength+}],[*]&config={"esbuild":{"external":["react"]}}" 
+                src="https://deno.bundlejs.com/badge?q=valibot,@formisch/react&treeshake=[{+object,string,number,pipe,email,minLength,maxLength+}],[*]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" 
                 alt="formisch and a part of valibot bundle size"
             >
         </td>

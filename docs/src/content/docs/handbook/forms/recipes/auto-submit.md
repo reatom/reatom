@@ -10,7 +10,8 @@ The simplest solution is to create an effect that reacts to form state changes. 
 
 ```ts
 effect(async () => {
-  form() // subscribe to changes of all form fields
+  // subscribe to changes of all form fields
+  const newValues = form()
 
   // select only dirty from focus atom
   const dirty = memo(() => form.focus().dirty)
@@ -19,8 +20,47 @@ effect(async () => {
   // async debounce, delay submit by 300ms
   await wrap(sleep(300))
 
-  form.submit().catch(noop)
+  await wrap(form.submit())
+
+  // reiniting the form values to make form pristine
+  form.init(newValues)
 })
 ```
 
 Here we must use `memo` to subscribe only to this specific part of the [`focus` atom](/handbook/forms/concepts/field-atom/#focus-atom) state, since it contains other states like `active`/`touched`, which could cause unexpected effect re-executions.
+
+### `withFormAutoSubmit`
+Now let's take this bunch of logic and wrap it into a separate reusable extension:
+```ts
+import { type Form, effect, memo, wrap, sleep } from 'reatom'
+
+export const withFormAutoSubmit = ({ 
+  debounceMs = 300
+}: { 
+  debounceMs?: number 
+} = {}) => (form: Form<any>) => {
+  effect(async () => {
+      const newValues = form()
+
+      const dirty = memo(() => form.focus().dirty)
+      if (!dirty) return
+
+      await wrap(sleep(debounceMs))
+      await wrap(form.submit())
+
+      form.init(newValues)
+  })
+  return form;
+}
+```
+
+Then just extend your form with `withFormAutoSubmit`:
+```ts
+const form = reatomForm({
+  username: ''
+}, {
+  onSubmit: () => alert('Submitted')
+}).extend(
+  withFormAutoSubmit({ debounceMs: 500 })
+)
+```

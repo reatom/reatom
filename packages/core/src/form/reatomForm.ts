@@ -138,7 +138,7 @@ export interface Form<
   T extends FormInitState,
   SchemaState = any,
   SubmitReturn = any,
-  SubmitParams extends any[] = any[],
+  SubmitParams extends any[] = any,
 > extends ValidationlessFieldSet<T> {
   /**
    * Atom with validation state of the form, computed from all the fields in

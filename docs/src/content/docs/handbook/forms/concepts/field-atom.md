@@ -223,19 +223,39 @@ When combining synchronous and asynchronous validations, pay attention to the fu
 
 Using such schemas is quite straightforward, you just need to pass a standard-compatible object there. The nicest thing here is that even in asynchronous validation schemas, Reatom will resolve concurrency by interrupting async function execution at `wrap` call sites.
 
+:::caution[Zod implementation caution]
+You cannot throw errors in `.refine` <a href="https://zod.dev/api?id=refine" target="_blank">according to documentation</a> and the throwed error will not be propagated to the `reatomField` internals so we need a bunch of boilerplate to handle this.
+:::
 ```ts
-const usernameField = reatomField({
-  validate: z
-    .string()
-    .min(3)
-    .max(20)
-    .refine(async (value) => {
+const usernameSchema = z
+  .string()
+  .min(3)
+  .max(20)
+  .superRefine(async (value, { addIssue }) => {
+    try {
       const response = await wrap(
         fetch(`/api/check-username?username=${value}`),
       )
       const data = await wrap(response.json())
-      return !!data
-    }),
+      if(!data) {
+        addIssue({
+          code: 'custom',
+          message: 'Username is already taken',
+        })
+      }
+    }
+    catch(error) {
+      if(!isAbort(error)) {
+        addIssue({
+          code: 'custom',
+          message: 'Error checking username',
+        })
+      }
+    }
+  }),
+
+const usernameField = reatomField({
+  validate: usernameSchema
 })
 ```
 
@@ -243,21 +263,7 @@ You can easily use standard schemas conditionally too:
 
 ```ts
 const usernameField = reatomField({
-  validate: async ({ focus }) => {
-    if (!focus.touched) return
-
-    return z
-      .string()
-      .min(3)
-      .max(20)
-      .refine(async (value) => {
-        const response = await wrap(
-          fetch(`/api/check-username?username=${value}`),
-        )
-        const data = await wrap(response.json())
-        return !!data
-      })
-  },
+  validate: async ({ focus }) => focus.touched ? usernameSchema : undefined,
 })
 ```
 
