@@ -115,6 +115,7 @@ export type FormFields<T extends FormInitState> = {
 
 export type FormState<T extends FormInitState> = Deatomize<FormFields<T>>
 
+// TODO: rename and move to reatomFieldSet
 export type DeepPartial<T, Skip = never> = {
   [K in keyof T]?: T[K] extends Skip
     ? T[K]
