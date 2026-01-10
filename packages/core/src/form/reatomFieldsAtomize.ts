@@ -5,6 +5,7 @@ import { isRec } from '../utils'
 import {
   type FieldAtom,
   type FieldLikeAtom,
+  type FieldOptions,
   isFieldAtom,
   reatomField,
 } from './reatomField'
@@ -25,6 +26,7 @@ export type FieldsAtomizeInitState =
   | bigint
   | Date
   | FieldAtom
+  | FieldSetFieldOptions
   | FieldsAtomizeInitStateRecord
 
 export type FieldsAtomizeInitStateRecord = {
@@ -46,11 +48,19 @@ export type FieldsAtomize<Element> = Element extends FieldLikeAtom
           : never
         : Element extends LinkedListAtom<infer _Param, infer _Node>
           ? Element
-          : Element extends FieldsAtomizeInitStateRecord
-            ? {
-                [FieldKey in keyof Element]: FieldsAtomize<Element[FieldKey]>
-              }
-            : FieldAtom<Element>
+          : Element extends FieldOptions & { initState: infer State }
+            ? Element extends FieldOptions<State, State>
+              ? FieldAtomFromDeprecatedFieldOptions<State>
+              : Element extends FieldOptions<State, infer Value>
+                ? FieldAtomFromDeprecatedFieldOptions<State, Value>
+                : { initState: State } extends Element
+                  ? FieldAtomFromDeprecatedFieldOptions<State, State>
+                  : never
+            : Element extends FieldsAtomizeInitStateRecord
+              ? {
+                  [FieldKey in keyof Element]: FieldsAtomize<Element[FieldKey]>
+                }
+              : FieldAtom<Element>
 
 export type OnFieldCreatedAction = Action<[field: FieldAtom], FieldAtom>
 
@@ -74,6 +84,12 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
   ): FieldsAtomize<typeof element> => {
     if (isFieldAtom(element)) {
       return element
+    } else if (
+      element &&
+      typeof element === 'object' &&
+      'initState' in element
+    ) {
+      return reatomField(element.initState, name)
     } else if (isRec(element)) {
       const fields: FieldsAtomize<typeof element> = {}
       for (const [key, value] of Object.entries(element)) {
@@ -109,3 +125,23 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
     onFieldCreated,
   }
 }
+
+/** @deprecated Will be removed in next major release */
+interface FieldSetFieldOptions<State = any, Value = State> extends FieldOptions<
+  State,
+  Value
+> {
+  initState: State
+}
+
+export { type FieldSetFieldOptions as FormFieldOptions }
+
+/**
+ * @deprecated This field was initialized with field options object literal that
+ *   considered as a deprecated initialization method. Please use `reatomField`
+ *   instead
+ */
+export type FieldAtomFromDeprecatedFieldOptions<
+  State = any,
+  Value = State,
+> = FieldAtom<State, Value>

@@ -13,6 +13,8 @@ import {
 } from '../'
 import {
   type FieldAtom,
+  type FieldValidateOption,
+  isFieldAtom,
   reatomField,
   reatomFieldArray,
   reatomFieldSet,
@@ -72,6 +74,8 @@ test(`fields type inference from init state`, () => {
     FieldAtom<number, string>
   >()
   expectTypeOf(form.fields.optionsWithGarbage).toBeNever()
+
+  expect(isFieldAtom(form.fields.optionsWithValue)).toBeTruthy()
 })
 
 test('focus states', () => {
@@ -128,11 +132,11 @@ test('focus states', () => {
 })
 
 describe('validation states', async () => {
-  const contract = ({ value }: { value: string }) =>
+  const contract: FieldValidateOption<string> = ({ value }) =>
     value == 'errorValue' ? 'Contract error' : undefined
 
   test('base', async () => {
-    const validate = async ({ value }: { value: string }) => {
+    const validate: FieldValidateOption<string> = async ({ value }) => {
       await sleep()
       if (value === 'errorValue') throw new Error('Contract error')
     }
@@ -243,7 +247,7 @@ describe('validation states', async () => {
 })
 
 test('validation and focus states with disabled fields', async () => {
-  const contract = ({ value }: { value: string }) => {
+  const contract: FieldValidateOption<string> = ({ value }) => {
     if (value === 'errorValue') throw new Error('Contract error')
   }
 

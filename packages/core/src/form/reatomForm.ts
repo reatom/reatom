@@ -1,10 +1,6 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-import type {
-  AbortExt,
-  AsyncDataExt,
-  AsyncExt,
-} from '../'
+import type { AbortExt, AsyncDataExt, AsyncExt } from '../'
 import {
   type Action,
   action,
@@ -289,7 +285,7 @@ export function reatomForm<
       )
     }
   }
-  
+
   const fieldSet = reatomFieldSet<InitState>(initState, name)
 
   fieldSet.fieldsList().forEach(setupField)

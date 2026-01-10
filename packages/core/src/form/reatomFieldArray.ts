@@ -1,4 +1,12 @@
-import { type Action, action, type Atom, atom, isAtom, named } from '../core'
+import {
+  type Action,
+  action,
+  type Atom,
+  atom,
+  type AtomState,
+  isAtom,
+  named,
+} from '../core'
 import { withCallHook, withInitHook } from '../extensions'
 import {
   type LinkedList,
@@ -30,6 +38,11 @@ export type FieldArrayAtom<
   init: Action<[initState: FieldArrayInitState<Param>[]], void>
   reset: Action<[] | [initState: FieldArrayInitState<Param>[]], void>
 }
+
+export type FieldArrayItem<T> =
+  T extends FieldArrayAtom<infer _Param, infer _Node>
+    ? AtomState<T['array']>[number]
+    : never
 
 export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
   return isAtom(atom) && '__reatomFieldArray' in atom
@@ -143,3 +156,6 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
 
 /** @deprecated Use reatomFieldArray instead */
 export const experimental_fieldArray = reatomFieldArray
+
+/** @deprecated Renamed. Use FieldArrayItem instead */
+export type ArrayFieldItem<T> = FieldArrayItem<T>
