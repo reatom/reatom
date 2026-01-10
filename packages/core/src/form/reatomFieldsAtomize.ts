@@ -15,6 +15,7 @@ import {
   reatomFieldArray,
 } from './reatomFieldArray'
 
+/** TODO */
 export type FieldsAtomizeInitState =
   | string
   | number
@@ -29,6 +30,7 @@ export type FieldsAtomizeInitState =
   | FieldSetFieldOptions
   | FieldsAtomizeInitStateRecord
 
+/** TODO */
 export type FieldsAtomizeInitStateRecord = {
   [fieldKey: string]:
     | FieldsAtomizeInitState
@@ -36,6 +38,7 @@ export type FieldsAtomizeInitStateRecord = {
     | Array<FieldsAtomizeInitState>
 }
 
+/** TODO */
 export type FieldsAtomize<Element> = Element extends FieldLikeAtom
   ? Element
   : Element extends Date | File
@@ -62,8 +65,10 @@ export type FieldsAtomize<Element> = Element extends FieldLikeAtom
                 }
               : FieldAtom<Element>
 
+/** TODO */
 export type OnFieldCreatedAction = Action<[field: FieldAtom], FieldAtom>
 
+/** TODO */
 export type FieldsAtomizeModel<InitState extends FieldsAtomizeInitState> = {
   /** TODO */
   fields: FieldsAtomize<InitState>
@@ -72,6 +77,12 @@ export type FieldsAtomizeModel<InitState extends FieldsAtomizeInitState> = {
   onFieldCreated?: OnFieldCreatedAction
 }
 
+/**
+ * TODO
+ *
+ * @param initState
+ * @param name
+ */
 export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
   initState: InitState,
   name: string = named('fieldsAtomize'),
@@ -118,7 +129,10 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
     return reatomField(element, name)
   }
 
-  const fields = createFieldElement(initState, name) as FieldsAtomize<InitState>
+  const fields = createFieldElement(
+    initState,
+    `${name}.fields`,
+  ) as FieldsAtomize<InitState>
 
   return {
     fields,

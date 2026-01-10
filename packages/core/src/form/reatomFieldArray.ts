@@ -53,10 +53,12 @@ export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
  *
  * @param initState
  */
-export function reatomFieldArray<Param extends FieldsAtomizeInitState>(
-  initState: Param[],
+export function reatomFieldArray<
+  Param extends FieldsAtomizeInitState | FieldsAtomizeInitState[],
+>(
+  initState: Param extends any[] ? Param : Param[],
   name?: string,
-): FieldArrayAtom<Param, Param>
+): FieldArrayAtom<(typeof initState)[number], (typeof initState)[number]>
 
 /**
  * TODO

@@ -46,25 +46,6 @@ export type DeepPartial<T, Skip = never> = {
 
 export type FieldSetInitState = FieldsAtomizeInitStateRecord
 
-/** @deprecated Renamed. Use FieldSetInitState instead */
-export type FormInitState = FieldSetInitState
-
-/** @deprecated Renamed. Use FieldSetState instead */
-export type FormState<InitState extends FieldSetInitState> =
-  FieldSetState<InitState>
-
-/** @deprecated Renamed. Use FieldSetPartialState instead */
-export type FormPartialState<InitState extends FieldSetInitState> =
-  FieldSetPartialState<InitState>
-
-/** @deprecated Renamed. Use ValidationlessFieldSetAtom instead */
-export type ValidationlessFieldSet<InitState extends FieldSetInitState> =
-  ValidationlessFieldSetAtom<InitState>
-
-/** @deprecated Renamed. Use FieldSetAtom instead */
-export type FieldSet<InitState extends FieldSetInitState> =
-  FieldSetAtom<InitState>
-
 export type FieldSetState<InitState extends FieldSetInitState> = Deatomize<
   FieldsAtomize<InitState>
 >
@@ -224,6 +205,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
 
   return Object.assign(fieldsState, {
     fields,
+    fieldsState,
     fieldsList,
     fieldArraysList,
     focus,
@@ -266,3 +248,22 @@ const computeFieldsList = (
   }
   return fieldsList
 }
+
+/** @deprecated Renamed. Use FieldSetInitState instead */
+export type FormInitState = FieldSetInitState
+
+/** @deprecated Renamed. Use FieldSetState instead */
+export type FormState<InitState extends FieldSetInitState> =
+  FieldSetState<InitState>
+
+/** @deprecated Renamed. Use FieldSetPartialState instead */
+export type FormPartialState<InitState extends FieldSetInitState> =
+  FieldSetPartialState<InitState>
+
+/** @deprecated Renamed. Use ValidationlessFieldSetAtom instead */
+export type ValidationlessFieldSet<InitState extends FieldSetInitState> =
+  ValidationlessFieldSetAtom<InitState>
+
+/** @deprecated Renamed. Use FieldSetAtom instead */
+export type FieldSet<InitState extends FieldSetInitState> =
+  FieldSetAtom<InitState>

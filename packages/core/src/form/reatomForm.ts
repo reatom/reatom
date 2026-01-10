@@ -9,10 +9,12 @@ import {
   isCausedBy,
   isLinkedListAtom,
   named,
+  peek,
   withAbort,
   withAsync,
   withAsyncData,
   withCallHook,
+  withInit,
   wrap,
 } from '../'
 import type { FieldError } from './reatomField'
@@ -266,16 +268,18 @@ export function reatomForm<
   } = options
 
   const setupField = (field: FieldAtom) => {
-    // TODO: consider to move this initialization under withInit to prevent race conditions
-    field.options.set((options) => ({
-      ...options,
-      validateOnChange: options.validateOnChange ?? validateOnChange,
-      validateOnBlur: options.validateOnBlur ?? validateOnBlur,
-      keepErrorDuringValidating:
-        options.keepErrorDuringValidating ?? keepErrorDuringValidating,
-      keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
-      shouldValidate: !!schema || options.shouldValidate,
-    }))
+    field.options.extend(
+      withInit((options) => {
+        return {
+          validateOnChange: options.validateOnChange ?? validateOnChange,
+          validateOnBlur: options.validateOnBlur ?? validateOnBlur,
+          keepErrorDuringValidating:
+            options.keepErrorDuringValidating ?? keepErrorDuringValidating,
+          keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
+          shouldValidate: !!schema || options.shouldValidate,
+        }
+      }),
+    )
 
     if (schema) {
       field.validation.trigger.extend(
@@ -288,7 +292,8 @@ export function reatomForm<
 
   const fieldSet = reatomFieldSet<InitState>(initState, name)
 
-  fieldSet.fieldsList().forEach(setupField)
+  // TODO: remove eager initialization in current context; need to do it lazily
+  peek(fieldSet.fieldsList).forEach(setupField)
   fieldSet.onFieldCreated?.extend(withCallHook(setupField))
 
   const submitted = atom(false, `${name}.submitted`)

@@ -365,7 +365,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
         {
           array: ['hey'],
           emptyArray: new Array<string>(),
-          emptyArrayExplicit: reatomFieldArray<string>([]),
+          emptyArrayExplicit: reatomFieldArray([]),
         },
       ],
     })

@@ -102,6 +102,7 @@ export interface FieldLikeAtom<State = any> extends Atom<State> {
   __reatomField: true
 }
 
+/** TODO */
 export interface FieldAtom<
   State = any,
   Value = State,
@@ -168,6 +169,7 @@ export interface FieldAtom<
   }>
 }
 
+/** TODO */
 export type FieldValidateOption<State = any, Value = State> = (meta: {
   state: State
   value: Value
@@ -177,6 +179,7 @@ export type FieldValidateOption<State = any, Value = State> = (meta: {
   | FieldValidateOptionResult<State>
   | Promise<FieldValidateOptionResult<State>>
 
+/** TODO */
 export type FieldValidateOptionResult<State = any> =
   | string
   | string[]
@@ -186,6 +189,7 @@ export type FieldValidateOptionResult<State = any> =
   | void
   | undefined
 
+/** TODO */
 export interface FieldOptions<State = any, Value = State> {
   /**
    * The callback to filter "value" changes (from the 'change' action). It
@@ -271,6 +275,7 @@ export interface FieldOptions<State = any, Value = State> {
   validateOnBlur?: boolean
 }
 
+/** TODO */
 export interface TransformableFieldOptions<State, Value> extends Omit<
   FieldOptions<State, Value>,
   'fromState' | 'toState'
@@ -307,18 +312,30 @@ export const fieldInitValidationLess: FieldValidation = {
   validating: undefined,
 }
 
+/**
+ * TODO
+ *
+ * @param options
+ */
 export function reatomField<State>(
-  _initState: State,
+  initState: State,
   options?: string | FieldOptions<State, State>,
 ): FieldAtom<State, State>
 
+/**
+ * TODO
+ *
+ * @param options
+ */
 export function reatomField<State, Value>(
-  _initState: State,
+  initState: State,
   options: TransformableFieldOptions<State, Value>,
 ): FieldAtom<State, Value>
 
+// TODO: consider to remove this in favor of withField (it should contain all the reatomField logic initially)
+/** @deprecated */
 export function reatomField<State, A extends Atom<State>, Value = State>(
-  _initState: State,
+  initState: null,
   options: string | FieldOptions<State, Value>,
   stateAtom: A,
 ): A & FieldAtom<State, Value>
@@ -467,6 +484,7 @@ export function reatomField<State, Value = State>(
         ),
       }),
       (target) => ({
+        // TODO: analyze dependencies and decouple to a global scope to reuse in reatomFieldArray
         runValidation: ({
           validation,
           state,
@@ -679,19 +697,34 @@ export function reatomField<State, Value = State>(
   })
 }
 
+/**
+ * TODO
+ *
+ * @param options
+ */
 export function withField<T extends Atom>(
   options?: Omit<FieldOptions<AtomState<T>, AtomState<T>>, 'name'>,
 ): (anAtom: T) => T & FieldAtom<AtomState<T>, AtomState<T>>
 
+/**
+ * TODO
+ *
+ * @param options
+ */
 export function withField<T extends Atom, Value>(
   options?: Omit<TransformableFieldOptions<AtomState<T>, Value>, 'name'>,
 ): (anAtom: T) => T & FieldAtom<AtomState<T>, Value>
 
+/**
+ * TODO
+ *
+ * @param options
+ */
 export function withField<T extends Atom, Value = AtomState<T>>(
   options: Omit<FieldOptions<AtomState<T>, Value>, 'name'> = {},
 ): (anAtom: T) => T & FieldAtom<AtomState<T>, Value> {
   return (anAtom: T) =>
-    reatomField(null as AtomState<T>, { name: anAtom.name, ...options }, anAtom)
+    reatomField(null, { name: anAtom.name, ...options }, anAtom)
 }
 
 export const isFieldAtom = (thing: any): thing is FieldLikeAtom =>
