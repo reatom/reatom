@@ -1,7 +1,7 @@
 import { type Action, action, named } from '../core'
 import { withCallHook } from '../extensions'
 import type { LinkedListAtom } from '../primitives'
-import { isRec, type Rec } from '../utils'
+import { isRec } from '../utils'
 import {
   type FieldAtom,
   type FieldLikeAtom,
@@ -25,25 +25,28 @@ export type FieldsAtomizeInitState =
   | bigint
   | Date
   | FieldAtom
-  | {
-      [fieldKey: string]:
-        | FieldsAtomizeInitState
-        | FieldArrayAtom
-        | Array<FieldsAtomizeInitState>
-    }
+  | FieldsAtomizeInitStateRecord
 
-export type FieldsAtomize<Element extends FieldsAtomizeInitState> =
-  Element extends FieldLikeAtom
-    ? Element
-    : Element extends Date
-      ? FieldAtom<Element>
+export type FieldsAtomizeInitStateRecord = {
+  [fieldKey: string]:
+    | FieldsAtomizeInitState
+    | { __reatomFieldArray: true } // TODO: FieldArrayAtom is confliting with FieldAtom
+    | Array<FieldsAtomizeInitState>
+}
+
+export type FieldsAtomize<Element> = Element extends FieldLikeAtom
+  ? Element
+  : Element extends Date | File
+    ? FieldAtom<Element>
+    : Element extends boolean
+      ? FieldAtom<boolean>
       : Element extends Array<infer Item>
         ? Item extends FieldsAtomizeInitState
           ? FieldArrayAtom<Item, Item>
           : never
         : Element extends LinkedListAtom<infer _Param, infer _Node>
           ? Element
-          : Element extends Rec
+          : Element extends FieldsAtomizeInitStateRecord
             ? {
                 [FieldKey in keyof Element]: FieldsAtomize<Element[FieldKey]>
               }
@@ -52,7 +55,10 @@ export type FieldsAtomize<Element extends FieldsAtomizeInitState> =
 export type OnFieldCreatedAction = Action<[field: FieldAtom], FieldAtom>
 
 export type FieldsAtomizeModel<InitState extends FieldsAtomizeInitState> = {
+  /** TODO */
   fields: FieldsAtomize<InitState>
+
+  /** TODO */
   onFieldCreated?: OnFieldCreatedAction
 }
 
@@ -77,13 +83,16 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
             `${name}.onFieldCreated`,
           )
 
-          fields[key] = Array.isArray(value)
-            ? (reatomFieldArray(value, `${name}.${key}`) as FieldArrayAtom)
+          const fieldArray = Array.isArray(value)
+            ? reatomFieldArray(value, `${name}.${key}`)
             : value
-            
-          fields[key].onFieldCreated.extend(
+
+          fieldArray.onFieldCreated.extend(
             withCallHook((payload) => onFieldCreated?.(payload)),
           )
+
+          // @ts-ignore FieldArrayAtom is confliting with FieldAtom
+          fields[key] = fieldArray
         } else {
           fields[key] = createFieldElement(value, `${name}.${key}`)
         }

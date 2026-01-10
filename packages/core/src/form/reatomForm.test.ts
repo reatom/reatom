@@ -12,9 +12,9 @@ import {
   wrap,
 } from '../'
 import {
-  experimental_fieldArray,
   type FieldAtom,
   reatomField,
+  reatomFieldArray,
   reatomFieldSet,
   reatomForm,
   withField,
@@ -25,7 +25,7 @@ test(`adding and removing fields`, async () => {
 
   const form = reatomForm({
     field: reatomField('initial', `${name}.field`),
-    list: experimental_fieldArray({
+    list: reatomFieldArray({
       initState: ['initial'],
       create: (param) => reatomField(param, `${name}.field`),
     }),
@@ -76,9 +76,9 @@ test(`fields type inference from init state`, () => {
 
 test('focus states', () => {
   const form = reatomForm({
-    field1: { initState: '', validate: () => {} },
-    field2: { initState: '', validate: () => {} },
-    list: experimental_fieldArray({
+    field1: '',
+    field2: '',
+    list: reatomFieldArray({
       initState: ['initial'],
       create: (param) => reatomField(param, 'fieldAtom'),
     }),
@@ -139,10 +139,10 @@ describe('validation states', async () => {
 
     const form = reatomForm(
       {
-        field1: { initState: '', validate: contract, validateOnChange: true },
-        field2: { initState: '', validate: contract, validateOnChange: true },
-        field3: { initState: '', validate, validateOnChange: true },
-        rest: experimental_fieldArray<string>([]),
+        field1: reatomField('', { validate: contract, validateOnChange: true }),
+        field2: reatomField('', { validate: contract, validateOnChange: true }),
+        field3: reatomField('', { validate, validateOnChange: true }),
+        rest: reatomFieldArray<string>([]),
       },
       {
         name: 'testForm',
@@ -217,8 +217,8 @@ describe('validation states', async () => {
 
     const form = reatomForm(
       {
-        field1: { initState: '' },
-        field2: { initState: '', validate: contract },
+        field1: '',
+        field2: reatomField('', { validate: contract }),
       },
       {
         name: 'testForm',
@@ -249,7 +249,7 @@ test('validation and focus states with disabled fields', async () => {
 
   const form = reatomForm(
     {
-      field1: { initState: '', validate: contract, validateOnChange: true },
+      field1: reatomField('', { validate: contract, validateOnChange: true }),
     },
     'testForm',
   )
@@ -311,8 +311,8 @@ test('validation states with disabled fields and defined schema', async () => {
 
 test('default options for fields', async () => {
   const form = reatomForm({
-    field: { initState: 'initial', validate: () => {} },
-    array: experimental_fieldArray(['one', 'two', 'free']),
+    field: reatomField('initial', { validate: noop }),
+    array: reatomFieldArray(['one', 'two', 'free']),
   })
 
   const { field, array } = form.fields
@@ -361,7 +361,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
         {
           array: ['hey'],
           emptyArray: new Array<string>(),
-          emptyArrayExplicit: experimental_fieldArray<string>([]),
+          emptyArrayExplicit: reatomFieldArray<string>([]),
         },
       ],
     })
@@ -397,7 +397,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
           street: '',
           city: '',
           tags: ['defaultTag', 'defaultTag2'],
-          phoneNumbers: experimental_fieldArray({
+          phoneNumbers: reatomFieldArray({
             initState: Array<{ number: string; priority: boolean }>(),
             create: ({ number, priority }) => ({
               number,
@@ -420,7 +420,7 @@ describe('fieldArray and array literals as a fieldArray', () => {
 test('reset', () => {
   const form = reatomForm(
     {
-      field: { initState: 'initial', validate: () => {} },
+      field: 'initial',
     },
     {
       name: 'testForm',
@@ -523,7 +523,7 @@ test('form should correctly initialize field options', async () => {
     {
       age: 12,
       email: 'test',
-      fieldWithDefault: { initState: '', validateOnChange: false },
+      fieldWithDefault: reatomField('', { validateOnChange: false }),
     },
     {
       validateOnChange: true,
@@ -598,11 +598,10 @@ test('correct handling of side errors from schema', async () => {
 
   const form = reatomForm(
     {
-      min: {
-        initState: 0,
+      min: reatomField(0, {
         validate: ({ value }) =>
           value % 2 == 0 ? `shouldn't be even` : undefined,
-      },
+      }),
       max: 10,
     },
     {
@@ -662,13 +661,12 @@ test('correct handling of side errors from schema', async () => {
 test('recipe: concurrent field validation with schema', async () => {
   const form = reatomForm(
     {
-      age: {
-        initState: 12,
+      age: reatomField(12, {
         validate: async () => {
           await wrap(sleep())
           throw new Error('validation error')
         },
-      },
+      }),
     },
     {
       validateOnChange: true,
@@ -729,15 +727,14 @@ test('recipe: autofocus', async () => {
 test('validation trigger', async () => {
   const form = reatomForm(
     {
-      email: {
-        initState: '',
+      email: reatomField('', {
         validate: ({ value }) => {
           if (value === 'async_email')
             return z.string().email().parseAsync(value)
 
           return z.string().email().parse(value)
         },
-      },
+      }),
       age: 12,
     },
     {

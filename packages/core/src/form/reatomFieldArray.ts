@@ -24,7 +24,7 @@ export type FieldArrayAtom<
   Param = any,
   Node extends FieldsAtomizeInitState = FieldsAtomizeInitState,
 > = LinkedListAtom<[FieldArrayInitState<Param>], FieldsAtomize<Node>> & {
-  __fieldArray: true
+  __reatomFieldArray: true
   onFieldCreated: OnFieldCreatedAction
   initState: Atom<LinkedList<LLNode<FieldsAtomize<Node>>>>
   init: Action<[initState: FieldArrayInitState<Param>[]], void>
@@ -32,7 +32,7 @@ export type FieldArrayAtom<
 }
 
 export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
-  return isAtom(atom) && '__fieldArray' in atom
+  return isAtom(atom) && '__reatomFieldArray' in atom
 }
 
 /**
@@ -133,10 +133,13 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
   }, `${name}.reset`)
 
   return Object.assign(fieldArrayAtom, {
-    __fieldArray: true as const,
+    __reatomFieldArray: true as const,
     onFieldCreated,
     initState: initStateAtom,
     init,
     reset,
   })
 }
+
+/** @deprecated Use reatomFieldArray instead */
+export const experimental_fieldArray = reatomFieldArray

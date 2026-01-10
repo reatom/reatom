@@ -4,129 +4,30 @@ import type {
   AbortExt,
   AsyncDataExt,
   AsyncExt,
-  AtomState,
-  LinkedList,
-  LinkedListAtom,
-  LinkedListLikeAtom,
-  LLNode,
 } from '../'
 import {
   type Action,
   action,
-  type Atom,
   atom,
   type Computed,
-  type Deatomize,
-  isAtom,
   isCausedBy,
   isLinkedListAtom,
-  isObject,
   named,
-  reatomLinkedList,
-  type Rec,
   withAbort,
   withAsync,
   withAsyncData,
   withCallHook,
   wrap,
 } from '../'
-import type { FieldError, FieldLikeAtom } from './reatomField'
-import {
-  type FieldAtom,
-  type FieldOptions,
-  isFieldAtom,
-  reatomField,
-} from './reatomField'
+import type { FieldError } from './reatomField'
+import { type FieldAtom, isFieldAtom } from './reatomField'
 import type {
+  FieldSetInitState,
+  FieldSetState,
   FieldSetValidation,
-  ValidationlessFieldSet,
+  ValidationlessFieldSetAtom,
 } from './reatomFieldSet'
 import { reatomFieldSet } from './reatomFieldSet'
-
-export interface FormFieldOptions<
-  State = any,
-  Value = State,
-> extends FieldOptions<State, Value> {
-  initState: State
-}
-
-type FormInitStateElement =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | File
-  | symbol
-  | bigint
-  | Date
-  | FieldAtom
-  | FormFieldOptions 
-  | FormFieldArray<any>
-  | Array<FormInitStateElement>
-  | FormInitState
-
-export type FormInitState = {
-  [key: string]: FormInitStateElement
-}
-
-type ExtractFieldArray<T> = {
-  [K in keyof T]: T[K] extends FormFieldArray<infer Param, infer _Node>
-    ? Param[]
-    : ExtractFieldArray<T[K]>
-}
-
-export type FormFieldArrayAtom<
-  Param = any,
-  Node extends FormInitStateElement = FormInitStateElement,
-> = LinkedListAtom<[ExtractFieldArray<Param>], FormFieldElement<Node>> & {
-  reset: Action<[], AtomState<FormFieldArrayAtom<Param, Node>>>
-  initState: Atom<LinkedList<LLNode<FormFieldElement<Node>>>>
-}
-
-export type FormFieldElement<T extends FormInitStateElement = FormInitStateElement> 
-  = T extends FieldLikeAtom
-  ? T
-  : T extends Date
-    ? FieldAtom<T>
-    : T extends boolean
-      ? FieldAtom<boolean>
-      : T extends Array<infer Item>
-        ? Item extends FormInitStateElement
-          ? FormFieldArrayAtom<Item, Item>
-          : never
-        : T extends FormFieldArray<infer Param, infer Node>
-          ? FormFieldArrayAtom<Param, Node>
-          : T extends FieldOptions & { initState: infer State }
-            ? T extends FieldOptions<State, State>
-              ? FieldAtom<State>
-              : T extends FieldOptions<State, infer Value>
-                ? FieldAtom<State, Value>
-                : { initState: State } extends T
-                  ? FieldAtom<State, State>
-                  : never
-            : T extends Rec<unknown>
-              ? { [K in keyof T]: FormFieldElement<T[K]> }
-              : FieldAtom<T>
-
-export type FormFields<T extends FormInitState> = {
-  [K in keyof T]: FormFieldElement<T[K]>
-}
-
-export type FormState<T extends FormInitState> = Deatomize<FormFields<T>>
-
-// TODO: rename and move to reatomFieldSet
-export type DeepPartial<T, Skip = never> = {
-  [K in keyof T]?: T[K] extends Skip
-    ? T[K]
-    : T[K] extends Rec
-      ? DeepPartial<T[K], Skip>
-      : T[K]
-}
-export type FormPartialState<T extends FormInitState> = DeepPartial<
-  FormState<T>,
-  Array<unknown>
->
 
 export type SubmitAction<Params extends any[], Return> = Action<
   Params,
@@ -134,12 +35,20 @@ export type SubmitAction<Params extends any[], Return> = Action<
 > &
   AsyncDataExt<Params, Return, Return | undefined, Error | undefined>
 
-export interface Form<
-  T extends FormInitState,
+/** @deprecated Renamed. Use FormAtom instead */
+export type Form<
+  InitState extends FieldSetInitState = FieldSetInitState,
   SchemaState = any,
   SubmitReturn = any,
   SubmitParams extends any[] = any,
-> extends ValidationlessFieldSet<T> {
+> = FormAtom<InitState, SchemaState, SubmitReturn, SubmitParams>
+
+export interface FormAtom<
+  InitState extends FieldSetInitState = FieldSetInitState,
+  SchemaState = any,
+  SubmitReturn = void,
+  SubmitParams extends any[] = any,
+> extends ValidationlessFieldSetAtom<InitState> {
   /**
    * Atom with validation state of the form, computed from all the fields in
    * `fieldsList`
@@ -148,7 +57,9 @@ export interface Form<
     /** Action to trigger form validation. */
     trigger: Action<
       [],
-      Promise<undefined extends SchemaState ? FormState<T> : SchemaState>
+      Promise<
+        undefined extends SchemaState ? FieldSetState<InitState> : SchemaState
+      >
     > &
       AsyncExt<[], any, Error | undefined> &
       AbortExt
@@ -244,7 +155,7 @@ export interface FormOptionsWithSchema<
 }
 
 export interface FormOptionsWithoutSchema<
-  T extends FormInitState,
+  InitState extends FieldSetInitState,
   SubmitReturn,
   SubmitParams extends any[],
 > extends BaseFormOptions {
@@ -253,165 +164,32 @@ export interface FormOptionsWithoutSchema<
    * state
    */
   onSubmit?: (
-    state: FormState<T>,
+    state: FieldSetState<InitState>,
     ...params: SubmitParams
   ) => SubmitReturn | Promise<SubmitReturn>
 
   /**
    * The callback to validate form fields before submit, typed according to the
    * raw form state
+   *
+   * @deprecated Renamed to `validateBeforeSubmit`
    */
-  validateBeforeSubmit?: (state: FormState<T>) => any
+  validate?: (state: FieldSetState<InitState>) => any
+
+  /**
+   * The callback to validate form fields before submit, typed according to the
+   * raw form state
+   */
+  validateBeforeSubmit?: (state: FieldSetState<InitState>) => any
 
   /** Schema is explicitly disallowed or undefined in this variant */
   schema?: undefined
 }
 
-const reatomFormFields = <T extends FormInitState>(
-  initState: T,
-  options: {
-    name: string
-    onFieldResolved?: (field: FieldAtom) => void
-  },
-): FormFields<T> => {
-  const { name, onFieldResolved } = options
-  const fields = Array.isArray(initState)
-    ? ([] as FormFields<T>)
-    : ({} as FormFields<T>)
-
-  const createFieldElement = (
-    element: FormInitStateElement,
-    name: string,
-  ): FormFieldElement => {
-    if (isAtom(element)) {
-      onFieldResolved?.(element)
-      return element
-    } else if (isObject(element) && !(element instanceof Date)) {
-      if (Array.isArray(element)) {
-        return createFieldElement(createFieldArray(element), name)
-      } else if (isFieldArray(element)) {
-        let id = 0
-        const linkedListAtom = reatomLinkedList(
-          {
-            create: (param) => {
-              const itemName = `${name}.${++id}`
-              return createFieldElement(
-                element.create(param, itemName),
-                itemName,
-              )
-            },
-            initSnapshot: element.initState.map(
-              (state) => [state] as [param: any],
-            ),
-          },
-          name,
-        )
-
-        const initState = atom(
-          () => linkedListAtom(),
-          `${linkedListAtom.name}.initState`,
-        )
-
-        // @ts-expect-error bad keys type inference
-        return Object.assign(linkedListAtom, {
-          initState,
-          reset: action(() => {
-            linkedListAtom.set(initState())
-          }),
-        })
-      } else if ('initState' in element) {
-        const fieldOptions = {
-          name,
-          ...element,
-        }
-        const field = reatomField(element.initState, fieldOptions)
-
-        onFieldResolved?.(field)
-        return field
-      } else {
-        return reatomFormFields(element, { name, onFieldResolved })
-      }
-    } else {
-      const field = reatomField(element, { name })
-      onFieldResolved?.(field)
-      return field
-    }
-  }
-
-  for (const [key, value] of Object.entries(initState)) {
-    // @ts-expect-error bad keys type inference
-    fields[key] = createFieldElement(value, `${name}.${key}`)
-  }
-  return fields
-}
-
-interface FormFieldArray<
-  Param,
-  Node extends FormInitStateElement = FormInitStateElement,
-> {
-  create: (param: Param, name: string) => Node
-  initState: Array<Param>
-  __fieldArray: true
-}
-
-function createFieldArray<Param extends FormInitStateElement>(
-  initState: Array<Param>,
-): FormFieldArray<Param, Param>
-
-function createFieldArray<
-  Param,
-  Node extends FormInitStateElement = FormInitStateElement,
->(create: (params: Param, name: string) => Node): FormFieldArray<Param, Node>
-
-function createFieldArray<
-  Param,
-  Node extends FormInitStateElement = FormInitStateElement,
->(options: {
-  create: (param: Param, name: string) => Node
-  initState?: Array<Param>
-}): FormFieldArray<Param, Node>
-
-function createFieldArray<
-  Param,
-  Node extends FormInitStateElement = FormInitStateElement,
->(
-  options:
-    | Array<Param>
-    | ((params: Param, name: string) => Node)
-    | {
-        create: (param: Param, name: string) => Node
-        initState?: Array<Param>
-      },
-): FormFieldArray<Param, Node> {
-  const { create, initState = [] } =
-    typeof options === 'function'
-      ? { create: options }
-      : Array.isArray(options)
-        ? {
-            create: (param: Param) => param as unknown as Node,
-            initState: options,
-          }
-        : options
-
-  return {
-    create,
-    initState,
-    __fieldArray: true,
-  }
-}
-
-const isFieldArray = (value: any): value is FormFieldArray<any> =>
-  value?.__fieldArray
-
-export { createFieldArray as experimental_fieldArray }
-export type ArrayFieldItem<T> =
-  T extends LinkedListLikeAtom<infer _Node>
-    ? AtomState<T['array']>[number]
-    : never
-
-const resolveFieldByPath = <T extends FormInitState>(
+// TODO: add support for FieldArrayAtom
+const resolveFieldByPath = (
   path: StandardSchemaV1.Issue['path'],
-  acc: FormFields<T>,
+  acc: FieldSetState<FieldSetInitState>,
 ): FieldAtom | null => {
   if (!path?.length) return null
 
@@ -428,55 +206,54 @@ const resolveFieldByPath = <T extends FormInitState>(
   if (!field) return null
 
   if (isLinkedListAtom(field)) {
-    // @ts-expect-error bad key inference
     return resolveFieldByPath(shiftedPath, field.array())
   } else if (isFieldAtom(field)) {
-    return field
+    return field as FieldAtom
   } else {
     return resolveFieldByPath(shiftedPath, field)
   }
 }
 
 export function reatomForm<
-  T extends FormInitState,
+  InitState extends FieldSetInitState,
   SchemaState,
   SubmitReturn,
   SubmitParams extends any[],
 >(
-  initState: T | ((name: string) => T),
+  initState: InitState | ((name: string) => InitState),
   optionsWithSchema: FormOptionsWithSchema<
     SchemaState,
     SubmitReturn,
     SubmitParams
   >,
-): Form<T, SchemaState, SubmitReturn, SubmitParams>
+): FormAtom<InitState, SchemaState, SubmitReturn, SubmitParams>
 
 export function reatomForm<
-  T extends FormInitState,
+  InitState extends FieldSetInitState,
   SubmitReturn,
   SubmitParams extends any[],
 >(
-  initState: T | ((name: string) => T),
-  options?: FormOptionsWithoutSchema<T, SubmitReturn, SubmitParams>,
-): Form<T, undefined, SubmitReturn, SubmitParams>
+  initState: InitState | ((name: string) => InitState),
+  options?: FormOptionsWithoutSchema<InitState, SubmitReturn, SubmitParams>,
+): FormAtom<InitState, undefined, SubmitReturn, SubmitParams>
 
-export function reatomForm<T extends FormInitState>(
-  initState: T | ((name: string) => T),
+export function reatomForm<InitState extends FieldSetInitState>(
+  initState: InitState | ((name: string) => InitState),
   name?: string,
-): Form<T, undefined, void, []>
+): FormAtom<InitState, undefined, void, []>
 
 export function reatomForm<
-  T extends FormInitState,
+  InitState extends FieldSetInitState,
   SchemaState,
   SubmitReturn,
   SubmitParams extends any[],
 >(
-  initState: T | ((name: string) => T),
+  initState: InitState | ((name: string) => InitState),
   options:
     | string
     | FormOptionsWithSchema<SchemaState, SubmitReturn, SubmitParams>
-    | FormOptionsWithoutSchema<T, SubmitReturn, SubmitParams> = {},
-): Form<T, SchemaState, SubmitReturn, SubmitParams> {
+    | FormOptionsWithoutSchema<InitState, SubmitReturn, SubmitParams> = {},
+): FormAtom<InitState, SchemaState, SubmitReturn, SubmitParams> {
   if (typeof options === 'string') {
     options = { name: options }
   }
@@ -492,32 +269,30 @@ export function reatomForm<
     schema,
   } = options
 
-  const fields = reatomFormFields(
-    typeof initState == 'function' ? initState(name) : initState,
-    {
-      name: `${name}.fields`,
-      onFieldResolved: (field) => {
-        field.options.set((options) => ({
-          validateOnChange: options.validateOnChange ?? validateOnChange,
-          validateOnBlur: options.validateOnBlur ?? validateOnBlur,
-          keepErrorDuringValidating:
-            options.keepErrorDuringValidating ?? keepErrorDuringValidating,
-          keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
-          shouldValidate: !!schema || options.shouldValidate,
-        }))
+  const setupField = (field: FieldAtom) => {
+    // TODO: consider to move this initialization under withInit to prevent race conditions
+    field.options.set((options) => ({
+      ...options,
+      validateOnChange: options.validateOnChange ?? validateOnChange,
+      validateOnBlur: options.validateOnBlur ?? validateOnBlur,
+      keepErrorDuringValidating:
+        options.keepErrorDuringValidating ?? keepErrorDuringValidating,
+      keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
+    }))
 
-        if (schema) {
-          field.validation.trigger.extend(
-            withCallHook(() => {
-              if (!isCausedBy(submit)) triggerSchemaValidation()
-            }),
-          )
-        }
-      },
-    },
-  )
+    if (schema) {
+      field.validation.trigger.extend(
+        withCallHook(() => {
+          if (!isCausedBy(submit)) triggerSchemaValidation()
+        }),
+      )
+    }
+  }
+  
+  const fieldSet = reatomFieldSet<InitState>(initState, name)
 
-  const fieldSet = reatomFieldSet(fields, name)
+  fieldSet.fieldsList().forEach(setupField)
+  fieldSet.onFieldCreated?.extend(withCallHook(setupField))
 
   const submitted = atom(false, `${name}.submitted`)
 
@@ -542,7 +317,7 @@ export function reatomForm<
 
       if (result.issues) {
         for (const issue of result.issues) {
-          const field = resolveFieldByPath(issue.path, fields)
+          const field = resolveFieldByPath(issue.path, fieldSet.fields)
           if (!field) continue
 
           const fieldErrors = touched.get(field) ?? [
@@ -629,7 +404,6 @@ export function reatomForm<
   })
 
   return Object.assign(fieldSet, {
-    fields,
     submit,
     submitted,
     validation,
