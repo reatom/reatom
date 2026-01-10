@@ -278,6 +278,7 @@ export function reatomForm<
       keepErrorDuringValidating:
         options.keepErrorDuringValidating ?? keepErrorDuringValidating,
       keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,
+      shouldValidate: !!schema || options.shouldValidate,
     }))
 
     if (schema) {
