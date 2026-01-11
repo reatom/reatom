@@ -341,7 +341,7 @@ export function reatomField<State, A extends Atom<State>, Value = State>(
 ): A & FieldAtom<State, Value>
 
 export function reatomField<State, Value = State>(
-  _initState: State,
+  initState: State,
   options:
     | string
     | FieldOptions<State, Value>
@@ -354,7 +354,7 @@ export function reatomField<State, Value = State>(
     filter = () => true,
     fromState = (state) => state as unknown as Value,
     isDirty = (newValue, prevValue) => !isDeepEqual(newValue, prevValue),
-    name = named(`${typeof _initState}Field`),
+    name = named(`${typeof initState}Field`),
     toState = (value) => value as unknown as State,
     validate: validateFn,
     ...restOptions
@@ -402,14 +402,11 @@ export function reatomField<State, Value = State>(
 
   const elementRef = atom(restOptions.elementRef, `${name}.elementRef`)
 
-  const field = stateAtom ?? atom(_initState, `${name}.field`)
-  const initState = atom(_initState, `${name}.initState`)
-  // TODO: make sure it's ok to copy initState of other atom.
-  // We need to extract initial state from `field` atom here and pass it to `initState` atom
-  // @ts-expect-error access to private field
-  initState.__reatom.initState = field.__reatom.initState
+  const field = stateAtom ?? atom(initState, `${name}.field`)
+  const initStateAtom = atom(() => field(), `${name}.initState`)
 
   field.extend(
+    withInit((initState) => initStateAtom.set(initState)),
     withChangeHook(() => {
       if (isCausedBy(reset, 1)) return
 
@@ -442,7 +439,7 @@ export function reatomField<State, Value = State>(
       withComputed((state) => {
         const dirty = isDirty(
           value(),
-          peek(fromState, initState(), field as This),
+          peek(fromState, initStateAtom(), field as This),
         )
         return state.dirty === dirty ? state : { ...state, dirty }
       }),
@@ -675,7 +672,7 @@ export function reatomField<State, Value = State>(
   }, `${name}._change`)
 
   const reset: This['reset'] = action((...args) => {
-    field.set(args.length ? initState.set(args[0]) : initState())
+    field.set(args.length ? initStateAtom.set(args[0]) : initStateAtom())
     focus.set(fieldInitFocus)
 
     validation.set(fieldInitValidation)
@@ -685,7 +682,7 @@ export function reatomField<State, Value = State>(
   return Object.assign(field, {
     change,
     focus,
-    initState,
+    initState: initStateAtom,
     reset,
     validation,
     value,
