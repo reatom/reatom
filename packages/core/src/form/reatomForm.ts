@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-import type { AbortExt, AsyncDataExt, AsyncExt } from '../'
+import type { AbortExt, AsyncDataExt, AsyncExt, FieldError } from '../'
 import {
   type Action,
   action,
@@ -8,6 +8,7 @@ import {
   type Computed,
   isCausedBy,
   isFieldArrayAtom,
+  isFieldAtom,
   isLinkedListAtom,
   isRec,
   LL_NEXT,
@@ -19,8 +20,7 @@ import {
   withInit,
   wrap,
 } from '../'
-import type { FieldError } from './reatomField'
-import { type FieldAtom, isFieldAtom } from './reatomField'
+import { type FieldAtom } from './reatomField'
 import type {
   FieldsAtomize,
   FieldsAtomizeInitStateRecord,

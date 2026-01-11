@@ -1,4 +1,12 @@
-import type { AbortExt, Action, Computed, Deatomize, Rec } from '../'
+import type {
+  AbortExt,
+  Action,
+  Computed,
+  Deatomize,
+  FieldError,
+  FieldFocus,
+  Rec,
+} from '../'
 import {
   action,
   computed,
@@ -10,8 +18,7 @@ import {
   withAbort,
   withMemo,
 } from '../'
-import type { FieldError, FieldFocus } from './reatomField'
-import { type FieldAtom, fieldInitFocus, isFieldAtom } from './reatomField'
+import { type FieldAtom } from './reatomField'
 import { type FieldArrayAtom, isFieldArrayAtom } from './reatomFieldArray'
 import {
   type FieldsAtomize,
@@ -20,6 +27,7 @@ import {
   type FieldsAtomizeModel,
   reatomFieldsAtomize,
 } from './reatomFieldsAtomize'
+import { fieldInitFocus, isFieldAtom } from './withBaseField'
 
 export interface FieldSetFieldError extends FieldError {
   field: FieldAtom
@@ -187,7 +195,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
       } else if (isFieldAtom(targetValue)) {
         ;(targetValue as FieldAtom).initState.set(value)
       } else if (isFieldArrayAtom(targetValue)) {
-        targetValue.init(value)
+        targetValue.initState.set(value)
       }
     }
   }

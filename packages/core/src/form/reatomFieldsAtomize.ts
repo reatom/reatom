@@ -2,18 +2,13 @@ import { type Action, action, named } from '../core'
 import { withCallHook } from '../extensions'
 import type { LinkedListAtom } from '../primitives'
 import { isRec } from '../utils'
-import {
-  type FieldAtom,
-  type FieldLikeAtom,
-  type FieldOptions,
-  isFieldAtom,
-  reatomField,
-} from './reatomField'
+import { type FieldAtom, type FieldOptions, reatomField } from './reatomField'
 import {
   type FieldArrayAtom,
   isFieldArrayAtom,
   reatomFieldArray,
 } from './reatomFieldArray'
+import { type FieldLikeAtom, isFieldAtom } from './withBaseField'
 
 /** TODO */
 export type FieldsAtomizeInitState =

@@ -6,8 +6,9 @@ import {
   type AtomState,
   isAtom,
   named,
+  withParams,
 } from '../core'
-import { withCallHook, withInitHook } from '../extensions'
+import { withCallHook } from '../extensions'
 import {
   type LinkedList,
   type LinkedListAtom,
@@ -34,8 +35,10 @@ export type FieldArrayAtom<
 > = LinkedListAtom<[FieldArrayInitState<Param>], FieldsAtomize<Node>> & {
   __reatomFieldArray: true
   onFieldCreated: OnFieldCreatedAction
-  initState: Atom<LinkedList<LLNode<FieldsAtomize<Node>>>>
-  init: Action<[initState: FieldArrayInitState<Param>[]], void>
+  initState: Atom<
+    LinkedList<LLNode<FieldsAtomize<Node>>>,
+    [initState: FieldArrayInitState<Param>[]]
+  >
   reset: Action<[] | [initState: FieldArrayInitState<Param>[]], void>
 }
 
@@ -128,30 +131,30 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     initSnapshot: initState.map(
       (state) => [state] as [FieldArrayInitState<Param>],
     ),
-  }).extend(withInitHook((initState) => initStateAtom.set(initState)))
+  })
 
   const initStateAtom: This['initState'] = atom(
     () => fieldArrayAtom(),
     `${name}.initState`,
+  ).extend(
+    withParams((initState: FieldArrayInitState<Param>[]) => {
+      return fieldArrayAtom.initiateFromSnapshot(initState.map((v) => [v]))
+    }),
   )
 
-  const init: This['init'] = action((initState) => {
-    initStateAtom.set(
-      fieldArrayAtom.initiateFromSnapshot(initState.map((v) => [v])),
-    )
-  }, `${name}.init`)
+  // @ts-expect-error access reatom internals
+  initStateAtom.__reatom.initState = fieldArrayAtom.__reatom.initState
 
   const reset: This['reset'] = action((...args) => {
-    if (args.length) init(args[0])
-
-    fieldArrayAtom.set(initStateAtom())
+    fieldArrayAtom.set(
+      args.length ? initStateAtom.set(args[0]) : initStateAtom(),
+    )
   }, `${name}.reset`)
 
   return Object.assign(fieldArrayAtom, {
     __reatomFieldArray: true as const,
     onFieldCreated,
     initState: initStateAtom,
-    init,
     reset,
   })
 }
