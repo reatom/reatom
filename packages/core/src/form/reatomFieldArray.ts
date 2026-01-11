@@ -7,7 +7,7 @@ import {
   isAtom,
   named,
 } from '../core'
-import { withCallHook, withInit } from '../extensions'
+import { withCallHook, withInitHook } from '../extensions'
 import {
   type LinkedList,
   type LinkedListAtom,
@@ -128,7 +128,7 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     initSnapshot: initState.map(
       (state) => [state] as [FieldArrayInitState<Param>],
     ),
-  }).extend(withInit((initState) => initStateAtom.set(initState)))
+  }).extend(withInitHook((initState) => initStateAtom.set(initState)))
 
   const initStateAtom: This['initState'] = atom(
     () => fieldArrayAtom(),

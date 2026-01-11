@@ -7,9 +7,11 @@ import {
   atom,
   type Computed,
   isCausedBy,
+  isFieldArrayAtom,
   isLinkedListAtom,
+  isRec,
+  LL_NEXT,
   named,
-  peek,
   withAbort,
   withAsync,
   withAsyncData,
@@ -19,6 +21,10 @@ import {
 } from '../'
 import type { FieldError } from './reatomField'
 import { type FieldAtom, isFieldAtom } from './reatomField'
+import type {
+  FieldsAtomize,
+  FieldsAtomizeInitStateRecord,
+} from './reatomFieldsAtomize'
 import type {
   FieldSetInitState,
   FieldSetState,
@@ -292,8 +298,34 @@ export function reatomForm<
 
   const fieldSet = reatomFieldSet<InitState>(initState, name)
 
-  // TODO: remove eager initialization in current context; need to do it lazily
-  peek(fieldSet.fieldsList).forEach(setupField)
+  const setupFields = (
+    element: FieldsAtomize<
+      FieldsAtomizeInitStateRecord[keyof FieldsAtomizeInitStateRecord]
+    >,
+    insideHook = false,
+  ) => {
+    if (isFieldArrayAtom(element)) {
+      if (insideHook) element.array().forEach((el) => setupFields(el, true))
+      else {
+        element.extend(
+          withInit((state) => {
+            let head = state.head
+            while (head) {
+              setupFields(head)
+              head = head[LL_NEXT]
+            }
+            return state
+          }),
+        )
+      }
+    } else if (isRec(element)) {
+      Object.values(element).forEach((element) => setupFields(element))
+    } else if (isFieldAtom(element)) {
+      setupField(element)
+    }
+  }
+
+  setupFields(fieldSet.fields)
   fieldSet.onFieldCreated?.extend(withCallHook(setupField))
 
   const submitted = atom(false, `${name}.submitted`)

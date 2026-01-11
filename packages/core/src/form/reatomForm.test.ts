@@ -454,7 +454,7 @@ test('reset', () => {
   })
 })
 
-describe('init array with reset', () => {
+describe('init array', () => {
   test('flat fields with array', () => {
     const form = reatomForm({
       dummy: 1,
@@ -481,13 +481,26 @@ describe('init array with reset', () => {
   })
 
   test('nested fields with array', () => {
-    const form = reatomForm({
-      list: [
-        {
-          nestedList: [{ number: '123', priority: Boolean(true) }],
-        },
-      ],
-    })
+    const form = reatomForm(
+      {
+        list: [
+          {
+            nestedList: [{ number: '123', priority: true }],
+          },
+        ],
+      },
+      {
+        validateOnChange: true,
+      },
+    )
+
+    let listArray = form.fields.list.array()
+    expect(listArray.length).toEqual(1)
+
+    expect(
+      listArray[0]?.nestedList.array()?.[0]?.priority.options()
+        .validateOnChange,
+    ).toBe(true)
 
     form.reset({
       list: [
@@ -503,7 +516,7 @@ describe('init array with reset', () => {
       ],
     })
 
-    const listArray = form.fields.list.array()
+    listArray = form.fields.list.array()
     expect(listArray.length).toEqual(2)
 
     const firstItemNestedList = listArray[0]!.nestedList.array()
