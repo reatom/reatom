@@ -1,6 +1,13 @@
 import { computed } from '@reatom/core'
 
-import { currentPlayer, draws, oWins, xWins } from '../model'
+import {
+  currentPlayer,
+  draws,
+  oThinking,
+  oWins,
+  xThinking,
+  xWins,
+} from '../model'
 
 export const ScoreBoard = () => {
   const current = computed(() => currentPlayer())
@@ -63,6 +70,16 @@ export const ScoreBoard = () => {
           `}
         >
           {xWins}
+        </div>
+        <div
+          css={`
+            font-size: clamp(0.6rem, 2vmin, 0.75rem);
+            font-weight: 500;
+            color: #666;
+            line-height: 1;
+          `}
+        >
+          {() => `${(xThinking() / 1000).toFixed(1)}s`}
         </div>
       </div>
 
@@ -154,6 +171,16 @@ export const ScoreBoard = () => {
           `}
         >
           {oWins}
+        </div>
+        <div
+          css={`
+            font-size: clamp(0.6rem, 2vmin, 0.75rem);
+            font-weight: 500;
+            color: #666;
+            line-height: 1;
+          `}
+        >
+          {() => `${(oThinking() / 1000).toFixed(1)}s`}
         </div>
       </div>
     </div>

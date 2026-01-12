@@ -38,7 +38,9 @@ export const playWithComputer = atom(false, 'playWithComputer').extend(
   withChangeHook(() => {
     resetGame()
     xWins.set(0)
+    xThinking.set(0)
     oWins.set(0)
+    oThinking.set(0)
     draws.set(0)
   }),
 )
@@ -61,8 +63,10 @@ export const isComputerThinking = computed(
 )
 
 export const xWins = atom(0, 'xWins')
+export const xThinking = atom(0, 'xThinking')
 
 export const oWins = atom(0, 'oWins')
+export const oThinking = atom(0, 'oThinking')
 
 export const draws = atom(0, 'draws')
 

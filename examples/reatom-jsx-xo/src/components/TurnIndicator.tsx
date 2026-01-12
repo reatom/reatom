@@ -1,10 +1,12 @@
-import { effect, wrap } from '@reatom/core'
+import { abortVar, effect, wrap } from '@reatom/core'
 
 import {
   board,
   currentPlayer,
   isComputerThinking,
+  oThinking,
   winner,
+  xThinking,
 } from '../model'
 
 export const TurnIndicator = () => {
@@ -64,7 +66,20 @@ export const TurnIndicator = () => {
         ref={(element) => {
           effect(async () => {
             if (!board().some(Boolean)) return
+
             if (winner() !== 'none') return
+
+            const player = currentPlayer()
+            abortVar.subscribe(() => {
+              const timePass = Date.now() - start
+              if (player === 'X') {
+                xThinking.set((state) => state + timePass)
+              } else {
+                oThinking.set((state) => state + timePass)
+              }
+
+              element.innerText = ``
+            })
 
             const start = Date.now()
             while (true) {
