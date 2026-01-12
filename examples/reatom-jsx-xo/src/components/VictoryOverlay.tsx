@@ -1,9 +1,9 @@
-import { resetGame, winner } from '../model'
+import { playWithComputer, resetGame, showWinner, winner } from '../model'
 
 export const VictoryOverlay = () => {
   return (
     <div
-      style:display={() => (winner() === 'none' ? 'none' : 'flex')}
+      style:display={() => (showWinner() ? 'flex' : 'none')}
       css={`
         position: fixed;
         inset: 0;
@@ -87,7 +87,7 @@ export const VictoryOverlay = () => {
           {() => {
             const w = winner()
             if (w === 'draw') return "It's a Draw! 🤝"
-            return `Player ${w} Wins! 🎉`
+            return `${playWithComputer() ? '🤖' : `Player ${w}`} Wins! 🎉`
           }}
         </h2>
 
@@ -129,71 +129,26 @@ export const VictoryOverlay = () => {
           `}
         >
           {() => {
-            const w = winner()
-            if (w === 'draw') {
-              // Draw animation - peaceful floating hearts
-              return Array.from({ length: 12 }).map((_, i) => (
-                <div
-                  css:animation-delay={`${Math.random() * 2}s`}
-                  css:animation-duration={`${3 + Math.random() * 2}s`}
-                  css:left={`${Math.random() * 100}%`}
-                  css:color={
-                    [
-                      '#ff6b9d',
-                      '#ffa3c7',
-                      '#ff8fab',
-                      '#ffc2d1',
-                      '#f8c8dc',
-                      '#ffd1dc',
-                    ][i % 6]
-                  }
-                  css:font-size={`${8 + Math.random() * 12}px`}
-                  css={`
-                    position: absolute;
-                    animation: heart-float var(--animation-duration) ease-in-out
-                      infinite;
-                    animation-delay: var(--animation-delay);
-                    top: 100%;
-                    left: var(--left);
-                    font-size: var(--font-size);
-                    color: var(--color);
-                    opacity: 0;
-                  `}
-                >
-                  {i}
-                  💕
-                </div>
-              ))
-            }
-            // Victory confetti
-            return Array.from({ length: 10 }).map((_, i) => (
+            const isDraw = winner() === 'draw'
+            // Draw animation - peaceful floating hearts
+            return Array.from({ length: 12 }).map((_, i) => (
               <div
                 css:animation-delay={`${Math.random() * 2}s`}
-                css:animation-duration={`${2 + Math.random() * 2}s`}
-                css:background-color={
-                  [
-                    '#f44336',
-                    '#2196f3',
-                    '#4caf50',
-                    '#ffeb3b',
-                    '#9c27b0',
-                    '#ff9800',
-                  ][i % 6]
-                }
+                css:animation-duration={`${3 + Math.random() * 2}s`}
                 css:left={`${Math.random() * 100}%`}
+                css:font-size={`${8 + Math.random() * 12}px`}
                 css={`
                   position: absolute;
-                  width: 8px;
-                  height: 8px;
-                  border-radius: 50%;
-                  animation: confetti-fall var(--animation-duration) ease-in-out
+                  animation: confetti var(--animation-duration) ease-in-out
                     infinite;
                   animation-delay: var(--animation-delay);
-                  top: -10px;
+                  top: 100%;
                   left: var(--left);
+                  font-size: var(--font-size);
+                  opacity: 0;
                 `}
               >
-                {i}
+                {isDraw ? '🤗' : '🎉'}
               </div>
             ))
           }}
@@ -282,7 +237,7 @@ export const victoryOverlayStyles = `
     }
   }
 
-  @keyframes heart-float {
+  @keyframes confetti {
     0% {
       transform: translateY(0) rotate(0deg) scale(0.5);
       opacity: 0;

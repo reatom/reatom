@@ -1,4 +1,11 @@
-import { currentPlayer, isComputerThinking, playWithComputer } from '../model'
+import { effect, wrap } from '@reatom/core'
+
+import {
+  board,
+  currentPlayer,
+  isComputerThinking,
+  winner,
+} from '../model'
 
 export const TurnIndicator = () => {
   return (
@@ -6,8 +13,7 @@ export const TurnIndicator = () => {
       css={`
         display: flex;
         align-items: center;
-        justify-content: center;
-        gap: 4px;
+        justify-content: space-around;
         height: 50px;
         margin: 5px 0;
         padding: 6px 12px;
@@ -16,23 +22,13 @@ export const TurnIndicator = () => {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       `}
     >
-      <span
-        css={`
-          font-size: clamp(0.75rem, 2vmin, 0.875rem);
-          font-weight: 600;
-          color: #666;
-        `}
-      >
-        {() => (playWithComputer() ? "It's" : 'Turn:')}
-      </span>
-
       <div
         data-player={currentPlayer}
         data-thinking={isComputerThinking}
         css={`
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 1rem;
           font-size: clamp(1rem, 3vmin, 1.25rem);
           font-weight: 800;
           padding: 4px 10px;
@@ -40,12 +36,12 @@ export const TurnIndicator = () => {
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           background: rgba(229, 57, 53, 0.1);
           color: #e53935;
-          animation: glow-red 2s ease-in-out infinite;
+          box-shadow: 0 2px 8px rgba(229, 57, 53, 0.2);
 
           &[data-player='O'] {
             background: rgba(30, 136, 229, 0.1);
             color: #1e88e5;
-            animation: glow-blue 2s ease-in-out infinite;
+            box-shadow: 0 2px 8px rgba(30, 136, 229, 0.2);
           }
 
           &[data-thinking='true'] {
@@ -53,20 +49,76 @@ export const TurnIndicator = () => {
           }
         `}
       >
-        {() =>
-          playWithComputer() && currentPlayer() === 'O'
-            ? isComputerThinking()
-              ? '🤖 Thinking'
-              : '🤖 '
-            : ''
-        }
-        {() =>
-          !isComputerThinking() || currentPlayer() !== 'O'
-            ? `${currentPlayer()}'s turn`
-            : ''
-        }
-        {() => (isComputerThinking() && currentPlayer() === 'O' ? '...' : '')}
+        <span
+          css={`
+            width: 1rem;
+            display: inline-flex;
+            justify-content: center;
+          `}
+        >
+          {() => (isComputerThinking() ? '🤖' : currentPlayer())}
+        </span>
+        's turn
       </div>
+      <div
+        ref={(element) => {
+          effect(async () => {
+            if (!board().some(Boolean)) return
+            if (winner() !== 'none') return
+
+            const start = Date.now()
+            while (true) {
+              await wrap(new Promise(requestAnimationFrame))
+              element.innerText = `Thinking ${((Date.now() - start) / 1000).toFixed(1)}s`
+            }
+          }, 'TurnIndicator.thinking')
+        }}
+        css={`
+          font-family:
+            'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+          width: 12em;
+          padding: 8px 16px;
+          border-radius: 20px;
+          background: linear-gradient(
+            135deg,
+            rgba(30, 136, 229, 0.1),
+            rgba(229, 57, 53, 0.1)
+          );
+          color: #546e7a;
+          font-size: 0.85rem;
+          font-weight: 600;
+          text-align: center;
+          transition: all 0.3s ease;
+          border: 1px solid rgba(84, 110, 122, 0.2);
+          position: relative;
+          overflow: hidden;
+
+          &::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.3),
+              transparent
+            );
+            animation: shimmer 2s infinite;
+          }
+
+          &::after {
+            content: '...';
+            margin-left: 4px;
+            animation: dots 1.4s infinite;
+            display: inline-block;
+            width: 12px;
+            text-align: left;
+          }
+        `}
+      ></div>
     </div>
   )
 }
@@ -83,26 +135,6 @@ export const turnIndicatorStyles = `
     }
   }
 
-  @keyframes glow-red {
-    0%,
-    100% {
-      box-shadow: 0 0 10px rgba(229, 57, 53, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 25px rgba(229, 57, 53, 0.5);
-    }
-  }
-
-  @keyframes glow-blue {
-    0%,
-    100% {
-      box-shadow: 0 0 10px rgba(30, 136, 229, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 25px rgba(30, 136, 229, 0.5);
-    }
-  }
-
   @keyframes thinking-pulse {
     0%,
     100% {
@@ -110,6 +142,32 @@ export const turnIndicatorStyles = `
     }
     50% {
       opacity: 0.6;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+
+  @keyframes dots {
+    0%,
+    20% {
+      content: '';
+    }
+    40% {
+      content: '.';
+    }
+    60% {
+      content: '..';
+    }
+    80%,
+    100% {
+      content: '...';
     }
   }
 `

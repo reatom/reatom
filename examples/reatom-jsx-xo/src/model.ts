@@ -3,6 +3,7 @@ import {
   atom,
   computed,
   isCausedBy,
+  memo,
   reatomEnum,
   sleep,
   withAsync,
@@ -11,6 +12,7 @@ import {
 } from '@reatom/core'
 
 import { triggerHaptic } from './haptics'
+import { time } from './time'
 
 export type Player = 'X' | 'O'
 export type Cell = null | Player
@@ -21,6 +23,16 @@ export const board = atom<Array<Cell>>(Array(9).fill(null), 'board')
 export const currentPlayer = reatomEnum(['X', 'O'], 'currentPlayer')
 
 export const winner = reatomEnum(['none', 'X', 'O', 'draw'], 'winner')
+
+export const showWinner = computed(() => {
+  const winnerTime = memo(
+    () => (winner() === 'none' ? Infinity : Date.now()),
+    undefined,
+    'winnerTime',
+  )
+
+  return winner() !== 'none' && winnerTime + 700 < time()
+}, 'showWinner')
 
 export const playWithComputer = atom(false, 'playWithComputer').extend(
   withChangeHook(() => {
