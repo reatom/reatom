@@ -13,6 +13,7 @@ import {
 } from '../'
 import {
   type FieldAtom,
+  type FieldExt,
   type FieldValidateOption,
   isFieldAtom,
   reatomField,
@@ -64,10 +65,10 @@ test(`fields type inference from init state`, () => {
 
   expectTypeOf(form.fields.string).toEqualTypeOf<FieldAtom<string, string>>()
   expectTypeOf(form.fields.stringExt).toEqualTypeOf<
-    Atom<string, [newState: string]> & FieldAtom<string, string>
+    Atom<string, [newState: string]> & FieldExt<string, string>
   >()
   expectTypeOf(form.fields.numberExt).toEqualTypeOf<
-    Atom<number, [newState: number]> & FieldAtom<number, string>
+    Atom<number, [newState: number]> & FieldExt<number, string>
   >()
   expectTypeOf(form.fields.options).toEqualTypeOf<FieldAtom<number, number>>()
   expectTypeOf(form.fields.optionsWithValue).toEqualTypeOf<

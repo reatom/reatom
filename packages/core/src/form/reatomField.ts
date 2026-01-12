@@ -15,9 +15,10 @@ import {
   withBaseField,
 } from './withBaseField'
 
-/** TODO */
-export interface FieldAtom<State = any, Value = State>
-  extends Atom<State>, BaseFieldExt<State, [initState: State]> {
+export interface FieldExt<State = any, Value = State> extends BaseFieldExt<
+  State,
+  [initState: State]
+> {
   /**
    * Action for handling field changes, accepts the "value" parameter and
    * applies it to `toState` option.
@@ -28,10 +29,9 @@ export interface FieldAtom<State = any, Value = State>
   value: Atom<Value>
 }
 
-/** TODO */
-export interface FieldOptions<State = any, Value = State> extends Omit<
+export interface FieldExtOptions<State = any, Value = State> extends Omit<
   BaseFieldExtOptions<State, Value>,
-  'isDirty' | 'initStateAtom'
+  'isDirty' | 'initStateAtom' | 'getValue'
 > {
   /**
    * The callback to filter "value" changes (from the 'change' action). It
@@ -70,14 +70,11 @@ export interface FieldOptions<State = any, Value = State> extends Omit<
    * it utilizes `isDeepEqual` from reatom/utils.
    */
   isDirty?: (newValue: Value, prevValue: Value) => boolean
-
-  /** The name of the field and all related atoms and actions. */
-  name?: string
 }
 
 /** TODO */
-export interface TransformableFieldOptions<State, Value> extends Omit<
-  FieldOptions<State, Value>,
+export interface TransformableFieldExtOptions<State, Value> extends Omit<
+  FieldExtOptions<State, Value>,
   'fromState' | 'toState'
 > {
   /**
@@ -99,6 +96,116 @@ export interface TransformableFieldOptions<State, Value> extends Omit<
  *
  * @param options
  */
+export function withField<T extends Atom>(
+  options?: FieldExtOptions<AtomState<T>, AtomState<T>>,
+): (anAtom: T) => T & FieldExt<AtomState<T>, AtomState<T>>
+
+/**
+ * TODO
+ *
+ * @param options
+ */
+export function withField<T extends Atom, State>(
+  options?: FieldExtOptions<State, State>,
+): (anAtom: T) => T & FieldExt<State, State>
+
+/**
+ * TODO
+ *
+ * @param options
+ */
+export function withField<T extends Atom, State, Value>(
+  options?: TransformableFieldExtOptions<State, Value>,
+): (anAtom: T) => T & FieldExt<State, Value>
+
+export function withField<T extends Atom, State = AtomState<T>, Value = State>(
+  options:
+    | FieldExtOptions<State, Value>
+    | TransformableFieldExtOptions<State, Value> = {},
+): (anAtom: T) => T & FieldExt<State, Value> {
+  return (target) => {
+    const {
+      filter = () => true,
+      fromState = (state) => state as unknown as Value,
+      isDirty = (newValue: Value, prevValue: Value) =>
+        !isDeepEqual(newValue, prevValue),
+      toState = (value) => value as unknown as State,
+      validate: validateFn,
+      ...restOptions
+    } = options
+
+    const name = target.name
+    const thisField: FieldAtom<State, Value> = target as any
+
+    const baseField = target.extend(
+      withBaseField({
+        initStateAtom: atom(() => target(), `${name}.initState`),
+        isDirty: (_newState, prevState) =>
+          isDirty(value(), fromState(prevState, thisField)),
+        getValue: () => value(),
+        validate: validateFn,
+        disabled: restOptions.disabled,
+        elementRef: restOptions.elementRef,
+        keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
+        keepErrorOnChange: restOptions.keepErrorOnChange,
+        validateOnChange: restOptions.validateOnChange,
+        validateOnBlur: restOptions.validateOnBlur,
+      }),
+    )
+
+  const value = createAtom(
+    { computed: () => fromState(target(), thisField) },
+    `${name}.value`,
+  )
+
+    const change = action((newValue) => {
+      const prevValue = value()
+      if (!filter(newValue, prevValue)) return prevValue
+
+      value.set(newValue)
+
+      try {
+        target.set(toState(newValue, thisField))
+      } catch (error) {
+        if (!isAbort(error)) throw error
+      }
+      return newValue
+    }, `${name}._change`)
+
+    return Object.assign(baseField, {
+      change,
+      value,
+    })
+  }
+}
+
+/** TODO */
+export interface FieldOptions<
+  State = any,
+  Value = State,
+> extends FieldExtOptions<State, Value> {
+  /** The name of the field and all related atoms and actions. */
+  name?: string
+}
+
+/** TODO */
+export interface TransformableFieldOptions<
+  State = any,
+  Value = State,
+> extends TransformableFieldExtOptions<State, Value> {
+  /** The name of the field and all related atoms and actions. */
+  name?: string
+}
+
+/** TODO */
+export interface FieldAtom<State = any, Value = State>
+  extends Atom<State>, FieldExt<State, Value> {}
+
+/**
+ * TODO
+ *
+ * @param options
+ */
 export function reatomField<State>(
   initState: State,
   options?: string | FieldOptions<State, State>,
@@ -114,109 +221,18 @@ export function reatomField<State, Value>(
   options: TransformableFieldOptions<State, Value>,
 ): FieldAtom<State, Value>
 
-// TODO: consider to remove this in favor of withField (it should contain all the reatomField logic initially)
-/** @deprecated */
-export function reatomField<State, A extends Atom<State>, Value = State>(
-  initState: null,
-  options: string | FieldOptions<State, Value>,
-  stateAtom: A,
-): A & FieldAtom<State, Value>
-
 export function reatomField<State, Value = State>(
   initState: State,
   options:
     | string
     | FieldOptions<State, Value>
     | TransformableFieldOptions<State, Value> = {},
-  stateAtom?: Atom<State>,
 ): FieldAtom<State, Value> {
-  type This = FieldAtom<State, Value>
-
-  const {
-    filter = () => true,
-    fromState = (state) => state as unknown as Value,
-    isDirty = (newValue: Value, prevValue: Value) =>
-      !isDeepEqual(newValue, prevValue),
-    name = named(`${typeof initState}Field`),
-    toState = (value) => value as unknown as State,
-    validate: validateFn,
-    ...restOptions
-  } = typeof options === 'string'
-    ? ({ name: options } as FieldOptions<State, Value>)
-    : options
-
-  const field = stateAtom ?? atom(initState, `${name}.field`)
-
-  const baseField = field.extend(
-    withBaseField({
-      initStateAtom: atom(() => field(), `${name}.initState`),
-      isDirty: (newState, prevState) =>
-        isDirty(
-          fromState(newState, field as This),
-          fromState(prevState, field as This),
-        ),
-      getValue: () => value(),
-      validate: validateFn,
-      disabled: restOptions.disabled,
-      elementRef: restOptions.elementRef,
-      keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
-      keepErrorOnChange: restOptions.keepErrorOnChange,
-      validateOnChange: restOptions.validateOnChange,
-      validateOnBlur: restOptions.validateOnBlur,
-    }),
+  const { name = named(`${typeof initState}Field`), ...rest } =
+    typeof options === 'string' ? { name: options } : options
+  return atom(initState, name).extend(
+    withField<Atom, State, Value>(
+      rest as TransformableFieldOptions<State, Value>,
+    ),
   )
-
-  const value: This['value'] = createAtom(
-    { computed: () => fromState(field(), field as This) },
-    `${name}.value`,
-  )
-
-  const change: This['change'] = action((newValue) => {
-    const prevValue = value()
-    if (!filter(newValue, prevValue)) return prevValue
-
-    value.set(newValue)
-
-    try {
-      field.set(toState(newValue, field as This))
-    } catch (error) {
-      if (!isAbort(error)) throw error
-    }
-    return newValue
-  }, `${name}._change`)
-
-  return Object.assign(baseField, {
-    change,
-    value,
-  })
-}
-
-/**
- * TODO
- *
- * @param options
- */
-export function withField<T extends Atom>(
-  options?: Omit<FieldOptions<AtomState<T>, AtomState<T>>, 'name'>,
-): (anAtom: T) => T & FieldAtom<AtomState<T>, AtomState<T>>
-
-/**
- * TODO
- *
- * @param options
- */
-export function withField<T extends Atom, Value>(
-  options?: Omit<TransformableFieldOptions<AtomState<T>, Value>, 'name'>,
-): (anAtom: T) => T & FieldAtom<AtomState<T>, Value>
-
-/**
- * TODO
- *
- * @param options
- */
-export function withField<T extends Atom, Value = AtomState<T>>(
-  options: Omit<FieldOptions<AtomState<T>, Value>, 'name'> = {},
-): (anAtom: T) => T & FieldAtom<AtomState<T>, Value> {
-  return (anAtom: T) =>
-    reatomField(null, { name: anAtom.name, ...options }, anAtom)
 }
