@@ -182,20 +182,19 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
 
   const reinitState = (
     initState: FieldSetPartialState<InitState>,
-    fields: FieldsAtomize<FieldSetInitState>,
+    fields: FieldsAtomize<InitState>,
   ) => {
     for (const [key, value] of Object.entries(initState)) {
+      // @ts-expect-error bad value inference
       const targetValue = fields[key]
       if (!targetValue)
         throw new ReatomError(`Field ${key} not found in fields`)
 
       if (isRec(value) && !isAtom(targetValue)) {
-        // @ts-ignore bad value inference from Object.entries
+        // @ts-expect-error bad value inference from Object.entries
         reinitState(value, targetValue)
       } else if (isFieldAtom(targetValue)) {
         ;(targetValue as FieldAtom).initState.set(value)
-      } else if (isFieldArrayAtom(targetValue)) {
-        targetValue.initState.set(value)
       }
     }
   }
@@ -224,8 +223,8 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
   })
 }
 
-const computeFieldArraysList = (
-  fields: FieldsAtomize<FieldsAtomizeInitState>,
+const computeFieldArraysList = <InitState extends FieldsAtomizeInitState>(
+  fields: FieldsAtomize<InitState> | FieldsAtomize<FieldsAtomizeInitState>,
 ): FieldArrayAtom[] => {
   const fieldsList: FieldArrayAtom[] = []
 
@@ -240,8 +239,8 @@ const computeFieldArraysList = (
   return fieldsList
 }
 
-const computeFieldsList = (
-  fields: FieldsAtomize<FieldsAtomizeInitState>,
+const computeFieldsList = <InitState extends FieldsAtomizeInitState>(
+  fields: FieldsAtomize<InitState> | FieldsAtomize<FieldsAtomizeInitState>,
 ): Array<FieldAtom> => {
   const fieldsList: Array<FieldAtom> = []
 
@@ -252,7 +251,7 @@ const computeFieldsList = (
       fieldsList.push(...computeFieldsList(element as typeof fields))
     }
   } else {
-    fieldsList.push(fields)
+    fieldsList.push(fields as FieldAtom)
   }
   return fieldsList
 }

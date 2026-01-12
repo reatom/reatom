@@ -1,7 +1,5 @@
 import {
-  type Action,
   action,
-  type Atom,
   atom,
   type AtomState,
   isAtom,
@@ -22,6 +20,30 @@ import {
   type OnFieldCreatedAction,
   reatomFieldsAtomize,
 } from './reatomFieldsAtomize'
+import {
+  type BaseFieldExt,
+  type BaseFieldExtOptions,
+  withBaseField,
+} from './withBaseField'
+
+export type FieldArrayLLNode<Node> = LLNode<FieldsAtomize<Node>>
+export type FieldArrayState<Node> = LinkedList<FieldArrayLLNode<Node>>
+
+export type FieldArrayOptions<
+  Param,
+  Node extends FieldsAtomizeInitState,
+> = Omit<
+  BaseFieldExtOptions<
+    FieldArrayState<Node>,
+    FieldArrayLLNode<Node>[],
+    [initState: FieldArrayInitState<Param>[]]
+  >,
+  'getValue' | 'initStateAtom'
+> & {
+  create: (param: Param, name: string) => Node
+  initState?: Param[]
+  name?: string
+}
 
 type FieldArrayInitState<T> = {
   [K in keyof T]: T[K] extends FieldArrayAtom<infer Param, infer _Node>
@@ -32,15 +54,13 @@ type FieldArrayInitState<T> = {
 export type FieldArrayAtom<
   Param = any,
   Node extends FieldsAtomizeInitState = FieldsAtomizeInitState,
-> = LinkedListAtom<[FieldArrayInitState<Param>], FieldsAtomize<Node>> & {
-  __reatomFieldArray: true
-  onFieldCreated: OnFieldCreatedAction
-  initState: Atom<
-    LinkedList<LLNode<FieldsAtomize<Node>>>,
+> = LinkedListAtom<[FieldArrayInitState<Param>], FieldsAtomize<Node>> &
+  BaseFieldExt<
+    FieldArrayState<Node>,
     [initState: FieldArrayInitState<Param>[]]
-  >
-  reset: Action<[] | [initState: FieldArrayInitState<Param>[]], void>
-}
+  > & {
+    onFieldCreated: OnFieldCreatedAction
+  }
 
 export type FieldArrayItem<T> =
   T extends FieldArrayAtom<infer _Param, infer _Node>
@@ -48,7 +68,7 @@ export type FieldArrayItem<T> =
     : never
 
 export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
-  return isAtom(atom) && '__reatomFieldArray' in atom
+  return isAtom(atom) && 'onFieldCreated' in atom
 }
 
 /**
@@ -76,6 +96,8 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
 /**
  * TODO
  *
+ * @deprecated Use reatomFieldArray(initState, { create, ...options }) overload
+ *   instead
  * @param options
  */
 export function reatomFieldArray<
@@ -87,16 +109,27 @@ export function reatomFieldArray<
   name?: string
 }): FieldArrayAtom<Param, Node>
 
+/**
+ * TODO
+ *
+ * @param create
+ */
 export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
-  options:
+  initState: Param[],
+  options: {
+    create: (param: Param, name: string) => Node
+    name?: string
+  },
+): FieldArrayAtom<Param, Node>
+
+export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
+  optionsOrInitState:
     | Param[]
     | ((params: Param, name: string) => Node)
-    | {
-        create: (param: Param, name: string) => Node
-        initState?: Param[]
-        name?: string
-      },
-  name?: string,
+    | FieldArrayOptions<Param, Node>,
+  nameOrOptions?:
+    | string
+    | { create: (param: Param, name: string) => Node; name?: string },
 ): FieldArrayAtom<Param, Node> {
   interface This extends FieldArrayAtom<Param, Node> {}
 
@@ -104,34 +137,27 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     create,
     initState = [],
     name: optionsName,
-  } = typeof options === 'function'
-    ? { create: options }
-    : Array.isArray(options)
-      ? {
-          create: (param: Param) => param as unknown as Node,
-          initState: options,
-        }
-      : options
+    ...restOptions
+  } = typeof optionsOrInitState === 'function'
+    ? { create: optionsOrInitState }
+    : Array.isArray(optionsOrInitState)
+      ? typeof nameOrOptions === 'object'
+        ? { ...nameOrOptions, initState: optionsOrInitState }
+        : {
+            create: (param: Param) => param as unknown as Node,
+            initState: optionsOrInitState,
+          }
+      : optionsOrInitState
 
-  name ||= optionsName || named('fieldArray')
+  const name =
+    (typeof nameOrOptions === 'string' ? nameOrOptions : nameOrOptions?.name) ||
+    optionsName ||
+    named('fieldArray')
 
   const onFieldCreated: This['onFieldCreated'] = action(
     (field: FieldAtom) => field,
     `${name}.onFieldCreated`,
   )
-
-  const fieldArrayAtom = reatomLinkedList({
-    create: (param) => {
-      const factoryName = `${name}.item`
-      const model = reatomFieldsAtomize(create(param, factoryName), factoryName)
-      model.onFieldCreated?.extend(withCallHook(onFieldCreated))
-
-      return model.fields
-    },
-    initSnapshot: initState.map(
-      (state) => [state] as [FieldArrayInitState<Param>],
-    ),
-  })
 
   const initStateAtom: This['initState'] = atom(
     () => fieldArrayAtom(),
@@ -142,20 +168,33 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     }),
   )
 
-  // @ts-expect-error access reatom internals
-  initStateAtom.__reatom.initState = fieldArrayAtom.__reatom.initState
+  const fieldArrayAtom = reatomLinkedList(
+    {
+      create: (param) => {
+        const factoryName = `${name}.item`
+        const model = reatomFieldsAtomize(
+          create(param, factoryName),
+          factoryName,
+        )
+        model.onFieldCreated?.extend(withCallHook(onFieldCreated))
 
-  const reset: This['reset'] = action((...args) => {
-    fieldArrayAtom.set(
-      args.length ? initStateAtom.set(args[0]) : initStateAtom(),
-    )
-  }, `${name}.reset`)
+        return model.fields
+      },
+      initSnapshot: initState.map(
+        (state) => [state] as [FieldArrayInitState<Param>],
+      ),
+    },
+    name,
+  ).extend(
+    withBaseField({
+      initStateAtom,
+      getValue: (): FieldArrayLLNode<Node>[] => fieldArrayAtom.array(),
+      ...restOptions,
+    }),
+  )
 
   return Object.assign(fieldArrayAtom, {
-    __reatomFieldArray: true as const,
     onFieldCreated,
-    initState: initStateAtom,
-    reset,
   })
 }
 

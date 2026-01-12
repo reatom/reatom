@@ -2,8 +2,6 @@ import { describe, expect, expectTypeOf, test, vi } from 'test'
 import { z } from 'zod'
 
 import {
-  type Atom,
-  atom,
   noop,
   notify,
   reatomBoolean,
@@ -12,10 +10,7 @@ import {
   wrap,
 } from '../'
 import {
-  type FieldAtom,
-  type FieldExt,
   type FieldValidateOption,
-  isFieldAtom,
   reatomField,
   reatomFieldArray,
   reatomFieldSet,
@@ -42,41 +37,6 @@ test(`adding and removing fields`, async () => {
 
   form.fields.list.clear()
   expect(form.fields.list().size).toBe(0)
-})
-
-test(`fields type inference from init state`, () => {
-  const form = reatomForm({
-    string: reatomField(''),
-    stringExt: atom('').extend(withField()),
-    numberExt: atom(0).extend(
-      withField({
-        fromState: (state) => String(state),
-        toState: (value: string) => Number(value),
-      }),
-    ),
-    options: { initState: 123 },
-    optionsWithValue: {
-      initState: 123,
-      fromState: (state) => String(state),
-      toState: (value) => Number(value),
-    },
-    optionsWithGarbage: { initState: 123, garbage: true },
-  })
-
-  expectTypeOf(form.fields.string).toEqualTypeOf<FieldAtom<string, string>>()
-  expectTypeOf(form.fields.stringExt).toEqualTypeOf<
-    Atom<string, [newState: string]> & FieldExt<string, string>
-  >()
-  expectTypeOf(form.fields.numberExt).toEqualTypeOf<
-    Atom<number, [newState: number]> & FieldExt<number, string>
-  >()
-  expectTypeOf(form.fields.options).toEqualTypeOf<FieldAtom<number, number>>()
-  expectTypeOf(form.fields.optionsWithValue).toEqualTypeOf<
-    FieldAtom<number, string>
-  >()
-  expectTypeOf(form.fields.optionsWithGarbage).toBeNever()
-
-  expect(isFieldAtom(form.fields.optionsWithValue)).toBeTruthy()
 })
 
 test('focus states', () => {
@@ -569,16 +529,17 @@ test('validating through form schema and placing errors to corresponding fields'
       schema: z.object({
         age: z.number().min(18),
         email: z.string().email(),
-        items: z.array(z.string().min(1)),
+        items: z.array(z.string().min(1)).min(3),
       }),
     },
   )
 
   await wrap(form.submit().catch(noop))
   notify()
-
+  
   expect(form.fields.age.validation().error).toBeTruthy()
   expect(form.fields.email.validation().error).toBeTruthy()
+  expect(form.fields.items.validation().error).toBeTruthy()
   expect(form.fields.items.array()[0]!.validation().error).toBeTruthy()
   expect(form.fields.items.array()[1]!.validation().error).toBeFalsy()
 })

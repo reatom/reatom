@@ -1,6 +1,5 @@
 import { type Action, action, named } from '../core'
 import { withCallHook } from '../extensions'
-import type { LinkedListAtom } from '../primitives'
 import { isRec } from '../utils'
 import { type FieldAtom, type FieldOptions, reatomField } from './reatomField'
 import {
@@ -29,36 +28,34 @@ export type FieldsAtomizeInitState =
 export type FieldsAtomizeInitStateRecord = {
   [fieldKey: string]:
     | FieldsAtomizeInitState
-    | { __reatomFieldArray: true } // TODO: FieldArrayAtom is confliting with FieldAtom
+    | FieldLikeAtom
     | Array<FieldsAtomizeInitState>
 }
 
 /** TODO */
-export type FieldsAtomize<Element> = Element extends FieldLikeAtom
+export type FieldsAtomize<Element> = [Element] extends [FieldLikeAtom]
   ? Element
-  : Element extends Date | File
+  : [Element] extends [Date | File]
     ? FieldAtom<Element>
-    : Element extends boolean
+    : [Element] extends [boolean]
       ? FieldAtom<boolean>
-      : Element extends Array<infer Item>
+      : [Element] extends [Array<infer Item>]
         ? Item extends FieldsAtomizeInitState
           ? FieldArrayAtom<Item, Item>
           : never
-        : Element extends LinkedListAtom<infer _Param, infer _Node>
-          ? Element
-          : Element extends FieldOptions & { initState: infer State }
-            ? Element extends FieldOptions<State, State>
-              ? FieldAtomFromDeprecatedFieldOptions<State>
-              : Element extends FieldOptions<State, infer Value>
-                ? FieldAtomFromDeprecatedFieldOptions<State, Value>
-                : { initState: State } extends Element
-                  ? FieldAtomFromDeprecatedFieldOptions<State, State>
-                  : never
-            : Element extends FieldsAtomizeInitStateRecord
-              ? {
-                  [FieldKey in keyof Element]: FieldsAtomize<Element[FieldKey]>
-                }
-              : FieldAtom<Element>
+        : [Element] extends [FieldOptions & { initState: infer State }]
+          ? Element extends FieldOptions<State, State>
+            ? FieldAtomFromDeprecatedFieldOptions<State>
+            : Element extends FieldOptions<State, infer Value>
+              ? FieldAtomFromDeprecatedFieldOptions<State, Value>
+              : { initState: State } extends Element
+                ? FieldAtomFromDeprecatedFieldOptions<State, State>
+                : never
+          : [Element] extends [FieldsAtomizeInitStateRecord]
+            ? {
+                [FieldKey in keyof Element]: FieldsAtomize<Element[FieldKey]>
+              }
+            : FieldAtom<Element>
 
 /** TODO */
 export type OnFieldCreatedAction = Action<[field: FieldAtom], FieldAtom>
@@ -85,9 +82,11 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
   let onFieldCreated: OnFieldCreatedAction | undefined
 
   const createFieldElement = (
-    element: FieldsAtomizeInitState,
+    element:
+      | FieldsAtomizeInitState
+      | FieldsAtomizeInitStateRecord[keyof FieldsAtomizeInitStateRecord],
     name: string,
-  ): FieldsAtomize<typeof element> => {
+  ) => {
     if (isFieldAtom(element)) {
       return element
     } else if (
@@ -113,9 +112,10 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
             withCallHook((payload) => onFieldCreated?.(payload)),
           )
 
-          // @ts-ignore FieldArrayAtom is confliting with FieldAtom
+          // @ts-expect-error FieldArrayAtom is confliting with FieldAtom
           fields[key] = fieldArray
         } else {
+          // @ts-expect-error FieldAtom is confliting with FieldArrayAtom
           fields[key] = createFieldElement(value, `${name}.${key}`)
         }
       }

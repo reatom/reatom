@@ -1,6 +1,6 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-import type { AbortExt, AsyncDataExt, AsyncExt, FieldError } from '../'
+import type { AbortExt, AsyncDataExt, AsyncExt, FieldArrayAtom, FieldError, Rec } from '../'
 import {
   type Action,
   action,
@@ -9,7 +9,6 @@ import {
   isCausedBy,
   isFieldArrayAtom,
   isFieldAtom,
-  isLinkedListAtom,
   isRec,
   LL_NEXT,
   named,
@@ -21,10 +20,7 @@ import {
   wrap,
 } from '../'
 import { type FieldAtom } from './reatomField'
-import type {
-  FieldsAtomize,
-  FieldsAtomizeInitStateRecord,
-} from './reatomFieldsAtomize'
+import type { FieldsAtomize } from './reatomFieldsAtomize'
 import type {
   FieldSetInitState,
   FieldSetState,
@@ -191,10 +187,10 @@ export interface FormOptionsWithoutSchema<
 }
 
 // TODO: add support for FieldArrayAtom
-const resolveFieldByPath = (
+const resolveFieldByPath = <InitState extends FieldSetInitState & Rec>(
   path: StandardSchemaV1.Issue['path'],
-  acc: FieldSetState<FieldSetInitState>,
-): FieldAtom | null => {
+  acc: FieldsAtomize<InitState> & Rec,
+): FieldAtom | FieldArrayAtom | null => {
   if (!path?.length) return null
 
   const shiftedPath = [...path]
@@ -209,8 +205,9 @@ const resolveFieldByPath = (
   const field = acc[key]
   if (!field) return null
 
-  if (isLinkedListAtom(field)) {
-    return resolveFieldByPath(shiftedPath, field.array())
+  if (isFieldArrayAtom(field)) {
+    if(!shiftedPath.length) return field
+    else return resolveFieldByPath(shiftedPath, field.array())
   } else if (isFieldAtom(field)) {
     return field as FieldAtom
   } else {
@@ -273,7 +270,7 @@ export function reatomForm<
     schema,
   } = options
 
-  const setupField = (field: FieldAtom) => {
+  const setupField = (field: FieldAtom | FieldArrayAtom) => {
     field.options.extend(
       withInit((options) => {
         return {
@@ -298,13 +295,10 @@ export function reatomForm<
 
   const fieldSet = reatomFieldSet<InitState>(initState, name)
 
-  const setupFields = (
-    element: FieldsAtomize<
-      FieldsAtomizeInitStateRecord[keyof FieldsAtomizeInitStateRecord]
-    >,
-    insideHook = false,
-  ) => {
+  const setupFields = (element: unknown, insideHook = false) => {
     if (isFieldArrayAtom(element)) {
+      setupField(element)
+      
       if (insideHook) element.array().forEach((el) => setupFields(el, true))
       else {
         element.extend(
@@ -321,7 +315,7 @@ export function reatomForm<
     } else if (isRec(element)) {
       Object.values(element).forEach((element) => setupFields(element))
     } else if (isFieldAtom(element)) {
-      setupField(element)
+      setupField(element as FieldAtom)
     }
   }
 
@@ -347,7 +341,7 @@ export function reatomForm<
     const validation = schema['~standard'].validate(state)
 
     const placeErrors = (result: StandardSchemaV1.Result<SchemaState>) => {
-      const touched = new Map<FieldAtom, FieldError[]>()
+      const touched = new Map<FieldAtom | FieldArrayAtom, FieldError[]>()
 
       if (result.issues) {
         for (const issue of result.issues) {
@@ -365,7 +359,7 @@ export function reatomForm<
         }
       }
 
-      for (const field of fieldSet.fieldsList()) {
+      for (const field of [...fieldSet.fieldsList(), ...fieldSet.fieldArraysList()]) {
         const placedErrors = touched.get(field)
         if (!placedErrors) {
           if (field.validation.errors().find((e) => e.source == 'schema'))
