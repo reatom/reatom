@@ -10,6 +10,7 @@ import { withCallHook } from '../extensions'
 import {
   type LinkedList,
   type LinkedListAtom,
+  LL_NEXT,
   type LLNode,
   reatomLinkedList,
 } from '../primitives'
@@ -36,12 +37,12 @@ export type FieldArrayOptions<
   BaseFieldExtOptions<
     FieldArrayState<Node>,
     FieldArrayLLNode<Node>[],
-    [initState: FieldArrayInitState<Param>[]]
+    [initState: FieldArrayInitState<Param>[]],
+    FieldArrayLLNode<Node>[]
   >,
-  'getValue' | 'initStateAtom'
+  'getValue' | 'getNormalizedState' | 'initStateAtom'
 > & {
-  create: (param: Param, name: string) => Node
-  initState?: Param[]
+  create?: (param: Param, name: string) => Node
   name?: string
 }
 
@@ -76,12 +77,10 @@ export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
  *
  * @param initState
  */
-export function reatomFieldArray<
-  Param extends FieldsAtomizeInitState | FieldsAtomizeInitState[],
->(
+export function reatomFieldArray<Param extends FieldsAtomizeInitState>(
   initState: Param extends any[] ? Param : Param[],
   name?: string,
-): FieldArrayAtom<(typeof initState)[number], (typeof initState)[number]>
+): FieldArrayAtom<Param, Param>
 
 /**
  * TODO
@@ -114,12 +113,19 @@ export function reatomFieldArray<
  *
  * @param create
  */
+export function reatomFieldArray<Param extends FieldsAtomizeInitState>(
+  initState: Param extends any[] ? Param : Param[],
+  options: FieldArrayOptions<Param, Param>,
+): FieldArrayAtom<Param, Param>
+
+/**
+ * TODO
+ *
+ * @param create
+ */
 export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
   initState: Param[],
-  options: {
-    create: (param: Param, name: string) => Node
-    name?: string
-  },
+  options: FieldArrayOptions<Param, Node>,
 ): FieldArrayAtom<Param, Node>
 
 export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
@@ -127,14 +133,12 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     | Param[]
     | ((params: Param, name: string) => Node)
     | FieldArrayOptions<Param, Node>,
-  nameOrOptions?:
-    | string
-    | { create: (param: Param, name: string) => Node; name?: string },
+  nameOrOptions?: string | FieldArrayOptions<Param, Node>,
 ): FieldArrayAtom<Param, Node> {
   interface This extends FieldArrayAtom<Param, Node> {}
 
   const {
-    create,
+    create = (param: Param) => param as unknown as Node,
     initState = [],
     name: optionsName,
     ...restOptions
@@ -143,11 +147,8 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     : Array.isArray(optionsOrInitState)
       ? typeof nameOrOptions === 'object'
         ? { ...nameOrOptions, initState: optionsOrInitState }
-        : {
-            create: (param: Param) => param as unknown as Node,
-            initState: optionsOrInitState,
-          }
-      : optionsOrInitState
+        : { initState: optionsOrInitState }
+      : { ...optionsOrInitState }
 
   const name =
     (typeof nameOrOptions === 'string' ? nameOrOptions : nameOrOptions?.name) ||
@@ -188,6 +189,16 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
   ).extend(
     withBaseField({
       initStateAtom,
+      getNormalizedState: (state) => {
+        // TODO decouple into a function (including a reatomForm one)
+        const elements = [];
+        let head = state.head;
+        while (head) {
+          elements.push(head);
+          head = head[LL_NEXT];
+        }
+        return elements;
+      },
       getValue: (): FieldArrayLLNode<Node>[] => fieldArrayAtom.array(),
       ...restOptions,
     }),

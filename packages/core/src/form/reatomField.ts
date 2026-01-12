@@ -31,7 +31,7 @@ export interface FieldExt<State = any, Value = State> extends BaseFieldExt<
 
 export interface FieldExtOptions<State = any, Value = State> extends Omit<
   BaseFieldExtOptions<State, Value>,
-  'isDirty' | 'initStateAtom' | 'getValue'
+  'isDirty' | 'initStateAtom' | 'getValue' | 'getNormalizedState'
 > {
   /**
    * The callback to filter "value" changes (from the 'change' action). It
@@ -63,7 +63,7 @@ export interface FieldExtOptions<State = any, Value = State> extends Omit<
    *     },
    *   })
    */
-  toState?: (value: Value, self: FieldAtom<State, Value>) => State
+  toState?: (value: NoInfer<Value>, self: FieldAtom<State, Value>) => State
 
   /**
    * The callback used to determine whether the "value" has changed. By default,
@@ -207,7 +207,7 @@ export interface FieldAtom<State = any, Value = State>
  * @param options
  */
 export function reatomField<State>(
-  initState: State,
+  initState: State extends any[] ? State[number] : State,
   options?: string | FieldOptions<State, State>,
 ): FieldAtom<State, State>
 

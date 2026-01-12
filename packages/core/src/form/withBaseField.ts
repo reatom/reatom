@@ -126,21 +126,30 @@ export interface BaseFieldExtOptions<
   State = any,
   Value = State,
   InitStateParams extends unknown[] = [initState: State],
+  NormalizedState = State,
 > {
-  /**
-   * The callback used to determine whether the state has changed (dirty check).
-   * By default, it utilizes `isDeepEqual` from reatom/utils comparing states.
-   */
-  isDirty?: (newState: State, prevState: State) => boolean
-
   /**
    * Optional callback to get value for validation. By default returns the field
    * state.
    */
-  getValue?: () => Value
+  getValue?: (state: State) => Value
+
+  /**
+   * Optional callback to normalize the state before pass it to callbacks such
+   * as `validate` or `isDirty`. By default returns the field state.
+   */
+  getNormalizedState?: (state: State) => NormalizedState
+
+  /**
+   * The callback used to determine whether the state has changed (dirty check).
+   * By default, it utilizes `isDeepEqual` from reatom/utils comparing states.
+   */
+  isDirty?: (newState: NormalizedState, prevState: NormalizedState) => boolean
 
   /** The callback to validate the field. */
-  validate?: FieldValidateOption<State, Value> | StandardSchemaV1<State>
+  validate?:
+    | FieldValidateOption<NoInfer<NormalizedState>, Value>
+    | StandardSchemaV1<NoInfer<NormalizedState>>
 
   /**
    * Defines if the field is disabled by default.
@@ -399,16 +408,21 @@ export const withBaseField =
     Target extends Atom,
     Value = AtomState<Target>,
     InitStateParams extends unknown[] = [initState: AtomState<Target>],
+    NormalizedState = AtomState<Target>,
   >(
-    options: BaseFieldExtOptions<AtomState<Target>, Value, InitStateParams>,
+    options: BaseFieldExtOptions<
+      AtomState<Target>,
+      Value,
+      InitStateParams,
+      NormalizedState
+    >,
   ): AssignerExt<BaseFieldExt<AtomState<Target>, InitStateParams>, Target> =>
   (target) => {
-    type State = AtomState<Target>
-
     const {
-      isDirty = (newState: State, prevState: State) =>
+      isDirty = (newState: NormalizedState, prevState: NormalizedState) =>
         !isDeepEqual(newState, prevState),
-      getValue = () => target(),
+      getValue = (state) => state,
+      getNormalizedState = (state) => state,
       validate: validateFn,
       disabled: disabledInit = false,
       elementRef: elementRefInit,
@@ -487,7 +501,10 @@ export const withBaseField =
       )
       .extend(
         withComputed((state) => {
-          const dirty = isDirty(target(), initStateAtom())
+          const dirty = isDirty(
+            getNormalizedState(target()),
+            getNormalizedState(initStateAtom()),
+          )
           return state.dirty === dirty ? state : { ...state, dirty }
         }),
       )
@@ -515,7 +532,7 @@ export const withBaseField =
 
           if (disabled()) return fieldInitValidation
 
-          target()
+          getValue(target())
           const firstError = peek(validation.errors)[0]?.message
           return state.triggered
             ? { ...state, error: firstError, triggered: false }
@@ -541,26 +558,35 @@ export const withBaseField =
             return validationTarget.merge({ triggered: true })
 
           if (typeof validateFn !== 'function') {
+            const state = target()
             const propsToMerge = runValidation({
               validateFn,
               validationAtom: validationTarget,
               validationState,
               focus: focus(),
-              state: target(),
-              value: getValue(),
+              state: getNormalizedState(state),
+              value: getValue(state),
               keepErrorDuringValidating,
             })
             return validationTarget.merge(propsToMerge)
           } else {
             return effect(() => {
+              const validationArgs = peek(() => {
+                const state = target()
+                return {
+                  focus: focus(),
+                  state: getNormalizedState(state),
+                  value: getValue(state),
+                  keepErrorDuringValidating:
+                    fieldOptions.value().keepErrorDuringValidating,
+                }
+              })
+
               const propsToMerge = runValidation({
                 validateFn,
                 validationAtom: validationTarget,
                 validationState,
-                state: peek(target),
-                focus: peek(focus),
-                value: peek(getValue),
-                keepErrorDuringValidating,
+                ...validationArgs,
               })
               return validationTarget.merge(propsToMerge)
             }, `${validationTarget.name}.trigger.validationEffect`)()

@@ -1,6 +1,13 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
-import type { AbortExt, AsyncDataExt, AsyncExt, FieldArrayAtom, FieldError, Rec } from '../'
+import type {
+  AbortExt,
+  AsyncDataExt,
+  AsyncExt,
+  FieldArrayAtom,
+  FieldError,
+  Rec,
+} from '../'
 import {
   type Action,
   action,
@@ -206,7 +213,7 @@ const resolveFieldByPath = <InitState extends FieldSetInitState & Rec>(
   if (!field) return null
 
   if (isFieldArrayAtom(field)) {
-    if(!shiftedPath.length) return field
+    if (!shiftedPath.length) return field
     else return resolveFieldByPath(shiftedPath, field.array())
   } else if (isFieldAtom(field)) {
     return field as FieldAtom
@@ -298,7 +305,6 @@ export function reatomForm<
   const setupFields = (element: unknown, insideHook = false) => {
     if (isFieldArrayAtom(element)) {
       setupField(element)
-      
       if (insideHook) element.array().forEach((el) => setupFields(el, true))
       else {
         element.extend(
@@ -319,8 +325,8 @@ export function reatomForm<
     }
   }
 
-  setupFields(fieldSet.fields)
-  fieldSet.onFieldCreated?.extend(withCallHook(setupField))
+  setupFields(fieldSet.fields) 
+  fieldSet.onFieldCreated?.extend(withCallHook(field => setupFields(field, true)))
 
   const submitted = atom(false, `${name}.submitted`)
 
@@ -359,7 +365,10 @@ export function reatomForm<
         }
       }
 
-      for (const field of [...fieldSet.fieldsList(), ...fieldSet.fieldArraysList()]) {
+      for (const field of [
+        ...fieldSet.fieldsList(),
+        ...fieldSet.fieldArraysList(),
+      ]) {
         const placedErrors = touched.get(field)
         if (!placedErrors) {
           if (field.validation.errors().find((e) => e.source == 'schema'))
