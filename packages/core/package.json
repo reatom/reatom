@@ -14,6 +14,12 @@
   "browserslist": [
     "last 1 year"
   ],
+  "minify": {
+    "mangle": false,
+    "format": {
+      "beautify": true
+    }
+  },
   "scripts": {
     "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run build",
     "build": "microbundle -f esm,cjs --raw",
@@ -42,7 +48,7 @@
   "bugs": {
     "url": "https://github.com/reatom/reatom/issues"
   },
-  "homepage": "https://www.reatom.dev/package/core",
+  "homepage": "https://v1000.reatom.dev/",
   "keywords": [
     "state",
     "store",
