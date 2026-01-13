@@ -9,7 +9,7 @@ import {
   top,
   withMiddleware,
 } from '../core'
-import { abortVar, getCalls, ifChanged } from '../methods'
+import { abortVar, getCalls, ifChanged, retryComputed } from '../methods'
 import type { Fn } from '../utils'
 import { assert, isAbort } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
@@ -257,11 +257,11 @@ export let withAsync: {
         }, frame),
       )
 
+      retryComputed(pending)
+
       if (!target.__reatom.reactive) {
         state.at(-1)!.payload = promise
       }
-
-      pending()
 
       if (resetError === 'onCall') error.set(emptyError)
 

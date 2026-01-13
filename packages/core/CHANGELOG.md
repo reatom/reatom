@@ -1,3 +1,9 @@
+## 1000.4.1 (2026-01-13)
+
+### Fix
+
+- **async**: negative pending in withAsync
+
 ## 1000.4.0 (2025-12-21)
 
 ### Feat
