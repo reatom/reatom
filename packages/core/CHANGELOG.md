@@ -1,3 +1,9 @@
+## 1000.4.2 (2026-01-13)
+
+### Fix
+
+- **methods**: retry subscribed computed #1234
+
 ## 1000.4.1 (2026-01-13)
 
 ### Fix

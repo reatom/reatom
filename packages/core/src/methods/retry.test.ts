@@ -1,4 +1,4 @@
-import { expect, test, viTest } from 'test'
+import { expect, test } from 'test'
 
 import { withAsync } from '../async'
 import { action, computed } from '../core'
@@ -14,8 +14,7 @@ test('action retry disabled by default', async () => {
   expect(() => retryComputed(fetch)).toThrow('Only reactive atoms can be reset')
 })
 
-// FIXME see #1234
-viTest.skip(
+test(
   'retryComputed should recalculate dependent computeds',
   async () => {
     const computedA = computed(() => Math.random(), 'computedA')

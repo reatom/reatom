@@ -387,7 +387,7 @@ export let isWritableAtom = (value: any): value is Atom => {
   return isAtom(value) && value.set !== undefined
 }
 
-let mark = (frame: Frame) => {
+export let _mark = (frame: Frame) => {
   // console.log(COLOR.dimGreen('mark'), frame.atom.name)
 
   for (let i = 0; i < frame.subs.length; i++) {

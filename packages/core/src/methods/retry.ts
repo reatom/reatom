@@ -1,5 +1,5 @@
 import type { Action, AtomLike } from '../core'
-import { ReatomError } from '../core'
+import { _mark, ReatomError } from '../core'
 import { context } from '../core'
 import { _copy } from '../core'
 
@@ -22,6 +22,9 @@ export const reset = <T extends AtomLike>(target: T) => {
   let targetFrame = store.get(target)
   if (targetFrame) {
     _copy(targetFrame).pubs.splice(1)
+    if (targetFrame.subs.length > 0) {
+      _mark(targetFrame)
+    }
   }
 }
 
