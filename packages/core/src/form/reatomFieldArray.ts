@@ -47,7 +47,7 @@ export type FieldArrayOptions<
 }
 
 type FieldArrayInitState<T> = {
-  [K in keyof T]: T[K] extends FieldArrayAtom<infer Param, infer _Node>
+  [K in keyof T]: [T[K]] extends FieldArrayAtom<infer Param, infer _Node>
     ? Param[]
     : FieldArrayInitState<T[K]>
 }
@@ -77,8 +77,18 @@ export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
  *
  * @param initState
  */
+export function reatomFieldArray<Params extends any[]>(
+  initState: Params extends FieldsAtomizeInitState[] ? Params : never,
+  name?: string,
+): FieldArrayAtom<Params[number], Params[number]>
+
+/**
+ * TODO
+ *
+ * @param initState
+ */
 export function reatomFieldArray<Param extends FieldsAtomizeInitState>(
-  initState: Param extends any[] ? Param : Param[],
+  initState: Param[],
   name?: string,
 ): FieldArrayAtom<Param, Param>
 
@@ -113,10 +123,10 @@ export function reatomFieldArray<
  *
  * @param create
  */
-export function reatomFieldArray<Param extends FieldsAtomizeInitState>(
-  initState: Param extends any[] ? Param : Param[],
-  options: FieldArrayOptions<Param, Param>,
-): FieldArrayAtom<Param, Param>
+export function reatomFieldArray<Params extends any[]>(
+  initState: Params extends FieldsAtomizeInitState[] ? Params : never,
+  options: FieldArrayOptions<Params[number], Params[number]>,
+): FieldArrayAtom<Params[number], Params[number]>
 
 /**
  * TODO
@@ -191,13 +201,13 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
       initStateAtom,
       getNormalizedState: (state) => {
         // TODO decouple into a function (including a reatomForm one)
-        const elements = [];
-        let head = state.head;
+        const elements = []
+        let head = state.head
         while (head) {
-          elements.push(head);
-          head = head[LL_NEXT];
+          elements.push(head)
+          head = head[LL_NEXT]
         }
-        return elements;
+        return elements
       },
       getValue: (): FieldArrayLLNode<Node>[] => fieldArrayAtom.array(),
       ...restOptions,

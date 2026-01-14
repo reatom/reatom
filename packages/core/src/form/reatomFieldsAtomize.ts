@@ -1,7 +1,11 @@
 import { type Action, action, named } from '../core'
 import { withCallHook } from '../extensions'
 import { isRec } from '../utils'
-import { type FieldAtom, type FieldOptions, reatomField } from './reatomField'
+import {
+  type FieldAtom,
+  reatomField,
+  type TransformableFieldExtOptions,
+} from './reatomField'
 import {
   type FieldArrayAtom,
   isFieldArrayAtom,
@@ -43,10 +47,12 @@ export type FieldsAtomize<Element> = [Element] extends [FieldLikeAtom]
         ? Item extends FieldsAtomizeInitState
           ? FieldArrayAtom<Item, Item>
           : never
-        : [Element] extends [FieldOptions & { initState: infer State }]
-          ? Element extends FieldOptions<State, State>
+        : [Element] extends [
+              TransformableFieldExtOptions & { initState: infer State },
+            ]
+          ? Element extends TransformableFieldExtOptions<State, State>
             ? FieldAtomFromDeprecatedFieldOptions<State>
-            : Element extends FieldOptions<State, infer Value>
+            : Element extends TransformableFieldExtOptions<State, infer Value>
               ? FieldAtomFromDeprecatedFieldOptions<State, Value>
               : { initState: State } extends Element
                 ? FieldAtomFromDeprecatedFieldOptions<State, State>
@@ -82,9 +88,7 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
   let onFieldCreated: OnFieldCreatedAction | undefined
 
   const createFieldElement = (
-    element:
-      | FieldsAtomizeInitState
-      | FieldsAtomizeInitStateRecord[keyof FieldsAtomizeInitStateRecord],
+    element: FieldsAtomizeInitState,
     name: string,
   ) => {
     if (isFieldAtom(element)) {
@@ -136,10 +140,10 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
 }
 
 /** @deprecated Will be removed in next major release */
-interface FieldSetFieldOptions<State = any, Value = State> extends FieldOptions<
-  State,
-  Value
-> {
+interface FieldSetFieldOptions<
+  State = any,
+  Value = State,
+> extends TransformableFieldExtOptions<State, Value> {
   initState: State
 }
 

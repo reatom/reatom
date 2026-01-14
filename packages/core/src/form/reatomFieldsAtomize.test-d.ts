@@ -18,7 +18,7 @@ test(`fields type inference from init state`, () => {
     numberExt: atom(0).extend(
       withField({
         fromState: (state) => String(state),
-        toState: (value: string) => Number(value),
+        toState: (value: string) => Number(value), // TODO: make sure we dont need to specify type here
       }),
     ),
     options: { initState: 123 },
@@ -54,7 +54,7 @@ test(`correct primitives and built-in inferences`, () => {
     number: 0,
     bigint: BigInt(0),
     boolean: false,
-    enum: 'a' as ('a' | 'b' | 'c'),
+    enum: 'a' as 'a' | 'b' | 'c',
     dateOrField: new Date() as Date | File,
     record: {
       date: new Date(),
@@ -65,11 +65,21 @@ test(`correct primitives and built-in inferences`, () => {
   expectTypeOf(element.fields.string).toEqualTypeOf<FieldAtom<string, string>>()
   expectTypeOf(element.fields.number).toEqualTypeOf<FieldAtom<number, number>>()
   expectTypeOf(element.fields.bigint).toEqualTypeOf<FieldAtom<bigint, bigint>>()
-  expectTypeOf(element.fields.boolean).toEqualTypeOf<FieldAtom<boolean, boolean>>()
-  expectTypeOf(element.fields.enum).toEqualTypeOf<FieldAtom<'a' | 'b' | 'c', 'a' | 'b' | 'c'>>()
-  expectTypeOf(element.fields.dateOrField).toEqualTypeOf<FieldAtom<Date | File, Date | File>>()
-  expectTypeOf(element.fields.record.date).toEqualTypeOf<FieldAtom<Date, Date>>()
-  expectTypeOf(element.fields.record.file).toEqualTypeOf<FieldAtom<File, File>>()
+  expectTypeOf(element.fields.boolean).toEqualTypeOf<
+    FieldAtom<boolean, boolean>
+  >()
+  expectTypeOf(element.fields.enum).toEqualTypeOf<
+    FieldAtom<'a' | 'b' | 'c', 'a' | 'b' | 'c'>
+  >()
+  expectTypeOf(element.fields.dateOrField).toEqualTypeOf<
+    FieldAtom<Date | File, Date | File>
+  >()
+  expectTypeOf(element.fields.record.date).toEqualTypeOf<
+    FieldAtom<Date, Date>
+  >()
+  expectTypeOf(element.fields.record.file).toEqualTypeOf<
+    FieldAtom<File, File>
+  >()
 })
 
 describe(`correct field array type inference`, () => {

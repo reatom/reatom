@@ -129,7 +129,7 @@ test(`toState and fromState`, async () => {
     {
       name: 'fieldAtom',
       fromState: (state) => state.value,
-      toState: (value: number) => ({ label, value }),
+      toState: (value) => ({ label, value }),
     },
   )
 

@@ -41,6 +41,18 @@ export interface FieldExtOptions<State = any, Value = State> extends Omit<
   filter?: (newValue: Value, prevValue: Value) => boolean
 
   /**
+   * The callback used to determine whether the "value" has changed. By default,
+   * it utilizes `isDeepEqual` from reatom/utils.
+   */
+  isDirty?: (newValue: Value, prevValue: Value) => boolean
+}
+
+/** TODO */
+export interface TransformableFieldExtOptions<
+  State = any,
+  Value = State,
+> extends FieldExtOptions<State, Value> {
+  /**
    * The callback to compute the "value" data from the "state" data. By default,
    * it returns the "state" data without any transformations.
    */
@@ -63,32 +75,7 @@ export interface FieldExtOptions<State = any, Value = State> extends Omit<
    *     },
    *   })
    */
-  toState?: (value: NoInfer<Value>, self: FieldAtom<State, Value>) => State
-
-  /**
-   * The callback used to determine whether the "value" has changed. By default,
-   * it utilizes `isDeepEqual` from reatom/utils.
-   */
-  isDirty?: (newValue: Value, prevValue: Value) => boolean
-}
-
-/** TODO */
-export interface TransformableFieldExtOptions<State, Value> extends Omit<
-  FieldExtOptions<State, Value>,
-  'fromState' | 'toState'
-> {
-  /**
-   * The callback to compute the "value" data from the "state" data. By default,
-   * it returns the "state" data without any transformations.
-   */
-  fromState: (state: State, self: FieldAtom<State, Value>) => Value
-
-  /**
-   * The callback to transform the "state" data from the "value" data from the
-   * `change` action. By default, it returns the "value" data without any
-   * transformations.
-   */
-  toState: (value: Value, self: FieldAtom<State, Value>) => State
+  toState?: (value: Value, self: FieldAtom<State, Value>) => State
 }
 
 /**
@@ -105,23 +92,21 @@ export function withField<T extends Atom>(
  *
  * @param options
  */
-export function withField<T extends Atom, State>(
-  options?: FieldExtOptions<State, State>,
-): (anAtom: T) => T & FieldExt<State, State>
+export function withField<T extends Atom, State = AtomState<T>, Value = State>(
+  options?: TransformableFieldExtOptions<State, Value>,
+): (anAtom: T) => T & FieldExt<State, Value>
 
 /**
  * TODO
  *
  * @param options
  */
-export function withField<T extends Atom, State, Value>(
-  options?: TransformableFieldExtOptions<State, Value>,
-): (anAtom: T) => T & FieldExt<State, Value>
+export function withField<T extends Atom, State>(
+  options?: FieldExtOptions<State, State>,
+): (anAtom: T) => T & FieldExt<State, State>
 
 export function withField<T extends Atom, State = AtomState<T>, Value = State>(
-  options:
-    | FieldExtOptions<State, Value>
-    | TransformableFieldExtOptions<State, Value> = {},
+  options: TransformableFieldExtOptions<State, Value> = {},
 ): (anAtom: T) => T & FieldExt<State, Value> {
   return (target) => {
     const {
@@ -206,20 +191,20 @@ export interface FieldAtom<State = any, Value = State>
  *
  * @param options
  */
-export function reatomField<State>(
-  initState: State extends any[] ? State[number] : State,
-  options?: string | FieldOptions<State, State>,
-): FieldAtom<State, State>
+export function reatomField<State, Value = State>(
+  initState: State,
+  options: TransformableFieldOptions<State, Value>,
+): FieldAtom<State, Value>
 
 /**
  * TODO
  *
  * @param options
  */
-export function reatomField<State, Value>(
-  initState: State,
-  options: TransformableFieldOptions<State, Value>,
-): FieldAtom<State, Value>
+export function reatomField<State>(
+  initState: State extends any[] ? State[number] : State,
+  options?: string | FieldOptions<State, State>,
+): FieldAtom<State, State>
 
 export function reatomField<State, Value = State>(
   initState: State,
