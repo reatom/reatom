@@ -47,30 +47,31 @@ let maybeAtomLog = (thing: any) =>
  *   }
  *   globalThis.LOG = log
  *
- *   // Use anywhere in your code
- *   const myAtom = atom((ctx) => {
- *     const value = ctx.spy(someAtom)
- *     LOG('Current value:', value)
- *     return value * 2
- *   })
- *
  * @example
- *   // In actions
- *   const myAction = action((ctx, payload) => {
- *     LOG('Action called with:', payload)
- *     // ... action logic
- *   })
+ *   const fetchSome = action(() => {
+ *     const payload = a() + b() + c() // ...
+ *     // Log intermediate data
+ *     LOG('Call api with:', payload) // the log will display that it in the 'fetchSome' action
+ *     return api(payload)
+ *   }, 'fetchSome')
  *
  * @example
  *   // Multiple arguments like console.log
  *   LOG('Debug info:', { foo: 'bar' }, [1, 2, 3])
  *
  * @example
+ *   export const Input = props => {
+ *   // Use anywhere in your code
+ *   LOG('Render Input', props)
+ *   return <input {...props} />
+ *   }
+ *
+ * @example
  *   // Extend LOG with custom behavior using withCallHook
  *   import { withCallHook } from '@reatom/core'
  *
  *   LOG.extend(
- *     withCallHook((ctx, params) => {
+ *     withCallHook((payload, params) => {
  *       // Send logs to a remote service
  *       sendToAnalytics({ level: 'debug', args: params })
  *     }),
