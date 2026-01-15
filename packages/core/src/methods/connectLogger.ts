@@ -18,6 +18,8 @@ let maybeAtomLog = (thing: any) =>
     ? `[${isAction(thing) ? 'Action' : 'Atom'} ${thing.name}]`
     : thing
 
+const stateLogMap = new Map<string, any>()
+
 /**
  * A special logging action for debugging Reatom applications.
  *
@@ -67,6 +69,11 @@ let maybeAtomLog = (thing: any) =>
  *   }
  *
  * @example
+ *   // Log state changes only when data changes
+ *   // This will return the data and log it only if it has changed
+ *   const data = LOG.state('data', useSomeData())
+ *
+ * @example
  *   // Extend LOG with custom behavior using withCallHook
  *   import { withCallHook } from '@reatom/core'
  *
@@ -79,9 +86,16 @@ let maybeAtomLog = (thing: any) =>
  *
  * @see {@link connectLogger} - Must be called to enable logging output
  */
-export let log = /* @__PURE__ */ (() => {
-  return action<any[]>((...args) => args, 'LOG')
-})()
+export let log = /* @__PURE__ */ (() =>
+  action<any[]>((...args) => args, 'LOG').extend((target) => ({
+    state<T>(name: string, data: T): T {
+      if (!stateLogMap.has(name) || !Object.is(stateLogMap.get(name), data)) {
+        stateLogMap.set(name, data)
+        target(name, data)
+      }
+      return data
+    },
+  })))()
 
 let isNewLogStack = true
 
@@ -131,6 +145,8 @@ export let connectLogger = ({
   let logExt = <T extends AtomLike>(target: T): T => {
     if (isSkip(target)) return target
 
+    // @ts-ignore
+    let isLogMethod = target === log
     let title = `%c ${target.name}`
     let isOnReject = target.name.endsWith('.onReject')
     let isOnFulfill = target.name.endsWith('.onFulfill')
@@ -179,14 +195,14 @@ export let connectLogger = ({
         }
         console.groupCollapsed(`${_title}${getSerial()}`, _style)
         if (isNodeEnv) {
-          if (target === log && !error) {
+          if (isLogMethod && !error) {
             console.log(...payload)
           } else if (!isAborted) {
             console.log(error ?? maybeAtomLog(payload))
           }
         }
         cb()
-        if (!isNodeEnv && target !== log) console.log('frame:', top())
+        if (!isNodeEnv && !isLogMethod) console.log('frame:', top())
         const stack = getStackTrace()
         if (stack && stack.includes('\n')) {
           console.log(stack)
@@ -194,7 +210,7 @@ export let connectLogger = ({
         console.groupEnd()
 
         if (!isNodeEnv) {
-          if (target === log && !error) {
+          if (isLogMethod && !error) {
             console.log(...payload)
           } else if (!isAborted) {
             console.log(error ?? maybeAtomLog(payload))
@@ -265,7 +281,7 @@ export let connectLogger = ({
                       payload,
                       error,
                       () => {
-                        if (target !== log) {
+                        if (!isLogMethod) {
                           params.forEach((param, i) =>
                             console.log(`param ${i + 1}:`, maybeAtomLog(param)),
                           )

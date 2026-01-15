@@ -2,7 +2,7 @@ import { expect, test, vi } from 'test'
 
 import { sleep, wrap } from '..'
 import { atom, computed, notify, withActions } from '../core'
-import { connectLogger } from './connectLogger'
+import { connectLogger, log } from './connectLogger'
 import { getStackTrace } from './getStackTrace'
 
 test('calc deps graph', async () => {
@@ -105,6 +105,40 @@ test('connectLogger match', () => {
   const logs = consoleSpy.mock.calls.map((call) => call[0])
   expect(logs.some((log) => String(log).includes('allowed'))).toBe(true)
   expect(logs.some((log) => String(log).includes('blocked'))).toBe(false)
+
+  vi.restoreAllMocks()
+})
+
+test('log.state logs only when data changes', () => {
+  vi.spyOn(console, 'groupCollapsed').mockImplementation(() => {})
+  vi.spyOn(console, 'groupEnd').mockImplementation(() => {})
+  const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+
+  connectLogger()
+  log('test')
+  notify()
+  consoleSpy.mockClear()
+
+  log.state('testKey', 1)
+  notify()
+  // one for the timestamp and one for the log
+  expect(consoleSpy).toHaveBeenCalledTimes(1)
+
+  log.state('testKey', 1)
+  notify()
+  expect(consoleSpy).toHaveBeenCalledTimes(1)
+
+  log.state('testKey', 2)
+  notify()
+  expect(consoleSpy).toHaveBeenCalledTimes(2)
+
+  log.state('testKey', 2)
+  notify()
+  expect(consoleSpy).toHaveBeenCalledTimes(2)
+
+  log.state('differentKey', { value: 1 })
+  notify()
+  expect(consoleSpy).toHaveBeenCalledTimes(3)
 
   vi.restoreAllMocks()
 })

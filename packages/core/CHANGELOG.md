@@ -1,3 +1,15 @@
+## 1000.6.0 (2026-01-16)
+
+### Feat
+
+- **methods**: add log.state to log changes only
+
+## 1000.5.0 (2026-01-15)
+
+### Feat
+
+- **methods**: add log.state to log changes only
+
 ## 1000.4.2 (2026-01-13)
 
 ### Fix
