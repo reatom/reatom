@@ -495,18 +495,47 @@ export function assertFn(fn: unknown): asserts fn is Fn {
   }
 }
 
+export let _trackAction = (target: Action, parentFrame: Frame): Frame => {
+  let targetFrame = parentFrame.root.store.get(target)
+
+  if (targetFrame === undefined) {
+    targetFrame = {
+      error: null,
+      state: [],
+      'var#abort': undefined,
+      atom: target,
+      pubs: [parentFrame.root.frame],
+      subs: [],
+      run,
+      root: parentFrame.root,
+    }
+    parentFrame.root.store.set(target, targetFrame)
+  }
+
+  parentFrame.pubs.push(targetFrame)
+
+  return targetFrame
+}
+
 function subscribe(this: AtomLike, userCb?: Fn) {
   // console.log('subscribe', this.name)
+  let isActionSubscription = false
 
   if (isAction(this)) {
-    throw new ReatomError(
-      'Action cannot be subscribed, use `effect` and `getCalls` instead',
-    )
+    isActionSubscription = true
+    userCb ??= noop
   }
 
   if (userCb !== undefined) {
     return computed(() => {
-      userCb(this())
+      if (isActionSubscription) {
+        const parentFrame = top()
+        const targetFrame = _trackAction(this, parentFrame)
+
+        userCb(targetFrame.state)
+      } else {
+        userCb(this())
+      }
     }, `${this.name}._subscribe`).subscribe()
   }
 

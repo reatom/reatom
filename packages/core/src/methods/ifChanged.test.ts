@@ -17,24 +17,25 @@ test('ifChanged', () => {
   let un = data.subscribe()
 
   expect(log).toBeCalledTimes(1)
+  expect(log).toBeCalledWith(0, undefined, true)
 
   some.set(1)
   notify()
   expect(log).toBeCalledTimes(2)
-  expect(log).toBeCalledWith(1, 0)
+  expect(log).toBeCalledWith(1, 0, false)
 
   un()
   some.set(2)
   data()
   expect(log).toBeCalledTimes(3)
-  expect(log).toBeCalledWith(2, 1)
+  expect(log).toBeCalledWith(2, 1, false)
 
   some.set(3)
   some.set(2) // restore to the prev memo
   notify()
   data()
   expect(log).toBeCalledTimes(3) // should not change
-  expect(log).toBeCalledWith(2, 1)
+  expect(log).toBeCalledWith(2, 1, false)
 })
 
 test('ifChanged few parents', () => {

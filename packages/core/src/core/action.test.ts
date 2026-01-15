@@ -1,8 +1,8 @@
-import { expect, test } from 'test'
+import { expect, test, vi } from 'test'
 
 import { getStackTrace } from '../methods'
 import type { Frame } from './'
-import { _read, action, atom, computed, notify } from './'
+import { _read, action, atom, computed, notify, withMiddleware } from './'
 
 test('action', () => {
   const name = 'action'
@@ -66,3 +66,24 @@ test('no args', () => {
     { params: [], payload: 2 },
   ])
 })
+
+test('subscribe', () => {
+  const act = action((n = 0) => n, 'act')
+  const sub = vi.fn()
+  act.subscribe(sub)
+  expect(sub).toBeCalledTimes(1)
+  expect(sub).toBeCalledWith([])
+
+  act()
+  notify()
+  expect(sub).toBeCalledTimes(2)
+  expect(sub).toBeCalledWith([{ params: [], payload: 0 }])
+
+  act(1)
+  notify()
+  expect(sub).toBeCalledTimes(3)
+  expect(sub).toBeCalledWith([{ params: [1], payload: 1 }])
+})
+
+
+action(() => 123).extend(withMiddleware((target) => (next, ...params) => next(...params)))

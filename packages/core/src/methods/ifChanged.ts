@@ -1,5 +1,5 @@
 import type { Action, ActionState, AtomLike, AtomState, Frame } from '../core'
-import { ReatomError, run, top } from '../core'
+import { _trackAction, ReatomError, top } from '../core'
 import { assert } from '../utils'
 import { _getPrevFrame } from './context'
 import { peek } from './peek'
@@ -39,7 +39,11 @@ export let isChanged = (target: AtomLike): boolean => {
  */
 export const ifChanged = <T extends AtomLike>(
   target: T,
-  cb: (newState: AtomState<T>, oldState?: AtomState<T>) => void,
+  cb: (
+    newState: AtomState<T>,
+    oldState?: AtomState<T>,
+    isFirst?: boolean,
+  ) => void,
 ) => {
   if (!target.__reatom.reactive) {
     throw new ReatomError('atom expected')
@@ -54,9 +58,9 @@ export const ifChanged = <T extends AtomLike>(
   let targetFrame = frame.root.store.get(target)!
 
   if (targetFrame.atom !== prevTargetFrame?.atom) {
-    peek(cb, targetFrame.state)
+    peek(cb, targetFrame.state, undefined, true)
   } else if (!Object.is(targetFrame.state, prevTargetFrame.state)) {
-    peek(cb, targetFrame.state, prevTargetFrame.state)
+    peek(cb, targetFrame.state, prevTargetFrame.state, false)
   }
 }
 
@@ -109,22 +113,7 @@ export const getCalls = <Params extends any[], Payload>(
     : [null]
   let prevTargetFrame = prevPubs[frame.pubs.length] as undefined | ActionFrame
 
-  let targetFrame = frame.root.store.get(target) as undefined | ActionFrame
-
-  if (targetFrame === undefined) {
-    targetFrame = {
-      error: null,
-      state: [],
-      'var#abort': undefined,
-      atom: target,
-      pubs: [frame.root.frame],
-      subs: [],
-      run,
-      root: frame.root,
-    }
-    frame.root.store.set(target, targetFrame)
-  }
-  frame.pubs.push(targetFrame)
+  let targetFrame = _trackAction(target, frame) as ActionFrame
 
   const calls =
     targetFrame.atom !== prevTargetFrame?.atom

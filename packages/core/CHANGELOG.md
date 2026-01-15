@@ -1,7 +1,14 @@
+## 1000.7.0 (2026-01-16)
+
+### Feat
+
+- **core**: allow action subscription
+
 ## 1000.6.0 (2026-01-16)
 
 ### Feat
 
+- **core**: allow action subscription
 - **methods**: add log.state to log changes only
 
 ## 1000.5.0 (2026-01-15)
