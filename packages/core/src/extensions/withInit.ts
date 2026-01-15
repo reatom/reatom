@@ -55,7 +55,9 @@ export let isInit = (): boolean => {
  * @returns {Ext<Target>} An extension that can be applied to an atom
  */
 export let withInit = <Target extends AtomLike>(
-  init: AtomState<Target> | ((state: AtomState<Target>) => AtomState<Target>),
+  init:
+    | AtomState<Target>
+    | ((state: AtomState<Target>, ...params: any[]) => AtomState<Target>),
 ): Ext<Target> => {
   let key = {} // Symbol(`${target.name}.init`)
 
@@ -67,7 +69,9 @@ export let withInit = <Target extends AtomLike>(
           frame.root.inits.set(key, null)
           frame.state =
             typeof init === 'function'
-              ? (init as (state: Target) => Target)(frame.state)
+              ? (
+                  init as (state: AtomState<Target>, ...params: any[]) => Target
+                )(frame.state, ...params)
               : init
         }
 
