@@ -47,7 +47,16 @@ export interface FieldExtOptions<State = any, Value = State> extends Omit<
   isDirty?: (newValue: Value, prevValue: Value) => boolean
 }
 
-/** TODO */
+/**
+ * Extension of FieldExtOptions that adds state/value transformation callbacks.
+ * Use when the internal state and the user-facing value need different types.
+ *
+ * @example
+ *   const priceField = reatomField<number, string>(100.5, {
+ *     fromState: (state) => state.toFixed(2),
+ *     toState: (value) => parseFloat(value),
+ *   })
+ */
 export interface TransformableFieldExtOptions<
   State = any,
   Value = State,
@@ -79,28 +88,34 @@ export interface TransformableFieldExtOptions<
 }
 
 /**
- * TODO
+ * Extends an atom with field capabilities including change handling, focus
+ * tracking, validation, and dirty state management. Useful for enriching smart
+ * atoms with fields capabilities.
  *
- * @param options
+ * @example
+ *   const optionField = reatomEnum(['one', 'two']).extend(withField())
+ *
+ *   optionField.setOne()
+ *   optionField() // 'one'
+ *   optionField.focus().dirty // true after first change
+ *
+ * @example
+ *   // With state/value transformation
+ *   const priceField = atom(100).extend(
+ *     withField({
+ *       fromState: (state) => state.toString(),
+ *       toState: (value) => parseFloat(value),
+ *     }),
+ *   )
  */
 export function withField<T extends Atom>(
   options?: FieldExtOptions<AtomState<T>, AtomState<T>>,
 ): (anAtom: T) => T & FieldExt<AtomState<T>, AtomState<T>>
 
-/**
- * TODO
- *
- * @param options
- */
 export function withField<T extends Atom, State = AtomState<T>, Value = State>(
   options?: TransformableFieldExtOptions<State, Value>,
 ): (anAtom: T) => T & FieldExt<State, Value>
 
-/**
- * TODO
- *
- * @param options
- */
 export function withField<T extends Atom, State>(
   options?: FieldExtOptions<State, State>,
 ): (anAtom: T) => T & FieldExt<State, State>
@@ -164,7 +179,7 @@ export function withField<T extends Atom, State = AtomState<T>, Value = State>(
   }
 }
 
-/** TODO */
+/** Options for creating a field atom via `reatomField`. */
 export interface FieldOptions<
   State = any,
   Value = State,
@@ -173,7 +188,10 @@ export interface FieldOptions<
   name?: string
 }
 
-/** TODO */
+/**
+ * Options for creating a field atom with state/value transformation via
+ * `reatomField`.
+ */
 export interface TransformableFieldOptions<
   State = any,
   Value = State,
@@ -182,7 +200,13 @@ export interface TransformableFieldOptions<
   name?: string
 }
 
-/** TODO */
+/**
+ * Atom representing a form field with built-in support for change handling,
+ * focus tracking, validation, and dirty state.
+ *
+ * @template State - The internal state type stored in the atom.
+ * @template Value - The user-facing value type (defaults to State).
+ */
 export interface FieldAtom<State = any, Value = State>
   extends Atom<State>, FieldExt<State, Value> {}
 

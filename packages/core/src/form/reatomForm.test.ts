@@ -1,14 +1,7 @@
 import { describe, expect, expectTypeOf, test, vi } from 'test'
 import { z } from 'zod'
 
-import {
-  noop,
-  notify,
-  reatomBoolean,
-  sleep,
-  withCallHook,
-  wrap,
-} from '../'
+import { noop, notify, reatomBoolean, sleep, withCallHook, wrap } from '../'
 import {
   type FieldValidateOption,
   reatomField,
@@ -536,7 +529,7 @@ test('validating through form schema and placing errors to corresponding fields'
 
   await wrap(form.submit().catch(noop))
   notify()
-  
+
   expect(form.fields.age.validation().error).toBeTruthy()
   expect(form.fields.email.validation().error).toBeTruthy()
   expect(form.fields.items.validation().error).toBeTruthy()

@@ -29,18 +29,26 @@ import {
 } from './reatomFieldsAtomize'
 import { fieldInitFocus, isFieldAtom } from './withBaseField'
 
+/** Field validation error with a reference to the field where it occurred. */
 export interface FieldSetFieldError extends FieldError {
   field: FieldAtom
 }
 
+/**
+ * Aggregated validation state of a fieldset, computed from all nested fields.
+ * Disabled fields are excluded from validation computations.
+ */
 export interface FieldSetValidation {
   /** The list of field validation errors. */
   errors: FieldSetFieldError[]
 
-  /** The validation actuality status. */
+  /** True if ALL fields in the fieldset have been triggered. */
   triggered: boolean
 
-  /** The field async validation status */
+  /**
+   * Promise resolving to all async validation errors, or undefined if no async
+   * validations are running.
+   */
   validating: undefined | Promise<{ errors: FieldSetFieldError[] }>
 }
 
@@ -52,15 +60,28 @@ export type DeepPartial<T, Skip = never> = {
       : T[K]
 }
 
+/** Initial state structure for creating a fieldset. */
 export type FieldSetInitState = FieldsAtomizeInitStateRecord
 
+/**
+ * Deatomized (plain object) state of the fieldset, derived from all field
+ * values.
+ */
 export type FieldSetState<InitState extends FieldSetInitState> = Deatomize<
   FieldsAtomize<InitState>
 >
 
+/**
+ * Partial state for init/reset operations, allowing partial updates to field
+ * values.
+ */
 export type FieldSetPartialState<InitState extends FieldSetInitState> =
   DeepPartial<FieldSetState<InitState>, Array<unknown>>
 
+/**
+ * Fieldset atom without validation capabilities. Groups related fields and
+ * manages them as a single unit with aggregated focus state.
+ */
 export interface ValidationlessFieldSetAtom<InitState extends FieldSetInitState>
   extends Computed<FieldSetState<InitState>>, FieldsAtomizeModel<InitState> {
   /** Computed list of all the fields from the fields tree */
@@ -90,6 +111,10 @@ export interface ValidationlessFieldSetAtom<InitState extends FieldSetInitState>
   reset: Action<[initState?: FieldSetPartialState<InitState>], void>
 }
 
+/**
+ * Fieldset atom with full validation support. Aggregates validation state from
+ * all nested fields, can be used as a lens over form fields.
+ */
 export interface FieldSetAtom<
   InitState extends FieldSetInitState,
 > extends ValidationlessFieldSetAtom<InitState> {
@@ -103,13 +128,78 @@ export interface FieldSetAtom<
   }
 }
 
+/**
+ * Creates a fieldset that groups related fields and manages them as a single
+ * unit.
+ *
+ * **Use cases:**
+ *
+ * - **Reusable field groups** — create compound fields like `addressFieldSet` to
+ *   reuse across forms
+ * - **Lenses over form** — split a large form into logical sections (e.g., wizard
+ *   steps) with independent validation/focus tracking
+ * - **Aggregated state** — track combined `focus`, `validation`, and values of
+ *   multiple fields
+ *
+ * Provides `fieldsList`/`fieldArraysList` for iteration, `init`/`reset` for
+ * bulk operations. The fieldset itself is a computed atom of all field values.
+ *
+ * @example
+ *   // Reusable field group
+ *   const reatomAddressFieldSet = (name: string) =>
+ *     reatomFieldSet(
+ *       {
+ *         street: '',
+ *         city: '',
+ *         zip: '',
+ *       },
+ *       name,
+ *     )
+ *
+ *   const shippingFieldSet = reatomAddressFieldSet('order.shipping')
+ *   const billingFieldSet = reatomAddressFieldSet('order.billing')
+ *
+ *   const form = reatomForm(
+ *     { shipping: shippingFieldSet, billing: billingFieldSet },
+ *     'order',
+ *   )
+ *
+ * @example
+ *   // Lens over form for wizard steps
+ *   const form = reatomForm(
+ *     {
+ *       name: '',
+ *       email: '',
+ *       address: '',
+ *       phone: '',
+ *     },
+ *     'registration',
+ *   ).extend((form) => ({
+ *     step1: reatomFieldSet(
+ *       { name: form.fields.name, email: form.fields.email },
+ *       `${form.name}.step1`,
+ *     ),
+ *     step2: reatomFieldSet(
+ *       { address: form.fields.address, phone: form.fields.phone },
+ *       `${form.name}.step2`,
+ *     ),
+ *   }))
+ *
+ *   // Each step has independent validation.triggered and focus states
+ *
+ * @param initState - Initial state structure or factory function `(name) =>
+ *   state` for scoped naming
+ * @param name - Debug name for the fieldset
+ * @see {@link https://reatom.dev/handbook/forms/concepts/form/|Form documentation}
+ * @see {@link https://reatom.dev/handbook/forms/concepts/fieldset/|Fieldset documentation}
+ */
 export const reatomFieldSet = <InitState extends FieldSetInitState>(
   initState: InitState | ((name: string) => InitState),
   name: string = named('fieldSet'),
 ): FieldSetAtom<InitState> => {
   const { fields, onFieldCreated } = reatomFieldsAtomize(
     typeof initState == 'function' ? initState(name) : initState,
-    name,
+    `${name}.fields`,
   )
 
   const fieldsList = computed(

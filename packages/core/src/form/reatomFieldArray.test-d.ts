@@ -1,6 +1,6 @@
 import { expectTypeOf, test } from 'test'
 
-import { type FieldAtom,reatomField } from './reatomField'
+import { type FieldAtom, reatomField } from './reatomField'
 import { type FieldArrayAtom, reatomFieldArray } from './reatomFieldArray'
 
 test(`fields type inference from init state`, () => {

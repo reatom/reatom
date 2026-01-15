@@ -4,6 +4,7 @@ import type {
   AbortExt,
   AsyncDataExt,
   AsyncExt,
+  Atom,
   FieldArrayAtom,
   FieldError,
   Rec,
@@ -36,20 +37,56 @@ import type {
 } from './reatomFieldSet'
 import { reatomFieldSet } from './reatomFieldSet'
 
+/**
+ * Type for the form's submit action with async data extensions.
+ *
+ * Provides access to `submit.data` for the last successful result and
+ * `submit.error` for the last error.
+ *
+ * @example
+ *   const form = reatomForm(
+ *     { email: '' },
+ *     {
+ *       onSubmit: async (state, skipDebounce: boolean) => {
+ *         if (!skipDebounce) await wrap(sleep(300))
+ *         return { success: true }
+ *       },
+ *     },
+ *   )
+ *
+ *   const result = await wrap(form.submit(true))
+ *   console.log(form.submit.data()) // { success: true }
+ *
+ * @template Params - Parameters passed to the submit action
+ * @template Return - Return type of the onSubmit callback
+ */
 export type SubmitAction<Params extends any[], Return> = Action<
   Params,
   Promise<Return>
 > &
   AsyncDataExt<Params, Return, Return | undefined, Error | undefined>
 
-/** @deprecated Renamed. Use FormAtom instead */
-export type Form<
-  InitState extends FieldSetInitState = FieldSetInitState,
-  SchemaState = any,
-  SubmitReturn = any,
-  SubmitParams extends any[] = any,
-> = FormAtom<InitState, SchemaState, SubmitReturn, SubmitParams>
-
+/**
+ * Form atom interface extending {@link ValidationlessFieldSetAtom} with
+ * validation, submit handling, and submitted state tracking.
+ *
+ * Form provides:
+ *
+ * - Aggregated `validation` state from all nested fields
+ * - `submit` async action with validation and schema support
+ * - `submitted` state tracking
+ * - Inherits all fieldset features: `fields`, `focus`, `reset`, `fieldsList`,
+ *   etc.
+ *
+ * @template InitState - Initial state structure for form fields
+ * @template SchemaState - Output type from schema validation (undefined if no
+ *   schema)
+ * @template SubmitReturn - Return type of onSubmit callback
+ * @template SubmitParams - Additional parameters for submit action
+ * @see {@link reatomForm} for creation
+ * @see {@link https://reatom.dev/handbook/forms/concepts/form/|Form documentation}
+ * @see {@link https://reatom.dev/handbook/forms/concepts/fieldset/|Fieldset documentation}
+ */
 export interface FormAtom<
   InitState extends FieldSetInitState = FieldSetInitState,
   SchemaState = any,
@@ -84,15 +121,25 @@ export interface FormAtom<
   /**
    * Submit async handler. It checks the validation of all the fields in
    * `fieldsList`, calls the form's `validate` options handler, and then the
-   * `onSubmit` options handler. Check the additional options properties of
-   * async action: https://reatom.dev/handbook/async/.
+   * `onSubmit` options handler.
+   *
+   * @see {@link https://reatom.dev/handbook/async/#basic-async-actions|Async actions documentation}
    */
   submit: SubmitAction<SubmitParams, SubmitReturn>
 
   /** Atom with submitted state of the form */
-  submitted: Computed<boolean>
+  submitted: Atom<boolean>
 }
 
+/**
+ * Base options shared between schema and non-schema form variants.
+ *
+ * These options define form-level defaults that propagate to all fields unless
+ * overridden at the field level.
+ *
+ * @see {@link FormOptionsWithSchema}
+ * @see {@link FormOptionsWithoutSchema}
+ */
 export interface BaseFormOptions {
   name?: string
 
@@ -137,6 +184,32 @@ export interface BaseFormOptions {
   validateOnBlur?: boolean
 }
 
+/**
+ * Form options when using a Standard Schema for validation.
+ *
+ * When a schema is provided, the `onSubmit` callback receives the validated and
+ * transformed output type from the schema, not the raw field values.
+ *
+ * @example
+ *   const form = reatomForm(
+ *     { email: '', age: 0 },
+ *     {
+ *       schema: z.object({
+ *         email: z.string().email(),
+ *         age: z.number().min(18, 'Must be 18+'),
+ *       }),
+ *       onSubmit: (state) => {
+ *         // state is typed as { email: string; age: number }
+ *         console.log(state.email, state.age)
+ *       },
+ *     },
+ *   )
+ *
+ * @template State - The output type from schema validation
+ * @template SubmitReturn - Return type of onSubmit callback
+ * @template SubmitParams - Additional parameters for submit action
+ * @see {@link https://standardschema.dev|Standard Schema documentation}
+ */
 export interface FormOptionsWithSchema<
   State,
   SubmitReturn,
@@ -161,6 +234,30 @@ export interface FormOptionsWithSchema<
   schema: StandardSchemaV1<unknown, State>
 }
 
+/**
+ * Form options without schema validation.
+ *
+ * The `onSubmit` callback receives the raw field values typed according to the
+ * form's initial state structure.
+ *
+ * @example
+ *   const form = reatomForm(
+ *     { email: '', age: 0 },
+ *     {
+ *       onSubmit: (state) => {
+ *         // state is typed as { email: string; age: number }
+ *         sendToServer(state)
+ *       },
+ *       validateBeforeSubmit: (state) => {
+ *         if (!state.email.includes('@')) throw new Error('Invalid email')
+ *       },
+ *     },
+ *   )
+ *
+ * @template InitState - Initial state structure for form fields
+ * @template SubmitReturn - Return type of onSubmit callback
+ * @template SubmitParams - Additional parameters for submit action
+ */
 export interface FormOptionsWithoutSchema<
   InitState extends FieldSetInitState,
   SubmitReturn,
@@ -193,7 +290,6 @@ export interface FormOptionsWithoutSchema<
   schema?: undefined
 }
 
-// TODO: add support for FieldArrayAtom
 const resolveFieldByPath = <InitState extends FieldSetInitState & Rec>(
   path: StandardSchemaV1.Issue['path'],
   acc: FieldsAtomize<InitState> & Rec,
@@ -222,6 +318,109 @@ const resolveFieldByPath = <InitState extends FieldSetInitState & Rec>(
   }
 }
 
+/**
+ * Creates a reactive form with validation, submit handling, and field
+ * management.
+ *
+ * `reatomForm` is a wrapper over {@link reatomFieldSet} that adds:
+ *
+ * - Submit action with validation flow
+ * - Standard Schema validation support (Zod, Valibot, ArkType, etc.)
+ * - Form-level validation via `validateBeforeSubmit`
+ * - Default field options propagation
+ *
+ * ## Field Initialization
+ *
+ * Fields can be initialized with:
+ *
+ * - Primitive values (creates `reatomField` automatically)
+ * - `reatomField` instances (for custom options)
+ * - `reatomFieldArray` instances (for dynamic lists)
+ *
+ * ## Submit Flow
+ *
+ * When `submit` is called:
+ *
+ * 1. All field validations are triggered
+ * 2. Schema validation runs (if defined)
+ * 3. `validateBeforeSubmit` callback runs (if defined)
+ * 4. `onSubmit` callback runs with validated state
+ * 5. `submitted` atom becomes `true`
+ *
+ * @example
+ *   // Basic form with schema validation
+ *   import { z } from 'zod'
+ *
+ *   const form = reatomForm(
+ *     { email: '', age: 0 },
+ *     {
+ *       schema: z.object({
+ *         email: z.string().email(),
+ *         age: z.number().min(18, 'Must be 18+'),
+ *       }),
+ *       onSubmit: async (state) => {
+ *         await api.register(state)
+ *       },
+ *     },
+ *   )
+ *
+ *   // Access fields
+ *   form.fields.email.change('user@example.com')
+ *   form.fields.age.change(25)
+ *
+ *   // Submit with error handling
+ *   await wrap(form.submit()).catch(noop)
+ *   if (form.submit.error()) console.log('Submit failed')
+ *
+ * @example
+ *   // Form with field-level validation
+ *   const form = reatomForm({
+ *     email: reatomField('', {
+ *       validate: ({ value }) => {
+ *         if (!value.includes('@')) return 'Invalid email'
+ *       },
+ *       validateOnChange: true,
+ *     }),
+ *     password: reatomField('', {
+ *       validate: async ({ value }) => {
+ *         if (value.length < 8) throw new Error('Too short')
+ *       },
+ *     }),
+ *   })
+ *
+ * @example
+ *   // Form with dynamic field arrays
+ *   const form = reatomForm({
+ *     name: '',
+ *     items: reatomFieldArray({
+ *       initState: ['initial'],
+ *       create: (param) => reatomField(param),
+ *     }),
+ *   })
+ *
+ *   form.fields.items.create('new item')
+ *   form.fields.items.clear()
+ *
+ * @example
+ *   // Submit with custom params and return type
+ *   const form = reatomForm(
+ *     { email: '' },
+ *     {
+ *       onSubmit: async (state, skipDebounce: boolean) => {
+ *         return { state, skipDebounce }
+ *       },
+ *     },
+ *   )
+ *
+ *   const result = await wrap(form.submit(true))
+ *   // result: { state: { email: '' }, skipDebounce: true }
+ *
+ * @param initState - Initial form state or factory function
+ * @param options - Form options or name string
+ * @returns Form atom with fields, validation, submit, and focus management
+ * @see {@link https://reatom.dev/handbook/forms/concepts/form/|Form documentation}
+ * @see {@link https://reatom.dev/handbook/forms/concepts/fieldset/|Fieldset documentation}
+ */
 export function reatomForm<
   InitState extends FieldSetInitState,
   SchemaState,
@@ -325,8 +524,10 @@ export function reatomForm<
     }
   }
 
-  setupFields(fieldSet.fields) 
-  fieldSet.onFieldCreated?.extend(withCallHook(field => setupFields(field, true)))
+  setupFields(fieldSet.fields)
+  fieldSet.onFieldCreated?.extend(
+    withCallHook((field) => setupFields(field, true)),
+  )
 
   const submitted = atom(false, `${name}.submitted`)
 
@@ -446,3 +647,11 @@ export function reatomForm<
     validation,
   })
 }
+
+/** @deprecated Renamed. Use FormAtom instead */
+export type Form<
+  InitState extends FieldSetInitState = FieldSetInitState,
+  SchemaState = any,
+  SubmitReturn = any,
+  SubmitParams extends any[] = any,
+> = FormAtom<InitState, SchemaState, SubmitReturn, SubmitParams>

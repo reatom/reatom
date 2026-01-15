@@ -32,6 +32,10 @@ import {
 } from '../'
 import { toError } from './utils'
 
+/**
+ * Represents the focus-related state of a form field. Tracks whether the field
+ * is currently active, has been modified, or has been interacted with.
+ */
 export interface FieldFocus {
   /** The field is focused. */
   active: boolean
@@ -43,6 +47,13 @@ export interface FieldFocus {
   touched: boolean
 }
 
+/**
+ * Base structure for field validation errors. Contains the error message and
+ * optional metadata with additional error details.
+ *
+ * @template Meta - Type of the metadata object for additional error context
+ * @see {@link FieldError}
+ */
 export interface FieldErrorBody<Meta = any> {
   /** The message of the error useful for a user. */
   message: string
@@ -53,8 +64,22 @@ export interface FieldErrorBody<Meta = any> {
   meta?: Rec<Meta>
 }
 
+/**
+ * The source type of a field error. Built-in value is `'validation'` for errors
+ * from the validate function, but custom string sources are also allowed for
+ * external error sources (e.g., server errors).
+ */
 export type FieldErrorSource = 'validation' | (string & {})
 
+/**
+ * Complete field error structure that includes the error body and its source.
+ * Extends {@link FieldErrorBody} with information about where the error
+ * originated.
+ *
+ * @template Meta - Type of the error metadata object
+ * @see {@link FieldErrorBody}
+ * @see {@link FieldErrorSource}
+ */
 export interface FieldError<Meta = any> extends FieldErrorBody<Meta> {
   /**
    * The type of an error source. The value will be `validation` if the error
@@ -63,7 +88,20 @@ export interface FieldError<Meta = any> extends FieldErrorBody<Meta> {
   source: FieldErrorSource
 }
 
-/** TODO */
+/**
+ * Validation function type for field validation. Receives field metadata and
+ * returns validation result synchronously or asynchronously.
+ *
+ * @template State - The field state type
+ * @template Value - The value type passed to validation (can differ from State
+ *   via `getValue`)
+ * @param meta - Object containing current field state, value, focus status, and
+ *   validation state
+ * @returns Validation result or a promise resolving to it
+ * @see {@link FieldValidateOptionResult}
+ * @see {@link FieldFocus}
+ * @see {@link FieldValidation}
+ */
 export type FieldValidateOption<State = any, Value = State> = (meta: {
   state: State
   value: Value
@@ -73,7 +111,16 @@ export type FieldValidateOption<State = any, Value = State> = (meta: {
   | FieldValidateOptionResult<State>
   | Promise<FieldValidateOptionResult<State>>
 
-/** TODO */
+/**
+ * Possible return types from a validation function. Supports simple error
+ * strings, arrays of errors, {@link FieldErrorBody} objects, or a
+ * {@link https://github.com/standard-schema/standard-schema | Standard Schema}
+ * for declarative validation.
+ *
+ * @template State - The field state type for Standard Schema validation
+ * @see {@link FieldErrorBody}
+ * @see {@link FieldValidateOption}
+ */
 export type FieldValidateOptionResult<State = any> =
   | string
   | string[]
@@ -83,6 +130,13 @@ export type FieldValidateOptionResult<State = any> =
   | void
   | undefined
 
+/**
+ * Represents the current validation state of a field. Contains the computed
+ * error message, trigger status, and async validation promise.
+ *
+ * @see {@link FieldError}
+ * @see {@link ValidationAtom}
+ */
 export interface FieldValidation {
   /** Message of the first validation error, computed from errors atom */
   error: undefined | string
@@ -94,6 +148,13 @@ export interface FieldValidation {
   validating: undefined | Promise<{ errors: FieldError[] }>
 }
 
+/**
+ * Atom interface for managing field focus state. Provides actions for
+ * programmatically focusing and blurring the field.
+ *
+ * @see {@link FieldFocus}
+ * @see {@link BaseFieldExt.focus}
+ */
 export interface FocusAtom extends AtomLike<FieldFocus> {
   /** Action for handling field focus. */
   in: Action<[], FieldFocus>
@@ -102,6 +163,14 @@ export interface FocusAtom extends AtomLike<FieldFocus> {
   out: Action<[], FieldFocus>
 }
 
+/**
+ * Atom interface for managing field validation state. Provides actions to
+ * trigger validation, access errors, and clear errors by source.
+ *
+ * @see {@link FieldValidation}
+ * @see {@link FieldError}
+ * @see {@link BaseFieldExt.validation}
+ */
 export interface ValidationAtom extends AtomLike<FieldValidation> {
   /** Action to trigger field validation. */
   trigger: Action<[], FieldValidation> & AbortExt
@@ -113,15 +182,38 @@ export interface ValidationAtom extends AtomLike<FieldValidation> {
   clearErrors: Action<[...sources: FieldErrorSource[]], FieldValidation>
 }
 
+/**
+ * Reference interface for the DOM element associated with a field. Used for
+ * programmatic focus management.
+ */
 export interface FieldElementRef {
   focus: (options?: { preventScroll?: boolean }) => void
 }
 
+/**
+ * Marker interface for atoms extended with field behavior. Used for type
+ * narrowing via {@link isFieldAtom}.
+ *
+ * @template State - The field state type
+ * @see {@link isFieldAtom}
+ */
 export interface FieldLikeAtom<State = any> extends Atom<State> {
   __reatomField: true
 }
 
-/** TODO */
+/**
+ * Configuration options for the {@link withBaseField} extension. Defines
+ * validation behavior, focus handling, and state normalization.
+ *
+ * @template State - The field state type
+ * @template Value - The value type for validation (defaults to State)
+ * @template InitStateParams - Parameters for reset action (defaults to
+ *   `[initState: State]`)
+ * @template NormalizedState - Normalized state type for comparison (defaults to
+ *   State)
+ * @see {@link withBaseField}
+ * @see {@link BaseFieldExt}
+ */
 export interface BaseFieldExtOptions<
   State = any,
   Value = State,
@@ -197,7 +289,15 @@ export interface BaseFieldExtOptions<
   initStateAtom: Atom<State, InitStateParams>
 }
 
-/** TODO */
+/**
+ * Extension interface added to atoms by {@link withBaseField}. Provides focus
+ * management, validation, reset functionality, and runtime options.
+ *
+ * @template State - The field state type
+ * @template InitStateParams - Parameters for the reset action
+ * @see {@link withBaseField}
+ * @see {@link BaseFieldExtOptions}
+ */
 export interface BaseFieldExt<
   State = any,
   InitStateParams extends unknown[] = [initState: State],
@@ -403,6 +503,24 @@ const runValidation = <State, Value = State>({
   }
 }
 
+/**
+ * Atom extension that adds form field behavior to any atom. This is the
+ * foundational extension used by higher-level primitives like `reatomField` and
+ * `reatomFieldArray`.
+ *
+ * Adds focus tracking, validation with sync/async support, dirty checking,
+ * reset functionality, and configurable validation triggers.
+ *
+ * @template Target - The target atom type to extend
+ * @template Value - The value type for validation
+ * @template InitStateParams - Parameters for the reset action
+ * @template NormalizedState - Normalized state type for dirty comparison
+ * @param options - Configuration options for field behavior
+ * @returns An assigner extension that adds {@link BaseFieldExt} properties to
+ *   the atom
+ * @see {@link BaseFieldExtOptions}
+ * @see {@link BaseFieldExt}
+ */
 export const withBaseField =
   <
     Target extends Atom,
@@ -472,10 +590,12 @@ export const withBaseField =
 
     const elementRef = atom(elementRefInit, `${name}.elementRef`)
 
-    // @ts-expect-error access reatom internals
-    initStateAtom.__reatom.initState = target.__reatom.initState
+    initStateAtom.extend(
+      withInit((state, ...params) => (params.length ? state : target())),
+    )
 
     target.extend(
+      withInit((state, ...params) => (params.length ? state : initStateAtom())),
       withChangeHook(() => {
         if (isCausedBy(reset, 1)) return
 
@@ -631,5 +751,13 @@ export const withBaseField =
     })
   }
 
+/**
+ * Type guard to check if a value is a field atom extended with
+ * {@link withBaseField}.
+ *
+ * @param thing - The value to check
+ * @returns `true` if the value is a {@link FieldLikeAtom}, `false` otherwise
+ * @see {@link FieldLikeAtom}
+ */
 export const isFieldAtom = (thing: any): thing is FieldLikeAtom =>
   thing?.__reatomField === true

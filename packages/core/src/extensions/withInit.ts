@@ -70,7 +70,10 @@ export let withInit = <Target extends AtomLike>(
           frame.state =
             typeof init === 'function'
               ? (
-                  init as (state: AtomState<Target>, ...params: any[]) => Target
+                  init as (
+                    state: AtomState<Target>,
+                    ...params: any[]
+                  ) => AtomState<Target>
                 )(frame.state, ...params)
               : init
         }

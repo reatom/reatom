@@ -7,7 +7,6 @@ import { reatomFieldArray } from '.'
 test(`validateOnChange`, async () => {
   const fieldArray = reatomFieldArray([''], {
     name: 'validateOnChange.fieldArray',
-    create: (param: string) => param,
     validateOnChange: true,
   })
   const changeFn = vi.fn()
@@ -21,7 +20,6 @@ test(`validateOnChange`, async () => {
 test(`validateOnBlur`, async () => {
   const fieldArray = reatomFieldArray([''], {
     name: 'fieldArray',
-    create: (param: string) => param,
     validateOnBlur: true,
   })
   const blurFn = vi.fn()
@@ -39,14 +37,12 @@ test(`keepErrorOnChange`, async () => {
 
   const fieldArrayWithKeep = reatomFieldArray([''], {
     name: 'fieldArrayKeep',
-    create: (param: string) => param,
     validate,
     keepErrorOnChange: true,
   })
 
   const fieldArrayWithoutKeep = reatomFieldArray([''], {
     name: 'fieldArrayNoKeep',
-    create: (param: string) => param,
     validate,
     keepErrorOnChange: false,
   })
@@ -72,14 +68,12 @@ test(`keepErrorDuringValidating`, async () => {
 
   const fieldArrayWithKeep = reatomFieldArray([''], {
     name: 'fieldArrayKeep',
-    create: (param: string) => param,
     validate,
     keepErrorDuringValidating: true,
   })
 
   const fieldArrayWithoutKeep = reatomFieldArray([''], {
     name: 'fieldArrayNoKeep',
-    create: (param: string) => param,
     validate,
     keepErrorDuringValidating: false,
   })
@@ -100,6 +94,19 @@ test(`keepErrorDuringValidating`, async () => {
   expect(fieldArrayWithoutKeep.validation().error).toBeFalsy()
 })
 
+test(`correct dirty check`, () => {
+  const fieldArray = reatomFieldArray(['a', 'b', 'c'])
+  expect(fieldArray.focus().dirty).toBeFalsy()
+
+  const element = fieldArray.create('b')
+
+  expect(fieldArray.focus().dirty).toBeTruthy()
+
+  fieldArray.remove(element)
+
+  expect(fieldArray.focus().dirty).toBeFalsy()
+})
+
 describe(`standard schema validation`, () => {
   test('static', async () => {
     const fieldArray = reatomFieldArray(['a', 'b', 'c'], {
@@ -118,7 +125,6 @@ describe(`standard schema validation`, () => {
     expect(fieldArray.validation().error).toBe('min')
 
     const asyncFieldArray = reatomFieldArray(['a', 'b', 'c'], {
-      create: param => param,
       name: 'asyncFieldArray',
       validate: z.array(z.any()).refine(async (value) => {
         try {
@@ -188,7 +194,6 @@ describe(`standard schema validation`, () => {
   test('dynamic', async () => {
     const fieldArray = reatomFieldArray(['a'], {
       name: 'fieldArray',
-      create: (param: string) => param,
       validateOnChange: true,
       validate: ({ focus }) => {
         if (focus.dirty) return z.array(z.any()).min(2, 'min')
@@ -205,7 +210,6 @@ describe(`standard schema validation`, () => {
 
     const asyncFieldArray = reatomFieldArray(['a'], {
       name: 'asyncFieldArray',
-      create: (param: string) => param,
       validateOnChange: true,
       validate: async ({ focus }) => {
         await wrap(sleep(1))
@@ -253,7 +257,6 @@ describe(`standard schema validation`, () => {
     })
 
     asyncFieldArray.create('x')
-    asyncFieldArray.remove(asyncFieldArray.array()[0]!)
     notify()
     expect(asyncFieldArray.validation()).toMatchObject({
       error: undefined,
@@ -274,7 +277,6 @@ describe(`reactivity of validate function`, () => {
 
     const fieldArray = reatomFieldArray(['a'], {
       name: 'fieldArray',
-      create: (param: string) => param,
       validateOnChange: true,
       validate: ({ value }) => {
         if (value.length < minLength()) return 'too few items'
@@ -299,7 +301,6 @@ describe(`reactivity of validate function`, () => {
 
     const fieldArray = reatomFieldArray(['a'], {
       name: 'fieldArray',
-      create: (param: string) => param,
       validateOnChange: true,
       validate: ({ value }) => {
         if (value.length < requiredCount()) return 'Need more items'

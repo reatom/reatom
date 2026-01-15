@@ -362,11 +362,14 @@ test(`withField and initState derivation`, async () => {
 test(`reset with initState`, async () => {
   const field = reatomField(123, 'field')
 
+  field.initState.set(100)
+  expect(field()).toEqual(100)
+
   field.change(2000)
   expect(field()).toEqual(2000)
 
   field.reset()
-  expect(field()).toEqual(123)
+  expect(field()).toEqual(100)
 
   field.reset(1000)
   expect(field()).toEqual(1000)
