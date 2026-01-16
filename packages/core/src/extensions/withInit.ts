@@ -1,4 +1,4 @@
-import type { AtomLike, AtomState, Ext } from '../core'
+import type { AtomLike, AtomState, Ext, QueueKind } from '../core'
 import { _enqueue, top, withMiddleware } from '../core'
 
 /**
@@ -98,9 +98,10 @@ export let withInit = <Target extends AtomLike>(
  */
 export let withInitHook = <Target extends AtomLike>(
   hook: (initState: AtomState<Target>) => any,
+  queue: QueueKind = 'hook',
 ): Ext<Target> =>
   withInit((state) => {
     let frame = top()
-    _enqueue(() => frame.run(hook, frame.state), 'hook')
+    _enqueue(() => frame.run(hook, frame.state), queue)
     return state
   })

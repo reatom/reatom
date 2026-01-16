@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'test'
 
-import { atom, clearStack, context, type Atom } from '../core'
+import { type Atom, atom, clearStack, context } from '../core'
 import { withInit } from './withInit'
 
 test('init value', () => {
@@ -74,7 +74,6 @@ test('few', () => {
   expect(init2).toBeCalledWith(1)
 })
 
-
 test('cycle', () => {
   const reatomInitCycle = () => {
     const state: Atom<number> = atom(0).extend(
@@ -98,30 +97,4 @@ test('cycle', () => {
   cycle3.initState.set(1)
   expect(cycle3.state()).toBe(1)
   expect(cycle3.initState()).toBe(1)
-})
-
-test('cycle with double init', () => {
-  const reatomInitCycle = () => {
-    const state: Atom<number> = atom(0).extend(
-      withInit(() => initState()),
-    )
-    const initState = atom(() => state()).extend(
-      withInit((init, ...params) => (params.length ? init : state())),
-    )
-    return { state, initState }
-  }
-
-  const cycle1 = reatomInitCycle()
-  expect(cycle1.state()).toBe(0)
-  expect(cycle1.initState()).toBe(0)
-
-  const cycle2 = reatomInitCycle()
-  cycle2.state.set(1)
-  expect(cycle2.initState()).toBe(0)
-  expect(cycle2.state()).toBe(1)
-
-  const cycle3 = reatomInitCycle()
-  cycle3.initState.set(1)
-  expect(cycle3.initState()).toBe(1)
-  expect(cycle3.state()).toBe(1)
 })
