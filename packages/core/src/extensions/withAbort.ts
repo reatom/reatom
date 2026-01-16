@@ -1,51 +1,111 @@
 import type { Action, AssignerExt, Frame } from '../core'
-import { action, ReatomError, top } from '../core'
-import { ReatomAbortController } from '../methods'
+import { action, top } from '../core'
+import { memoKey, ReatomAbortController } from '../methods'
 import { abortVar } from '../methods'
 import { _getPrevFrame } from '../methods/context'
-import { throwIfAborted } from '../utils'
+import { throwAbort, throwIfAborted } from '../utils'
 import { type Fn } from '../utils'
-import { assert, isAbort, noop } from '../utils'
+import { isAbort, noop, removeItem } from '../utils'
 
 export interface AbortExt {
   abort: Action<[reason?: any]>
 }
 
-export let withAbort = (
-  strategy: 'last-in-win' | 'first-in-win' = 'last-in-win',
-): AssignerExt<AbortExt> => {
-  assert(
-    strategy === 'last-in-win',
-    'only "last-in-win" strategy is currently supported',
-    ReatomError,
-  )
+let abortControllers = (
+  activeControllers: Array<AbortController>,
+  reason: string,
+) =>
+  activeControllers.splice(0).forEach((controller) => controller.abort(reason))
 
-  // TODO may be useful for `reatomComponent`, but may be dangerous for other cases
-  // let topController = STACK.length ? abortVar.get() : null
+/**
+ * Extension to add abort handling to actions and computed atoms.
+ *
+ * @example
+ *   // last-in-win: only the last request matters
+ *   const fetchUser = action(async (id: number) => {
+ *     const response = await wrap(fetch(`/api/user/${id}`))
+ *     return response.json()
+ *   }).extend(withAbort())
+ *
+ *   fetchUser(1) // will be aborted
+ *   fetchUser(2) // will be aborted
+ *   fetchUser(3) // this one wins
+ *
+ * @example
+ *   // first-in-win: ignore subsequent calls until the first completes
+ *   const fetchOnce = action(async () => {
+ *     await wrap(fetch('/api/data'))
+ *   }).extend(withAbort('first-in-win'))
+ *
+ *   fetchOnce() // runs
+ *   fetchOnce() // ignored, returns previous promise
+ *   fetchOnce() // ignored, returns previous promise
+ *
+ * @example
+ *   // manual with manual abort (useful for pools/long-running tasks)
+ *   const pool = action(async () => {
+ *     while (true) {
+ *       await wrap(sleep(1000))
+ *       doSome()
+ *     }
+ *   }).extend(withAbort('manual'))
+ *
+ *   // start
+ *   pool()
+ *
+ *   // stop
+ *   pool.abort()
+ *
+ * @param strategy - The abort strategy to use:
+ *
+ *   - `'last-in-win'` (default): Aborts previous concurrent calls when a new one
+ *       starts
+ *   - `'first-in-win'`: Ignores new calls while a previous one is still running
+ *   - `'manual'`: No automatic abort, just adds the `abort` action for manual
+ *       control
+ */
+export let withAbort =
+  (
+    strategy: 'last-in-win' | 'first-in-win' | 'manual' = 'last-in-win',
+  ): AssignerExt<AbortExt> =>
+  (target) => {
+    let recomputed = new WeakSet<Frame>()
 
-  let recomputed = new WeakSet<Frame>()
+    let getActiveControllers = () =>
+      memoKey('withAbort.activeControllers', () => new Array<AbortController>())
 
-  return (target) => {
     let withAbort = (next: Fn, ...params: any[]) => {
       let frame = top()
       let prevFrame = _getPrevFrame(frame)
       let prevController = prevFrame && abortVar.first(prevFrame)
       let prevState = frame.state
       let state = prevState
-      abortVar.set(new ReatomAbortController(`${target.name}.withAbort`))
+
+      let activeControllers = getActiveControllers()
+
+      if (strategy === 'first-in-win' && activeControllers.length > 0) {
+        throwAbort('first-in-win processing')
+      }
+
+      let thisController = abortVar.set(
+        new ReatomAbortController(`${target.name}.withAbort`),
+      )
 
       state = next(...params)
 
-      if (prevController) {
+      if (prevController && strategy === 'last-in-win') {
         // may be just reading, no computed recall
         if (target.__reatom.reactive && !recomputed.has(frame)) {
+          // TODO try
+          // if (state !== prevState) throw 42
           abortVar.set(prevController)
-
           return state
         }
 
-        prevController.abort('concurrent')
+        abortControllers(activeControllers, 'concurrent')
       }
+
+      activeControllers.push(thisController)
 
       let maybePromise = target.__reatom.reactive
         ? state
@@ -54,7 +114,7 @@ export let withAbort = (
       if (maybePromise instanceof Promise) {
         let sync = true
         let aborted = false
-        maybePromise = new Promise(async (res, rej) => {
+        let wrappedPromise = new Promise(async (res, rej) => {
           let abortSubscription
           try {
             abortSubscription = abortVar.subscribe((error) => {
@@ -64,10 +124,15 @@ export let withAbort = (
               }
             })
             let value = await maybePromise
+
+            removeItem(activeControllers, thisController)
+
             throwIfAborted(abortSubscription.controller)
             abortSubscription.unsubscribe()
             res(value)
           } catch (error) {
+            removeItem(activeControllers, thisController)
+
             if (isAbort(error)) {
               aborted = true
               maybePromise?.catch(noop)
@@ -77,12 +142,12 @@ export let withAbort = (
           }
         })
         sync = false
-        if (aborted) maybePromise.catch(noop)
+        if (aborted) wrappedPromise.catch(noop)
 
         if (target.__reatom.reactive) {
-          state = maybePromise
+          state = wrappedPromise
         } else {
-          state.at(-1)!.payload = maybePromise
+          state.at(-1)!.payload = wrappedPromise
         }
       }
 
@@ -100,11 +165,13 @@ export let withAbort = (
 
     return {
       abort: action((reason?: any) => {
-        let frame = top().root.store.get(target)
-        if (frame) {
-          abortVar.first(frame)?.abort(reason || 'abort')
+        let activeControllers = top()
+          .root.store.get(target)
+          ?.run(getActiveControllers)
+
+        if (activeControllers) {
+          abortControllers(activeControllers, reason || 'abort')
         }
       }, `${target.name}._abort`),
     }
   }
-}

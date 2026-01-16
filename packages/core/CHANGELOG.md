@@ -1,3 +1,9 @@
+## 1000.8.0 (2026-01-16)
+
+### Feat
+
+- **extensions**: support withAbort options
+
 ## 1000.7.4 (2026-01-16)
 
 ### Fix

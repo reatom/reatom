@@ -5,7 +5,7 @@ import { abortVar, effect, getCalls, wrap } from '../methods'
 import { noop, sleep } from '../utils'
 import { withAbort } from './withAbort'
 
-test('abort propagation', async () => {
+test('last-in-win: abort propagation', async () => {
   const name = 'abortPropagation'
   const doSome = action((n: number) => doOther(n), `${name}.doSome`).extend(
     withAbort(),
@@ -26,7 +26,124 @@ test('abort propagation', async () => {
   expect(track).toBeCalledWith(3)
 })
 
-test('abort computed propagation', async () => {
+test('first-in-win', async () => {
+  const afterWrap: number[] = []
+  const beforeWrap: number[] = []
+
+  const doSome = action(async (n: number) => {
+    beforeWrap.push(n)
+    await wrap(sleep())
+    afterWrap.push(n)
+    return n
+  }, 'firstInWin').extend(withAbort('first-in-win'))
+
+  try {
+    doSome(1)
+  } catch {
+    /* nothing */
+  }
+  try {
+    doSome(2)
+  } catch {
+    /* nothing */
+  }
+  try {
+    doSome(3)
+  } catch {
+    /* nothing */
+  }
+
+  await wrap(sleep())
+
+  expect(beforeWrap).toEqual([1])
+  expect(afterWrap).toEqual([1])
+
+  await wrap(doSome(4))
+
+  expect(beforeWrap).toEqual([1, 4])
+  expect(afterWrap).toEqual([1, 4])
+})
+
+test('first-in-win: manual abort allows new calls', async () => {
+  const results: number[] = []
+
+  const doSome = action(async (n: number) => {
+    await wrap(sleep(10))
+    results.push(n)
+    return n
+  }, 'firstInWinAbort').extend(withAbort('first-in-win'))
+
+  doSome(1)
+
+  await wrap(sleep())
+  doSome.abort()
+  await wrap(doSome(2))
+
+  expect(results).toEqual([2])
+})
+
+test('manual: concurrent calls are not aborted', async () => {
+  const results: number[] = []
+
+  const doSome = action(async (n: number) => {
+    await wrap(sleep())
+    results.push(n)
+    return n
+  }, 'allPass').extend(withAbort('manual'))
+
+  doSome(1)
+  doSome(2)
+  doSome(3)
+
+  await wrap(sleep())
+
+  expect(results.sort()).toEqual([1, 2, 3])
+})
+
+test('manual: manual abort stops the action', async () => {
+  const results: number[] = []
+  let loopCount = 0
+
+  const pool = action(async () => {
+    while (true) {
+      loopCount++
+      await wrap(sleep(1))
+      results.push(loopCount)
+    }
+  }, 'allPassPool').extend(withAbort('manual'))
+
+  pool()
+
+  await wrap(sleep(10))
+  pool.abort()
+  const countAfterAbort = loopCount
+  await wrap(sleep(10))
+
+  expect(loopCount).toBe(countAfterAbort)
+  expect(results.length).toBeGreaterThan(0)
+})
+
+test('manual: abort affects all running calls', async () => {
+  const results: string[] = []
+
+  const doSome = action(async (id: string) => {
+    await wrap(sleep())
+    results.push(id)
+    return id
+  }, 'allPassMultiple').extend(withAbort('manual'))
+
+  doSome('a')
+  doSome('b')
+  doSome('c')
+
+  doSome.abort()
+
+  await wrap(sleep())
+
+  expect(results).toEqual([])
+})
+
+test('last-in-win: abort computed propagation', async () => {
   const name = 'abortComputedPropagation'
   const count = atom(0, `${name}.count`)
   const double = computed(() => count() * 2, `${name}.double`)
@@ -88,7 +205,7 @@ test('abort computed propagation', async () => {
   ])
 })
 
-test('abortable model', async () => {
+test('last-in-win: abortable model', async () => {
   const fn = vi.fn()
   const id = atom(0)
   const model = computed(() => {
@@ -115,7 +232,7 @@ test('abortable model', async () => {
   expect(fn).toBeCalledTimes(1)
 })
 
-test('abort for computed rerun with the same state', () => {
+test('last-in-win: abort for computed rerun with the same state', () => {
   let calls = 0
   let aborts = 0
 
