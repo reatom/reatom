@@ -1,3 +1,15 @@
+## 1000.7.2 (2026-01-16)
+
+### Fix
+
+- **extensions, methods**: types of MaybeUnsubscribe
+
+## 1000.7.1 (2026-01-17)
+
+### Fix
+
+- **extensions, methods**: types of MaybeUnsubscribe
+
 ## 1000.7.0 (2026-01-16)
 
 ### Feat

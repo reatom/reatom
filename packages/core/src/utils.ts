@@ -32,10 +32,11 @@ export interface Unsubscribe {
  */
 export type MaybeUnsubscribe =
   | void
+  | Exclude<{}, Fn>
   | Unsubscribe
-  | {
+  | ({
       unsubscribe: Unsubscribe
-    }
+    })
 
 /**
  * Utility type that converts properties with undefined values to optional
