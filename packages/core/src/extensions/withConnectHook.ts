@@ -24,7 +24,7 @@ export let withConnectHook =
           }
 
           if (typeof result === 'function') {
-            abortVar.subscribe(result)
+            abortVar.subscribe(() => abortVar.spawn(result as Fn))
           }
         } catch (error) {
           if (!isAbort(error)) throw error

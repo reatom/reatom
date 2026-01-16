@@ -1,3 +1,15 @@
+## 1000.7.4 (2026-01-16)
+
+### Fix
+
+- **extensions**: withDisconnectHook spawn
+
+## 1000.7.3 (2026-01-17)
+
+### Fix
+
+- **extensions**: withDisconnectHook spawn
+
 ## 1000.7.2 (2026-01-16)
 
 ### Fix
