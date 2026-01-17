@@ -1,3 +1,9 @@
+## 1000.8.1 (2026-01-17)
+
+### Fix
+
+- **methods**: abortVar frame propagation
+
 ## 1000.8.0 (2026-01-16)
 
 ### Feat

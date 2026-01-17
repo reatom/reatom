@@ -58,12 +58,12 @@ export let wrap: {
   let { root } = frame
 
   if (typeof target === 'function') {
-    abortVar.throwIfAborted()
+    abortVar.throwIfAborted(frame)
 
     return function wrap(...params: any) {
       return frame.run(() => {
         if (root !== frame.root) throwAbort('context reset')
-        abortVar.throwIfAborted()
+        abortVar.throwIfAborted(frame)
         // @ts-expect-error
         return target(...params)
       })

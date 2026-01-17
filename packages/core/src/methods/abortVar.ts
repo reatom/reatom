@@ -171,8 +171,8 @@ export class AbortVariable extends Variable<
    *
    * @throws {AbortError}
    */
-  throwIfAborted() {
-    this.find(throwIfAborted)
+  throwIfAborted(frame?: Frame) {
+    this.find(throwIfAborted, frame)
   }
 }
 
@@ -207,3 +207,6 @@ export class AbortVariable extends Variable<
  * @type {AbortVariable}
  */
 export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
+
+// TODO
+// export let disableAbort = () => abortVar.set()
