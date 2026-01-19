@@ -257,7 +257,7 @@ export let withAsync: {
         }, frame),
       )
 
-      retryComputed(pending)
+      if (!pending.__reatom.processing) retryComputed(pending)
 
       if (!target.__reatom.reactive) {
         state.at(-1)!.payload = promise
