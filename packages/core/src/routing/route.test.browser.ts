@@ -290,6 +290,7 @@ test('route loader', async () => {
 test('route loader lazyness (abortable)', async () => {
   let runs = 0
   let ticks = 0
+  let changes = 0
 
   const lazyRoute = reatomRoute({
     path: 'lazy',
@@ -308,30 +309,32 @@ test('route loader lazyness (abortable)', async () => {
     },
   })
 
-  let calls = 0
-  lazyRoute.loader.extend(withChangeHook(() => calls++))
+  lazyRoute.loader.extend(withChangeHook((state) => {
+    
+    console.log(state)
+    changes++}))
 
   lazyRoute.go()
 
   await wrap(Promise.resolve())
 
-  expect(calls).toBe(1)
+  expect(changes).toBe(1)
   expect(runs).toBe(1)
   expect(ticks).toBe(1)
 
   await wrap(sleep())
-  expect(calls).toBe(1)
+  expect(changes).toBe(1)
   expect(runs).toBe(1)
   expect(ticks).toBe(2)
 
   await wrap(sleep())
-  expect(calls).toBe(1)
+  expect(changes).toBe(1)
   expect(runs).toBe(1)
   expect(ticks).toBe(3)
 
   urlAtom.go('/lazy/123')
   await wrap(sleep())
-  expect(calls).toBe(1)
+  expect(changes).toBe(1)
   expect(runs).toBe(1)
   expect(ticks).toBe(4)
 
@@ -340,7 +343,7 @@ test('route loader lazyness (abortable)', async () => {
   await wrap(sleep())
   await wrap(sleep())
   await wrap(sleep())
-  expect(calls).toBe(2)
+  expect(changes).toBe(2)
   expect(runs).toBe(1)
   expect(ticks).toBe(4)
   expect(lazyRoute()).toBe(null)

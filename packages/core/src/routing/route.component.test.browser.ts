@@ -1,6 +1,7 @@
 import { beforeEach, expect, test } from 'test'
 
-import { computed, context } from '../core'
+import { withAsyncData } from '../async'
+import { atom, computed, context, isConnected } from '../core'
 import { withAbort } from '../extensions'
 import { abortVar, effect, wrap } from '../methods'
 import { sleep } from '../utils'
@@ -13,6 +14,28 @@ beforeEach(() => {
     window.history.replaceState({}, '', '/')
   }
 })
+
+const html = (strings: TemplateStringsArray, ...values: any[]) => {
+  return (
+    strings
+      .reduce((acc, string, i) => {
+        let value = values[i]
+        value =
+          typeof value === 'number'
+            ? value.toString()
+            : value === true
+              ? ''
+              : value || ''
+        return acc + string + value
+      }, '')
+      // normalize
+      .replace(/\s+/g, '')
+  )
+}
+
+const api = {
+  me: () => Promise.resolve('Test'),
+}
 
 // Relative to cross-component navigation
 test('abort propagation', async () => {
@@ -86,29 +109,7 @@ test('abort propagation', async () => {
   ])
 })
 
-test('components', async () => {
-  const html = (strings: TemplateStringsArray, ...values: any[]) => {
-    return (
-      strings
-        .reduce((acc, string, i) => {
-          let value = values[i]
-          value =
-            typeof value === 'number'
-              ? value.toString()
-              : value === true
-                ? ''
-                : value || ''
-          return acc + string + value
-        }, '')
-        // normalize
-        .replace(/\s+/g, '')
-    )
-  }
-
-  const api = {
-    me: () => Promise.resolve('Test'),
-  }
-
+test('app routing', async () => {
   const layoutRoute = reatomRoute({
     render({ outlet }) {
       return html`<div>
@@ -171,11 +172,130 @@ test('components', async () => {
       <footer></footer>
     </div>`,
   )
+
   await wrap(sleep())
   expect(App()).toBe(
     html`<div>
       <header></header>
       <main><article>Test</article></main>
+      <footer></footer>
+    </div>`,
+  )
+})
+
+test('app protected routing', async () => {
+  const name = 'appProtectedRouting'
+
+  const testAuth = atom(false, `${name}.testAuth`)
+
+  const user = computed(
+    async () =>
+      testAuth()
+        ? {
+            name: 'root',
+            rights: ['admin'],
+          }
+        : null,
+    `${name}.user`,
+  ).extend(withAsyncData())
+
+  const layoutRoute = reatomRoute(
+    {
+      render({ outlet }) {
+        return html`<div>
+          <header></header>
+          <main>${outlet()}</main>
+          <footer></footer>
+        </div>`
+      },
+    },
+    `${name}.layoutRoute`,
+  )
+
+  const loginRoute = layoutRoute.reatomRoute(
+    {
+      path: 'login',
+      render() {
+        return html`<form>Login</form>`
+      },
+    },
+    `${name}.loginRoute`,
+  )
+
+  const protectedRoute = layoutRoute.reatomRoute(
+    {
+      params() {
+        const userData = user.data()
+
+        if (!userData) {
+          if (user.ready() && !loginRoute.match()) {
+            loginRoute.go()
+          }
+          return null
+        }
+
+        if (loginRoute.match()) {
+          meRoute.go()
+        }
+
+        return { rights: userData.rights }
+      },
+
+      render({ outlet }) {
+        return outlet()
+      },
+    },
+    `${name}.protectedRoute`,
+  )
+
+  const meRoute = protectedRoute.reatomRoute(
+    {
+      path: 'me',
+      render(): RouteChild {
+        return html`<article>Hello, ${user.data()?.name}!</article>`
+      },
+    },
+    `${name}.meRoute`,
+  )
+
+  // root.ts
+  const App = computed(() => {
+    return html`${layoutRoute.render()}`
+  }, `${name}.App`)
+  App.subscribe()
+
+  expect(isConnected(user)).toBe(true)
+  expect(isConnected(loginRoute)).toBe(true)
+
+  expect(App()).toBe(
+    html`<div>
+      <header></header>
+      <main></main>
+      <footer></footer>
+    </div>`,
+  )
+
+  await wrap(sleep())
+
+  expect(loginRoute.match()).toBe(true)
+  expect(loginRoute.render()).toBe(html`<form>Login</form>`)
+  await wrap(sleep())
+  expect(App()).toBe(
+    html`<div>
+      <header></header>
+      <main><form>Login</form></main>
+      <footer></footer>
+    </div>`,
+  )
+
+  expect(isConnected(testAuth)).toBe(true)
+  testAuth.set(true)
+  await wrap(sleep())
+
+  expect(App()).toBe(
+    html`<div>
+      <header></header>
+      <main><article>Hello, root!</article></main>
       <footer></footer>
     </div>`,
   )

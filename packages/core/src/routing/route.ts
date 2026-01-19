@@ -102,10 +102,10 @@ export interface RouteChild {}
  */
 export interface RouteOptions<
   Path extends string = '',
-  Params extends PathKeys<Path> = PathParams<Path>,
-  Search extends Partial<Rec<string>> = {},
-  ParamsOutput = Params,
-  SearchOutput = Search,
+  ParamsInput extends PathKeys<Path> = PathParams<Path>,
+  SearchInput extends Partial<Rec<string>> = {},
+  ParamsOutput extends Rec = ParamsInput,
+  SearchOutput extends Rec = SearchInput,
   LoaderParams = Plain<ParamsOutput & SearchOutput>,
   Payload = LoaderParams,
 > {
@@ -136,7 +136,9 @@ export interface RouteOptions<
    *     userId: z.string().regex(/^\d+$/).transform(Number),
    *   })
    */
-  params?: StandardSchemaV1<Params, ParamsOutput>
+  params?:
+    | StandardSchemaV1<ParamsInput, ParamsOutput>
+    | ((params: ParamsInput) => null | ParamsOutput)
 
   /**
    * Schema to validate and transform search/query parameters. Uses Standard
@@ -150,7 +152,7 @@ export interface RouteOptions<
    *     page: z.string().transform(Number).default('1'),
    *   })
    */
-  search?: StandardSchemaV1<Search, SearchOutput>
+  search?: StandardSchemaV1<SearchInput, SearchOutput>
 
   /**
    * Async function that loads data when the route becomes active.
@@ -194,6 +196,7 @@ export interface RouteOptions<
 export interface RouteMixin<
   Path extends string,
   Params extends PathKeys<Path> = PathParams<Path>,
+  InputParams = Params,
 > {
   /**
    * Create a sub-route by appending a path pattern to the current route.
@@ -214,7 +217,8 @@ export interface RouteMixin<
     // @ts-expect-error TODO
     Plain<Params & PathParams<SubPath>>,
     {},
-    {}
+    {},
+    Plain<InputParams & PathParams<SubPath>>
   >
 
   /**
@@ -242,17 +246,17 @@ export interface RouteMixin<
    */
   reatomRoute<
     SubPath extends string = '',
-    SubParams extends PathKeys<SubPath> = PathParams<SubPath>,
-    SubSearch extends Partial<Rec<string>> = {},
-    SubParamsOutput = SubParams,
-    SubSearchOutput = SubSearch,
+    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
+    SubSearchInput extends Partial<Rec<string>> = {},
+    SubParamsOutput extends Rec = SubParamsInput,
+    SubSearchOutput extends Rec = SubSearchInput,
     LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
     Payload = LoaderParams,
   >(
     options: RouteOptions<
       SubPath,
-      SubParams,
-      SubSearch,
+      SubParamsInput,
+      SubSearchInput,
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
@@ -260,20 +264,48 @@ export interface RouteMixin<
     >,
     name?: string,
   ): RouteAtom<
-    `${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`,
+    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
     // @ts-expect-error TODO
     Plain<Params & SubParamsOutput>,
     Plain<SubSearchOutput>,
     Payload,
-    Plain<Params & SubParams>,
-    Plain<SubSearch>
+    Plain<InputParams & SubParamsInput>,
+    Plain<SubSearchInput>
   >
 }
+
+export type TrimPath<Path extends string> = Path extends `//${infer Path}`
+  ? TrimPath<`/${Path}`>
+  : Path
 
 function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   if (value instanceof Promise) {
     throw new Error('Async search validation is not supported')
   }
+}
+
+const validateParams = <Input, Output>(
+  validator:
+    | StandardSchemaV1<Input, Output>
+    | ((params: Input) => null | Output),
+  params: Input,
+  name: string,
+): Output | null => {
+  if (typeof validator === 'function') {
+    return validator(params)
+  }
+
+  const validation = validator['~standard'].validate(params)
+
+  assertPromise(validation)
+
+  if (validation.issues) {
+    throw new Error(
+      `Invalid ${name}: ${JSON.stringify(validation.issues, null, 2)}`,
+    )
+  }
+
+  return validation.value
 }
 
 const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
@@ -308,7 +340,7 @@ export interface RouteExt<
   Payload = Plain<Params & Search>,
   InputParams = Params,
   InputSearch = Search,
-> extends RouteMixin<Path, Params> {
+> extends RouteMixin<Path, Params, InputParams> {
   /**
    * Navigate to this route with the given parameters.
    *
@@ -513,15 +545,22 @@ export interface RouteExt<
  */
 export interface RouteAtom<
   Path extends string = string,
-  Params extends PathKeys<Path> = PathParams<Path>,
-  Search extends Rec<string> = {},
-  Payload = Plain<Params & Search>,
-  InputParams = Params,
-  InputSearch = Search,
+  ParamsOutput extends PathKeys<Path> = PathParams<Path>,
+  SearchOutput extends Rec<string> = {},
+  Payload = Plain<ParamsOutput & SearchOutput>,
+  ParamsInput = ParamsOutput,
+  SearchInput = SearchOutput,
 >
   extends
-    Computed<null | Plain<Params & Search>>,
-    RouteExt<Path, Params, Search, Payload, InputParams, InputSearch> {}
+    Computed<null | Plain<ParamsOutput & SearchOutput>>,
+    RouteExt<
+      Path,
+      ParamsOutput,
+      SearchOutput,
+      Payload,
+      ParamsInput,
+      SearchInput
+    > {}
 
 const getPatternName = (part: string) => {
   const start = part.startsWith(':') ? 1 : 0
@@ -577,9 +616,15 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const hasParams = paramsNames.length > 0
 
     const getPath = (params: void | Rec = {}): string => {
-      let pathParams = paramsSchema
-        ? validate(paramsSchema, params, 'params')
-        : params
+      let pathParams: Rec
+      if (!paramsSchema) {
+        pathParams = params || {}
+      } else {
+        pathParams = validateParams(paramsSchema, params as any, 'params')
+        if (pathParams === null) {
+          throw new Error(`Invalid params for route ${pattern}`)
+        }
+      }
       let searchParams = searchSchema
         ? validate(searchSchema, params, 'search')
         : null
@@ -701,9 +746,16 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       let validatedSearch: undefined | Rec
 
       try {
-        validatedParams = paramsSchema
-          ? validate(paramsSchema, params, 'params')
-          : params
+        if (!paramsSchema) {
+          validatedParams = params
+        } else {
+          validatedParams = validateParams(
+            paramsSchema,
+            params as any,
+            'params',
+          )
+          if (validatedParams === null) return null
+        }
 
         if (searchSchema) {
           const searchParams = Object.fromEntries(url.searchParams)
@@ -747,9 +799,13 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       }, `${name}._outlet`)
 
       const render = computed(() => {
-        return renderFn && (exactRender ? exact() : match())
-          ? renderFn({ outlet })
-          : null
+        if (renderFn) {
+          return (exactRender ? exact() : match()) ? renderFn({ outlet }) : null
+        }
+
+        // subscribe params
+        match()
+        return null
       }, `${name}._render`)
 
       return {
@@ -859,4 +915,11 @@ export const is404 = /* @__PURE__ */ (() =>
   computed(
     () => Object.values(urlAtom.routes).every((route) => !route()),
     'is404',
+  ))()
+
+export const isSomeLoaderPending = /* @__PURE__ */ (() =>
+  computed(
+    () =>
+      Object.values(urlAtom.routes).some((route) => route.loader.pending() > 0),
+    'isSomeLoaderPending',
   ))()

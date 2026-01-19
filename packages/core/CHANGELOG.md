@@ -1,3 +1,9 @@
+## 1000.9.0 (2026-01-19)
+
+### Feat
+
+- **routing**: params computed callback
+
 ## 1000.8.2 (2026-01-19)
 
 ### Fix
