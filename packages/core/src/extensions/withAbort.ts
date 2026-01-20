@@ -90,8 +90,34 @@ export let withAbort =
       let thisController = abortVar.set(
         new ReatomAbortController(`${target.name}.withAbort`),
       )
+      let subscriptions = 0
 
-      state = next(...params)
+      {
+        let addEventListener = thisController.signal.addEventListener
+        // @ts-ignore
+        thisController.signal.addEventListener = (type, listener, options) => {
+          addEventListener.call(thisController.signal, type, listener, options)
+          // abortVar.subscribe
+          if (options instanceof AbortController) {
+            subscriptions++
+            options.signal.addEventListener('abort', () => {
+              if (--subscriptions === 0) {
+                removeItem(activeControllers, thisController)
+              }
+            })
+          }
+        }
+      }
+
+      let computationError: unknown
+      let hasError = false
+
+      try {
+        state = next(...params)
+      } catch (error) {
+        computationError = error
+        hasError = true
+      }
 
       if (prevController && strategy === 'last-in-win') {
         // may be just reading, no computed recall
@@ -99,11 +125,14 @@ export let withAbort =
           // TODO try
           // if (state !== prevState) throw 42
           abortVar.set(prevController)
+          if (hasError) throw computationError
           return state
         }
 
         abortControllers(activeControllers, 'concurrent')
       }
+
+      if (hasError) throw computationError
 
       activeControllers.push(thisController)
 
@@ -125,13 +154,13 @@ export let withAbort =
             })
             let value = await maybePromise
 
-            removeItem(activeControllers, thisController)
+            if (subscriptions === 0) removeItem(activeControllers, thisController)
 
             throwIfAborted(abortSubscription.controller)
             abortSubscription.unsubscribe()
             res(value)
           } catch (error) {
-            removeItem(activeControllers, thisController)
+            if (subscriptions === 0) removeItem(activeControllers, thisController)
 
             if (isAbort(error)) {
               aborted = true
@@ -149,6 +178,8 @@ export let withAbort =
         } else {
           state.at(-1)!.payload = wrappedPromise
         }
+      } else {
+        if (subscriptions === 0) removeItem(activeControllers, thisController)
       }
 
       return state

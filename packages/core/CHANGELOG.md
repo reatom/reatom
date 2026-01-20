@@ -1,3 +1,9 @@
+## 1000.9.1 (2026-01-20)
+
+### Fix
+
+- **extensions, methods**: abort controller leaks
+
 ## 1000.9.0 (2026-01-19)
 
 ### Feat

@@ -121,7 +121,7 @@ export class AbortVariable extends Variable<
    */
   subscribe(cb?: (error: AbortError) => void): AbortSubscription {
     let frame = top()
-    let controller = frame['var#abort'] ?? this.set()
+    let thisController = frame['var#abort'] ?? this.set()
 
     let listenerController = new AbortController()
 
@@ -129,32 +129,37 @@ export class AbortVariable extends Variable<
 
     let listener = bind(function listener(signal: AbortSignal) {
       unsubscribe()
-      controller.abort(signal.reason)
+      thisController.abort(signal.reason)
       cb?.(signal.reason)
     }, frame)
 
-    this.find((parentController) => {
-      if (parentController?.signal.aborted) {
-        listener(parentController.signal)
-        // console.log(
-        //   new Error('ATTENTION, throw during abortVar subscribe find'),
-        // )
-        throw controller.signal.reason
-      }
+    this.find(
+      (
+        // `thisController` or parent controller
+        controller,
+      ) => {
+        if (controller?.signal.aborted) {
+          listener(controller.signal)
+          // console.log(
+          //   new Error('ATTENTION, throw during abortVar subscribe find'),
+          // )
+          throw thisController.signal.reason
+        }
 
-      parentController?.signal.addEventListener(
-        'abort',
-        (event) => {
-          listener(event.target as AbortSignal)
-        },
-        listenerController,
-      )
+        controller?.signal.addEventListener(
+          'abort',
+          (event) => {
+            listener(event.target as AbortSignal)
+          },
+          listenerController,
+        )
 
-      /* return nothing to continue the traverse */
-    })
+        /* return nothing to continue the traverse */
+      },
+    )
 
     return {
-      controller,
+      controller: thisController,
       unsubscribe,
       [Symbol.dispose]: unsubscribe,
       [Symbol.asyncDispose]: unsubscribe,
