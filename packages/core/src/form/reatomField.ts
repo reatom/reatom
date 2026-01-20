@@ -11,6 +11,7 @@ import {
   type AtomState,
   type BooleanAtom,
   computed,
+  createAtom,
   effect,
   isAbort,
   isCausedBy,
@@ -408,10 +409,10 @@ export function reatomField<State, Value = State>(
     }),
   )
 
-  const value: This['value'] = atom(
-    () => fromState(field(), field as This),
+  const value: This['value'] = createAtom(
+    { computed: () => fromState(field(), field as This) },
     `${name}.value`,
-  ).extend(withComputed(() => fromState(field(), field as This)))
+  )
 
   const focus = reatomRecord(fieldInitFocus, `${name}._focus`)
     .extend(
@@ -422,7 +423,10 @@ export function reatomField<State, Value = State>(
     )
     .extend(
       withComputed((state) => {
-        const dirty = isDirty(value(), fromState(initState(), field as This))
+        const dirty = isDirty(
+          value(),
+          peek(fromState, initState(), field as This),
+        )
         return state.dirty === dirty ? state : { ...state, dirty }
       }),
     )
