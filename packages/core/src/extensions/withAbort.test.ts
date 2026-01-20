@@ -298,6 +298,8 @@ test('manual: controllers cleanup', async () => {
   someAction()
   someAction()
 
+  await wrap(sleep())
+
   expect(getActiveControllers(someAction).length).toBe(0)
 })
 

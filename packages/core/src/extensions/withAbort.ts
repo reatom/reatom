@@ -1,5 +1,5 @@
 import type { Action, AssignerExt, Frame } from '../core'
-import { action, top } from '../core'
+import { _enqueue, action, top } from '../core'
 import { memoKey, ReatomAbortController } from '../methods'
 import { abortVar } from '../methods'
 import { _getPrevFrame } from '../methods/context'
@@ -155,13 +155,15 @@ export let withAbort =
             })
             let value = await maybePromise
 
-            if (subscriptions === 0) removeItem(activeControllers, thisController)
+            if (subscriptions === 0)
+              removeItem(activeControllers, thisController)
 
             throwIfAborted(abortSubscription.controller)
             abortSubscription.unsubscribe()
             res(value)
           } catch (error) {
-            if (subscriptions === 0) removeItem(activeControllers, thisController)
+            if (subscriptions === 0)
+              removeItem(activeControllers, thisController)
 
             if (isAbort(error)) {
               aborted = true
@@ -180,7 +182,12 @@ export let withAbort =
           state.at(-1)!.payload = wrappedPromise
         }
       } else {
-        if (subscriptions === 0) removeItem(activeControllers, thisController)
+        if (subscriptions === 0) {
+          _enqueue(() => {
+            if (subscriptions === 0)
+              removeItem(activeControllers, thisController)
+          }, 'effect')
+        }
       }
 
       return state
