@@ -10,7 +10,7 @@ import {
   withParams,
 } from '../core'
 import type { AbortExt } from '../extensions'
-import { withAbort } from '../extensions'
+import { withAbort, withInitHook } from '../extensions'
 import type { RouteAtom } from '../routing'
 import type { Rec } from '../utils'
 import { onEvent } from './onEvent'
@@ -86,6 +86,12 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
           (next, ...params) =>
             next(...params) ?? urlAtom.init(),
       ),
+
+      withInitHook(() => {
+        for (const [, routeAtom] of Object.entries(urlAtom.routes)) {
+          routeAtom.loader()
+        }
+      }, 'effect'),
 
       withParams((update: URL | ((state: URL) => URL), replace = false) => {
         let frame = top()

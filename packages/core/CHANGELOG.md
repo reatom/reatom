@@ -1,3 +1,9 @@
+## 1000.9.2 (2026-01-20)
+
+### Fix
+
+- **web**: initiate loaders route on url init
+
 ## 1000.9.1 (2026-01-20)
 
 ### Fix
