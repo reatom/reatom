@@ -832,3 +832,32 @@ export const withResolvers = <T>(): {
     reject,
   }
 }
+
+/**
+ * Removes the first occurrence of an item from an array in a single iteration.
+ * Mutates the array in place by splicing out the found element.
+ *
+ * More efficient than using `indexOf` + `splice` as it only walks the array once.
+ *
+ * @example
+ *   const items = [1, 2, 3, 4]
+ *   removeItem(items, 3) // returns true, items is now [1, 2, 4]
+ *   removeItem(items, 5) // returns false, items unchanged
+ *
+ * @template T - The type of elements in the array
+ * @param array - The array to remove the item from
+ * @param item - The item to remove (compared using strict equality)
+ * @returns True if the item was found and removed, false otherwise
+ */
+export const removeItem = <T>(array: T[], item: T): boolean => {
+  let found = false
+  for (let i = 0; i < array.length; i++) {
+    if (found) {
+      array[i - 1] = array[i]!
+    } else if (array[i] === item) {
+      found = true
+    }
+  }
+  if (found) array.pop()
+  return found
+}
