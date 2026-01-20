@@ -1,3 +1,9 @@
+## 1000.9.3 (2026-01-20)
+
+### Fix
+
+- **core**: cyclic marking for reactive invalidation
+
 ## 1000.9.2 (2026-01-20)
 
 ### Fix

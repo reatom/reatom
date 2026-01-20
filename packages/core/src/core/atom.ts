@@ -1,6 +1,6 @@
 import type { AbortExt } from '../extensions'
 import type { ReatomAbortController } from '../methods'
-import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
+import { type Fn, isAbort, noop, type Rec, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
 import { _enqueue, type Extend, extend, isAction } from './'
 
@@ -195,6 +195,9 @@ export interface Frame<
 export type AtomState<T> =
   T extends AtomLike<infer State, any, any> ? State : never
 
+export type AtomParams<T> =
+  T extends AtomLike<any, infer Params, any> ? Params : never
+
 /** Task queue for scheduled operations. */
 export interface Queue extends Array<Fn> {}
 
@@ -294,14 +297,12 @@ export interface ContextAtom extends AtomLike<RootState, [], RootFrame> {
    * @returns The result of the callback
    */
   start<T>(cb: () => T): T
-
   /**
    * Start a new isolated context.
    *
    * @returns The new context frame
    */
   start(): RootFrame
-
   /**
    * Reset the context to throw away all accumulated states and related meta.
    * Aborts `wrap`ed effects too. Useful for tests, storybook, user logout and
@@ -392,13 +393,21 @@ export let _mark = (frame: Frame) => {
 
   for (let i = 0; i < frame.subs.length; i++) {
     let sub = frame.subs[i]!
+    if (sub.__reatom.processing) {
+      _enqueue(() => {
+        _copy(frame.root.store.get(sub)!).pubs.splice(1)
+      }, 'compute')
+    }
 
     if (sub === frame.atom) {
       _enqueue(sub, 'compute')
     } else {
       let subFrame = frame.root.store.get(sub)!
+
       if (subFrame.pubs[0] !== null) {
-        mark(_copy(subFrame))
+        _mark(_copy(subFrame))
+      } else if (sub.__reatom.processing) {
+        _mark(subFrame)
       }
     }
   }
@@ -821,143 +830,155 @@ export let createAtom: {
   }
 
   let target = castAtom<Atom<State>>(
-    {
-      // Use computed property name to setup the function name for better stack traces
-      [name](): State {
-        if (target.__reatom.reactive && !SET_PARAMS && arguments.length) {
-          throw new ReatomError(
-            `Can't call atom "${name}" with arguments, use .set instead`,
-          )
-        }
-        // TODO optimize
-        let args = target.__reatom.reactive ? SET_PARAMS : arguments
-        let write = args !== null
-        SET_PARAMS = null
-        let { reactive, initState, middlewares } = target.__reatom
-        let topFrame = top()
-        let frame = topFrame.root.store.get(target)!
-        let push = !reactive || write
-        let isInit = frame === undefined
+    function (): State {
+      if (target.__reatom.reactive && !SET_PARAMS && arguments.length) {
+        throw new ReatomError(
+          `Can't call atom "${name}" with arguments, use .set instead`,
+        )
+      }
+      // TODO optimize
+      let args = target.__reatom.reactive ? SET_PARAMS : arguments
+      let write = args !== null
+      SET_PARAMS = null
+      let { reactive, initState, middlewares } = target.__reatom
+      let topFrame = top()
+      let frame = topFrame.root.store.get(target)!
+      let push = !reactive || write
+      let isInit = frame === undefined
 
-        if (isInit) {
-          frame = {
-            error: null,
-            state: undefined as State,
-            'var#abort': undefined,
-            atom: target,
-            pubs: [null],
-            subs: [],
-            run,
-            root: topFrame.root,
-          }
-          topFrame.root.store.set(target, frame)
-
-          if (typeof initState === 'function') {
-            try {
-              STACK.push(frame)
-              frame.state = initState() as State
-            } catch (error) {
-              frame.error = error ?? new ReatomError('Unknown error')
-              // do nothing, need to try walk through the main process
-            } finally {
-              if (topFrame.atom.__reatom.linking) {
-                topFrame.pubs.push(frame)
-              }
-              STACK.pop()
-            }
-          } else {
-            frame.state = initState
-          }
+      if (isInit) {
+        if (reactive && target.__reatom.processing) {
+          throw new ReatomError('Cyclic initialization')
         }
 
-        let { error, state } = frame
-        let newState = state
-        let newError = error
-        let dirty = frame.pubs[0] === null
-        let dependent = frame.pubs.length !== 1
-        let subscribed = frame.subs.length !== 0
+        frame = {
+          error: null,
+          state: undefined as State,
+          'var#abort': undefined,
+          atom: target,
+          pubs: [null],
+          subs: [],
+          run,
+          root: topFrame.root,
+        }
 
-        if (
-          !target.__reatom.processing &&
-          (push || dirty || (dependent && !subscribed))
-        ) {
-          STACK.push(isInit ? frame : (frame = _copy(frame)))
-
-          if (reactive) target.__reatom.processing = true
-
-          middlewares: try {
-            if (
-              precompiledComputed !== undefined &&
-              middlewares.length === 1 &&
-              middlewares[0] === atomMiddleware
-            ) {
-              newState = precompiledComputed.apply(
-                null,
-                // @ts-ignore TODO
-                write ? args : [],
-              )
-              newError = null
-              break middlewares
+        if (typeof initState === 'function') {
+          try {
+            STACK.push(frame)
+            if (reactive) target.__reatom.processing = true
+            frame.state = initState() as State
+          } catch (error) {
+            frame.error = error ?? new ReatomError('Unknown error')
+            // do nothing, need to try walk through the main process
+          } finally {
+            if (topFrame.atom.__reatom.linking) {
+              topFrame.pubs.push(frame)
             }
+            if (reactive) target.__reatom.processing = false
+            STACK.pop()
+          }
+        } else {
+          frame.state = initState
+        }
 
-            let fn: Fn = setup.computed ?? identity
+        topFrame.root.store.set(target, frame)
+      }
 
-            for (let middleware of middlewares) {
-              // TODO is `.bind` fast enough?
-              fn = middleware.bind(null, fn)
-            }
-            newState = fn.apply(
+      let { error, state } = frame
+      let newState = state
+      let newError = error
+      let dirty = frame.pubs[0] === null
+      let dependent = frame.pubs.length !== 1
+      let subscribed = frame.subs.length !== 0
+
+      if (
+        !target.__reatom.processing &&
+        (push || dirty || (dependent && !subscribed))
+      ) {
+        STACK.push(isInit ? frame : (frame = _copy(frame)))
+
+        if (reactive) target.__reatom.processing = true
+
+        middlewares: try {
+          if (
+            precompiledComputed !== undefined &&
+            middlewares.length === 1 &&
+            middlewares[0] === atomMiddleware
+          ) {
+            newState = precompiledComputed.apply(
               null,
               // @ts-ignore TODO
               write ? args : [],
             )
             newError = null
-          } catch (error) {
-            newError = error ?? new ReatomError('Unknown error')
+            break middlewares
           }
 
-          frame.error = newError
-          frame.state = newState
-          frame.pubs[0] ??= topFrame.root.frame
+          let fn: Fn = setup.computed ?? identity
 
-          if (!push && topFrame.atom.__reatom.linking) {
-            // if (topFrame.atom === frame.atom) console.log(COLOR.bgRed('topFrame.atom === frame.atom')) // prettier-ignore
-            topFrame.pubs.push(frame)
+          for (let middleware of middlewares) {
+            // TODO is `.bind` fast enough?
+            fn = middleware.bind(null, fn)
           }
+          newState = fn.apply(
+            null,
+            // @ts-ignore TODO
+            write ? args : [],
+          )
+          newError = null
+        } catch (error) {
+          newError = error ?? new ReatomError('Unknown error')
+        }
 
-          if (
-            !dirty &&
-            subscribed &&
-            (!Object.is(state, frame.state) || !Object.is(error, frame.error))
-          ) {
-            mark(frame)
-          }
+        frame.error = newError
+        frame.state = newState
+        frame.pubs[0] ??= topFrame.root.frame
 
-          target.__reatom.processing = false
-
-          STACK.pop()
-        } else if (topFrame.atom.__reatom.linking) {
+        if (!push && topFrame.atom.__reatom.linking) {
+          // if (topFrame.atom === frame.atom) console.log(COLOR.bgRed('topFrame.atom === frame.atom')) // prettier-ignore
           topFrame.pubs.push(frame)
         }
 
-        if (frame.error != null) {
-          throw frame.error
+        if (
+          !dirty &&
+          subscribed &&
+          (!Object.is(state, frame.state) || !Object.is(error, frame.error))
+        ) {
+          _mark(frame)
         }
 
-        if (!reactive) {
-          // @ts-ignore TODO
-          return frame.state.at(-1).payload
-        }
+        target.__reatom.processing = false
 
-        return frame.state
-      },
-    }[name]!,
+        STACK.pop()
+      } else if (topFrame.atom.__reatom.linking) {
+        topFrame.pubs.push(frame)
+      }
+
+      if (frame.error != null) {
+        throw frame.error
+      }
+
+      if (!reactive) {
+        // @ts-ignore TODO
+        return frame.state.at(-1).payload
+      }
+
+      return frame.state
+    },
     {
       reactive: true,
       initState: setup.initState,
       middlewares: [atomMiddleware],
     },
   )
+
+  // TODO configure
+  Object.defineProperty(target, 'name', {
+    value: name,
+    writable: false,
+    enumerable: false,
+    configurable: true,
+  })
 
   return EXTENSIONS.length === 0
     ? target
