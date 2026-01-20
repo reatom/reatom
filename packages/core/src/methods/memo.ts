@@ -10,6 +10,9 @@ import { computed, context, type Frame, named, ReatomError, top } from '../core'
  * The cache is scoped per-atom and persists across all calls to that atom
  * within the same context, making it suitable for creating internal computed
  * atoms or other resources that should be created once and reused.
+ * 
+ * @example
+ *  // TODO cache 
  *
  * @template T The type of value being cached
  * @param key Unique identifier for the cached value within the atom

@@ -40,7 +40,7 @@ export interface AbstractRender<Props, Result> {
  * @example
  *   // Creating a React renderer
  *   const reactRenderer = reatomAbstractRender({
- *     frame: ctx,
+ *     frame,
  *     render: (props) => React.createElement(Component, props),
  *     rerender: ({ result }) => setElement(result),
  *     name: 'ReactRenderer',

@@ -92,6 +92,7 @@ export let withAbort =
       )
       let subscriptions = 0
 
+      // TODO: remove monkey patching
       {
         let addEventListener = thisController.signal.addEventListener
         // @ts-ignore
