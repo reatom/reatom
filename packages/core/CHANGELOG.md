@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## 1000.14.1 (2026-01-29)
 
 ### Fix
@@ -51,6 +52,7 @@
 ### Fix
 
 - **methods**: subscription bind
+- **form**: initState and state init cycle
 
 ## 1000.10.0 (2026-01-21)
 

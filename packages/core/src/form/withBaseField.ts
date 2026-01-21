@@ -22,6 +22,7 @@ import {
   reatomRecord,
   type Rec,
   type RecordAtom,
+  top,
   withAbort,
   withActions,
   withCallHook,
@@ -594,8 +595,13 @@ export const withBaseField =
       withInit((state, ...params) => (params.length ? state : target())),
     )
 
+    // @ts-expect-error access reatom internals
+    initStateAtom.__reatom.initState = null
+
     target.extend(
-      withInit((state, ...params) => (params.length ? state : initStateAtom())),
+      withInit(() =>
+        initStateAtom.__reatom.processing ? top().state : initStateAtom(),
+      ),
       withChangeHook(() => {
         if (isCausedBy(reset, 1)) return
 

@@ -359,6 +359,28 @@ test(`withField and initState derivation`, async () => {
   expect(field.value.name).toBe('fieldAtom.value')
 })
 
+test(`initState atom`, () => {
+  {
+    const field = reatomField(123, 'field')
+
+    expect(field.initState()).toBe(123)
+    expect(field()).toBe(123)
+  }
+  {
+    const field = reatomField(123, 'field')
+
+    expect(field()).toBe(123)
+    expect(field.initState()).toBe(123)
+  }
+  {
+    const field = reatomField(123, 'field')
+
+    field.initState.set(100)
+    expect(field.initState()).toBe(100)
+    expect(field()).toBe(100)
+  }
+})
+
 test(`reset with initState`, async () => {
   const field = reatomField(123, 'field')
 
