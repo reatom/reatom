@@ -6,9 +6,10 @@ import {
   rAF,
   take,
   top,
+  withSuspenseInit,
   wrap,
 } from '@reatom/core'
-import React from 'react'
+import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
@@ -286,5 +287,90 @@ describe('reatomComponent', () => {
 
       root.unmount()
       expect(cleanupRunCount).toBe(2)
+    }))
+
+  class ErrorBoundary extends React.Component {
+    constructor(props) {
+      super(props)
+      this.state = { hasError: false }
+    }
+
+    static getDerivedStateFromError(error) {
+      // Обновляем состояние, чтобы следующий рендер показал запасной UI
+      return { hasError: true }
+    }
+
+    componentDidCatch(error, errorInfo) {
+      // Можно логировать ошибку в сторонний сервис
+      console.error('Caught error:', error, errorInfo)
+    }
+
+    render() {
+      if (this.state.hasError) {
+        return <p data-testid="error">Error</p>
+      }
+
+      return this.props.children
+    }
+  }
+
+  test('works with suspense throwing', () =>
+    context.start(async () => {
+      const throwError = atom(true)
+
+      const suspenseAtom = atom(async () => {
+        await wrap(tick())
+        if (throwError()) throw new Error()
+        return 100
+      }).extend(withSuspenseInit())
+
+      const SuspenseComponent = reatomComponent(() => {
+        return (
+          <ErrorBoundary>
+            <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+              <SuspenseUseComponent />
+            </Suspense>
+          </ErrorBoundary>
+        )
+      })
+
+      const SuspenseUseComponent = reatomComponent(() => {
+        return <div data-testid="result">{suspenseAtom()}</div>
+      })
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <SuspenseComponent />
+        </reatomContext.Provider>,
+      )
+
+      await wrap(tick())
+      expect(
+        document.querySelector('[data-testid="loading"]'),
+      ).toBeInTheDocument()
+
+      await wrap(tick())
+      expect(
+        document.querySelector('[data-testid="error"]'),
+      ).toBeInTheDocument()
+
+      throwError.set(false)
+
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <SuspenseComponent />
+        </reatomContext.Provider>,
+      )
+
+      await wrap(tick())
+      expect(
+        document.querySelector('[data-testid="loading"]'),
+      ).not.toBeInTheDocument()
+
+      await wrap(tick())
+      expect(
+        document.querySelector('[data-testid="result"]'),
+      ).toBeInTheDocument()
     }))
 })
