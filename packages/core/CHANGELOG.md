@@ -1,3 +1,9 @@
+## 1000.10.0 (2026-01-21)
+
+### Feat
+
+- **routing**: better params handling
+
 ## 1000.9.5 (2026-01-20)
 
 ### Fix

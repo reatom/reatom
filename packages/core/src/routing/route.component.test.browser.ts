@@ -134,10 +134,11 @@ test('app routing', async () => {
     async loader() {
       return api.me()
     },
-    render(): RouteChild {
+    render(self) {
       return html`<article>
-        ${userPageRoute.loader.ready() || 'Loading...'}
-        ${userPageRoute.loader.data()}
+        ${self.loader.ready() || 'Loading...'}
+        <br />
+        ${self.loader.data()}
       </article>`
     },
   })
@@ -168,7 +169,9 @@ test('app routing', async () => {
   expect(App()).toBe(
     html`<div>
       <header></header>
-      <main><article>Loading...</article></main>
+      <main>
+        <article>Loading...<br /></article>
+      </main>
       <footer></footer>
     </div>`,
   )
@@ -177,7 +180,9 @@ test('app routing', async () => {
   expect(App()).toBe(
     html`<div>
       <header></header>
-      <main><article>Test</article></main>
+      <main>
+        <article><br />Test</article>
+      </main>
       <footer></footer>
     </div>`,
   )
@@ -299,4 +304,44 @@ test('app protected routing', async () => {
       <footer></footer>
     </div>`,
   )
+})
+
+test('modal gate', async () => {
+  const myPage = reatomRoute('my-page')
+  const modalGate = myPage.reatomRoute({
+    params({ message }: { message?: string }) {
+      return message ? { message } : null
+    },
+    render(self): RouteChild {
+      return html`<dialog open>${self().message}</dialog>`
+    },
+  })
+
+  expect(modalGate.path()).toBe('/my-page')
+  expect(modalGate()).toBe(null)
+  expect(modalGate.render()).toBe(null)
+
+  modalGate.go({ message: 'Cool story' })
+  expect(modalGate()).toEqual({ message: 'Cool story' })
+  expect(urlAtom().pathname).toBe('/my-page')
+  expect(modalGate.render()).toBe(html`<dialog open>Cool story</dialog>`)
+
+  urlAtom.go('/my-page?something=true')
+  expect(modalGate()).toEqual({ message: 'Cool story' })
+
+  urlAtom.go('/')
+  expect(modalGate()).toBe(null)
+
+  myPage.go()
+  expect(modalGate()).toBe(null)
+
+  urlAtom.go('/')
+  modalGate.go({ message: 'Yeah' })
+  expect(modalGate()).toEqual({ message: 'Yeah' })
+  expect(urlAtom().pathname).toBe('/my-page')
+  expect(modalGate.render()).toBe(html`<dialog open>Yeah</dialog>`)
+
+  modalGate.go()
+  expect(modalGate()).toBe(null)
+  expect(urlAtom().pathname).toBe('/my-page')
 })

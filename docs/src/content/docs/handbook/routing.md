@@ -3,7 +3,7 @@ title: Routing
 description: Type-safe routing with automatic data loading in Reatom
 ---
 
-Reatom provides a powerful routing system that handles URL management, parameter validation, and data loading with automatic memory management. This guide covers everything from basic routing to advanced patterns.
+Reatom provides a powerful routing system that handles URL management, parameter validation, data loading, and **protected routes** with automatic memory management. This guide covers everything from basic routing to authentication patterns.
 
 ## Quick Start
 
@@ -194,16 +194,23 @@ userRoute() // { userId: '123' }
 
 Reatom routing provides a **framework-agnostic component composition pattern** through the `render` option. This allows you to define components directly in your routes and compose them hierarchically, with automatic mounting/unmounting management - no framework coupling required!
 
-Each route may have a `render` function that returns a component. This component will be added automatically in the parent outlet list when the route is active/inactive.
+Each route may have a `render` function that receives the route itself and returns a component. This component will be added automatically in the parent outlet list when the route is active/inactive.
+
+The `render` function receives the whole route object, which means you can:
+
+- Call it to get the current params: `self()` returns the params (guaranteed non-null when render is called)
+- Access child components: `self.outlet()` returns an array of active child route components
+- Access loader data: `self.loader.data()`, `self.loader.ready()`, etc.
+- Access other route properties: `self.exact()`, `self.match()`, `self.go()`, etc.
 
 ```typescript
 import { reatomRoute } from '@reatom/core'
 
 const layoutRoute = reatomRoute({
-  render({ outlet }) {
+  render(self) {
     return html`<div>
       <header>My App</header>
-      <main>${outlet().map((child) => child)}</main>
+      <main>${self.outlet().map((child) => child)}</main>
       <footer>© 2025</footer>
     </div>`
   },
@@ -224,9 +231,9 @@ const userRoute = layoutRoute.reatomRoute({
   async loader({ userId }) {
     return api.getUser(userId)
   },
-  render() {
-    if (!userRoute.loader.ready()) return html`<div>Loading...</div>`
-    const user = userRoute.loader.data()
+  render(self) {
+    if (!self.loader.ready()) return html`<div>Loading...</div>`
+    const user = self.loader.data()
     return html`<article>
       <h1>${user.name}</h1>
       <p>${user.bio}</p>
@@ -245,8 +252,8 @@ const App = computed(() => {
 
 **How it works:**
 
-1. **`render` option** - Each route can define a `render` function that returns your component (string, object, or any type)
-2. **`outlet()` computed** - Returns an array of all active child routes' rendered components
+1. **`render` option** - Each route can define a `render` function that receives the route itself and returns your component (string, object, or any type)
+2. **Route access** - Inside `render(self)`, call `self()` to get params (non-nullable), `self.outlet()` for child components, `self.loader` for data
 3. **Automatic rendering** - When the URL matches a route, its `render()` is called and added to parent's `outlet()`
 4. **Memory management** - Components are automatically cleaned up when routes become inactive
 5. **Layout routes** - Routes can omit the `path` to act as pure layout wrappers (always active)
@@ -318,9 +325,11 @@ const App = reatomComponent(() => {
 
 #### Recursive type errors
 
-If you see "'render' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.ts(7023)" you just need to type the render function implicitly:
+If you need to use the final reference of the route in its options and you see "'render' implicitly has return type 'any' because it does not have a return type annotation and is referenced directly or indirectly in one of its return expressions.ts(7023)" you just need to type the render function explicitly:
 
 ```tsx /: RouteChild/
+import type { RouteChild } from '@reatom/core'
+
 const layoutRoute = reatomRoute({
   async loader() {
     /* ... */
@@ -334,6 +343,146 @@ const layoutRoute = reatomRoute({
         <footer>© 2025</footer>
       </div>
     )
+  },
+})
+```
+
+### Protected Routes
+
+One of the most powerful patterns in Reatom routing is using the `params` function to create **protected routes** with automatic authentication handling. Instead of just validating URL parameters, the `params` function can:
+
+- **Block access** by returning `null` when conditions aren't met
+- **Trigger redirects** based on authentication state
+- **Inject derived parameters** like user permissions into child routes
+
+Here's a complete example of an app with authentication:
+
+```typescript
+import { atom, computed, reatomRoute, withAsyncData } from '@reatom/core'
+
+// Authentication state - could be from your auth provider
+const user = computed(async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  return await wrap(fetch('/api/me').then((r) => r.json()))
+}, 'user').extend(withAsyncData())
+
+// Base layout route - always active
+const layoutRoute = reatomRoute(
+  {
+    render(self) {
+      return html`<div>
+        <header>My App</header>
+        <main>${self.outlet()}</main>
+        <footer>© 2025</footer>
+      </div>`
+    },
+  },
+  'layoutRoute',
+)
+
+// Public login route
+const loginRoute = layoutRoute.reatomRoute(
+  {
+    path: 'login',
+    render() {
+      return html`<form>Login Form</form>`
+    },
+  },
+  'loginRoute',
+)
+
+// Protected route - the magic happens in params()
+const protectedRoute = layoutRoute.reatomRoute(
+  {
+    params() {
+      const userData = user.data()
+
+      // Not authenticated - redirect to login
+      if (!userData) {
+        if (user.ready() && !loginRoute.match()) {
+          loginRoute.go()
+        }
+        return null // Block this route
+      }
+
+      // Already logged in but on login page - redirect to dashboard
+      if (loginRoute.match()) {
+        dashboardRoute.go()
+      }
+
+      // Inject user permissions into all child routes
+      return { rights: userData.rights }
+    },
+
+    render(self) {
+      return self.outlet()
+    },
+  },
+  'protectedRoute',
+)
+
+// Dashboard - a child of protectedRoute
+const dashboardRoute = protectedRoute.reatomRoute(
+  {
+    path: 'me',
+    render(): RouteChild {
+      return html`<article>Hello, ${user.data()?.name}!</article>`
+    },
+  },
+  'dashboardRoute',
+)
+```
+
+**How the `params` function enables protected routing:**
+
+1. **Reactive authentication** - The `params` function reads `user.data()`, making the route reactive to auth changes
+2. **Route blocking** - Returning `null` prevents the route from matching, blocking all child routes
+3. **Automatic redirects** - Navigation happens seamlessly when auth state changes
+4. **Parameter injection** - Child routes receive derived parameters (like `rights`) through the hierarchy
+
+**Key benefits:**
+
+- ✅ **Declarative** - Auth logic lives in route definitions, not scattered across components
+- ✅ **Automatic** - Login/logout triggers route changes without manual navigation
+- ✅ **Type-safe** - Child routes have access to injected parameters with full type inference
+- ✅ **Composable** - Stack multiple protection layers (auth → admin → feature flags)
+
+You can create multiple protection layers:
+
+```typescript
+// First layer: requires authentication
+const authRoute = layoutRoute.reatomRoute({
+  params() {
+    const userData = user.data()
+    if (!userData) {
+      if (user.ready()) loginRoute.go()
+      return null
+    }
+    return { userId: userData.id, roles: userData.roles }
+  },
+  render: (self) => self.outlet(),
+})
+
+// Second layer: requires admin role
+const adminRoute = authRoute.reatomRoute({
+  params() {
+    const parent = authRoute()
+    if (!parent?.roles.includes('admin')) {
+      unauthorizedRoute.go()
+      return null
+    }
+    return { ...parent, isAdmin: true }
+  },
+  render: (self) => self.outlet(),
+})
+
+// Admin dashboard - only accessible to admins
+const adminDashboardRoute = adminRoute.reatomRoute({
+  path: 'admin',
+  render() {
+    // Full access to parent params: userId, roles, isAdmin
+    return html`<div>Admin Panel</div>`
   },
 })
 ```
@@ -362,12 +511,96 @@ const params = userRoute()
 params.userId // Type: number, Value: 123
 ```
 
-If validation fails, the route returns `null`:
+If validation fails, the route returns `null`.
+
+### Dynamic Params Function
+
+The `params` option can also be a **function** that computes parameters dynamically. By returning `null`, you can block route access entirely - useful for multi-step flows, conditional access, or [Protected Routes](#protected-routes).
+
+**Example: Checkout flow that requires a non-empty cart**
 
 ```typescript
-// At URL: /users/invalid
-userRoute() // null (validation failed)
+const cartItems = atom<CartItem[]>([], 'cartItems')
+
+const checkoutRoute = reatomRoute({
+  path: 'checkout',
+  params() {
+    const items = cartItems()
+
+    if (items.length === 0) {
+      shopRoute.go() // Redirect to shop
+      return null // Block checkout
+    }
+
+    // Inject computed values as route params
+    const total = items.reduce((sum, item) => sum + item.price * item.qty, 0)
+    return { itemCount: items.length, total }
+  },
+})
+
+// In your component:
+// checkoutRoute()?.total - available when cart has items
 ```
+
+**Example: Multi-step wizard where steps must be completed in order**
+
+```typescript
+const wizardRoute = reatomRoute('wizard')
+
+const step1Route = wizardRoute.reatomRoute('step-1').extend((target) => ({
+  data: atom<{ name: string; email: string } | null>(
+    null,
+    `${target.name}.data`,
+  ),
+}))
+
+const step2Route = wizardRoute
+  .reatomRoute({
+    path: 'step-2',
+    params() {
+      if (!step1Route.data()) {
+        step1Route.go()
+        return null
+      }
+      return { step1: step1Route.data()! }
+    },
+  })
+  .extend((target) => ({
+    data: atom<{ plan: string } | null>(null, `${target.name}.data`),
+  }))
+
+const step3Route = wizardRoute.reatomRoute({
+  path: 'step-3',
+  params() {
+    const s1 = step1Route.data()
+    const s2 = step2Route.data()
+    if (!s1 || !s2) {
+      step1Route.go()
+      return null
+    }
+    return { summary: { ...s1, ...s2 } }
+  },
+})
+
+// Usage:
+// step1Route.data.set({ name: 'John', email: 'john@example.com' })
+// step2Route.go() // Now allowed, has access to step1 data via params
+```
+
+When `params` is a function:
+
+- Return `null` to block the route (and all child routes)
+- Return an object to inject computed/derived parameters
+- The function is reactive - re-runs when any read atoms change
+- Combine with `.go()` calls for redirects
+
+```typescript
+// At URL: /checkout with empty cart
+checkoutRoute() // null (blocked)
+checkoutRoute.match() // true (URL matches the pattern)
+```
+
+See [Protected Routes](#protected-routes) for authentication-specific patterns.
 
 ## Search Parameters
 
@@ -707,6 +940,46 @@ export const App = reatomComponent(
 ```
 
 ## Advanced Patterns
+
+### Modal Gate Pattern
+
+A simple yet powerful pattern for creating toggleable UI states (like modals or sidebars) that are controlled programmatically without affecting the URL:
+
+```tsx
+const myPage = reatomRoute('my-page')
+
+const myPageModal = myPage.reatomRoute(
+  {
+    params({ message }: { message?: string }) {
+      return message ? { message } : null
+    },
+    render(self): RouteChild {
+      return html`<dialog open>${self().message}</dialog>`
+    },
+  },
+  'myPageModal',
+)
+
+// Usage:
+myPageModal() // null (closed)
+myPageModal.go({ message: 'Cool story' }) // Opens modal, navigates to /my-page
+myPageModal() // { message: 'Cool story' }
+
+myPageModal.go() // Closes modal (no message = null returned from params)
+myPageModal() // null (closed)
+urlAtom().pathname // '/my-page' (still unchanged)
+```
+
+The `params` function receives the argument passed to `.go()` and returns either an object to activate the route, or `null` to deactivate it.
+
+**Why use this pattern?**
+
+- **Colocation** — Define the modal's data, behavior, and rendering in one place. The route becomes a self-contained unit that describes what the modal needs and how it looks, keeping your codebase organized
+- **Typed data passing** — Store any related data (like `message`, `userId`, or complex objects) directly in the route params. No prop drilling, no context providers, no URL encoding gymnastics
+- **Automatic rendering** — Combine with the `render` option to let the route handle its own UI. The modal appears in the parent's `outlet()` when active and disappears when closed
+- **No URL pollution** — Unlike [Search-Only Routes](#search-only-routes), the modal state stays purely in memory. Perfect for confirmations, tooltips, or temporary UI that shouldn't be bookmarkable
+
+This pattern embodies a key Reatom principle: describe meaningful application states declaratively, in the right place, without ceremony.
 
 ### Global Loading State
 

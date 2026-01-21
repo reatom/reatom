@@ -309,10 +309,12 @@ test('route loader lazyness (abortable)', async () => {
     },
   })
 
-  lazyRoute.loader.extend(withChangeHook((state) => {
-    
-    console.log(state)
-    changes++}))
+  lazyRoute.loader.extend(
+    withChangeHook((state) => {
+      console.log(state)
+      changes++
+    }),
+  )
 
   lazyRoute.go()
 
@@ -529,13 +531,16 @@ test('exactRender should not render on children match', async () => {
 })
 
 test('exactRender should not affect children', async () => {
-  const parentRoute = reatomRoute({
-    path: 'project',
-    exactRender: true,
-    render() {
-      return true
+  const parentRoute = reatomRoute(
+    {
+      path: 'project',
+      exactRender: true,
+      render() {
+        return true
+      },
     },
-  })
+    'parentRoute',
+  )
   const childRoute = parentRoute.reatomRoute({
     path: 'child',
 

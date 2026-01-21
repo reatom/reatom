@@ -12,7 +12,7 @@ import {
   wrap,
 } from '../'
 import type { Action, Computed } from '../core'
-import { action, computed, ReatomError } from '../core'
+import { action, atom, computed, ReatomError, withMiddleware } from '../core'
 import { type UrlAtom, urlAtom } from '../web/url'
 
 type MaybeVoid<T> = {} extends T ? T | void : T
@@ -169,21 +169,34 @@ export interface RouteOptions<
   loader?: (params: LoaderParams) => Promise<Payload>
 
   /**
-   * Function that renders the route component. Receives an `outlet` computed
-   * that contains all active child route components.
+   * Function that renders the route component. Receives the whole route object
+   * with non-nullable state and all route properties (outlet, loader, etc.).
    *
    * This enables framework-agnostic component composition where routes define
    * their own components that are automatically composed hierarchically.
    *
    * @example
-   *   render({ outlet }) {
+   *   render(self) {
+   *   // self() returns params (non-nullable when render is called)
+   *   // self.outlet() returns active child route components
+   *   // self.loader for data loading state
    *   return html`<div>
    *   <header>My App</header>
-   *   <main>${outlet().map(child => child)}</main>
+   *   <main>${self.outlet().map(child => child)}</main>
    *   </div>`
    *   }
    */
-  render?: (options: { outlet: RouteAtom['outlet'] }) => RouteChild
+  render?: (
+    options: Computed<Plain<ParamsOutput & SearchOutput>> &
+      RouteExt<
+        string,
+        ParamsOutput,
+        SearchOutput,
+        Payload,
+        ParamsInput,
+        SearchInput
+      >,
+  ) => RouteChild
 
   /**
    * Render only on exact path matches
@@ -255,7 +268,7 @@ export interface RouteMixin<
   >(
     options: RouteOptions<
       SubPath,
-      SubParamsInput,
+      Params & SubParamsInput,
       SubSearchInput,
       SubParamsOutput,
       SubSearchOutput,
@@ -486,9 +499,9 @@ export interface RouteExt<
    *
    * @example
    *   const layoutRoute = reatomRoute({
-   *     render({ outlet }) {
+   *     render(self) {
    *       return html`<div>
-   *         <main>${outlet().map((child) => child)}</main>
+   *         <main>${self.outlet().map((child) => child)}</main>
    *       </div>`
    *     },
    *   })
@@ -622,7 +635,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       } else {
         pathParams = validateParams(paramsSchema, params as any, 'params')
         if (pathParams === null) {
-          throw new Error(`Invalid params for route ${pattern}`)
+          if (inputParamsAtom) pathParams = {}
+          else throw new Error(`Invalid params for route ${pattern}`)
         }
       }
       let searchParams = searchSchema
@@ -658,6 +672,11 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       return path
     }
+
+    let inputParamsAtom =
+      typeof paramsSchema === 'function'
+        ? atom(null, `${name}._inputParamsAtom`)
+        : null
 
     const loader = computed(async () => {
       let params = routeAtom()
@@ -709,6 +728,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
+        inputParamsAtom?.set(params)
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
           newUrl.pathname = url.pathname
@@ -720,25 +740,28 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const routeAtom = computed((state?: null | Rec): null | Rec => {
       if ('match' in parent && !parent.match!()) return null
 
-      const url = urlAtom()
-      const pathname = url.pathname
-      const params: Rec = {}
+      let url = urlAtom()
+      let pathname = url.pathname
+      let params: null | Rec = inputParamsAtom?.() ?? null
 
-      const parts = pathname.split('/').filter(Boolean)
+      if (!params) {
+        params = {}
+        let parts = pathname.split('/').filter(Boolean)
 
-      for (let i = 0; i < patternParts.length; i++) {
-        if (i > parts.length || (i === parts.length && !hasOptionalPart)) {
-          return null
-        }
+        for (let i = 0; i < patternParts.length; i++) {
+          if (i > parts.length || (i === parts.length && !hasOptionalPart)) {
+            return null
+          }
 
-        const part = patternParts[i]!
-        const name = getPatternName(part)
-        const pathPart = parts[i]
+          let part = patternParts[i]!
+          let name = getPatternName(part)
+          let pathPart = parts[i]
 
-        if (part.startsWith(':')) {
-          params[name] = pathPart
-        } else if (name !== pathPart) {
-          return null
+          if (part.startsWith(':')) {
+            params[name] = pathPart
+          } else if (name !== pathPart) {
+            return null
+          }
         }
       }
 
@@ -758,7 +781,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         }
 
         if (searchSchema) {
-          const searchParams = Object.fromEntries(url.searchParams)
+          let searchParams = Object.fromEntries(url.searchParams)
           validatedSearch = validate(searchSchema, searchParams, 'search')
         }
       } catch {
@@ -769,7 +792,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       if (validatedSearch) {
         result = { ...validatedParams }
-        for (const key in validatedSearch) {
+        for (let key in validatedSearch) {
           if (key in result) {
             throw new ReatomError(
               `Params collision for "${key}" in route ${pattern}`,
@@ -781,14 +804,14 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       return isDeepEqual(state, result) ? state! : result
     }, name).extend((target) => {
-      const reatomRoute = createRouteFactory(target as RouteAtom)
+      let reatomRoute = createRouteFactory(target as RouteAtom)
 
-      const routes: RouteAtom['routes'] = {}
+      let routes: RouteAtom['routes'] = {}
 
-      const match = computed(() => routeAtom() !== null, `${name}.match`)
+      let match = computed(() => routeAtom() !== null, `${name}.match`)
 
-      const outlet = computed(() => {
-        const result: RouteChild[] = []
+      let outlet = computed(() => {
+        let result: RouteChild[] = []
         for (let pattern in routes) {
           let render = routes[pattern]!.render()
           if (render != null) {
@@ -798,9 +821,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         return result
       }, `${name}._outlet`)
 
-      const render = computed(() => {
+      let render = computed(() => {
         if (renderFn) {
-          return (exactRender ? exact() : match()) ? renderFn({ outlet }) : null
+          return (exactRender ? exact() : match()) ? renderFn(routeAtom) : null
         }
 
         // subscribe params
@@ -823,6 +846,24 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     }) as RouteAtom
 
     parent.routes[pattern] = urlAtom.routes[pattern] = routeAtom
+
+    if (inputParamsAtom) {
+      routeAtom.extend(
+        withMiddleware(() => (next, ...params) => {
+          let state
+          try {
+            return (state = next(...params))
+          } catch (error) {
+            state = null
+            throw error
+          } finally {
+            if (state === null && inputParamsAtom() !== null) {
+              inputParamsAtom.set(null)
+            }
+          }
+        }),
+      )
+    }
 
     return routeAtom
   }
@@ -882,10 +923,10 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
  * @example
  *   // Route with component rendering
  *   const layoutRoute = reatomRoute({
- *     render({ outlet }) {
+ *     render(self) {
  *       return html`<div>
  *         <header>My App</header>
- *         <main>${outlet().map((child) => child)}</main>
+ *         <main>${self.outlet().map((child) => child)}</main>
  *       </div>`
  *     },
  *   })
