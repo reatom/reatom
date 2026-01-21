@@ -144,19 +144,14 @@ export function withField<T extends Atom, State = AtomState<T>, Value = State>(
           isDirty(value(), fromState(prevState, thisField)),
         getValue: () => value(),
         validate: validateFn,
-        disabled: restOptions.disabled,
-        elementRef: restOptions.elementRef,
-        keepErrorDuringValidating: restOptions.keepErrorDuringValidating,
-        keepErrorOnChange: restOptions.keepErrorOnChange,
-        validateOnChange: restOptions.validateOnChange,
-        validateOnBlur: restOptions.validateOnBlur,
+        ...restOptions
       }),
     )
 
-  const value = createAtom(
-    { computed: () => fromState(target(), thisField) },
-    `${name}.value`,
-  )
+    const value = createAtom(
+      { computed: () => fromState(target(), thisField) },
+      `${name}.value`,
+    )
 
     const change = action((newValue) => {
       const prevValue = value()
@@ -210,32 +205,19 @@ export interface TransformableFieldOptions<
 export interface FieldAtom<State = any, Value = State>
   extends Atom<State>, FieldExt<State, Value> {}
 
-/**
- * TODO
- *
- * @param options
- */
+export function reatomField<State>(
+  initState: State,
+  name?: string,
+): FieldAtom<State, State>
+
 export function reatomField<State, Value = State>(
   initState: State,
   options: TransformableFieldOptions<State, Value>,
 ): FieldAtom<State, Value>
 
-/**
- * TODO
- *
- * @param options
- */
-export function reatomField<State>(
-  initState: State extends any[] ? State[number] : State,
-  options?: string | FieldOptions<State, State>,
-): FieldAtom<State, State>
-
 export function reatomField<State, Value = State>(
   initState: State,
-  options:
-    | string
-    | FieldOptions<State, Value>
-    | TransformableFieldOptions<State, Value> = {},
+  options: string | TransformableFieldOptions<State, Value> = {},
 ): FieldAtom<State, Value> {
   const { name = named(`${typeof initState}Field`), ...rest } =
     typeof options === 'string' ? { name: options } : options

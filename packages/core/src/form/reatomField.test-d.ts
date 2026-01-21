@@ -73,3 +73,7 @@ test(`valid type constraint with validate callback`, () => {
   // @ts-expect-error validate callback should match reatomField State type generic
   reatomField('', { validate: z.number() })
 })
+
+test(`valid type inference with initState as array`, () => {
+  reatomField(['test'])
+})

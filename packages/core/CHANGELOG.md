@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ## 1000.14.1 (2026-01-29)
 
 ### Fix
@@ -40,6 +39,7 @@
 ### Feat
 
 - **extensions**: finally strategy
+- **form**: add validateOnConnect
 
 ## 1000.10.2 (2026-01-27)
 

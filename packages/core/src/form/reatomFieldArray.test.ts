@@ -30,6 +30,39 @@ test(`validateOnBlur`, async () => {
   expect(blurFn).toHaveBeenCalledTimes(1)
 })
 
+test(`validateOnConnect`, async () => {
+  const contactsFieldArray = reatomFieldArray(
+    [{ name: '', address: '', enabled: true }],
+    {
+      name: 'contacts',
+      validateOnChange: true,
+      validateOnConnect: true,
+      validate: ({ state }) => {
+        return state.every((group) => !group.enabled())
+          ? 'minOneEnabled'
+          : undefined
+      },
+    },
+  )
+
+  contactsFieldArray.array.subscribe()
+  await wrap(sleep())
+
+  expect(contactsFieldArray.validation().error).toBe(undefined)
+
+  contactsFieldArray.array()[0]?.enabled.set(false)
+  await wrap(sleep())
+  expect(contactsFieldArray.validation().error).toBe('minOneEnabled')
+
+  contactsFieldArray.create({
+    name: 'John Doe',
+    address: '123 Main St',
+    enabled: true,
+  })
+  await wrap(sleep())
+  expect(contactsFieldArray.validation().error).toBe(undefined)
+})
+
 test(`keepErrorOnChange`, async () => {
   const validate = () => {
     throw new Error('validation error')

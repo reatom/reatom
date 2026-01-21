@@ -37,6 +37,20 @@ test(`validateOnBlur`, async () => {
   expect(blurFn).toHaveBeenCalledTimes(1)
 })
 
+test(`validateOnConnect`, async () => {
+  const field = reatomField('', {
+    name: 'fieldAtom',
+    validateOnConnect: true,
+  })
+
+  const connectFn = vi.fn()
+  addCallHook(field.validation.trigger, connectFn)
+
+  field.subscribe()
+  notify()
+  expect(connectFn).toHaveBeenCalledTimes(1)
+})
+
 test(`keepErrorOnChange`, async () => {
   const validate = () => {
     throw new Error('validation error')
@@ -140,7 +154,7 @@ test(`toState and fromState`, async () => {
   expect(field()).toEqual({ label, value: 2000 })
 })
 
-test(`toState reactivity`, async () => {
+test(`fromState reactivity`, async () => {
   const decimalPlaces = atom(2, 'decimalPlaces')
 
   const priceField = reatomField<number, string>(100.5, {

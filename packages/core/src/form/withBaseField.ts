@@ -28,6 +28,7 @@ import {
   withCallHook,
   withChangeHook,
   withComputed,
+  withConnectHook,
   withInit,
   wrap,
 } from '../'
@@ -284,6 +285,14 @@ export interface BaseFieldExtOptions<
   validateOnBlur?: boolean
 
   /**
+   * Defines if the validation should be triggered when the field is connected
+   * (binded to UI/being a part of reactive subscription).
+   *
+   * @default false
+   */
+  validateOnConnect?: boolean
+
+  /**
    * Optional custom initState atom. If provided, its setter params will be used
    * for the reset action.
    */
@@ -351,6 +360,14 @@ export interface BaseFieldExt<
      * @default false
      */
     validateOnBlur: boolean | undefined
+
+    /**
+     * Defines if the validation should be triggered when the field is connected
+     * (binded to UI/being a part of reactive subscription).
+     *
+     * @default false
+     */
+    validateOnConnect: boolean | undefined
 
     shouldValidate: boolean | undefined
   }>
@@ -549,6 +566,7 @@ export const withBaseField =
       keepErrorOnChange: keepErrorOnChangeInit,
       validateOnChange: validateOnChangeInit,
       validateOnBlur: validateOnBlurInit,
+      validateOnConnect: validateOnConnectInit,
       initStateAtom,
     } = options
 
@@ -558,6 +576,7 @@ export const withBaseField =
       {
         validateOnChange: validateOnChangeInit,
         validateOnBlur: validateOnBlurInit,
+        validateOnConnect: validateOnConnectInit,
         keepErrorDuringValidating: keepErrorDuringValidatingInit,
         keepErrorOnChange: keepErrorOnChangeInit,
         shouldValidate: undefined as boolean | undefined,
@@ -568,6 +587,7 @@ export const withBaseField =
         const {
           validateOnChange,
           validateOnBlur,
+          validateOnConnect,
           keepErrorDuringValidating,
           keepErrorOnChange,
           shouldValidate,
@@ -576,6 +596,7 @@ export const withBaseField =
         return {
           validateOnChange: validateOnChange ?? false,
           validateOnBlur: validateOnBlur ?? false,
+          validateOnConnect: validateOnConnect ?? false,
           keepErrorDuringValidating: keepErrorDuringValidating ?? false,
           keepErrorOnChange: keepErrorOnChange ?? !validateOnChange,
           shouldValidate: shouldValidate ?? !!validateFn,
@@ -615,6 +636,9 @@ export const withBaseField =
         validation.merge({ validating: undefined })
 
         if (!disabled() && validateOnChange) validation.trigger()
+      }),
+      withConnectHook(() => {
+        if (fieldOptions.value().validateOnConnect) validation.trigger()
       }),
     )
 
