@@ -618,7 +618,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const pattern = `${parentPattern}/${subPath}`
 
-    name ||= `route#${pattern}`
+    name ||= pattern
 
     const hasOptionalPart = pattern.endsWith('?')
 

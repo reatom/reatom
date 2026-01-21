@@ -144,7 +144,8 @@ export let withAbort =
       if (maybePromise instanceof Promise) {
         let sync = true
         let aborted = false
-        let wrappedPromise = new Promise(async (res, rej) => {
+        let wrappedPromise: Promise<any>
+        wrappedPromise = new Promise(async (res, rej) => {
           let abortSubscription
           try {
             abortSubscription = abortVar.subscribe((error) => {
@@ -167,7 +168,7 @@ export let withAbort =
 
             if (isAbort(error)) {
               aborted = true
-              maybePromise?.catch(noop)
+              wrappedPromise?.catch(noop)
             }
             abortSubscription?.unsubscribe()
             rej(error)
