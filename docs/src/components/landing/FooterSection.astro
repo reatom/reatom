@@ -107,7 +107,7 @@ import { resolveBase } from './resolve-base'
           <h3 class="footer-section-title">Documentation</h3>
           <ul class="footer-links">
             <li>
-              <a href={resolveBase(`/references`)} class="footer-link">
+              <a href={resolveBase(`/references/utils`)} class="footer-link">
                 <span>Complete Documentation</span>
                 <span class="footer-link-description"
                   >Guides and API reference</span
@@ -364,18 +364,22 @@ import { resolveBase } from './resolve-base'
   }
 
   .footer-cta-section::before {
-    content: " ";
+    content: ' ';
     position: absolute;
     inset: 0;
     --top-color: #222328;
-    background-image: 
-      linear-gradient(to bottom, transparent 10rem, var(--bg-primary) 100vh 100%),
-      url(/assets/noise.svg), 
+    background-image:
+      linear-gradient(
+        to bottom,
+        transparent 10rem,
+        var(--bg-primary) 100vh 100%
+      ),
+      url(/assets/noise.svg),
       linear-gradient(to bottom, var(--top-color), transparent);
     opacity: 0.2;
   }
 
-  html[data-theme="light"] .footer-cta-section::before {
+  html[data-theme='light'] .footer-cta-section::before {
     opacity: 1;
     --top-color: #cbd0ee;
   }
@@ -385,7 +389,7 @@ import { resolveBase } from './resolve-base'
     width: 20rem;
     height: 20rem;
     margin: 0 auto;
-    --accent: color-mix(in srgb, var(--accent-primary), transparent 60%)
+    --accent: color-mix(in srgb, var(--accent-primary), transparent 60%);
   }
 
   .logo-shape svg {
@@ -396,10 +400,12 @@ import { resolveBase } from './resolve-base'
   .logo-shape svg circle {
     fill: #18191b;
     stroke: var(--accent);
-    transition: fill 0.3s ease, stroke 0.3s ease;
+    transition:
+      fill 0.3s ease,
+      stroke 0.3s ease;
   }
 
-  html[data-theme="light"] .logo-shape svg circle {
+  html[data-theme='light'] .logo-shape svg circle {
     fill: #eef0f9;
   }
 

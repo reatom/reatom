@@ -49,7 +49,7 @@ Perfect for persistent and session-based storage with cross-tab synchronization:
 import {
   withLocalStorage,
   withSessionStorage,
-} from '@reatom/core/persist/web-storage'
+} from '@reatom/core/persist'
 
 // Persistent storage (survives browser restarts)
 const settingsAtom = atom({}, 'settings').extend(
@@ -101,7 +101,7 @@ Real-time cross-tab synchronization without persistent storage:
 import {
   withBroadcastChannel,
   reatomPersistBroadcastChannel,
-} from '@reatom/core/persist/web-storage'
+} from '@reatom/core/persist'
 
 // Default channel with automatic fallback
 const liveCounterAtom = atom(0, 'liveCounter').extend(
@@ -144,7 +144,7 @@ const usersAtom = atom([], 'users').extend(withGameChannel('users'))
 Server-side compatible persistence with full HTTP cookie attributes:
 
 ```typescript
-import { withCookie } from '@reatom/core/persist/web-storage'
+import { withCookie } from '@reatom/core/persist'
 
 // Basic cookie usage
 const themeAtom = atom('light', 'theme').extend(
@@ -192,7 +192,7 @@ const cartAtom = atom([], 'cart').extend(withCookie()('shopping-cart'))
 Modern asynchronous cookie management using the Cookie Store API with automatic cross-tab synchronization:
 
 ```typescript
-import { withCookieStore } from '@reatom/core/persist/web-storage'
+import { withCookieStore } from '@reatom/core/persist'
 
 // Basic usage with modern async API
 const themeAtom = atom('light', 'theme').extend(
@@ -264,7 +264,7 @@ Large-capacity persistent storage for complex applications:
 import {
   withIndexedDb,
   reatomPersistIndexedDb,
-} from '@reatom/core/persist/web-storage'
+} from '@reatom/core/persist'
 
 // Default IndexedDB with automatic fallback
 const largeDataAtom = atom(new Map(), 'largeData').extend(
@@ -314,7 +314,7 @@ For custom storage implementations or when you need more control:
 
 ```typescript
 import { atom } from '@reatom/core'
-import { createMemStorage, reatomPersist } from '@reatom/core/persist'
+import { createMemStorage, reatomPersist } from '@reatom/core'
 
 // Create a storage backend
 const storage = createMemStorage({
@@ -602,7 +602,7 @@ const apiCacheAtom = atom(null).extend(
 Create your own storage backends by implementing the `PersistStorage` interface:
 
 ```typescript
-import { PersistStorage, reatomPersist } from '@reatom/core/persist'
+import { PersistStorage, reatomPersist } from '@reatom/core'
 
 // Example: Custom localStorage implementation
 const createCustomStorage = (name: string): Omit<PersistStorage, 'cache'> => ({
