@@ -176,6 +176,14 @@ export interface BaseFormOptions {
   validateOnChange?: boolean
 
   /**
+   * Defines if the validation should be triggered on the field connect by
+   * default for all fields.
+   *
+   * @default false
+   */
+  validateOnConnect?: boolean
+
+  /**
    * Defines if the validation should be triggered on the field blur by default
    * for all fields.
    *
@@ -471,6 +479,7 @@ export function reatomForm<
     validateBeforeSubmit,
     validateOnBlur = false,
     validateOnChange = false,
+    validateOnConnect = false,
     keepErrorDuringValidating = false,
     keepErrorOnChange = !validateOnChange,
     schema,
@@ -482,6 +491,7 @@ export function reatomForm<
         return {
           validateOnChange: options.validateOnChange ?? validateOnChange,
           validateOnBlur: options.validateOnBlur ?? validateOnBlur,
+          validateOnConnect: options.validateOnConnect ?? validateOnConnect,
           keepErrorDuringValidating:
             options.keepErrorDuringValidating ?? keepErrorDuringValidating,
           keepErrorOnChange: options.keepErrorOnChange ?? keepErrorOnChange,

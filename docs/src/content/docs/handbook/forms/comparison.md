@@ -184,7 +184,7 @@ The core API selection is approximate and may not be fully accurate.
     </tbody>
 </table>
 
-1. _Decoupled form models_ - the form logic (state, validation, and field dependencies) is fully defined as a standalone entity outside of the UI framework's lifecycle. It indicates whether the entire form model can be tested, reused, or ported to another framework without modifying the business logic, leaving the UI layer responsible only for data binding.
+1. _Decoupled form and field models_ - the form or field logic (state, validation, and field dependencies) is fully defined as a standalone entity outside of the UI framework's lifecycle. It indicates whether the entire form model can be tested, reused, or ported to another framework without modifying the business logic, leaving the UI layer responsible only for data binding.
 2. _Reactivity granularity_ there is limited to static dependency lists, while ideal behavior would involve automatic tracking like in signal-based architectures
 3. Only debugger is available at this moment
 4. List implementation may have performance issues when rendering a large number of elements and may be poorly optimized for virtualization

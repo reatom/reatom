@@ -9,7 +9,7 @@ In Reatom, fields are independent entities with their own related states and met
 ```ts
 import { reatomField } from '@reatom/core'
 
-const fieldAtom = reatomField(0, 'fieldAtom') 
+const fieldAtom = reatomField(0, 'fieldAtom')
 
 fieldAtom() // -> number
 fieldAtom.value() // -> number
@@ -292,36 +292,36 @@ const usernameField = reatomField({
 Any validation error in forms has a property `source`, which indicates what caused the validation error. By default, any errors that occurred during field validation through the `validate` option will receive the value `validation` as the `source`. Also, errors can appear in the field whose `source` value will be `schema`, in case the error occurred during validation by the schema from the [form](/handbook/forms/concepts/form/) that contains this field. Otherwise, nothing prevents you from using any other values as `source` if necessary
 
 ## Disabling fields
+
 When fields are disabled, their validation stops being triggered and they are [excluded from the validation and focus process of `reatomFieldSet`](/handbook/forms/concepts/fieldset/#fieldslist-and-fieldarrayslist). Additionally, when the field is properly bound to a DOM or other input (i.e., through the `bindField` method), the associated element also becomes disabled at the UI level.
 
 Nothing prevents you from adding external reactive dependencies to the field's disabled state if your form logic requires it:
 
 ```ts
 const cartPrice = computed(
-  () => products().reduce((sum, p) => sum + p.price, 0), 
-  'cartPrice'
+  () => products().reduce((sum, p) => sum + p.price, 0),
+  'cartPrice',
 )
 
 const promoCodeField = reatomField<number | null>(null, 'promoCodeField')
-promoCodeField.disabled.extend(
-  withComputed(() => cartPrice() < 100)
-)
+promoCodeField.disabled.extend(withComputed(() => cartPrice() < 100))
 ```
 
 ## Managing input element references
+
 Each field has its own associated `elementRef` atom, which contains a reference to the corresponding field element. This can be either a DOM element or any other element depending on the environment in which the field operates.
 
 ```ts
 const usernameField = reatomField('', {
-  elementRef: document.querySelector('#username')
+  elementRef: document.querySelector('#username'),
 })
 ```
 
 However, the approach with a default `elementRef` value is only suitable when the DOM element is already created and known at the time of field creation. A much more common case is when the element is assigned upon the creation of the corresponding component:
 
 ```tsx
-<input 
-  placeholder='Username'
+<input
+  placeholder="Username"
   {...bindField(usernameField)} // <- automatically binds elementRef
 />
 ```

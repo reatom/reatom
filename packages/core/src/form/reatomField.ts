@@ -144,7 +144,7 @@ export function withField<T extends Atom, State = AtomState<T>, Value = State>(
           isDirty(value(), fromState(prevState, thisField)),
         getValue: () => value(),
         validate: validateFn,
-        ...restOptions
+        ...restOptions,
       }),
     )
 

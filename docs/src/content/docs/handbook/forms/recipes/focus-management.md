@@ -50,7 +50,9 @@ declare module '@reatom/core' {
 Now let's take this bunch of logic and wrap it into a separate reusable extension:
 
 ```ts
-export const withFormAutoFocusOnError = () => (form: Form<any>) =>
+import { type FormAtom, withCallHook } from 'reatom'
+
+export const withFormAutoFocusOnError = () => (form: FormAtom<any>) => {
   form.submit.onReject.extend(
     withCallHook(() => {
       const errorField = form
@@ -60,6 +62,9 @@ export const withFormAutoFocusOnError = () => (form: Form<any>) =>
       errorField?.elementRef()?.focus()
     }),
   )
+
+  return form
+}
 ```
 
 Then just extend your form with extension:
