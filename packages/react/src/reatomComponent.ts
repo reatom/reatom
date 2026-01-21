@@ -131,7 +131,11 @@ export let reatomComponent = <Props extends Rec = {}>(
       React.useEffect(mount, [mount, ...deps.map((name) => props[name])])
 
       let { result } = render(props)
-      if (isSuspense(result)) throw result
+      if (isSuspense(result)) {
+        // @ts-ignore it's ok
+        if (React.use) return React.use(result)
+        else throw result
+      }
       return result
     },
   }[name]!
