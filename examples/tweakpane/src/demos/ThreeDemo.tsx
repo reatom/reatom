@@ -238,6 +238,7 @@ export const ThreeDemo = reatomFactoryComponent(() => {
       </p>
       <div
         ref={wrap(containerAtom.ref)}
+        id='three-container'
         style={{
           flex: 1,
           minHeight: '320px',

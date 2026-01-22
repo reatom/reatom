@@ -4,7 +4,7 @@ body {
   padding: 0;
 }
 
-canvas {
+#three-container canvas {
   display: block;
   position: absolute;
 }
