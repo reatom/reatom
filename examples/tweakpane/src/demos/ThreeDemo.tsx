@@ -26,40 +26,32 @@ import { reatomPaneFolder, withBinding } from '../tweakpane'
 export const ThreeDemo = reatomFactoryComponent(() => {
   const threeFolder = reatomPaneFolder({ title: 'Three.js' })
 
-  const containerAtom = atom<HTMLElement | null>(
-    null,
-    'threeContainer',
-  ).extend((target) => {
-    const size = atom({ width: 0, height: 0 }, `${target.name}.size`).extend(
-      withConnectHook((sizeTarget) =>
-        effect(() => {
-          const container = target()
-          if (!container) return
+  const containerAtom = atom<HTMLElement | null>(null, 'container').extend((target) => {
+		const size = atom({ width: 0, height: 0 }, `${target.name}._size`).extend(
+			withConnectHook((sizeTarget) => {
+				const container = target()
+				let observer: ResizeObserver
+				if (container) {
+					observer = new ResizeObserver(
+						wrap(() => {
+							sizeTarget.set({
+								width: container.clientWidth,
+								height: container.clientHeight,
+							})
+						}),
+					)
+					observer.observe(container)
+				}
 
-          const updateSize = () => {
-            sizeTarget.set({
-              width: container.clientWidth,
-              height: container.clientHeight,
-            })
-          }
+				return () => observer.disconnect()
+			}),
+		)
 
-          const observer = new ResizeObserver(wrap(updateSize))
-          observer.observe(container)
-          updateSize()
-
-          return () => observer.disconnect()
-        }),
-      ),
-    )
-
-    return {
-      size,
-      ref: action(
-        (node: HTMLElement | null) => void target.set(node),
-        `${target.name}.ref`,
-      ),
-    }
-  })
+		return {
+			size,
+			ref: action((node: HTMLElement | null) => void target.set(node)),
+		}
+	})
 
   const sceneAtom = reatomInstance(
     () => new Scene(),
@@ -158,8 +150,8 @@ export const ThreeDemo = reatomFactoryComponent(() => {
   ).extend(
     withEffect((renderer) => {
       const { width, height } = containerAtom.size()
-      if (!width || !height) return
       peek(renderer).setSize(width, height)
+      peek(renderer).render(sceneAtom(), cameraAtom())
     }),
     withEffect((renderer) => {
       const container = containerAtom()
@@ -171,8 +163,7 @@ export const ThreeDemo = reatomFactoryComponent(() => {
   )
 
   const boxDimensionsAtom = atom({ x: 1, y: 1, z: 1 }, 'boxDimensions')
-    .extend(withBinding({ label: 'Box Dimensions' }, threeFolder))
-    .extend(
+    .extend(withBinding({ label: 'Box Dimensions' }, threeFolder),
       withInstance(
         (dimensions) => {
           const { x, y, z } = dimensions()
@@ -198,26 +189,10 @@ export const ThreeDemo = reatomFactoryComponent(() => {
       rotation: atom({ x: 0.5, y: 0.5, z: -0.3 }, 'boxRotation').extend(
         withBinding({ label: 'Box Rotation' }, threeFolder),
       ),
-      color: atom('#00ff00', 'boxColor').extend(
-        withBinding({ label: 'Box Color' }, threeFolder),
-      ),
     }),
     withEffect((box) => {
       const { x, y, z } = box.rotation()
       peek(box).rotation.set(x, y, z)
-    }),
-    withEffect((box) => {
-      const color = box.color()
-      const material = peek(box).material
-      const applyColor = (entry: MeshStandardMaterial) => {
-        entry.color.set(color)
-      }
-
-      if (Array.isArray(material)) {
-        material.forEach((entry) => applyColor(entry as MeshStandardMaterial))
-      } else {
-        applyColor(material as MeshStandardMaterial)
-      }
     }),
   )
 
@@ -230,7 +205,14 @@ export const ThreeDemo = reatomFactoryComponent(() => {
   })
 
   return () => (
-    <section>
+    <section
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '1rem',
+        minHeight: 'calc(100vh - 4rem)',
+      }}
+    >
       <h3>Three.js</h3>
       <p>
         Three.js scene wired to Tweakpane bindings. Adjust the controls to
@@ -239,11 +221,10 @@ export const ThreeDemo = reatomFactoryComponent(() => {
       <div
         ref={wrap(containerAtom.ref)}
         style={{
-          width: '100%',
-          height: '360px',
+          flex: 1,
+          minHeight: '320px',
           border: '1px solid #eee',
           borderRadius: '6px',
-          overflow: 'hidden',
         }}
       />
     </section>

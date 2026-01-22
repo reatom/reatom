@@ -8,12 +8,14 @@ export const App = reatomComponent(() => {
       style={{
         display: 'flex',
         minHeight: '100vh',
+        width: '100%',
         fontFamily: 'sans-serif',
       }}
     >
       <nav
         style={{
           width: '240px',
+          flex: '0 0 240px',
           borderRight: '1px solid #eee',
           padding: '1rem',
           background: '#f9f9f9',
@@ -94,7 +96,7 @@ export const App = reatomComponent(() => {
           </li>
         </ul>
       </nav>
-      <main style={{ flex: 1, padding: '2rem', maxWidth: '640px' }}>
+      <main style={{ flex: 1, width: '100%', padding: '2rem' }}>
         {rootRoute.render()}
       </main>
     </div>
