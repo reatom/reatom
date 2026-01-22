@@ -162,30 +162,40 @@ export const ThreeDemo = reatomFactoryComponent(() => {
     }),
   )
 
-  const boxDimensionsAtom = atom({ x: 1, y: 1, z: 1 }, 'boxDimensions')
-    .extend(
-      withBinding({ label: 'Box Dimensions' }, threeFolder),
-      withInstance(
-        (dimensions) => {
-          const { x, y, z } = dimensions()
-          return new Mesh(
-            new BoxGeometry(x, y, z),
-            new MeshStandardMaterial({ color: 0x00ff00 }),
-          )
-        },
-        (box) => {
-          box.removeFromParent()
-          box.geometry.dispose()
-          if (Array.isArray(box.material)) {
-            box.material.forEach((material) => material.dispose())
-          } else {
-            box.material.dispose()
-          }
-        },
-      ),
-    )
+  const boxGeometryAtom = atom({ x: 1, y: 1, z: 1 }, 'boxDimensions').extend(
+    withBinding({ label: 'Box Dimensions' }, threeFolder),
+    withInstance(
+      (dimensions) => {
+        const { x, y, z } = dimensions()
+        return new BoxGeometry(x, y, z)
+      },
+      (geometry) => geometry.dispose(),
+    ),
+  )
 
-  boxDimensionsAtom.instance.extend(
+  const boxMaterialAtom = atom({
+    color: atom('#00ff00', 'boxColor').extend(
+      withBinding({ label: 'Box Color' }, threeFolder),
+    ),
+    opacity: atom(1, 'boxOpacity').extend(
+      withBinding({ label: 'Box Opacity', min: 0, max: 1 }, threeFolder),
+    ),
+  }).extend(
+    withInstance(
+      (params) =>
+        new MeshStandardMaterial({
+          color: params().color(),
+          transparent: params().opacity() < 1,
+          opacity: params().opacity(),
+        }),
+      (material) => material.dispose(),
+    ),
+  )
+
+  const boxMeshAtom = reatomInstance(
+    () => new Mesh(boxGeometryAtom.instance(), boxMaterialAtom.instance()),
+    (box) => box.removeFromParent(),
+  ).extend(
     () => ({
       rotation: atom({ x: 0.5, y: 0.5, z: -0.3 }, 'boxRotation').extend(
         withBinding({ label: 'Box Rotation' }, threeFolder),
@@ -201,7 +211,7 @@ export const ThreeDemo = reatomFactoryComponent(() => {
     const scene = sceneAtom()
     scene.add(ambientLightAtom())
     scene.add(directionalLightAtom())
-    scene.add(boxDimensionsAtom.instance())
+    scene.add(boxMeshAtom())
     rendererAtom()
   })
 
