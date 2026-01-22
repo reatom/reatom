@@ -9,6 +9,7 @@ import { MonitorDemo } from './demos/MonitorDemo'
 import { NumberDemo } from './demos/NumberDemo'
 import { PointDemo } from './demos/PointDemo'
 import { StringDemo } from './demos/StringDemo'
+import { ThreeDemo } from './demos/ThreeDemo'
 import { UIComponentsDemo } from './demos/UIComponentsDemo'
 
 export const rootRoute = reatomRoute({
@@ -92,4 +93,9 @@ export const stringRoute = rootRoute.reatomRoute({
 export const uiComponentsRoute = rootRoute.reatomRoute({
   path: 'ui-components',
   render: () => <UIComponentsDemo />,
+})
+
+export const threeRoute = rootRoute.reatomRoute({
+  path: 'three',
+  render: () => <ThreeDemo />,
 })

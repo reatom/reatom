@@ -105,13 +105,14 @@ The integration provides the following primitives:
 - **`reatomPaneFolder`** - Creates folders as reactive containers
 - **`reatomPaneTab`** - Creates tabs with reactive pages
 - **`reatomPaneSeparator`** - Adds separators to a parent rack
- - **`reatomDisposable`** - Helper to create lazy disposable reactive resources (manages creation and automatic disposal when unsubscribed)
+- **`reatomDisposable`** - Helper to create lazy disposable reactive resources (manages creation and automatic disposal when unsubscribed)
 - **`withBinding`** - Creates bidirectional bindings between atoms and Tweakpane controls
 - **`withBlade`** - Generic blade creation for custom views
 - **`withButton`** - Binds actions to Tweakpane buttons
 
 And generic utilities:
 
+- **`reatomInstance`** - Wraps imperative instances with automatic create/dispose lifecycle
 - **`withEffect`** - Generic hook for one-way bindings to imperative properties (used here for Tweakpane UI props like `disabled` or `title`)
 
 All primitives support lazy creation and automatic disposal via Reatom's subscription lifecycle.
@@ -129,6 +130,7 @@ Essentials plugin wrappers included in this example:
 
 - **[Audio Mixer](/mixer)** - Deep composition with `withLocalStorage` + `withSearchParams` + `withBinding`, reactive properties for dynamic UI, and lifecycle hooks
 - **[Animation](/animation)** - Real-time canvas animation with tabbed controls, reactive properties, `reatomEnum` integration, and `reatomMediaQuery` composition
+- **[Three.js](/three)** - WebGL scene wired to Tweakpane bindings with automatic lifecycle management
 
 ### Controls
 

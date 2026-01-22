@@ -51,6 +51,9 @@ export const App = reatomComponent(() => {
           <li style={{ marginBottom: '0.25rem' }}>
             <a href="/animation">Animation</a>
           </li>
+          <li style={{ marginBottom: '0.25rem' }}>
+            <a href="/three">Three.js Scene</a>
+          </li>
         </ul>
 
         <h4

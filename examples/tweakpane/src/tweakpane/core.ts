@@ -1,12 +1,4 @@
-import {
-  abortVar,
-  type AtomLike,
-  computed,
-  named,
-  reset,
-  withAbort,
-  withDisconnectHook,
-} from '@reatom/core'
+import { type AtomLike, named } from '@reatom/core'
 import type {
   BaseParams,
   Controller,
@@ -16,6 +8,8 @@ import type {
 } from '@tweakpane/core'
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials'
 import { type FolderParams, Pane, type TabParams } from 'tweakpane'
+
+import { reatomInstance } from '../reatomInstance'
 
 // types that may work as containers for other blades
 export type BladeRackApi = FolderApi | RackApi | TabPageApi
@@ -41,20 +35,12 @@ export type Disposable = { dispose: () => void; controller: Controller }
 export const reatomDisposable = <T extends Disposable>(
   create: () => T,
   name: string = named('disposable')
-) => {
-  const resource = computed(() => {
-    const disposable = create()
-    abortVar.subscribe(() => disposable.dispose())
-    return disposable
-  }, name).extend(
-    withAbort(),
-    withDisconnectHook(() => {
-      resource.abort('disconnect')
-      reset(resource)
-    })
+) =>
+  reatomInstance(
+    () => create(),
+    (disposable) => disposable.dispose(),
+    name,
   )
-  return resource
-}
 
 export type PaneConfig = ConstructorParameters<typeof Pane>[0]
 
