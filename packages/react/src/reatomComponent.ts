@@ -133,8 +133,8 @@ export let reatomComponent = <Props extends Rec = {}>(
       let { result } = render(props)
       if (isSuspense(result)) {
         // @ts-ignore it's ok
-        if (React.use) return React.use(result)
-        else throw result
+        if (React.use) React.use(result)
+        throw result
       }
       return result
     },

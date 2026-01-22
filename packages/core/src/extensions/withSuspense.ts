@@ -277,7 +277,13 @@ export let withSuspenseInit: {
       withInit((initState: AtomState<Target>) => {
         let result = cb ? cb(initState) : initState
         if (result instanceof Promise) {
-          throw result.then(bind((value) => _set(target, () => value)))
+          throw result.then(bind((value) => _set(target, () => value))).catch(
+            bind((err) => {
+              _set(target, () => {
+                throw err
+              })
+            }),
+          )
         }
         return result
       }),

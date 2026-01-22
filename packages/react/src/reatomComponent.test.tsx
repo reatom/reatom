@@ -292,19 +292,13 @@ describe('reatomComponent', () => {
   class ErrorBoundary extends React.Component {
     constructor(props) {
       super(props)
-      this.state = { hasError: false }
+      this.state = { hasError: false, error: null }
     }
 
     static getDerivedStateFromError(error) {
-      // Обновляем состояние, чтобы следующий рендер показал запасной UI
-      return { hasError: true }
+      return { hasError: true, error }
     }
-
-    componentDidCatch(error, errorInfo) {
-      // Можно логировать ошибку в сторонний сервис
-      console.error('Caught error:', error, errorInfo)
-    }
-
+    
     render() {
       if (this.state.hasError) {
         return <p data-testid="error">Error</p>
@@ -316,17 +310,16 @@ describe('reatomComponent', () => {
 
   test('works with suspense throwing', () =>
     context.start(async () => {
-      const throwError = atom(true)
-
+      const rerender = atom(0)
       const suspenseAtom = atom(async () => {
         await wrap(tick())
-        if (throwError()) throw new Error()
-        return 100
+        throw new Error()
+        return 0
       }).extend(withSuspenseInit())
 
       const SuspenseComponent = reatomComponent(() => {
         return (
-          <ErrorBoundary>
+          <ErrorBoundary key={rerender()}>
             <Suspense fallback={<div data-testid="loading">Loading...</div>}>
               <SuspenseUseComponent />
             </Suspense>
@@ -335,6 +328,7 @@ describe('reatomComponent', () => {
       })
 
       const SuspenseUseComponent = reatomComponent(() => {
+        console.log('access suspended atom')
         return <div data-testid="result">{suspenseAtom()}</div>
       })
 
@@ -355,20 +349,15 @@ describe('reatomComponent', () => {
         document.querySelector('[data-testid="error"]'),
       ).toBeInTheDocument()
 
-      throwError.set(false)
-
-      root.render(
-        <reatomContext.Provider value={top()}>
-          <SuspenseComponent />
-        </reatomContext.Provider>,
-      )
+      suspenseAtom.set(123)
+      rerender.set(1)
 
       await wrap(tick())
+      
       expect(
         document.querySelector('[data-testid="loading"]'),
       ).not.toBeInTheDocument()
 
-      await wrap(tick())
       expect(
         document.querySelector('[data-testid="result"]'),
       ).toBeInTheDocument()
