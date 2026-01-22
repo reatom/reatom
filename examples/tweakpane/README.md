@@ -66,21 +66,22 @@ effect(async () => {
 
 ### 4. Reactive Properties
 
-Native Tweakpane UI properties (`hidden`, `disabled`, `title`, `label`) are driven by derived atoms using the generic `withEffect` utility:
+Native Tweakpane UI properties (`hidden`, `disabled`, `title`, `label`) are driven by derived atoms using the builtin `withComputed` extension:
 
 ```ts
 advancedFolder.extend(
-  withEffect((folder) => {
-    peek(folder).hidden = !isAdvanced()
+  withComputed((folder) => {
+    folder.hidden = !isAdvanced()
+    return folder
   }),
 )
 
 masterVolume.binding.extend(
-  withEffect((binding) => {
+  withComputed((binding) => {
     const isMuted = muted()
-    const target = peek(binding)
-    target.disabled = isMuted
-    target.label = isMuted ? 'Volume (muted)' : 'Volume'
+    binding.disabled = isMuted
+    binding.label = isMuted ? 'Volume (muted)' : 'Volume'
+    return binding
   }),
 )
 ```

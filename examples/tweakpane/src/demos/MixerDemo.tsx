@@ -2,7 +2,7 @@ import {
   action,
   atom,
   computed,
-  peek,
+  withComputed,
   withLocalStorage,
   withSearchParams,
   wrap,
@@ -11,16 +11,16 @@ import { reatomFactoryComponent } from '@reatom/react'
 
 import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding, withButton } from '../tweakpane'
-import { withEffect } from '../withEffect'
 
 export const MixerDemo = reatomFactoryComponent(() => {
   const storagePrefix = 'tweakpane.mixer'
 
   // Folders
   const mainFolder = reatomPaneFolder({ title: 'Audio Mixer' }).extend(
-    withEffect((folder) => {
+    withComputed((folder) => {
       const modeLabel = isAdvanced() ? 'Advanced' : 'Simple'
-      peek(folder).title = `Audio Mixer (${status()}, ${modeLabel})`
+      folder.title = `Audio Mixer (${status()}, ${modeLabel})`
+      return folder
     }),
   )
 
@@ -28,8 +28,9 @@ export const MixerDemo = reatomFactoryComponent(() => {
     { title: 'Advanced' },
     mainFolder,
   ).extend(
-    withEffect((folder) => {
-      peek(folder).hidden = !isAdvanced()
+    withComputed((folder) => {
+      folder.hidden = !isAdvanced()
+      return folder
     }),
   )
 
@@ -108,11 +109,11 @@ export const MixerDemo = reatomFactoryComponent(() => {
   }, 'mixer.reset').extend(withButton({ title: 'Reset' }, mainFolder))
 
   masterVolume.binding.extend(
-    withEffect((binding) => {
+    withComputed((binding) => {
       const isMuted = muted()
-      const target = peek(binding)
-      target.disabled = isMuted
-      target.label = isMuted ? 'Volume (muted)' : 'Volume'
+      binding.disabled = isMuted
+      binding.label = isMuted ? 'Volume (muted)' : 'Volume'
+      return binding
     }),
   )
 
