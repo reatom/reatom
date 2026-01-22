@@ -2,9 +2,9 @@ import {
   action,
   atom,
   type AtomLike,
-  computed,
   effect,
   getCalls,
+  peek,
   rAF,
   reatomBoolean,
   reatomEnum,
@@ -17,7 +17,7 @@ import {
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { reatomPaneTab, withBinding, withButton } from '../tweakpane'
-import { withReactiveProperty } from '../withReactiveProperty'
+import { withEffect } from '../withEffect'
 
 const withFixedValue = <T,>(condition: () => boolean, fixedValue: T) =>
   withMiddleware<AtomLike<T>>(() => {
@@ -53,14 +53,12 @@ export const AnimationDemo = reatomFactoryComponent(() => {
   )
 
   speed.binding.extend(
-    withReactiveProperty(
-      'disabled',
-      computed(() => paused() || prefersReduced()),
-    ),
-    withReactiveProperty(
-      'label',
-      computed(() => (paused() ? 'Speed (paused)' : 'Speed')),
-    ),
+    withEffect((binding) => {
+      const isPaused = paused()
+      const target = peek(binding)
+      target.disabled = isPaused || prefersReduced()
+      target.label = isPaused ? 'Speed (paused)' : 'Speed'
+    }),
   )
 
   const radius = reatomNumber(120, 'motion.radius').extend(
@@ -103,13 +101,21 @@ export const AnimationDemo = reatomFactoryComponent(() => {
     withFixedValue(prefersReduced, 0),
   )
 
-  trail.binding.extend(withReactiveProperty('disabled', prefersReduced))
+  trail.binding.extend(
+    withEffect((binding) => {
+      peek(binding).disabled = prefersReduced()
+    }),
+  )
 
   const blink = reatomNumber(0, 'style.blink').extend(
     withBinding({ label: 'Blink', min: 0, max: 1, step: 0.01 }, tabs.pages[2]),
   )
 
-  blink.binding.extend(withReactiveProperty('disabled', prefersReduced))
+  blink.binding.extend(
+    withEffect((binding) => {
+      peek(binding).disabled = prefersReduced()
+    }),
+  )
 
   const bgColor = reatomString('#050505', 'style.bgColor').extend(
     withBinding({ label: 'Background', color: { type: 'int' } }, tabs.pages[2]),
@@ -194,10 +200,9 @@ export const AnimationDemo = reatomFactoryComponent(() => {
   )
 
   togglePause.button.extend(
-    withReactiveProperty(
-      'title',
-      computed(() => (paused() ? 'Resume' : 'Pause')),
-    ),
+    withEffect((button) => {
+      peek(button).title = paused() ? 'Resume' : 'Pause'
+    }),
   )
 
   const reset = action(() => {

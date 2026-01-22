@@ -5,7 +5,6 @@ import {
   assert,
   atom,
   clearStack,
-  computed,
   connectLogger,
   context,
   effect,
@@ -21,7 +20,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './app'
 import { settableAction } from './settableAction'
 import { reatomPaneFolder, withBinding, withButton } from './tweakpane'
-import { withReactiveProperty } from './withReactiveProperty'
+import { withEffect } from './withEffect'
 
 clearStack()
 
@@ -45,10 +44,9 @@ const unmount = settableAction<() => void>({
 }).extend(withButton({ title: 'Unmount App', hidden: true }, appSettings))
 
 unmount.button.extend(
-  withReactiveProperty(
-    'hidden',
-    computed(() => !unmount.impl()),
-  ),
+  withEffect((button) => {
+    peek(button).hidden = !unmount.impl()
+  })
 )
 
 const hideAppSettings = action(() => {
@@ -56,10 +54,9 @@ const hideAppSettings = action(() => {
 }).extend(withButton({ title: 'Hide App Settings', hidden: true }, appSettings))
 
 hideAppSettings.button.extend(
-  withReactiveProperty(
-    'hidden',
-    computed(() => !unmount.impl()),
-  ),
+  withEffect((button) => {
+    peek(button).hidden = !unmount.impl()
+  })
 )
 
 const mount = action(() => {
@@ -80,10 +77,9 @@ const mount = action(() => {
 }, 'renderApp').extend(withButton({ title: 'Mount App' }, appSettings))
 
 mount.button.extend(
-  withReactiveProperty(
-    'title',
-    computed(() => (unmount.impl() ? 'Remount App' : 'Mount App')),
-  ),
+  withEffect((button) => {
+    peek(button).title = unmount.impl() ? 'Remount App' : 'Mount App'
+  })
 )
 
 const strictMode = atom(false, 'app.strictMode').extend(

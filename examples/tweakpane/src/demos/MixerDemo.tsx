@@ -1,8 +1,8 @@
 import {
-  abortVar,
   action,
   atom,
   computed,
+  peek,
   withLocalStorage,
   withSearchParams,
   wrap,
@@ -11,33 +11,26 @@ import { reatomFactoryComponent } from '@reatom/react'
 
 import { Pre } from '../components/Pre'
 import { reatomPaneFolder, withBinding, withButton } from '../tweakpane'
-import { withReactiveProperty } from '../withReactiveProperty'
+import { withEffect } from '../withEffect'
 
 export const MixerDemo = reatomFactoryComponent(() => {
   const storagePrefix = 'tweakpane.mixer'
 
   // Folders
   const mainFolder = reatomPaneFolder({ title: 'Audio Mixer' }).extend(
-    withReactiveProperty(
-      'title',
-      computed(
-        (): string =>
-          `Audio Mixer (${status()}, ${isAdvanced() ? 'Advanced' : 'Simple'})`,
-        'mixer.folderTitle',
-      ),
-      // explicit controller to abort subscription on computed since we introduce circular dependency
-      abortVar.subscribe().listenerController,
-    ),
+    withEffect((folder) => {
+      const modeLabel = isAdvanced() ? 'Advanced' : 'Simple'
+      peek(folder).title = `Audio Mixer (${status()}, ${modeLabel})`
+    }),
   )
 
   const advancedFolder = reatomPaneFolder(
     { title: 'Advanced' },
     mainFolder,
   ).extend(
-    withReactiveProperty(
-      'hidden',
-      computed(() => !isAdvanced()),
-    ),
+    withEffect((folder) => {
+      peek(folder).hidden = !isAdvanced()
+    }),
   )
 
   // Atoms with deep composition: localStorage + searchParams + binding
@@ -115,14 +108,12 @@ export const MixerDemo = reatomFactoryComponent(() => {
   }, 'mixer.reset').extend(withButton({ title: 'Reset' }, mainFolder))
 
   masterVolume.binding.extend(
-    withReactiveProperty(
-      'disabled',
-      computed(() => muted()),
-    ),
-    withReactiveProperty(
-      'label',
-      computed(() => (muted() ? 'Volume (muted)' : 'Volume')),
-    ),
+    withEffect((binding) => {
+      const isMuted = muted()
+      const target = peek(binding)
+      target.disabled = isMuted
+      target.label = isMuted ? 'Volume (muted)' : 'Volume'
+    }),
   )
 
   return () => (

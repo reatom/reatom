@@ -66,25 +66,22 @@ effect(async () => {
 
 ### 4. Reactive Properties
 
-Native Tweakpane UI properties (`hidden`, `disabled`, `title`, `label`) are driven by computed atoms using the generic `withReactiveProperty` utility:
+Native Tweakpane UI properties (`hidden`, `disabled`, `title`, `label`) are driven by derived atoms using the generic `withEffect` utility:
 
 ```ts
 advancedFolder.extend(
-  withReactiveProperty(
-    'hidden',
-    computed(() => !isAdvanced()),
-  ),
+  withEffect((folder) => {
+    peek(folder).hidden = !isAdvanced()
+  }),
 )
 
 masterVolume.binding.extend(
-  withReactiveProperty(
-    'disabled',
-    computed(() => muted()),
-  ),
-  withReactiveProperty(
-    'label',
-    computed(() => (muted() ? 'Volume (muted)' : 'Volume')),
-  ),
+  withEffect((binding) => {
+    const isMuted = muted()
+    const target = peek(binding)
+    target.disabled = isMuted
+    target.label = isMuted ? 'Volume (muted)' : 'Volume'
+  }),
 )
 ```
 
@@ -115,7 +112,7 @@ The integration provides the following primitives:
 
 And generic utilities:
 
-- **`withReactiveProperty`** - Generic one-way binding from computed values to any object property (used here for Tweakpane UI props like `disabled` or `title`)
+- **`withEffect`** - Generic hook for one-way bindings to imperative properties (used here for Tweakpane UI props like `disabled` or `title`)
 
 All primitives support lazy creation and automatic disposal via Reatom's subscription lifecycle.
 
