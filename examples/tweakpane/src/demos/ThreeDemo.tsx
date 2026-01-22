@@ -163,7 +163,8 @@ export const ThreeDemo = reatomFactoryComponent(() => {
   )
 
   const boxDimensionsAtom = atom({ x: 1, y: 1, z: 1 }, 'boxDimensions')
-    .extend(withBinding({ label: 'Box Dimensions' }, threeFolder),
+    .extend(
+      withBinding({ label: 'Box Dimensions' }, threeFolder),
       withInstance(
         (dimensions) => {
           const { x, y, z } = dimensions()

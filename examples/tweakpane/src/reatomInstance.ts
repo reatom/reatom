@@ -16,8 +16,8 @@ import {
  * - On recompute: disposes the previous instance when a new one is created.
  * - On disconnect: disposes the instance and resets the atom.
  *
- * This is useful for integrating imperative APIs (UI libraries, DOM nodes, class
- * instances) with Reatom's reactive lifecycle.
+ * This is useful for integrating imperative APIs (UI libraries, DOM nodes,
+ * class instances) with Reatom's reactive lifecycle.
  *
  * @example
  *   // Create a Web Audio oscillator that auto-disposes

@@ -12,7 +12,7 @@ import {
 import type { Formatter } from '@tweakpane/core'
 import type { BindingParams, ListParamsOptions } from 'tweakpane'
 
-import { type BladeRackApi, reatomDisposable,rootPane } from './core'
+import { type BladeRackApi, reatomDisposable, rootPane } from './core'
 
 const isEnumAtom = (target: Atom<unknown>): target is EnumAtom<string> =>
   'enum' in target && typeof target.enum === 'object' && target.enum !== null

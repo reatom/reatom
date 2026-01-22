@@ -5,7 +5,7 @@ import type { BaseBladeParams } from 'tweakpane'
 
 import { withBinding } from './bindings'
 import { withBlade } from './blades'
-import { type BladeRackApi, reatomDisposable,rootPane } from './core'
+import { type BladeRackApi, reatomDisposable, rootPane } from './core'
 
 export type RadioGridParams = {
   groupName: string

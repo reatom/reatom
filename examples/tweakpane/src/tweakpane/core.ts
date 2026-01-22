@@ -20,21 +20,24 @@ export type Disposable = { dispose: () => void; controller: Controller }
  *
  * This helper wraps creation of external resources (Tweakpane instances,
  * folders, tabs, blades, etc.) in a computed atom so the resource is created
- * only when the atom is subscribed to and disposed automatically when the
- * atom is disconnected or when the global `abortVar` fires.
+ * only when the atom is subscribed to and disposed automatically when the atom
+ * is disconnected or when the global `abortVar` fires.
  *
  * The returned computed atom is extended with lifecycle helpers that:
- * - attach an abort controller via `withAbort()`
- * - dispose and reset the resource when the atom is disconnected
  *
- * @template T Resource type which must provide a `dispose()` method and a `controller`.
+ * - Attach an abort controller via `withAbort()`
+ * - Dispose and reset the resource when the atom is disconnected
+ *
+ * @template T Resource type which must provide a `dispose()` method and a
+ *   `controller`.
  * @param create Factory that creates and returns the disposable resource.
  * @param name Optional debugging name passed to the underlying computed atom.
- * @returns A computed atom that yields the created resource and manages its lifecycle.
+ * @returns A computed atom that yields the created resource and manages its
+ *   lifecycle.
  */
 export const reatomDisposable = <T extends Disposable>(
   create: () => T,
-  name: string = named('disposable')
+  name: string = named('disposable'),
 ) =>
   reatomInstance(
     () => create(),
@@ -107,7 +110,7 @@ export const reatomPaneTab = (
     `${parent.name}.tabs`,
   ).extend((target) => ({
     pages: normalizedParams.pages.map((_, i) =>
-      reatomDisposable(() => target().pages[i], `${target.name}.page.${i}`)
+      reatomDisposable(() => target().pages[i], `${target.name}.page.${i}`),
     ),
   }))
 }
