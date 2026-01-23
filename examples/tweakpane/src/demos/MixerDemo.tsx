@@ -1,4 +1,5 @@
 import {
+  abortVar,
   action,
   atom,
   computed,
@@ -116,6 +117,18 @@ export const MixerDemo = reatomFactoryComponent(() => {
       return binding
     }),
   )
+
+  // This demo has some circular subscription dependencies, so we need to
+  // abort them on demo unmount manually
+  abortVar.subscribe(() => {
+    mainFolder.abort()
+    advancedFolder.abort()
+    mode.binding.abort()
+    masterVolume.binding.abort()
+    muted.binding.abort()
+    balance.binding.abort()
+    frequency.binding.abort()
+  })
 
   return () => (
     <section>
