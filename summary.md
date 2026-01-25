@@ -8,6 +8,10 @@
 - Isomorphic and SSR-friendly with predictable async control.
 - Composable primitives, minimal API surface, high leverage extensions.
 
+This summary is compact. The full handbook and reference cover deeper API
+details, recipes, and adapters in /docs/start, /docs/handbook, and
+/docs/reference.
+
 ## Core primitives and mental model
 
 Reatom is built around three base units and one extension system.
@@ -39,10 +43,31 @@ effect(() => {
 }, 'count.log')
 ```
 
+### extend example
+
+```ts
+import { action, atom, computed, wrap } from '@reatom/core'
+
+type Item = { id: string; title: string }
+
+const items = atom<Item[]>([], 'items').extend((target) => {
+  const count = computed(() => target().length, `${target.name}.count`)
+  const load = action(async (listId: string) => {
+    const response = await wrap(fetch(`/api/lists/${listId}`))
+    const payload: Item[] = await wrap(response.json())
+    target.set(payload)
+    return payload
+  }, `${target.name}.load`)
+  return { count, load }
+})
+```
+
 Good practice
 
 - Always name atoms, actions, and computeds for tracing and logging.
 - Use action for complex flows and side effects, atom.set for local updates.
+- Avoid one-line actions that only forward data to atoms. Direct atom.set is
+  preferred and still keeps a clear cause via async context.
 - Prefer computed for derived values, effect for side effects.
 
 Tricky parts
@@ -135,21 +160,10 @@ Runs when an atom gets its first subscriber, and auto-cleans on disconnect.
 
 Use it to lazy-start background work when data is actually needed.
 
-```ts
-import { atom, action, withConnectHook, wrap } from '@reatom/core'
-
-type Task = { id: string; title: string }
-
-const tasks = atom<Task[]>([], 'tasks')
-
-const loadTasks = action(async () => {
-  const response = await wrap(fetch('/api/tasks'))
-  const payload: Task[] = await wrap(response.json())
-  tasks.set(payload)
-}, 'tasks.load')
-
-tasks.extend(withConnectHook(() => loadTasks()))
-```
+Useful cases
+- Start polling only while a screen is mounted or data is subscribed.
+- Attach and detach external listeners, websockets, or subscriptions.
+- Initialize expensive models when a route or component connects.
 
 Tricky
 
@@ -162,17 +176,10 @@ Runs on every state change in the Hooks phase.
 
 Good for stable cross-module wiring, not for dynamic factories.
 
-```ts
-import { atom, withChangeHook } from '@reatom/core'
-
-type Theme = 'light' | 'dark'
-
-const theme = atom<Theme>('light', 'theme').extend(
-  withChangeHook((nextTheme) => {
-    document.documentElement.dataset.theme = nextTheme
-  }),
-)
-```
+Useful cases
+- Persist settings to storage or sync into non-reactive APIs.
+- Send analytics when global atoms change.
+- Keep document title or UI theme in sync with global state.
 
 Tricky
 
@@ -231,16 +238,17 @@ import {
   wrap,
 } from '@reatom/core'
 
-const checkoutRequested = action(
-  (orderId: string) => orderId,
-  'checkout.requested',
-)
+type CheckoutRequest = { orderId: string; requestedAt: number }
+
+const checkoutRequested = action((orderId: string): CheckoutRequest => {
+  return { orderId, requestedAt: Date.now() }
+}, 'checkout.requested')
 const confirmButton = atom<HTMLButtonElement | null>(null, 'confirmButton')
 const lastOrderId = atom('', 'lastOrderId')
 
 const checkoutFlow = action(async () => {
-  const orderId = await wrap(take(checkoutRequested))
-  const response = await wrap(fetch(`/api/orders/${orderId}/pay`))
+  const request = await wrap(take(checkoutRequested))
+  const response = await wrap(fetch(`/api/orders/${request.orderId}/pay`))
   const payload: { receiptId: string } = await wrap(response.json())
   const element = confirmButton()
   if (element) {
@@ -258,8 +266,8 @@ effect(() => {
 
 effect(() => {
   const calls = getCalls(checkoutRequested)
-  calls.forEach(({ params }) => {
-    const orderId = params[0]
+  calls.forEach(({ payload }) => {
+    const orderId = payload.orderId
     console.log({ checkoutRequested: orderId })
   })
 }, 'checkout.requested.calls')
@@ -528,6 +536,41 @@ Notes
 - Route loaders are async computed with auto-cancel.
 - Use wrap for event handlers and async boundaries.
 
+## URL sync and persistence helpers
+
+### withSearchParams for list filters
+
+```ts
+import { atom, withSearchParams } from '@reatom/core'
+
+type Sort = 'popular' | 'new' | 'price'
+
+const query = atom('', 'catalog.query').extend(withSearchParams('q'))
+const page = atom(1, 'catalog.page').extend(
+  withSearchParams('page', {
+    parse: (value) => Number(value ?? '1'),
+    serialize: (value) => (value === 1 ? undefined : String(value)),
+  }),
+)
+const sort = atom<Sort>('popular', 'catalog.sort').extend(
+  withSearchParams('sort', (value) =>
+    value === 'new' || value === 'price' || value === 'popular'
+      ? value
+      : 'popular',
+  ),
+)
+```
+
+### withLocalStorage for preferences
+
+```ts
+import { atom, withLocalStorage } from '@reatom/core'
+
+type Theme = 'light' | 'dark'
+
+const theme = atom<Theme>('light', 'theme').extend(withLocalStorage('theme'))
+```
+
 ## Suspense notes
 
 Use suspense for global initialization, not for dynamic page data.
@@ -602,7 +645,8 @@ const saveTodo = action(async (todo: Todo) => {
 - withConcurrency -> withAbort
 
 ## Other APIs (not detailed here)
-
+This list is intentionally brief. See the full handbook and reference for
+additional features, recipes, adapters, and edge cases.
 Core
 
 - addGlobalExtension for global cross-cutting behavior
