@@ -80,6 +80,7 @@ priority.setHigh()
 ```
 
 Notes
+
 - **reatomBoolean** adds **setTrue**, **setFalse**, and **toggle** to keep updates semantic.
 - **reatomEnum** is perfect for literal list union inference in TypeScript.
 
