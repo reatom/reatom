@@ -161,6 +161,7 @@ Runs when an atom gets its first subscriber, and auto-cleans on disconnect.
 Use it to lazy-start background work when data is actually needed.
 
 Useful cases
+
 - Start polling only while a screen is mounted or data is subscribed.
 - Attach and detach external listeners, websockets, or subscriptions.
 - Initialize expensive models when a route or component connects.
@@ -177,6 +178,7 @@ Runs on every state change in the Hooks phase.
 Good for stable cross-module wiring, not for dynamic factories.
 
 Useful cases
+
 - Persist settings to storage or sync into non-reactive APIs.
 - Send analytics when global atoms change.
 - Keep document title or UI theme in sync with global state.
@@ -645,6 +647,7 @@ const saveTodo = action(async (todo: Todo) => {
 - withConcurrency -> withAbort
 
 ## Other APIs (not detailed here)
+
 This list is intentionally brief. See the full handbook and reference for
 additional features, recipes, adapters, and edge cases.
 Core
