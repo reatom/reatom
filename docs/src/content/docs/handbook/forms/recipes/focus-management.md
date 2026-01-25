@@ -46,10 +46,11 @@ declare module '@reatom/core' {
 ```
 
 ### `withFormAutoFocusOnError`
+
 Now let's take this bunch of logic and wrap it into a separate reusable extension:
 
 ```ts
-export const withFormAutoFocusOnError = () => (form: Form<any>) => 
+export const withFormAutoFocusOnError = () => (form: Form<any>) =>
   form.submit.onReject.extend(
     withCallHook(() => {
       const errorField = form
@@ -61,17 +62,19 @@ export const withFormAutoFocusOnError = () => (form: Form<any>) =>
   )
 ```
 
-Then just extend your form with extension: 
+Then just extend your form with extension:
+
 ```ts
-const form = reatomForm({
-  login: '',
-  password: '',
-}, {
-  schema: z.object({
-    login: z.string().min(3),
-    password: z.string().min(6),
-  }),
-}).extend(
-  withFormAutoFocusOnError()
-)
+const form = reatomForm(
+  {
+    login: '',
+    password: '',
+  },
+  {
+    schema: z.object({
+      login: z.string().min(3),
+      password: z.string().min(6),
+    }),
+  },
+).extend(withFormAutoFocusOnError())
 ```

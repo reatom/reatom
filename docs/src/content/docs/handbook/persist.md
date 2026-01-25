@@ -46,10 +46,7 @@ Reatom provides ready-to-use adapters for all browser storage APIs with automati
 Perfect for persistent and session-based storage with cross-tab synchronization:
 
 ```typescript
-import {
-  withLocalStorage,
-  withSessionStorage,
-} from '@reatom/core/persist'
+import { withLocalStorage, withSessionStorage } from '@reatom/core/persist'
 
 // Persistent storage (survives browser restarts)
 const settingsAtom = atom({}, 'settings').extend(
@@ -261,10 +258,7 @@ Large-capacity persistent storage for complex applications:
 // First install the peer dependency:
 // npm install idb-keyval
 
-import {
-  withIndexedDb,
-  reatomPersistIndexedDb,
-} from '@reatom/core/persist'
+import { withIndexedDb, reatomPersistIndexedDb } from '@reatom/core/persist'
 
 // Default IndexedDB with automatic fallback
 const largeDataAtom = atom(new Map(), 'largeData').extend(

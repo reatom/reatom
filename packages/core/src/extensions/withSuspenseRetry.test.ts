@@ -13,8 +13,8 @@ test('suspense retry', async () => {
   }).extend(withSuspenseInit())
 
   const act = action(async () => {
-    const result = suspenseAtom();
-    return result;
+    const result = suspenseAtom()
+    return result
   }).extend(withSuspenseRetry())
 
   expect(act()).resolves.toBe(1)

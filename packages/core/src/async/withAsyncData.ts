@@ -27,8 +27,8 @@ export interface AsyncDataExt<
 >
   extends AsyncExt<Params, Payload, Error>, AbortExt {
   /**
-   * Atom that stores the fetched data Updated automatically when the
-   * async operation completes successfully
+   * Atom that stores the fetched data Updated automatically when the async
+   * operation completes successfully
    */
   data: Atom<InitState | State> & {
     reset: Action<[], InitState>
@@ -38,20 +38,19 @@ export interface AsyncDataExt<
   status: AsyncStatusAtom<State, InitState>
 
   /**
-   * Action that resets the async data atom by clearing its dependencies
-   * and resetting the data atom to its initial state. This is useful for
+   * Action that resets the async data atom by clearing its dependencies and
+   * resetting the data atom to its initial state. This is useful for
    * invalidating cached data and forcing a re-fetch on next access.
    *
-   * Note: This action does not re-trigger the async operation
-   * automatically. Use `retry` if you want to reset and immediately
-   * re-fetch.
+   * Note: This action does not re-trigger the async operation automatically.
+   * Use `retry` if you want to reset and immediately re-fetch.
    */
   reset: Action<[], void>
 
   /**
    * Action that retries the async operation by resetting dependencies and
-   * re-evaluating the computed function. This is useful for manually
-   * refreshing data or recovering from errors.
+   * re-evaluating the computed function. This is useful for manually refreshing
+   * data or recovering from errors.
    *
    * @returns The promise from the re-triggered async operation
    */

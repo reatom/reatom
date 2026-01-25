@@ -1,6 +1,7 @@
 # Reatom SPA fast start summary
 
 ## Goal and fit
+
 - From small widgets to complex SPAs, one universal model.
 - Portable state and logic across frameworks and runtimes.
 - Simple testing and mocking with explicit context tools.
@@ -8,6 +9,7 @@
 - Composable primitives, minimal API surface, high leverage extensions.
 
 ## Core primitives and mental model
+
 Reatom is built around three base units and one extension system.
 
 - atom: mutable state container
@@ -38,15 +40,18 @@ effect(() => {
 ```
 
 Good practice
+
 - Always name atoms, actions, and computeds for tracing and logging.
 - Use action for complex flows and side effects, atom.set for local updates.
 - Prefer computed for derived values, effect for side effects.
 
 Tricky parts
+
 - Computed is lazy: it recalculates only when it is connected.
 - Effects track dependencies and auto-clean on abort or unmount.
 
 ## Async model: withAsync, withAsyncData, wrap
+
 Two async extensions cover most cases:
 
 - withAsync: async actions for mutations and side effects
@@ -55,19 +60,23 @@ Two async extensions cover most cases:
 Both track pending and errors and integrate with async context and cancellation.
 
 ### wrap rules
+
 wrap preserves async context for actions, effects, and atom updates.
 
 Rules of thumb
+
 - Wrap every async boundary that touches atoms or actions.
 - Wrap promise results and callbacks after await or in then.
 - Do not chain after wrap. Wrap each step.
 
 Good
+
 - const response = await wrap(fetch(url))
 - const data = await wrap(response.json())
 - await wrap(onEvent(button, 'click'))
 
 Bad
+
 - await wrap(fetch(url)).then((res) => res.json())
 
 ### Async mutation example with withAsync
@@ -92,6 +101,7 @@ const updateItem = action(async (payload: UpdatePayload) => {
 ```
 
 Key points
+
 - updateItem.ready(), updateItem.pending(), updateItem.error()
 - updateItem.onFulfill/onReject/onSettle for lifecycle hooks
 - withAsync does not add abort by default, add withAbort if needed
@@ -111,13 +121,16 @@ const currentUser = computed(async () => {
 ```
 
 Key points
+
 - currentUser.data(), currentUser.ready(), currentUser.error()
 - currentUser.reset() clears cached data and dependencies
 - currentUser.retry() re-runs the async computation
 - withAsyncData auto-aborts stale requests
 
 ## Lifecycle and extension hooks
+
 ### withConnectHook
+
 Runs when an atom gets its first subscriber, and auto-cleans on disconnect.
 
 Use it to lazy-start background work when data is actually needed.
@@ -139,10 +152,12 @@ tasks.extend(withConnectHook(() => loadTasks()))
 ```
 
 Tricky
+
 - withConnectHook fires only on the first subscriber.
 - Use withConnectHook on the source atom, not on a downstream computed.
 
 ### withChangeHook
+
 Runs on every state change in the Hooks phase.
 
 Good for stable cross-module wiring, not for dynamic factories.
@@ -160,9 +175,11 @@ const theme = atom<Theme>('light', 'theme').extend(
 ```
 
 Tricky
+
 - Use effect with ifChanged for dynamic contexts.
 
 ### withInit and isInit
+
 Attach dynamic initial state after creation and detect init phase.
 
 ```ts
@@ -170,9 +187,7 @@ import { atom, isInit, withComputed, withInit } from '@reatom/core'
 
 const sessionSeed = atom(() => crypto.randomUUID(), 'sessionSeed')
 
-const clientId = atom('', 'clientId').extend(
-  withInit(() => sessionSeed()),
-)
+const clientId = atom('', 'clientId').extend(withInit(() => sessionSeed()))
 
 const search = atom('', 'search')
 const page = atom(1, 'page').extend(
@@ -184,25 +199,42 @@ const page = atom(1, 'page').extend(
 ```
 
 ### withComputed
+
 Adds computed logic to an atom or action. Use tail false only when dependency
 count is stable.
 
 ## Event sampling and orchestration
+
 Reatom treats actions as reactive events and supports procedural flows.
 
 ### take
+
 Waits for the next atom change or action call. Use wrap in async flows.
 
 ### onEvent
+
 Bridges external events with abort-aware subscriptions or a single await.
 
 ### ifChanged and getCalls
+
 Use inside computed or effect to react only to actual changes or new calls.
 
 ```ts
-import { action, atom, effect, getCalls, ifChanged, onEvent, take, wrap } from '@reatom/core'
+import {
+  action,
+  atom,
+  effect,
+  getCalls,
+  ifChanged,
+  onEvent,
+  take,
+  wrap,
+} from '@reatom/core'
 
-const checkoutRequested = action((orderId: string) => orderId, 'checkout.requested')
+const checkoutRequested = action(
+  (orderId: string) => orderId,
+  'checkout.requested',
+)
 const confirmButton = atom<HTMLButtonElement | null>(null, 'confirmButton')
 const lastOrderId = atom('', 'lastOrderId')
 
@@ -234,10 +266,12 @@ effect(() => {
 ```
 
 Tricky
+
 - take and onEvent must be wrapped inside async actions or effects.
 - getCalls only returns calls in the current batch, it is not a history store.
 
 ## Memoization: memo and memoKey
+
 memo creates internal computed state inside a computed or action, scoped to the
 host atom. memoKey stores arbitrary per-atom values by key.
 
@@ -261,13 +295,16 @@ const client = computed(() => {
 ```
 
 Tricky
+
 - memo uses the first callback only. Use stable closures.
 - Use a custom key when the same callback body is used multiple times.
 
 ## Forms: base usage and reactive validation
+
 Forms are built from fields, field sets, and a submit action.
 
 Key primitives
+
 - reatomField: single field with state, value, focus, validation, disabled
 - reatomFieldSet: grouped fields with aggregate focus and validation
 - reatomForm: field set plus submit, schema validation, and form options
@@ -315,10 +352,12 @@ const registerForm = reatomForm(
 ```
 
 Reactive validation note
+
 - The validate callback tracks atoms it reads after the first trigger.
 - This enables dependent validation without manual wiring.
 
 Submit notes
+
 - submit is async and expects errors to be thrown.
 - submit.error() holds the latest error.
 - form.reset() cancels submit and resets submitted state.
@@ -355,10 +394,12 @@ export const RegisterForm = reatomComponent(() => {
 ```
 
 Tricky
+
 - Validation errors for schema are distributed by path.
 - Triggered state for field sets is true only when all fields were triggered.
 
 ## Routing + logger example (short but full-featured)
+
 This example uses routes, loaders, and logger setup for a typical SPA.
 
 ### setup.ts
@@ -482,11 +523,13 @@ export const App = reatomComponent(() => {
 ```
 
 Notes
+
 - Import setup.ts before any model to enable logger hooks.
 - Route loaders are async computed with auto-cancel.
 - Use wrap for event handlers and async boundaries.
 
 ## Suspense notes
+
 Use suspense for global initialization, not for dynamic page data.
 
 - withSuspense adds .suspended() that throws promise for Suspense.
@@ -496,6 +539,7 @@ Use suspense for global initialization, not for dynamic page data.
 - Avoid non-idempotent side effects inside withSuspenseRetry.
 
 ## Transactions notes
+
 Transactions support optimistic updates with rollback.
 
 - withRollback on atoms tracks state changes.
@@ -507,7 +551,14 @@ Transactions support optimistic updates with rollback.
 Example
 
 ```ts
-import { action, atom, withAsync, withRollback, withTransaction, wrap } from '@reatom/core'
+import {
+  action,
+  atom,
+  withAsync,
+  withRollback,
+  withTransaction,
+  wrap,
+} from '@reatom/core'
 
 type Todo = { id: string; title: string }
 
@@ -528,11 +579,13 @@ const saveTodo = action(async (todo: Todo) => {
 ```
 
 ## SSR and testing
+
 - context.start creates isolated contexts for SSR requests or tests.
 - clearStack forces explicit wrap usage, useful for strict isolation.
 - context.reset clears the default global context between tests.
 
 ## v3 migration highlights
+
 - Implicit context is default in v1000, ctx is not used.
 - ctx.schedule(promise) -> wrap(promise)
 - ctx.spy(atom) -> atom()
@@ -549,7 +602,9 @@ const saveTodo = action(async (todo: Todo) => {
 - withConcurrency -> withAbort
 
 ## Other APIs (not detailed here)
+
 Core
+
 - addGlobalExtension for global cross-cutting behavior
 - withActions for attaching methods as actions
 - withMiddleware and withParams for middleware and parameter transforms
@@ -558,6 +613,7 @@ Core
 - isAtom, isAction, isComputed, isConnected, named for introspection
 
 Extensions
+
 - withAbort for abortable actions and computeds
 - withMemo to stabilize computed outputs
 - withDynamicSubscription to avoid unnecessary connections
@@ -566,6 +622,7 @@ Extensions
 - withDisconnectHook for explicit disconnect actions
 
 Methods
+
 - abortVar and variable for async context variables
 - peek for non-reactive reads
 - schedule and retry for controlled reevaluation
@@ -575,15 +632,18 @@ Methods
 - isCausedBy to guard against self-triggered updates
 
 Routing helpers
+
 - searchParamsAtom and withSearchParams for URL search state
 - urlAtom for low-level URL control, link interception, sync hooks
 - is404 and isSomeLoaderPending for route status
 
 Primitives
+
 - reatomArray, reatomBoolean, reatomEnum, reatomNumber, reatomString
 - reatomMap, reatomSet, reatomRecord, reatomLinkedList
 
 Persistence
+
 - reatomPersist for custom storage adapters
 - withLocalStorage and withSessionStorage for web storage
 - withIndexedDb for IndexedDB persistence
@@ -592,6 +652,7 @@ Persistence
 - createMemStorage for in-memory persistence in tests
 
 Web utilities
+
 - onLineAtom for network status
 - reatomMediaQuery for media query binding
 - reatomWebSocket for websocket state
@@ -599,7 +660,9 @@ Web utilities
 - fetch wrapper for consistent context usage
 
 Render adapter
+
 - reatomAbstractRender for building framework adapters
 
 Utils
+
 - General helpers for equality, abort errors, timers, and typed helpers
