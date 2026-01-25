@@ -16,11 +16,11 @@ details, recipes, and adapters in /docs/start, /docs/handbook, and
 
 Reatom is built around three base units and one extension system.
 
-- atom: mutable state container
-- computed: lazy derived state with dependency tracking
-- action: callable event, also observable
-- effect: computed that auto-subscribes for side effects
-- extend: attach capabilities, methods, or middleware
+- **atom**: mutable state container
+- **computed**: lazy derived state with dependency tracking
+- **action**: callable event, also observable
+- **effect**: computed that auto-subscribes for side effects
+- **extend**: attach capabilities, methods, or middleware
 
 ### Minimal core example
 
@@ -62,37 +62,58 @@ const items = atom<Item[]>([], 'items').extend((target) => {
 })
 ```
 
+### Primitives quick usage
+
+```ts
+import { reatomBoolean, reatomEnum } from '@reatom/core'
+
+type Priority = 'low' | 'medium' | 'high'
+
+const isModalOpen = reatomBoolean(false, 'isModalOpen')
+isModalOpen.setTrue()
+isModalOpen.setFalse()
+isModalOpen.toggle()
+
+const priority = reatomEnum(['low', 'medium', 'high'], 'priority')
+const currentPriority: Priority = priority()
+priority.setHigh()
+```
+
+Notes
+- **reatomBoolean** adds **setTrue**, **setFalse**, and **toggle** to keep updates semantic.
+- **reatomEnum** is perfect for literal list union inference in TypeScript.
+
 Good practice
 
-- Always name atoms, actions, and computeds for tracing and logging.
-- Use action for complex flows and side effects, atom.set for local updates.
-- Avoid one-line actions that only forward data to atoms. Direct atom.set is
+- Always name **atoms**, **actions**, and **computed** values for tracing and logging.
+- Use **action** for complex flows and side effects, **atom.set** for local updates.
+- Avoid one-line actions that only forward data to atoms. Direct **atom.set** is
   preferred and still keeps a clear cause via async context.
-- Prefer computed for derived values, effect for side effects.
+- Prefer **computed** for derived values, **effect** for side effects.
 
 Tricky parts
 
-- Computed is lazy: it recalculates only when it is connected.
-- Effects track dependencies and auto-clean on abort or unmount.
+- **computed** is lazy: it recalculates only when it is connected.
+- **effect** tracks dependencies and auto-clean on abort or unmount.
 
-## Async model: withAsync, withAsyncData, wrap
+## Async model: **withAsync**, **withAsyncData**, **wrap**
 
 Two async extensions cover most cases:
 
-- withAsync: async actions for mutations and side effects
-- withAsyncData: async actions or computed for queries and cached data
+- **withAsync**: async actions for mutations and side effects
+- **withAsyncData**: async actions or computed for queries and cached data
 
 Both track pending and errors and integrate with async context and cancellation.
 
-### wrap rules
+### **wrap** rules
 
-wrap preserves async context for actions, effects, and atom updates.
+**wrap** preserves async context for actions, effects, and atom updates.
 
 Rules of thumb
 
-- Wrap every async boundary that touches atoms or actions.
-- Wrap promise results and callbacks after await or in then.
-- Do not chain after wrap. Wrap each step.
+- Use **wrap** on every async boundary that touches atoms or actions.
+- Use **wrap** for promise results and callbacks after await or in then.
+- Do not chain after **wrap**. Wrap each step.
 
 Good
 
@@ -104,7 +125,7 @@ Bad
 
 - await wrap(fetch(url)).then((res) => res.json())
 
-### Async mutation example with withAsync
+### Async mutation example with **withAsync**
 
 ```ts
 import { action, withAsync, wrap } from '@reatom/core'
@@ -127,11 +148,11 @@ const updateItem = action(async (payload: UpdatePayload) => {
 
 Key points
 
-- updateItem.ready(), updateItem.pending(), updateItem.error()
-- updateItem.onFulfill/onReject/onSettle for lifecycle hooks
-- withAsync does not add abort by default, add withAbort if needed
+- **updateItem.ready()**, **updateItem.pending()**, **updateItem.error()**
+- **updateItem.onFulfill**, **updateItem.onReject**, **updateItem.onSettle** for lifecycle hooks
+- **withAsync** does not add abort by default, add **withAbort** if needed
 
-### Async query example with withAsyncData
+### Async query example with **withAsyncData**
 
 ```ts
 import { computed, withAsyncData, wrap } from '@reatom/core'
@@ -147,18 +168,18 @@ const currentUser = computed(async () => {
 
 Key points
 
-- currentUser.data(), currentUser.ready(), currentUser.error()
-- currentUser.reset() clears cached data and dependencies
-- currentUser.retry() re-runs the async computation
-- withAsyncData auto-aborts stale requests
+- **currentUser.data()**, **currentUser.ready()**, **currentUser.error()**
+- **currentUser.reset()** clears cached data and dependencies
+- **currentUser.retry()** re-runs the async computation
+- **withAsyncData** auto-aborts stale requests
 
 ## Lifecycle and extension hooks
 
-### withConnectHook
+### **withConnectHook**
 
 Runs when an atom gets its first subscriber, and auto-cleans on disconnect.
 
-Use it to lazy-start background work when data is actually needed.
+Use **withConnectHook** to lazy-start background work when data is actually needed.
 
 Useful cases
 
@@ -168,10 +189,10 @@ Useful cases
 
 Tricky
 
-- withConnectHook fires only on the first subscriber.
-- Use withConnectHook on the source atom, not on a downstream computed.
+- **withConnectHook** fires only on the first subscriber.
+- Use **withConnectHook** on the source atom, not on a downstream **computed**.
 
-### withChangeHook
+### **withChangeHook**
 
 Runs on every state change in the Hooks phase.
 
@@ -185,9 +206,9 @@ Useful cases
 
 Tricky
 
-- Use effect with ifChanged for dynamic contexts.
+- Use **effect** with **ifChanged** for dynamic contexts.
 
-### withInit and isInit
+### **withInit** and **isInit**
 
 Attach dynamic initial state after creation and detect init phase.
 
@@ -207,7 +228,7 @@ const page = atom(1, 'page').extend(
 )
 ```
 
-### withComputed
+### **withComputed**
 
 Adds computed logic to an atom or action. Use tail false only when dependency
 count is stable.
@@ -216,17 +237,18 @@ count is stable.
 
 Reatom treats actions as reactive events and supports procedural flows.
 
-### take
+### **take**
 
-Waits for the next atom change or action call. Use wrap in async flows.
+Waits for the next atom change or action call. Use **wrap** in async flows.
+Cool for forms: wait for **submit** or a validation change without extra wiring.
 
-### onEvent
+### **onEvent**
 
 Bridges external events with abort-aware subscriptions or a single await.
 
-### ifChanged and getCalls
+### **ifChanged** and **getCalls**
 
-Use inside computed or effect to react only to actual changes or new calls.
+Use inside **computed** or **effect** to react only to actual changes or new calls.
 
 ```ts
 import {
@@ -277,13 +299,14 @@ effect(() => {
 
 Tricky
 
-- take and onEvent must be wrapped inside async actions or effects.
-- getCalls only returns calls in the current batch, it is not a history store.
+- **take** and **onEvent** must be wrapped inside async actions or effects.
+- **getCalls** only returns calls in the current batch, it is not a history store.
+- Use **ifChanged** only inside **effect** or **computed** with a few dependencies.
 
-## Memoization: memo and memoKey
+## Memoization: **memo** and **memoKey**
 
-memo creates internal computed state inside a computed or action, scoped to the
-host atom. memoKey stores arbitrary per-atom values by key.
+**memo** creates internal computed state inside a **computed** or **action**, scoped to the
+host atom. **memoKey** stores arbitrary per-atom values by key.
 
 ```ts
 import { computed, memo, memoKey } from '@reatom/core'
@@ -306,18 +329,19 @@ const client = computed(() => {
 
 Tricky
 
-- memo uses the first callback only. Use stable closures.
+- Use **memo** only inside **effect** or **computed** with a few dependencies.
+- **memo** uses the first callback only. Use stable closures.
 - Use a custom key when the same callback body is used multiple times.
 
 ## Forms: base usage and reactive validation
 
-Forms are built from fields, field sets, and a submit action.
+Forms are built from fields, field sets, and a **submit** action.
 
 Key primitives
 
-- reatomField: single field with state, value, focus, validation, disabled
-- reatomFieldSet: grouped fields with aggregate focus and validation
-- reatomForm: field set plus submit, schema validation, and form options
+- **reatomField**: single field with state, value, focus, validation, disabled
+- **reatomFieldSet**: grouped fields with aggregate focus and validation
+- **reatomForm**: field set plus submit, schema validation, and form options
 
 ### Base form with schema and submit
 
@@ -368,9 +392,9 @@ Reactive validation note
 
 Submit notes
 
-- submit is async and expects errors to be thrown.
-- submit.error() holds the latest error.
-- form.reset() cancels submit and resets submitted state.
+- **submit** is async and expects errors to be thrown.
+- **submit.error()** holds the latest error.
+- **form.reset()** cancels submit and resets submitted state.
 
 ### React binding
 
@@ -534,13 +558,13 @@ export const App = reatomComponent(() => {
 
 Notes
 
-- Import setup.ts before any model to enable logger hooks.
+- Import setup.ts before any model to enable **connectLogger** hooks.
 - Route loaders are async computed with auto-cancel.
-- Use wrap for event handlers and async boundaries.
+- Use **wrap** for event handlers and async boundaries.
 
 ## URL sync and persistence helpers
 
-### withSearchParams for list filters
+### **withSearchParams** for list filters
 
 ```ts
 import { atom, withSearchParams } from '@reatom/core'
@@ -563,7 +587,7 @@ const sort = atom<Sort>('popular', 'catalog.sort').extend(
 )
 ```
 
-### withLocalStorage for preferences
+### **withLocalStorage** for preferences
 
 ```ts
 import { atom, withLocalStorage } from '@reatom/core'
@@ -577,20 +601,20 @@ const theme = atom<Theme>('light', 'theme').extend(withLocalStorage('theme'))
 
 Use suspense for global initialization, not for dynamic page data.
 
-- withSuspense adds .suspended() that throws promise for Suspense.
-- withSuspenseInit turns async init atoms into sync after init.
-- withSuspenseRetry retries actions that touch suspended atoms.
-- Use preserve to keep previous data during refresh.
-- Avoid non-idempotent side effects inside withSuspenseRetry.
+- **withSuspense** adds **.suspended()** that throws promise for Suspense.
+- **withSuspenseInit** turns async init atoms into sync after init.
+- **withSuspenseRetry** retries actions that touch suspended atoms.
+- Use **preserve** to keep previous data during refresh.
+- Avoid non-idempotent side effects inside **withSuspenseRetry**.
 
 ## Transactions notes
 
 Transactions support optimistic updates with rollback.
 
-- withRollback on atoms tracks state changes.
-- withTransaction on actions triggers rollback on errors.
-- action.rollback() rolls back only the last call of that action.
-- action.stop() commits the last call and clears rollback queue.
+- **withRollback** on atoms tracks state changes.
+- **withTransaction** on actions triggers rollback on errors.
+- **action.rollback()** rolls back only the last call of that action.
+- **action.stop()** commits the last call and clears rollback queue.
 - Abort does not trigger rollback.
 
 Example
@@ -625,26 +649,26 @@ const saveTodo = action(async (todo: Todo) => {
 
 ## SSR and testing
 
-- context.start creates isolated contexts for SSR requests or tests.
-- clearStack forces explicit wrap usage, useful for strict isolation.
-- context.reset clears the default global context between tests.
+- **context.start** creates isolated contexts for SSR requests or tests.
+- **clearStack** forces explicit **wrap** usage, useful for strict isolation.
+- **context.reset** clears the default global context between tests.
 
 ## v3 migration highlights
 
-- Implicit context is default in v1000, ctx is not used.
-- ctx.schedule(promise) -> wrap(promise)
-- ctx.spy(atom) -> atom()
-- ctx.get(atom) -> peek(atom)
-- atom(callback) -> computed(callback)
-- atom(ctx, value) -> atom.set(value)
-- ctx.spy(atom, cb) -> ifChanged(atom, cb)
-- ctx.spy(action, cb) -> getCalls(action).forEach(cb)
-- reatomAsync(cb) -> action(cb).extend(withAsync())
-- reatomResource(cb) -> computed(cb).extend(withAsyncData())
-- reaction -> effect
-- atom.onChange(cb) -> atom.extend(withChangeHook(cb))
-- onConnect(atom, cb) -> atom.extend(withConnectHook(cb))
-- withConcurrency -> withAbort
+- Implicit context is default in v1000, **ctx** is not used.
+- **ctx.schedule**(promise) -> **wrap**(promise)
+- **ctx.spy**(atom) -> **atom**()
+- **ctx.get**(atom) -> **peek**(atom)
+- **atom**(callback) -> **computed**(callback)
+- **atom**(ctx, value) -> **atom.set**(value)
+- **ctx.spy**(atom, cb) -> **ifChanged**(atom, cb)
+- **ctx.spy**(action, cb) -> **getCalls**(action).forEach(cb)
+- **reatomAsync**(cb) -> **action**(cb).extend(**withAsync**())
+- **reatomResource**(cb) -> **computed**(cb).extend(**withAsyncData**())
+- **reaction** -> **effect**
+- **atom.onChange**(cb) -> **atom.extend**(**withChangeHook**(cb))
+- **onConnect**(atom, cb) -> **atom.extend**(**withConnectHook**(cb))
+- **withConcurrency** -> **withAbort**
 
 ## Other APIs (not detailed here)
 
@@ -652,63 +676,63 @@ This list is intentionally brief. See the full handbook and reference for
 additional features, recipes, adapters, and edge cases.
 Core
 
-- addGlobalExtension for global cross-cutting behavior
-- withActions for attaching methods as actions
-- withMiddleware and withParams for middleware and parameter transforms
-- bind for lightweight context binding
-- context, clearStack, mock, anonymizeNames for isolation and testing
-- isAtom, isAction, isComputed, isConnected, named for introspection
+- **addGlobalExtension** for global cross-cutting behavior
+- **withActions** for attaching methods as actions
+- **withMiddleware** and **withParams** for middleware and parameter transforms
+- **bind** for lightweight context binding
+- **context**, **clearStack**, **mock**, **anonymizeNames** for isolation and testing
+- **isAtom**, **isAction**, **isComputed**, **isConnected**, **named** for introspection
 
 Extensions
 
-- withAbort for abortable actions and computeds
-- withMemo to stabilize computed outputs
-- withDynamicSubscription to avoid unnecessary connections
-- withSuspense and withSuspenseRetry for Suspense integration
-- addChangeHook and addCallHook for dynamic hook wiring
-- withDisconnectHook for explicit disconnect actions
+- **withAbort** for abortable actions and computeds
+- **withMemo** to stabilize computed outputs
+- **withDynamicSubscription** to avoid unnecessary connections
+- **withSuspense** and **withSuspenseRetry** for Suspense integration
+- **addChangeHook** and **addCallHook** for dynamic hook wiring
+- **withDisconnectHook** for explicit disconnect actions
 
 Methods
 
-- abortVar and variable for async context variables
-- peek for non-reactive reads
-- schedule and retry for controlled reevaluation
-- deatomize to unwrap atoms into plain objects
-- reatomLens and reatomObservable for interop patterns
-- framePromise and getStackTrace for advanced debugging
-- isCausedBy to guard against self-triggered updates
+- **abortVar** and **variable** for async context variables
+- **peek** for non-reactive reads
+- **schedule** and **retry** for controlled reevaluation
+- **deatomize** to unwrap atoms into plain objects
+- **reatomLens** and **reatomObservable** for interop patterns
+- **framePromise** and **getStackTrace** for advanced debugging
+- **isCausedBy** to guard against self-triggered updates
 
 Routing helpers
 
-- searchParamsAtom and withSearchParams for URL search state
-- urlAtom for low-level URL control, link interception, sync hooks
-- is404 and isSomeLoaderPending for route status
+- **searchParamsAtom** and **withSearchParams** for URL search state
+- **urlAtom** for low-level URL control, link interception, sync hooks
+- **is404** and **isSomeLoaderPending** for route status
 
 Primitives
 
-- reatomArray, reatomBoolean, reatomEnum, reatomNumber, reatomString
-- reatomMap, reatomSet, reatomRecord, reatomLinkedList
+- **reatomArray**, **reatomBoolean**, **reatomEnum**, **reatomNumber**, **reatomString**
+- **reatomMap**, **reatomSet**, **reatomRecord**, **reatomLinkedList**
 
 Persistence
 
-- reatomPersist for custom storage adapters
-- withLocalStorage and withSessionStorage for web storage
-- withIndexedDb for IndexedDB persistence
-- withBroadcastChannel for cross-tab sync
-- withCookie and withCookieStore for cookie-backed state
-- createMemStorage for in-memory persistence in tests
+- **reatomPersist** for custom storage adapters
+- **withLocalStorage** and **withSessionStorage** for web storage
+- **withIndexedDb** for IndexedDB persistence
+- **withBroadcastChannel** for cross-tab sync
+- **withCookie** and **withCookieStore** for cookie-backed state
+- **createMemStorage** for in-memory persistence in tests
 
 Web utilities
 
-- onLineAtom for network status
-- reatomMediaQuery for media query binding
-- reatomWebSocket for websocket state
-- rAF for requestAnimationFrame scheduling
-- fetch wrapper for consistent context usage
+- **onLineAtom** for network status
+- **reatomMediaQuery** for media query binding
+- **reatomWebSocket** for websocket state
+- **rAF** for requestAnimationFrame scheduling
+- **fetch** wrapper for consistent context usage
 
 Render adapter
 
-- reatomAbstractRender for building framework adapters
+- **reatomAbstractRender** for building framework adapters
 
 Utils
 
