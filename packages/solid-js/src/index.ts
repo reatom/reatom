@@ -134,13 +134,23 @@ let useAccessor = <State>(
         let state = read()
 
         if (getListener()) {
-          if (accessorCache.count++ === 0) {
-            accessorCache.unsubscribe = target.subscribe(bind(setState, frame))
+          accessorCache.count++
+          if (accessorCache.count === 1) {
+            let first = true
+            accessorCache.unsubscribe = target.subscribe(
+              bind((newState: State) => {
+                if (first) {
+                  first = false
+                  return
+                }
+                setState(newState)
+              }, frame),
+            )
           }
 
           onCleanup(() => {
             if (--accessorCache.count === 0) {
-              accessorCache.unsubscribe!()
+              accessorCache.unsubscribe?.()
               accessorCache.unsubscribe = null
             }
           })
@@ -271,3 +281,5 @@ export const useAtom = <State, Params extends any[]>(
 // function getUseAtomName() {
 //   return named`${getOwner()?.owner?.name?.replace('[solid-refresh]', '') ?? 'use'}Atom`
 // }
+
+export { bindField } from './bindField'
