@@ -1,0 +1,10 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#three-container canvas {
+  display: block;
+  position: absolute;
+}
