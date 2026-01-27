@@ -1,5 +1,5 @@
 import type { Atom, AtomState, Ext } from '../core'
-import { atom, named } from '../core'
+import { atom, bind, named } from '../core'
 import { withConnectHook, withInit } from '../extensions'
 import { identity, type MaybeUnsubscribe } from '../utils'
 
@@ -78,8 +78,8 @@ export const withObservable =
       withConnectHook(() => {
         const unsubscribe =
           'subscribe' in producer
-            ? producer.subscribe(target.set)
-            : producer(target.set)
+            ? producer.subscribe(bind(target.set))
+            : producer(bind(target.set))
 
         return unsubscribe && 'unsubscribe' in unsubscribe
           ? unsubscribe.unsubscribe

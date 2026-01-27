@@ -1,6 +1,6 @@
 {
   "name": "@reatom/core",
-  "version": "1000.10.0",
+  "version": "1000.10.1",
   "description": "The ultimate state manager",
   "exports": {
     "types": "./build/index.d.ts",
@@ -88,7 +88,7 @@
     "nanostores": "latest",
     "playwright": "catalog:",
     "react": "catalog:",
-    "reatomV3": "@reatom/core@3",
+    "reatomV3": "npm:@reatom/core@^3.0.0",
     "redux": "latest",
     "reselect": "latest",
     "s-js": "latest",
@@ -96,6 +96,7 @@
     "spred": "latest",
     "typescript": "catalog:",
     "usignal": "latest",
+    "vitest": "catalog:",
     "whatsup": "latest",
     "wonka": "latest",
     "ws": "catalog:",
