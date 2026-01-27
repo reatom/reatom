@@ -2,10 +2,9 @@ import {
   abortVar,
   action,
   atom,
-  effect,
-  getCalls,
   sleep,
   withConnectHook,
+  withDynamicSubscription,
   withParams,
 } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
@@ -47,21 +46,24 @@ export const EssentialsDemo = reatomFactoryComponent(() => {
   ]
 
   // 2. Button Grid
-  const buttonGridAction = action((params: TpButtonGridEvent) => {
+  action((params: TpButtonGridEvent) => {
     alert(`Clicked ${buttonGridTitles[params.index[1]][params.index[0]]}`)
-  }, 'directions').extend(
-    withButtonGrid(
-      {
-        size: [3, 3],
-        cells: (x, y) => ({
-          title: buttonGridTitles[y][x],
-          value: buttonGridTitles[y][x],
-        }),
-        label: 'Directions',
-      },
-      folder,
-    ),
-  )
+  }, 'directions')
+    .extend(
+      withButtonGrid(
+        {
+          size: [3, 3],
+          cells: (x, y) => ({
+            title: buttonGridTitles[y][x],
+            value: buttonGridTitles[y][x],
+          }),
+          label: 'Directions',
+        },
+        folder,
+      ),
+      withDynamicSubscription(),
+    )
+    .subscribe()
 
   // 3. Cubic Bezier
   const bezierAtom = atom([0.5, 0, 0.5, 1], 'bezier').extend(
@@ -83,10 +85,6 @@ export const EssentialsDemo = reatomFactoryComponent(() => {
     { label: 'FPS Graph', rows: 3, max: 140 },
     folder,
   )
-
-  effect(() => {
-    getCalls(buttonGridAction)
-  })
 
   fpsGraphBlade.extend(
     withConnectHook((target) => {

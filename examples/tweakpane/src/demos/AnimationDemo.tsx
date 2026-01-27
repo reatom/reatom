@@ -3,7 +3,6 @@ import {
   atom,
   type AtomLike,
   effect,
-  getCalls,
   rAF,
   reatomBoolean,
   reatomEnum,
@@ -16,6 +15,7 @@ import {
 } from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 
+import { hotWrap } from '../hotWrap'
 import { reatomPaneTab, withBinding, withButton } from '../tweakpane'
 
 const withFixedValue = <T,>(condition: () => boolean, fixedValue: T) =>
@@ -123,7 +123,6 @@ export const AnimationDemo = reatomFactoryComponent(() => {
   )
 
   const time = reatomNumber(0, 'animation._time')
-
   effect(() => {
     const { delta } = rAF()
     // always subscribe to ensure binding is created
@@ -224,12 +223,6 @@ export const AnimationDemo = reatomFactoryComponent(() => {
     time.reset()
   }, 'reset').extend(withButton({ title: 'Reset All' }))
 
-  // Subscribe to button actions
-  effect(() => {
-    getCalls(togglePause)
-    getCalls(reset)
-  })
-
   return () => (
     <section>
       <h3>Animation Demo</h3>
@@ -251,10 +244,10 @@ export const AnimationDemo = reatomFactoryComponent(() => {
       />
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button onClick={wrap(togglePause)}>
+        <button onClick={hotWrap(togglePause)}>
           {paused() ? 'Resume' : 'Pause'}
         </button>
-        <button onClick={wrap(reset)}>Reset All</button>
+        <button onClick={hotWrap(reset)}>Reset All</button>
       </div>
 
       <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>

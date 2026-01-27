@@ -1,11 +1,11 @@
 import {
   abortVar,
+  type AtomLike,
   computed,
+  type Ext,
   reset,
   withAbort,
   withDisconnectHook,
-  type AtomLike,
-  type Ext,
 } from '@reatom/core'
 
 /**
@@ -36,10 +36,9 @@ export const reatomInstance = <I>(
   dispose?: (instance: I) => void,
   name?: string,
 ) => {
-  const disposeFn = dispose ?? (() => {})
   const resource = computed(() => {
     const instance = create()
-    abortVar.subscribe(() => disposeFn(instance))
+    abortVar.subscribe(() => dispose?.(instance))
     return instance
   }, name).extend(
     withAbort(),

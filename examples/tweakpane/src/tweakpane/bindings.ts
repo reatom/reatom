@@ -1,7 +1,6 @@
 import {
   type Atom,
   type AtomLike,
-  bind,
   type EnumAtom,
   type Frame,
   top,
@@ -17,12 +16,12 @@ import { type BladeRackApi, reatomDisposable, rootPane } from './core'
 const isEnumAtom = (target: Atom<unknown>): target is EnumAtom<string> =>
   'enum' in target && typeof target.enum === 'object' && target.enum !== null
 
-const toBindingObject = <T>(target: Atom<T>, ctx: Frame) => ({
+const toBindingObject = <T>(target: Atom<T>, frame: Frame) => ({
   get value() {
-    return bind(() => target(), ctx)()
+    return frame.run(target)
   },
   set value(v: T) {
-    bind(() => target.set(v), ctx)()
+    frame.run(target.set, v)
   },
 })
 
