@@ -9,9 +9,10 @@ import {
   type Plain,
   type Rec,
   withAsyncData,
+  withChangeHook,
   wrap,
 } from '../'
-import type { Action, Computed } from '../core'
+import type { Action, Atom, Computed } from '../core'
 import { action, atom, computed, ReatomError, withMiddleware } from '../core'
 import { type UrlAtom, urlAtom } from '../web/url'
 
@@ -520,6 +521,14 @@ export interface RouteExt<
    *   })
    */
   render: Computed<null | RouteChild>
+
+  /**
+   * Atom that containing latest input params set in case if the route params
+   * are defined as a callback. Exposed for internal use only.
+   *
+   * @internal
+   */
+  inputParams?: Atom<null | InputParams>
 }
 
 /**
@@ -675,7 +684,11 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     let inputParamsAtom =
       typeof paramsSchema === 'function'
-        ? atom(null, `${name}._inputParamsAtom`)
+        ? atom(null, `${name}._inputParamsAtom`).extend(
+            'inputParams' in parent && parent.inputParams
+              ? withChangeHook((state) => parent.inputParams!.set(state))
+              : identity,
+          )
         : null
 
     const loader = computed(async () => {
@@ -728,7 +741,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
-        inputParamsAtom?.set(params)
+        const inputParams = inputParamsAtom ?? ('inputParams' in parent ? parent.inputParams : undefined)
+        inputParams?.set(params)
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
           newUrl.pathname = url.pathname
@@ -742,10 +756,13 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       let url = urlAtom()
       let pathname = url.pathname
-      let params: null | Rec = inputParamsAtom?.() ?? null
+      let inputParams = inputParamsAtom?.()
+      let parentParams: Rec | null =
+        'match' in parent ? (parent as RouteAtom)() : null
+      let params: null | Rec = inputParams ?? null
 
       if (!params) {
-        params = {}
+        params = parentParams ? { ...parentParams } : {}
         let parts = pathname.split('/').filter(Boolean)
 
         for (let i = 0; i < patternParts.length; i++) {
@@ -788,10 +805,11 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         return null
       }
 
-      let result = validatedParams
+      let result = parentParams
+        ? { ...parentParams, ...validatedParams }
+        : validatedParams
 
       if (validatedSearch) {
-        result = { ...validatedParams }
         for (let key in validatedSearch) {
           if (key in result) {
             throw new ReatomError(
@@ -842,6 +860,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         outlet,
         render,
         reatomRoute,
+        inputParams: inputParamsAtom,
       } as RouteExt
     }) as RouteAtom
 

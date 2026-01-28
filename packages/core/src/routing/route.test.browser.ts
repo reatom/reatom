@@ -557,7 +557,35 @@ test('exactRender should not affect children', async () => {
   expect(childRoute.match()).toBeTruthy()
 })
 
-test('inherence of callback params', () => {
+test('inherence of callback params', async () => {
+  const dialogRoute = reatomRoute({
+    params: ({ open }: { open: boolean }) => ({ open }),
+  })
+
+  const profileRoute = dialogRoute.reatomRoute({
+    params: ({ profileOf }: { profileOf: string }) => profileOf ? { profileOf } : null
+  })
+
+  profileRoute.go({ open: true, profileOf: 'co_aij21312nm' })
+  await wrap(sleep())
+
+  expect(dialogRoute()).toMatchObject({ open: true })
+  expect(profileRoute()).toMatchObject({
+    open: true,
+    profileOf: 'co_aij21312nm',
+  })
+
+  profileRoute.go({ open: false, profileOf: 'co_aij21312nm' })
+  await wrap(sleep())
+
+  expect(dialogRoute()).toMatchObject({ open: false })
+  expect(profileRoute()).toMatchObject({
+    open: false,
+    profileOf: 'co_aij21312nm',
+  })
+})
+
+test('inherence of callback params from search-only route', async () => {
   const dialogRoute = reatomRoute({
     params: ({ open }: { open: boolean }) => ({ open }),
   })
@@ -569,6 +597,7 @@ test('inherence of callback params', () => {
   })
 
   profileRoute.go({ open: true, profileOf: 'co_aij21312nm' })
+  await wrap(sleep())
 
   expect(dialogRoute()).toMatchObject({ open: true })
   expect(profileRoute()).toMatchObject({
@@ -576,7 +605,9 @@ test('inherence of callback params', () => {
     profileOf: 'co_aij21312nm',
   })
 
-  profileRoute.go({ open: false })
+  profileRoute.go({ open: false, profileOf: 'co_aij21312nm' })
+  await wrap(sleep())
+
   expect(dialogRoute()).toMatchObject({ open: false })
   expect(profileRoute()).toMatchObject({
     open: false,

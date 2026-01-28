@@ -1,3 +1,15 @@
+## 1000.12.2 (2026-01-28)
+
+### Fix
+
+- **routing**: correct inherence of params in case of callback definition
+
+## 1000.12.1 (2026-01-28)
+
+### Fix
+
+- **routing**: correct inherence of params in case of callback definition
+
 ## 1000.12.0 (2026-01-28)
 
 ### Feat
