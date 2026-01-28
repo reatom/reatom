@@ -226,6 +226,7 @@ Using such schemas is quite straightforward, you just need to pass a standard-co
 :::caution[Zod implementation caution]
 You cannot throw errors in `.refine` <a href="https://zod.dev/api?id=refine" target="_blank">according to documentation</a> and the throwed error will not be propagated to the `reatomField` internals so we need a bunch of boilerplate to handle this.
 :::
+
 ```ts
 const usernameSchema = z
   .string()
@@ -237,25 +238,24 @@ const usernameSchema = z
         fetch(`/api/check-username?username=${value}`),
       )
       const data = await wrap(response.json())
-      if(!data) {
+      if (!data) {
         addIssue({
           code: 'custom',
           message: 'Username is already taken',
         })
       }
-    }
-    catch(error) {
-      if(!isAbort(error)) {
+    } catch (error) {
+      if (!isAbort(error)) {
         addIssue({
           code: 'custom',
           message: 'Error checking username',
         })
       }
     }
-  }),
+  })
 
 const usernameField = reatomField({
-  validate: usernameSchema
+  validate: usernameSchema,
 })
 ```
 
@@ -263,7 +263,7 @@ You can easily use standard schemas conditionally too:
 
 ```ts
 const usernameField = reatomField({
-  validate: async ({ focus }) => focus.touched ? usernameSchema : undefined,
+  validate: async ({ focus }) => (focus.touched ? usernameSchema : undefined),
 })
 ```
 

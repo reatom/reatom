@@ -4,6 +4,7 @@ description: Comparison with other form libraries
 ---
 
 Legend:
+
 - 🟢 - fully supported
 - 🟡 - partial support
 - 🔴 - not supported
@@ -161,8 +162,8 @@ The core API selection is approximate and may not be fully accurate.
     </tbody>
 </table>
 
-1. *Decoupled form models* - the form logic (state, validation, and field dependencies) is fully defined as a standalone entity outside of the UI framework's lifecycle. It indicates whether the entire form model can be tested, reused, or ported to another framework without modifying the business logic, leaving the UI layer responsible only for data binding.
-2. *Reactivity granularity* there is limited to static dependency lists, while ideal behavior would involve automatic tracking like in signal-based architectures
+1. _Decoupled form models_ - the form logic (state, validation, and field dependencies) is fully defined as a standalone entity outside of the UI framework's lifecycle. It indicates whether the entire form model can be tested, reused, or ported to another framework without modifying the business logic, leaving the UI layer responsible only for data binding.
+2. _Reactivity granularity_ there is limited to static dependency lists, while ideal behavior would involve automatic tracking like in signal-based architectures
 3. Only debugger is available at this moment
 4. No built-in debounce and validation concurrency solution
 5. Validators are currently limited to subscribing to the state of other fields or form submission events. However, validation rule reactivity implies the ability to subscribe to any data source to dynamically update the rules.

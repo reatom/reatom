@@ -34,9 +34,9 @@ export type MaybeUnsubscribe =
   | void
   | Exclude<{}, Fn>
   | Unsubscribe
-  | ({
+  | {
       unsubscribe: Unsubscribe
-    })
+    }
 
 /**
  * Utility type that converts properties with undefined values to optional
@@ -837,7 +837,8 @@ export const withResolvers = <T>(): {
  * Removes the first occurrence of an item from an array in a single iteration.
  * Mutates the array in place by splicing out the found element.
  *
- * More efficient than using `indexOf` + `splice` as it only walks the array once.
+ * More efficient than using `indexOf` + `splice` as it only walks the array
+ * once.
  *
  * @example
  *   const items = [1, 2, 3, 4]

@@ -85,5 +85,10 @@ test('subscribe', () => {
   expect(sub).toBeCalledWith([{ params: [1], payload: 1 }])
 })
 
-
-action(() => 123).extend(withMiddleware((target) => (next, ...params) => next(...params)))
+action(() => 123).extend(
+  withMiddleware(
+    (target) =>
+      (next, ...params) =>
+        next(...params),
+  ),
+)
