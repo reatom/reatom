@@ -1,8 +1,8 @@
-import { expect, test, vi } from 'test'
+import { expect, type Mock, test, vi } from 'test'
 
 import { _read, action, atom, type AtomLike, computed, notify } from '../core'
 import { abortVar, effect, getCalls, memoKey, wrap } from '../methods'
-import { noop, sleep } from '../utils'
+import { type Fn, noop, sleep } from '../utils'
 import { withAbort } from './withAbort'
 
 const getActiveControllers = (target: AtomLike) =>
@@ -119,18 +119,18 @@ test('manual: abort stops the action', async () => {
   const results: number[] = []
   let loopCount = 0
 
-  const pool = action(async () => {
+  const poll = action(async () => {
     while (true) {
       loopCount++
       await wrap(sleep(1))
       results.push(loopCount)
     }
-  }, `${name}.pool`).extend(withAbort('manual'))
+  }, `${name}.poll`).extend(withAbort('manual'))
 
-  pool()
+  poll()
 
   await wrap(sleep(10))
-  pool.abort()
+  poll.abort()
   const countAfterAbort = loopCount
   await wrap(sleep(10))
 

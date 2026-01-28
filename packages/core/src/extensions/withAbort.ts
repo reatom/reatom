@@ -42,8 +42,8 @@ let abortControllers = (
  *   fetchOnce() // ignored, returns previous promise
  *
  * @example
- *   // manual with manual abort (useful for pools/long-running tasks)
- *   const pool = action(async () => {
+ *   // manual with manual abort (useful for polling/long-running tasks)
+ *   const poll = action(async () => {
  *     while (true) {
  *       await wrap(sleep(1000))
  *       doSome()
@@ -51,10 +51,10 @@ let abortControllers = (
  *   }).extend(withAbort('manual'))
  *
  *   // start
- *   pool()
+ *   poll()
  *
  *   // stop
- *   pool.abort()
+ *   poll.abort()
  *
  * @param strategy - The abort strategy to use:
  *
