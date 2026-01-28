@@ -333,3 +333,83 @@ test('manual: parallel outdated abort', async () => {
   expect(ticks).toBe(0)
   expect(getActiveControllers(runEffect).length).toBe(0)
 })
+
+// from https://x.com/peera_ra/status/2016618769704243351
+test('"finally" strategy and fork with race', async () => {
+  type Fork<Params extends any[], Payload> = {
+    params: Params
+    payload: Promise<Payload>
+    controller: AbortController
+  }
+  const fork = <Params extends any[], Payload>(
+    cb: (...params: Params) => Promise<Payload>,
+    ...params: Params
+  ): Fork<Params, Payload> =>
+    abortVar.spawn(() => {
+      const { unsubscribe, controller } = abortVar.subscribe()
+      return {
+        params,
+        payload: cb(...params).finally(unsubscribe),
+        controller,
+      }
+    })
+
+  const race = <Payload>(
+    ...forks: Array<Fork<any[], Payload>>
+  ): Promise<Payload> =>
+    Promise.race(forks.map((fork) => fork.payload)).finally(
+      wrap(() => {
+        forks.forEach((fork) => fork.controller.abort('race'))
+      }),
+    )
+
+  const resolveMockCatch = (fn: Mock, cb: Fn = (error) => error?.message) =>
+    fn.mock.results.at(-1)?.value.catch(cb)
+
+  let usersTiming = 10
+  const fetchUsers = vi.fn(async () => {
+    await wrap(sleep(usersTiming))
+    return 'users'
+  })
+
+  let postsTiming = 20
+  const fetchPosts = vi.fn(async () => {
+    await wrap(sleep(postsTiming))
+    return 'posts'
+  })
+
+  const fetchComments = vi.fn(async () => {
+    await wrap(sleep(usersTiming + postsTiming))
+    return 'comments'
+  })
+
+  const fetchInfinity = vi.fn(async () => {
+    await wrap(new Promise(noop))
+  })
+
+  const process = action(async () => {
+    fetchInfinity()
+
+    const usersFork = fork(fetchUsers)
+    const postsFork = fork(fetchPosts)
+    const commentsFork = fork(fetchComments)
+
+    const result = await wrap(race(usersFork, postsFork))
+
+    commentsFork.controller.abort('manual')
+
+    return result
+  }).extend(withAbort('finally'))
+
+  expect(await wrap(process())).toBe('users')
+  expect(await wrap(resolveMockCatch(fetchPosts))).includes('race')
+  expect(await wrap(resolveMockCatch(fetchComments))).includes('manual')
+  expect(await wrap(resolveMockCatch(fetchInfinity))).includes('finally')
+
+  usersTiming = 20
+  postsTiming = 10
+  expect(await wrap(process())).includes('posts')
+  expect(await wrap(resolveMockCatch(fetchUsers))).includes('race')
+  expect(await wrap(resolveMockCatch(fetchComments))).includes('manual')
+  expect(await wrap(resolveMockCatch(fetchInfinity))).includes('finally')
+})

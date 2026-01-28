@@ -1,3 +1,15 @@
+## 1000.11.0 (2026-01-28)
+
+### Feat
+
+- **extensions**: finally strategy
+
+## 1000.10.2 (2026-01-27)
+
+### Fix
+
+- **methods**: reatomObservable subscription bind
+
 ## 1000.10.1 (2026-01-27)
 
 ### Fix
