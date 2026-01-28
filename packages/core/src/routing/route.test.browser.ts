@@ -559,7 +559,7 @@ test('exactRender should not affect children', async () => {
 
 test('inherence of callback params', () => {
   const dialogRoute = reatomRoute({
-    params: ({ open }: { open: boolean }) => (open ? { open } : null),
+    params: ({ open }: { open: boolean }) => ({ open }),
   })
 
   const profileRoute = dialogRoute.reatomRoute({
@@ -573,6 +573,13 @@ test('inherence of callback params', () => {
   expect(dialogRoute()).toMatchObject({ open: true })
   expect(profileRoute()).toMatchObject({
     open: true,
+    profileOf: 'co_aij21312nm',
+  })
+
+  profileRoute.go({ open: false })
+  expect(dialogRoute()).toMatchObject({ open: false })
+  expect(profileRoute()).toMatchObject({
+    open: false,
     profileOf: 'co_aij21312nm',
   })
 })
