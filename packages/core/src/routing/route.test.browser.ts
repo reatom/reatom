@@ -570,5 +570,9 @@ test('inherence of callback params', () => {
 
   profileRoute.go({ open: true, profileOf: 'co_aij21312nm' })
 
-  expect(dialogRoute()).toMatchObject({ open: true, profileOf: 'co_aij21312nm' })
+  expect(dialogRoute()).toMatchObject({ open: true })
+  expect(profileRoute()).toMatchObject({
+    open: true,
+    profileOf: 'co_aij21312nm',
+  })
 })
