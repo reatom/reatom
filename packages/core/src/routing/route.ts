@@ -741,7 +741,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
-        const inputParams = inputParamsAtom ?? ('inputParams' in parent ? parent.inputParams : undefined)
+        const inputParams =
+          inputParamsAtom ??
+          ('inputParams' in parent ? parent.inputParams : undefined)
         inputParams?.set(params)
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {

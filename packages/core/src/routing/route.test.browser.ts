@@ -563,7 +563,8 @@ test('inherence of callback params', async () => {
   })
 
   const profileRoute = dialogRoute.reatomRoute({
-    params: ({ profileOf }: { profileOf: string }) => profileOf ? { profileOf } : null
+    params: ({ profileOf }: { profileOf: string }) =>
+      profileOf ? { profileOf } : null,
   })
 
   profileRoute.go({ open: true, profileOf: 'co_aij21312nm' })
