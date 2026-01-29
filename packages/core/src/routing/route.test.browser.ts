@@ -586,6 +586,34 @@ test('inherence of callback params', async () => {
   })
 })
 
+test('inherence of callback params (deep)', async () => {
+  const modalRoute = reatomRoute({
+    params: ({ visible }: { visible: boolean }) => ({ visible }),
+  })
+
+  const settingsRoute = modalRoute.reatomRoute({
+    path: 'settings',
+  })
+
+  const themeRoute = settingsRoute.reatomRoute({
+    params: ({ theme }: { theme: string }) => (theme ? { theme } : null),
+  })
+
+  themeRoute.go({ visible: true, theme: 'dark' })
+  await wrap(sleep())
+
+  expect(modalRoute()).toMatchObject({ visible: true })
+  expect(settingsRoute()).toMatchObject({ visible: true })
+  expect(themeRoute()).toMatchObject({ visible: true, theme: 'dark' })
+
+  themeRoute.go({ visible: false, theme: 'light' })
+  await wrap(sleep())
+
+  expect(modalRoute()).toMatchObject({ visible: false })
+  expect(settingsRoute()).toMatchObject({ visible: false })
+  expect(themeRoute()).toMatchObject({ visible: false, theme: 'light' })
+})
+
 test('inherence of callback params from search-only route', async () => {
   const dialogRoute = reatomRoute({
     params: ({ open }: { open: boolean }) => ({ open }),
