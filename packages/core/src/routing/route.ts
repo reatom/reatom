@@ -9,7 +9,6 @@ import {
   type Plain,
   type Rec,
   withAsyncData,
-  withChangeHook,
   wrap,
 } from '../'
 import type { Action, Atom, Computed } from '../core'
@@ -684,11 +683,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     let inputParamsAtom =
       typeof paramsSchema === 'function'
-        ? atom(null, `${name}._inputParamsAtom`).extend(
-            'inputParams' in parent && parent.inputParams
-              ? withChangeHook((state) => parent.inputParams!.set(state))
-              : identity,
-          )
+        ? 'inputParams' in parent && parent.inputParams
+          ? parent.inputParams
+          : atom(null, `${name}._inputParamsAtom`)
         : null
 
     const loader = computed(async () => {
