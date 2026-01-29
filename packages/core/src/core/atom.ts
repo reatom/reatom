@@ -895,7 +895,7 @@ export let createAtom: {
         !target.__reatom.processing &&
         (push || dirty || (dependent && !subscribed))
       ) {
-        STACK.push(isInit ? frame : (frame = _copy(frame)))
+        STACK.push(isInit || dirty ? frame : (frame = _copy(frame)))
 
         if (reactive) target.__reatom.processing = true
 
