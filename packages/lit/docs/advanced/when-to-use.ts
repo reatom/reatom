@@ -1,4 +1,6 @@
 /** @doc-expand
+ * When to Use
+ *
  * Choose the right approach for different use cases
  *
  * | Use Case                           | Approach              | Why                                                                 |

@@ -1,4 +1,6 @@
 /**
+ * Performance
+ *
  * Performance tips for ReatomLitElement components
  *
  * @file Performance Considerations

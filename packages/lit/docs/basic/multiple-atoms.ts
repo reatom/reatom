@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Multiple Atoms
+ *
  * You can use multiple atoms in a single component
  *
  */

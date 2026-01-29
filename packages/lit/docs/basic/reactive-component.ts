@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Reactive Component
+ *
  * Timer component that updates every second
  */
 

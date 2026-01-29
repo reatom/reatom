@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Benefits
+ *
  * Advantages of combining Reatom and Lit reactivity
  *
  * Benefits of mixed reactivity:

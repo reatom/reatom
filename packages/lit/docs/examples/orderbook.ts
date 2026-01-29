@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Orderbook
+ *
  * Bybit Orderbook - Real-time Trading Interface
  *
  * This advanced example demonstrates building a high-performance real-time

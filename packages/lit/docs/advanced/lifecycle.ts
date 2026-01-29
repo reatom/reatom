@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Lifecycle
+ *
  * ReatomLitElement automatically manages subscriptions, but you can still use
  * Lit's lifecycle hooks when needed
  */

@@ -1,4 +1,6 @@
 /**
+ * Memory Management
+ *
  * Guidelines for managing memory with ReatomLitElement
  *
  * @file Memory Management

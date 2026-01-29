@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Atomization
+ *
  * The atomization pattern is especially powerful in Lit components where you
  * might have lists of items with editable properties
  * 

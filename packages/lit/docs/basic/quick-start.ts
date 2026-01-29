@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Quick Start
+ *
  * Simple counter component demonstrating basic Reatom + Lit integration
  */
 

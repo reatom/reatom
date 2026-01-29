@@ -1,7 +1,9 @@
 /** @doc-expand
+ * Watch Directive
+ *
  * The watch directive for fine-grained reactivity
  *
- * This file demonstrates the watch directive and different approaches
+ * This file demonstrates watch directive and different approaches
  * to reactive rendering in @reatom/lit components.
  */
 

@@ -1,5 +1,7 @@
 /** @doc-expand
- * Server-Side Rendering (SSR) with Reatom + Lit
+ * SSR
+ *
+ * Server-Side Rendering with Reatom + Lit
  *
  * This guide covers using @reatom/lit components with @lit-labs/ssr for
  * server-side rendering and hydration.

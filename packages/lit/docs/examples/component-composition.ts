@@ -1,4 +1,6 @@
 /**
+ * Component Composition
+ *
  * Compose multiple ReatomLitElement components together
  *
  * @file Component Composition

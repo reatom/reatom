@@ -1,5 +1,7 @@
 /** @doc-expand
- * ReatomLitElement provides automatic reactivity for Lit components
+ * ReatomLitElement
+ *
+ * Provides automatic reactivity for Lit components
  */
 
 import {atom} from '@reatom/core'

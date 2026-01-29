@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "pnpm run references && astro dev",
     "start": "pnpm run references && astro dev",
-    "build": "pnpm run references && astro build",
+    "build": "pnpm run build:docs && pnpm run build:demos && pnpm run references && astro build",
+    "build:docs": "pnpm --filter @reatom/lit run docs:gen",
+    "build:demos": "pnpm --filter @reatom/lit run demo:build",
     "preview": "astro preview",
     "astro": "astro",
     "references": "echo 'TODO cd .. && pnpm --filter @reatom/core --filter @reatom/jsx --filter @reatom/lit --filter @reatom/preact --filter @reatom/react --filter @reatom/vue --filter @reatom/zod exec tsc -b tsconfig.build.json && typedoc'"

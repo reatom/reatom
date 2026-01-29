@@ -1,4 +1,6 @@
 /**
+ * Debugging
+ *
  * Tips for debugging ReatomLitElement components
  *
  * @file Debugging Tips

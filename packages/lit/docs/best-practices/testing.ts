@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Testing
+ *
  * Testing Reatom + Lit Components
  *
  * This guide covers testing strategies for components built with @reatom/lit

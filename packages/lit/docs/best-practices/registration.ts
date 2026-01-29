@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Element Registration
+ *
  * Safe Custom Element Registration
  *
  * Best practices for registering Web Components to avoid duplicate registration errors

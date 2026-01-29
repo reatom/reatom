@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Mixed Reactivity
+ *
  * Combining Reatom atoms with Lit properties
  */
 

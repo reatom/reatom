@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Auto Reactivity
+ *
  * Automatic Reactivity with html and svg
  *
  * For convenience, you can import html and svg functions from @reatom/lit.

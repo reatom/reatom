@@ -1,4 +1,6 @@
 /**
+ * Organization
+ *
  * Recommendations for organizing your Reatom + Lit code
  *
  * @file Organizing Code and Modularity

@@ -1,4 +1,6 @@
 /** @doc-expand
+ * Passing Atoms
+ *
  * You can pass atoms as component properties
  *
  */
