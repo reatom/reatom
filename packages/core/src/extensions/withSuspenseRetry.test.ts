@@ -17,5 +17,5 @@ test('suspense retry', async () => {
     return result
   }).extend(withSuspenseRetry())
 
-  expect(act()).resolves.toBe(1)
+  expect(await wrap(act())).toBe(1)
 })

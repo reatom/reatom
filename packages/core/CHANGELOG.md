@@ -1,3 +1,15 @@
+## 1000.13.0 (2026-01-29)
+
+### Feat
+
+- **core, extensions**: add withActionMiddleware
+
+## 1000.12.2 (2026-01-29)
+
+### Fix
+
+- **routing**: input params navigation
+
 ## 1000.12.1 (2026-01-29)
 
 ### Fix

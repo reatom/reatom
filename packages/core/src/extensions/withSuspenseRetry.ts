@@ -1,6 +1,6 @@
 import type { Action } from '../core'
 import type { Ext } from '../core'
-import { withMiddleware } from '../core'
+import { withActionMiddleware } from '../core'
 import { wrap } from '../methods'
 
 /**
@@ -24,25 +24,19 @@ import { wrap } from '../methods'
  *
  * @returns The same passed action
  */
-export let withSuspenseRetry =
-  <T extends Action<unknown[], Promise<unknown>>>(): Ext<T> =>
-  (target) =>
-    target.extend(
-      withMiddleware(
-        () =>
-          async (next, ...params) => {
-            while (true) {
-              try {
-                return await wrap(next(...params))
-              } catch (error) {
-                if (error instanceof Promise) {
-                  await wrap(error)
-                } else {
-                  throw error
-                }
-              }
-            }
-          },
-        { reactive: false },
-      ),
-    )
+export let withSuspenseRetry = <
+  T extends Action<unknown[], Promise<unknown>>,
+>(): Ext<T> =>
+  withActionMiddleware(() => async (next, ...params) => {
+    while (true) {
+      try {
+        return await wrap(next(...params))
+      } catch (error) {
+        if (error instanceof Promise) {
+          await wrap(error)
+        } else {
+          throw error
+        }
+      }
+    }
+  }) as unknown as Ext<T>

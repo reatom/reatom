@@ -1,5 +1,5 @@
 import type { Fn } from '../utils'
-import type { AtomLike, AtomMeta } from './'
+import type { AtomLike, AtomMeta, Ext } from './'
 import {
   _enqueue,
   createAtom,
@@ -51,6 +51,67 @@ let actionMiddleware = (next: Fn, ...params: any[]) => {
  */
 export let isAction = (target: unknown): target is Action =>
   isAtom(target) && !target.__reatom.reactive
+
+/**
+ * Creates an extension that adds middleware to an action, wrapping only the
+ * call function, not the state.
+ *
+ * Unlike `withMiddleware`, which wraps the entire middleware chain (including
+ * the state update), `withActionMiddleware` wraps only the call function that
+ * gets passed to `actionMiddleware`. This allows you to decorate the action's
+ * execution logic without interfering with the action's state management.
+ *
+ * @example
+ *   // Creating a retry middleware for actions
+ *   const withRetry = (maxAttempts: number) =>
+ *     withActionMiddleware((target) => {
+ *       return (next, ...params) => {
+ *         let attempts = 0
+ *         while (attempts < maxAttempts) {
+ *           try {
+ *             return next(...params)
+ *           } catch (error) {
+ *             attempts++
+ *             if (attempts >= maxAttempts) throw error
+ *           }
+ *         }
+ *       }
+ *     })
+ *
+ *   // Using the middleware
+ *   const fetchData = action(async () => {
+ *     const response = await fetch('/api/data')
+ *     return response.json()
+ *   }).extend(withRetry(3))
+ *
+ * @template Target - The type of action the middleware will be applied to
+ * @param cb - A function that receives the target action and returns a
+ *   middleware function that wraps the call
+ * @returns An extension that applies the middleware when used with .extend()
+ */
+// @ts-ignore
+export let withActionMiddleware: {
+  <Params extends any[] = any[], Payload = any>(
+    cb: (
+      target: Action<Params, Payload>,
+    ) => (next: Fn, ...params: Params) => Payload,
+  ): Ext<Action<Params, Payload>>
+} =
+  (cb: (target: Action) => (next: Fn, ...params: any[]) => any) =>
+  (target: Action) => {
+    const actionMiddlewareIdx =
+      target.__reatom.middlewares.indexOf(actionMiddleware)
+
+    if (!isAction(target) || actionMiddlewareIdx === -1) {
+      throw new ReatomError(
+        'withActionMiddleware can only be applied to actions',
+      )
+    }
+
+    target.__reatom.middlewares.splice(actionMiddlewareIdx, 0, cb(target))
+
+    return target
+  }
 
 /**
  * Creates a logic and side effect container.
