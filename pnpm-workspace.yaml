@@ -25,7 +25,7 @@ catalog:
   '@typescript-eslint/parser': ^8.49.0
   '@typescript-eslint/rule-tester': ^8.49.0
   '@vitejs/plugin-react': ^5.1.2
-  '@vitest/browser-playwright': ^4.0.15
+  '@vitest/browser-playwright': ^4.0.16
   '@webreflection/signal': latest
   alien-signals: ^3.1.1
   cellx: latest
@@ -63,7 +63,7 @@ catalog:
   usignal: latest
   vite: ^7.2.7
   vite-plugin-solid: ^2.11.10
-  vitest: ^4.0.15
+  vitest: ^4.0.16
   vue: ^3.0.0
   whatsup: latest
   wonka: latest
