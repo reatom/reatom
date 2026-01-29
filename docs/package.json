@@ -15,7 +15,7 @@
   "dependencies": {
     "@astrojs/starlight": "^0.34.4",
     "@floating-ui/dom": "^1.7.0",
-    "astro": "^5.10.0",
+    "astro": "^5.15.9",
     "fast-glob": "^3.3.3",
     "gl-matrix": "^3.4.4",
     "mermaid": "^11.6.0",
