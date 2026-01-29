@@ -11,7 +11,7 @@ import {
   withAsyncData,
   wrap,
 } from '../'
-import type { Action, Computed } from '../core'
+import type { Action, Atom, Computed } from '../core'
 import { action, atom, computed, ReatomError, withMiddleware } from '../core'
 import { type UrlAtom, urlAtom } from '../web/url'
 
@@ -279,7 +279,7 @@ export interface RouteMixin<
   ): RouteAtom<
     TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
     // @ts-expect-error TODO
-    Plain<Params & SubParamsOutput>,
+    Plain<SubParamsOutput>,
     Plain<SubSearchOutput>,
     Payload,
     Plain<InputParams & SubParamsInput>,
@@ -520,6 +520,8 @@ export interface RouteExt<
    *   })
    */
   render: Computed<null | RouteChild>
+
+  inputParams?: Atom<null | InputParams>
 }
 
 /**
@@ -635,7 +637,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       } else {
         pathParams = validateParams(paramsSchema, params as any, 'params')
         if (pathParams === null) {
-          if (inputParamsAtom) pathParams = {}
+          if (inputParams) pathParams = {}
           else throw new Error(`Invalid params for route ${pattern}`)
         }
       }
@@ -673,10 +675,12 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       return path
     }
 
-    let inputParamsAtom =
+    const parentInputParams =
+      'inputParams' in parent ? parent.inputParams : null
+    let inputParams =
       typeof paramsSchema === 'function'
-        ? atom(null, `${name}._inputParamsAtom`)
-        : null
+        ? (parentInputParams ?? atom(null, `${name}._inputParams`))
+        : parentInputParams
 
     const loader = computed(async () => {
       let params = routeAtom()
@@ -728,7 +732,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
-        inputParamsAtom?.set(params)
+        inputParams?.set(params)
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
           newUrl.pathname = url.pathname
@@ -742,7 +746,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       let url = urlAtom()
       let pathname = url.pathname
-      let params: null | Rec = inputParamsAtom?.() ?? null
+      let inputParamsState = inputParams?.() ?? null
+      let params: null | Rec = inputParamsState ?? null
 
       if (!params) {
         params = {}
@@ -763,6 +768,12 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
             return null
           }
         }
+      }
+
+      const parentParams =
+        parent !== urlAtom && 'match' in parent ? parent() : null
+      if (parentParams) {
+        params = { ...parentParams, ...params }
       }
 
       let validatedParams: Rec
@@ -793,7 +804,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       if (validatedSearch) {
         result = { ...validatedParams }
         for (let key in validatedSearch) {
-          if (key in result) {
+          if (key in result && !(inputParamsState && key in inputParamsState)) {
             throw new ReatomError(
               `Params collision for "${key}" in route ${pattern}`,
             )
@@ -841,13 +852,16 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         routes,
         outlet,
         render,
+        inputParams:
+          inputParams ??
+          ('inputParams' in parent ? parent.inputParams : undefined),
         reatomRoute,
       } as RouteExt
     }) as RouteAtom
 
     parent.routes[pattern] = urlAtom.routes[pattern] = routeAtom
 
-    if (inputParamsAtom) {
+    if (inputParams) {
       routeAtom.extend(
         withMiddleware(() => (next, ...params) => {
           let state
@@ -857,8 +871,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
             state = null
             throw error
           } finally {
-            if (state === null && inputParamsAtom() !== null) {
-              inputParamsAtom.set(null)
+            if (state === null && inputParams() !== null) {
+              inputParams.set(null)
             }
           }
         }),

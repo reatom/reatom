@@ -557,7 +557,65 @@ test('exactRender should not affect children', async () => {
   expect(childRoute.match()).toBeTruthy()
 })
 
-test('inherence of callback params', () => {
+test('inherence of callback params', async () => {
+  const dialogRoute = reatomRoute({
+    params: ({ open }: { open: boolean }) => ({ open }),
+  })
+
+  const profileRoute = dialogRoute.reatomRoute({
+    params: ({ profileOf }: { profileOf: string }) =>
+      profileOf ? { profileOf } : null,
+  })
+
+  expectTypeOf(profileRoute()).toExtend<{ profileOf: string } | null>()
+  expectTypeOf(profileRoute()).not.toExtend<{ open: boolean } | null>()
+
+  profileRoute.go({ open: true, profileOf: 'co_aij21312nm' })
+  await wrap(sleep())
+
+  expect(dialogRoute()).toMatchObject({ open: true })
+  expect(profileRoute()).toMatchObject({
+    profileOf: 'co_aij21312nm',
+  })
+
+  profileRoute.go({ open: false, profileOf: 'co_aij21312nm' })
+  await wrap(sleep())
+
+  expect(dialogRoute()).toMatchObject({ open: false })
+  expect(profileRoute()).toMatchObject({
+    profileOf: 'co_aij21312nm',
+  })
+})
+
+test('inherence of callback params (deep)', async () => {
+  const modalRoute = reatomRoute({
+    params: ({ visible }: { visible: boolean }) => ({ visible }),
+  })
+
+  const settingsRoute = modalRoute.reatomRoute({
+    path: 'settings',
+  })
+
+  const themeRoute = settingsRoute.reatomRoute({
+    params: ({ theme }: { theme: string }) => (theme ? { theme } : null),
+  })
+
+  themeRoute.go({ visible: true, theme: 'dark' })
+  await wrap(sleep())
+
+  expect(modalRoute()).toMatchObject({ visible: true })
+  expect(settingsRoute()).toMatchObject({})
+  expect(themeRoute()).toMatchObject({ theme: 'dark' })
+
+  themeRoute.go({ visible: false, theme: 'light' })
+  await wrap(sleep())
+
+  expect(modalRoute()).toMatchObject({ visible: false })
+  expect(settingsRoute()).toMatchObject({})
+  expect(themeRoute()).toMatchObject({ theme: 'light' })
+})
+
+test('inherence of callback params from search-only route', async () => {
   const dialogRoute = reatomRoute({
     params: ({ open }: { open: boolean }) => ({ open }),
   })
@@ -572,14 +630,11 @@ test('inherence of callback params', () => {
 
   expect(dialogRoute()).toMatchObject({ open: true })
   expect(profileRoute()).toMatchObject({
-    open: true,
     profileOf: 'co_aij21312nm',
   })
 
-  profileRoute.go({ open: false })
+  profileRoute.go({ open: false, profileOf: 'co_aij21312nm' })
+
   expect(dialogRoute()).toMatchObject({ open: false })
-  expect(profileRoute()).toMatchObject({
-    open: false,
-    profileOf: 'co_aij21312nm',
-  })
+  expect(profileRoute()).toMatchObject({ profileOf: 'co_aij21312nm' })
 })

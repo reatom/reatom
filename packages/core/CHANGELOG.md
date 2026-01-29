@@ -1,3 +1,9 @@
+## 1000.12.1 (2026-01-29)
+
+### Fix
+
+- **routing**: input params navigation
+
 ## 1000.12.0 (2026-01-28)
 
 ### Feat

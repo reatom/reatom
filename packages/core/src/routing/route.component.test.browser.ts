@@ -243,7 +243,7 @@ test('app protected routing', async () => {
           meRoute.go()
         }
 
-        return { rights: userData.rights }
+        return userData
       },
 
       render({ outlet }) {
@@ -256,8 +256,9 @@ test('app protected routing', async () => {
   const meRoute = protectedRoute.reatomRoute(
     {
       path: 'me',
-      render(): RouteChild {
-        return html`<article>Hello, ${user.data()?.name}!</article>`
+      params: (params) => params,
+      render(self): RouteChild {
+        return html`<article>Hello, ${self().name}!</article>`
       },
     },
     `${name}.meRoute`,
