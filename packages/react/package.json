@@ -1,6 +1,6 @@
 {
   "name": "@reatom/react",
-  "version": "1000.2.1",
+  "version": "1000.2.2",
   "private": false,
   "description": "Reatom adapter for React",
   "exports": {

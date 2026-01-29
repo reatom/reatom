@@ -1,3 +1,9 @@
+## 1000.2.2 (2026-01-29)
+
+### Fix
+
+- **react**: react use method inside reatomComponent
+
 ## 1000.2.1 (2026-01-21)
 
 ### Fix

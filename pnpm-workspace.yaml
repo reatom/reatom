@@ -15,8 +15,8 @@ catalog:
   '@standard-schema/spec': ^1.0.0
   '@types/eslint': ^9.6.1
   '@types/node': latest
-  '@types/react': ^18.2.0
-  '@types/react-dom': ^18.2.0
+  '@types/react': ^19.2.0
+  '@types/react-dom': ^19.2.0
   remark-cli: ^12.0.1
   remark-lint: ^10.0.1
   remark-lint-expressive-code-label: ^0.1.0
@@ -48,8 +48,8 @@ catalog:
   prettier: ^3.7.4
   prettier-plugin-astro: ^0.14.1
   prettier-plugin-jsdoc: ^1.8.0
-  react: ^18.2.0
-  react-dom: ^18.2.0
+  react: ^19.2.0
+  react-dom: ^19.2.0
   redux: latest
   reselect: latest
   s-js: latest

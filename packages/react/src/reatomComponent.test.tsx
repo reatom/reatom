@@ -9,7 +9,7 @@ import {
   withSuspenseInit,
   wrap,
 } from '@reatom/core'
-import React, { Suspense } from 'react'
+import React, { act, startTransition,Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
@@ -298,7 +298,7 @@ describe('reatomComponent', () => {
     static getDerivedStateFromError(error) {
       return { hasError: true, error }
     }
-    
+
     render() {
       if (this.state.hasError) {
         return <p data-testid="error">Error</p>
@@ -328,23 +328,25 @@ describe('reatomComponent', () => {
       })
 
       const SuspenseUseComponent = reatomComponent(() => {
-        console.log('access suspended atom')
         return <div data-testid="result">{suspenseAtom()}</div>
       })
 
       const root = ReactDOM.createRoot(document.getElementById('root')!)
-      root.render(
-        <reatomContext.Provider value={top()}>
-          <SuspenseComponent />
-        </reatomContext.Provider>,
-      )
+
+      startTransition(() => {
+        root.render(
+          <reatomContext.Provider value={top()}>
+            <SuspenseComponent />
+          </reatomContext.Provider>,
+        )
+      })
 
       await wrap(tick())
       expect(
         document.querySelector('[data-testid="loading"]'),
       ).toBeInTheDocument()
 
-      await wrap(tick())
+      await wrap(act(tick))
       expect(
         document.querySelector('[data-testid="error"]'),
       ).toBeInTheDocument()
@@ -353,10 +355,48 @@ describe('reatomComponent', () => {
       rerender.set(1)
 
       await wrap(tick())
-      
+
       expect(
         document.querySelector('[data-testid="loading"]'),
       ).not.toBeInTheDocument()
+
+      expect(
+        document.querySelector('[data-testid="result"]'),
+      ).toBeInTheDocument()
+    }))
+
+  test('handle use method correctly', () =>
+    context.start(async () => {
+      const dataPromise = tick().then(() => 123)
+
+      const SuspenseComponent = reatomComponent(() => {
+        return (
+          <Suspense fallback={<div data-testid="loading">Loading...</div>}>
+            <SuspenseUseComponent />
+          </Suspense>
+        )
+      })
+
+      const SuspenseUseComponent = reatomComponent(() => {
+        return <div data-testid="result">{React.use(dataPromise)}</div>
+      })
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+
+      startTransition(() => {
+        root.render(
+          <reatomContext.Provider value={top()}>
+            <SuspenseComponent />
+          </reatomContext.Provider>,
+        )
+      })
+
+      await wrap(tick())
+      expect(
+        document.querySelector('[data-testid="loading"]'),
+      ).toBeInTheDocument()
+
+      await wrap(act(async () => await dataPromise))
 
       expect(
         document.querySelector('[data-testid="result"]'),
