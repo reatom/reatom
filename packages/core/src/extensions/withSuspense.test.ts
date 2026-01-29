@@ -1,7 +1,7 @@
 import { expect, subscribe, test } from 'test'
 
 import { atom, computed, isConnected, notify } from '../core'
-import { effect, wrap } from '../methods'
+import { wrap } from '../methods'
 import { sleep } from '../utils'
 import { suspense, withSuspense, withSuspenseInit } from './withSuspense'
 
