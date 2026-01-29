@@ -46,11 +46,11 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
       return fn(...args)
     }, `${this.name}.run`)
 
-    this.createAndRun = action(
-      (fn: Fn, ...args: any[]) =>
-        this.run(this.create(...([] as unknown as Params)), fn, ...args),
-      `${this.name}.createAndRun`,
-    ) as typeof this.createAndRun
+    this.createAndRun = action((fn: Fn, ...args: any[]) => {
+      top()[this.name] = this.create(...([] as unknown as Params))
+
+      return fn(...args)
+    }, `${this.name}.createAndRun`) as typeof this.createAndRun
 
     this.spawn = action(
       (cb: Fn, ...params: any[]): ReturnType<Fn> => cb(...params),

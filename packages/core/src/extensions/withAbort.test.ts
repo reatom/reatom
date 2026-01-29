@@ -1,7 +1,7 @@
 import { expect, type Mock, test, vi } from 'test'
 
 import { _read, action, atom, type AtomLike, computed, notify } from '../core'
-import { abortVar, effect, getCalls, memoKey, wrap } from '../methods'
+import { abortVar, effect, getCalls, memoKey, race, wrap } from '../methods'
 import { type Fn, noop, sleep } from '../utils'
 import { withAbort } from './withAbort'
 
@@ -335,33 +335,8 @@ test('manual: parallel outdated abort', async () => {
 })
 
 // from https://x.com/peera_ra/status/2016618769704243351
-test('"finally" strategy and fork with race', async () => {
-  type Fork<Params extends any[], Payload> = {
-    params: Params
-    payload: Promise<Payload>
-    controller: AbortController
-  }
-  const fork = <Params extends any[], Payload>(
-    cb: (...params: Params) => Promise<Payload>,
-    ...params: Params
-  ): Fork<Params, Payload> =>
-    abortVar.spawn(() => {
-      const { unsubscribe, controller } = abortVar.subscribe()
-      return {
-        params,
-        payload: cb(...params).finally(unsubscribe),
-        controller,
-      }
-    })
-
-  const race = <Payload>(
-    ...forks: Array<Fork<any[], Payload>>
-  ): Promise<Payload> =>
-    Promise.race(forks.map((fork) => fork.payload)).finally(
-      wrap(() => {
-        forks.forEach((fork) => fork.controller.abort('race'))
-      }),
-    )
+test('"finally" strategy and race', async () => {
+  const name = 'finallyStrategyAndRace'
 
   const resolveMockCatch = (fn: Mock, cb: Fn = (error) => error?.message) =>
     fn.mock.results.at(-1)?.value.catch(cb)
@@ -388,18 +363,18 @@ test('"finally" strategy and fork with race', async () => {
   })
 
   const process = action(async () => {
-    fetchInfinity()
+    fetchInfinity().catch(noop)
 
-    const usersFork = fork(fetchUsers)
-    const postsFork = fork(fetchPosts)
-    const commentsFork = fork(fetchComments)
+    const usersFork = abortVar.createAndRun(fetchUsers)
+    const postsFork = abortVar.createAndRun(fetchPosts)
+    const commentsFork = abortVar.createAndRun(fetchComments)
 
     const result = await wrap(race(usersFork, postsFork))
 
     commentsFork.controller.abort('manual')
 
     return result
-  }).extend(withAbort('finally'))
+  }, `${name}.process`).extend(withAbort('finally'))
 
   expect(await wrap(process())).toBe('users')
   expect(await wrap(resolveMockCatch(fetchPosts))).includes('race')

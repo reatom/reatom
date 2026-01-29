@@ -1,7 +1,14 @@
-import { bind, type Frame, top } from '../core'
+import {
+  bind,
+  type Frame,
+  type GenericAction,
+  top,
+  withActionMiddleware,
+} from '../core'
 import type { AbortError, Unsubscribe } from '../utils'
 import { isAbort, throwIfAborted, toAbortError } from '../utils'
 import { Variable } from './variable'
+import { wrap } from './wrap'
 
 /**
  * Version of abort controller with explicit name for better debugging.
@@ -25,6 +32,10 @@ export class ReatomAbortController extends AbortController {
       isAbort(reason) ? reason : toAbortError(`${this.name} ${String(reason)}`),
     )
   }
+}
+
+export interface ControlledPromise<T = any> extends Promise<T> {
+  controller: AbortController
 }
 
 export interface AbortSubscription {
@@ -60,6 +71,15 @@ export class AbortVariable extends Variable<
     return result
   }
 
+  declare createAndRun: GenericAction<
+    <Params extends any[], Payload>(
+      cb: (...params: Params) => Payload,
+      ...params: Params
+    ) => Payload extends Promise<infer Result>
+      ? ControlledPromise<Result>
+      : Payload
+  >
+
   constructor() {
     super({
       name: 'abort',
@@ -76,6 +96,15 @@ export class AbortVariable extends Variable<
             : namedController
       },
     })
+
+    this.createAndRun.extend(
+      withActionMiddleware(() => (next, ...params) => {
+        const result = next(...params)
+        return result instanceof Promise
+          ? Object.assign(result, { controller: this.require() })
+          : result
+      }),
+    )
   }
 
   /**
@@ -212,6 +241,34 @@ export class AbortVariable extends Variable<
  * @type {AbortVariable}
  */
 export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
+
+/**
+ * Races multiple controlled promises and automatically aborts all losers when
+ * one settles.
+ *
+ * Unlike `Promise.race`, this function ensures proper cleanup by aborting all
+ * remaining promises once a winner is determined. This prevents resource leaks
+ * from ongoing async operations that are no longer needed.
+ *
+ * @example
+ *   const resource = computed(async () => {
+ *     return race(
+ *       abortVar.createAndRun(() => fetchFromCache()),
+ *       abortVar.createAndRun(() => fetchFromNetwork()),
+ *     )
+ *   })
+ *
+ * @param forks - Controlled promises to race (must have `controller` property)
+ * @returns Promise that resolves/rejects with the first settled value
+ */
+export let race = <Payload>(
+  ...forks: Array<ControlledPromise<Payload>>
+): Promise<Payload> =>
+  Promise.race(forks).finally(
+    wrap(() => {
+      forks.forEach((fork) => fork.controller.abort('race'))
+    }),
+  )
 
 // TODO
 // export let disableAbort = () => abortVar.set()
