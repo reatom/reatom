@@ -1,6 +1,14 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "declarationMap": true
-  }
+    "declarationMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@reatom/lit": ["./src/index.ts"],
+      "@reatom/core": ["../../core/src/index.ts"]
+    }
+  },
+  "include": ["src", "demo"],
+  "exclude": ["docs", "node_modules", "build"],
+  "references": [{ "path": "./tsconfig.docs.json" }]
 }

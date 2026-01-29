@@ -4,7 +4,7 @@ import {
   type TemplateResult,
 } from 'lit/html.js'
 
-import { watch } from './watch.ts'
+import { watch } from './watch'
 import { isAtom } from '@reatom/core'
 
 export const withWatch =
