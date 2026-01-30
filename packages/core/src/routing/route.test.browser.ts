@@ -572,6 +572,10 @@ test('inherence of callback params', async () => {
       accountId ? { accountId } : null,
   })
 
+  const searchParamsRoute = dialogRoute.reatomRoute({
+    search: z.object({ profileId: z.string() }),
+  })
+
   expectTypeOf(profileRoute()).toExtend<{ profileOf: string } | null>()
   expectTypeOf(profileRoute()).not.toExtend<{ open: boolean } | null>()
 
@@ -583,6 +587,7 @@ test('inherence of callback params', async () => {
     profileOf: 'co_aij21312nm',
   })
   expect(anotherRoute()).toBe(null)
+  expect(searchParamsRoute()).toBe(null)
 
   profileRoute.go({ open: false, profileOf: 'co_aij21312nm' })
   await wrap(sleep())
@@ -598,7 +603,19 @@ test('inherence of callback params', async () => {
     profileOf: 'co_aij21312nm',
   })
   expect(anotherRoute()).toMatchObject({
-    profileOf: 'accountId',
+    accountId: 'accountId',
+  })
+
+  searchParamsRoute.go({ open: true, profileId: 'profileId' })
+  expect(dialogRoute()).toMatchObject({ open: true })
+  expect(profileRoute()).toMatchObject({
+    profileOf: 'co_aij21312nm',
+  })
+  expect(anotherRoute()).toMatchObject({
+    accountId: 'accountId',
+  })
+  expect(searchParamsRoute()).toMatchObject({
+    profileId: 'profileId',
   })
 })
 
