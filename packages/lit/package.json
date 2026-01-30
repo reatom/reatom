@@ -24,7 +24,7 @@
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
     "demo": "vite demo",
-    "demo:build": "vite build demo --outDir ../../docs/public/demo/lit-orderbook --emptyOutDir",
+    "demo:build": "vite build demo --outDir ../../../docs/public/demo/lit-orderbook --emptyOutDir",
     "docs:gen": "node --import tsx build-docs.ts",
     "typecheck:docs": "tsc --noEmit -p tsconfig.docs.json",
     "docs:validate": "node --import tsx scripts/validate-all-docs.ts",
