@@ -88,126 +88,13 @@ class TodosList extends ReatomLitElement {
   }
 }
 
-/**
- * ### When to Use Atoms in Components
- *
- * Create atoms inside components only for **UI-specific state**:
- * - Modal open/closed state
- * - Form input focus state
- * - Temporary UI interactions
- * - Component-specific animations
- */
-
-// ============ EXAMPLE 3: Component with UI-only state ============
-// ui/modal.ts
-class Modal extends ReatomLitElement {
-  // UI-only state - belongs in component
-  private isOpenAtom = atom(false, 'modal.isOpen')
-
-  open() {
-    this.isOpenAtom.set(true)
-  }
-
-  close() {
-    this.isOpenAtom.set(false)
-  }
-
-  render() {
-    if (!this.isOpenAtom()) return html``
-    return html`
-      <div class="modal">
-        <slot></slot>
-        <button @click=${this.close}>Close</button>
-      </div>
-    `
-  }
-}
-
-/**
- * ### When to Use Lit Properties
- *
- * Use Lit properties (with static properties) when:
- * - Component will be used in **external systems** without Reatom
- * - Data comes from **non-atom sources** (API responses, events)
- * - You can't require Reatom as a dependency
- * - You need to support **HTML attributes** for declarative usage
- *
- * Example: A shareable component that works both with and without Reatom:
- */
-
-// ============ EXAMPLE 4: Shareable component with Lit properties ============
-// ui/button.ts
-import { LitElement } from 'lit'
-
-class SharedButton extends LitElement {
-  static properties = {
-    disabled: { type: Boolean },
-    label: { type: String },
-  }
-
-  declare disabled: boolean
-  declare label: string
-
-  render() {
-    return html`
-      <button ?disabled=${this.disabled} @click=${this._handleClick}>
-        ${this.label}
-      </button>
-    `
-  }
-
-  private _handleClick() {
-    this.dispatchEvent(
-      new CustomEvent('button-click', {
-        detail: { label: this.label },
-        bubbles: true,
-        composed: true,
-      }),
-    )
-  }
-}
-
-/**
+/** @doc-expand
  * ### Choosing Between Approaches
  *
- * **Use domain atoms (separate files) when:**
- * - Data represents business logic or domain entities
- * - State needs to be shared across components
- * - You want to test business logic independently
- * - State should persist beyond component lifecycle
- *
- * **Use component atoms (UI-only) when:**
- * - State is purely UI-related
- * - State doesn't need to be shared
- * - State is temporary or ephemeral
- *
- * **Use Lit properties when:**
- * - Component is part of a public library
- * - External consumers don't use Reatom
- * - You need HTML attribute support
- * - Data comes from non-Reatom sources
- *
- * ### Benefits of This Architecture
- *
- * **Clear separation of concerns:**
- * - Business logic is testable without UI
- * - UI components are focused only on rendering
- * - Domain knowledge lives in one place
- *
- * **Automatic reactivity:**
- * - No manual prop drilling
- * - No complex event handling
- * - Updates propagate automatically
- *
- * **Flexibility:**
- * - Components can be reused with different data sources
- * - Business logic can evolve independently
- * - Easy to integrate with different frameworks
- *
- * **Better testing:**
- * - Test business logic without DOM
- * - Test UI with mock atoms
- * - Clear test boundaries
+ * When deciding between domain atoms, component atoms, and Lit properties,
+ * see the dedicated guide:
+ * [When to Use Reatom vs Lit Properties](/handbook/lit/advanced/when-to-use)
+ * for detailed comparison tables and decision matrices.
  */
 
 /**

@@ -189,6 +189,9 @@ const fetchData = action(async () => {
  * Always use wrap() around async operations to preserve reactive context.
  * Logs should appear in order: started -> response received -> data parsed.
  * Missing wrap() can cause context loss and incorrect debugging information.
+ *
+ * For the complete async operations pattern with loading/error states,
+ * see [Async Operations in Components](/handbook/lit/advanced/async-operations).
  */
 
 /** @doc-expand

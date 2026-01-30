@@ -216,34 +216,6 @@ export class UserGreetingWithAtomProp extends ReatomLitElement {
 customElements.define('user-greeting-atom-prop', UserGreetingWithAtomProp)
 
 /** @doc-expand
- * 4. Avoid creating atoms in render methods
- *
- * Creating atoms in render methods creates new atoms on every render, which
- * leads to performance issues and memory leaks:
- */
-
-// ❌ BAD: Creates new atom on every render
-export class BadAtomCreationComponent extends ReatomLitElement {
-  override render() {
-    const myAtom = atom(0, 'myAtom')
-    return html`<div>${watch(myAtom)}</div>`
-  }
-}
-
-customElements.define('bad-atom-creation', BadAtomCreationComponent)
-
-// ✅ GOOD: Create atom once, outside component
-const myAtom = atom(0, 'myAtom')
-
-export class GoodComponent extends ReatomLitElement {
-  override render() {
-    return html`<div>${watch(myAtom)}</div>`
-  }
-}
-
-customElements.define('good-component', GoodComponent)
-
-/** @doc-expand
  * 5. Use atomization for lists
  *
  * The atomization pattern provides O(1) updates instead of O(n) for list
@@ -251,34 +223,8 @@ customElements.define('good-component', GoodComponent)
  * so updating one item doesn't trigger re-renders of other items.
  *
  * For detailed explanation and examples, see the
- * [Atomization in Lit Components](/handbook/lit/advanced#atomization) section.
+ * [Atomization in Lit Components](/handbook/lit/advanced/atomization) section.
  */
-
-type Todo = {
-  id: string
-  text: Atom<string>
-  completed: Atom<boolean>
-}
-
-const todos = atom<Todo[]>([], 'todos')
-
-export class AtomizedListComponent extends ReatomLitElement {
-  override render() {
-    return html`
-      <ul>
-        ${todos().map((todo) =>
-          computed(() => html`
-            <li>
-              ${todo.text()} - ${todo.completed() ? '✓' : '✗'}
-            </li>
-          `),
-        )}
-      </ul>
-    `
-  }
-}
-
-customElements.define('atomized-list', AtomizedListComponent)
 
 /** @doc-expand
  * Key performance tips:
