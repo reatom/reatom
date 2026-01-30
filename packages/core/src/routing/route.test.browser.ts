@@ -567,6 +567,11 @@ test('inherence of callback params', async () => {
       profileOf ? { profileOf } : null,
   })
 
+  const anotherRoute = dialogRoute.reatomRoute({
+    params: ({ accountId }: { accountId: string }) =>
+      accountId ? { accountId } : null,
+  })
+
   expectTypeOf(profileRoute()).toExtend<{ profileOf: string } | null>()
   expectTypeOf(profileRoute()).not.toExtend<{ open: boolean } | null>()
 
@@ -577,6 +582,7 @@ test('inherence of callback params', async () => {
   expect(profileRoute()).toMatchObject({
     profileOf: 'co_aij21312nm',
   })
+  expect(anotherRoute()).toBe(null)
 
   profileRoute.go({ open: false, profileOf: 'co_aij21312nm' })
   await wrap(sleep())
@@ -584,6 +590,15 @@ test('inherence of callback params', async () => {
   expect(dialogRoute()).toMatchObject({ open: false })
   expect(profileRoute()).toMatchObject({
     profileOf: 'co_aij21312nm',
+  })
+
+  anotherRoute.go({ open: true, accountId: 'accountId' })
+  expect(dialogRoute()).toMatchObject({ open: true })
+  expect(profileRoute()).toMatchObject({
+    profileOf: 'co_aij21312nm',
+  })
+  expect(anotherRoute()).toMatchObject({
+    profileOf: 'accountId',
   })
 })
 
