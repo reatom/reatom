@@ -258,15 +258,16 @@ export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
  *     )
  *   })
  *
- * @param forks - Controlled promises to race (must have `controller` property)
+ * @param promises - Controlled promises to race (must have `controller`
+ *   property)
  * @returns Promise that resolves/rejects with the first settled value
  */
 export let race = <Payload>(
-  ...forks: Array<ControlledPromise<Payload>>
+  ...promises: Array<ControlledPromise<Payload>>
 ): Promise<Payload> =>
-  Promise.race(forks).finally(
+  Promise.race(promises).finally(
     wrap(() => {
-      forks.forEach((fork) => fork.controller.abort('race'))
+      promises.forEach((fork) => fork.controller.abort('race'))
     }),
   )
 

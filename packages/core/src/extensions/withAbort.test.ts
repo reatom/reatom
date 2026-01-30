@@ -365,14 +365,13 @@ test('"finally" strategy and race', async () => {
   const process = action(async () => {
     fetchInfinity().catch(noop)
 
-    const usersFork = abortVar.createAndRun(fetchUsers)
-    const postsFork = abortVar.createAndRun(fetchPosts)
-    const commentsFork = abortVar.createAndRun(fetchComments)
+    const usersPromise = abortVar.createAndRun(fetchUsers)
+    const postsPromise = abortVar.createAndRun(fetchPosts)
+    const commentsPromise = abortVar.createAndRun(fetchComments)
 
-    const result = await wrap(race(usersFork, postsFork))
+    const result = await wrap(race(usersPromise, postsPromise))
 
-    commentsFork.controller.abort('manual')
-
+    commentsPromise.controller.abort('manual')
     return result
   }, `${name}.process`).extend(withAbort('finally'))
 
