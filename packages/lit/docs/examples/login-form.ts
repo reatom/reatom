@@ -14,7 +14,7 @@
  *
  * PERFORMANCE OPTIMIZATIONS:
  * - Computed render props memoize template parts (errors, button state)
- * - watch() directive ensures minimal re-renders
+ * - watch() directive updates only the bound Parts (avoid unnecessary host updates)
  * - Computed atoms cache derived state (isFormValid)
  * - Templates only update when their specific dependencies change
  * - No unnecessary template recreation on every render

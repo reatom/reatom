@@ -101,8 +101,13 @@ customElements.define('computed-expensive', ComputedExpensiveComponent)
  * render template. This is useful when one part of the tree updates frequently
  * while another doesn't.
  *
- * When used with the watch directive, computed render props update their DOM
- * independently of the component lifecycle.
+ * When used with the `watch` directive (or with `html` from `@reatom/lit` which
+ * auto-wraps atoms), computed render props can update the bound template Parts
+ * without requiring the host element to run a full update cycle.
+ *
+ * Lit references:
+ * - Update cycle & batching: https://lit.dev/docs/components/lifecycle/
+ * - Directives: https://lit.dev/docs/api/directives/
  *
  * IMPORTANT: Computed render props should ONLY depend on atoms, NOT on Lit
  * properties. If they depend on component props, they won't update when props
@@ -220,7 +225,7 @@ customElements.define('user-greeting-atom-prop', UserGreetingWithAtomProp)
  *
  * The atomization pattern provides O(1) updates instead of O(n) for list
  * modifications. Each item's mutable properties become individual atoms,
- * so updating one item doesn't trigger re-renders of other items.
+ * so updating one item doesn't require updating other items.
  *
  * For detailed explanation and examples, see the
  * [Atomization in Lit Components](/handbook/lit/advanced/atomization) section.
@@ -233,12 +238,15 @@ customElements.define('user-greeting-atom-prop', UserGreetingWithAtomProp)
  * - Use computed atoms for expensive calculations (auto-memoization)
  * - Use computed render props to memoize template parts (only depend on atoms!)
  * - Avoid creating atoms in render methods (create them outside)
- * - Use atomization for lists - only the changed item re-renders, not the whole
- *   list
+ * - Use atomization for lists - update only the changed item/Part, not the whole list
  * - Atomization provides O(1) updates instead of O(n) for list modifications
  * - Keep component render functions pure and focused
- * - Minimize DOM operations by batching updates
- * - Use Lit's built-in optimizations like @lit/task
+ * - Minimize DOM operations by batching changes where possible
+ * - Use Lit's built-in helpers when appropriate (for example `@lit/task`): https://lit.dev/docs/data/task/
  * - Profile your components to identify bottlenecks
  * - Consider using virtual scrolling for very large lists (1000+ items)
+ *
+ * Lit references:
+ * - Update cycle & batching: https://lit.dev/docs/components/lifecycle/
+ * - DOM patching model: https://lit.dev/docs/components/rendering/
  */

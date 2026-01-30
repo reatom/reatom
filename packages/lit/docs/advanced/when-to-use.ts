@@ -9,7 +9,7 @@
  * | **Local UI state**                 | Lit properties        | Simple, scoped to component, no external dependencies               |
  * | **Computed values**                | Reatom computed atoms | Automatic memoization, efficient recomputation                       |
  * | **DOM-related state**              | Lit properties        | Native to Lit's lifecycle, declarative                              |
- * | **List rendering** (O(1) updates)  | Reatom atomization    | Individual item updates without full list re-render                  |
+ * | **List rendering** (O(1) updates)  | Reatom atomization    | Update only the affected item/Part, avoid updating the whole list    |
  * | **Complex business logic**         | Reatom atoms          | Predictable updates, better debugging, testability                  |
  * | **Simple form inputs**             | Lit properties        | Straightforward, minimal setup                                      |
  *
@@ -31,8 +31,15 @@
  *
  * ## Performance note
  *
- * Reatom's `watch` directive updates DOM directly, bypassing component
- * lifecycle, which can be more efficient than Lit's reactive properties for
- * complex scenarios. Use Lit properties for simplicity in simple cases,
- * not for performance reasons.
+ * Reatom's `watch` directive updates the bound template Part via Lit's directive
+ * mechanism. For atom-driven changes, this can avoid running a full host update
+ * cycle (so `render()` doesn't need to execute again).
+ *
+ * Lit still has its own reactive update cycle for reactive properties and
+ * `requestUpdate()`. Use Lit properties for local UI state and simplicity;
+ * use Reatom when you need shared state, complex logic, or fine-grained updates.
+ *
+ * Lit references:
+ * - Update cycle & batching: https://lit.dev/docs/components/lifecycle/
+ * - Directives: https://lit.dev/docs/api/directives/
  */

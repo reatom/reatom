@@ -9,9 +9,9 @@ import { ReatomLitElement, html } from '@reatom/lit'
 import { customElement } from 'lit/decorators.js'
 
 const myAtom = atom('Value', 'myAtom')
-// ReatomLitElement automatically manages subscriptions and re-renders for you:
+// ReatomLitElement automatically manages subscriptions and updates for you:
 // - Manages Reatom subscriptions for atoms used in the component
-// - Triggers re-renders when subscribed atoms change
+// - Applies atom changes to the DOM (via host updates or Part-level directive updates)
 // - Cleans up subscriptions when the component disconnects
 
 @customElement('my-component')

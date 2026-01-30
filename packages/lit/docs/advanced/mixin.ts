@@ -149,7 +149,7 @@ customElements.define('typed-component', TypedComponent)
  *
  * 1. Wraps the `render()` method with Reatom's abstract render
  * 2. Tracks atom dependencies automatically
- * 3. Schedules re-renders when tracked atoms change
+ * 3. Schedules host updates when tracked atoms change (when atoms are read in `render()`)
  * 4. Manages subscriptions in `connectedCallback`/`disconnectedCallback`
  *
  * This is the same mechanism used by `ReatomLitElement` internally.
