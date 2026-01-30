@@ -5,8 +5,7 @@
  */
 
 import { atom } from '@reatom/core'
-import { ReatomLitElement, watch } from '@reatom/lit'
-import { html } from 'lit'
+import { ReatomLitElement, html } from '@reatom/lit'
 import { customElement } from 'lit/decorators.js'
 
 const timer = atom(0, 'timer')
@@ -34,7 +33,7 @@ export class TimerElement extends ReatomLitElement {
   }
 
   render() {
-    return html`Timer: ${watch(timer)}, ${++renderCount}`
+    return html`Timer: ${timer}, ${++renderCount}`
   }
 }
 

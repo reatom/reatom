@@ -1,4 +1,4 @@
-/**
+/** @doc-expand
  * Organization
  *
  * Recommendations for organizing your Reatom + Lit code

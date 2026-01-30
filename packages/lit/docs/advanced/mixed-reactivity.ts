@@ -5,8 +5,7 @@
  */
 
 import { atom } from '@reatom/core'
-import { ReatomLitElement, watch } from '@reatom/lit'
-import { html } from 'lit'
+import { ReatomLitElement, html } from '@reatom/lit'
 
 // Global reactive state
 export const globalCount = atom(0, 'globalCount')
@@ -34,7 +33,7 @@ export class MixedReactivityElement extends ReatomLitElement {
   override render() {
     return html`
       <div>
-        <h2>Global Count: ${watch(globalCount)}</h2>
+        <h2>Global Count: ${globalCount}</h2>
         <h2>Local Count: ${this.localCount}</h2>
         <button @click=${this.handleGlobalIncrement}>
           Increment Global (Reatom)

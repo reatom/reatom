@@ -8,8 +8,7 @@
  */
 
 import { atom, action, wrap } from '@reatom/core'
-import { ReatomLitElement } from '@reatom/lit'
-import { html } from 'lit'
+import { ReatomLitElement, html } from '@reatom/lit'
 
 const dataAtom = atom<{ id: number; name: string } | null>(null, 'data')
 const loading = atom(false, 'loading')

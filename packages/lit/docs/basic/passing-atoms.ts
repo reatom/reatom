@@ -6,8 +6,7 @@
  */
 
 import { atom } from '@reatom/core'
-import { ReatomLitElement, watch } from '@reatom/lit'
-import { html } from 'lit'
+import { ReatomLitElement, html } from '@reatom/lit'
 import { customElement } from 'lit/decorators.js'
 
 @customElement('display-element')
@@ -15,7 +14,7 @@ class DisplayElement extends ReatomLitElement {
   declare value: ReturnType<typeof atom>
 
   render() {
-    return html`<div>Value: ${watch(this.value)}</div>`
+    return html`<div>Value: ${this.value}</div>`
   }
 }
 

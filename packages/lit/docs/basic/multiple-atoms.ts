@@ -6,8 +6,7 @@
  */
 
 import { atom, computed } from '@reatom/core'
-import { ReatomLitElement, watch } from '@reatom/lit'
-import { html } from 'lit'
+import { ReatomLitElement, html } from '@reatom/lit'
 import { customElement } from 'lit/decorators.js'
 
 const firstName = atom('John', 'firstName')
@@ -22,7 +21,7 @@ export class GreetingElement extends ReatomLitElement {
   render() {
     return html`
       <div>
-        <h2>${watch(fullName)}</h2>
+        <h2>${fullName}</h2>
         <button @click=${() => firstName.set('Jane')}>Change first name</button>
       </div>
     `
