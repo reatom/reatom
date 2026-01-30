@@ -679,7 +679,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       'inputParams' in parent ? parent.inputParams : null
     let inputParams =
       typeof paramsSchema === 'function'
-        ? (parentInputParams ?? atom(null, `${name}._inputParams`))
+        ? atom<null | Rec>(null, `${name}._inputParams`)
         : parentInputParams
 
     const loader = computed(async () => {
@@ -733,6 +733,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
         inputParams?.set(params)
+        if (inputParams !== parentInputParams) parentInputParams?.set(params)
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
           newUrl.pathname = url.pathname
@@ -861,7 +862,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     parent.routes[pattern] = urlAtom.routes[pattern] = routeAtom
 
-    if (inputParams) {
+    if (inputParams && inputParams !== parentInputParams) {
       routeAtom.extend(
         withMiddleware(() => (next, ...params) => {
           let state
