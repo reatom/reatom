@@ -21,13 +21,11 @@ export class Header extends ReatomLitElement {
   }
 
   override render() {
-    const currentTheme = watch(theme)
-
     return html`
-      <header class="header theme-${currentTheme}">
+      <header class="header theme-${theme()}">
         <h1>My App</h1>
         <button @click=${this.handleToggleTheme}>
-          Toggle Theme (${currentTheme})
+          Toggle Theme (${watch(theme)})
         </button>
       </header>
     `
@@ -79,10 +77,8 @@ customElements.define('app-main', MainContent)
 // App component that composes all pieces
 export class App extends ReatomLitElement {
   override render() {
-    const currentTheme = watch(theme)
-
     return html`
-      <div class="app theme-${currentTheme}">
+      <div class="app theme-${theme()}">
         <app-header></app-header>
         <app-sidebar></app-sidebar>
         <app-main></app-main>

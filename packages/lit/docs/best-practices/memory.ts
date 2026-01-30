@@ -101,8 +101,8 @@ type Item = { id: string; name: string }
 
 class LargeListComponent extends ReatomLitElement {
   render() {
-    const items = watch(itemsAtom) as Item[]
-
+    const items = itemsAtom()
+ 
     return html`
       <ul>
         ${repeat(

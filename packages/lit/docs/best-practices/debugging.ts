@@ -69,40 +69,44 @@ customElements.define('debug-render', DebugRenderComponent)
 /** @doc-expand
  * 4. Debugging watch directive
  *
- * Detect reactivity issues - atom changes but DOM doesn't update:
+ * Compare reactivity approaches - which one is more efficient?
  */
 
 import { html as litHtml } from 'lit'
 
-// ❌ BAD: Reactivity lost - using standard Lit html
-class LostReactivityComponent extends ReatomLitElement {
+// ❌ LESS EFFICIENT: Full re-render on every atom change
+class LessEfficientComponent extends ReatomLitElement {
   override render() {
-    return litHtml`<div>${countAtom()}</div>` // Won't update!
+    return litHtml`<div>${countAtom()}</div>` // Works, but triggers full re-render
   }
 }
 
-// ✅ GOOD: Reactivity preserved - using @reatom/lit html
-class PreservedReactivityComponent extends ReatomLitElement {
+// ✅ EFFICIENT: Targeted DOM updates with watch directive
+class EfficientComponent extends ReatomLitElement {
   override render() {
-    return html`<div>${countAtom}</div>` // Updates correctly
+    return html`<div>${watch(countAtom)}</div>` // Optimized updates
   }
 }
 
 /** @doc-expand
- * Common issue: Using html from 'lit' instead of '@reatom/lit'.
- * The component re-renders but DOM shows stale values.
+ * Using html from 'lit' instead of '@reatom/lit' still works
+ * (atoms are tracked via reatomAbstractRender), but is less efficient —
+ * every atom change triggers a full component re-render instead of
+ * targeted DOM updates via watch().
  */
 
 /** @doc-expand
- * 5. Debugging conditional watch
+ * 5. Conditional rendering with watch
  *
- * Watch inside conditionals can cause issues:
+ * Using watch() inside conditional branches works correctly.
+ * The directive manages subscriptions based on whether its DOM
+ * part is connected:
  */
 
 const showCountAtom = atom(true, 'showCount')
 
-// ❌ BAD: Watch inside conditional
-class BadConditionalComponent extends ReatomLitElement {
+// watch() in conditional — subscription active only when branch renders
+class ConditionalWatchComponent extends ReatomLitElement {
   override render() {
     return html`
       ${showCountAtom()
@@ -113,17 +117,13 @@ class BadConditionalComponent extends ReatomLitElement {
   }
 }
 
-// ✅ GOOD: Watch outside conditional
-class GoodConditionalComponent extends ReatomLitElement {
-  override render() {
-    const count = watch(countAtom)
-    const show = showCountAtom()
-
-    return html`
-      ${show ? html`<div>Count: ${count}</div>` : html`<div>Hidden</div>`}
-    `
-  }
-}
+/** @doc-expand
+ * When condition changes:
+ * - Branch renders → watch directive subscribes to atom
+ * - Branch hidden → watch directive unsubscribes (via disconnected callback)
+ *
+ * This is correct and efficient — no subscription overhead when hidden.
+ */
 
 /** @doc-expand
  * 6. Lifecycle debugging
