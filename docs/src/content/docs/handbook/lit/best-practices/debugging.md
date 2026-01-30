@@ -23,9 +23,12 @@ You'll be able to:
 - Track subscriptions and renders
 - See which components watch which atoms
 
-Combine with Lit DevTools for complete visibility:
-- Reatom DevTools shows state changes
-- Lit DevTools shows component renders and DOM updates
+Combine with browser tooling for complete visibility:
+- Reatom DevTools shows state changes and cause chains
+- Chrome DevTools helps inspect DOM, performance, and memory
+
+Optional: install a Web Components inspector extension (example:
+https://chromewebstore.google.com/detail/web-component-devtools/gdniinfdlmmmjpnhgnkmfpffipenjljo)
 
 2. Name your atoms
 
@@ -41,7 +44,7 @@ const user = atom(null)
 
 3. Debugging reactivity in components
 
-Check if component re-renders when atom changes:
+Check if the host element runs an update cycle when an atom changes:
 
 ```ts
 const countAtom = atom(0, 'countAtom')
@@ -60,8 +63,17 @@ export class DebugRenderComponent extends ReatomLitElement {
 customElements.define('debug-render', DebugRenderComponent)
 ```
 
-If renderCount increments, the component fully re-renders.
-If it stays at 1 but count updates, watch() is working efficiently.
+If renderCount increments, the host element ran another update cycle and `render()` executed again.
+If it stays at 1 but count updates, `watch()` is updating the bound Part without triggering a host update.
+
+Notes (Lit 3 terminology):
+- If renderCount increments, the host element ran another Lit update cycle and `render()` executed again.
+  Lit updates are batched (microtask timing) and update the DOM by patching the changed template parts.
+  See: https://lit.dev/docs/components/lifecycle/ and https://lit.dev/docs/components/rendering/
+- If renderCount stays at 1 but the displayed count changes, the `watch()` directive is updating the
+  bound Part without requiring a host update cycle.
+  Lit directives can update a Part outside the host element's `render()` call.
+  See: https://lit.dev/docs/api/directives/
 
 4. Debugging watch directive
 
@@ -70,10 +82,12 @@ Compare reactivity approaches - which one is more efficient?
 ```ts
 import { html as litHtml } from 'lit'
 
-// ❌ LESS EFFICIENT: Full re-render on every atom change
+// ❌ LESS EFFICIENT: Host update cycle on every atom change
 class LessEfficientComponent extends ReatomLitElement {
   override render() {
-    return litHtml`<div>${countAtom()}</div>` // Works, but triggers full re-render
+    // Reading atoms directly inside `render()` makes atom changes trigger a host update cycle
+    // (so `render()` runs again).
+    return litHtml`<div>${countAtom()}</div>`
   }
 }
 
@@ -85,16 +99,26 @@ class EfficientComponent extends ReatomLitElement {
 }
 ```
 
-Using html from 'lit' instead of '@reatom/lit' still works
-(atoms are tracked via reatomAbstractRender), but is less efficient —
-every atom change triggers a full component re-render instead of
-targeted DOM updates via watch().
+Using `html` from `'lit'` instead of `@reatom/lit` is OK.
+
+The important distinction is *how* you bind atoms:
+- If you read atoms in `render()` (for example `${countAtom()}`), atom changes trigger a host update cycle,
+  so `render()` executes again.
+- If you bind atoms via `watch(countAtom)` (or use `html` from `@reatom/lit`, which auto-wraps atoms with
+  `watch()`), updates are applied via a Lit directive to the specific Part.
+
+Lit references:
+- Update cycle and batching: https://lit.dev/docs/components/lifecycle/
+- How DOM is patched/diffed: https://lit.dev/docs/components/rendering/
+- Directive lifecycle and Part updates: https://lit.dev/docs/api/directives/
 
 5. Conditional rendering with watch
 
 Using watch() inside conditional branches works correctly.
-The directive manages subscriptions based on whether its DOM
-part is connected:
+In this package, `watch()` is implemented as a Lit `AsyncDirective`.
+It can subscribe when connected and release subscriptions when disconnected.
+
+Lit reference (directive connection lifecycle): https://lit.dev/docs/api/directives/
 
 ```ts
 const showCountAtom = atom(true, 'showCount')
@@ -114,9 +138,11 @@ class ConditionalWatchComponent extends ReatomLitElement {
 
 When condition changes:
 - Branch renders → watch directive subscribes to atom
-- Branch hidden → watch directive unsubscribes (via disconnected callback)
+- Branch hidden → watch directive can unsubscribe when the Part disconnects
 
-This is correct and efficient — no subscription overhead when hidden.
+Note: whether subscriptions are actually released depends on the directive implementation.
+Lit provides the `disconnected()`/`reconnected()` hooks for async directives.
+See: https://lit.dev/docs/api/directives/
 
 6. Lifecycle debugging
 
@@ -214,30 +240,35 @@ console.log('Current count:', peek(countAtom))
 console.log('All items:', peek(itemsAtom))
 ```
 
-10. Chrome DevTools for Lit
+10. Browser DevTools and Lit development builds
 
-Install Lit DevTools browser extension for:
+Use Chrome DevTools to debug rendering/performance/memory:
+- Elements panel for inspecting DOM and styles
+- Performance panel for profiling
+- Memory panel for leak investigations
 
-- Viewing component properties and state
-- Seeing render reasons and timing
-- Inspecting reactive controllers
-- Checking if updates are batching correctly
+Optional: a Web Components inspector extension can make custom-element inspection easier.
+Example: https://chromewebstore.google.com/detail/web-component-devtools/gdniinfdlmmmjpnhgnkmfpffipenjljo
 
-Combine with Reatom DevTools:
-- Reatom DevTools: Which atoms changed?
-- Lit DevTools: Which components rendered?
+For Lit-specific debugging, enable Lit's development build in your bundler.
+The development build is unminified and includes additional warnings (production build is the default).
+See: https://lit.dev/docs/tools/development/
+
+Lit reference (update cycle & batching): https://lit.dev/docs/components/lifecycle/
 
 11. Common issues and solutions
 
 **Issue: Atom changes but DOM doesn't update**
-- Cause: Using html from 'lit' instead of '@reatom/lit'
-- Fix: Import html from '@reatom/lit'
+- Cause: Rendering atoms without `watch()` (and without `html` from `@reatom/lit`, which auto-wraps atoms)
+- Fix: Use `watch(atom)` or import `html` from `@reatom/lit`
 
-**Issue: Component re-renders on every atom change**
-- Cause: Using atom() instead of watch() or relying on auto-reactive html
-- Fix: Use watch() directive explicitly or auto-reactive html
+**Issue: Host `render()` runs on every atom change**
+- Cause: Reading atoms directly in `render()` (for example `${atom()}`)
+- Fix: Use `watch()` (or `html` from `@reatom/lit`) to update only the relevant Part
 
-**Issue: Extra re-renders**
+Lit reference (update cycle): https://lit.dev/docs/components/lifecycle/
+
+**Issue: Extra host updates**
 - Cause: Watching atoms that don't trigger UI changes
 - Fix: Only watch atoms that affect rendering
 
@@ -247,18 +278,18 @@ Combine with Reatom DevTools:
 
 **Issue: Async actions lose context**
 - Cause: Missing wrap() around async operations
-- Fix: Use wrap(ctx, promise) for all async calls
+- Fix: Use wrap(...) around async calls
 
 Key debugging tips:
 
-- Use Reatom DevTools + Lit DevTools together
+- Use Reatom DevTools and Chrome DevTools together
 - Always name your atoms for better tracing
-- Log render count to detect full re-renders vs DOM updates
+- Log render count to detect host update cycles vs Part-level updates
 - Use peek() for value inspection without subscriptions
 - Check lifecycle methods (connectedCallback, shouldUpdate, render)
 - Verify context ID in async operations stays consistent
 - Watch for conditional rendering issues with watch()
-- Use standard Lit html from '@reatom/lit', not 'lit'
+- Use `html` from `@reatom/lit` for auto-reactivity, or use `watch()` with `html` from `lit` for explicit control
 - Profile performance with Chrome DevTools
 - Check computed atoms for excessive evaluations
 

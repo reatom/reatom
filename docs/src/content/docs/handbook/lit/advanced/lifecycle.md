@@ -15,7 +15,7 @@ import type { PropertyValues } from 'lit'
  *
  * - Mounting Reatom subscriptions in connectedCallback
  * - Unmounting subscriptions in disconnectedCallback
- * - Triggering re-renders when subscribed atoms change
+ * - Applying atom-driven changes to the DOM
  *
  * You don't need to manually manage subscriptions!
  */
@@ -54,6 +54,8 @@ for you. You can still use these lifecycle hooks when you need to:
 - Clean up resources when component unmounts
 - Respond to property changes
 - Run side effects after updates
+
+Lit reference (lifecycle & update cycle): https://lit.dev/docs/components/lifecycle/
 
 ---
 

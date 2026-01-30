@@ -68,9 +68,9 @@ import { ReatomLitElement, html } from '@reatom/lit'
 import { customElement } from 'lit/decorators.js'
 
 const myAtom = atom('Value', 'myAtom')
-// ReatomLitElement automatically manages subscriptions and re-renders for you:
+// ReatomLitElement automatically manages subscriptions and updates for you:
 // - Manages Reatom subscriptions for atoms used in the component
-// - Triggers re-renders when subscribed atoms change
+// - Applies atom changes to the DOM (via host updates or Part-level directive updates)
 // - Cleans up subscriptions when the component disconnects
 
 @customElement('my-component')
@@ -120,7 +120,7 @@ class AutoReactiveComponent extends ReatomLitElement {
 customElements.define('auto-reactive', AutoReactiveComponent)
 
 // ============================================================================
-// APPROACH 2: Input binding without full re-renders
+// APPROACH 2: Input binding without host updates
 // ============================================================================
 // watch() directive updates ONLY the input value, not the entire component
 // This is crucial for inputs - prevents losing focus on every keystroke
@@ -139,7 +139,7 @@ class InputExample extends ReatomLitElement {
           .value=${watch(this.inputValue)}
           @input=${(e: InputEvent) => {
             const target = e.target as HTMLInputElement
-            // Update atom without re-rendering entire component
+            // Update atom without running a host update cycle
             this.inputValue.set(target.value)
           }}
         />
@@ -151,7 +151,7 @@ class InputExample extends ReatomLitElement {
 
 customElements.define('input-example', InputExample)
 
-// Without watch(), the entire component re-renders on every keystroke:
+// Without watch(), the host element runs an update cycle on every keystroke:
 // - Input loses focus
 // - Performance degrades with many inputs
 // - Unnecessary DOM diffing
@@ -164,15 +164,17 @@ customElements.define('input-example', InputExample)
 // ============================================================================
 // APPROACH 3: Standard Lit html (Less efficient)
 // ============================================================================
-// Using html from 'lit' instead of '@reatom/lit' means NO direct atom updates
-// ReatomLitElement still tracks atoms and calls render(), but the entire
-// component re-renders instead of updating specific DOM parts
+// Using `html` from 'lit' is fine.
+// The key difference: `html` from `@reatom/lit` auto-wraps atoms with `watch()`.
+// With `html` from 'lit', you must use `watch()` explicitly for Part-level updates.
+// If you read atoms directly in `render()` (e.g. `${countAtom()}`), atom changes trigger a host update cycle
+// and `render()` executes again.
 
 import { html as litHtml } from 'lit'
 
 class LessEfficientComponent extends ReatomLitElement {
   render() {
-    // Entire component re-renders on atom changes (less efficient)
+    // Host update cycle runs on atom changes (less efficient)
     return litHtml`
       <div>
         <p>Count: ${countAtom()}</p>
@@ -195,13 +197,14 @@ WHEN TO USE EACH APPROACH
    - Example: html`<div>${myAtom}</div>`
 2. Use explicit watch() for inputs and performance-critical cases:
    - Input fields to prevent losing focus on keystrokes
-   - Large components where full re-renders are expensive
+   - Large components where host updates are expensive
    - When you need to bind atoms to properties (.value=${watch(atom)})
    - Example: <input .value=${watch(textAtom)} />
-3. Avoid standard Lit html (from 'lit') for reactive content
-   - Entire component re-renders on every atom change
-   - Less efficient than direct DOM updates via watch()
-   - Only use when you specifically need full re-render behavior
+3. Use `html` from `@reatom/lit` for auto-reactivity, or use `watch()` with `html` from `lit`
+   for explicit control
+   - `@reatom/lit` html/svg automatically wraps atoms with `watch()`
+   - `lit` html requires you to write `watch(atom)` explicitly
+   - Reading atoms directly in `render()` triggers a host update cycle
 
 ----------------------------------------------------------------------------
 PERFORMANCE NOTE
@@ -209,11 +212,12 @@ PERFORMANCE NOTE
 watch() and auto-reactive html have the SAME performance:
 - html from @reatom/lit automatically wraps atoms with watch()
 - Both use Lit's directive system for direct DOM updates
-- Only the changed part updates, not entire component
+- Only the changed Part is updated, not the whole template
 
-Standard Lit html is LESS efficient:
-- Causes full component re-render on every atom change
-- Use watch() or auto-reactive html for better performance
+Lit reference (update cycle & DOM patching):
+- https://lit.dev/docs/components/lifecycle/
+- https://lit.dev/docs/components/rendering/
+- https://lit.dev/docs/api/directives/
 
 ## Automatic Reactivity
 

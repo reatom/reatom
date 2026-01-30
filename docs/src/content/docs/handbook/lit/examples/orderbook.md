@@ -28,7 +28,7 @@ const orderbook = {
 }
 ```
 
-This ensures updates to individual levels don't trigger re-renders of other
+This ensures updates to individual levels don't require updating other
 levels - critical for high-frequency data.
 
 ### WebSocket with Reactive Symbol Changes
@@ -79,7 +79,7 @@ class BybitOrderbook extends ReatomLitElement {
 - **CSS containment** for isolated rendering
 - **transform** instead of width for volume bars
 - **will-change** hints for animated properties
-- **Atomic updates** - only changed levels re-render
+- **Atomic updates** - only changed levels update
 
 ## Architecture Benefits
 

@@ -11,14 +11,14 @@ might have lists of items with editable properties
 **1. O(1) updates** - changing a todo's name only updates that specific atom
 
 - No need to recreate entire array or object
-- Other items in the list don't re-render
+- Other items in the list don't need to update
 
 **2. Clean event handlers** - directly modify atom state without dispatchers
 
 - No need to create actions for every property update
 - Direct mutation is simple and intuitive
 
-**3. Better debugging** - see exactly which atom changed in DevTools
+**3. Better debugging** - see exactly which atom changed in Reatom DevTools
 
 - Each property has its own atom with a name
 - Changes are tracked individually
@@ -28,25 +28,24 @@ might have lists of items with editable properties
 - Perfect for lists with editable items
 - Each item's changes don't affect others
 
-**5. Use atomization for lists - granular reactivity without full re-renders**
+**5. Use atomization for lists - granular updates without updating the whole list**
 
 The most powerful benefit of atomization is that when any individual item's
-state changes, **only that specific item re-renders** - the entire list component
-and all other items remain untouched.
+state changes, only the affected item needs to update; other items stay untouched.
 
 For example, in a todo list with 100 items:
 
 ✅ **With atomization:**
   - Editing one todo's name → only that single TodoItem component updates
-  - Toggling one todo's completed state → only that specific item re-renders
-  - The parent list component does NOT re-render
-  - The other 99 items do NOT re-render
-  - Lit's scheduling system handles the update efficiently
+  - Toggling one todo's completed state → only that specific item updates
+  - The parent list component does not need to update if the list reference doesn't change
+  - Other items do not need to update
+  - Lit batches updates for reactive properties at microtask timing
 
 ❌ **Without atomization (traditional approach):**
   - Editing one todo → the entire array changes
-  - Parent list component must re-render
-  - All 100 items may re-render depending on implementation
+  - Parent list component may need to run an update cycle
+  - Many items may need to update depending on implementation
   - Much higher performance cost for large lists
 
 This granular reactivity is especially important for:
@@ -54,6 +53,9 @@ This granular reactivity is especially important for:
 - Lists with frequently updated items (real-time data, counters, etc.)
 - Complex list items with expensive rendering
 - Mobile or low-powered devices where performance matters
+
+Lit reference (update cycle & batching): https://lit.dev/docs/components/lifecycle/
+Lit reference (DOM patching model): https://lit.dev/docs/components/rendering/
 
 ```ts
 import { atom, action, type Atom } from '@reatom/core'

@@ -46,26 +46,31 @@ export class TimerElement extends ReatomLitElement {
 ```
 
 The timer atom is updated every second by setInterval, and the component
-automatically re-renders to show the new value. This demonstrates how
-ReatomLitElement manages subscriptions and updates for you.
+updates to show the new value. This demonstrates how `@reatom/lit` manages
+subscriptions and updates for you.
 
 **How reactivity works with the `watch` directive:**
 
-The `watch` directive enables fine-grained reactivity by tracking changes
-to the atom and updating only the specific parts of the DOM that depend on it.
-This means the `render()` method is called only once during initial rendering,
-and subsequent updates to the atom are applied directly to the DOM without
-re-executing the entire render method.
+In `@reatom/lit`, atoms rendered via `watch()` (or via `html` from `@reatom/lit`,
+which auto-wraps atoms with `watch()`) update the bound template Part. This can
+apply atom changes without requiring the host element to run a full Lit update cycle.
 
-Without the `watch` directive, the component would need to call `render()`
-on every atom change, causing `renderCount` to increment each time the timer
-updates. With `watch`, the render count stays at 1 regardless of how many
-times the timer atom changes.
+Important nuance: the host element may still run Lit updates for other reasons
+(reactive properties changes, `requestUpdate()`, etc.). This statement is only
+about atom-driven updates that are bound through `watch()`.
+
+Without `watch()` (or auto-reactive `html`), reading atoms directly in `render()`
+causes atom changes to trigger a host update cycle (so `render()` executes again).
 
 This approach provides:
-- Better performance by avoiding unnecessary re-renders
-- Efficient DOM updates using Lit's reactive infrastructure
+- Better performance by avoiding unnecessary host update cycles
+- Efficient DOM updates using Lit's Part/directive mechanisms
 - Automatic subscription management when the component connects/disconnects
+
+Lit references:
+- Update cycle & batching: https://lit.dev/docs/components/lifecycle/
+- DOM patching model: https://lit.dev/docs/components/rendering/
+- Directive lifecycle: https://lit.dev/docs/api/directives/
 
 ---
 

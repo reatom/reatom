@@ -31,7 +31,7 @@ export class GreetingElement extends ReatomLitElement {
 ```
 
 When firstName or lastName changes, the fullName computed atom updates, and
-the component re-renders to show the new full name.
+the component updates to show the new full name.
 
 ---
 
