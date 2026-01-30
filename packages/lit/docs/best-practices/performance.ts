@@ -1,4 +1,4 @@
-/**
+/** @doc-expand
  * Performance
  *
  * Performance tips for ReatomLitElement components
@@ -10,7 +10,7 @@ import { atom, computed, type Atom } from '@reatom/core'
 import { ReatomLitElement, watch } from '@reatom/lit'
 import { html } from 'lit'
 
-/**
+/** @doc-expand
  * 1. Use computed atoms for derived state
  *
  * Instead of computing derived values in render methods, use computed atoms for
@@ -44,7 +44,7 @@ export class DerivedStateComponent extends ReatomLitElement {
 
 customElements.define('derived-state', DerivedStateComponent)
 
-/**
+/** @doc-expand
  * 2. Use computed atoms for expensive calculations
  *
  * Don't compute expensive values on every render. Use computed atoms to cache
@@ -94,7 +94,7 @@ export class ComputedExpensiveComponent extends ReatomLitElement {
 
 customElements.define('computed-expensive', ComputedExpensiveComponent)
 
-/**
+/** @doc-expand
  * 3. Use computed render props
  *
  * You can create computed atoms as class properties to memoize parts of your
@@ -215,7 +215,7 @@ export class UserGreetingWithAtomProp extends ReatomLitElement {
 
 customElements.define('user-greeting-atom-prop', UserGreetingWithAtomProp)
 
-/**
+/** @doc-expand
  * 4. Avoid creating atoms in render methods
  *
  * Creating atoms in render methods creates new atoms on every render, which
@@ -243,7 +243,7 @@ export class GoodComponent extends ReatomLitElement {
 
 customElements.define('good-component', GoodComponent)
 
-/**
+/** @doc-expand
  * 5. Use atomization for lists
  *
  * The atomization pattern provides O(1) updates instead of O(n) for list
@@ -280,7 +280,7 @@ export class AtomizedListComponent extends ReatomLitElement {
 
 customElements.define('atomized-list', AtomizedListComponent)
 
-/**
+/** @doc-expand
  * Key performance tips:
  *
  * - Use computed atoms for derived state instead of computing in render

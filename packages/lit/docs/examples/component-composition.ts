@@ -1,4 +1,4 @@
-/**
+/** @doc-expand
  * Component Composition
  *
  * Compose multiple ReatomLitElement components together
@@ -93,7 +93,7 @@ export class App extends ReatomLitElement {
 
 customElements.define('my-app', App)
 
-/**
+/** @doc-expand
  * This example demonstrates component composition:
  *
  * - Header component with theme toggle

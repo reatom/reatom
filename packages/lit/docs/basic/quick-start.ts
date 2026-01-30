@@ -25,7 +25,7 @@ export class CounterElement extends ReatomLitElement {
 
 customElements.define('counter-element', CounterElement)
 
-/**
+/** @doc-expand
  * Usage example in HTML:
  * ```html
  * <counter-element></counter-element>

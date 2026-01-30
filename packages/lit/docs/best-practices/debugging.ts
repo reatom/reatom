@@ -1,4 +1,4 @@
-/**
+/** @doc-expand
  * Debugging
  *
  * Tips for debugging ReatomLitElement components
@@ -9,7 +9,7 @@
 import { atom, peek, computed, action, wrap } from '@reatom/core'
 import { ReatomLitElement, watch, html } from '@reatom/lit'
 
-/**
+/** @doc-expand
  * 1. Use Reatom DevTools
  *
  * Install the Reatom DevTools extension to inspect atom changes, see cause
@@ -28,7 +28,7 @@ import { ReatomLitElement, watch, html } from '@reatom/lit'
  * - Lit DevTools shows component renders and DOM updates
  */
 
-/**
+/** @doc-expand
  * 2. Name your atoms
  *
  * Always provide a name when creating atoms for better debugging:
@@ -40,7 +40,7 @@ const userAtom = atom(null, 'user')
 // ❌ BAD: Unnamed atom
 const user = atom(null)
 
-/**
+/** @doc-expand
  * 3. Debugging reactivity in components
  *
  * Check if component re-renders when atom changes:
@@ -61,12 +61,12 @@ export class DebugRenderComponent extends ReatomLitElement {
 
 customElements.define('debug-render', DebugRenderComponent)
 
-/**
+/** @doc-expand
  * If renderCount increments, the component fully re-renders.
  * If it stays at 1 but count updates, watch() is working efficiently.
  */
 
-/**
+/** @doc-expand
  * 4. Debugging watch directive
  *
  * Detect reactivity issues - atom changes but DOM doesn't update:
@@ -88,12 +88,12 @@ class PreservedReactivityComponent extends ReatomLitElement {
   }
 }
 
-/**
+/** @doc-expand
  * Common issue: Using html from 'lit' instead of '@reatom/lit'.
  * The component re-renders but DOM shows stale values.
  */
 
-/**
+/** @doc-expand
  * 5. Debugging conditional watch
  *
  * Watch inside conditionals can cause issues:
@@ -125,7 +125,7 @@ class GoodConditionalComponent extends ReatomLitElement {
   }
 }
 
-/**
+/** @doc-expand
  * 6. Lifecycle debugging
  *
  * Log lifecycle events to understand component behavior:
@@ -157,7 +157,7 @@ export class LifecycleDebugComponent extends ReatomLitElement {
 
 customElements.define('lifecycle-debug', LifecycleDebugComponent)
 
-/**
+/** @doc-expand
  * 7. Debugging async operations
  *
  * Log async actions to verify correct execution:
@@ -185,13 +185,13 @@ const fetchData = action(async () => {
   }
 }, 'fetchData')
 
-/**
+/** @doc-expand
  * Always use wrap() around async operations to preserve reactive context.
  * Logs should appear in order: started -> response received -> data parsed.
  * Missing wrap() can cause context loss and incorrect debugging information.
  */
 
-/**
+/** @doc-expand
  * 8. Debugging computed atoms
  *
  * Log computed atom evaluations:
@@ -205,13 +205,13 @@ const activeItemsComputed = computed(() => {
   return items.filter((item) => item.active)
 }, 'activeItems')
 
-/**
+/** @doc-expand
  * If this logs too frequently, consider:
  * - Checking if itemsAtom updates are necessary
  * - Adding memoization for expensive operations
  */
 
-/**
+/** @doc-expand
  * 9. Using peek() for inspection
  *
  * Peek() returns the current atom value without creating a subscription.
@@ -222,7 +222,7 @@ const activeItemsComputed = computed(() => {
 console.log('Current count:', peek(countAtom))
 console.log('All items:', peek(itemsAtom))
 
-/**
+/** @doc-expand
  * 10. Chrome DevTools for Lit
  *
  * Install Lit DevTools browser extension for:
@@ -237,7 +237,7 @@ console.log('All items:', peek(itemsAtom))
  * - Lit DevTools: Which components rendered?
  */
 
-/**
+/** @doc-expand
  * 11. Common issues and solutions
  *
  * **Issue: Atom changes but DOM doesn't update**
@@ -261,7 +261,7 @@ console.log('All items:', peek(itemsAtom))
  * - Fix: Use wrap(ctx, promise) for all async calls
  */
 
-/**
+/** @doc-expand
  * Key debugging tips:
  *
  * - Use Reatom DevTools + Lit DevTools together

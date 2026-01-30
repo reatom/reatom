@@ -6,7 +6,7 @@
  * This advanced example demonstrates building a high-performance real-time
  * trading interface using Reatom for state management and Lit for rendering.
  *
- * **[Live Demo](/demo/lit-orderbook/)** |
+ * **<a href="/demo/lit-orderbook/" target="_blank" rel="noopener noreferrer">Live Demo</a>** |
  * **[View Source Code](https://github.com/artalar/reatom/tree/v1000/packages/lit/demo)**
  *
  * ## Key Patterns Demonstrated

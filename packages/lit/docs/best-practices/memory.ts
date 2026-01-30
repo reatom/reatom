@@ -1,4 +1,4 @@
-/**
+/** @doc-expand
  * Memory Management
  *
  * Guidelines for managing memory with ReatomLitElement
@@ -13,7 +13,7 @@ import { html } from 'lit'
 
 const myAtom = atom(0, 'myAtom')
 
-/**
+/** @doc-expand
  * 1. Don't create atoms in render methods
  */
 class BadComponent extends ReatomLitElement {
@@ -29,7 +29,7 @@ class GoodComponent extends ReatomLitElement {
   }
 }
 
-/**
+/** @doc-expand
  * 2. Clean up dynamic computed atoms
  */
 const baseAtom = atom(0, 'baseAtom')
@@ -67,7 +67,7 @@ class GoodDynamicComponent extends ReatomLitElement {
   }
 }
 
-/**
+/** @doc-expand
  * 3. Manual subscription cleanup
  */
 const myValue = atom('test', 'myValue')
@@ -92,7 +92,7 @@ class ManualSubscriptionComponent extends ReatomLitElement {
   }
 }
 
-/**
+/** @doc-expand
  * 4. Large lists and virtualization
  */
 const itemsAtom = atom<Array<{ id: string; name: string }>>([], 'itemsAtom')
@@ -115,7 +115,7 @@ class LargeListComponent extends ReatomLitElement {
   }
 }
 
-/**
+/** @doc-expand
  * 5. Be careful with closures in computed atoms
  */
 class BadClosureComponent extends ReatomLitElement {
@@ -148,7 +148,7 @@ class GoodClosureComponent extends ReatomLitElement {
   }
 }
 
-/**
+/** @doc-expand
  * Key memory management tips:
  *
  * - Create atoms once, outside of components

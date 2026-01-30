@@ -1,4 +1,4 @@
-/**
+/** @doc-expand
  * Async Operations
  *
  * Reatom's wrap function is essential for preserving reactive context across
@@ -64,8 +64,9 @@ export class DataElement extends ReatomLitElement {
 
 customElements.define('data-element', DataElement)
 
-/**
- * @doc-expand Always use wrap around async operations that interact with Reatom atoms or
+/** @doc-expand 
+ * 
+ * Always use wrap around async operations that interact with Reatom atoms or
  * actions. This preserves the reactive context and enables proper cancellation
  * and debugging.
  *
