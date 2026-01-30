@@ -70,6 +70,7 @@ build/
 .vercel
 tsbuild/
 autodocs/
+/src/content/docs/handbook/lit/
 
 packages/**/package-lock.json
 packages/**/yarn.lock
