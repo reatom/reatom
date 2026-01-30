@@ -148,17 +148,6 @@ export const docsConfig: { pages: DocPage[] } = {
       ],
     },
     {
-      slug: 'examples/orderbook',
-      title: 'Real-time Orderbook Example',
-      description: 'High-performance WebSocket trading interface',
-      chapters: [
-        {
-          title: 'Bybit Orderbook Demo',
-          file: 'examples/orderbook',
-        },
-      ],
-    },
-    {
       slug: 'best-practices',
       title: 'Lit Best Practices',
       description: 'Best practices for Reatom with Lit',

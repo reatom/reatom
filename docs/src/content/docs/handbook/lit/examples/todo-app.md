@@ -17,6 +17,7 @@ This example demonstrates:
 import { atom, action, computed, type Atom } from '@reatom/core'
 import { ReatomLitElement, watch } from '@reatom/lit'
 import { html } from 'lit'
+import { repeat } from 'lit/directives/repeat.js'
 
 // Type definitions with explicit Atom types
 type Todo = {
@@ -46,12 +47,29 @@ export const filteredTodos = computed(() => {
 
 export const stats = computed(() => {
   const list = todos()
+
+  let active = 0
+  let completed = 0
+  for (const todo of list) {
+    if (todo.completed()) completed++
+    else active++
+  }
+
   return {
     total: list.length,
-    active: list.filter((t) => !t.completed()).length,
-    completed: list.filter((t) => t.completed()).length,
+    active,
+    completed,
   }
 }, 'stats')
+
+export const statsTotal = computed(() => stats().total, 'stats.total')
+export const statsActive = computed(() => stats().active, 'stats.active')
+export const statsCompleted = computed(() => stats().completed, 'stats.completed')
+
+const hideClearCompleted = computed(
+  () => statsCompleted() === 0,
+  'stats.hideClearCompleted',
+)
 
 // Actions
 export const addTodo = action((text: string) => {
@@ -85,6 +103,30 @@ export const clearCompleted = action(() => {
 export class TodoApp extends ReatomLitElement {
   private inputText = ''
 
+  private handleInput = (e: InputEvent) => {
+    this.inputText = (e.target as HTMLInputElement).value
+  }
+
+  private handleListChange = (e: Event) => {
+    const target = e.target
+    if (!(target instanceof HTMLInputElement)) return
+    if (target.type !== 'checkbox') return
+
+    const id = target.dataset.id
+    if (!id) return
+    toggleTodo(id)
+  }
+
+  private handleListClick = (e: MouseEvent) => {
+    const target = e.target as Element | null
+    const button = target?.closest<HTMLButtonElement>('button[data-action="delete"]')
+    if (!button) return
+
+    const id = button.dataset.id
+    if (!id) return
+    deleteTodo(id)
+  }
+
   private handleSubmit = (e: Event) => {
     e.preventDefault()
     const text = this.inputText.trim()
@@ -95,7 +137,6 @@ export class TodoApp extends ReatomLitElement {
   }
 
   override render() {
-    const currentStats = stats()
     const filteredTodosList = filteredTodos()
 
     return html`
@@ -107,21 +148,25 @@ export class TodoApp extends ReatomLitElement {
             type="text"
             placeholder="What needs to be done?"
             .value=${this.inputText}
-            @input=${(e: InputEvent) => {
-              this.inputText = (e.target as HTMLInputElement).value
-            }}
+            @input=${this.handleInput}
           />
           <button type="submit">Add</button>
         </form>
 
-        <ul class="todo-list">
-          ${filteredTodosList.map(
+        <ul
+          class="todo-list"
+          @change=${this.handleListChange}
+          @click=${this.handleListClick}
+        >
+          ${repeat(
+            filteredTodosList,
+            (todo) => todo.id,
             (todo) => html`
               <li class="todo-item">
                 <input
                   type="checkbox"
+                  data-id=${todo.id}
                   .checked=${watch(todo.completed)}
-                  @change=${() => toggleTodo(todo.id)}
                 />
                 <span
                   class="todo-text"
@@ -131,19 +176,19 @@ export class TodoApp extends ReatomLitElement {
                 >
                   ${watch(todo.text)}
                 </span>
-                <button @click=${() => deleteTodo(todo.id)}>Delete</button>
+                <button data-action="delete" data-id=${todo.id}>Delete</button>
               </li>
             `,
           )}
         </ul>
 
         <div class="todo-stats">
-          <p>Items: ${currentStats.total}</p>
-          <p>Active: ${currentStats.active}</p>
-          <p>Completed: ${currentStats.completed}</p>
-          ${currentStats.completed > 0
-            ? html`<button @click=${clearCompleted}>Clear completed</button>`
-            : ''}
+          <p>Items: ${watch(statsTotal)}</p>
+          <p>Active: ${watch(statsActive)}</p>
+          <p>Completed: ${watch(statsCompleted)}</p>
+          <button @click=${clearCompleted} ?hidden=${watch(hideClearCompleted)}>
+            Clear completed
+          </button>
         </div>
       </div>
     `

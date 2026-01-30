@@ -222,4 +222,4 @@ customElements.define('login-form', LoginForm)
 
 ---
 
-← [Component Composition](/handbook/lit/examples/component-composition) | [Orderbook](/handbook/lit/examples/orderbook) →
+← [Component Composition](/handbook/lit/examples/component-composition) | [Paginated list](/handbook/lit/examples/paginated-list) →

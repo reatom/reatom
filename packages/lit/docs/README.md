@@ -30,6 +30,10 @@ This directory contains TypeScript source files for the Lit integration document
 
 ### Examples (`examples/`)
 
+**<a href="../../../../demo/lit-orderbook/index.html" target="_blank" rel="noopener noreferrer">Live Performance Demo</a>** |
+**[View Source Code](https://github.com/artalar/reatom/tree/v1000/packages/lit/demo)**
+
+
 - `todo-app.ts` - Complete Todo application
 - `login-form.ts` - Form with validation
 - `paginated-list.ts` - List with pagination

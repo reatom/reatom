@@ -28,6 +28,7 @@ import { atom, action, computed } from '@reatom/core'
 import { withAsyncData } from '@reatom/core'
 import { ReatomLitElement, watch } from '@reatom/lit'
 import { html } from 'lit'
+import { repeat } from 'lit/directives/repeat.js'
 
 // ============================================================================
 // Types
@@ -97,6 +98,43 @@ const error = computed(() => {
 const hasNextPage = computed(() => page() < totalPages(), 'hasNextPage')
 const hasPrevPage = computed(() => page() > 1, 'hasPrevPage')
 
+const prevDisabled = computed(
+  () => !hasPrevPage() || isLoading(),
+  'pagination.prevDisabled',
+)
+
+const nextDisabled = computed(
+  () => !hasNextPage() || isLoading(),
+  'pagination.nextDisabled',
+)
+
+const renderContent = computed(() => {
+  if (isLoading()) {
+    return html`<div class="loading">Loading...</div>`
+  }
+
+  const err = error()
+  if (err) {
+    return html`<div class="error">Error: ${err}</div>`
+  }
+
+  const list = items()
+  return html`
+    <ul class="item-list">
+      ${repeat(
+        list,
+        (item) => item.id,
+        (item) => html`
+          <li class="item">
+            <h3>${item.title}</h3>
+            <p>${item.body}</p>
+          </li>
+        `,
+      )}
+    </ul>
+  `
+}, 'paginatedList.renderContent')
+
 // ============================================================================
 // Actions
 // ============================================================================
@@ -123,47 +161,24 @@ export class PaginatedList extends ReatomLitElement {
       <div class="paginated-list">
         <h2>Paginated List</h2>
 
-        ${this.renderContent()}
+        ${watch(renderContent)}
 
         <div class="pagination">
           <button
             @click=${prevPage}
-            ?disabled=${!hasPrevPage() || isLoading()}
+            ?disabled=${watch(prevDisabled)}
           >
             Previous
           </button>
           <span>Page ${watch(page)} of ${watch(totalPages)}</span>
           <button
             @click=${nextPage}
-            ?disabled=${!hasNextPage() || isLoading()}
+            ?disabled=${watch(nextDisabled)}
           >
             Next
           </button>
         </div>
       </div>
-    `
-  }
-
-  private renderContent() {
-    if (isLoading()) {
-      return html`<div class="loading">Loading...</div>`
-    }
-
-    if (error()) {
-      return html`<div class="error">Error: ${watch(error)}</div>`
-    }
-
-    return html`
-      <ul class="item-list">
-        ${items().map(
-          (item) => html`
-            <li class="item">
-              <h3>${item.title}</h3>
-              <p>${item.body}</p>
-            </li>
-          `,
-        )}
-      </ul>
     `
   }
 }
@@ -173,4 +188,4 @@ customElements.define('paginated-list', PaginatedList)
 
 ---
 
-← [Orderbook](/handbook/lit/examples/orderbook) | [Todo Application](/handbook/lit/examples/todo-app) →
+← [Login form](/handbook/lit/examples/login-form) | [Todo Application](/handbook/lit/examples/todo-app) →

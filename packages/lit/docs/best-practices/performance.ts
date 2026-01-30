@@ -3,6 +3,10 @@
  *
  * Performance tips for ReatomLitElement components
  *
+ * 
+ * <a href="../../../../demo/lit-orderbook/index.html" target="_blank" rel="noopener noreferrer">Live Performance Demo</a>
+ * [View Source Code](https://github.com/artalar/reatom/tree/v1000/packages/lit/demo)
+
  * @file Performance Considerations
  */
 

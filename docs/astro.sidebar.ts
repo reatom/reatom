@@ -64,7 +64,6 @@ export const sidebar = [
               'handbook/lit/examples/todo-app',
               'handbook/lit/examples/login-form',
               'handbook/lit/examples/paginated-list',
-              'handbook/lit/examples/orderbook',
               'handbook/lit/examples/component-composition',
             ],
           },
