@@ -1,4 +1,3 @@
-/// <reference types="vitest/config" />
 import { resolve } from 'path'
 import { defineConfig } from 'vitest/config'
 
@@ -12,6 +11,8 @@ export default defineConfig({
   test: {
     name: '@reatom/core',
     include: ['./src/**/*.test.ts', './src/**/*.test-d.ts'],
+    isolate: false,
+    fileParallelism: false,
     typecheck: {
       enabled: true,
       tsconfig: './tsconfig.json',

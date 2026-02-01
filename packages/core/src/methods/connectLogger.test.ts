@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'test'
 
 import { sleep, wrap } from '..'
-import { atom, computed, notify, withActions } from '../core'
+import { atom, computed, EXTENSIONS, notify, withActions } from '../core'
 import { connectLogger, log } from './connectLogger'
 import { getStackTrace } from './getStackTrace'
 
@@ -95,6 +95,9 @@ test('connectLogger match', () => {
   const allowed = atom(0, 'allowed')
   const blocked = atom(0, 'blocked')
 
+  // remove the logger middleware to not interact with other tests
+  EXTENSIONS.pop()
+
   allowed.subscribe(() => {})
   blocked.subscribe(() => {})
 
@@ -115,6 +118,8 @@ test('log.state logs only when data changes', () => {
   const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
 
   connectLogger()
+  // remove the logger middleware to not interact with other tests
+  EXTENSIONS.pop()
   log('test')
   notify()
   consoleSpy.mockClear()

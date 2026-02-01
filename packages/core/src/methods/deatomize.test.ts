@@ -1,5 +1,4 @@
-import { expectTypeOf, it } from 'vitest'
-import { describe, expect, test } from 'vitest'
+import { describe, expect, expectTypeOf, test } from 'test'
 
 import { atom, computed } from '../core'
 import { reatomEnum } from '../primitives/reatomEnum'
@@ -174,13 +173,13 @@ describe('runtime', () => {
 })
 
 describe('types', () => {
-  it('should return value', () => {
+  test('should return value', () => {
     expectTypeOf(deatomize('some bare value')).toEqualTypeOf<string>()
     expectTypeOf(deatomize(10)).toEqualTypeOf<number>()
     expectTypeOf(deatomize(Symbol.for('specialSymbol'))).toEqualTypeOf<symbol>()
   })
 
-  it('should parse deep atoms', () => {
+  test('should parse deep atoms', () => {
     expectTypeOf(
       deatomize(computed(() => atom('deep'))),
     ).toEqualTypeOf<string>()
@@ -189,7 +188,7 @@ describe('types', () => {
     >()
   })
 
-  it('should parse records', () => {
+  test('should parse records', () => {
     expectTypeOf(
       deatomize({
         someValue: atom(1),
@@ -209,7 +208,7 @@ describe('types', () => {
     }>()
   })
 
-  it('should parse maps', () => {
+  test('should parse maps', () => {
     const atomized = new Map<any, any>()
     const keyObj = {}
     const keyAtom = atom('')
@@ -220,7 +219,7 @@ describe('types', () => {
     expectTypeOf(deatomize(atomized)).toEqualTypeOf<Map<any, any>>()
   })
 
-  it('should parse sets', () => {
+  test('should parse sets', () => {
     const atomized = new Set<any>()
     atomized.add(atom(1))
     atomized.add('someRawValue')
@@ -228,7 +227,7 @@ describe('types', () => {
     expectTypeOf(deatomize(atomized)).toEqualTypeOf<Set<any>>()
   })
 
-  it('should parse extended values', () => {
+  test('should parse extended values', () => {
     expectTypeOf(
       deatomize({
         someValue: atom(1),
@@ -248,13 +247,13 @@ describe('types', () => {
     }>()
   })
 
-  it('should parse deep structures', () => {
+  test('should parse deep structures', () => {
     expectTypeOf(deatomize([[[[[atom('deepStruct')]]]]])).toEqualTypeOf<
       string[][][][][]
     >()
   })
 
-  it('should parse linked list as array', () => {
+  test('should parse linked list as array', () => {
     const model = reatomLinkedList(
       // @ts-expect-error
       (value: number) => ({
@@ -289,7 +288,7 @@ describe('types', () => {
     expectTypeOf(test).toExtend<ToMatchTypeOf[]>()
   })
 
-  it('should parse File and other classes properly', () => {
+  test('should parse File and other classes properly', () => {
     expectTypeOf(
       deatomize({
         file: new File([''], 'test.txt'),

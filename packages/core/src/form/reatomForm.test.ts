@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, test, vi } from 'vitest'
+import { describe, expect, expectTypeOf, test, vi } from 'test'
 import { z } from 'zod'
 
 import {
@@ -721,7 +721,7 @@ test('recipe: autofocus', async () => {
     }),
   )
 
-  await wrap(form.submit()).catch(noop)
+  await wrap(form.submit().catch(noop))
   expect(form.submit.error()).toBeInstanceOf(Error)
   expect(focusFn).toBeCalled()
 })
@@ -778,11 +778,11 @@ test('subsequent validation', async () => {
   )
 
   form.fields.email.change('test')
-  await wrap(form.submit()).catch(noop)
+  await wrap(form.submit().catch(noop))
   expect(form.fields.email.validation().error).toBeTruthy()
 
   form.fields.email.change('test@test.com')
-  await wrap(form.submit()).catch(noop)
+  await wrap(form.submit().catch(noop))
   expect(form.fields.email.validation().error).toBeFalsy()
 })
 
