@@ -400,7 +400,7 @@ import { resolveBase } from '../components/landing/resolve-base'
         const html = document.documentElement
         
         // Get saved theme or default to dark
-        const savedTheme = localStorage.getItem('theme') || 'dark'
+        const savedTheme = localStorage.getItem('starlight-theme') || 'dark'
         html.setAttribute('data-theme', savedTheme)
         
         // Theme toggle handler
@@ -409,7 +409,7 @@ import { resolveBase } from '../components/landing/resolve-base'
           const newTheme = currentTheme === 'light' ? 'dark' : 'light'
           
           html.setAttribute('data-theme', newTheme)
-          localStorage.setItem('theme', newTheme)
+          localStorage.setItem('starlight-theme', newTheme)
           
           // Dispatch custom event for components that need to update
           window.dispatchEvent(new CustomEvent('themeChanged', { 
