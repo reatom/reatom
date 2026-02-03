@@ -12,7 +12,7 @@ import {
   wrap,
 } from '../'
 import type { Action, Atom, Computed } from '../core'
-import { action, atom, computed, ReatomError, withMiddleware } from '../core'
+import { action, atom, computed, named, ReatomError, withMiddleware } from '../core'
 import { type UrlAtom, urlAtom } from '../web/url'
 
 type MaybeVoid<T> = {} extends T ? T | void : T
@@ -620,7 +620,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const pattern = `${parentPattern}/${subPath}`
 
-    name ||= pattern
+    name = named(name || `route.${pattern}`)
 
     const hasOptionalPart = pattern.endsWith('?')
 
@@ -823,8 +823,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       let outlet = computed(() => {
         let result: RouteChild[] = []
-        for (let pattern in routes) {
-          let render = routes[pattern]!.render()
+        for (let name in routes) {
+          let render = routes[name]!.render()
           if (render != null) {
             result.push(render)
           }
@@ -859,7 +859,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       } as RouteExt
     }) as RouteAtom
 
-    parent.routes[pattern] = urlAtom.routes[pattern] = routeAtom
+    parent.routes[name] = urlAtom.routes[name] = routeAtom
 
     if (inputParams) {
       routeAtom.extend(

@@ -670,3 +670,35 @@ test('inherence of callback params from search-only route', async () => {
   expect(dialogRoute()).toMatchObject({ open: false })
   expect(profileRoute()).toMatchObject({ profileOf: 'co_aij21312nm' })
 })
+
+test('route pattern collision - routes with same pattern but different names', async () => {
+  const parentRoute = reatomRoute('parent')
+
+  const route1 = parentRoute.reatomRoute({
+    path: 'child',
+    async loader() {
+      return {}
+    },
+  })
+
+  const route2 = parentRoute.reatomRoute({
+    path: 'child',
+    async loader() {
+      return {}
+    },
+  })
+
+  console.log(parentRoute.routes)
+
+  expect(route1.pattern).toBe('/parent/child')
+  expect(route2.pattern).toBe('/parent/child')
+  expect(route1.pattern).toBe(route2.pattern)
+
+  expect(route1.loader.data()).toBeFalsy()
+  expect(route2.loader.data()).toBeFalsy()
+
+  route1.go()
+  await wrap(sleep())
+  expect(route1.loader.data()).toBeTruthy()
+  expect(route2.loader.data()).toBeTruthy()
+})
