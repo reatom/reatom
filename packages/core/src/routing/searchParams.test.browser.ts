@@ -1,10 +1,17 @@
-import { expect, test, vi } from 'test'
+import { beforeEach, expect, test, vi } from 'test'
 
 import { atom } from '../core/atom'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
 import { urlAtom } from '../web/url'
 import { searchParamsAtom, withSearchParams } from './searchParams'
+
+beforeEach(() => {
+  urlAtom.routes = {}
+  if (window.location.pathname !== '/') {
+    window.history.replaceState({}, '', '/')
+  }
+})
 
 test('syncFromSource', async () => {
   const syncMock = urlAtom.sync.set(() => vi.fn())
