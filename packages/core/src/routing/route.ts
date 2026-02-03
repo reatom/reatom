@@ -12,7 +12,14 @@ import {
   wrap,
 } from '../'
 import type { Action, Atom, Computed } from '../core'
-import { action, atom, computed, named, ReatomError, withMiddleware } from '../core'
+import {
+  action,
+  atom,
+  computed,
+  named,
+  ReatomError,
+  withMiddleware,
+} from '../core'
 import { type UrlAtom, urlAtom } from '../web/url'
 
 type MaybeVoid<T> = {} extends T ? T | void : T
@@ -521,7 +528,9 @@ export interface RouteExt<
    */
   render: Computed<null | RouteChild>
 
-  inputParams?: Atom<null | InputParams>
+  parent: RouteAtom | null
+
+  inputParams: Atom<null | InputParams>
 }
 
 /**
@@ -581,6 +590,17 @@ const getPatternName = (part: string) => {
   const start = part.startsWith(':') ? 1 : 0
   const end = part.endsWith('?') ? -1 : undefined
   return start || end ? part.slice(start, end) : part
+}
+
+const getParentInputParams = (
+  parent: RouteAtom | UrlAtom | null,
+): Atom<null | {}> | null => {
+  if (!parent) return null
+  if ('inputParams' in parent && parent.inputParams) return parent.inputParams
+  return parent === urlAtom
+    ? null
+    : // @ts-expect-error
+      getParentInputParams(parent.parent)
 }
 
 const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
@@ -675,11 +695,10 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       return path
     }
 
-    const parentInputParams =
-      'inputParams' in parent ? parent.inputParams : null
+    let parentInputParams = getParentInputParams(parent)
     let inputParams =
       typeof paramsSchema === 'function'
-        ? (parentInputParams ?? atom(null, `${name}._inputParams`))
+        ? atom(null, `${name}._inputParams`)
         : parentInputParams
 
     const loader = computed(async () => {
@@ -733,6 +752,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
         inputParams?.set(params)
+        if (inputParams !== parentInputParams) parentInputParams?.set(params)
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
           newUrl.pathname = url.pathname
@@ -852,6 +872,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         routes,
         outlet,
         render,
+        parent,
         inputParams:
           inputParams ??
           ('inputParams' in parent ? parent.inputParams : undefined),
@@ -861,7 +882,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     parent.routes[name] = urlAtom.routes[name] = routeAtom
 
-    if (inputParams) {
+    if (inputParams && inputParams !== parentInputParams) {
       routeAtom.extend(
         withMiddleware(() => (next, ...params) => {
           let state
