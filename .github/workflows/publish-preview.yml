@@ -76,4 +76,4 @@ jobs:
       - name: Publish packages
         env:
           PKGS: ${{ join(fromJSON(needs.packages-changed.outputs.package-roots), ' ') }}
-        run: pnpm dlx pkg-pr-new publish $PKGS --packageManager=pnpm
+        run: pnpm dlx pkg-pr-new publish $PKGS --packageManager=npm,pnpm --pnpm
