@@ -11,8 +11,10 @@ export let withConnectHook =
     cb: (target: Target) => MaybeUnsubscribe,
   ): Ext<Target> =>
   (target) => {
-    const onConnect = (target.__reatom.onConnect ??=
-      action(noop).extend(withAbort()))
+    const onConnect = (target.__reatom.onConnect ??= action(
+      noop,
+      `${target.name}.withConnectHook`,
+    ).extend(withAbort()))
 
     onConnect.extend(
       withCallHook(async () => {
