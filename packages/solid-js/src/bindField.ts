@@ -40,7 +40,7 @@ export function bindField<T = any>(
     field.focus.out()
     notify()
   }, frame)
-  
+
   const onFocus = wrap(() => {
     field.focus.in()
     notify()
@@ -53,13 +53,17 @@ export function bindField<T = any>(
     onChange,
     onBlur,
     onFocus,
-    get value() { 
+    get value() {
       const value = valueAccessor()
-      return (typeof value === 'boolean' ? undefined : value) as T extends boolean ? undefined : T
+      return (
+        typeof value === 'boolean' ? undefined : value
+      ) as T extends boolean ? undefined : T
     },
-    get checked() { 
+    get checked() {
       const value = valueAccessor()
-      return (typeof value === 'boolean' ? value : undefined) as T extends boolean ? boolean : undefined
+      return (
+        typeof value === 'boolean' ? value : undefined
+      ) as T extends boolean ? boolean : undefined
     },
   }
 

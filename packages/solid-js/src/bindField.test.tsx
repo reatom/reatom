@@ -1,4 +1,12 @@
-import { clearStack, context, rAF, reatomField, take, top, wrap } from '@reatom/core'
+import {
+  clearStack,
+  context,
+  rAF,
+  reatomField,
+  take,
+  top,
+  wrap,
+} from '@reatom/core'
 import { render } from 'solid-js/web'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
@@ -33,12 +41,7 @@ describe('bindField', () => {
       const nameField = reatomField('', { name: 'nameField' })
 
       const App = () => {
-        return (
-          <input
-            data-testid="input"
-            {...bindField(nameField).props}
-          />
-        )
+        return <input data-testid="input" {...bindField(nameField).props} />
       }
 
       dispose = render(
@@ -111,12 +114,7 @@ describe('bindField', () => {
       const field = reatomField('', { name: 'focusField' })
 
       const App = () => {
-        return (
-          <input
-            data-testid="input"
-            {...bindField(field).props}
-          />
-        )
+        return <input data-testid="input" {...bindField(field).props} />
       }
 
       dispose = render(
@@ -159,11 +157,10 @@ describe('bindField', () => {
         const fieldBind = bindField(field)
         return (
           <div>
-            <input
-              data-testid="input"
-              {...fieldBind.props}
-            />
-            <span data-testid="error">{fieldBind.validation().error ?? ''}</span>
+            <input data-testid="input" {...fieldBind.props} />
+            <span data-testid="error">
+              {fieldBind.validation().error ?? ''}
+            </span>
           </div>
         )
       }
@@ -179,15 +176,15 @@ describe('bindField', () => {
 
       await wrap(tick())
 
-      expect(
-        document.querySelector('[data-testid="error"]')?.textContent,
-      ).toBe('Too short')
+      expect(document.querySelector('[data-testid="error"]')?.textContent).toBe(
+        'Too short',
+      )
 
       field.change('abc')
       await wrap(tick())
 
-      expect(
-        document.querySelector('[data-testid="error"]')?.textContent,
-      ).toBe('')
+      expect(document.querySelector('[data-testid="error"]')?.textContent).toBe(
+        '',
+      )
     }))
 })

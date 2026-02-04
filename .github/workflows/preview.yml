@@ -12,5 +12,4 @@ jobs:
     uses: ./.github/workflows/test.yml
     
   publish-preview:
-    needs: test
     uses: ./.github/workflows/publish-preview.yml
