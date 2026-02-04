@@ -4,7 +4,11 @@ import { atom } from '../core'
 import { withConnectHook } from '../extensions'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
-import { onEvent } from './'
+import { onEvent, urlAtom } from './'
+
+test('urlAtom work inside node.js', () => {
+  expect(() => urlAtom()).not.toThrow()
+})
 
 test('onEvent', async () => {
   const a = atom(null)
