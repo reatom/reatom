@@ -603,6 +603,20 @@ const getParentInputParams = (
       getParentInputParams(parent.parent)
 }
 
+const setAllParentInputParams = (
+  parent: RouteAtom | UrlAtom | null,
+  params: any,
+  exclude: Atom<null | {}> | null,
+): void => {
+  if (!parent || parent === urlAtom) return
+  if ('inputParams' in parent && parent.inputParams && parent.inputParams !== exclude) {
+    parent.inputParams.set(params)
+  }
+  if ('parent' in parent && parent.parent) {
+    setAllParentInputParams(parent.parent, params, exclude)
+  }
+}
+
 const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
   return function reatomRoute(
     pathOrOptions: string | RouteOptions<string, any, any, any>,
@@ -752,7 +766,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
         inputParams?.set(params)
-        if (inputParams !== parentInputParams) parentInputParams?.set(params)
+        if (inputParams !== parentInputParams) {
+          setAllParentInputParams(parent, params, inputParams)
+        }
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
           newUrl.pathname = url.pathname
