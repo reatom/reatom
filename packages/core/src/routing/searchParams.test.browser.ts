@@ -14,21 +14,20 @@ beforeEach(() => {
 })
 
 test('syncFromSource', async () => {
+  history.replaceState({}, '', '/?test1=1')
+
   const syncMock = urlAtom.sync.set(() => vi.fn())
 
-  expect(Object.keys(searchParamsAtom())).toEqual(['sessionId', 'iframeId'])
+  expect([...urlAtom().searchParams.keys()]).toEqual(['test1'])
+  expect(Object.keys(searchParamsAtom())).toEqual(['test1'])
 
   expect(syncMock).toHaveBeenCalledTimes(0)
 
-  searchParamsAtom.set('test', '1')
+  searchParamsAtom.set('test2', '1')
 
   expect(syncMock).toHaveBeenCalledTimes(1)
-  expect(Object.keys(searchParamsAtom())).toEqual([
-    'sessionId',
-    'iframeId',
-    'test',
-  ])
-  expect(urlAtom().search).toContain('test=1')
+  expect(Object.keys(searchParamsAtom())).toEqual(['test1', 'test2'])
+  expect(urlAtom().search).contains('test1=1')
 
   const url = new URL(urlAtom().href)
   url.searchParams.set('test', '2')
