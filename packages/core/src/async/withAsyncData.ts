@@ -43,18 +43,10 @@ export interface AsyncDataExt<
    * invalidating cached data and forcing a re-fetch on next access.
    *
    * Note: This action does not re-trigger the async operation automatically.
-   * Use `retry` if you want to reset and immediately re-fetch.
+   * Use `retry` from {@link AsyncExt} if you want to reset and immediately
+   * re-fetch.
    */
   reset: Action<[], void>
-
-  /**
-   * Action that retries the async operation by resetting dependencies and
-   * re-evaluating the computed function. This is useful for manually refreshing
-   * data or recovering from errors.
-   *
-   * @returns The promise from the re-triggered async operation
-   */
-  retry: Action<[], Promise<Payload>>
 }
 
 /**
@@ -269,13 +261,8 @@ export function withAsyncData(
       data.reset()
     }, `${target.name}.reset`)
 
-    let asyncDataRetry = action(() => {
-      reset(target)
-      return target() as Promise<any>
-    }, `${target.name}.retry`)
-
     let asyncTarget = target.extend(
-      () => ({ data, reset: asyncDataReset, retry: asyncDataRetry }),
+      () => ({ data, reset: asyncDataReset }),
       withAbort(),
       withAsync(asyncOptions),
     )

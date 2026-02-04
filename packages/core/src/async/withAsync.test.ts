@@ -164,3 +164,65 @@ test('computed retry without params', async () => {
     params: [], // params from the initial computed evaluation
   })
 })
+
+test('action retry with cacheParams enabled', async () => {
+  const name = 'actionRetryWithCacheParams'
+  let callCount = 0
+  const fetch = action(async (param: number) => {
+    callCount++
+    await wrap(sleep())
+    return param * 2
+  }, `${name}.fetch`).extend(withAsync({ cacheParams: true }))
+
+  expect(() => fetch.retry()).toThrow('Nothing to retry, params is empty')
+
+  // First call
+  await wrap(fetch(5))
+  expect(callCount).toBe(1)
+
+  // Check that params are cached
+  expect(fetch.params()).toEqual([5])
+
+  // Retry should use cached params
+  await wrap(fetch.retry())
+  expect(callCount).toBe(2)
+})
+
+test('action retry with cacheParams disabled throws error', async () => {
+  const name = 'actionRetryWithoutCacheParams'
+  const fetch = action(async (param: number) => {
+    await wrap(sleep())
+    return param * 2
+  }, `${name}.fetch`).extend(withAsync())
+
+  await wrap(fetch(5))
+
+  // Retry should throw error when cacheParams is not enabled
+  expect(() => fetch.retry()).toThrow(
+    'You should enable params caching in the options to use retry',
+  )
+})
+
+test('atom retry works without cacheParams', async () => {
+  const name = 'atomRetryWithoutCacheParams'
+  let callCount = 0
+  const params = atom(1, `${name}.params`)
+  const resource = computed(async () => {
+    callCount++
+    const value = params()
+    await wrap(sleep())
+    return value * 2
+  }, `${name}.resource`).extend(withAsync())
+
+  // Subscribe to trigger the computed
+  resource.pending.subscribe()
+  await wrap(sleep())
+
+  expect(callCount).toBe(1)
+  expect(resource.error()).toBeUndefined()
+
+  // Retry should work for atoms even without cacheParams
+  expect(await wrap(resource.retry())).toBe(2)
+  expect(callCount).toBe(2)
+  expect(resource.error()).toBeUndefined()
+})

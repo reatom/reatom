@@ -1,6 +1,7 @@
 import type { Action, Atom, AtomLike, Computed } from '../core'
 import {
   action,
+  atom,
   bind,
   computed,
   context,
@@ -9,7 +10,7 @@ import {
   top,
   withMiddleware,
 } from '../core'
-import { abortVar, getCalls, ifChanged, retryComputed } from '../methods'
+import { abortVar, getCalls, ifChanged, reset, retryComputed } from '../methods'
 import type { Fn } from '../utils'
 import { assert, isAbort } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
@@ -97,6 +98,28 @@ export interface AsyncExt<
    * @throws {ReatomError} When accessed without being enabled in options
    */
   status: AsyncStatusAtom<any, any>
+
+  /**
+   * Atom that caches the last called parameters for retry functionality. Must
+   * be explicitly enabled via the `cacheParams` option in {@link withAsync}
+   * configuration.
+   *
+   * @returns The cached parameters from the last async operation
+   * @throws {ReatomError} When accessed without being enabled in options
+   */
+  params: Atom<null | Params>
+
+  /**
+   * Action that retries the last async operation.
+   *
+   * - If the target is an atom: re-evaluates the computed atom
+   * - If the target is an action: calls it with the cached params
+   *
+   * @returns The promise from the retried async operation
+   * @throws {ReatomError} When called on an action without enabling
+   *   `cacheParams`
+   */
+  retry: Action<[], Promise<Payload>>
 }
 
 /**
@@ -136,6 +159,16 @@ export type AsyncOptions<Err = Error, EmptyErr = undefined> = {
    * @default false
    */
   status?: boolean
+
+  /**
+   * Whether to enable caching of the last called parameters for the retry
+   * functionality. When enabled, the `params` atom and `retry` action will be
+   * available for actions. For atoms (computeds), retry works without this
+   * option as they can be re-evaluated directly.
+   *
+   * @default false
+   */
+  cacheParams?: boolean
 }
 
 /**
@@ -178,6 +211,7 @@ export let withAsync: {
       emptyError,
       resetError = 'onCall',
       status = false,
+      cacheParams = false,
     } = options ?? {}
 
     let onFulfill: AsyncExt['onFulfill'] = action((payload, params) => {
@@ -226,9 +260,38 @@ export let withAsync: {
 
     let ready = computed(() => pending() === 0, `${target.name}.ready`)
 
+    let paramsAtom = atom<null | any[]>(() => {
+      if (!cacheParams) {
+        throw new ReatomError(
+          'You should enable params caching in the options to use retry.',
+        )
+      }
+      return null
+    }, `${target.name}._params`)
+
+    // Retry action
+    let retry: AsyncExt['retry'] = action(() => {
+      if (target.__reatom.reactive) {
+        // For atoms (computeds), just re-evaluate by resetting dependencies
+        reset(target)
+        return target() as Promise<any>
+      } else {
+        const lastParams = paramsAtom()
+        if (!lastParams) {
+          throw new ReatomError('Nothing to retry, params is empty')
+        }
+        return target(...lastParams)
+      }
+    }, `${target.name}.retry`)
+
     let touched = new WeakSet<Promise<any>>()
 
     let asyncMiddleware = (next: Fn, ...params: any[]) => {
+      // Cache params if enabled
+      if (cacheParams) {
+        paramsAtom.set(params)
+      }
+
       // TODO should throw abort if the cause it rollback?
       let state = next(...params)
       let promise = state
@@ -277,6 +340,8 @@ export let withAsync: {
         onSettle,
         pending,
         error,
+        params: paramsAtom,
+        retry,
       }),
       status ? withAsyncStatus() : () => ({ status: defaultStatus }),
     ) satisfies AtomLike & AsyncExt
