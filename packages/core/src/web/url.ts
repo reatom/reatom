@@ -121,8 +121,10 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
 
         init: action(() => {
           if (typeof window === 'undefined') {
-            console.warn('window is undefined, you should setup urlAtom manually.')
-            return;
+            console.warn(
+              'window is undefined, you should setup urlAtom manually.',
+            )
+            return
           }
           onEvent(window, 'popstate', () =>
             urlAtom.syncFromSource(new URL(window.location.href), true),

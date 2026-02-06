@@ -1,3 +1,17 @@
+## 1000.15.0 (2026-02-04)
+
+### Feat
+
+- **async**: add retry
+
+### Fix
+
+- **routing**: route nested params
+- **routing**: inherence of callback params
+- **routing**: pattern collision
+- **extensions**: add proper naming for connect hook
+- **web**: urlAtom in node js
+
 ## 1000.14.1 (2026-01-29)
 
 ### Fix

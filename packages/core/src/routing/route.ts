@@ -609,7 +609,11 @@ const setAllParentInputParams = (
   exclude: Atom<null | {}> | null,
 ): void => {
   if (!parent || parent === urlAtom) return
-  if ('inputParams' in parent && parent.inputParams && parent.inputParams !== exclude) {
+  if (
+    'inputParams' in parent &&
+    parent.inputParams &&
+    parent.inputParams !== exclude
+  ) {
     parent.inputParams.set(params)
   }
   if ('parent' in parent && parent.parent) {
