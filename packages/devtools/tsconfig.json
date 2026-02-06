@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "declarationMap": true,
+    "jsx": "preserve",
+    "jsxImportSource": "@reatom/jsx",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "hf",
+  }
+}
