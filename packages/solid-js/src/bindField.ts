@@ -12,7 +12,7 @@ export function bindField<T = any>(
   props: {
     value: T extends boolean ? undefined : T
     checked: T extends boolean ? boolean : undefined
-    onChange: (
+    onInput: (
       value:
         | T
         | { currentTarget: T extends boolean ? { checked: T } : { value: T } }
@@ -50,7 +50,7 @@ export function bindField<T = any>(
   const [validationAccessor] = useAtom(field.validation)
 
   const props = {
-    onChange,
+    onInput: onChange,
     onBlur,
     onFocus,
     get value() {

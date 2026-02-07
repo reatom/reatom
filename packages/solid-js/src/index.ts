@@ -126,7 +126,7 @@ let useAccessor = <State>(
   let cache = atomMap.get(target)
 
   if (!cache) {
-    let [read, write] = createSignal(frame.run(target), { equals: false })
+    let [read, write] = createSignal(frame.run(target))
     let setState = (state: State) => write(() => state)
 
     let accessorCache: AccessorCache = {
@@ -136,16 +136,7 @@ let useAccessor = <State>(
         if (getListener()) {
           accessorCache.count++
           if (accessorCache.count === 1) {
-            let first = true
-            accessorCache.unsubscribe = target.subscribe(
-              bind((newState: State) => {
-                if (first) {
-                  first = false
-                  return
-                }
-                setState(newState)
-              }, frame),
-            )
+            accessorCache.unsubscribe = target.subscribe(bind(setState, frame))
           }
 
           onCleanup(() => {
