@@ -7,7 +7,6 @@ import type {
   Atom,
   FieldArrayAtom,
   FieldError,
-  Rec,
 } from '../'
 import {
   type Action,
@@ -298,9 +297,9 @@ export interface FormOptionsWithoutSchema<
   schema?: undefined
 }
 
-const resolveFieldByPath = <InitState extends FieldSetInitState & Rec>(
+export const resolveFieldByPath = (
   path: StandardSchemaV1.Issue['path'],
-  acc: FieldsAtomize<InitState> & Rec,
+  acc: FieldsAtomize<any>,
 ): FieldAtom | FieldArrayAtom | null => {
   if (!path?.length) return null
 

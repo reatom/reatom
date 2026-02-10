@@ -49,6 +49,7 @@ export const sidebar = [
               'handbook/forms/recipes/async-default-values',
               'handbook/forms/recipes/async-validation-debounce',
               'handbook/forms/recipes/auto-submit',
+              'handbook/forms/recipes/handling-submit-errors',
               'handbook/forms/recipes/dependent-validation',
               'handbook/forms/recipes/focus-management',
               'handbook/forms/recipes/errors-ux',
