@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, test, vi } from 'test'
+import { describe, expect, test, vi } from 'test'
 import { z } from 'zod'
 
 import { noop, notify, reatomBoolean, sleep, withCallHook, wrap } from '../'
