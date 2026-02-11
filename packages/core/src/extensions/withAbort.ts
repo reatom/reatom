@@ -146,17 +146,14 @@ export let withAbort =
         : state.at(-1)?.payload
 
       if (maybePromise instanceof Promise) {
-        let sync = true
         let aborted = false
         let wrappedPromise: Promise<any>
         wrappedPromise = new Promise(async (res, rej) => {
           let abortSubscription
           try {
             abortSubscription = abortVar.subscribe((error) => {
-              if (!sync) {
-                maybePromise.catch(noop)
-                rej(error)
-              }
+              maybePromise.catch(noop)
+              rej(error)
             })
             let value = await maybePromise
 
@@ -182,7 +179,6 @@ export let withAbort =
             queueMicrotask(() => thisController.abort('finally'))
           }
         })
-        sync = false
         if (aborted) wrappedPromise.catch(noop)
 
         if (target.__reatom.reactive) {
