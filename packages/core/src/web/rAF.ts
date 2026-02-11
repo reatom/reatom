@@ -56,4 +56,4 @@ export let rAF = /* @__PURE__ */ (() =>
     let timestamp = performance.now()
 
     return { timestamp, delta: timestamp }
-  }, 'rAF'))()
+  }, '_rAF'))()
