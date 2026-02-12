@@ -418,23 +418,31 @@ const page = atom(1, 'page').extend(
 
 ## Event sampling and orchestration
 
-Reatom treats actions as reactive events and supports procedural flows.
+Reatom treats actions as reactive events and supports procedural async flows.
 
 ### **take**
 
-Waits for the next atom change or action call. Use **wrap** in async flows.
-Cool for forms: wait for **submit** or a validation change without extra wiring.
+Awaits the next atom change or action call. Returns a promise that resolves with the next value.
+
+- `take(target)` -> `Promise<Value>` - waits for next change or call
+- `take(target, mapFn)` -> `Result | Promise<Result>` - maps the next value, can resolve synchronously if map runs on the first matching update without `await`
+
+Use with `wrap`: `const request = await wrap(take(someAction))`
 
 ### **onEvent**
 
-Bridges external events with abort-aware subscriptions or a single await. It is recommended way to do "addEventListener" with automatic cleanup.
+Bridges external DOM / WebSocket events with abort-aware subscriptions. The recommended replacement for `addEventListener` with automatic cleanup tied to the parent effect, action, or `withConnectHook` lifecycle.
 
-- `onEvent(target, type, cb)` - subscribe for the event
-- `onEvent(target, type)` - await for the event
+- `onEvent(target, type, cb)` -> `Unsubscribe` - subscribe, auto-removed on abort
+- `onEvent(target, type)` -> `Promise<Event>` - await a single event, auto-cleaned on abort
 
-### **ifChanged** and **getCalls**
+### **ifChanged**, **isChanged**, and **getCalls**
 
-Use inside **computed** or **effect** to react only to actual changes or new calls.
+Used inside **effect** or **computed** to react selectively to specific dependencies.
+
+- `ifChanged(atom, (newState, oldState?, isFirst?) => void)` - fires callback only when the atom's state actually changed since last evaluation. The `isFirst` flag is `true` on the very first tracking of this atom (not on the first subscription).
+- `isChanged(atom)` -> `boolean` - same check, no callback
+- `getCalls(action)` -> `Array<{ payload, params }>` - returns only **new** calls from the current batch. Not a history store, empty array if the action was not called in this batch.
 
 ```ts
 import {
@@ -477,65 +485,78 @@ effect(() => {
 effect(() => {
   const calls = getCalls(checkoutRequested)
   calls.forEach(({ payload }) => {
-    const orderId = payload.orderId
-    console.log({ checkoutRequested: orderId })
+    console.log({ checkoutRequested: payload.orderId })
   })
 }, 'checkout.requested.calls')
 ```
 
 Tricky
 
-- **take** and **onEvent** must be wrapped inside async actions or effects.
-- **getCalls** only returns calls in the current batch, it is not a history store.
-- Use **ifChanged** only inside **effect** or **computed** with a few dependencies.
+- **take** and **onEvent** must be used inside async actions or effects, always with **wrap**.
+- **getCalls** only returns calls from the current batch, empty array if the action wasn't called.
+- **ifChanged** only inside **effect** or **computed**. Use it for selective reactions to specific atoms when the host depends on multiple sources.
 
 ## Memoization: **memo** and **memoKey**
 
-**memo** creates internal computed state inside a **computed** or **action**, scoped to the
-host atom. **memoKey** stores arbitrary per-atom values by key.
+**memo** creates an internal computed atom inside a host **computed**, **effect**, or **action**. The internal atom persists across re-evaluations of the host and triggers host recomputation only when its own result changes.
 
 ```ts
 import { computed, memo, memoKey } from '@reatom/core'
 
-type Order = { total: number }
-type ApiClient = { baseUrl: string }
+const listView = computed(() => {
+  const length = memo(() => list().length)
+  const sum = memo(() => list().reduce((acc, el) => acc + el().value, 0))
+  return `The sum of ${length} elements is: ${sum}`
+}, 'listView')
+```
 
-const orders = computed((): Order[] => [], 'orders')
+Key behavior
 
-const stats = computed(() => {
-  const items = orders()
-  const total = memo(() => items.reduce((sum, item) => sum + item.total, 0))
-  return { total }
-}, 'orders.stats')
+- **memo** only captures the **first** callback. Do not rely on closure data that changes between host re-evaluations.
+- Default equality is `Object.is`. Custom equality function controls when the host recomputes: `memo(() => items(), (next, prev) => next.length === prev.length)` - host recomputes only when length changes.
+- Uses `cb.toString()` as key by default. If two memos in one host have identical code, provide an explicit `key` param: `memo(() => x(), undefined, 'myKey')`.
 
+**memoKey** is a lower-level keyed cache per atom. Stores arbitrary values by string key, created once, reused on subsequent calls. Good for caching service instances or other non-reactive resources:
+
+```ts
 const client = computed(() => {
-  return memoKey('client', (): ApiClient => ({ baseUrl: '/api' }))
+  return memoKey('client', () => new ApiClient({ baseUrl: '/api' }))
 }, 'api.client')
 ```
 
-Tricky
+## Forms: reactive fields, validation, and submit
 
-- Use **memo** only inside **effect** or **computed** with a few dependencies.
-- **memo** uses the first callback only. Use stable closures.
-- Use a custom key when the same callback body is used multiple times.
+Reatom forms are built from field atoms, field sets, and a submit action. Each primitive is independently usable.
 
-## Forms: base usage and reactive validation
+### Field atom
 
-Forms are built from fields, field sets, and a **submit** action.
+**reatomField(initState, options?)** creates a rich field atom with:
 
-Key primitives
+- **field()** / **field.set(state)** - raw state
+- **field.value()** - derived value (identity by default, customizable via `fromState` / `toState`)
+- **field.change(value)** - action that applies `toState`, triggers focus tracking and validation
+- **field.focus.in()** / **field.focus.out()** - focus tracking actions
+- **field.focus()** -> `{ active, dirty, touched }`
+- **field.validation()** -> `{ error, triggered, validating }`
+- **field.validation.trigger()** - manually trigger validation
+- **field.validation.errors()** - array of `{ source, message }`
+- **field.disabled()** - boolean atom, disables validation when true
+- **field.reset()** - resets state, value, validation, and focus to init
+- **field.initState()** - atom holding the initial state
 
-- **reatomField**: single field with state, value, focus, validation, disabled
-- **reatomFieldSet**: grouped fields with aggregate focus and validation
-- **reatomForm**: field set plus submit, schema validation, and form options
+### Form creation
 
-### Base form with schema and submit
+**reatomForm(initState, options?)** creates fields from init state automatically:
+
+- Primitive values (`string`, `number`, `boolean`, `null`, `Date`) -> `reatomField`
+- `reatomField()` instances -> used as-is
+- Objects with `initState` property -> `reatomField` with custom options
+- Nested plain objects -> nested field groups
+- Arrays -> dynamic field arrays (`experimental_fieldArray`)
 
 ```ts
 import { reatomField, reatomForm, wrap } from '@reatom/core'
 import { z } from 'zod/v4'
-
-type AuthResult = { token: string }
 
 const registerForm = reatomForm(
   {
@@ -556,7 +577,7 @@ const registerForm = reatomForm(
       password: z.string().min(8),
       confirmPassword: z.string().min(1),
     }),
-    onSubmit: async (values): Promise<AuthResult> => {
+    onSubmit: async (values) => {
       const response = await wrap(
         fetch('/api/register', {
           method: 'POST',
@@ -564,23 +585,30 @@ const registerForm = reatomForm(
           body: JSON.stringify(values),
         }),
       )
-      const payload: AuthResult = await wrap(response.json())
-      return payload
+      return await wrap(response.json())
     },
   },
 )
 ```
 
-Reactive validation note
+Form options
 
-- The validate callback tracks atoms it reads after the first trigger.
-- This enables dependent validation without manual wiring.
+- **schema** - Standard Schema (zod, valibot) for whole-form validation, errors distributed to fields by path
+- **onSubmit** - async handler, receives schema-validated data
+- **validateOnChange** / **validateOnBlur** - default validation triggers for all fields (defaults: false)
+- **keepErrorOnChange** / **keepErrorDuringValidating** - error reset behavior
+- **resetOnSubmit** - reset form after successful submit (default: false)
 
-Submit notes
+Submit flow: trigger all field validations -> run schema validation -> call `validateBeforeSubmit` -> call `onSubmit`.
 
-- **submit** is async and expects errors to be thrown.
-- **submit.error()** holds the latest error.
-- **form.reset()** cancels submit and resets submitted state.
+Key points
+
+- **submit** extends `withAsyncData`: `submit.ready()`, `submit.error()`, `submit.data()`
+- **form.validation.trigger()** returns `{ errors, triggered, validating }`
+- **form.reset()** cancels submit, resets all fields and submitted state
+- **form.submitted()** - boolean atom, true after successful submit
+- **form.init(partialState)** - set initial values for fields without triggering validation
+- Reactive validation: the `validate` callback in field options tracks atoms it reads after the first trigger, enabling dependent cross-field validation without manual wiring
 
 ### React binding
 
@@ -613,32 +641,46 @@ export const RegisterForm = reatomComponent(() => {
 }, 'RegisterForm')
 ```
 
-Tricky
+**bindField(field)** returns `{ value, onChange, onBlur, onFocus, error }` for input binding (or `{ checked, ... }` for boolean fields). All callbacks are pre-wrapped with `wrap`.
 
-- Validation errors for schema are distributed by path.
-- Triggered state for field sets is true only when all fields were triggered.
+## Routing
 
-## Routing + logger example (short but full-featured)
+Reatom routing is built on top of `urlAtom` and provides type-safe route matching, nested routes with loaders, and framework-agnostic rendering.
 
-This example uses routes, loaders, and logger setup for a typical SPA.
+### Route atom
 
-### setup.ts
+A route is a computed atom that returns `null` (no match) or parsed params. Create nested routes with `.reatomRoute()`.
 
-```ts
-import { connectLogger, log } from '@reatom/core'
+Route options accept:
 
-if (import.meta.env.MODE === 'development') {
-  connectLogger()
-}
+- **path** - pattern string with `:param` and `:param?` for optional segments
+- **params** - Standard Schema or function to validate and transform path params
+- **search** - Standard Schema to validate and transform search params
+- **loader** - async function that receives validated params, auto-runs on match and auto-aborts on unmatch or param change
+- **render** - framework-agnostic component function for route composition
 
-declare global {
-  var LOG: typeof log
-}
+Route API surface:
 
-globalThis.LOG = log
-```
+- **route()** -> `null | params` - parsed params when URL matches, null otherwise
+- **route.go(params, replace?)** - navigate to this route
+- **route.path(params)** -> `string` - build URL path without navigating
+- **route.match()** -> `boolean` - true for partial or exact URL match
+- **route.exact()** -> `boolean` - true only for exact match (no further path segments)
+- **route.pattern** -> `string` - the path pattern string
+- **route.loader** - computed + withAsyncData: `loader.data()`, `loader.ready()`, `loader.error()`, `loader.retry()`
+- **route.outlet()** -> `RouteChild[]` - rendered results of active child routes
+- **route.render()** -> `RouteChild | null` - this route's render result
+- **route.routes** - registry of child routes
+- **route.reatomRoute(subpath | options)** - create a child route
 
-### routes.ts
+Route nesting: parent `.match()` must be true for child to evaluate. Child `.loader` awaits parent `.loader` before resolving.
+
+Global helpers:
+
+- **is404** - computed, true when no defined routes match current URL
+- **isSomeLoaderPending** - computed, true when any route loader is pending
+
+### Full example
 
 ```ts
 import { isSomeLoaderPending, reatomRoute, wrap } from '@reatom/core'
@@ -659,8 +701,7 @@ export const usersRoute = dashboardRoute.reatomRoute({
   async loader({ q, page }) {
     const query = encodeURIComponent(q ?? '')
     const response = await wrap(fetch(`/api/users?q=${query}&page=${page}`))
-    const payload: UserList = await wrap(response.json())
-    return payload
+    return await wrap(response.json()) as UserList
   },
 })
 
@@ -671,15 +712,14 @@ export const userRoute = usersRoute.reatomRoute({
   }),
   async loader({ userId }) {
     const response = await wrap(fetch(`/api/users/${userId}`))
-    const payload: User = await wrap(response.json())
-    return payload
+    return await wrap(response.json()) as User
   },
 })
 
 export const isRouteLoading = isSomeLoaderPending
 ```
 
-### App and pages
+### Routing in components
 
 ```tsx
 import { wrap } from '@reatom/core'
@@ -744,18 +784,44 @@ export const App = reatomComponent(() => {
 
 Notes
 
-- Import setup.ts before any model to enable **connectLogger** hooks.
-- Route loaders are async computed with auto-cancel.
-- Use **wrap** for event handlers and async boundaries.
+- Route loaders are computed + withAsyncData with auto-cancel on route change or unmatch.
+- Use **wrap** for event handlers in components.
+- **reatomComponent** is the React adapter: auto-subscribes to all atoms read inside and rerenders on changes. Supports React Suspense.
+- **reatomFactoryComponent** splits init logic (runs once) from render logic (runs on every rerender), useful for creating local atoms and effects per component instance.
+
+## Logger
+
+```ts
+import { connectLogger, log } from '@reatom/core'
+
+if (import.meta.env.MODE === 'development') {
+  connectLogger()
+}
+
+declare global {
+  var LOG: typeof log
+}
+globalThis.LOG = log
+```
+
+**connectLogger()** hooks into all non-private atoms and actions globally. Logs state changes, action calls, parameters, and stack traces. Adapts formatting for browser (colored groups) and Node.js (ANSI codes). Private atoms (names starting with `_` or containing `._`) are skipped.
+
+**log** / **LOG** is a special action for manual debug logging. Logs appear only when `connectLogger()` is active - production-safe.
+
+- `LOG('message', data)` - log anything with automatic stack trace
+- `LOG.state('key', value)` - log only when value actually changes (deduplicates by key)
+- `connectLogger({ match: (name) => name.startsWith('myFeature.') })` - filter by name, or return a CSS color string for custom highlighting
+
+Import your setup file before any model to ensure **connectLogger** hooks are applied to all atoms and actions.
 
 ## URL sync and persistence helpers
 
-### **withSearchParams** for list filters
+### **withSearchParams**
+
+Two-way sync between atom state and URL search params. Atom updates when URL changes, URL updates when atom changes.
 
 ```ts
 import { atom, withSearchParams } from '@reatom/core'
-
-type Sort = 'popular' | 'new' | 'price'
 
 const query = atom('', 'catalog.query').extend(withSearchParams('q'))
 const page = atom(1, 'catalog.page').extend(
@@ -764,7 +830,7 @@ const page = atom(1, 'catalog.page').extend(
     serialize: (value) => (value === 1 ? undefined : String(value)),
   }),
 )
-const sort = atom<Sort>('popular', 'catalog.sort').extend(
+const sort = atom<'popular' | 'new' | 'price'>('popular', 'catalog.sort').extend(
   withSearchParams('sort', (value) =>
     value === 'new' || value === 'price' || value === 'popular'
       ? value
@@ -773,37 +839,98 @@ const sort = atom<Sort>('popular', 'catalog.sort').extend(
 )
 ```
 
-### **withLocalStorage** for preferences
+Options:
+
+- **parse(value?: string) -> T** - parse URL string to atom state
+- **serialize(value: T) -> string | undefined** - serialize to URL string, return `undefined` to remove the param from URL
+- **replace** - use `replaceState` instead of `pushState` (default: false)
+- **path** - limit sync to specific URL path prefix (e.g., `'/dashboard/*'`)
+
+Short form: `withSearchParams('key', parseFn)` - parse only, serialize defaults to `String()`.
+
+**searchParamsAtom** is a standalone computed atom of all URL search params as `Record<string, string>`, with `.set(key, value)`, `.del(key)`, and `.lens(key, parse?)` for creating bound atoms.
+
+### **withLocalStorage** and persistence
 
 ```ts
 import { atom, withLocalStorage } from '@reatom/core'
 
-type Theme = 'light' | 'dark'
-
-const theme = atom<Theme>('light', 'theme').extend(withLocalStorage('theme'))
+const theme = atom<'light' | 'dark'>('light', 'theme').extend(
+  withLocalStorage('theme'),
+)
 ```
 
-## Suspense notes
+All `withPersist`-based extensions share common options:
 
-Use suspense for global initialization, not for dynamic page data.
+- **key** - storage key (required)
+- **toSnapshot** / **fromSnapshot** - custom serialization / deserialization
+- **version** - schema version, clears stale data on version mismatch
+- **time** - TTL in milliseconds (`Infinity` by default)
 
-- **withSuspense** adds **.suspended()** that throws promise for Suspense.
-- **withSuspenseInit** turns async init atoms into sync after init.
-- **withSuspenseRetry** retries actions that touch suspended atoms.
-- Use **preserve** to keep previous data during refresh.
-- Avoid non-idempotent side effects inside **withSuspenseRetry**.
+Available adapters:
 
-## Transactions notes
+- **withLocalStorage** - persistent cross-session, cross-tab sync via storage events, auto-fallback to memory
+- **withSessionStorage** - per-tab session storage, auto-fallback to memory
+- **withIndexedDb** - for large data, async adapter
+- **withBroadcastChannel** - explicit cross-tab sync without storage
+- **withCookie** / **withCookieStore** - cookie-backed state
+- **createMemStorage** - in-memory, useful for tests and SSR
 
-Transactions support optimistic updates with rollback.
+## Suspense
 
-- **withRollback** on atoms tracks state changes.
-- **withTransaction** on actions triggers rollback on errors.
-- **action.rollback()** rolls back only the last call of that action.
-- **action.stop()** commits the last call and clears rollback queue.
-- Abort does not trigger rollback.
+Use suspense for global initialization and early data loading, not for dynamic page data (use computed + `withAsyncData` for that).
 
-Example
+### **withSuspense**
+
+Adds `.suspended()` computed that throws the promise for React Suspense boundaries. Returns resolved value when fulfilled, throws error when rejected.
+
+```ts
+const config = computed(async () => {
+  const response = await wrap(fetch('/api/config'))
+  return await wrap(response.json())
+}, 'config').extend(withSuspense())
+```
+
+In component: `config.suspended()` throws promise while loading, returns data when ready.
+
+- `withSuspense({ preserve: true })` keeps previous state during re-fetch instead of throwing, prevents UI flickering
+
+### **withSuspenseInit**
+
+Turns an async atom initializer into a synchronous atom after initialization. Throws promise during init (for Suspense), then operates synchronously.
+
+```ts
+const todos = atom<Todo[]>([]).extend(
+  withSuspenseInit(async () => {
+    const cached = await indexedDb.get('todos')
+    return cached ?? []
+  }),
+  withChangeHook((state) => indexedDb.set('todos', state)),
+)
+```
+
+Perfect for local-first architecture: async load on init, then synchronous reads and writes with sync-back.
+
+### **withSuspenseRetry**
+
+Auto-retries an async action when it reads a suspended atom (promise thrown). Keeps retrying until all suspensions resolve.
+
+Avoid non-idempotent side effects inside the action body, as it may re-execute multiple times.
+
+### **settled**
+
+Helper to check promise state synchronously without Suspense: returns resolved value if fulfilled, throws if rejected, returns fallback for pending. Uses an internal WeakMap cache.
+
+## Transactions
+
+Optimistic updates with automatic rollback on error.
+
+### Pattern
+
+1. Mark atoms with **withRollback()** - captures state snapshot before each change
+2. Mark actions with **withTransaction()** - auto-calls rollback on rejection, adds `.rollback()` and `.stop()`
+3. On error: all `withRollback` atoms in the transaction restore to their pre-transaction state
+4. On success: call `action.stop()` to commit and clear the rollback queue
 
 ```ts
 import {
@@ -828,16 +955,73 @@ const saveTodo = action(async (todo: Todo) => {
       body: JSON.stringify(todo),
     }),
   )
-  const result: Todo = await wrap(response.json())
-  return result
+  const savedTodo: Todo = await wrap(response.json())
+  saveTodo.stop()
+  return savedTodo
 }, 'todos.save').extend(withAsync(), withTransaction())
 ```
 
+Key points
+
+- **saveTodo.rollback()** - manually rollback the last call from outside
+- **saveTodo.stop()** - commit the last call, prevent any future rollback for it
+- Abort errors do **not** trigger rollback (only real errors do)
+- Each action call has its own rollback scope
+- Custom rollback logic: `withRollback({ onRollback: ({ beforeState, currentState, transactionState }) => newState })`. Default rollback restores `beforeState` only if `currentState` hasn't been changed by other code since the transaction.
+- **reatomTransaction({ name })** creates isolated transaction scopes for feature-specific rollback groups, preventing unrelated rollbacks from interfering
+
 ## SSR and testing
 
-- **context.start** creates isolated contexts for SSR requests or tests.
-- **clearStack** forces explicit **wrap** usage, useful for strict isolation, not recommended by default.
-- **context.reset** clears the default global context between tests run (if you not using clearStack).
+### **context.start**
+
+Creates an isolated reactive context. All atoms and actions inside see their own fresh state, independent from the global context. Returns the callback's result.
+
+```ts
+import { context } from '@reatom/core'
+
+const result = context.start(() => {
+  counter.set(5)
+  return doubled()
+})
+```
+
+Use for SSR request isolation (each request gets its own state) and tests that need clean state.
+
+### **context.reset**
+
+Clears the default global context between test runs (atoms reset to their initial state, subscriptions cleared). Use if you are not using `clearStack`.
+
+```ts
+beforeEach(() => {
+  context.reset()
+})
+```
+
+### **clearStack**
+
+Removes the implicit global context stack, forcing explicit `wrap()` on all async boundaries. Useful for strict isolation in libraries, but **not recommended by default** as it makes casual usage harder.
+
+### Test utilities
+
+`@reatom/core/test` provides wrapped test helpers. Imports `clearStack` automatically and wraps each test in `context.start`:
+
+```ts
+import { test, expect, subscribe } from '@reatom/core/test'
+import { atom } from '@reatom/core'
+
+test('counter increments', () => {
+  const counter = atom(0, 'counter')
+  const sub = subscribe(counter)
+
+  counter.set(5)
+  expect(counter()).toBe(5)
+  expect(sub).toHaveBeenCalledTimes(2)
+  expect(sub).toHaveBeenLastCalledWith(5)
+})
+```
+
+- `test(name, fn)` - wraps fn in `context.start`, each test is fully isolated
+- `subscribe(atom, cb?)` - returns vitest mock with `.unsubscribe()`, tracks all state updates including the initial one
 
 ## v3 migration highlights
 
@@ -863,63 +1047,69 @@ additional features, recipes, adapters, and edge cases in the docs: https://v100
 
 Core
 
-- **addGlobalExtension** for global cross-cutting behavior
-- **withActions** for attaching methods as actions
-- **withMiddleware** and **withParams** for middleware and parameter transforms
-- **bind** for lightweight context binding
-- **context**, **clearStack**, **mock**, **anonymizeNames** for isolation and testing
-- **isAtom**, **isAction**, **isComputed**, **isConnected**, **named** for introspection
+- **addGlobalExtension** - apply an extension to all atoms and actions created after the call, useful for logging and global middleware
+- **withActions** - attach methods to atoms as tracked actions (actions have logging, `getCalls` tracking, and hook support)
+- **withMiddleware** and **withParams** - intercept and transform atom/action computations
+- **bind** - lightweight context binding for callbacks that run outside reactive context
+- **mock** - replace atom/action behavior for testing
+- **anonymizeNames** - strip debug names for production bundles
+- **isAtom**, **isAction**, **isComputed**, **isConnected**, **named** - introspection utilities
 
 Extensions
 
-- **withAbort** for abortable actions and computeds
-- **withMemo** to stabilize computed outputs
-- **withDynamicSubscription** to avoid unnecessary connections
-- **withSuspense** and **withSuspenseRetry** for Suspense integration
-- **addChangeHook** and **addCallHook** for dynamic hook wiring
-- **withDisconnectHook** for explicit disconnect actions
+- **withAbort** - abortable actions and computeds with strategies: `'last-in-win'` (default, aborts previous on new call), `'first-in-win'` (ignores new calls while running), `'manual'` (only explicit `.abort()`). Adds `.abort()` action to the target.
+- **withMemo** - stabilize computed outputs with deep equality (`isDeepEqual`)
+- **withDynamicSubscription** - subscribe computed without keeping it in the dependency graph, auto-unsubscribes when not needed
+- **addChangeHook** and **addCallHook** - dynamically wire hooks to atoms/actions from outside (unlike `withChangeHook` / `withCallHook` which are applied via `.extend()`)
+- **withDisconnectHook** - shortcut to `withConnectHook(() => () => cb())`
 
 Methods
 
-- **abortVar** and **variable** for async context variables
-- **peek** for non-reactive reads
-- **schedule** and **retry** for controlled reevaluation
-- **deatomize** to unwrap atoms into plain objects
-- **reatomLens** and **reatomObservable** for interop patterns
-- **framePromise** and **getStackTrace** for advanced debugging
-- **isCausedBy** to guard against self-triggered updates
-- **retryComputed** to reevaluate a computed atom. Note that computed without dependencies will be never reevaluated without this method.
+- **abortVar** - async context variable tracking AbortControllers through the frame stack. `.subscribe()` creates abort-aware subscriptions, `.throwIfAborted()` checks the current context, `.spawn()` runs code outside the abort boundary.
+- **variable** - general async context variable (like TC39 AsyncContext proposal). Use for IoC/DI patterns: define `variable<Service>()`, provide via `.run(impl, fn)`, consume via `.require()`.
+- **peek(cb, ...args)** - execute callback without reactive tracking (no dependency registration)
+- **schedule(fn, queue?)** - schedule callback after current batch completes, returns a promise
+- **retryComputed(target)** - reset deps and re-evaluate a computed atom. Computed without dependencies will never re-evaluate without this.
+- **deatomize(value)** - recursively unwrap atoms in a nested structure into plain values
+- **reatomLens** and **reatomObservable** - interop with lens-based and RxJS-like patterns
+- **framePromise** and **getStackTrace** - advanced debugging of the reactive graph
+- **isCausedBy(action)** - check if the current computation was triggered by a specific action, useful to guard against self-triggered updates
 
 Routing
 
-- **searchParamsAtom** and **withSearchParams** for URL search state
-- **urlAtom** for low-level URL control, link interception, sync hooks
-- **is404** and **isSomeLoaderPending** for route status
+- **searchParamsAtom** and **withSearchParams** - URL search state (detailed above)
+- **urlAtom** - low-level URL atom with `.set(url, replace?)`, link interception, sync hooks
+- **is404** and **isSomeLoaderPending** - global route status helpers
 
 Primitives
 
-- **reatomArray**, **reatomBoolean**, **reatomEnum**, **reatomNumber**, **reatomString**
-- **reatomMap**, **reatomSet**, **reatomRecord**, **reatomLinkedList**
+Rich atom wrappers with built-in actions for common data structures:
+
+- **reatomArray** - `.push()`, `.pop()`, `.shift()`, `.unshift()`
+- **reatomBoolean** - `.setTrue()`, `.setFalse()`, `.toggle()`, `.reset()`
+- **reatomEnum** - `.setX()` for each variant, `.reset()`, `.enum` object
+- **reatomNumber** - `.increment(by?)`, `.decrement(by?)`, `.random(min?, max?)`, `.reset()`
+- **reatomString** - `.reset()`
+- **reatomMap** - `.set(key, value)`, `.delete(key)`, `.clear()`, `.reset()`, `.getOrCreate(key, creator)`, `.size` computed
+- **reatomSet** - `.add()`, `.delete()`, `.toggle()`, `.clear()`, `.reset()`, `.size` computed
+- **reatomRecord** - `.merge(partial)`, `.omit(...keys)`, `.reset(...keys?)`
+- **reatomLinkedList** - efficient ordered list with `.create()`, `.remove()`, `.move()`, `.array` computed, `.swap()`
 
 Persistence
 
-- **reatomPersist** for custom storage adapters
-- **withLocalStorage** and **withSessionStorage** for web storage
-- **withIndexedDb** for IndexedDB persistence
-- **withBroadcastChannel** for cross-tab sync
-- **withCookie** and **withCookieStore** for cookie-backed state
-- **createMemStorage** for in-memory persistence in tests
+- **reatomPersist** - factory for custom storage adapters
+- **withLocalStorage** and **withSessionStorage** - web storage (detailed above)
+- **withIndexedDb** - for large data, async adapter
+- **withBroadcastChannel** - explicit cross-tab sync
+- **withCookie** and **withCookieStore** - cookie-backed state
+- **createMemStorage** - in-memory persistence for tests
 
 Web
 
-- **onLineAtom** for network status
-- **reatomMediaQuery** for media query binding
-- **reatomWebSocket** for websocket state
-- **rAF** for requestAnimationFrame scheduling
-- **fetch** wrapper for consistent context usage
-
-Utils
-
-- General helpers for equality, abort errors, timers, and typed helpers
+- **onLineAtom** - reactive network status (`navigator.onLine`)
+- **reatomMediaQuery** - reactive media query binding
+- **reatomWebSocket** - full websocket state management with auto-reconnect, message history, send/receive actions
+- **rAF** - requestAnimationFrame scheduling for batched DOM updates
+- **fetch** wrapper - context-aware fetch with automatic `wrap` integration
 
 <!-- // TODO react and so on -->
