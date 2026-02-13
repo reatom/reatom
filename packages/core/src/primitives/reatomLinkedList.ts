@@ -1,10 +1,39 @@
-import type { Action, Atom, Computed } from '../core'
+import type { Action, Atom, AtomLike, Computed } from '../core'
 import { action, atom, computed, isAtom, named, ReatomError } from '../core'
 import { peek } from '../methods'
 import type { Fn, Rec } from '../utils'
 import { isObject } from '../utils'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
+
+export type LinkedListViewParams<Node extends LLNode> =
+  | {
+      offset: number
+      limit: number
+    }
+  | {
+      from: null | Node
+      limit: number
+    }
+  | {
+      to: null | Node
+      limit: number
+    }
+  | {
+      cursor: null | Node
+      before: number
+      after: number
+    }
+
+export type LinkedListViewSource<Node extends LLNode> =
+  | LinkedListViewParams<Node>
+  | AtomLike<LinkedListViewParams<Node>>
+  | (() => LinkedListViewParams<Node>)
+
+export interface LinkedListViewAtom<Node extends LLNode = LLNode>
+  extends Computed<Array<Node>> {
+  total: Computed<number>
+}
 
 /** @private */
 export const LL_PREV = /* @__PURE__ */ Symbol('Reatom linked list prev')
@@ -42,6 +71,11 @@ export interface LinkedListLikeAtom<
   T extends LinkedList = LinkedList,
 > extends Atom<T> {
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
+
+  reatomView: (
+    range: LinkedListViewSource<T extends LinkedList<infer Node> ? Node : never>,
+    options?: string | { name?: string },
+  ) => LinkedListViewAtom<T extends LinkedList<infer Node> ? Node : never>
 
   __reatomLinkedList: true
 }
@@ -118,6 +152,11 @@ export interface LinkedListDerivedAtom<
   T extends LLNode,
 > extends Computed<LinkedListDerivedState<Node, T>> {
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
+
+  reatomView: (
+    range: LinkedListViewSource<T>,
+    options?: string | { name?: string },
+  ) => LinkedListViewAtom<T>
 
   __reatomLinkedList: true
 }
@@ -260,6 +299,164 @@ const toArray = <T extends Rec>(
     i++
   }
   return arr.length === prev?.length ? prev : arr
+}
+
+const clampInt = (value: number, min: number, max: number): number => {
+  const int = Number.isFinite(value) ? Math.trunc(value) : 0
+  if (int < min) return min
+  if (int > max) return max
+  return int
+}
+
+const isInLinkedList = <Node extends LLNode>(
+  ll: LinkedList<Node>,
+  node: null | Node,
+): node is Node => {
+  if (!node) return false
+  if (ll.head === node || ll.tail === node) return true
+  return node[LL_PREV] !== null || node[LL_NEXT] !== null
+}
+
+const toArrayLimit = <Node extends LLNode>(
+  head: null | Node,
+  limit: number,
+  prev?: Array<Node>,
+): Array<Node> => {
+  const arr: Array<Node> = []
+  let i = 0
+  while (head && i < limit) {
+    if (prev !== undefined && prev[i] !== head) prev = undefined
+    arr.push(head)
+    head = head[LL_NEXT]
+    i++
+  }
+  return arr.length === prev?.length ? prev : arr
+}
+
+const reuseArray = <T>(prev: undefined | Array<T>, next: Array<T>): Array<T> => {
+  if (!prev || prev.length !== next.length) return next
+  for (let i = 0; i < next.length; i++) {
+    if (prev[i] !== next[i]) return next
+  }
+  return prev
+}
+
+const nodeAtIndex = <Node extends LLNode>(
+  ll: LinkedList<Node>,
+  index: number,
+): null | Node => {
+  if (index < 0 || index >= ll.size) return null
+
+  const distanceFromHead = index
+  const distanceFromTail = ll.size - 1 - index
+
+  if (distanceFromHead <= distanceFromTail) {
+    let node = ll.head
+    for (let i = 0; i < index; i++) node = node?.[LL_NEXT] ?? null
+    return node
+  } else {
+    let node = ll.tail
+    for (let i = 0; i < distanceFromTail; i++) node = node?.[LL_PREV] ?? null
+    return node
+  }
+}
+
+const createReatomView = <Node extends LLNode>(
+  list: AtomLike<LinkedList<Node>>,
+  listName: string,
+): LinkedListLikeAtom<LinkedList<Node>>['reatomView'] => {
+  return (range, options) => {
+    const { name = named(`${listName}.reatomView`) } =
+      typeof options === 'string' ? { name: options } : (options ?? {})
+
+    const readRange = (): LinkedListViewParams<Node> => {
+      if (typeof range === 'function') {
+        if (isAtom(range)) return range()
+        return (range as () => LinkedListViewParams<Node>)()
+      }
+      return range
+    }
+
+    const items = computed((prev: Array<Node> = []): Array<Node> => {
+      const ll = list()
+      const view = readRange()
+
+      if ('offset' in view) {
+        const offset = clampInt(view.offset, 0, ll.size)
+        const limit = clampInt(view.limit, 0, ll.size - offset)
+        if (limit === 0) return prev.length === 0 ? prev : []
+
+        const head = nodeAtIndex(ll, offset)
+        if (!head) return prev.length === 0 ? prev : []
+        return toArrayLimit(head, limit, prev)
+      }
+
+      if ('from' in view) {
+        const limit = clampInt(view.limit, 0, ll.size)
+        if (limit === 0) return prev.length === 0 ? prev : []
+
+        let head: null | Node = view.from
+        if (!isInLinkedList(ll, head)) {
+          head = null
+          for (let i = 0; i < prev.length && !head; i++) {
+            const prevNode = prev[i]!
+            if (isInLinkedList(ll, prevNode)) head = prevNode
+          }
+        }
+        if (!head) return prev.length === 0 ? prev : []
+        return toArrayLimit(head, limit, prev)
+      }
+
+      if ('to' in view) {
+        const limit = clampInt(view.limit, 0, ll.size)
+        if (limit === 0) return prev.length === 0 ? prev : []
+
+        let tail: null | Node = view.to
+        if (!isInLinkedList(ll, tail)) {
+          tail = null
+          for (let i = prev.length - 1; i >= 0 && !tail; i--) {
+            const prevNode = prev[i]!
+            if (isInLinkedList(ll, prevNode)) tail = prevNode
+          }
+        }
+        if (!tail) return prev.length === 0 ? prev : []
+
+        const reversed: Array<Node> = []
+        let node: null | Node = tail
+        for (let i = 0; i < limit && node; i++) {
+          reversed.push(node)
+          node = node[LL_PREV]
+        }
+        reversed.reverse()
+        return reuseArray(prev, reversed)
+      }
+
+      const before = clampInt(view.before, 0, ll.size)
+      const after = clampInt(view.after, 0, ll.size)
+      if (before + after + 1 === 0) return prev.length === 0 ? prev : []
+
+      let cursor: null | Node = view.cursor
+      if (!isInLinkedList(ll, cursor)) {
+        cursor = null
+        for (let i = 0; i < prev.length && !cursor; i++) {
+          const prevNode = prev[i]!
+          if (isInLinkedList(ll, prevNode)) cursor = prevNode
+        }
+      }
+      if (!cursor) return prev.length === 0 ? prev : []
+
+      let head: null | Node = cursor
+      for (let i = 0; i < before && head?.[LL_PREV]; i++) head = head[LL_PREV]
+
+      return toArrayLimit(head, before + after + 1, prev)
+    }, name)
+
+    const total = computed(() => list().size, `${name}.total`)
+
+    return Object.assign(items, {
+      total,
+    }) satisfies LinkedListViewAtom<Node>
+  }
 }
 
 export function reatomLinkedList<
@@ -729,7 +926,13 @@ export function reatomLinkedList<
         `${name}.array`,
       )
 
-    return Object.assign(mapList, { array, __reatomLinkedList: true as const })
+    const reatomView = createReatomView(mapList, name)
+
+    return Object.assign(mapList, {
+      array,
+      reatomView,
+      __reatomLinkedList: true as const,
+    })
   }
 
   // TODO there is a bug with `del` logic
@@ -793,6 +996,8 @@ export function reatomLinkedList<
   //   }, name)
   // }
 
+  const reatomView = createReatomView(linkedList, name)
+
   return Object.assign(linkedList, {
     batch,
     create,
@@ -811,6 +1016,7 @@ export function reatomLinkedList<
     initiateFromSnapshot: createLinkedListFromSnapshot,
 
     reatomMap,
+    reatomView,
     // reatomFilter,
     // reatomReduce,
 
