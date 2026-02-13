@@ -411,3 +411,86 @@ test('should track createMany and removeMany with reatomMap', () => {
   expect(mapped().changes.length).toBe(1)
   expect(mapped().changes[0]!.kind).toBe('removeMany')
 })
+
+test('should derive a stable reatomView range', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[0], [1], [2], [3], [4], [5]])
+  notify()
+
+  const from = atom(1)
+  const size = atom(3)
+  const view = list.reatomView({ from, size })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3])
+  expect(view().hasPrev).toBe(true)
+  expect(view().hasNext).toBe(true)
+
+  const previousArray = view.array()
+  const previousVersion = view().version
+  const previousSourceVersion = view().sourceVersion
+
+  list.create(6)
+  notify()
+
+  expect(track).toBeCalledTimes(1)
+  expect(view.array()).toBe(previousArray)
+  expect(view().version).toBe(previousVersion)
+  expect(view().sourceVersion).toBeGreaterThan(previousSourceVersion)
+  expect(view().total).toBe(7)
+
+  from.set(2)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4])
+  expect(view().from).toBe(2)
+  expect(view().to).toBe(5)
+
+  size.set(2)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3])
+  expect(view().size).toBe(2)
+})
+
+test('should support computed reatomView options', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const from = atom(-4)
+  const to = atom(-1)
+  const size = atom(10)
+  const options = computed(() => ({
+    from: from(),
+    to: to(),
+    size: size(),
+  }))
+  const view = list.reatomView(options)
+
+  expect(view.array().map(({ n }) => n)).toEqual([2, 3, 4])
+  expect(view().hasPrev).toBe(true)
+  expect(view().hasNext).toBe(true)
+
+  size.set(2)
+  notify()
+  expect(view.array().map(({ n }) => n)).toEqual([2, 3])
+  expect(view().to).toBe(3)
+})
+
+test('should support reatomView on mapped linked lists', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4]])
+  notify()
+
+  const mapped = list.reatomMap(({ n }) => ({ doubled: n * 2 }))
+  const view = mapped.reatomView({ from: 1, size: 2 })
+  const track = subscribe(
+    computed(() => view.array().map(({ doubled }) => doubled)),
+  )
+
+  expect(track.mock.lastCall?.[0]).toEqual([4, 6])
+
+  const sourceNodes = list.array()
+  list.swap(sourceNodes[1]!, sourceNodes[2]!)
+  notify()
+  expect(track.mock.lastCall?.[0]).toEqual([6, 4])
+})

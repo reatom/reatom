@@ -1,10 +1,15 @@
-import type { Action, Atom, Computed } from '../core'
+import type { Action, Atom, AtomLike, Computed } from '../core'
 import { action, atom, computed, isAtom, named, ReatomError } from '../core'
 import { peek } from '../methods'
 import type { Fn, Rec } from '../utils'
 import { isObject } from '../utils'
 
-type State<T> = T extends Atom<infer Value> ? Value : T
+type State<T> = T extends Atom<infer Value>
+  ? Value
+  : T extends Computed<infer Value>
+    ? Value
+    : T
+type ViewState<T> = T | (() => T)
 
 /** @private */
 export const LL_PREV = /* @__PURE__ */ Symbol('Reatom linked list prev')
@@ -37,6 +42,39 @@ export interface LinkedList<Node extends LLNode = LLNode> {
   version: number
   changes: Array<LLChanges<Node>>
 }
+
+export interface LinkedListViewOptions {
+  from?: ViewState<number>
+  to?: ViewState<number>
+  size?: ViewState<number>
+}
+
+export type LinkedListViewOptionsSource =
+  | LinkedListViewOptions
+  | (() => LinkedListViewOptions)
+
+export interface LinkedListViewState<Node extends LLNode = LLNode> {
+  from: number
+  to: number
+  size: number
+  total: number
+  hasPrev: boolean
+  hasNext: boolean
+  head: null | Node
+  tail: null | Node
+  version: number
+  sourceVersion: number
+}
+
+export interface LinkedListViewAtom<Node extends LLNode = LLNode>
+  extends Computed<LinkedListViewState<Node>> {
+  array: Computed<Array<Node>>
+}
+
+export type LinkedListViewFactory<Node extends LLNode = LLNode> = (
+  options?: string | LinkedListViewOptionsSource,
+  name?: string,
+) => LinkedListViewAtom<Node>
 
 export interface LinkedListLikeAtom<
   T extends LinkedList = LinkedList,
@@ -90,6 +128,8 @@ export interface LinkedListAtom<
         },
   ) => LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>
 
+  reatomView: LinkedListViewFactory<LLNode<Node>>
+
   // reatomFilter: (
   //   cb: (node: Node) => any,
   //   name?: string,
@@ -118,6 +158,7 @@ export interface LinkedListDerivedAtom<
   T extends LLNode,
 > extends Computed<LinkedListDerivedState<Node, T>> {
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
+  reatomView: LinkedListViewFactory<T>
 
   __reatomLinkedList: true
 }
@@ -260,6 +301,81 @@ const toArray = <T extends Rec>(
     i++
   }
   return arr.length === prev?.length ? prev : arr
+}
+
+const toArraySize = <T extends Rec>(
+  head: null | LLNode<T>,
+  size: number,
+  prev?: Array<LLNode<T>>,
+): Array<LLNode<T>> => {
+  const arr: Array<LLNode<T>> = []
+  let i = 0
+  while (head && i < size) {
+    if (prev !== undefined && prev[i] !== head) prev = undefined
+    arr.push(head)
+    head = head[LL_NEXT]
+    i++
+  }
+  return arr.length === prev?.length ? prev : arr
+}
+
+const readViewState = <T>(
+  value: ViewState<T> | undefined,
+  fallback: T,
+): T => {
+  if (value === undefined) return fallback
+  if (typeof value === 'function') return value()
+  return value
+}
+
+const normalizeSliceIndex = (
+  value: number | undefined,
+  size: number,
+  fallback: number,
+): number => {
+  if (value === undefined) return fallback
+  if (!Number.isFinite(value)) return value < 0 ? 0 : size
+
+  const normalizedValue = Math.trunc(value)
+  if (normalizedValue < 0) return Math.max(size + normalizedValue, 0)
+
+  return Math.min(normalizedValue, size)
+}
+
+const normalizeSliceSize = (value: number | undefined, maxSize: number): number => {
+  if (value === undefined) return maxSize
+  if (!Number.isFinite(value)) return value <= 0 ? 0 : maxSize
+
+  const normalizedValue = Math.trunc(value)
+  return Math.min(Math.max(normalizedValue, 0), maxSize)
+}
+
+const getNodeByIndex = <Node extends LLNode>(
+  state: LinkedList<Node>,
+  index: number,
+): null | Node => {
+  if (index < 0 || index >= state.size) return null
+
+  const distanceFromHead = index
+  const distanceFromTail = state.size - index - 1
+
+  if (distanceFromHead <= distanceFromTail) {
+    let node = state.head
+    let cursor = 0
+    while (node && cursor < distanceFromHead) {
+      node = node[LL_NEXT] as null | Node
+      cursor++
+    }
+    return node
+  }
+
+  let node = state.tail
+  let cursor = 0
+  while (node && cursor < distanceFromTail) {
+    node = node[LL_PREV] as null | Node
+    cursor++
+  }
+  return node
 }
 
 export function reatomLinkedList<
@@ -579,6 +695,115 @@ export function reatomLinkedList<
       ) as LinkedListAtom<Params, Node, Key>['map'])
     : (undefined as never)
 
+  const createReatomView = <ViewNode extends LLNode>(
+    source: AtomLike<LinkedList<ViewNode>, [], LinkedList<ViewNode>>,
+    sourceName: string,
+    checkBatching?: () => void,
+  ): LinkedListViewFactory<ViewNode> => {
+    return (
+      options: string | LinkedListViewOptionsSource = {},
+      maybeName?: string,
+    ): LinkedListViewAtom<ViewNode> => {
+      let optionsSource: LinkedListViewOptionsSource
+      let viewName: string
+
+      if (typeof options === 'string') {
+        optionsSource = {}
+        viewName = options
+      } else {
+        optionsSource = options
+        viewName = maybeName ?? named(`${sourceName}.reatomView`)
+      }
+
+      const view = computed((state?: LinkedListViewState<ViewNode>) => {
+        checkBatching?.()
+
+        const linkedState = source()
+        const viewOptions =
+          typeof optionsSource === 'function' ? optionsSource() : optionsSource
+
+        const from = normalizeSliceIndex(
+          readViewState(viewOptions.from, 0),
+          linkedState.size,
+          0,
+        )
+        const boundedTo = normalizeSliceIndex(
+          readViewState(viewOptions.to, linkedState.size),
+          linkedState.size,
+          linkedState.size,
+        )
+        const maxSize = Math.max(0, boundedTo - from)
+        const size = normalizeSliceSize(
+          readViewState(viewOptions.size, maxSize),
+          maxSize,
+        )
+        const to = from + size
+        const head = size === 0 ? null : getNodeByIndex(linkedState, from)
+
+        let tail = head
+        let tailShift = size - 1
+        while (tail && tailShift > 0) {
+          tail = tail[LL_NEXT] as null | ViewNode
+          tailShift--
+        }
+
+        const hasPrev = from > 0
+        const hasNext = to < linkedState.size
+        const isViewChanged =
+          !state ||
+          state.from !== from ||
+          state.to !== to ||
+          state.size !== size ||
+          state.head !== head ||
+          state.tail !== tail
+
+        const version = isViewChanged ? (state?.version ?? 0) + 1 : state.version
+
+        if (
+          state &&
+          !isViewChanged &&
+          state.total === linkedState.size &&
+          state.hasPrev === hasPrev &&
+          state.hasNext === hasNext &&
+          state.sourceVersion === linkedState.version
+        ) {
+          return state
+        }
+
+        return {
+          from,
+          to,
+          size,
+          total: linkedState.size,
+          hasPrev,
+          hasNext,
+          head,
+          tail,
+          version,
+          sourceVersion: linkedState.version,
+        }
+      }, viewName)
+
+      const array: LinkedListViewAtom<ViewNode>['array'] = computed(
+        (state: Array<ViewNode> = []) => {
+          const currentView = view()
+          return toArraySize(currentView.head, currentView.size, state)
+        },
+        `${viewName}.array`,
+      )
+
+      return Object.assign(view, { array })
+    }
+  }
+
+  const reatomView = createReatomView(linkedList, _name, () => {
+    if (STATE) {
+      throw new ReatomError(
+        `Can't compute the view of the linked list inside the batching.`,
+      )
+    }
+  })
+
   const reatomMap = <T extends Rec>(
     cb: (node: LLNode<Node>) => T,
     options:
@@ -729,7 +954,13 @@ export function reatomLinkedList<
         `${name}.array`,
       )
 
-    return Object.assign(mapList, { array, __reatomLinkedList: true as const })
+    const reatomView = createReatomView(mapList, name)
+
+    return Object.assign(mapList, {
+      array,
+      reatomView,
+      __reatomLinkedList: true as const,
+    })
   }
 
   // TODO there is a bug with `del` logic
@@ -811,6 +1042,7 @@ export function reatomLinkedList<
     initiateFromSnapshot: createLinkedListFromSnapshot,
 
     reatomMap,
+    reatomView,
     // reatomFilter,
     // reatomReduce,
 
