@@ -5,8 +5,16 @@ import { atom, computed, EXTENSIONS, notify, withActions } from '../core'
 import { connectLogger, log } from './connectLogger'
 import { getStackTrace } from './getStackTrace'
 
+const normalizeAtomIds = (stack: string) => {
+  const idMap = new Map<string, number>()
+  let nextId = 1
+  return stack.replace(/\[#(\d+)\]/g, (_, id) => {
+    if (!idMap.has(id)) idMap.set(id, nextId++)
+    return `[#${idMap.get(id)}]`
+  })
+}
+
 test('calc deps graph', async () => {
-  // Create atoms for a counter feature
   const counter = atom(0, 'counter').extend(
     withActions((target) => ({
       inc: () => target.set((s) => s + 1),
@@ -23,7 +31,7 @@ test('calc deps graph', async () => {
   })
 
   // prettier-ignore
-  expect(stack).toBe(
+  expect(normalizeAtomIds(stack)).toBe(
     `
 ─effect._subscribe
  └─ effect[#1]
@@ -38,16 +46,16 @@ test('calc deps graph', async () => {
   await wrap(sleep())
 
   // prettier-ignore
-  expect(stack).toBe(
+  expect(normalizeAtomIds(stack)).toBe(
 `
 ─effect._subscribe
- └─ effect[#5]
-    ├─ counter[#6]
-    │  └─ counter.inc[#9]
-    ├─ doubled[#7]
-    │  └─ counter[#6]
-    └─ isEven[#8]
-       └─ counter[#6]`.slice(1),
+ └─ effect[#1]
+    ├─ counter[#2]
+    │  └─ counter.inc[#3]
+    ├─ doubled[#4]
+    │  └─ counter[#2]
+    └─ isEven[#5]
+       └─ counter[#2]`.slice(1),
 )
 })
 
@@ -68,16 +76,16 @@ test('BFS log simplification', () => {
   notify()
 
   // prettier-ignore
-  expect(stack).toBe(
-    // there should be NO ` ─ a[#20]` after the second `b[#18]`
+  expect(normalizeAtomIds(stack)).toBe(
+    // there should be NO normalized a[#4] after the second b[#3]
     `
 ─effect._subscribe
- └─ effect[#16]
-    └─ d[#17]
-       ├─ b[#18]
-       │  └─ a[#20]
-       └─ c[#19]
-          └─ b[#18]`.slice(1),
+ └─ effect[#1]
+    └─ d[#2]
+       ├─ b[#3]
+       │  └─ a[#4]
+       └─ c[#5]
+          └─ b[#3]`.slice(1),
   )
 })
 
