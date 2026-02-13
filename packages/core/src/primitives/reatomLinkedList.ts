@@ -90,6 +90,11 @@ export interface LinkedListAtom<
         },
   ) => LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>
 
+  reatomView: (
+    lens: () => { offset: number; limit: number },
+    name?: string,
+  ) => LinkedListViewAtom<LLNode<Node>>
+
   // reatomFilter: (
   //   cb: (node: Node) => any,
   //   name?: string,
@@ -120,6 +125,18 @@ export interface LinkedListDerivedAtom<
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
 
   __reatomLinkedList: true
+}
+
+export interface LinkedListViewState<Node extends LLNode> {
+  items: Array<Node>
+  totalSize: number
+  offset: number
+  limit: number
+}
+
+export interface LinkedListViewAtom<Node extends LLNode>
+  extends Computed<LinkedListViewState<Node>> {
+  items: Computed<Array<Node>>
 }
 
 const addLL = <Node extends LLNode>(
@@ -732,6 +749,73 @@ export function reatomLinkedList<
     return Object.assign(mapList, { array, __reatomLinkedList: true as const })
   }
 
+  const reatomView = (
+    lens: () => { offset: number; limit: number },
+    viewName: string = named(`${_name}.reatomView`),
+  ): LinkedListViewAtom<LLNode<Node>> => {
+    const viewComputed = computed(
+      (
+        prev?: LinkedListViewState<LLNode<Node>>,
+      ): LinkedListViewState<LLNode<Node>> => {
+        const ll = linkedList()
+        const { offset: rawOffset, limit: rawLimit } = lens()
+
+        const clampedOffset = Math.max(0, Math.min(rawOffset, ll.size))
+        const clampedLimit = Math.max(0, rawLimit)
+
+        let current = ll.head
+        let skipped = 0
+        while (current !== null && skipped < clampedOffset) {
+          current = current[LL_NEXT]
+          skipped++
+        }
+
+        const items: Array<LLNode<Node>> = []
+        while (current !== null && items.length < clampedLimit) {
+          items.push(current)
+          current = current[LL_NEXT]
+        }
+
+        if (prev !== undefined) {
+          const itemsUnchanged =
+            prev.items.length === items.length &&
+            items.every((item, idx) => item === prev.items[idx])
+
+          if (itemsUnchanged) {
+            const stateUnchanged =
+              prev.totalSize === ll.size &&
+              prev.offset === clampedOffset &&
+              prev.limit === clampedLimit
+
+            if (stateUnchanged) return prev
+
+            return {
+              items: prev.items,
+              totalSize: ll.size,
+              offset: clampedOffset,
+              limit: clampedLimit,
+            }
+          }
+        }
+
+        return {
+          items,
+          totalSize: ll.size,
+          offset: clampedOffset,
+          limit: clampedLimit,
+        }
+      },
+      viewName,
+    )
+
+    const viewItems = computed(
+      () => viewComputed().items,
+      `${viewName}.items`,
+    )
+
+    return Object.assign(viewComputed, { items: viewItems })
+  }
+
   // TODO there is a bug with `del` logic
   // const reatomReduce = <T>(
   //   {
@@ -811,6 +895,7 @@ export function reatomLinkedList<
     initiateFromSnapshot: createLinkedListFromSnapshot,
 
     reatomMap,
+    reatomView,
     // reatomFilter,
     // reatomReduce,
 
