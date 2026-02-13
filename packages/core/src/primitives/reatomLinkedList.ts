@@ -6,6 +6,23 @@ import { isObject } from '../utils'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
+export interface LinkedListViewOptions {
+  offset: number
+  limit: number
+}
+
+export interface LinkedListViewState<Node extends LLNode> {
+  nodes: Array<Node>
+  offset: number
+  limit: number
+  size: number
+}
+
+export interface LinkedListViewAtom<Node extends LLNode>
+  extends Computed<LinkedListViewState<Node>> {
+  array: Computed<Array<Node>>
+}
+
 /** @private */
 export const LL_PREV = /* @__PURE__ */ Symbol('Reatom linked list prev')
 /** @private */
@@ -89,6 +106,13 @@ export interface LinkedListAtom<
           ) => void
         },
   ) => LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>
+
+  reatomView: (
+    options:
+      | (() => LinkedListViewOptions)
+      | LinkedListViewOptions,
+    name?: string,
+  ) => LinkedListViewAtom<LLNode<Node>>
 
   // reatomFilter: (
   //   cb: (node: Node) => any,
@@ -732,6 +756,131 @@ export function reatomLinkedList<
     return Object.assign(mapList, { array, __reatomLinkedList: true as const })
   }
 
+  const reatomView = (
+    options:
+      | (() => LinkedListViewOptions)
+      | LinkedListViewOptions,
+    viewName: string = named(`${_name}.reatomView`),
+  ): LinkedListViewAtom<LLNode<Node>> => {
+    const resolveOptions =
+      typeof options === 'function' ? options : () => options
+
+    let anchorNode: LLNode<Node> | null = null
+    let anchorIndex = 0
+    let anchorVersion = 0
+
+    const viewAtom = computed(
+      (
+        prevState?: LinkedListViewState<LLNode<Node>>,
+      ): LinkedListViewState<LLNode<Node>> => {
+        const ll = linkedList()
+        const { offset: rawOffset, limit: rawLimit } = resolveOptions()
+
+        const clampedOffset = Math.max(0, Math.min(rawOffset, ll.size))
+        const remainingAfterOffset = ll.size - clampedOffset
+        const clampedLimit = Math.max(
+          0,
+          Math.min(rawLimit, remainingAfterOffset),
+        )
+
+        let startNode: LLNode<Node> | null = null
+        const canUseAnchor =
+          anchorNode !== null && anchorVersion === ll.version
+
+        if (canUseAnchor) {
+          const delta = clampedOffset - anchorIndex
+          startNode = anchorNode
+
+          if (delta >= 0) {
+            for (let i = 0; i < delta && startNode; i++) {
+              startNode = startNode[LL_NEXT]
+            }
+          } else {
+            for (let i = 0; i < -delta && startNode; i++) {
+              startNode = startNode[LL_PREV]
+            }
+          }
+        } else {
+          const traverseFromTail = clampedOffset > ll.size / 2
+
+          if (traverseFromTail) {
+            startNode = ll.tail
+            for (
+              let i = ll.size - 1;
+              i > clampedOffset && startNode;
+              i--
+            ) {
+              startNode = startNode[LL_PREV]
+            }
+          } else {
+            startNode = ll.head
+            for (let i = 0; i < clampedOffset && startNode; i++) {
+              startNode = startNode[LL_NEXT]
+            }
+          }
+        }
+
+        const nodes: Array<LLNode<Node>> = []
+        let current = startNode
+        for (let i = 0; i < clampedLimit && current; i++) {
+          nodes.push(current)
+          current = current[LL_NEXT]
+        }
+
+        anchorNode = startNode
+        anchorIndex = clampedOffset
+        anchorVersion = ll.version
+
+        if (prevState) {
+          let nodesIdentical = prevState.nodes.length === nodes.length
+          if (nodesIdentical) {
+            for (let i = 0; i < nodes.length; i++) {
+              if (prevState.nodes[i] !== nodes[i]) {
+                nodesIdentical = false
+                break
+              }
+            }
+          }
+
+          if (
+            nodesIdentical &&
+            prevState.offset === clampedOffset &&
+            prevState.limit === clampedLimit &&
+            prevState.size === ll.size
+          ) {
+            return prevState
+          }
+
+          if (nodesIdentical) {
+            return {
+              nodes: prevState.nodes,
+              offset: clampedOffset,
+              limit: clampedLimit,
+              size: ll.size,
+            }
+          }
+        }
+
+        return {
+          nodes,
+          offset: clampedOffset,
+          limit: clampedLimit,
+          size: ll.size,
+        }
+      },
+      viewName,
+    )
+
+    const viewArray: Computed<Array<LLNode<Node>>> = computed(
+      () => viewAtom().nodes,
+      `${viewName}.array`,
+    )
+
+    return Object.assign(viewAtom, {
+      array: viewArray,
+    }) as LinkedListViewAtom<LLNode<Node>>
+  }
+
   // TODO there is a bug with `del` logic
   // const reatomReduce = <T>(
   //   {
@@ -811,6 +960,7 @@ export function reatomLinkedList<
     initiateFromSnapshot: createLinkedListFromSnapshot,
 
     reatomMap,
+    reatomView,
     // reatomFilter,
     // reatomReduce,
 

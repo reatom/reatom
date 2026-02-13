@@ -3,7 +3,13 @@ import { expect, subscribe, test, vi } from 'test'
 import { atom, computed, isAtom, isConnected, notify } from '../core'
 import { withChangeHook } from '../extensions'
 import { deatomize, isCausedBy } from '../methods'
-import { LL_NEXT, LL_PREV, reatomLinkedList } from './reatomLinkedList'
+import {
+  LL_NEXT,
+  LL_PREV,
+  reatomLinkedList,
+  type LinkedListViewState,
+  type LLNode,
+} from './reatomLinkedList'
 
 test('should respect initState, create and remove elements properly', () => {
   const list = reatomLinkedList({
@@ -410,4 +416,396 @@ test('should track createMany and removeMany with reatomMap', () => {
   expect(track.mock.lastCall?.[0]).toEqual([4])
   expect(mapped().changes.length).toBe(1)
   expect(mapped().changes[0]!.kind).toBe('removeMany')
+})
+
+test('reatomView: should select a range with static options', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ offset: 1, limit: 3 })
+  const track = subscribe(view.array)
+
+  expect(view().nodes.map(({ n }) => n)).toEqual([2, 3, 4])
+  expect(view().offset).toBe(1)
+  expect(view().limit).toBe(3)
+  expect(view().size).toBe(5)
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4])
+})
+
+test('reatomView: should select from the beginning', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[10], [20], [30], [40]])
+  notify()
+
+  const view = list.reatomView({ offset: 0, limit: 2 })
+
+  expect(view().nodes.map(({ n }) => n)).toEqual([10, 20])
+  expect(view().offset).toBe(0)
+  expect(view().limit).toBe(2)
+  expect(view().size).toBe(4)
+})
+
+test('reatomView: should select from the end', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ offset: 3, limit: 10 })
+
+  expect(view().nodes.map(({ n }) => n)).toEqual([4, 5])
+  expect(view().offset).toBe(3)
+  expect(view().limit).toBe(2)
+  expect(view().size).toBe(5)
+})
+
+test('reatomView: should handle empty list', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+
+  const view = list.reatomView({ offset: 0, limit: 10 })
+
+  expect(view().nodes).toEqual([])
+  expect(view().offset).toBe(0)
+  expect(view().limit).toBe(0)
+  expect(view().size).toBe(0)
+})
+
+test('reatomView: should clamp offset beyond list size', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: 100, limit: 5 })
+
+  expect(view().nodes).toEqual([])
+  expect(view().offset).toBe(3)
+  expect(view().limit).toBe(0)
+  expect(view().size).toBe(3)
+})
+
+test('reatomView: should handle zero limit', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: 1, limit: 0 })
+
+  expect(view().nodes).toEqual([])
+  expect(view().offset).toBe(1)
+  expect(view().limit).toBe(0)
+  expect(view().size).toBe(3)
+})
+
+test('reatomView: should react to reactive offset and limit', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4], [5], [6], [7], [8]])
+  notify()
+
+  const offset = atom(0)
+  const limit = atom(3)
+  const view = list.reatomView(() => ({
+    offset: offset(),
+    limit: limit(),
+  }))
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3])
+
+  offset.set(2)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([3, 4, 5])
+
+  offset.set(5)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([6, 7, 8])
+
+  limit.set(1)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([6])
+
+  offset.set(0)
+  limit.set(8)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([
+    1, 2, 3, 4, 5, 6, 7, 8,
+  ])
+})
+
+test('reatomView: should update when items are added to the list', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: 0, limit: 5 })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3])
+  expect(view().size).toBe(3)
+
+  list.create(4)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
+  expect(view().size).toBe(4)
+
+  list.create(5)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4, 5])
+  expect(view().size).toBe(5)
+
+  list.create(6)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4, 5])
+  expect(view().size).toBe(6)
+  expect(view().limit).toBe(5)
+})
+
+test('reatomView: should update when items are removed from view', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const nodes = list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ offset: 1, limit: 3 })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4])
+
+  list.remove(nodes[2]!)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 4, 5])
+  expect(view().size).toBe(4)
+})
+
+test('reatomView: should update when items are removed before view', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const nodes = list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ offset: 2, limit: 2 })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([3, 4])
+
+  list.remove(nodes[0]!)
+  notify()
+  // list is now [2,3,4,5], offset=2 yields [4,5]
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([4, 5])
+  expect(view().size).toBe(4)
+})
+
+test('reatomView: should handle swap within view', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const nodes = list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ offset: 1, limit: 3 })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([2, 3, 4])
+
+  list.swap(nodes[1]!, nodes[3]!)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([4, 3, 2])
+})
+
+test('reatomView: should handle move operations', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const nodes = list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ offset: 0, limit: 3 })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3])
+
+  list.move(nodes[4]!, null)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([5, 1, 2])
+})
+
+test('reatomView: should handle clear', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: 0, limit: 10 })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3])
+
+  list.clear()
+  notify()
+  expect(track.mock.lastCall?.[0]).toEqual([])
+  expect(view().size).toBe(0)
+})
+
+test('reatomView: should memoize when nothing changes', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ offset: 1, limit: 2 })
+  const track = subscribe(view)
+
+  const firstState = view()
+
+  notify()
+
+  const secondState = view()
+  expect(firstState).toBe(secondState)
+  expect(track).toBeCalledTimes(1)
+})
+
+test('reatomView: should preserve nodes array reference when only size changes', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: 0, limit: 2 })
+  const arrayTrack = subscribe(view.array)
+  notify()
+
+  const nodesBeforeAdd = view().nodes
+
+  list.create(99)
+  notify()
+
+  const nodesAfterAdd = view().nodes
+  expect(nodesBeforeAdd).toBe(nodesAfterAdd)
+  expect(view().size).toBe(4)
+  expect(arrayTrack).toBeCalledTimes(1)
+})
+
+test('reatomView: should support multiple views on the same list', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4], [5], [6]])
+  notify()
+
+  const viewA = list.reatomView({ offset: 0, limit: 3 })
+  const viewB = list.reatomView({ offset: 3, limit: 3 })
+
+  expect(viewA().nodes.map(({ n }) => n)).toEqual([1, 2, 3])
+  expect(viewB().nodes.map(({ n }) => n)).toEqual([4, 5, 6])
+})
+
+test('reatomView: should work with anchor optimization for scrolling', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const items = Array.from({ length: 100 }, (_, i) => [i + 1] as [number])
+  list.createMany(items)
+  notify()
+
+  const offset = atom(0)
+  const view = list.reatomView(() => ({ offset: offset(), limit: 10 }))
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
+  ])
+
+  offset.set(5)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([
+    6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+  ])
+
+  offset.set(3)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
+  ])
+
+  offset.set(90)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([
+    91, 92, 93, 94, 95, 96, 97, 98, 99, 100,
+  ])
+
+  offset.set(95)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([
+    96, 97, 98, 99, 100,
+  ])
+  expect(view().limit).toBe(5)
+})
+
+test('reatomView: should handle createMany and removeMany correctly', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: 0, limit: 5 })
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3])
+
+  list.createMany([[4], [5], [6], [7]])
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4, 5])
+  expect(view().size).toBe(7)
+
+  const nodes = list.array()
+  list.removeMany([nodes[1]!, nodes[3]!])
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 3, 5, 6, 7])
+  expect(view().size).toBe(5)
+})
+
+test('reatomView: should traverse from tail for large offsets', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  const items = Array.from({ length: 20 }, (_, i) => [i + 1] as [number])
+  list.createMany(items)
+  notify()
+
+  const view = list.reatomView({ offset: 17, limit: 3 })
+
+  expect(view().nodes.map(({ n }) => n)).toEqual([18, 19, 20])
+  expect(view().offset).toBe(17)
+  expect(view().limit).toBe(3)
+})
+
+test('reatomView: should work with initState', () => {
+  const list = reatomLinkedList({
+    create: (n: number) => ({ n }),
+    initState: [{ n: 10 }, { n: 20 }, { n: 30 }, { n: 40 }],
+  })
+
+  const view = list.reatomView({ offset: 1, limit: 2 })
+
+  expect(view().nodes.map(({ n }) => n)).toEqual([20, 30])
+  expect(view().size).toBe(4)
+})
+
+test('reatomView: should invalidate anchor after list mutation and recover', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3], [4], [5], [6], [7], [8], [9], [10]])
+  notify()
+
+  const offset = atom(3)
+  const view = list.reatomView(() => ({ offset: offset(), limit: 3 }))
+  const track = subscribe(view.array)
+
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([4, 5, 6])
+
+  offset.set(5)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([6, 7, 8])
+
+  list.create(11)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([6, 7, 8])
+  expect(view().size).toBe(11)
+
+  offset.set(6)
+  notify()
+  expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([7, 8, 9])
+})
+
+test('reatomView: should work with negative-clamped offset', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: -5, limit: 2 })
+
+  expect(view().nodes.map(({ n }) => n)).toEqual([1, 2])
+  expect(view().offset).toBe(0)
 })
