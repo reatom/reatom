@@ -496,3 +496,41 @@ test('reatomView should shift correctly when removing before offset', () => {
 
   expect(view().map((n) => n())).toEqual([4, 5])
 })
+
+test('reatomView should select around cursor', () => {
+  const list = reatomLinkedList((n: number) => atom(n))
+  const nodes = list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ cursor: nodes[2]!, before: 1, after: 2 })
+  expect(view().map((n) => n())).toEqual([2, 3, 4, 5])
+})
+
+test('reatomView should select to a node (tail side)', () => {
+  const list = reatomLinkedList((n: number) => atom(n))
+  const nodes = list.createMany([[1], [2], [3], [4], [5]])
+  notify()
+
+  const view = list.reatomView({ to: nodes[3]!, limit: 3 })
+  expect(view().map((n) => n())).toEqual([2, 3, 4])
+})
+
+test('reatomView.total should update even when items window is stable', () => {
+  const list = reatomLinkedList((n: number) => atom(n))
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  const view = list.reatomView({ offset: 0, limit: 2 })
+  const trackItems = subscribe(view)
+  const trackTotal = subscribe(view.total)
+
+  expect(trackItems.mock.calls.length).toBe(1)
+  expect(trackTotal.mock.calls.length).toBe(1)
+
+  list.create(4)
+  notify()
+
+  expect(trackItems.mock.calls.length).toBe(1)
+  expect(trackTotal.mock.calls.length).toBe(2)
+  expect(view.total()).toBe(4)
+})
