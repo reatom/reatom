@@ -559,15 +559,21 @@ import { z } from 'zod/v4'
 type AuthResult = { token: string }
 
 const registerForm = reatomForm(
-  {
-    email: '',
-    password: '',
-    confirmPassword: reatomField('', {
+  (name) => {
+    const password = reatomField('', `${name}.password`)
+    const confirmPassword = reatomField('', {
+      name: `${name}.confirmPassword`,
       validate: ({ state }) =>
-        state.length > 0 && state === registerForm.fields.password()
+        state.length > 0 && state === password()
           ? undefined
           : 'Passwords do not match',
-    }),
+    })
+
+    return {
+      email: '',
+      password,
+      confirmPassword,
+    }
   },
   {
     name: 'registerForm',
@@ -591,6 +597,11 @@ const registerForm = reatomForm(
   },
 )
 ```
+
+Tricky:
+
+- Use `(name) => { /* fields factory */ }` as a initializer if you will if there is a need to create linked validation (`password` <-> `confirmPassword`)
+- If you have to initialize fields explicitly via `reatomField` within the form, it is better to inherit names from the form by taking the `name` argument in the initialization callback as the base name. You are free to mix both explicit and implicit fields initialization
 
 Submit flow:
 
@@ -616,6 +627,7 @@ Reactive validation:
 ### React binding
 
 ```tsx
+import { noop } from '@reatom/core'
 import { reatomComponent, bindField } from '@reatom/react'
 import { registerForm } from './registerForm'
 
@@ -628,7 +640,7 @@ export const RegisterForm = reatomComponent(() => {
     <form
       onSubmit={(event) => {
         event.preventDefault()
-        submit()
+        submit().catch(noop)
       }}
     >
       <input type="email" {...bindField(fields.email)} />
@@ -648,9 +660,11 @@ export const RegisterForm = reatomComponent(() => {
 
 Tricky
 
+- `bindField` works only within `reatomComponent` or in any other reatom execution сontext
 - Schema validation errors are distributed to matching field paths automatically.
 - `validation().triggered` is true only when **all** fields have been triggered.
-- `onSubmit` receives an extra second parameter for custom action data: `onSubmit(values, action: 'draft' | 'publish')`.
+- `onSubmit` can define an arbitrary number of additional arguments for calling `form.submit()` (for e.g `onSubmit(values, action: 'draft' | 'publish')`) and a custom return type
+- `form.submit()` launches an asynchronous action and creates a promise, so it is necessary to handle or suppress errors when it is called.
 
 ## Routing + logger example (short but full-featured)
 
