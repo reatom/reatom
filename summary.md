@@ -618,135 +618,225 @@ Tricky
 - Validation errors for schema are distributed by path.
 - Triggered state for field sets is true only when all fields were triggered.
 
-## Routing + logger example (short but full-featured)
+## Routing
 
-This example uses routes, loaders, and logger setup for a typical SPA.
+**reatomRoute** creates route atoms: reactive state that matches URL patterns, extracts typed params, loads data, and composes into layouts. Everything is auto-cancellable and reactive.
 
-### setup.ts
+### Routes, nesting, search, validation
 
 ```ts
+import { reatomRoute, urlAtom, wrap } from '@reatom/core'
+import { z } from 'zod/v4'
+
+// simple path — returns {} when matched, null when not
+const homeRoute = reatomRoute('')
+// path with params — returns { userId: string } or null
+const userRoute = reatomRoute('users/:userId')
+// optional param
+const postRoute = reatomRoute('posts/:postId?')
+
+// reading state
+userRoute() // { userId: '123' } | null
+userRoute.exact() // true only when URL is exactly /users/123
+userRoute.match() // true when URL starts with /users/123
+
+// navigation
+userRoute.go({ userId: '123' }) // push to /users/123
+userRoute.go({ userId: '123' }, true) // replace history entry
+userRoute.path({ userId: '123' }) // build URL string without navigating
+// urlAtom intercepts <a> clicks for SPA navigation by default, use .path() in href
+
+// nested routes — chain .reatomRoute(), paths auto-compose, params inherit
+const dashboardRoute = reatomRoute('dashboard')
+const usersRoute = dashboardRoute.reatomRoute('users')
+const userEditRoute = usersRoute.reatomRoute(':userId').reatomRoute('edit')
+// userEditRoute.go({ userId: '123' }) → /dashboard/users/123/edit
+
+// search params with zod — query string validation and transform
+const goodsRoute = reatomRoute({
+  path: 'goods/:category',
+  search: z.object({ sort: z.enum(['asc', 'desc']).optional() }),
+})
+// goodsRoute.go({ category: 'tech', sort: 'asc' }) → /goods/tech?sort=asc
+// goodsRoute() → { category: 'tech', sort: 'asc' }
+
+// search-only routes (no path) preserve current pathname — great for global modals
+const dialogRoute = reatomRoute({
+  search: z.object({ dialog: z.enum(['login', 'signup']).optional() }),
+})
+// user at /profile/123 → dialogRoute.go({ dialog: 'login' }) → /profile/123?dialog=login
+// nested search-only routes navigate to parent path if user is elsewhere
+
+// params validation and transform with zod (or any Standard Schema)
+const issueRoute = reatomRoute({
+  path: 'issue/:issueId',
+  params: z.object({ issueId: z.string().regex(/^\d+$/).transform(Number) }),
+})
+// issueRoute.go({ issueId: '123' }) → issueRoute() returns { issueId: 123 } (number!)
+// if validation fails → route returns null
+// URL params are always strings — use .transform() or z.coerce for type conversion
+```
+
+### Loaders — auto data fetching
+
+Route loaders are async computeds with `withAsyncData` built-in. They run when route matches, auto-abort on navigation away. Nested loaders await parents and receive merged params. Effects inside loaders also auto-abort on navigation.
+
+Loader API (same as `withAsyncData`): **route.loader.data()**, **.ready()**, **.error()**, **.retry()**, **.status()**. Without explicit loader, `await wrap(route.loader())` returns validated params.
+
+### Render, outlet, protected routes, modal gate
+
+Routes can define `render` for framework-agnostic component composition. `render(self)` receives the route: `self()` for params (non-null inside render), `self.outlet()` for child components list, `self.loader` for the loader data. Parent's `outlet()` auto-collects active children. Works with any renderer (tagged templates, JSX, hyperscript). Use `exactRender: true` to skip render when child routes match. Entire app renders from root: `computed(() => layoutRoute.render())`.
+
+Protected routes use `params()` callback returning `null` to block the route and all descendants. Reactive: re-runs when read atoms change — use for auth, roles, feature flags, wizards. Stack protection layers by nesting: layout → auth → admin → feature.
+
+Modal gate — route without URL path, `params(arg)` callback controls activation via `.go({ data })` / `.go()` (deactivate). State in memory, no URL pollution.
+
+> **Antipattern**: manual `if (!route.match()) return null` checks in components (like a `UsersPage` that reads route state and conditionally renders). Use the `render` option instead — it handles mounting/unmounting and loader state automatically.
+
+### urlAtom and global state
+
+`urlAtom.go('/path')` navigates, `urlAtom()` reads `{ pathname, search, hash }`, `urlAtom.catchLinks(false)` disables SPA link interception, `urlAtom.routes` is a registry of all created routes. `isSomeLoaderPending` tracks global loading state across all route loaders.
+
+### Full SPA example
+
+Setup logging system:
+
+```ts
+// setup.ts — import this file before others in the repo root!
 import { connectLogger, log } from '@reatom/core'
-
-if (import.meta.env.MODE === 'development') {
-  connectLogger()
-}
-
+if (import.meta.env.MODE === 'development') connectLogger()
 declare global {
   var LOG: typeof log
 }
-
 globalThis.LOG = log
 ```
 
-### routes.ts
+Routes:
 
 ```ts
-import { isSomeLoaderPending, reatomRoute, wrap } from '@reatom/core'
+// routes.ts
+import { computed, reatomRoute, withAsyncData, wrap } from '@reatom/core'
 import { z } from 'zod/v4'
 
 type User = { id: string; name: string; role: string }
-type UserList = { items: User[]; total: number }
 
-export const appRoute = reatomRoute('')
-export const dashboardRoute = appRoute.reatomRoute('dashboard')
+// layout — no path, always active, renders outlet
+export const layoutRoute = reatomRoute({
+  render({ outlet }) {
+    return html`<div>
+      <header>My App</header>
+      <main>${outlet()}</main>
+    </div>`
+  },
+})
 
-export const usersRoute = dashboardRoute.reatomRoute({
+// public login page
+export const loginRoute = layoutRoute.reatomRoute({
+  path: 'login',
+  render() {
+    return html`<form>Login Form</form>`
+  },
+})
+
+// auth state
+const user = computed(async () => {
+  const token = localStorage.getItem('token')
+  if (!token) return null
+  return await wrap(fetch('/api/me').then((r) => r.json()))
+}, 'user').extend(withAsyncData())
+
+// protected route — blocks all children when not authenticated
+export const protectedRoute = layoutRoute.reatomRoute({
+  params() {
+    const userData = user.data()
+    if (!userData) {
+      if (user.ready() && !loginRoute.match()) loginRoute.go()
+      return null
+    }
+    if (loginRoute.match()) dashboardRoute.go()
+    return userData
+  },
+  render(self) {
+    return self.outlet()
+  },
+})
+
+export const dashboardRoute = protectedRoute.reatomRoute({
+  path: 'dashboard',
+  render() {
+    return html`<h1>Dashboard</h1>`
+  },
+})
+
+// users list with search params and loader
+export const usersRoute = protectedRoute.reatomRoute({
   path: 'users',
   search: z.object({
     q: z.string().optional(),
     page: z.string().regex(/^\d+$/).transform(Number).default('1'),
   }),
   async loader({ q, page }) {
-    const query = encodeURIComponent(q ?? '')
-    const response = await wrap(fetch(`/api/users?q=${query}&page=${page}`))
-    const payload: UserList = await wrap(response.json())
-    return payload
+    const response = await wrap(
+      fetch(`/api/users?q=${encodeURIComponent(q ?? '')}&page=${page}`),
+    )
+    return await wrap(response.json())
   },
-})
-
-export const userRoute = usersRoute.reatomRoute({
-  path: ':userId',
-  params: z.object({
-    userId: z.string().regex(/^\d+$/),
-  }),
-  async loader({ userId }) {
-    const response = await wrap(fetch(`/api/users/${userId}`))
-    const payload: User = await wrap(response.json())
-    return payload
-  },
-})
-
-export const isRouteLoading = isSomeLoaderPending
-```
-
-### App and pages
-
-```tsx
-import { wrap } from '@reatom/core'
-import { reatomComponent } from '@reatom/react'
-import { isRouteLoading, userRoute, usersRoute } from './routes'
-
-export const UsersPage = reatomComponent(() => {
-  if (!usersRoute.match()) return null
-
-  const ready = usersRoute.loader.ready()
-  const error = usersRoute.loader.error()
-  if (!ready) return <div>Loading users</div>
-  if (error) return <div>{error.message}</div>
-
-  const data = usersRoute.loader.data()
-  return (
-    <section>
+  render(self) {
+    const { isPending, data, data } = self.status()
+    if (isPending) return html`<div>Loading users...</div>`
+    return html`<section>
       <h1>Users</h1>
       <ul>
-        {data.items.map((user) => (
-          <li key={user.id}>
-            <button onClick={wrap(() => userRoute.go({ userId: user.id }))}>
-              {user.name}
-            </button>
-          </li>
-        ))}
+        ${data.items.map(
+          (u: User) =>
+            html`<li>
+              <a href="${userRoute.path({ userId: u.id })}">${u.name}</a>
+            </li>`,
+        )}
       </ul>
-    </section>
-  )
-}, 'UsersPage')
+      ${self.outlet()}
+    </section>`
+  },
+})
 
-export const UserDetails = reatomComponent(() => {
-  const params = userRoute()
-  if (!params) return null
+// user detail with validated params and loader
+export const userRoute = usersRoute.reatomRoute({
+  path: ':userId',
+  params: z.object({ userId: z.string().regex(/^\d+$/) }),
+  async loader({ userId }) {
+    const response = await wrap(fetch(`/api/users/${userId}`))
+    return (await wrap(response.json())) as User
+  },
+  render(self) {
+    const { isFirstPending, data, error } = self.status()
+    // do not show loading for revalidation
+    if (isFirstPending) return html`<div>Loading user...</div>`
+    if (error) return html`<div>Error: ${error.message}</div>`
+    return html`<section>
+      <h2>${user.name}</h2>
+      <div>${user.role}</div>
+    </section>`
+  },
+})
 
-  const ready = userRoute.loader.ready()
-  const error = userRoute.loader.error()
-  if (!ready) return <div>Loading user</div>
-  if (error) return <div>{error.message}</div>
-
-  const user = userRoute.loader.data()
-  LOG('user.details', user)
-  return (
-    <section>
-      <h2>{user.name}</h2>
-      <div>{user.role}</div>
-    </section>
-  )
-}, 'UserDetails')
-
-export const App = reatomComponent(() => {
-  const loading = isRouteLoading()
-  return (
-    <main>
-      {loading && <div>Loading</div>}
-      <UsersPage />
-      <UserDetails />
-    </main>
-  )
-}, 'App')
+// modal gate — state in memory, no URL pollution
+export const confirmModal = protectedRoute.reatomRoute({
+  params({ message }: { message?: string }) {
+    return message ? { message } : null
+  },
+  render(self) {
+    return html`<dialog open>${self().message}</dialog>`
+  },
+})
+// confirmModal.go({ message: 'Sure?' }) → opens, confirmModal.go() → closes
 ```
 
-Notes
+```ts
+// App.ts — entire app rendering from root route
+const App = computed(() => html`${layoutRoute.render()}`)
+```
 
-- Import setup.ts before any model to enable **connectLogger** hooks.
-- Route loaders are async computed with auto-cancel.
-- Use **wrap** for event handlers and async boundaries.
+Route loaders are async computed with auto-cancel. The **factory pattern** (creating atoms/forms inside loaders) gives global accessibility with automatic cleanup — best of both local and global state.
 
 ## URL sync and persistence helpers
 
@@ -890,11 +980,12 @@ Methods
 - **isCausedBy** to guard against self-triggered updates
 - **retryComputed** to reevaluate a computed atom. Note that computed without dependencies will be never reevaluated without this method.
 
-Routing
+Routing (extras beyond the main Routing section above)
 
-- **searchParamsAtom** and **withSearchParams** for URL search state
-- **urlAtom** for low-level URL control, link interception, sync hooks
-- **is404** and **isSomeLoaderPending** for route status
+- **searchParamsAtom** and **withSearchParams** for standalone URL search state sync
+- **urlAtom** hooks, link interception config, hash routing
+- **is404** for unmatched URL detection
+- **isSomeLoaderPending** for global loading indicator across all route loaders
 
 Primitives
 
