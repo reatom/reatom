@@ -54,9 +54,9 @@ The core API selection is approximate and may not be fully accurate.
         <tr>
             <td>Bundle size</td>
             <td>
-                <a href="https://bundlejs.com?q=@reatom/core,@reatom/react&treeshake=[{+reatomForm,reatomFieldSet+}],[{+reatomComponent,useAtom+}]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" target="_blank">
+                <a href="https://bundlejs.com?q=@reatom/core,@reatom/react&treeshake=[{+reatomField,reatomFieldSet,reatomForm,reatomFieldArray+}],[{+reatomComponent,useAtom,bindField+}]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" target="_blank">
                     <img 
-                        src="https://deno.bundlejs.com/badge?q=@reatom/core,@reatom/react&treeshake=[{+reatomForm,reatomFieldSet+}],[{+reatomComponent,useAtom+}]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" 
+                        src="https://deno.bundlejs.com/badge?q=@reatom/core,@reatom/react&treeshake=[{+reatomField,reatomFieldSet,reatomForm,reatomFieldArray+}],[{+reatomComponent,useAtom,bindField+}]&config={%22esbuild%22:{%22external%22:[%22react%22]}}" 
                         alt="reatom core and form bundle size"
                     >
                 </a>
@@ -184,9 +184,9 @@ The core API selection is approximate and may not be fully accurate.
     </tbody>
 </table>
 
-1. _Decoupled form and field models_ - the form or field logic (state, validation, and field dependencies) is fully defined as a standalone entity outside of the UI framework's lifecycle. It indicates whether the entire form model can be tested, reused, or ported to another framework without modifying the business logic, leaving the UI layer responsible only for data binding.
+1. _Decoupled form and field models_ - the form or field logic (state, validation, and field dependencies) is fully defined as a standalone entity outside of the UI framework's lifecycle. It indicates whether the entire form/fields/group of fields model can be tested, reused, or binded to another framework without modifying the business logic, leaving the UI layer responsible only for data binding.
 2. _Reactivity granularity_ there is limited to static dependency lists, while ideal behavior would involve automatic tracking like in signal-based architectures
-3. Only debugger is available at this moment
+3. Only debug logger is available at this moment
 4. List implementation may have performance issues when rendering a large number of elements and may be poorly optimized for virtualization
 5. No built-in debounce and validation concurrency solution
 6. Validators are currently limited to subscribing to the state of other fields or form submission events. However, validation rule reactivity implies the ability to subscribe to any data source to dynamically update the rules.
