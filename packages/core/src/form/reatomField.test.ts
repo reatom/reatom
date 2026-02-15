@@ -37,6 +37,20 @@ test(`validateOnBlur`, async () => {
   expect(blurFn).toHaveBeenCalledTimes(1)
 })
 
+test(`validateOnConnect`, async () => {
+  const field = reatomField('', {
+    name: 'fieldAtom',
+    validateOnConnect: true,
+  })
+
+  const connectFn = vi.fn()
+  addCallHook(field.validation.trigger, connectFn)
+
+  field.subscribe()
+  notify()
+  expect(connectFn).toHaveBeenCalledTimes(1)
+})
+
 test(`keepErrorOnChange`, async () => {
   const validate = () => {
     throw new Error('validation error')
@@ -129,7 +143,7 @@ test(`toState and fromState`, async () => {
     {
       name: 'fieldAtom',
       fromState: (state) => state.value,
-      toState: (value: number) => ({ label, value }),
+      toState: (value) => ({ label, value }),
     },
   )
 
@@ -140,7 +154,7 @@ test(`toState and fromState`, async () => {
   expect(field()).toEqual({ label, value: 2000 })
 })
 
-test(`toState reactivity`, async () => {
+test(`fromState reactivity`, async () => {
   const decimalPlaces = atom(2, 'decimalPlaces')
 
   const priceField = reatomField<number, string>(100.5, {
@@ -359,14 +373,39 @@ test(`withField and initState derivation`, async () => {
   expect(field.value.name).toBe('fieldAtom.value')
 })
 
+test(`initState atom`, () => {
+  {
+    const field = reatomField(123, 'field')
+
+    expect(field.initState()).toBe(123)
+    expect(field()).toBe(123)
+  }
+  {
+    const field = reatomField(123, 'field')
+
+    expect(field()).toBe(123)
+    expect(field.initState()).toBe(123)
+  }
+  {
+    const field = reatomField(123, 'field')
+
+    field.initState.set(100)
+    expect(field.initState()).toBe(100)
+    expect(field()).toBe(100)
+  }
+})
+
 test(`reset with initState`, async () => {
   const field = reatomField(123, 'field')
+
+  field.initState.set(100)
+  expect(field()).toEqual(100)
 
   field.change(2000)
   expect(field()).toEqual(2000)
 
   field.reset()
-  expect(field()).toEqual(123)
+  expect(field()).toEqual(100)
 
   field.reset(1000)
   expect(field()).toEqual(1000)

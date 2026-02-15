@@ -131,7 +131,7 @@ Now the first argument in `onSubmit` will be the result of parsing and validatin
 
 Errors issued by the validation schema will be distributed across fields according to their `path`, that is, according to the keys in the schema
 
-### Validation behaviour
+### Validation behavior
 
 Schema validation occurs automatically when validation of any form field is triggered, while validation occurs across the entire schema completely due to Standard Schema limitations, so editing one field can create a cascade of errors in all other fields that the user hasn't even touched. How to manage this behavior is described in the [Errors UX recipe](/handbook/forms/recipes/errors-ux/)
 

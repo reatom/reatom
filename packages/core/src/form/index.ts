@@ -1,3 +1,5 @@
 export * from './reatomField'
+export * from './reatomFieldArray'
 export * from './reatomFieldSet'
 export * from './reatomForm'
+export * from './withBaseField'

@@ -53,6 +53,7 @@
 ### Feat
 
 - **extensions**: finally strategy
+- **form**: add validateOnConnect
 
 ## 1000.10.2 (2026-01-27)
 
@@ -65,6 +66,7 @@
 ### Fix
 
 - **methods**: subscription bind
+- **form**: initState and state init cycle
 
 ## 1000.10.0 (2026-01-21)
 
