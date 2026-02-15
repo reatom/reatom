@@ -133,7 +133,7 @@ export type FieldArrayAtom<
     FieldArrayState<Node>,
     [initState: FieldArrayInitState<Param>[]]
   > & {
-    onFieldCreated: OnFieldCreatedAction
+    experimental_onFieldCreated: OnFieldCreatedAction
   }
 
 /**
@@ -163,7 +163,7 @@ export type FieldArrayItem<T> =
  * @returns `true` if the atom is a {@link FieldArrayAtom}, `false` otherwise
  */
 export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
-  return isAtom(atom) && 'onFieldCreated' in atom
+  return isAtom(atom) && 'experimental_onFieldCreated' in atom
 }
 
 /**
@@ -339,7 +339,7 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     optionsName ||
     named('fieldArray')
 
-  const onFieldCreated: This['onFieldCreated'] = action(
+  const onFieldCreated: OnFieldCreatedAction = action(
     (field: FieldAtom) => field,
     `${name}.onFieldCreated`,
   )
@@ -361,7 +361,7 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
           create(param, factoryName),
           factoryName,
         )
-        model.onFieldCreated?.extend(withCallHook(onFieldCreated))
+        model.experimental_onFieldCreated?.extend(withCallHook(onFieldCreated))
 
         return model.fields
       },
@@ -391,7 +391,7 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
   )
 
   return Object.assign(fieldArrayAtom, {
-    onFieldCreated,
+    experimental_onFieldCreated: onFieldCreated,
   })
 }
 

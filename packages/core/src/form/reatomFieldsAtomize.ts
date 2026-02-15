@@ -118,7 +118,7 @@ export type FieldsAtomize<Element> = [Element] extends [FieldLikeAtom]
  * {@link FieldArrayAtom}. Used to hook into field creation for custom setup
  * (e.g., applying form-level validation options).
  *
- * @see {@link FieldsAtomizeModel.onFieldCreated}
+ * @see {@link FieldsAtomizeModel.experimental_onFieldCreated}
  */
 export type OnFieldCreatedAction = Action<[field: FieldAtom], FieldAtom>
 
@@ -141,7 +141,7 @@ export type FieldsAtomizeModel<InitState extends FieldsAtomizeInitState> = {
    * field arrays. Used by {@link reatomForm} to apply form-level validation
    * options to dynamically created fields.
    */
-  onFieldCreated?: OnFieldCreatedAction
+  experimental_onFieldCreated?: OnFieldCreatedAction
 }
 
 /**
@@ -244,7 +244,7 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
             ? reatomFieldArray(value, `${name}.${key}`)
             : value
 
-          fieldArray.onFieldCreated.extend(
+          fieldArray.experimental_onFieldCreated.extend(
             withCallHook((payload) => onFieldCreated?.(payload)),
           )
 
@@ -264,7 +264,7 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
 
   return {
     fields,
-    onFieldCreated,
+    experimental_onFieldCreated: onFieldCreated,
   }
 }
 

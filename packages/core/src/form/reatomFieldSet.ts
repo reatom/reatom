@@ -197,7 +197,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
   initState: InitState | ((name: string) => InitState),
   name: string = named('fieldSet'),
 ): FieldSetAtom<InitState> => {
-  const { fields, onFieldCreated } = reatomFieldsAtomize(
+  const { fields, experimental_onFieldCreated } = reatomFieldsAtomize(
     typeof initState == 'function' ? initState(name) : initState,
     `${name}.fields`,
   )
@@ -309,7 +309,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
     validation,
     init,
     reset,
-    onFieldCreated,
+    experimental_onFieldCreated,
   })
 }
 

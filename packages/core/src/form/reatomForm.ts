@@ -559,7 +559,7 @@ export function reatomForm<
   }
 
   setupFields(fieldSet.fields)
-  fieldSet.onFieldCreated?.extend(
+  fieldSet.experimental_onFieldCreated?.extend(
     withCallHook((field) => setupFields(field, true)),
   )
 
