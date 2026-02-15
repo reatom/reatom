@@ -3,11 +3,9 @@ title: Sampling
 description: Documentation on sampling states and events in Reatom
 ---
 
-**To debounce, to abort, or to wrap? How to handle concurrent user input without losing your mind!**
+This page compares traditional debounce patterns with Reatom's concurrency model, then introduces sampling as a procedural pattern for coordinating events, async flows, and concurrent operations.
 
-I am the author of the Reatom state manager, and today I want to share with you a comparison between traditional debounce patterns and Reatom's modern concurrency model. This tackles a problem every developer faces: efficiently handling rapid-fire user input that triggers asynchronous operations.
-
-We'll explore how Reatom's concurrency model offers a more elegant solution than traditional debouncing techniques, providing both simplicity and power without sacrificing developer experience.
+A common issue in UI applications is rapid input triggering overlapping async operations, which can cause race conditions and unnecessary requests.
 
 ## The Basic Problem
 
@@ -159,7 +157,7 @@ searchInput.addEventListener('input', handleSearch)
 
 Notice how much cleaner this is! The code reads naturally from top to bottom. No separate functions, no breaking the logical flow.
 
-End even more! Chains of decorators is hard to inspect in the debugger: stack traces may be broken, intermediate values may be lost. Reatom uses native async/await which is perfectly supported in the debugger.
+And even more! Chains of decorators is hard to inspect in the debugger: stack traces may be broken, intermediate values may be lost. Reatom uses native async/await which is perfectly supported in the debugger.
 
 ## How It Works Under the Hood
 
@@ -257,7 +255,7 @@ const handleResize = action(async () => {
 
   // Then wait before allowing next execution
   await wrap(sleep(100))
-}).extend(withAbort({ strategy: 'first-in-win' }))
+}).extend(withAbort('first-in-win'))
 
 window.addEventListener('resize', handleResize)
 ```
@@ -270,22 +268,24 @@ By using the 'first-in-win' strategy (rather than the default 'last-in-win'), we
 
 This provides smooth, efficient updates during continuous operations like resizing without overwhelming the browser with calculations. The code is also more inspectable in development tools since you can see all intermediate values and the execution flow in breakpoints.
 
-## Conclusion
+## Debounce vs. Reatom
 
-Reatom's concurrency model offers a more elegant solution to the common problem of handling user input than traditional debouncing techniques. By focusing on wrapping asynchronous operations and providing automatic abortion capabilities, Reatom allows you to write code that is both simpler and more powerful.
+Reatom's concurrency model handles user input differently from traditional debouncing. By wrapping async operations and providing automatic abortion, it keeps control flow in one place while preventing stale work.
 
-Key takeaways:
+Key takeaways so far:
 
-1. **No more juggling separate debounced functions** - maintain a single, readable function with natural control flow
-2. **Immediate value mapping** - just store as many variables as you need, without arguments drilling
-3. **Better debugging** - inspect intermediate values and follow the execution flow naturally
-4. **Flexible timing control** - easily implement debounce, throttle, or custom timing patterns
+1. **No more juggling separate debounced functions** — maintain a single, readable function with natural control flow
+2. **Immediate value mapping** — store as many variables as you need, without argument drilling
+3. **Better debugging** — inspect intermediate values and follow the execution flow naturally
+4. **Flexible timing control** — easily implement debounce, throttle, or custom timing patterns
 
-**Sampling states and events with atoms and actions: The reactive event pattern that will change how you think about data flow!**
+Debounce and throttle are only part of the model. The next sections cover procedural sampling of actions and atoms.
 
-I am the author of the Reatom state manager, and today I want to introduce you to one of the most powerful yet underappreciated patterns in reactive programming: sampling states and events using atoms and actions.
+## Sampling States and Events
 
-While most state managers force you to choose between imperative events or reactive state, Reatom bridges this gap with an elegant unification of both paradigms. This approach provides the clarity of event-driven programming with the consistency of reactive state management.
+Sampling is a core pattern in Reatom: reading state and awaiting events procedurally inside async actions.
+
+Most state managers force you to choose between imperative events or reactive state. Reatom bridges this gap by unifying both paradigms: you get the clarity of event-driven programming with the consistency of reactive state management.
 
 ## The Problem with Traditional Approaches
 
@@ -294,9 +294,9 @@ Traditional state management typically falls into one of two categories:
 1. **Event-driven approaches** where events trigger reactive streams (RxJS)
 2. **State-driven approaches** where derived values automatically update (MobX, signals)
 
-Each has its strengths, but also critical weaknesses. Event-driven systems need a lot of additional methods to handle complex state properly. Reactive systems with "excel" design fails with event tracking and proper async logic handling.
+Each has its strengths, but also critical weaknesses. Event-driven systems require many combinators to handle complex state properly. Reactive systems built on the spreadsheet model (auto-propagating derived values) struggle with event tracking and proper async logic handling.
 
-What if we could have the best of both worlds?
+Reatom combines these approaches in a single model.
 
 ## Actions as Reactive Events: A Core Insight
 
@@ -323,7 +323,7 @@ counter.subscribe((count) => {
 increment(10) // Counter is now: 10
 ```
 
-So far, this looks like a typical action pattern. But here's where Reatom's unique perspective shines: **actions themselves are observable reactive entities**. This means you can subscribe to action calls just like you subscribe to atom changes:
+So far, this looks like a typical action pattern. In Reatom, **actions are also observable reactive entities**, so you can subscribe to action calls just like atom changes:
 
 ```javascript
 // Subscribe to action calls
@@ -338,71 +338,222 @@ increment(5)
 // Counter calls: { params: [], payload: 11 }, { params: [5], payload: 16 }
 ```
 
-This dual nature of actions as both callable functions and observable events creates a foundation for powerful patterns that are difficult to implement in other libraries.
+Action subscriptions are batched to the next microtick — all calls within a synchronous block are delivered together as an array. Each entry carries `params` (the arguments passed to the action) and `payload` (the return value). This dual nature of actions as both callable functions and observable events creates a foundation for powerful patterns that are difficult to implement in other libraries.
 
 ## The `take` Operator: Awaiting Events Procedurally
 
-The `take` operator is a powerful tool for orchestrating asynchronous workflows by allowing you to `await` the next update of an atom or the next call of an action. This enables writing procedural-style logic that reacts to state changes and events. Always use `wrap(take(target))` to ensure proper Reatom context propagation.
+The `take` operator lets you `await` the next update of an atom or the next call of an action, enabling procedural-style async logic that reacts to state changes and events. Always use `wrap(take(target))` to ensure proper Reatom context propagation.
 
-For instance, you can wait for a form to become valid before proceeding:
+For instance, a form submission that waits for validation before proceeding:
 
 ```javascript
-// Simplified concept
+import { atom, action, wrap, take, throwAbort } from '@reatom/core'
+
 const formIsValid = atom(false, 'formIsValid')
-const submitAction = action(async () => {
+
+const submitForm = action(async () => {
   if (!formIsValid()) {
-    await wrap(take(formIsValid, (isValid) => isValid || throwAbort())) // Wait for formIsValid to be true
+    // Wait until formIsValid becomes true.
+    // throwAbort() rejects the take if the action is aborted while waiting
+    await wrap(take(formIsValid, (isValid) => isValid || throwAbort()))
   }
-  // Proceed with submission...
-}, 'submitAction')
+
+  await wrap(fetch('/api/submit', { method: 'POST' }))
+}, 'submitForm')
 ```
 
-`take` also supports conditional waiting by providing a filter function as its second argument, allowing you to wait for specific state conditions or action payloads.
+The second argument to `take` is a filter function: the promise resolves only when the filter returns a truthy value. Here, `throwAbort()` ensures the wait is properly cancelled if the action is aborted — for example, if the user navigates away before the form becomes valid.
 
-<!-- Furthermore, Reatom allows combining multiple `take` operations:
+<!-- TODO: document combining multiple `take` operations:
 - `race({ key: take(target1), ... })`: Waits for the first of several events to occur.
 - `all([take(target1), take(target2)])`: Waits for all specified events to occur. -->
 
-These patterns simplify building complex, multi-step processes that depend on various asynchronous events or state changes, such as form submissions with timeouts or loading multiple data sources in parallel.
+Procedural event sampling with `take` simplifies building complex, multi-step processes that depend on async events or state changes, such as form submissions with timeouts or multi-step wizards.
 
 ## The `onEvent` Operator: Handling External Events
 
-For integrating with external event sources like DOM elements or WebSockets, Reatom provides the `onEvent` operator. It allows you to `await` specific events (e.g., a button click or a WebSocket message) in a way that respects Reatom's abort context, ensuring proper cleanup when an action is aborted or a component unmounts.
+For integrating with external event sources like DOM elements or WebSockets, Reatom provides the `onEvent` operator. It lets you `await` specific events in a way that respects Reatom's abort context, ensuring proper cleanup when an action is aborted or a component unmounts.
+
+Here's a delete flow that waits for the user to confirm via a native `<dialog>`:
 
 ```javascript
-// Conceptual usage
-const button = document.getElementById('myButton')
-const handleClick = action(async () => {
-  await wrap(onEvent(button, 'click'))
-  // Button was clicked, proceed...
-}, 'handleClick')
+import { action, wrap, onEvent, withAbort } from '@reatom/core'
+
+const confirmDelete = action(async (itemId) => {
+  const dialog = document.getElementById('confirmDialog')
+  dialog.showModal()
+
+  await wrap(onEvent(dialog, 'close'))
+
+  if (dialog.returnValue === 'confirm') {
+    await wrap(fetch(`/api/items/${itemId}`, { method: 'DELETE' }))
+  }
+}, 'confirmDelete').extend(withAbort())
 ```
 
-`onEvent` is also useful for the "checkpoint pattern" to avoid race conditions: start listening for an event _before_ an unrelated long-running async operation, ensuring the event isn't missed if it fires during the operation.
+`onEvent` is especially useful for the **checkpoint pattern**: start listening for an event _before_ a long-running operation, so the event isn't missed if it fires while the operation is in progress.
+
+```javascript
+const processPayment = action(async (orderId, amount) => {
+  // Start listening for the payment webhook BEFORE initiating the charge
+  const webhookPromise = onEvent(paymentEvents, 'payment.completed')
+
+  await wrap(
+    fetch('/api/payments/charge', {
+      method: 'POST',
+      body: JSON.stringify({ orderId, amount }),
+    }),
+  )
+
+  // The webhook might have already arrived during the charge request —
+  // we won't miss it because we started listening first
+  const confirmation = await wrap(webhookPromise)
+
+  await wrap(fulfillOrder(orderId, confirmation.data.transactionId))
+}, 'processPayment').extend(withAbort())
+```
+
+Without the checkpoint pattern, you would need to initiate the charge first, _then_ start listening — risking a missed event if the payment provider responds before your listener is set up.
+
+## The `race` Utility: Handling Concurrent Operations
+
+When you need to wait for the first of several concurrent operations to complete, Reatom provides the `race` utility. Combined with `abortVar.createAndRun`, it enables elegant handling of complex concurrent scenarios with automatic cleanup.
+
+Consider a translation tool that queries multiple providers to show the fastest result. Each provider does real work after the network call — saving to translation memory, updating stats — and abort prevents that unnecessary work when another provider already won.
+
+```javascript
+import { action, wrap, race, abortVar, withAbort } from '@reatom/core'
+
+const translateWithGoogle = async (text, targetLang) => {
+  const response = await wrap(
+    fetch('/api/translate/google', {
+      method: 'POST',
+      body: JSON.stringify({ text, targetLang }),
+    }),
+  )
+  const { translation } = await wrap(response.json())
+  // abort prevents this — no need to save a duplicate entry
+  await wrap(saveToTranslationMemory(text, translation, targetLang))
+  return translation
+}
+
+const translateWithDeepL = async (text, targetLang) => {
+  const response = await wrap(
+    fetch('/api/translate/deepl', {
+      method: 'POST',
+      body: JSON.stringify({ text, targetLang }),
+    }),
+  )
+  const { translation } = await wrap(response.json())
+  await wrap(saveToTranslationMemory(text, translation, targetLang))
+  return translation
+}
+
+const detectLanguage = async (text) => {
+  const response = await wrap(
+    fetch('/api/detect-language', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+  )
+  const { language } = await wrap(response.json())
+  await wrap(updateLanguageStats(language))
+}
+
+const translate = action(async (text, targetLang) => {
+  const googlePromise = abortVar.createAndRun(translateWithGoogle, text, targetLang)
+  const deeplPromise = abortVar.createAndRun(translateWithDeepL, text, targetLang)
+  const detectPromise = abortVar.createAndRun(detectLanguage, text)
+
+  // first translation wins; the slower service is aborted
+  // before it writes a duplicate to translation memory
+  const result = await wrap(race(googlePromise, deeplPromise))
+
+  // language detection is redundant — the winning translator already identified it
+  detectPromise.controller.abort('language known')
+
+  return result
+}, 'translate').extend(withAbort('finally'))
+```
+
+This pattern demonstrates several powerful features:
+
+1. **`abortVar.createAndRun`** — wraps a function call into a `ControlledPromise` with an attached `AbortController`, so it can be cancelled later
+2. **`race`** — resolves with the first promise to settle and automatically aborts every other participant with reason `"race"`. The key point: all code after `wrap` in the losing function (like `saveToTranslationMemory`) never executes
+3. **Manual abort** — you can abort any `ControlledPromise` at any time with a custom reason (here, `'language known'` for the redundant detection)
+4. **`"finally"` strategy** — when the action completes, all async operations started inside it (even fire-and-forget ones) are automatically aborted, preventing resource leaks
+
+## Clean Error Handling with `framePromise`
+
+In multi-step async flows, traditional try-catch wraps the entire body and buries the happy path inside a nested block. `framePromise()` returns a promise that resolves or rejects with the current action's final outcome — attach `.catch` and `.finally` at the top, then write the happy path flat.
+
+```javascript
+import { action, wrap, framePromise } from '@reatom/core'
+
+const processOrder = action(async (orderId) => {
+  framePromise().catch((error) => showErrorNotification(error))
+
+  const order = await wrap(fetchOrder(orderId))
+  await wrap(validateInventory(order))
+  await wrap(chargeCustomer(order))
+  await wrap(updateOrderStatus(order, 'completed'))
+
+  return order
+}, 'processOrder')
+```
+
+Compare with the traditional approach — the logic is identical, but try-catch adds nesting and separates the error handling from the declaration point:
+
+```javascript
+const processOrder = action(async (orderId) => {
+  try {
+    const order = await wrap(fetchOrder(orderId))
+    await wrap(validateInventory(order))
+    await wrap(chargeCustomer(order))
+    await wrap(updateOrderStatus(order, 'completed'))
+    return order
+  } catch (error) {
+    showErrorNotification(error)
+  }
+}, 'processOrder')
+```
+
+`framePromise` also works across function boundaries. Helper functions can call it and hook into the parent action's outcome — something impossible with try-catch or native `using` declarations, which are scoped to the current function:
+
+```javascript
+const withErrorLogging = () => {
+  framePromise().catch((error) => logger.error(error))
+}
+
+const processOrder = action(async (orderId) => {
+  withErrorLogging()
+  await wrap(fetchOrder(orderId))
+}, 'processOrder')
+```
+
+This composability lets you build reusable cross-cutting concerns (error toasts, analytics, retry logic) that attach to any action frame without modifying its body.
 
 ## Benefits Over Traditional Approaches
 
-Compared to other approaches, Reatom's sampling pattern offers significant advantages:
+Compared to RxJS pipelines or hand-rolled saga-like patterns, Reatom's sampling model offers concrete advantages:
 
-1. **Readability**: Describe complex flows in a procedural style that's easy to follow
-2. **Maintainability**: No deeply nested callbacks or complex state machines
-3. **Flexibility**: Combine reactive and imperative patterns seamlessly
-4. **Type Safety**: Full TypeScript support with excellent inference
-5. **Testing**: Easily isolate and test individual steps or entire flows
-6. **Concurrency Control**: Built-in handling of race conditions
+1. **Procedural readability** — complex async flows read top-to-bottom as plain `async`/`await`, not as chains of operators or nested callbacks
+2. **Native debugging** — set breakpoints on any line, inspect variables in the debugger; no opaque operator stacks
+3. **Automatic cleanup** — `withAbort` and the `"finally"` strategy cancel stale requests and background tasks without manual bookkeeping
+4. **Composable concurrency** — `race`, `take`, and `onEvent` combine naturally; adding a timeout or a user-cancellation check is a single `await` line
+5. **Type safety** — full TypeScript inference flows through `wrap`, `take`, and `race` without manual generics
 
 ## Conclusion
 
-The unification of events and state through Reatom's action and atom primitives enables a uniquely powerful approach to managing application state and behavior. By treating actions as reactive events and providing tools like `take` for procedural event sampling, Reatom creates a programming model that's both more expressive and simpler than traditional approaches.
+By unifying events and state through actions and atoms, Reatom supports procedural async workflows without losing reactive composition. Tools such as `take`, `onEvent`, and `race` cover common coordination patterns directly.
 
 This pattern is especially valuable for:
 
-- Complex user flows and multi-step processes
-- Form validation and submission
-- Authentication and authorization
-- API request coordination
-- Animation sequences
+- Complex user flows and multi-step wizards
+- Form validation and submission with async checks
+- Authentication and authorization gates
+- API request coordination with race conditions
+- Concurrent operations with automatic cleanup
+- Animation sequences and drag-and-drop flows
 
-Next time you find yourself building complex state logic with multiple steps and conditions, consider how Reatom's event sampling approach might help you create code that's more maintainable and easier to reason about.
-
-The power of reactive events awaits!
+Use this sampling model when implementing multi-step async logic, race-prone flows, or cleanup-sensitive workflows.
