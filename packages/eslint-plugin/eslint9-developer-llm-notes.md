@@ -434,7 +434,7 @@ Add a test script to `package.json`:
 ```json
 {
   "scripts": {
-    "test": "node enforce-foo-bar.test.ts"
+    "test": "npx tsx enforce-foo-bar.test.ts"
   }
 }
 ```
