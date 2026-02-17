@@ -73,6 +73,12 @@ PNPM does not deduplicate packages by default, and there isn't a deduplication c
 pnpm rm @reatom/core @reatom/react && pnpm i @reatom/core@latest @reatom/react@latest
 ```
 
+## Build Target Compatibility
+
+The `wrap` function preserves Reatom's reactive context across async boundaries using a microtask-based seal mechanism. This mechanism relies on native `async`/`await` behavior. If your bundler or compiler targets below **ES2017**, it will transform `async`/`await` into `.then()` chains, which introduces extra microtask ticks and breaks the seal — resulting in a `"missing async stack"` error at runtime.
+
+Ensure your **entire** toolchain (TypeScript, bundler, test runner) targets `es2017` or higher. Most modern defaults are safe (e.g., Vite targets Chrome 107+), but an explicit lower target anywhere in the chain can trigger the issue. See [#1250](https://github.com/reatom/reatom/issues/1250) for details and per-tool configuration guidance.
+
 ## Media
 
 - [en twitter](https://twitter.com/ReatomJS)

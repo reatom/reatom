@@ -654,20 +654,21 @@ export function reatomForm<
     return state
   }, `${name}.validation.trigger`).extend(withAsync(), withAbort())
 
-  const submit = action(async (...params: SubmitParams) => {
-    const state = await wrap(triggerValidation())
-
-    let result
-
-    if (onSubmit) {
-      result = onSubmit(state, ...params)
-      if (result instanceof Promise) result = await wrap(result)
-    }
-
-    submitted.set(true)
-
-    if (resetOnSubmit) fieldSet.reset()
-    return result as SubmitReturn
+  const submit = action((...params: SubmitParams) => {
+    return wrap(triggerValidation())
+      .then(
+        wrap((state) => {
+          if (!onSubmit) return undefined as SubmitReturn
+          return onSubmit(state, ...params)
+        }),
+      )
+      .then(
+        wrap((result) => {
+          submitted.set(true)
+          if (resetOnSubmit) fieldSet.reset()
+          return result as SubmitReturn
+        }),
+      )
   }, `${name}.submit`).extend(withAsyncData({ resetError: 'onFulfill' }))
 
   const validation = Object.assign(fieldSet.validation, {
