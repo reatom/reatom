@@ -1,10 +1,12 @@
 Reatom Devtools - rewrite requirements and notes
 
 Scope and intent
+
 - General-purpose logger UI with optional Reatom frame tracing
 - Designed for dev usage and global access via globalThis.REATOM_DEVTOOLS
 
 Public API surface
+
 - createDevtools(options?) -> Devtools
   - log(name: string, payload?: unknown): void
   - state<T>(name: string, initState: T): DevtoolsState<T>
@@ -14,13 +16,15 @@ Public API surface
   - hide(): void
 
 createDevtools options and defaults
+
 - initVisibility?: boolean (default true)
 - initSize?: number (default 1000)
 - getColor?: (frame) => string
 - separator?: string | RegExp | (name) => string[] (default /\.|#/)
-- privatePrefix?: string (default "_")
+- privatePrefix?: string (default "\_")
 
 UI features: logs view
+
 - Filters
   - Active filter form with regex and state-search fields
   - Filter modes: filter, hide, exclude, highlight (with color)
@@ -43,6 +47,7 @@ UI features: logs view
   - Toggle inspector view for payload
 
 UI features: payload inspector
+
 - Built on ObservableHQ Inspector (inside Shadow DOM)
 - Buttons:
   - edit (open JSON form, apply by JSON.parse)
@@ -55,6 +60,7 @@ UI features: payload inspector
 - History uses jsondiffpatch HTML formatter with links to cause items
 
 UI features: states view
+
 - Hierarchical tree from log names split by separator
 - Skips actions and private names
 - Tracks atoms and updates via proto.updateHooks
@@ -63,6 +69,7 @@ UI features: states view
 - Special case: urlAtom displays href only
 
 Architecture and data flow
+
 - Two contexts:
   - clientCtx: user Reatom ctx being inspected
   - ctx: internal devtools ctx for UI state
@@ -80,11 +87,13 @@ Architecture and data flow
   - highlight draws SVG polylines linking cause items
 
 Persistence
+
 - Filters stored in localStorage with versioned key: name + "v27"
 - view switch stored in localStorage
 - settings are restored on load with Zod validation
 
 Dependencies that affect behavior
+
 - @reatom/framework, @reatom/jsx for reactivity and rendering
 - @observablehq/inspector for data view
 - jsondiffpatch for history diffs
@@ -92,6 +101,7 @@ Dependencies that affect behavior
 - @reatom/persist-web-storage for storage helper
 
 Known corner cases, bugs, and complexity hotspots
+
 - initSize option is ignored by graph model (hardcoded 1000)
 - state() uses internal ctx for comparison instead of clientCtx
 - log() and state() share a cache by name, action/atom name collision possible
@@ -108,6 +118,7 @@ Known corner cases, bugs, and complexity hotspots
 - tests are a stub only
 
 Rewrite guidance checklist
+
 - Preserve API surface and behaviors above, including defaults
 - Preserve all UI affordances and inspector actions
 - Keep Shadow DOM isolation or equivalent

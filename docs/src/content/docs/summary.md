@@ -5,6 +5,7 @@ title: Summary
 # Reatom: Complete System Guide for Web Application Development
 
 ## Table of Contents
+
 1. [Introduction & Core Philosophy](#introduction--core-philosophy)
 2. [Core Primitives](#core-primitives)
 3. [Extension System](#extension-system)
@@ -83,7 +84,7 @@ counter.set(5)
 console.log(counter()) // 5
 
 // Update with function
-counter.set(state => state + 1)
+counter.set((state) => state + 1)
 console.log(counter()) // 6
 ```
 
@@ -120,7 +121,7 @@ import { atom, action } from '@reatom/core'
 
 const list = atom<string[]>([], 'list')
 const addItem = action((item: string) => {
-  list.set(current => [...current, item])
+  list.set((current) => [...current, item])
   return list()
 }, 'addItem')
 
@@ -128,7 +129,7 @@ const addItem = action((item: string) => {
 addItem('apple')
 
 // Subscribe to calls
-addItem.subscribe(calls => {
+addItem.subscribe((calls) => {
   console.log('AddItem called:', calls)
 })
 ```
@@ -192,7 +193,7 @@ const page = atom(1, 'page').extend(
   withComputed((state) => {
     search() // subscribe to search changes
     return isInit() ? state : 1 // reset page on search change
-  })
+  }),
 )
 ```
 
@@ -212,7 +213,7 @@ const user = atom<User | null>(null, 'user').extend(
     if (user?.id !== prevUser?.id) {
       analytics.identify(user)
     }
-  })
+  }),
 )
 ```
 
@@ -234,9 +235,7 @@ const fetchList = action(async () => {
 }, 'fetchList')
 
 // Fetch only when something subscribes to list
-list.extend(
-  withConnectHook(fetchList)
-)
+list.extend(withConnectHook(fetchList))
 ```
 
 **Good Practice:** Use for lazy data fetching, WebSocket connections, or any resource that should only exist when needed.
@@ -251,7 +250,7 @@ Defines an initial value that can be a function.
 import { atom, withInit } from '@reatom/core'
 
 const timestamp = atom(new Date(), 'timestamp').extend(
-  withInit(() => new Date())
+  withInit(() => new Date()),
 )
 ```
 
@@ -265,7 +264,7 @@ import { atom, withInitHook } from '@reatom/core'
 const user = atom({ id: 1, name: 'John' }, 'user').extend(
   withInitHook((initState) => {
     analytics.track('user_loaded', initState)
-  })
+  }),
 )
 ```
 
@@ -301,9 +300,9 @@ const submitOrder = action(async (order) => {
   withCallHook((payload, params) => {
     analytics.track('order_submit', {
       orderId: payload.id,
-      total: params[0].total
+      total: params[0].total,
     })
-  })
+  }),
 )
 ```
 
@@ -318,15 +317,12 @@ interface ResetExt<State> {
   reset: Action<[], State>
 }
 
-export const withReset = 
+export const withReset =
   <Target extends AtomLike>(
-    initialValue: AtomState<Target>
+    initialValue: AtomState<Target>,
   ): Ext<Target, ResetExt<AtomState<Target>>> =>
   (target) => ({
-    reset: action(
-      () => target.set(initialValue),
-      `${target.name}.reset`
-    )
+    reset: action(() => target.set(initialValue), `${target.name}.reset`),
   })
 
 const counter = atom(0, 'counter').extend(withReset(0))
@@ -386,7 +382,7 @@ const saveUser = action(async (user: User) => {
 // Access state
 saveUser.loading() // boolean
 saveUser.error() // Error | undefined
-saveUser.onFulfill.subscribe(data => console.log('Saved!', data))
+saveUser.onFulfill.subscribe((data) => console.log('Saved!', data))
 ```
 
 **Good Practice:** Use `withAsync` for mutations (POST, PUT, DELETE) where you need loading/error states but don't store the result data.
@@ -405,7 +401,7 @@ const page = atom(1, 'page')
 
 const searchResults = computed(async () => {
   const response = await wrap(
-    fetch(`/api/search?q=${searchQuery()}&page=${page()}`)
+    fetch(`/api/search?q=${searchQuery()}&page=${page()}`),
   )
   return await wrap(response.json())
 }, 'searchResults').extend(withAsyncData({ initState: [] }))
@@ -427,12 +423,12 @@ searchResults.error() // Error | undefined
 ```typescript
 const handleSearch = action(async (event) => {
   const query = event.currentTarget.value
-  
+
   // Debounce
   if (query.length > 3) {
     await wrap(sleep(500))
   }
-  
+
   await wrap(fetchResults(query))
 }).extend(withAbort())
 ```
@@ -447,7 +443,7 @@ const handleSearch = action(async (event) => {
 const handleResize = action(async () => {
   const width = window.innerWidth
   const height = window.innerHeight
-  
+
   await wrap(recalculateLayout(width, height))
   await wrap(sleep(100))
 }, 'handleResize').extend(withAbort({ strategy: 'first-in-win' }))
@@ -463,13 +459,13 @@ import { action, wrap, abortVar, isAbort } from '@reatom/core'
 const longRunning = action(async () => {
   for (let i = 0; i < 100; i++) {
     await wrap(sleep(100))
-    
+
     // Check if aborted
     if (isAbort()) {
       console.log('Aborted at iteration', i)
       throw new Error('Aborted')
     }
-    
+
     progress.set(i)
   }
 }, 'longRunning').extend(withAbort())
@@ -495,7 +491,7 @@ const username = reatomField('', {
   validate: ({ state }) => {
     if (!state) return 'Username is required'
     if (state.length < 3) return 'Too short'
-  }
+  },
 })
 
 // Access field
@@ -520,7 +516,7 @@ const email = reatomField('', {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(state)) {
       return 'Invalid email'
     }
-  }
+  },
 })
 ```
 
@@ -529,12 +525,10 @@ const email = reatomField('', {
 ```typescript
 const uniqueEmail = reatomField('', {
   validate: async ({ state }) => {
-    const response = await wrap(
-      fetch(`/api/check-email?email=${state}`)
-    )
+    const response = await wrap(fetch(`/api/check-email?email=${state}`))
     const data = await wrap(response.json())
     return data.available ? undefined : 'Email already taken'
-  }
+  },
 })
 ```
 
@@ -549,11 +543,14 @@ Groups multiple fields and provides aggregate validation and focus states.
 ```typescript
 import { reatomFieldSet } from '@reatom/core'
 
-const personalInfo = reatomFieldSet(name => ({
-  firstName: reatomField('', `${name}.firstName`),
-  lastName: reatomField('', `${name}.lastName`),
-  email: reatomField('', `${name}.email`),
-}), 'personalInfo')
+const personalInfo = reatomFieldSet(
+  (name) => ({
+    firstName: reatomField('', `${name}.firstName`),
+    lastName: reatomField('', `${name}.lastName`),
+    email: reatomField('', `${name}.email`),
+  }),
+  'personalInfo',
+)
 
 // Aggregate states
 personalInfo() // { firstName, lastName, email }
@@ -572,8 +569,8 @@ Manages dynamic lists of fields with efficient linked-list implementation.
 const tags = reatomFieldArray({
   initState: [{ value: 'react' }],
   create: ({ value }, name) => ({
-    value: reatomField(value, `${name}.value`)
-  })
+    value: reatomField(value, `${name}.value`),
+  }),
 })
 
 // Operations
@@ -595,23 +592,26 @@ The complete form primitive that combines fieldset, submission, and schema valid
 import { reatomForm } from '@reatom/core'
 import { z } from 'zod'
 
-const contactForm = reatomForm({
-  name: '',
-  email: '',
-  message: ''
-}, {
-  name: 'contactForm',
-  validateOnBlur: true,
-  schema: z.object({
-    name: z.string().min(2, 'Name too short'),
-    email: z.string().email('Invalid email'),
-    message: z.string().min(10, 'Message too short')
-  }),
-  onSubmit: async (state) => {
-    const response = await wrap(api.submitContact(state))
-    return response.data
-  }
-})
+const contactForm = reatomForm(
+  {
+    name: '',
+    email: '',
+    message: '',
+  },
+  {
+    name: 'contactForm',
+    validateOnBlur: true,
+    schema: z.object({
+      name: z.string().min(2, 'Name too short'),
+      email: z.string().email('Invalid email'),
+      message: z.string().min(10, 'Message too short'),
+    }),
+    onSubmit: async (state) => {
+      const response = await wrap(api.submitContact(state))
+      return response.data
+    },
+  },
+)
 
 // Access form
 contactForm.fields // Field atoms
@@ -628,18 +628,21 @@ contactForm.submitted() // boolean - true if last submit succeeded
 Validation callbacks automatically track dependencies and re-run when they change.
 
 ```typescript
-const passwordForm = reatomForm({
-  password: reatomField('', 'password'),
-  confirmPassword: reatomField('', {
-    name: 'confirmPassword',
-    validate: ({ state }) => {
-      // Automatically re-runs when password changes
-      if (state !== passwordForm.fields.password()) {
-        return 'Passwords do not match'
-      }
-    }
-  })
-}, 'passwordForm')
+const passwordForm = reatomForm(
+  {
+    password: reatomField('', 'password'),
+    confirmPassword: reatomField('', {
+      name: 'confirmPassword',
+      validate: ({ state }) => {
+        // Automatically re-runs when password changes
+        if (state !== passwordForm.fields.password()) {
+          return 'Passwords do not match'
+        }
+      },
+    }),
+  },
+  'passwordForm',
+)
 ```
 
 **Good Practice:** Use reactive validation for cross-field validation (password confirmation, date ranges, etc.).
@@ -652,10 +655,7 @@ const passwordForm = reatomForm({
 
 ```typescript
 const formResource = computed(async () => {
-  const defaultValues = await wrap(
-    fetch('/api/user/1')
-      .then(r => r.json())
-  )
+  const defaultValues = await wrap(fetch('/api/user/1').then((r) => r.json()))
   return reatomForm(defaultValues, 'profileForm')
 }, 'formResource').extend(withAsyncData())
 ```
@@ -665,10 +665,10 @@ const formResource = computed(async () => {
 ```typescript
 effect(async () => {
   form() // Subscribe to all changes
-  
+
   const dirty = memo(() => form.focus().dirty)
   if (!dirty) return
-  
+
   await wrap(sleep(500)) // Debounce
   form.submit().catch(noop)
 })
@@ -679,16 +679,16 @@ effect(async () => {
 ```typescript
 const checkoutForm = reatomForm({
   shipping: { address: '', city: '', zip: '' },
-  payment: { cardNumber: '', expiry: '', cvv: '' }
-}).extend(target => ({
+  payment: { cardNumber: '', expiry: '', cvv: '' },
+}).extend((target) => ({
   shippingStep: reatomFieldSet(
     target.fields.shipping,
-    `${target.name}.shippingStep`
+    `${target.name}.shippingStep`,
   ),
   paymentStep: reatomFieldSet(
     target.fields.payment,
-    `${target.name}.paymentStep`
-  )
+    `${target.name}.paymentStep`,
+  ),
 }))
 
 // Track each step independently
@@ -714,8 +714,8 @@ export const homeRoute = reatomRoute({
 export const userRoute = reatomRoute({
   path: '/users/:userId',
   params: {
-    userId: Number // Type transform
-  }
+    userId: Number, // Type transform
+  },
 })
 
 export const searchRoute = reatomRoute({
@@ -723,8 +723,8 @@ export const searchRoute = reatomRoute({
   search: {
     q: String,
     page: Number,
-    sort: 'relevance' | 'date'
-  }
+    sort: 'relevance' | 'date',
+  },
 })
 ```
 
@@ -756,13 +756,13 @@ Loaders provide automatic data loading tied to route activation.
 export const userRoute = reatomRoute({
   path: '/users/:userId',
   params: {
-    userId: Number
+    userId: Number,
   },
   async loader({ userId }) {
     const user = await wrap(api.getUser(userId))
-    
+
     return { user }
-  }
+  },
 })
 
 // Access loaded data
@@ -784,20 +784,23 @@ export const userEditRoute = reatomRoute({
   params: { userId: Number },
   async loader({ userId }) {
     const user = await wrap(api.getUser(userId))
-    
+
     // Form created fresh each visit
-    const editForm = reatomForm({
-      name: user.name,
-      email: user.email
-    }, {
-      name: 'editForm',
-      onSubmit: async (values) => {
-        return await wrap(api.updateUser(userId, values))
-      }
-    })
-    
+    const editForm = reatomForm(
+      {
+        name: user.name,
+        email: user.email,
+      },
+      {
+        name: 'editForm',
+        onSubmit: async (values) => {
+          return await wrap(api.updateUser(userId, values))
+        },
+      },
+    )
+
     return { user, editForm }
-  }
+  },
 })
 ```
 
@@ -813,13 +816,13 @@ const dashboardRoute = reatomRoute({
   children: [
     reatomRoute({
       path: 'settings',
-      name: 'dashboardSettings'
+      name: 'dashboardSettings',
     }),
     reatomRoute({
       path: 'profile',
-      name: 'dashboardProfile'
-    })
-  ]
+      name: 'dashboardProfile',
+    }),
+  ],
 })
 ```
 
@@ -827,15 +830,15 @@ const dashboardRoute = reatomRoute({
 
 ```typescript
 const url = userRoute.buildUrl({
-  userId: 123
+  userId: 123,
 }) // '/users/123'
 
 const searchUrl = searchRoute.buildUrl({
   search: {
     q: 'react',
     page: 2,
-    sort: 'date'
-  }
+    sort: 'date',
+  },
 }) // '/search?q=react&page=2&sort=date'
 ```
 
@@ -857,7 +860,7 @@ const data = atom(null, 'data').extend(
     console.log('Data connected - fetching...')
     const response = await wrap(api.getData())
     data.set(response)
-    
+
     return () => {
       console.log('Data disconnecting - cleanup')
       data.set(null)
@@ -865,7 +868,7 @@ const data = atom(null, 'data').extend(
   }),
   withDisconnectHook(() => {
     console.log('All subscribers gone')
-  })
+  }),
 )
 ```
 
@@ -879,7 +882,7 @@ Both computed and effect atoms are lazy - they only compute when subscribed.
 
 ```typescript
 const list = atom([], 'list')
-const filtered = computed(() => list().filter(item => item.active))
+const filtered = computed(() => list().filter((item) => item.active))
 const summary = effect(() => {
   console.log('List changed:', list().length)
 })
@@ -904,12 +907,12 @@ Effects automatically clean up when their reactive context is aborted.
 ```typescript
 const intervalEffect = effect(() => {
   if (!enabled()) return
-  
+
   console.log('Starting interval')
   const id = setInterval(() => {
-    counter.set(c => c + 1)
+    counter.set((c) => c + 1)
   }, 1000)
-  
+
   // Cleanup function
   return () => {
     console.log('Clearing interval')
@@ -940,8 +943,8 @@ import { atom, withPersist } from '@reatom/persist'
 const theme = atom<'light' | 'dark'>('light', 'theme').extend(
   withPersist({
     name: 'theme',
-    storage: localStorage
-  })
+    storage: localStorage,
+  }),
 )
 ```
 
@@ -951,8 +954,8 @@ const theme = atom<'light' | 'dark'>('light', 'theme').extend(
 const formData = atom({}, 'formData').extend(
   withPersist({
     name: 'formData',
-    storage: sessionStorage
-  })
+    storage: sessionStorage,
+  }),
 )
 ```
 
@@ -966,14 +969,14 @@ const authToken = atom('', 'authToken').extend(
       async get(key) {
         return document.cookie
           .split('; ')
-          .find(row => row.startsWith(`${key}=`))
+          .find((row) => row.startsWith(`${key}=`))
           ?.split('=')[1]
       },
       async set(key, value) {
         document.cookie = `${key}=${value}; path=/; max-age=31536000`
-      }
-    }
-  })
+      },
+    },
+  }),
 )
 ```
 
@@ -991,8 +994,8 @@ import { atom, withPersist, createIndexedDBStorage } from '@reatom/persist'
 const largeData = atom([], 'largeData').extend(
   withPersist({
     name: 'largeData',
-    storage: createIndexedDBStorage('my-db', 'data-store')
-  })
+    storage: createIndexedDBStorage('my-db', 'data-store'),
+  }),
 )
 ```
 
@@ -1005,8 +1008,8 @@ const sharedCounter = atom(0, 'sharedCounter').extend(
   withPersist({
     name: 'sharedCounter',
     storage: localStorage,
-    subscribe: true // Enable cross-tab sync
-  })
+    subscribe: true, // Enable cross-tab sync
+  }),
 )
 ```
 
@@ -1019,11 +1022,14 @@ const sharedCounter = atom(0, 'sharedCounter').extend(
 Handle schema changes across versions.
 
 ```typescript
-const user = atom({
-  name: '',
-  age: 0,
-  preferences: { theme: 'light' }
-}, 'user').extend(
+const user = atom(
+  {
+    name: '',
+    age: 0,
+    preferences: { theme: 'light' },
+  },
+  'user',
+).extend(
   withPersist({
     name: 'user',
     version: 2,
@@ -1034,13 +1040,13 @@ const user = atom({
           ...data,
           preferences: {
             theme: data.theme || 'light',
-            language: 'en'
-          }
+            language: 'en',
+          },
         }
       }
       return data
-    }
-  })
+    },
+  }),
 )
 ```
 
@@ -1053,17 +1059,20 @@ const user = atom({
 Handle complex data transformations.
 
 ```typescript
-const formState = atom({
-  email: '',
-  isSubmitting: false,
-  errors: {}
-}, 'formState').extend(
+const formState = atom(
+  {
+    email: '',
+    isSubmitting: false,
+    errors: {},
+  },
+  'formState',
+).extend(
   withPersist({
     name: 'formState',
     toSnapshot: (state) => {
       // Only save what's needed
       return {
-        email: state.email
+        email: state.email,
       }
     },
     fromSnapshot: (snapshot) => {
@@ -1071,10 +1080,10 @@ const formState = atom({
       return {
         email: snapshot.email,
         isSubmitting: false,
-        errors: {}
+        errors: {},
       }
-    }
-  })
+    },
+  }),
 )
 ```
 
@@ -1090,8 +1099,8 @@ Expire cached data after a specified time.
 const apiCache = atom(null, 'apiCache').extend(
   withPersist({
     name: 'apiCache',
-    time: 5 * 60 * 1000 // 5 minutes
-  })
+    time: 5 * 60 * 1000, // 5 minutes
+  }),
 )
 ```
 
@@ -1108,15 +1117,15 @@ import { action, take, wrap, sleep } from '@reatom/core'
 
 const submitWhenValid = action(async () => {
   while (true) {
-    const isValid = form.validation().triggered && 
-                   !form.validation().errors.length
-    
+    const isValid =
+      form.validation().triggered && !form.validation().errors.length
+
     if (isValid) break
-    
+
     // Wait for validation to change
     await wrap(take(form.validation))
   }
-  
+
   // Form is now valid, submit
   await wrap(form.submit())
 }, 'submitWhenValid')
@@ -1133,10 +1142,9 @@ Wait for specific conditions.
 ```typescript
 // Wait for specific route
 const dashboardData = await wrap(
-  take(
-    currentRoute,
-    (route) => route.name === 'dashboard' ? route : undefined
-  )
+  take(currentRoute, (route) =>
+    route.name === 'dashboard' ? route : undefined,
+  ),
 )
 ```
 
@@ -1151,8 +1159,8 @@ const result = await wrap(
   race({
     success: take(formSubmitSuccess),
     cancel: take(cancelRequested),
-    timeout: sleep(5000)
-  })
+    timeout: sleep(5000),
+  }),
 )
 
 if (result.success) {
@@ -1174,13 +1182,13 @@ import { action, onEvent, wrap } from '@reatom/core'
 const handleClickSequence = action(async () => {
   const button1 = document.getElementById('button1')
   const button2 = document.getElementById('button2')
-  
+
   // Wait for first click
   await wrap(onEvent(button1, 'click'))
   console.log('Button 1 clicked')
-  
+
   // Do something...
-  
+
   // Wait for second click
   await wrap(onEvent(button2, 'click'))
   console.log('Button 2 clicked')
@@ -1260,12 +1268,12 @@ import { onLineAtom, effect, wrap, sleep } from '@reatom/core'
 effect(async () => {
   if (!onLineAtom()) {
     showOfflineBanner()
-    
+
     // Wait until back online
-    await wrap(take(onLineAtom, isOnline => isOnline))
-    
+    await wrap(take(onLineAtom, (isOnline) => isOnline))
+
     hideOfflineBanner()
-    
+
     // Sync pending changes
     await wrap(syncPendingChanges())
   }
@@ -1288,10 +1296,10 @@ const position = atom({ x: 0, y: 0 }, 'position')
 effect(() => {
   const { delta } = rAF()
   const deltaSeconds = delta / 1000
-  
-  position.set(state => ({
+
+  position.set((state) => ({
     x: state.x + velocityX() * deltaSeconds,
-    y: state.y + velocityY() * deltaSeconds
+    y: state.y + velocityY() * deltaSeconds,
   }))
 })
 ```
@@ -1307,15 +1315,13 @@ Schedule state restoration for atoms.
 ```typescript
 import { atom, withRollback } from '@reatom/core'
 
-const list = atom<string[]>([], 'list').extend(
-  withRollback()
-)
+const list = atom<string[]>([], 'list').extend(withRollback())
 
 const addItem = action(async (item: string) => {
-  list.set(current => [...current, item])
-  
+  list.set((current) => [...current, item])
+
   await wrap(api.saveItem(item))
-  
+
   // Commit changes
   addItem.stop()
 }, 'addItem').extend(withAsync(), withTransaction())
@@ -1328,15 +1334,15 @@ Handle errors in actions and trigger rollback automatically.
 ```typescript
 const addTodo = action(async (todo: Todo) => {
   // Optimistic update
-  todos.set(current => [...current, todo])
-  
+  todos.set((current) => [...current, todo])
+
   await wrap(api.saveTodo(todo))
-  
+
   // Success - prevent rollback
   addTodo.stop()
 }, 'addTodo').extend(
   withAsync(),
-  withTransaction() // Auto-rollback on error
+  withTransaction(), // Auto-rollback on error
 )
 ```
 
@@ -1387,7 +1393,7 @@ const Counter = reatomFactoryComponent<{ initialCount: number }>(
   ({ initialCount }) => {
     // Factory runs once per instance
     const count = atom(initialCount, 'localCount')
-    
+
     // Return render function
     return (props) => (
       <div>
@@ -1412,7 +1418,7 @@ import { useAtom, useAction } from '@reatom/react'
 const Component = () => {
   const [count, setCount, countAtom] = useAtom(0)
   const handleIncrement = useAction(() => countAtom.set(c => c + 1))
-  
+
   return (
     <div>
       <span>{count}</span>
@@ -1448,9 +1454,7 @@ The pattern of replacing mutable object properties with atom references for perf
 ```typescript
 // ❌ Traditional immutable approach
 const updateUser = action((id, name) => {
-  users.set(list => list.map(u => 
-    u.id === id ? { ...u, name } : u
-  ))
+  users.set((list) => list.map((u) => (u.id === id ? { ...u, name } : u)))
 })
 
 // ✅ Atomization approach
@@ -1460,11 +1464,11 @@ const updateUser = action((id, name) => {
 })
 
 // Usage
-const users = atom<{ id: string, name: Atom<string> }[]>([])
+const users = atom<{ id: string; name: Atom<string> }[]>([])
 const user = atom(null)
 user.set({
   id: '1',
-  name: atom('John', 'user.name')
+  name: atom('John', 'user.name'),
 })
 ```
 
@@ -1480,17 +1484,17 @@ Create state instances that are recreated when dependencies change.
 // Route-based computed factory
 const routeData = computed(async () => {
   if (!userRoute()) return null
-  
+
   const { userId } = userRoute.params
   const user = await wrap(api.getUser(userId))
-  
+
   // Fresh form per route visit
   return {
     user,
     editForm: reatomForm({
       name: user.name,
-      email: user.email
-    })
+      email: user.email,
+    }),
   }
 }, 'routeData').extend(withAsyncData())
 ```
@@ -1543,12 +1547,15 @@ Focus on nested properties with automatic parent updates.
 ```typescript
 import { reatomLens } from '@reatom/core'
 
-const user = atom({
-  profile: {
-    name: 'John',
-    email: 'john@example.com'
-  }
-}, 'user')
+const user = atom(
+  {
+    profile: {
+      name: 'John',
+      email: 'john@example.com',
+    },
+  },
+  'user',
+)
 
 const name = reatomLens(user, 'profile.name')
 name() // 'John'
@@ -1594,7 +1601,7 @@ LOG('Debug info:', someData, atom())
 LOG.extend(
   withCallHook((params) => {
     analytics.track('log', { args: params })
-  })
+  }),
 )
 ```
 
@@ -1634,12 +1641,14 @@ const isUserAdmin = computed(() => {})
 ### State Updates
 
 **Good:**
+
 - Use `atom.set(newValue)` for simple updates
 - Use `atom.set(current => newValue)` for updates based on current state
 - Use atomization for list item updates
 - Let extensions handle common patterns
 
 **Bad:**
+
 - Recreating entire objects/arrays unnecessarily
 - Mutating state directly - always use setter functions
 - Using actions for simple updates that don't need tracking
@@ -1647,6 +1656,7 @@ const isUserAdmin = computed(() => {})
 ### Async Operations
 
 **Good:**
+
 - Always wrap async operations with `wrap()`
 - Use `withAbort` for concurrent operations
 - Use `withAsync` for mutations
@@ -1654,6 +1664,7 @@ const isUserAdmin = computed(() => {})
 - Leverage automatic cancellation
 
 **Bad:**
+
 - Using native await without `wrap()`
 - Not aborting concurrent operations (search, autocomplete)
 - Manually managing loading/error states
@@ -1662,6 +1673,7 @@ const isUserAdmin = computed(() => {})
 ### Forms
 
 **Good:**
+
 - Use `reatomForm` for complete form management
 - Leverage reactive validation for cross-field validation
 - Use schema validation for complex rules
@@ -1669,6 +1681,7 @@ const isUserAdmin = computed(() => {})
 - Use atomization for dynamic form lists
 
 **Bad:**
+
 - Creating separate atoms for value, validation, error
 - Manually triggering validation on related field changes
 - Persisting form state across navigation without clearing
@@ -1677,12 +1690,14 @@ const isUserAdmin = computed(() => {})
 ### Performance
 
 **Good:**
+
 - Rely on lazy computation - only subscribe when needed
 - Use atomization to reduce unnecessary re-renders
 - Use `memo()` for expensive computations within computeds
 - Let effects clean up automatically with abort context
 
 **Bad:**
+
 - Creating subscriptions to "force" computation
 - Recreating entire lists on item updates
 - Not cleaning up resources in effects
@@ -1691,6 +1706,7 @@ const isUserAdmin = computed(() => {})
 ### Organization
 
 **Good:**
+
 - Name everything for debugging
 - Group related state with `.extend()`
 - Use factories for scoped state
@@ -1698,6 +1714,7 @@ const isUserAdmin = computed(() => {})
 - Use variables for dependency injection
 
 **Bad:**
+
 - Using unnamed atoms/actions
 - Scattering related state across files
 - Creating global state that should be scoped
@@ -1706,12 +1723,14 @@ const isUserAdmin = computed(() => {})
 ### Testing
 
 **Good:**
+
 - Use variables to inject mocks
 - Test with fresh context per test
 - Use `peek()` to read state without subscription
 - Leverage reactive testing with `take()` and `race()`
 
 **Bad:**
+
 - Hardcoding dependencies in atoms
 - Sharing state across tests
 - Not cleaning up subscriptions in tests
