@@ -90,26 +90,31 @@ export let reatomAbstractRender = <Props, Result>({
     let _props = atom({} as Props, `_${name}.props`)
 
     let abortSubscription: AbortSubscription
+    let renderFrame: Frame | undefined
+
+    let syncAbortSubscription = (currentFrame: Frame) => {
+      abortSubscription ??= abortVar.subscribe()
+      if (abortSubscription.controller.signal.aborted) {
+        abortSubscription.unsubscribe()
+        abortVar.set()
+        abortSubscription = abortVar.subscribe()
+      }
+
+      abortSubscription.controller.spawned = true
+      currentFrame['var#abort'] = abortSubscription.controller
+    }
 
     let _render = computed((state?: { result: Result }): { result: Result } => {
-      let frame = top()
-      let pubs = _getPrevFrame(frame)?.pubs ?? [null]
+      let currentFrame = top()
+      let pubs = _getPrevFrame(currentFrame)?.pubs ?? [null]
 
       _enqueue(() => (pubs.length = 1), 'cleanup')
 
       let props = _props()
 
       if (rendering) {
-        abortSubscription ??= abortVar.subscribe()
-        // Related to react remounts of `StrictMode` and `Activity`.
-        if (abortSubscription.controller.signal.aborted) {
-          abortSubscription.unsubscribe()
-          abortVar.set()
-          abortSubscription = abortVar.subscribe()
-        }
-
-        abortSubscription.controller.spawned = true
-        frame['var#abort'] = abortSubscription.controller
+        renderFrame = currentFrame
+        syncAbortSubscription(currentFrame)
 
         return { result: adapterRender(props) }
       }
@@ -140,6 +145,10 @@ export let reatomAbstractRender = <Props, Result>({
     }, frame) as (props: Props) => { result: Result }
 
     let mount = wrap(() => {
+      if (renderFrame) {
+        renderFrame.run(() => syncAbortSubscription(renderFrame!))
+      }
+
       adapterMount?.()
       let unsubscribe = _render.subscribe((state) => {
         let deps = 0
@@ -155,7 +164,7 @@ export let reatomAbstractRender = <Props, Result>({
 
       return wrap(() => {
         unsubscribe()
-        abortSubscription.controller.abort('unmount')
+        abortSubscription?.controller.abort('unmount')
       })
     }, frame)
 
