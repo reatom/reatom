@@ -1,6 +1,6 @@
 import { expect, expectTypeOf, test } from 'test'
 
-import { atom, computed, context } from '../core'
+import { atom, computed, context, top } from '../core'
 import { sleep } from '../utils'
 import { getStackTrace } from './'
 import { wrap } from './wrap'
@@ -71,6 +71,41 @@ test('async frame stack', async () => {
 
   expect(context().pubs).toEqual([null])
   expect(context().subs.length).toBe(0)
+})
+
+test('extra .then levels from compiled async/await do not break context', async () => {
+  const a = atom(0, 'extraThen.a')
+
+  await new Promise<void>((done, fail) => {
+    computed(async () => {
+      try {
+        const val = a()
+
+        // simulate compiled async/await: wrap resolves, but the continuation
+        // goes through extra .then() levels before reaching user code
+        await Promise.resolve(wrap(sleep()))
+          .then(() => {
+            // extra .then level (compiled artifact)
+            return undefined
+          })
+          .then(() => {
+            // another extra .then level (compiled artifact)
+            return undefined
+          })
+          .then(() => {
+            // user code that needs the async context
+            top() // should NOT throw "missing async stack"
+            a.set(val + 1)
+          })
+
+        if (a() >= 2) done()
+      } catch (error) {
+        fail(error)
+      }
+    }, 'extraThen.loop').subscribe()
+  })
+
+  expect(a()).toBe(2)
 })
 
 test('types', () => {

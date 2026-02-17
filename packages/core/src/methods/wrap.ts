@@ -75,16 +75,36 @@ export let wrap: {
   let abortSubscription: undefined | AbortSubscription
   let promise: undefined | Promise<Awaited<T>>
 
-  let seal = (cb: Fn) => {
+  let refs = 0
+  let pushed = false
+  let cleanup = () => {
     // prevent unhandled error for abort
     if (abortSubscription) {
       if (abortSubscription.controller.signal.aborted) promise?.catch(noop)
       abortSubscription.unsubscribe()
     }
+  }
+  let enter = () => {
+    refs++
+    if (!pushed) {
+      pushed = true
+      STACK.push(frame)
+    }
+  }
+  let leave = () => {
+    if (--refs === 0 && pushed) {
+      pushed = false
+      let idx = STACK.lastIndexOf(frame)
+      if (idx !== -1) STACK.splice(idx, 1)
+      cleanup()
+      cleanup = noop
+    }
+  }
 
-    queueMicrotask(() => void STACK.push(frame))
+  let seal = (cb: Fn) => {
+    queueMicrotask(enter)
     cb()
-    queueMicrotask(() => void STACK.pop())
+    setTimeout(leave, 0)
   }
 
   let aborted = false
