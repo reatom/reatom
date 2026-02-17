@@ -1,67 +1,141 @@
-import { atom, Atom, peek } from '@reatom/core'
-import { withReatomElement, watch } from '../src/index.ts'
-import { LitElement, html } from 'lit'
+import { atom, computed } from '@reatom/core'
+import { ReatomLitElement, html } from '@reatom/lit'
+import { css } from 'lit'
+import { repeat } from 'lit/directives/repeat.js'
 
-const timer = atom(0, 'timer')
-const count = atom(0, 'count').mix((target) => ({
-  increment: () => target((state) => state + 1),
-}))
+const textAtom = atom(0, 'performance.text')
+const rAFTimestampAtom = atom(0, 'performance.rAFTimestamp')
 
-setInterval(() => {
-  timer((state) => state + 1)
-}, 1_000)
+const transformAtom = computed(() => {
+  const t = rAFTimestampAtom() / 1000
+  const cycle = t % 10
+  const scale = 1 + (cycle > 5 ? 10 - cycle : cycle) / 10
+  return `transform: scale(${scale / 2.1}, 0.7) translateZ(0.1px)`
+}, 'performance.transform')
 
-const RenderCountElement = withReatomElement(
-  class RenderCountElement extends LitElement {
-    declare count: Atom<number>
+interface CircleItem {
+  top: number
+  left: number
+}
 
-    override render() {
-      return html`<div>Render count: ${this.count()}</div>`
+function generateSierpinskiTriangle(size: number): CircleItem[] {
+  const target = 25
+
+  function SierpinskiTriangle(
+    item: { left: number; top: number; size: number },
+  ): CircleItem[] {
+    if (item.size < target) {
+      return [
+        { left: item.left - target / 2, top: item.top - target / 2 },
+      ]
     }
-  },
-)
+    const newSize = item.size / 2
+    return [
+      ...SierpinskiTriangle({
+        left: item.left,
+        top: item.top - newSize / 2,
+        size: newSize,
+      }),
+      ...SierpinskiTriangle({
+        left: item.left - newSize,
+        top: item.top + newSize / 2,
+        size: newSize,
+      }),
+      ...SierpinskiTriangle({
+        left: item.left + newSize,
+        top: item.top + newSize / 2,
+        size: newSize,
+      }),
+    ]
+  }
 
-const CounterElement = withReatomElement(
-  class CounterElement extends LitElement {
-    static override properties = { innerCount: { type: Number, state: true } }
-    declare innerCount: number
+  return SierpinskiTriangle({ left: 0, top: 0, size })
+}
 
-    renderCount = atom(0)
+const TRIANGLE_SIZE = 1000
+const circleItems = generateSierpinskiTriangle(TRIANGLE_SIZE)
 
-    private handleClick = () => {
-      this.innerCount++
+const circlePositions = circleItems.map((item) => {
+  return `top:${item.top}px;left:${item.left}px;`
+})
+
+export class PerformanceDemoElement extends ReatomLitElement {
+  static override styles = css`
+    .test-block {
+      position: relative;
+      display: block;
+      transform-origin: 0 0;
+      left: 50%;
+      margin-top: 400px;
+      width: 600px;
+      height: 600px;
+      transition: none;
     }
 
-    constructor() {
-      super()
-
-      this.innerCount = 0
+    .circle {
+      position: absolute;
+      background: #61dafb;
+      font: normal 15px sans-serif;
+      text-align: center;
+      cursor: pointer;
+      width: 32.5px;
+      height: 32.5px;
+      border-radius: 16.25px;
+      line-height: 32.5px;
+      transition: background-color 0.1s;
     }
 
-    override render() {
-      return html`
-        <div>
-          <h1>Timer: ${watch(timer)}</h1>
-          <h3>Reatom Reactivity: ${watch(count)}</h3>
-          <h3>LitElement Reactivity: ${this.innerCount}</h3>
-
-          <button @click=${this.handleClick}>
-            Increment LitElement Reactivity
-          </button>
-          <button @click=${() => count.increment()}>
-            Increment Reatom Reactivity
-          </button>
-          <render-count .count=${this.renderCount}></render-count>
-        </div>
-      `
+    .circle::before,
+    .circle::after {
+      content: '';
     }
 
-    override updated() {
-      const v = peek(this.renderCount)
-      this.renderCount(v + 1)
+    .circle:hover {
+      background-color: #faaf0f;
     }
-  },
-)
 
-customElements.define('counter-element', CounterElement)
-customElements.define('render-count', RenderCountElement)
+    .circle:hover::before,
+    .circle:hover::after {
+      content: '*';
+    }
+  `
+
+  private rAFId: number | null = null
+
+  override connectedCallback() {
+    super.connectedCallback()
+
+    const animate = () => {
+      textAtom.set((v) => (v >= 9 ? 0 : v + 1))
+      rAFTimestampAtom.set(performance.now())
+      this.rAFId = requestAnimationFrame(animate)
+    }
+    animate()
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback()
+    if (this.rAFId) {
+      cancelAnimationFrame(this.rAFId)
+      this.rAFId = null
+    }
+  }
+
+  override render() {
+    return html`
+      <div class="test-block" style="${transformAtom}">
+        ${repeat(
+          circleItems,
+          (_, index) => index,
+          (_, index) => html`
+            <div class="circle" style="${circlePositions[index]}">
+              ${textAtom}
+            </div>
+          `,
+        )}
+      </div>
+    `
+  }
+}
+
+customElements.define('demo-element', PerformanceDemoElement)

@@ -1,6 +1,6 @@
 {
   "name": "@reatom/lit",
-  "version": "1000.0.0-alpha.32",
+  "version": "1000.1.0",
   "publishConfig": {
     "tag": "alpha"
   },
@@ -20,17 +20,22 @@
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "microbundle -f esm,cjs --raw && pnpm run docs:gen",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
-    "demo": "vite demo"
+    "demo": "vite demo",
+    "demo:build": "vite build demo --outDir ../../../docs/public/demo/lit-orderbook --emptyOutDir",
+    "docs:gen": "node --import tsx build-docs.ts",
+    "typecheck:docs": "tsc --noEmit -p tsconfig.docs.json"
   },
   "peerDependencies": {
-    "lit": "^2.6.0",
-    "@reatom/core": "workspace:^"
+    "@reatom/core": "workspace:^",
+    "lit": "^3.0.0"
   },
   "devDependencies": {
     "@vitest/browser-playwright": "catalog:",
+    "tsx": "^4.0.0",
+    "bybit-api": "^4.4.5",
     "vite": "catalog:"
   },
   "author": "kaifaty",

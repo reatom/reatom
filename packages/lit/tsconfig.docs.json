@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "experimentalDecorators": true,
+    "noImplicitOverride": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "verbatimModuleSyntax": false,
+    "composite": true,
+    "declarationDir": "./tsbuild",
+    "baseUrl": ".",
+    "paths": {
+      "@reatom/lit": ["./src/index.ts"],
+      "@reatom/core": ["../../core/src/index.ts"]
+    }
+  },
+  "include": ["docs/**/*.ts", "src/**/*.ts"],
+  "exclude": ["node_modules/**"]
+}

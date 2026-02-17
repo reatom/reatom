@@ -29,6 +29,56 @@ export const sidebar = [
       'handbook/persist',
       'handbook/sampling',
       {
+        label: 'Lit Integration',
+        items: [
+          {
+            label: 'Introduction',
+            link: '/handbook/lit/',
+          },
+          {
+            label: 'Basics',
+            items: [
+              'handbook/lit/basic/quick-start',
+              'handbook/lit/basic/reatom-lit-element',
+              'handbook/lit/basic/watch-directive',
+              'handbook/lit/basic/auto-reactivity',
+              'handbook/lit/basic/reactive-component',
+              'handbook/lit/basic/multiple-atoms',
+              'handbook/lit/basic/passing-atoms',
+            ],
+          },
+          {
+            label: 'Advanced',
+            items: [
+              'handbook/lit/advanced/when-to-use',
+              'handbook/lit/advanced/mixed-reactivity',
+              'handbook/lit/advanced/benefits',
+              'handbook/lit/advanced/async-operations',
+              'handbook/lit/advanced/lifecycle',
+              'handbook/lit/advanced/atomization',
+            ],
+          },
+          {
+            label: 'Examples',
+            items: [
+              'handbook/lit/examples/todo-app',
+              'handbook/lit/examples/login-form',
+              'handbook/lit/examples/paginated-list',
+              'handbook/lit/examples/component-composition',
+            ],
+          },
+          {
+            label: 'Best Practices',
+            items: [
+              'handbook/lit/best-practices/organization',
+              'handbook/lit/best-practices/memory',
+              'handbook/lit/best-practices/debugging',
+              'handbook/lit/best-practices/performance',
+            ],
+          },
+        ],
+      },
+      {
         label: 'Forms',
         items: [
           'handbook/forms/introduction',
@@ -130,10 +180,10 @@ export const sidebar = [
       //   label: '@reatom/vue',
       //   link: '/reference/vue',
       // },
-      // {
-      //   label: '@reatom/lit',
-      //   link: '/reference/lit',
-      // },
+      {
+        label: '@reatom/lit',
+        link: '/handbook/lit/',
+      },
       {
         label: '@reatom/preact',
         link: '/reference/preact',

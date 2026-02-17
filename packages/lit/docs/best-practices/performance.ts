@@ -1,0 +1,256 @@
+/** @doc-expand
+ * Performance
+ *
+ * Performance tips for ReatomLitElement components
+ *
+ * 
+ * <a href="../../../../demo/lit-orderbook/index.html" target="_blank" rel="noopener noreferrer">Live Performance Demo</a>
+ * [View Source Code](https://github.com/artalar/reatom/tree/v1000/packages/lit/demo)
+
+ * @file Performance Considerations
+ */
+
+import { atom, computed, type Atom } from '@reatom/core'
+import { ReatomLitElement, watch } from '@reatom/lit'
+import { html } from 'lit'
+
+/** @doc-expand
+ * 1. Use computed atoms for derived state
+ *
+ * Instead of computing derived values in render methods, use computed atoms for
+ * better performance:
+ */
+
+// ❌ BAD: Computed in render
+const itemsBad = atom<{ id: number; active: boolean }[]>([], 'itemsBad')
+
+export class DerivedStateBadComponent extends ReatomLitElement {
+  override render() {
+    const activeItems = itemsBad().filter((item) => item.active)
+    return html`<div>Active items: ${activeItems.length}</div>`
+  }
+}
+
+customElements.define('derived-state-bad', DerivedStateBadComponent)
+
+// ✅ GOOD: Computed atom
+const items = atom<{ id: number; active: boolean }[]>([], 'items')
+const activeItems = computed(() => {
+  return items().filter((item) => item.active)
+}, 'activeItems')
+
+export class DerivedStateComponent extends ReatomLitElement {
+  override render() {
+    const activeItemsList = activeItems()
+    return html`<div>Active items: ${activeItemsList.length}</div>`
+  }
+}
+
+customElements.define('derived-state', DerivedStateComponent)
+
+/** @doc-expand
+ * 2. Use computed atoms for expensive calculations
+ *
+ * Don't compute expensive values on every render. Use computed atoms to cache
+ * the results and only recalculate when dependencies change:
+ */
+
+// ❌ BAD: Expensive calculation on every render
+const counterAtomBad = atom(5, 'counterAtomBad')
+
+export class BadExpensiveComponent extends ReatomLitElement {
+  private factorial(n: number): number {
+    // Expensive factorial calculation
+    return n <= 1 ? 1 : n * this.factorial(n - 1)
+  }
+
+  override render() {
+    const counter = counterAtomBad()
+    // Recalculates factorial on EVERY render, even when counter doesn't change
+    const result = this.factorial(counter)
+    return html`<div>${counter}! = ${result}</div>`
+  }
+}
+
+customElements.define('bad-expensive', BadExpensiveComponent)
+
+// ✅ GOOD: Computed atom caches the result
+const counterAtom = atom(5, 'counterAtom')
+
+function factorial(n: number): number {
+  // Expensive factorial calculation
+  return n <= 1 ? 1 : n * factorial(n - 1)
+}
+
+const factorialAtom = computed(() => {
+  const n = counterAtom()
+  // Only recalculates when counterAtom changes, result is cached
+  return factorial(n)
+}, 'factorialAtom')
+
+export class ComputedExpensiveComponent extends ReatomLitElement {
+  override render() {
+    const counter = watch(counterAtom)
+    const factorialValue = watch(factorialAtom)
+    return html`<div>${counter}! = ${factorialValue}</div>`
+  }
+}
+
+customElements.define('computed-expensive', ComputedExpensiveComponent)
+
+/** @doc-expand
+ * 3. Use computed render props
+ *
+ * You can create computed atoms as class properties to memoize parts of your
+ * render template. This is useful when one part of the tree updates frequently
+ * while another doesn't.
+ *
+ * When used with the `watch` directive (or with `html` from `@reatom/lit` which
+ * auto-wraps atoms), computed render props can update the bound template Parts
+ * without requiring the host element to run a full update cycle.
+ *
+ * Lit references:
+ * - Update cycle & batching: https://lit.dev/docs/components/lifecycle/
+ * - Directives: https://lit.dev/docs/api/directives/
+ *
+ * IMPORTANT: Computed render props should ONLY depend on atoms, NOT on Lit
+ * properties. If they depend on component props, they won't update when props
+ * change:
+ */
+
+// ❌ BAD: Template part recreated on every render
+export class BadPriceComponent extends ReatomLitElement {
+  override render() {
+    const finalPrice = finalPriceAtom()
+    const savings = savingsAtom()
+    // Complex template part recreated on EVERY render
+    const savingsTemplate = html`(save $${savings.toFixed(2)})`
+    return html`<div>$${finalPrice.toFixed(2)} ${savingsTemplate}</div>`
+  }
+}
+
+customElements.define('bad-price', BadPriceComponent)
+
+// ✅ GOOD: Computed class property memoizes template part
+const priceAtom = atom(100, 'priceAtom')
+const taxAtom = atom(20, 'taxAtom')
+const discountAtom = atom(10, 'discountAtom')
+
+// Base calculations
+const finalPriceAtom = computed(() => {
+  const price = priceAtom()
+  const tax = taxAtom()
+  const discount = discountAtom()
+  return price * (1 + tax / 100) * (1 - discount / 100)
+}, 'finalPriceAtom')
+
+const savingsAtom = computed(() => {
+  const price = priceAtom()
+  const finalPrice = finalPriceAtom()
+  return price - finalPrice
+}, 'savingsAtom')
+
+export class PriceDisplayComponent extends ReatomLitElement {
+  // Computed render content - memoized template part
+  renderContent = computed(() => {
+    const savings = savingsAtom()
+    return html`(save $${savings.toFixed(2)})`
+  }, 'renderContent')
+
+  override render() {
+    const content = this.renderContent()
+    return html`<div>$${watch(finalPriceAtom)} ${content}</div>`
+  }
+}
+
+customElements.define('price-display', PriceDisplayComponent)
+
+// ❌ BAD: Computed render prop depends on Lit property
+export class UserGreetingBad extends ReatomLitElement {
+  static properties = {
+    userName: { type: String },
+  }
+
+  declare userName: string
+
+  // This computed depends on `this.userName` which is a Lit property
+  greeting = computed(() => {
+    // ❌ Won't update when userName prop changes!
+    return html`Hello, ${this.userName}!`
+  }, 'greeting')
+
+  override render() {
+    return html`<div>${this.greeting()}</div>`
+  }
+}
+
+customElements.define('user-greeting-bad', UserGreetingBad)
+
+// ✅ GOOD: Put prop value into atom, then compute
+const userNameAtom = atom('World', 'userNameAtom')
+
+export class UserGreetingGood extends ReatomLitElement {
+  greeting = computed(() => {
+    const name = userNameAtom()
+    // ✅ Will update when userNameAtom changes
+    return html`Hello, ${name}!`
+  }, 'greeting')
+
+  override render() {
+    return html`<div>${this.greeting}</div>`
+  }
+}
+
+customElements.define('user-greeting', UserGreetingGood)
+
+// ✅ GOOD: External atom as prop works correctly
+export class UserGreetingWithAtomProp extends ReatomLitElement {
+  static properties = {
+    nameAtom: { type: Object },
+  }
+
+  declare nameAtom: typeof atom<string>
+
+  greeting = computed(() => {
+    // ✅ Will update when nameAtom prop changes, because it's an atom!
+    const name = this.nameAtom()
+    return html`Hi, ${name}!`
+  }, 'greeting')
+
+  override render() {
+    return html`<div>${this.greeting}</div>`
+  }
+}
+
+customElements.define('user-greeting-atom-prop', UserGreetingWithAtomProp)
+
+/** @doc-expand
+ * 5. Use atomization for lists
+ *
+ * The atomization pattern provides O(1) updates instead of O(n) for list
+ * modifications. Each item's mutable properties become individual atoms,
+ * so updating one item doesn't require updating other items.
+ *
+ * For detailed explanation and examples, see the
+ * [Atomization in Lit Components](/handbook/lit/advanced/atomization) section.
+ */
+
+/** @doc-expand
+ * Key performance tips:
+ *
+ * - Use computed atoms for derived state instead of computing in render
+ * - Use computed atoms for expensive calculations (auto-memoization)
+ * - Use computed render props to memoize template parts (only depend on atoms!)
+ * - Avoid creating atoms in render methods (create them outside)
+ * - Use atomization for lists - update only the changed item/Part, not the whole list
+ * - Atomization provides O(1) updates instead of O(n) for list modifications
+ * - Keep component render functions pure and focused
+ * - Minimize DOM operations by batching changes where possible
+ * - Use Lit's built-in helpers when appropriate (for example `@lit/task`): https://lit.dev/docs/data/task/
+ * - Profile your components to identify bottlenecks
+ * - Consider using virtual scrolling for very large lists (1000+ items)
+ *
+ * Lit references:
+ * - Update cycle & batching: https://lit.dev/docs/components/lifecycle/
+ * - DOM patching model: https://lit.dev/docs/components/rendering/
+ */

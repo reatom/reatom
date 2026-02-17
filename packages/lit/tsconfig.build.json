@@ -3,7 +3,5 @@
   "compilerOptions": {
     "declarationMap": true
   },
-  "references": [
-    {"path": "../core/tsconfig.build.json"}
-  ]
+  "references": [{ "path": "../core/tsconfig.build.json" }]
 }
