@@ -126,7 +126,7 @@ let useAccessor = <State>(
   let cache = atomMap.get(target)
 
   if (!cache) {
-    let [read, write] = createSignal(frame.run(target), { equals: false })
+    let [read, write] = createSignal(frame.run(target))
     let setState = (state: State) => write(() => state)
 
     let accessorCache: AccessorCache = {
@@ -134,13 +134,14 @@ let useAccessor = <State>(
         let state = read()
 
         if (getListener()) {
-          if (accessorCache.count++ === 0) {
+          accessorCache.count++
+          if (accessorCache.count === 1) {
             accessorCache.unsubscribe = target.subscribe(bind(setState, frame))
           }
 
           onCleanup(() => {
             if (--accessorCache.count === 0) {
-              accessorCache.unsubscribe!()
+              accessorCache.unsubscribe?.()
               accessorCache.unsubscribe = null
             }
           })
@@ -271,3 +272,5 @@ export const useAtom = <State, Params extends any[]>(
 // function getUseAtomName() {
 //   return named`${getOwner()?.owner?.name?.replace('[solid-refresh]', '') ?? 'use'}Atom`
 // }
+
+export { bindField } from './bindField'
