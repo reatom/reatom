@@ -1,3 +1,10 @@
+## 1000.15.1 (2026-02-11)
+
+### Fix
+
+- **web**: rAF logs spam
+- **extensions**: unhandled abort
+
 ## 1000.15.0 (2026-02-04)
 
 ### Feat
