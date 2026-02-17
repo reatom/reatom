@@ -90,7 +90,7 @@ export let reatomAbstractRender = <Props, Result>({
     let _props = atom({} as Props, `_${name}.props`)
 
     let abortSubscription: AbortSubscription
-    let renderFrame: Frame | undefined
+    let ownerFrame: Frame | undefined
 
     let syncAbortSubscription = (currentFrame: Frame) => {
       abortSubscription ??= abortVar.subscribe()
@@ -113,8 +113,9 @@ export let reatomAbstractRender = <Props, Result>({
       let props = _props()
 
       if (rendering) {
-        renderFrame = currentFrame
-        syncAbortSubscription(currentFrame)
+        ownerFrame = _getPrevFrame(currentFrame) ?? currentFrame
+        const currentOwnerFrame = ownerFrame
+        currentOwnerFrame.run(() => syncAbortSubscription(currentOwnerFrame))
 
         return { result: adapterRender(props) }
       }
@@ -145,8 +146,9 @@ export let reatomAbstractRender = <Props, Result>({
     }, frame) as (props: Props) => { result: Result }
 
     let mount = wrap(() => {
-      if (renderFrame) {
-        renderFrame.run(() => syncAbortSubscription(renderFrame!))
+      if (ownerFrame) {
+        const currentOwnerFrame = ownerFrame
+        currentOwnerFrame.run(() => syncAbortSubscription(currentOwnerFrame))
       }
 
       adapterMount?.()
