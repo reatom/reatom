@@ -89,24 +89,15 @@ export let reatomAbstractRender = <Props, Result>({
 
     let _props = atom({} as Props, `_${name}.props`)
 
-    let abortSubscription: AbortSubscription
-    let abortTimeout: undefined | ReturnType<typeof setTimeout>
-    let ownerFrame: Frame | undefined
-
-    let clearAbortTimeout = () => {
-      if (abortTimeout !== undefined) {
-        clearTimeout(abortTimeout)
-        abortTimeout = undefined
-      }
-    }
+    let abortSubscriptions = new Map<Frame, AbortSubscription>()
 
     let syncAbortSubscription = (currentFrame: Frame) => {
-      clearAbortTimeout()
-      abortSubscription ??= abortVar.subscribe()
-      if (abortSubscription.controller.signal.aborted) {
-        abortSubscription.unsubscribe()
+      let abortSubscription = abortSubscriptions.get(currentFrame)
+      if (!abortSubscription || abortSubscription.controller.signal.aborted) {
+        abortSubscription?.unsubscribe()
         abortVar.set()
         abortSubscription = abortVar.subscribe()
+        abortSubscriptions.set(currentFrame, abortSubscription)
       }
 
       abortSubscription.controller.spawned = true
@@ -122,9 +113,7 @@ export let reatomAbstractRender = <Props, Result>({
       let props = _props()
 
       if (rendering) {
-        ownerFrame = _getPrevFrame(currentFrame) ?? currentFrame
-        const currentOwnerFrame = ownerFrame
-        currentOwnerFrame.run(() => syncAbortSubscription(currentOwnerFrame))
+        syncAbortSubscription(currentFrame)
 
         return { result: adapterRender(props) }
       }
@@ -155,9 +144,8 @@ export let reatomAbstractRender = <Props, Result>({
     }, frame) as (props: Props) => { result: Result }
 
     let mount = wrap(() => {
-      if (ownerFrame) {
-        const currentOwnerFrame = ownerFrame
-        currentOwnerFrame.run(() => syncAbortSubscription(currentOwnerFrame))
+      for (let renderFrame of abortSubscriptions.keys()) {
+        renderFrame.run(() => syncAbortSubscription(renderFrame))
       }
 
       adapterMount?.()
@@ -175,13 +163,8 @@ export let reatomAbstractRender = <Props, Result>({
 
       return wrap(() => {
         unsubscribe()
-        clearAbortTimeout()
-        let controller = abortSubscription?.controller
-        if (controller) {
-          abortTimeout = setTimeout(() => {
-            abortTimeout = undefined
-            controller.abort('unmount')
-          })
+        for (let abortSubscription of abortSubscriptions.values()) {
+          abortSubscription.controller.abort('unmount')
         }
       })
     }, frame)
