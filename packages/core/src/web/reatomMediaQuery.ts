@@ -1,4 +1,4 @@
-import { computed, withMiddleware } from '../core'
+import { atom, computed, withMiddleware } from '../core'
 import { withConnectHook } from '../extensions'
 import { onEvent } from './onEvent'
 
@@ -36,12 +36,20 @@ import { onEvent } from './onEvent'
  */
 export let reatomMediaQuery = (query: string) => {
   let media = globalThis.matchMedia?.(query)
-  let mediaAtom = computed(() => false, `mediaQuery#${query}`)
+  let mediaSource = atom(() => media.matches, `mediaQuery#${query}._source`)
+  let mediaAtom = computed(() => mediaSource(), `mediaQuery#${query}`)
 
   if (media) {
     mediaAtom.extend(
-      withMiddleware(() => () => media.matches),
-      withConnectHook((target) => onEvent(media, 'change', () => target())),
+      withMiddleware(() => (next) => {
+        next()
+        return media.matches
+      }),
+      withConnectHook(() =>
+        onEvent(media, 'change', () => {
+          mediaSource.set(media.matches)
+        }),
+      ),
     )
   }
 
