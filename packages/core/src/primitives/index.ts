@@ -1,6 +1,7 @@
 export * from './reatomArray'
 export * from './reatomBoolean'
 export * from './reatomEnum'
+export * from './reatomInfinityList'
 export * from './reatomLinkedList'
 export * from './reatomMap'
 export * from './reatomNumber'
