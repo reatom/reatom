@@ -69,6 +69,7 @@
     "@preact/signals": "catalog:",
     "@preact/signals-core": "catalog:",
     "preact": "catalog:",
-    "@vitest/browser-playwright": "catalog:"
+    "@vitest/browser-playwright": "catalog:",
+    "vitest": "catalog:"
   }
 }

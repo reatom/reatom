@@ -27,6 +27,10 @@
     "@reatom/core": "workspace:^",
     "vue": "^3.5.17"
   },
+  "devDependencies": {
+    "@vitest/browser-playwright": "catalog:",
+    "vitest": "catalog:"
+  },
   "author": {
     "name": "krulod",
     "url": "https://github.com/krulod"

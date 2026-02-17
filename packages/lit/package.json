@@ -31,7 +31,8 @@
   },
   "devDependencies": {
     "@vitest/browser-playwright": "catalog:",
-    "vite": "catalog:"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   },
   "author": "kaifaty",
   "maintainers": [

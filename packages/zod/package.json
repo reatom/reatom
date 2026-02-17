@@ -34,6 +34,9 @@
     "@reatom/core": "workspace:^",
     "zod": "^3.25.0"
   },
+  "devDependencies": {
+    "vitest": "catalog:"
+  },
   "author": "artalar",
   "maintainers": [
     {

@@ -47,6 +47,7 @@
     "@vitejs/plugin-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "@vitest/browser-playwright": "catalog:"
+    "@vitest/browser-playwright": "catalog:",
+    "vitest": "catalog:"
   }
 }

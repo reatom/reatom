@@ -62,6 +62,7 @@
 		"@typescript-eslint/parser": "catalog:",
 		"@vitest/browser-playwright": "catalog:",
 		"eslint-plugin-simple-import-sort": "catalog:",
-		"vite-plugin-solid": "^2.11.6"
+		"vite-plugin-solid": "^2.11.6",
+		"vitest": "catalog:"
 	}
 }

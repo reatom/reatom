@@ -37,7 +37,8 @@
   },
   "devDependencies": {
     "@vitest/browser-playwright": "catalog:",
-    "playwright": "catalog:"
+    "playwright": "catalog:",
+    "vitest": "catalog:"
   },
   "author": "artalar",
   "maintainers": [
