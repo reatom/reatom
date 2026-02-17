@@ -164,6 +164,7 @@ export let reatomAbstractRender = <Props, Result>({
       return wrap(() => {
         unsubscribe()
         for (let abortSubscription of abortSubscriptions.values()) {
+          abortSubscription.unsubscribe()
           abortSubscription.controller.abort('unmount')
         }
       })
