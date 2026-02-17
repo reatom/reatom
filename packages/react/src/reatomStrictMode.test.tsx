@@ -29,7 +29,15 @@ const getInputElement = (testId: string) => {
 }
 
 const inputText = (inputElement: HTMLInputElement, value: string) => {
-  inputElement.value = value
+  const valueSetter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    'value',
+  )?.set
+  if (!valueSetter) {
+    throw new Error('input value setter is not found')
+  }
+
+  valueSetter.call(inputElement, value)
   inputElement.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
