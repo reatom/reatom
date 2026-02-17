@@ -96,7 +96,9 @@ describe('StrictMode input sync', () => {
       expect(getInputElement('reatom-component-input').value).toBe('hello')
       expect(textAtom()).toBe('hello')
 
-      await inputText(getInputElement('reatom-component-input'), 'strict mode')
+      await wrap(
+        inputText(getInputElement('reatom-component-input'), 'strict mode'),
+      )
       await wrap(tick())
 
       expect(textAtom()).toBe('strict mode')
@@ -140,7 +142,7 @@ describe('StrictMode input sync', () => {
       expect(getInputElement('reatom-factory-input').value).toBe('factory')
       expect(textAtom()).toBe('factory')
 
-      await inputText(getInputElement('reatom-factory-input'), 'reatom')
+      await wrap(inputText(getInputElement('reatom-factory-input'), 'reatom'))
       await wrap(tick())
 
       expect(textAtom()).toBe('reatom')
