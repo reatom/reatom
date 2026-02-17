@@ -1,76 +1,75 @@
 {
-	"name": "@reatom/admin",
-	"version": "1000.15.1",
-	"description": "Admin dashboard for Reatom tracing — debugger & remote log viewer",
-	"private": false,
-	"sideEffects": false,
-	"exports": {
-		"types": "./build/index.d.ts",
-		"require": "./build/index.js",
-		"default": "./build/index.mjs"
-	},
-	"main": "build/index.js",
-	"module": "build/index.mjs",
-	"types": "build/index.d.ts",
-	"browserslist": [
-		"last 1 year"
-	],
-	"scripts": {
-		"prepublishOnly": "pnpm run build && pnpm run test",
-		"build": "microbundle -f esm,cjs --raw",
-		"test": "pnpm test:unit && pnpm test:browser",
-		"test:unit": "vitest run --config vitest.config.ts",
-		"test:browser": "vitest run --config vitest.browser.config.ts",
-		"test:browser:video": "RECORD_VIDEO=1 vitest run --config vitest.browser.config.ts"
-	},
-	"dependencies": {
-		"@reatom/core": "workspace:^",
-		"@reatom/jsx": "workspace:^"
-	},
-	"author": {
-		"name": "artalar",
-		"url": "https://github.com/artalar"
-	},
-	"maintainers": [
-		{
-			"name": "artalar",
-			"url": "https://github.com/artalar"
-		}
-	],
-	"license": "MIT",
-	"repository": {
-		"type": "git",
-		"url": "git+ssh://git@github.com/reatom/reatom.git",
-		"directory": "packages/admin"
-	},
-	"bugs": {
-		"url": "https://github.com/reatom/reatom/issues"
-	},
-	"homepage": "https://www.reatom.dev/package/admin",
-	"keywords": [
-		"reactive",
-		"reactivity",
-		"state-manager",
-		"reatom",
-		"devtools",
-		"debugger",
-		"admin",
-		"tracing",
-		"logging"
-	],
-	"files": [
-		"/build"
-	],
-	"devDependencies": {
-		"@ffmpeg-installer/ffmpeg": "catalog:",
-		"@reatom/jsx": ">=1000.14.1",
-		"@typescript-eslint/eslint-plugin": "^8.28.0",
-		"@typescript-eslint/parser": "^8.28.0",
-		"@vitest/browser": "^4.0.18",
-		"@vitest/browser-playwright": "^4.0.18",
-		"@vitest/ui": "4.0.18",
-		"eslint-plugin-simple-import-sort": "^12.1.1",
-		"playwright-video": "catalog:",
-		"vitest": "^4.0.18"
-	}
+  "name": "@reatom/admin",
+  "version": "1000.15.1",
+  "description": "Admin dashboard for Reatom tracing — debugger & remote log viewer",
+  "private": false,
+  "sideEffects": false,
+  "exports": {
+    "types": "./build/index.d.ts",
+    "require": "./build/index.js",
+    "default": "./build/index.mjs"
+  },
+  "main": "build/index.js",
+  "module": "build/index.mjs",
+  "types": "build/index.d.ts",
+  "browserslist": ["last 1 year"],
+  "scripts": {
+    "prepublishOnly": "pnpm run build && pnpm run test",
+    "build": "microbundle -f esm,cjs --raw",
+    "test": "pnpm test:unit && pnpm test:stories",
+    "test:unit": "vitest run --project=@reatom/admin",
+    "test:stories": "vitest run --project=storybook",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "@reatom/core": "workspace:^",
+    "@reatom/jsx": "workspace:^"
+  },
+  "author": {
+    "name": "artalar",
+    "url": "https://github.com/artalar"
+  },
+  "maintainers": [
+    {
+      "name": "artalar",
+      "url": "https://github.com/artalar"
+    }
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/reatom/reatom.git",
+    "directory": "packages/admin"
+  },
+  "bugs": {
+    "url": "https://github.com/reatom/reatom/issues"
+  },
+  "homepage": "https://www.reatom.dev/package/admin",
+  "keywords": [
+    "reactive",
+    "reactivity",
+    "state-manager",
+    "reatom",
+    "devtools",
+    "debugger",
+    "admin",
+    "tracing",
+    "logging"
+  ],
+  "files": ["/build"],
+  "devDependencies": {
+    "@reatom/jsx": ">=1000.14.1",
+    "@storybook/addon-vitest": "^10",
+    "@storybook/html": "^10",
+    "@storybook/html-vite": "^10",
+    "@typescript-eslint/eslint-plugin": "^8.28.0",
+    "@typescript-eslint/parser": "^8.28.0",
+    "@vitest/browser": "^4.0.18",
+    "@vitest/browser-playwright": "^4.0.18",
+    "@vitest/ui": "4.0.18",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "storybook": "^10",
+    "vitest": "^4.0.18"
+  }
 }
