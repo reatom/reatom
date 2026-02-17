@@ -63,7 +63,13 @@ export let wrap: {
     return function wrap(...params: any) {
       return frame.run(() => {
         if (root !== frame.root) throwAbort('context reset')
-        abortVar.throwIfAborted(frame)
+        try {
+          abortVar.throwIfAborted(frame)
+        } catch (error) {
+          if (!isAbort(error) || !String(error.message).includes('unmount')) {
+            throw error
+          }
+        }
         // @ts-expect-error
         return target(...params)
       })
