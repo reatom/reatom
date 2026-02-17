@@ -3,9 +3,6 @@ title: Introduction
 description: All about Reatom forms
 ---
 
-:::tip[Work in Progress]
-The documentation is currently under development. Future updates will include comparative analyses with other form libraries, migration guides, comprehensive usage examples, design patterns, and practical recipes.
-:::
 This is a general form library with a simple focus and validation management.
 
 The form API is designed for the best type-safety and flexibility. Instead of setting up the form state with a single object, each field is created separately, giving you the ability to fine-tune each field perfectly. As the field and its meta statuses are stored in atoms, you can easily combine them, define hooks, and effects to describe any logic you need.

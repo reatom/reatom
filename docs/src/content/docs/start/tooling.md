@@ -31,6 +31,25 @@ declare global {
 globalThis.LOG = log
 ```
 
+You can filter or highlight logs with the `match` option:
+
+```ts title="setup.ts"
+connectLogger({
+  match: (name, { state }) => {
+    // filter unwanted logs
+    if (name.includes('internal')) return false
+
+    if (name.includes('error')) {
+      // highlight important logs
+      return state?.code === 403 ? 'orange' : 'red'
+    }
+
+    // pass other logs
+    return true
+  },
+})
+```
+
 ### Log action
 
 `log` may give you huge DX impact:

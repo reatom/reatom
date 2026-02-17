@@ -271,6 +271,7 @@ The `RouteChild` type can be redeclared for your framework:
 
 ```typescript
 // For React/Preact
+import { type JSX } from 'react/jsx-runtime'
 declare module '@reatom/core' {
   interface RouteChild extends JSX.Element {}
 }
@@ -847,7 +848,7 @@ const lazyRoute = reatomRoute({
     effect(async () => {
       while (true) {
         await wrap(sleep(5000))
-        // Doing retry every 5 seconds there, just a regular pooling implementation
+        // Doing retry every 5 seconds there, just a regular polling implementation
         lazyRoute.loader.retry()
       }
     })
