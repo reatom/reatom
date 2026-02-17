@@ -47,9 +47,6 @@ const inputText = async (inputElement: HTMLInputElement, value: string) => {
   }
 
   await sleep()
-  if (!inputElement.isConnected) {
-    throw new Error('input element was detached before input event')
-  }
   valueSetter.call(inputElement, value)
   inputElement.dispatchEvent(new Event('input', { bubbles: true }))
 }
