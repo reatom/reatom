@@ -1,4 +1,13 @@
-import { atom, clearStack, context, rAF, take, top, wrap } from '@reatom/core'
+import {
+  atom,
+  clearStack,
+  context,
+  rAF,
+  sleep,
+  take,
+  top,
+  wrap,
+} from '@reatom/core'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
@@ -28,7 +37,7 @@ const getInputElement = (testId: string) => {
   return element
 }
 
-const inputText = (inputElement: HTMLInputElement, value: string) => {
+const inputText = async (inputElement: HTMLInputElement, value: string) => {
   const valueSetter = Object.getOwnPropertyDescriptor(
     HTMLInputElement.prototype,
     'value',
@@ -37,6 +46,7 @@ const inputText = (inputElement: HTMLInputElement, value: string) => {
     throw new Error('input value setter is not found')
   }
 
+  await sleep()
   valueSetter.call(inputElement, value)
   inputElement.dispatchEvent(new Event('input', { bubbles: true }))
 }
@@ -66,7 +76,9 @@ describe('StrictMode input sync', () => {
           <input
             data-testid="reatom-component-input"
             value={textAtom()}
-            onChange={(event) => textAtom.set(event.currentTarget.value)}
+            onChange={wrap((event: React.ChangeEvent<HTMLInputElement>) =>
+              textAtom.set(event.currentTarget.value),
+            )}
           />
         )
       }, 'TextInput')
@@ -84,7 +96,7 @@ describe('StrictMode input sync', () => {
       expect(getInputElement('reatom-component-input').value).toBe('hello')
       expect(textAtom()).toBe('hello')
 
-      inputText(getInputElement('reatom-component-input'), 'strict mode')
+      await inputText(getInputElement('reatom-component-input'), 'strict mode')
       await wrap(tick())
 
       expect(textAtom()).toBe('strict mode')
@@ -108,7 +120,9 @@ describe('StrictMode input sync', () => {
           <input
             data-testid="reatom-factory-input"
             value={textAtom()}
-            onChange={(event) => textAtom.set(event.currentTarget.value)}
+            onChange={wrap((event: React.ChangeEvent<HTMLInputElement>) =>
+              textAtom.set(event.currentTarget.value),
+            )}
           />
         )
       }, 'FactoryTextInput')
@@ -126,7 +140,7 @@ describe('StrictMode input sync', () => {
       expect(getInputElement('reatom-factory-input').value).toBe('factory')
       expect(textAtom()).toBe('factory')
 
-      inputText(getInputElement('reatom-factory-input'), 'reatom')
+      await inputText(getInputElement('reatom-factory-input'), 'reatom')
       await wrap(tick())
 
       expect(textAtom()).toBe('reatom')
