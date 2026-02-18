@@ -10,7 +10,6 @@ import { withCallHook } from '../extensions'
 import {
   type LinkedList,
   type LinkedListAtom,
-  LL_NEXT,
   type LLNode,
   reatomLinkedList,
 } from '../primitives'
@@ -379,7 +378,7 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
         let head = state.head
         while (head) {
           elements.push(head)
-          head = head[LL_NEXT]
+          head = head[state.LL_NEXT]
         }
         // TODO: reatomLinkedLost does not support the same elements in two or more difference linked lists so we need to limit size of the array there
         return elements.slice(0, state.size)
