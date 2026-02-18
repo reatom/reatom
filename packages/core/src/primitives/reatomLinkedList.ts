@@ -6,19 +6,19 @@ import { isObject } from '../utils'
 
 type State<T> = T extends Atom<infer Value> ? Value : T
 
-/** @private */
-export const LL_PREV = /* @__PURE__ */ Symbol('Reatom linked list prev')
-/** @private */
-export const LL_NEXT = /* @__PURE__ */ Symbol('Reatom linked list next')
+declare const LL_PREV: unique symbol
+export type LL_PREV = typeof LL_PREV
+declare const LL_NEXT: unique symbol
+export type LL_NEXT = typeof LL_NEXT
 
-/**
- * Linked List is reusing the model reference to simplify the reference sharing
- * and using it as a key of LL methods. Btw, symbols works fine with
- * serialization and will not add a garbage to an output.
- */
 export type LLNode<T extends Rec = Rec> = T & {
   [LL_PREV]: null | LLNode<T>
   [LL_NEXT]: null | LLNode<T>
+}
+
+export type LinkedListSymbols = {
+  readonly LL_PREV: LL_PREV
+  readonly LL_NEXT: LL_NEXT
 }
 
 type LLChanges<Node extends LLNode> =
@@ -30,7 +30,9 @@ type LLChanges<Node extends LLNode> =
   | { kind: 'move'; node: Node; after: null | Node }
   | { kind: 'clear' }
 
-export interface LinkedList<Node extends LLNode = LLNode> {
+export interface LinkedList<
+  Node extends LLNode = LLNode,
+> extends LinkedListSymbols {
   head: null | Node
   tail: null | Node
   size: number
@@ -38,9 +40,8 @@ export interface LinkedList<Node extends LLNode = LLNode> {
   changes: Array<LLChanges<Node>>
 }
 
-export interface LinkedListLikeAtom<
-  T extends LinkedList = LinkedList,
-> extends Atom<T> {
+export interface LinkedListLikeAtom<T extends LinkedList = LinkedList>
+  extends Atom<T>, LinkedListSymbols {
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
 
   __reatomLinkedList: true
@@ -113,56 +114,68 @@ export interface LinkedListDerivedState<
   map: WeakMap<Node, T>
 }
 
-export interface LinkedListDerivedAtom<
-  Node extends LLNode,
-  T extends LLNode,
-> extends Computed<LinkedListDerivedState<Node, T>> {
+export interface LinkedListDerivedAtom<Node extends LLNode, T extends LLNode>
+  extends Computed<LinkedListDerivedState<Node, T>>, LinkedListSymbols {
   array: Computed<Array<T extends LinkedList<infer LLNode> ? LLNode : never>>
 
   __reatomLinkedList: true
 }
 
 const addLL = <Node extends LLNode>(
-  state: LinkedList<Node>,
-  node: Node | Omit<Node, keyof LLNode>,
-  after: null | Node,
+  _state: LinkedList<Node>,
+  _node: Node | Omit<Node, keyof LLNode>,
+  _after: null | Node,
 ) => {
+  const state: LinkedList = _state as any
+  const node: LLNode = _node as any
+  const after: null | LLNode = _after as any
+  const LL_PREV: LL_PREV = state.LL_PREV as any
+  const LL_NEXT: LL_NEXT = state.LL_NEXT as any
+
   if (node === after) return
 
   if (after) {
     const nextNode = after[LL_NEXT]
-    ;(node as Node)[LL_PREV] = after
-    ;(node as Node)[LL_NEXT] = nextNode
-    after[LL_NEXT] = node as Node
+    node[LL_PREV] = after
+    node[LL_NEXT] = nextNode
+    after[LL_NEXT] = node
     if (nextNode) {
-      nextNode[LL_PREV] = node as Node
+      nextNode[LL_PREV] = node
     }
     if (state.tail === after) {
-      state.tail = node as Node
+      state.tail = node
     }
   } else {
-    ;(node as Node)[LL_PREV] = null
-    ;(node as Node)[LL_NEXT] = state.head
+    node[LL_PREV] = null
+    node[LL_NEXT] = state.head
     if (state.head) {
-      state.head[LL_PREV] = node as Node
+      state.head[LL_PREV] = node
     }
     if (!state.tail) {
-      state.tail = node as Node
+      state.tail = node
     }
-    state.head = node as Node
+    state.head = node
   }
   state.size++
 }
 
-const removeLL = <Node extends LLNode>(state: LinkedList<Node>, node: Node) => {
+const removeLL = <Node extends LLNode>(
+  _state: LinkedList<Node>,
+  _node: Node,
+) => {
+  const state: LinkedList = _state as any
+  const node: LLNode = _node as any
+  const LL_PREV: LL_PREV = state.LL_PREV as any
+  const LL_NEXT: LL_NEXT = state.LL_NEXT as any
+
   if (state.head === node) {
-    state.head = node[LL_NEXT] as Node
+    state.head = node[LL_NEXT]
   } else if (node[LL_PREV] !== null) {
     node[LL_PREV][LL_NEXT] = node[LL_NEXT]
   }
 
   if (state.tail === node) {
-    state.tail = node[LL_PREV] as Node
+    state.tail = node[LL_PREV]
   } else if (node[LL_NEXT] !== null) {
     node[LL_NEXT][LL_PREV] = node[LL_PREV]
   }
@@ -174,13 +187,18 @@ const removeLL = <Node extends LLNode>(state: LinkedList<Node>, node: Node) => {
 }
 
 const swapLL = <Node extends LLNode>(
-  state: LinkedList<Node>,
-  a: Node,
-  b: Node,
+  _state: LinkedList<Node>,
+  _a: Node,
+  _b: Node,
 ): void => {
+  const state: LinkedList = _state as any
+  const a: LLNode = _a as any
+  const b: LLNode = _b as any
+  const LL_PREV: LL_PREV = state.LL_PREV as any
+  const LL_NEXT: LL_NEXT = state.LL_NEXT as any
+
   if (a === b) return
 
-  // If b is the head, swap a and b to make a the head
   if (state.head === b) return swapLL(state, b, a)
 
   const prevA = a[LL_PREV]
@@ -188,9 +206,7 @@ const swapLL = <Node extends LLNode>(
   const prevB = b[LL_PREV]
   const nextB = b[LL_NEXT]
 
-  // Check if they are adjacent
   if (nextA === b) {
-    // a is before b
     a[LL_NEXT] = nextB
     b[LL_PREV] = prevA
     b[LL_NEXT] = a
@@ -199,7 +215,6 @@ const swapLL = <Node extends LLNode>(
     if (nextB) nextB[LL_PREV] = a
     if (prevA) prevA[LL_NEXT] = b
   } else if (nextB === a) {
-    // b is before a
     b[LL_NEXT] = nextA
     a[LL_PREV] = prevB
     a[LL_NEXT] = b
@@ -208,7 +223,6 @@ const swapLL = <Node extends LLNode>(
     if (nextA) nextA[LL_PREV] = b
     if (prevB) prevB[LL_NEXT] = a
   } else {
-    // Non-adjacent nodes, just swap them
     if (prevA) prevA[LL_NEXT] = b
     if (nextA) nextA[LL_PREV] = b
     if (prevB) prevB[LL_NEXT] = a
@@ -220,7 +234,6 @@ const swapLL = <Node extends LLNode>(
     b[LL_NEXT] = nextA
   }
 
-  // Update head and tail pointers if necessary
   if (state.head === a) {
     state.head = b
   } else if (state.head === b) {
@@ -248,6 +261,7 @@ const clearLL = <Node extends LLNode>(state: LinkedList<Node>) => {
 }
 
 const toArray = <T extends Rec>(
+  LL_NEXT: LL_NEXT,
   head: null | LLNode<T>,
   prev?: Array<LLNode<T>>,
 ): Array<LLNode<T>> => {
@@ -336,6 +350,9 @@ export function reatomLinkedList<
       },
   name: string = named('linkedListAtom'),
 ): LinkedListAtom<Params, Node, Key> {
+  const LL_PREV: LL_PREV = Symbol('Reatom linked list prev') as any
+  const LL_NEXT: LL_NEXT = Symbol('Reatom linked list next') as any
+
   const {
     create: userCreate = (...params: Params) => params[0],
     key = undefined,
@@ -353,15 +370,26 @@ export function reatomLinkedList<
 
   const _name = name
 
-  const isLL = (node: Node): node is LLNode<Node> =>
-    !!node && LL_NEXT in node && LL_PREV in node
+  const isInList = (node: Node): boolean => {
+    if (!node || !(LL_PREV in node) || !(LL_NEXT in node)) return false
+
+    return (
+      node[LL_PREV] !== null ||
+      node[LL_NEXT] !== null ||
+      (STATE!.head === node && STATE!.tail === node)
+    )
+  }
 
   const throwModel = (node: Node) => {
-    if (isLL(node))
+    if (isInList(node))
       throw new ReatomError('The data is already in a linked list.')
   }
+
+  const hasOurKeys = (node: Node): boolean =>
+    !!node && LL_PREV in node && LL_NEXT in node
+
   const throwNotModel = (node: Node) => {
-    if (!isLL(node))
+    if (!hasOurKeys(node))
       throw new ReatomError('The passed data is not a linked list node.')
   }
 
@@ -384,12 +412,14 @@ export function reatomLinkedList<
     initState: Node[],
   ): LinkedList<LLNode<Node>> => {
     const state = {
+      LL_PREV,
+      LL_NEXT,
       size: 0,
       version: 1,
       changes: [],
       head: null,
       tail: null,
-    }
+    } as LinkedList<LLNode<Node>>
 
     for (const node of initState) {
       throwModel(node)
@@ -404,12 +434,14 @@ export function reatomLinkedList<
   ): LinkedList<LLNode<Node>> => {
     const initState = initSnapshot.map((params) => userCreate(...params))
     const state = {
+      LL_PREV,
+      LL_NEXT,
       size: 0,
       version: 1,
       changes: [],
       head: null,
       tail: null,
-    }
+    } as LinkedList<LLNode<Node>>
 
     for (const node of initState) {
       throwModel(node)
@@ -422,13 +454,17 @@ export function reatomLinkedList<
   const batchFn = <T>(cb: Fn): T => {
     if (STATE) return cb()
 
-    STATE = linkedList.set(({ head, tail, size, version }) => ({
-      size,
-      version: version + 1,
-      changes: [],
-      head,
-      tail,
-    }))
+    STATE = linkedList.set(
+      ({ head, tail, size, version, LL_PREV, LL_NEXT }) => ({
+        LL_PREV,
+        LL_NEXT,
+        size,
+        version: version + 1,
+        changes: [],
+        head,
+        tail,
+      }),
+    )
 
     try {
       return cb()
@@ -562,7 +598,8 @@ export function reatomLinkedList<
   }
 
   const array: LinkedListAtom<Params, Node, Key>['array'] = computed(
-    (state: Array<LLNode<Node>> = []) => toArray(linkedList().head, state),
+    (state: Array<LLNode<Node>> = []) =>
+      toArray(LL_NEXT, linkedList().head, state),
     `${name}.array`,
   )
 
@@ -594,6 +631,9 @@ export function reatomLinkedList<
           ) => void
         } = {},
   ): LinkedListDerivedAtom<LLNode<Node>, LLNode<T>> => {
+    const mapLL_PREV: LL_PREV = Symbol('Reatom linked list prev') as any
+    const mapLL_NEXT: LL_NEXT = Symbol('Reatom linked list next') as any
+
     const { name = named(`${_name}.reatomMap`), ...hooks } =
       typeof options === 'string' ? { name: options } : options
 
@@ -615,6 +655,8 @@ export function reatomLinkedList<
         if (mapList) hooks.onClear?.(mapList)
 
         mapList = {
+          LL_PREV: mapLL_PREV,
+          LL_NEXT: mapLL_NEXT,
           size: ll.size,
           version: ll.version,
           changes: [],
@@ -633,6 +675,8 @@ export function reatomLinkedList<
         mapList.size = ll.size
       } else {
         mapList = {
+          LL_PREV: mapLL_PREV,
+          LL_NEXT: mapLL_NEXT,
           head: mapList.head,
           tail: mapList.tail,
           size: mapList.size,
@@ -725,11 +769,17 @@ export function reatomLinkedList<
     // @ts-ignore
     const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] =
       computed(
-        (state: Array<LLNode<T>> = []) => toArray(mapList().head, state),
+        (state: Array<LLNode<T>> = []) =>
+          toArray(mapLL_NEXT, mapList().head, state),
         `${name}.array`,
       )
 
-    return Object.assign(mapList, { array, __reatomLinkedList: true as const })
+    return Object.assign(mapList, {
+      LL_PREV: mapLL_PREV,
+      LL_NEXT: mapLL_NEXT,
+      array,
+      __reatomLinkedList: true as const,
+    }) as LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>
   }
 
   // TODO there is a bug with `del` logic
@@ -794,6 +844,8 @@ export function reatomLinkedList<
   // }
 
   return Object.assign(linkedList, {
+    LL_PREV,
+    LL_NEXT,
     batch,
     create,
     createMany,
@@ -815,8 +867,7 @@ export function reatomLinkedList<
     // reatomReduce,
 
     __reatomLinkedList: true as const,
-  })
-  // .extend(readonly) TODO: fix errors because of this line in the tests
+  }) as LinkedListAtom<Params, Node, Key>
 }
 
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>

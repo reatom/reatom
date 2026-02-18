@@ -17,7 +17,6 @@ import {
   isFieldArrayAtom,
   isFieldAtom,
   isRec,
-  LL_NEXT,
   named,
   withAbort,
   withAsync,
@@ -298,29 +297,32 @@ export interface FormOptionsWithoutSchema<
 }
 
 /**
- * Resolves a field atom by its path within a form's field set.
- * Useful for mapping backend validation errors to the corresponding form fields,
- * especially when the error format follows the {@link StandardSchemaV1.Issue} interface.
+ * Resolves a field atom by its path within a form's field set. Useful for
+ * mapping backend validation errors to the corresponding form fields,
+ * especially when the error format follows the {@link StandardSchemaV1.Issue}
+ * interface.
  *
- * Recursively traverses nested fields and field arrays to find the target field.
- * Path segments that are `symbol` values are not supported and will cause the function to return `null`.
- *
- * @param path - The path segments from a {@link StandardSchemaV1.Issue}. Each segment can be a string, number, or an object with a `key` property.
- * @param fields - The form's field set to search in (e.g. `form.fields`).
- * @returns The resolved {@link FieldAtom} or {@link FieldArrayAtom}, or `null` if the path is empty, contains a `symbol` segment, or no matching field is found.
+ * Recursively traverses nested fields and field arrays to find the target
+ * field. Path segments that are `symbol` values are not supported and will
+ * cause the function to return `null`.
  *
  * @example
- * ```ts
- * for (const error of response.errors) {
- *   const field = resolveFieldByPath(error.path, registerForm.fields)
- *   if (field) {
- *     field.validation.errors.unshift({
- *       source: 'submission',
- *       message: error.message,
- *     })
+ *   for (const error of response.errors) {
+ *     const field = resolveFieldByPath(error.path, registerForm.fields)
+ *     if (field) {
+ *       field.validation.errors.unshift({
+ *         source: 'submission',
+ *         message: error.message,
+ *       })
+ *     }
  *   }
- * }
- * ```
+ *
+ * @param path - The path segments from a {@link StandardSchemaV1.Issue}. Each
+ *   segment can be a string, number, or an object with a `key` property.
+ * @param fields - The form's field set to search in (e.g. `form.fields`).
+ * @returns The resolved {@link FieldAtom} or {@link FieldArrayAtom}, or `null` if
+ *   the path is empty, contains a `symbol` segment, or no matching field is
+ *   found.
  */
 export const resolveFieldByPath = (
   path: StandardSchemaV1.Issue['path'],
@@ -545,7 +547,7 @@ export function reatomForm<
             let head = state.head
             while (head) {
               setupFields(head)
-              head = head[LL_NEXT]
+              head = head[state.LL_NEXT]
             }
             return state
           }),
