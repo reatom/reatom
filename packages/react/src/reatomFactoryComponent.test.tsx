@@ -161,8 +161,8 @@ describe('reatomFactoryComponent', () => {
   test('effects autocancel', () =>
     context.start(async () => {
       let event = action(() => {})
-      let poolingLoop = 0
-      let poolingTrack = 0
+      let pollingLoop = 0
+      let pollingTrack = 0
 
       const Counter = reatomFactoryComponent(() => {
         const count = atom(0, 'count')
@@ -170,13 +170,13 @@ describe('reatomFactoryComponent', () => {
         effect(async () => {
           while (true) {
             await wrap(take(event))
-            count.set(++poolingLoop)
+            count.set(++pollingLoop)
           }
         })
 
         effect(() => {
           getCalls(event).forEach(() => {
-            ++poolingTrack
+            ++pollingTrack
           })
         })
 
@@ -205,8 +205,8 @@ describe('reatomFactoryComponent', () => {
       await wrap(tick())
       await wrap(tickEvent())
       await wrap(tickEvent())
-      expect(poolingLoop).toBe(2)
-      expect(poolingTrack).toBe(2)
+      expect(pollingLoop).toBe(2)
+      expect(pollingTrack).toBe(2)
       expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
         '2',
       )
@@ -215,8 +215,8 @@ describe('reatomFactoryComponent', () => {
       await wrap(tick())
       await wrap(tickEvent())
       await wrap(tickEvent())
-      expect(poolingLoop).toBe(2)
-      expect(poolingTrack).toBe(2)
+      expect(pollingLoop).toBe(2)
+      expect(pollingTrack).toBe(2)
     }))
 
   test('should ignore reactivity inside the init phase', () =>
