@@ -13,7 +13,6 @@ import {
   isObject,
   isWritableAtom,
   type LinkedList,
-  LL_NEXT,
   type LLNode,
   noop,
   peek,
@@ -216,7 +215,11 @@ let walkLinkedList = (
   let cb = (state: LinkedList<LLNode<JSX.Element>>) => {
     if (state.version - 1 > lastVersion) {
       element.innerHTML = ''
-      for (let { head } = state; head; head = head[LL_NEXT]) {
+      for (
+        let head = state.head;
+        head;
+        head = (head)[state.LL_NEXT] ?? null
+      ) {
         throwNativeFragment(head)
         element.append(head)
       }
