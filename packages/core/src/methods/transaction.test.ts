@@ -174,6 +174,31 @@ test('rollback scope should not leak', async () => {
   expect(_read(doSome)!.run(() => isCausedBy(counter))).toBe(true)
 })
 
+test('shouldRollback filters which errors trigger rollback', () => {
+  const counter = atom(0, 'counter').extend(withRollback())
+
+  class ValidationError extends Error {}
+  class NetworkError extends Error {}
+
+  const actionWithFilter = action((shouldThrow: 'validation' | 'network') => {
+    counter.set((n) => n + 1)
+    if (shouldThrow === 'validation') throw new ValidationError()
+    if (shouldThrow === 'network') throw new NetworkError()
+  }, 'actionWithFilter').extend(
+    withTransaction({
+      shouldRollback: (error) => error instanceof ValidationError,
+    }),
+  )
+
+  expect(counter()).toBe(0)
+
+  expect(() => actionWithFilter('validation')).toThrow(ValidationError)
+  expect(counter()).toBe(0)
+
+  expect(() => actionWithFilter('network')).toThrow(NetworkError)
+  expect(counter()).toBe(1)
+})
+
 test('stop clears rollback list without executing', () => {
   const counter = atom(0, 'counter').extend(withRollback())
 
