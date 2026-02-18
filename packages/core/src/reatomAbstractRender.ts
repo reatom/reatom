@@ -90,9 +90,24 @@ export let reatomAbstractRender = <Props, Result>({
     let _props = atom({} as Props, `_${name}.props`)
 
     let abortSubscription: AbortSubscription
+    let lastFrame: Frame
+
+    let recheckAbort = () => {
+      abortSubscription ??= abortVar.subscribe()
+      // Related to react remounts of `StrictMode` and `Activity`.
+      if (abortSubscription.controller.signal.aborted) {
+        abortSubscription.unsubscribe()
+        abortVar.set()
+        abortSubscription = abortVar.subscribe()
+      }
+
+      abortSubscription.controller.spawned = true
+      lastFrame!['var#abort'] = abortSubscription.controller
+    }
 
     let _render = computed((state?: { result: Result }): { result: Result } => {
       let frame = top()
+      lastFrame = frame
       let pubs = _getPrevFrame(frame)?.pubs ?? [null]
 
       _enqueue(() => (pubs.length = 1), 'cleanup')
@@ -100,16 +115,7 @@ export let reatomAbstractRender = <Props, Result>({
       let props = _props()
 
       if (rendering) {
-        abortSubscription ??= abortVar.subscribe()
-        // Related to react remounts of `StrictMode` and `Activity`.
-        if (abortSubscription.controller.signal.aborted) {
-          abortSubscription.unsubscribe()
-          abortVar.set()
-          abortSubscription = abortVar.subscribe()
-        }
-
-        abortSubscription.controller.spawned = true
-        frame['var#abort'] = abortSubscription.controller
+        recheckAbort()
 
         return { result: adapterRender(props) }
       }
@@ -140,6 +146,8 @@ export let reatomAbstractRender = <Props, Result>({
     }, frame) as (props: Props) => { result: Result }
 
     let mount = wrap(() => {
+      recheckAbort()
+
       adapterMount?.()
       let unsubscribe = _render.subscribe((state) => {
         let deps = 0
