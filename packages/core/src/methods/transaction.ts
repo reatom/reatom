@@ -157,6 +157,8 @@ interface TransactionVariable extends Variable<Rollbacks, [Rollbacks?]> {
    *   `rollback()`
    * - For synchronous errors: catches and calls `rollback()`, then re-throws
    * - Abort errors are ignored (they don't trigger rollback)
+   * - Optional `shouldRollback` callback filters which errors trigger rollback
+   *   (by default all non-Abort errors trigger rollback)
    *
    * @example
    *   const counter = atom(0, 'counter').extend(withRollback())
@@ -179,9 +181,24 @@ interface TransactionVariable extends Variable<Rollbacks, [Rollbacks?]> {
    *
    *   saveTodos() // On failure, todos will rollback automatically
    *
+   * @example
+   *   // Only rollback on network errors, not validation errors
+   *   const save = action(async () => { ... }, 'save').extend(
+   *   withAsync(),
+   *   withTransaction({
+   *   shouldRollback: (error) => error instanceof NetworkError,
+   *   }),
+   *   )
+   *
    * @see {@link withRollback} For scheduling atom state restoration
    */
-  withTransaction<Target extends Action>(): (target: Target) => TransactionExt
+  withTransaction<Target extends Action>(options?: {
+    /**
+     * Filter which errors should trigger rollback. When omitted, all non-Abort
+     * errors trigger rollback.
+     */
+    shouldRollback?: (error: unknown) => boolean
+  }): (target: Target) => TransactionExt
 
   /**
    * Executes all collected rollback functions in the current transaction
@@ -367,9 +384,11 @@ export let reatomTransaction = ({
           return target
         },
 
-      withTransaction<Target extends Action>(): (
-        target: Target,
-      ) => TransactionExt {
+      withTransaction<Target extends Action>(options?: {
+        shouldRollback?: (error: unknown) => boolean
+      }): (target: Target) => TransactionExt {
+        let filter = options?.shouldRollback ?? ((_error: unknown) => true)
+
         return (target: Target): TransactionExt => {
           if (!isAction(target)) {
             throw new Error(
@@ -377,9 +396,15 @@ export let reatomTransaction = ({
             )
           }
 
+          let triggerRollback = (error: unknown) => {
+            if (!isAbort(error) && filter(error)) {
+              transactionVar.rollback(error)
+            }
+          }
+
           if ('onReject' in target) {
             ;(target.onReject as AsyncExt['onReject']).extend(
-              withCallHook(({ error }) => transactionVar.rollback(error)),
+              withCallHook(({ error }) => triggerRollback(error)),
             )
           }
 
@@ -403,15 +428,11 @@ export let reatomTransaction = ({
               let result = next(...params) as ActionState
               let call = result[result.length - 1]
               if (call?.payload instanceof Promise) {
-                call.payload.catch(
-                  bind((error) => {
-                    if (!isAbort(error)) transactionVar.rollback(error)
-                  }),
-                )
+                call.payload.catch(bind(triggerRollback))
               }
               return result
             } catch (error) {
-              if (!isAbort(error)) transactionVar.rollback(error)
+              triggerRollback(error)
               throw error
             }
           })
