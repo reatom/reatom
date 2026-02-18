@@ -14,7 +14,7 @@ import {
   ReatomError,
 } from '@reatom/core'
 import React from 'react'
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'use-sync-external-store/shim'
 
 import { _getComponentDebugName, useFrame } from './reatomComponent'
 

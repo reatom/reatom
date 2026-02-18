@@ -25,8 +25,8 @@
   },
   "peerDependencies": {
     "@reatom/core": "workspace:^",
-    "react": ">=18.2.0",
-    "react-dom": ">=18.2.0"
+    "react": ">=16.14.0",
+    "react-dom": ">=16.14.0"
   },
   "author": "artalar",
   "license": "MIT",
@@ -44,10 +44,12 @@
   "devDependencies": {
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@types/use-sync-external-store": "^1.5.0",
     "@vitejs/plugin-react": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "@vitest/browser-playwright": "catalog:",
+    "use-sync-external-store": "catalog:",
     "vitest": "catalog:"
   }
 }
