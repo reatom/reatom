@@ -44,7 +44,7 @@
   "devDependencies": {
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "@types/use-sync-external-store": "^1.5.0",
+    "@types/use-sync-external-store": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "react": "catalog:",
