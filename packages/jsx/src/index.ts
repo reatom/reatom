@@ -463,7 +463,9 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     /** @todo Should support record? */
     let styleId = styles[value]
     if (!styleId) {
-      styleId = styles[value] = '' + ++stylesCount
+      styleId = styles[value] = '_' + ++stylesCount
+      // TODO improve stylesheet get for perf reason
+      // TODO measure the needness of batching
       stylesheet().insertRule(`[data-reatom-style="${styleId}"]{${value}}`)
     }
 
