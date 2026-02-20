@@ -457,9 +457,9 @@ export const resolveFieldByPath = (
  */
 export function reatomForm<
   InitState extends FieldSetInitState,
-  SchemaState,
-  SubmitReturn,
-  SubmitParams extends any[],
+  SchemaState = unknown,
+  SubmitReturn = unknown,
+  SubmitParams extends any[] = any,
 >(
   initState: InitState | ((name: string) => InitState),
   optionsWithSchema: FormOptionsWithSchema<
@@ -471,8 +471,8 @@ export function reatomForm<
 
 export function reatomForm<
   InitState extends FieldSetInitState,
-  SubmitReturn,
-  SubmitParams extends any[],
+  SubmitReturn = unknown,
+  SubmitParams extends any[] = any,
 >(
   initState: InitState | ((name: string) => InitState),
   options?: FormOptionsWithoutSchema<InitState, SubmitReturn, SubmitParams>,
