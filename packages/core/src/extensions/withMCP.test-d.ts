@@ -23,5 +23,5 @@ test('withMCP atom type does not expose registerMCP', () => {
   expectTypeOf<HasRegisterMCP>().toEqualTypeOf<false>()
 
   // @ts-expect-error registerMCP exists only on action targets
-  searchAtom.registerMCP()
+  ;() => searchAtom.registerMCP()
 })

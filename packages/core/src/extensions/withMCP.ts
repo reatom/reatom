@@ -37,7 +37,9 @@ export interface MCPModelContextOptions {
 
 export interface MCPModelContext {
   provideContext(options?: MCPModelContextOptions): void
-  registerTool(tool: MCPModelContextTool): void
+  registerTool<Input extends object = Record<string, unknown>, Payload = unknown>(
+    tool: MCPModelContextTool<Input, Payload>,
+  ): void
   unregisterTool(name: string): void
 }
 
