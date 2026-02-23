@@ -1,5 +1,5 @@
 import type { Action, AtomLike } from '../core'
-import { isAction, isAtom, ReatomError } from '../core'
+import { isAction, ReatomError } from '../core'
 import { wrap } from '../methods'
 import type { OverloadParameters } from '../utils'
 import { isObject, noop, type Unsubscribe } from '../utils'
@@ -224,10 +224,6 @@ export function withMCP<
   Input extends object = Record<string, unknown>,
 >(options: WithMCPOptions<Target, Input>): WithMCPExt<Target> {
   return (<T extends Target>(target: T) => {
-    if (!isAtom(target)) {
-      throw new ReatomError('withMCP can be used only with atoms or actions')
-    }
-
     const {
       name = target.name,
       description,
@@ -253,14 +249,14 @@ export function withMCP<
     const toolName = name
 
     const registerTool = (registrationModelContext: MCPModelContext) => {
-      const execute = wrap(async (input: Input, client: MCPModelContextClient) => {
+      const execute = wrap((input: Input, client: MCPModelContextClient) => {
         if (params) {
-          return await target(...params(input, client, target))
+          return target(...params(input, client, target))
         }
         if (isAction(target)) {
-          return await target(input)
+          return target(input)
         }
-        return await target()
+        return target()
       })
 
       registrationModelContext.registerTool({
@@ -271,12 +267,7 @@ export function withMCP<
         annotations,
       } satisfies MCPModelContextTool<Input, Awaited<ReturnType<Target>>>)
 
-      let isRegistered = true
-      return () => {
-        if (!isRegistered) return
-        isRegistered = false
-        registrationModelContext.unregisterTool(toolName)
-      }
+      return () => registrationModelContext.unregisterTool(toolName)
     }
 
     if (isAction(target)) {
@@ -300,15 +291,12 @@ export function withMCP<
       } as T extends Action ? MCPExt : T
     }
 
-    let initRegistered = false
-    withInitHook(() => {
-      if (initRegistered) return
-      const registrationModelContext = resolveModelContext()
-      if (registrationModelContext === undefined) return
-      registerTool(registrationModelContext)
-      initRegistered = true
-    })(target)
-
-    return target as T extends Action ? MCPExt : T
+    return target.extend(
+      withInitHook(() => {
+        const registrationModelContext = resolveModelContext()
+        if (registrationModelContext === undefined) return
+        registerTool(registrationModelContext)
+      }),
+    ) as T extends Action ? MCPExt : T
   }) as WithMCPExt<Target>
 }
