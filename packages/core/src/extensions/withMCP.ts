@@ -54,12 +54,16 @@ export interface WithMCPOptions<
   /**
    * Optional natural language description for agent planning.
    *
-   * Defaults to a generated value based on the target type:
-   *
-   * - action: "Run application logic through action ...".
-   * - atom: "Read application state through atom ...".
+   * Defaults to a generated generic description with the target name.
    */
   description?: string
+  /**
+   * Optional JSON Schema for the tool input.
+   *
+   * Agents rely on this schema to build valid calls, choose appropriate tools,
+   * and reduce malformed arguments. In practice, this is one of the most
+   * important fields for predictable tool execution.
+   */
   inputSchema?: object
   annotations?: MCPToolAnnotations
   /**
@@ -99,9 +103,6 @@ export interface RegisterMCPOptions {
 export interface MCPExt {
   /**
    * Register a WebMCP tool for this target and return cleanup.
-   *
-   * Multiple registrations in the same model context are reference-counted and
-   * a tool is removed only after the last returned unsubscribe is called.
    */
   registerMCP: (options?: RegisterMCPOptions) => Unsubscribe
 }
@@ -127,13 +128,10 @@ export const getMCPModelContext = (): undefined | MCPModelContext => {
   return isMCPModelContext(candidate) ? candidate : undefined
 }
 
-const ACTION_DESCRIPTION_PREFIX = 'Run application logic through action'
-const ATOM_DESCRIPTION_PREFIX = 'Read application state through atom'
+const DEFAULT_DESCRIPTION_PREFIX = 'Use this tool to interact with'
 
 const getDefaultDescription = (target: AtomLike): string =>
-  isAction(target)
-    ? `${ACTION_DESCRIPTION_PREFIX} "${target.name}".`
-    : `${ATOM_DESCRIPTION_PREFIX} "${target.name}".`
+  `${DEFAULT_DESCRIPTION_PREFIX} "${target.name}".`
 
 /**
  * Extend atoms and actions with WebMCP tool registration.
@@ -163,47 +161,53 @@ const getDefaultDescription = (target: AtomLike): string =>
  * @see https://modelcontextprotocol.io/specification/latest
  *
  * @example
- *   // Action tool with default input forwarding.
- *   const addTodo = action((input: { text: string }) => {
- *     todosAtom.set((state) => [...state, input.text])
- *     return { ok: true }
- *   }, 'addTodo').extend(
+ *   // Marketplace: list of goods atom with explicit MCP options.
+ *   const goodsAtom = atom(
+ *     [
+ *       { id: 'sku-1', title: 'Laptop', price: 1200 },
+ *       { id: 'sku-2', title: 'Keyboard', price: 120 },
+ *     ],
+ *     'marketplace.goods',
+ *   ).extend(
  *     withMCP({
- *       description: 'Create a todo item',
- *       inputSchema: {
- *         type: 'object',
- *         properties: { text: { type: 'string' } },
- *         required: ['text'],
- *       },
- *     }),
- *   )
- *
- *   const unregister = addTodo.registerMCP()
- *   // ...
- *   unregister()
- *
- * @example
- *   // Atom tool exposing current state.
- *   const sessionAtom = atom({ userId: 'u1', role: 'admin' }, 'session').extend(
- *     withMCP({
- *       description: 'Get active session snapshot',
+ *       name: 'list-goods',
+ *       description: 'List currently available goods in the marketplace.',
  *       annotations: { readOnlyHint: true },
  *     }),
  *   )
  *
- *   const unregister = sessionAtom.registerMCP()
+ *   const unregister = goodsAtom.registerMCP()
  *   // Later cleanup:
  *   unregister()
  *
  * @example
- *   // Action tool with custom param mapping.
- *   const add = action((left: number, right: number) => left + right, 'add').extend(
+ *   // Marketplace: search atom without explicit withMCP options.
+ *   const searchAtom = atom('', 'marketplace.search').extend(withMCP({}))
+ *
+ *   const unregister = searchAtom.registerMCP()
+ *   // Later cleanup:
+ *   unregister()
+ *
+ * @example
+ *   // Marketplace: addToCard action with only description and inputSchema.
+ *   const cartAtom = atom<Array<{ goodsId: string; quantity: number }>>([], 'cart')
+ *   const addToCard = action(
+ *     (input: { goodsId: string; quantity: number }) => {
+ *       cartAtom.set((state) => [...state, input])
+ *       return { ok: true }
+ *     },
+ *     'addToCard',
+ *   ).extend(
  *     withMCP({
- *       description: 'Add two numbers',
- *       params: ({ left, right }: { left: number; right: number }) => [
- *         left,
- *         right,
- *       ],
+ *       description: 'Add a goods item to the shopping card.',
+ *       inputSchema: {
+ *         type: 'object',
+ *         properties: {
+ *           goodsId: { type: 'string' },
+ *           quantity: { type: 'number', minimum: 1 },
+ *         },
+ *         required: ['goodsId', 'quantity'],
+ *       },
  *     }),
  *   )
  */
@@ -234,8 +238,6 @@ export const withMCP =
       throw new ReatomError('withMCP: `params` should be a function')
     }
 
-    const registrations = new Map<MCPModelContext, number>()
-
     const resolveModelContext = (): undefined | MCPModelContext =>
       modelContext ?? getMCPModelContext()
 
@@ -250,47 +252,29 @@ export const withMCP =
 
       if (registrationModelContext === undefined) return noop
 
-      const currentCount = registrations.get(registrationModelContext) ?? 0
+      const execute = wrap(async (input: Input, client: MCPModelContextClient) => {
+        if (params) {
+          return await target(...params(input, client, target))
+        }
+        if (isAction(target)) {
+          return await target(input)
+        }
+        return await target()
+      })
 
-      if (currentCount === 0) {
-        const execute = wrap(
-          async (input: Input, client: MCPModelContextClient) => {
-            if (params) {
-              return await target(...params(input, client, target))
-            }
-            if (isAction(target)) {
-              return await target(input)
-            }
-            return await target()
-          },
-        )
-
-        registrationModelContext.registerTool({
-          name: toolName,
-          description: toolDescription,
-          inputSchema,
-          execute,
-          annotations,
-        } satisfies MCPModelContextTool<Input, Awaited<ReturnType<Target>>>)
-      }
-
-      registrations.set(registrationModelContext, currentCount + 1)
+      registrationModelContext.registerTool({
+        name: toolName,
+        description: toolDescription,
+        inputSchema,
+        execute,
+        annotations,
+      } satisfies MCPModelContextTool<Input, Awaited<ReturnType<Target>>>)
 
       let isRegistered = true
       return () => {
         if (!isRegistered) return
         isRegistered = false
-
-        const value = registrations.get(registrationModelContext)
-        if (value === undefined) return
-
-        if (value <= 1) {
-          registrations.delete(registrationModelContext)
-          registrationModelContext.unregisterTool(toolName)
-          return
-        }
-
-        registrations.set(registrationModelContext, value - 1)
+        registrationModelContext.unregisterTool(toolName)
       }
     }
 

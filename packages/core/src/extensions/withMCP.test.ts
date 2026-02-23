@@ -77,7 +77,7 @@ test('withMCP registers tool and bridges execution to action', async () => {
   expect(unregisterToolSpy).toBeCalledWith('add')
 })
 
-test('withMCP registerMCP uses reference counting per modelContext', () => {
+test('withMCP leaves duplicate registration handling to caller', () => {
   const { modelContext, registerToolSpy, unregisterToolSpy } = createModelContext()
 
   const ping = action(() => 'pong', 'ping').extend(
@@ -86,16 +86,12 @@ test('withMCP registerMCP uses reference counting per modelContext', () => {
     }),
   )
 
-  const unregister1 = ping.registerMCP()
-  const unregister2 = ping.registerMCP()
+  const unregister = ping.registerMCP()
 
   expect(registerToolSpy).toBeCalledTimes(1)
-  expect(unregisterToolSpy).toBeCalledTimes(0)
+  expect(() => ping.registerMCP()).toThrow('already registered')
 
-  unregister1()
-  expect(unregisterToolSpy).toBeCalledTimes(0)
-
-  unregister2()
+  unregister()
   expect(unregisterToolSpy).toBeCalledTimes(1)
   expect(unregisterToolSpy).toBeCalledWith('ping')
 })
@@ -171,10 +167,10 @@ test('withMCP description has meaningful defaults for actions and atoms', () => 
   const actionToolDescription = tools.get('doSome')?.description
   const atomToolDescription = tools.get('stateAtom')?.description
 
-  expect(actionToolDescription).toContain('Run application logic through action')
-  expect(actionToolDescription).toContain('"doSome"')
-  expect(atomToolDescription).toContain('Read application state through atom')
-  expect(atomToolDescription).toContain('"stateAtom"')
+  expect(actionToolDescription).toBe('Use this tool to interact with "doSome".')
+  expect(atomToolDescription).toBe(
+    'Use this tool to interact with "stateAtom".',
+  )
 
   unregisterAction()
   unregisterAtom()
