@@ -1,8 +1,9 @@
-import type { AssignerExt, AtomLike } from '../core'
+import type { Action, AssignerExt, AtomLike, Ext } from '../core'
 import { isAction, isAtom, ReatomError } from '../core'
 import { wrap } from '../methods'
 import type { OverloadParameters } from '../utils'
 import { isObject, noop, type Unsubscribe } from '../utils'
+import { withInitHook } from './withInit'
 
 export interface MCPToolAnnotations {
   readOnlyHint?: boolean
@@ -69,13 +70,13 @@ export interface WithMCPOptions<
   /**
    * Optional static context override.
    *
-   * When omitted, `registerMCP` tries `navigator.modelContext`.
+   * When omitted, registration tries `navigator.modelContext`.
    */
   modelContext?: MCPModelContext
   /**
    * Whether to register immediately during extension application.
    *
-   * Default is `false`.
+   * Default is `false`. This option applies to actions.
    */
   autoRegister?: boolean
   /**
@@ -141,21 +142,22 @@ const getDefaultDescription = (target: AtomLike): string =>
  * application behavior through typed tools.
  *
  * - **Actions**: represent executable behavior.
- * - **Atoms**: represent readable application state snapshots.
+ * - **Atoms**: represent readable application state snapshots and are
+ *   registered automatically on first init via `withInitHook`.
  *
  * By default, action tools call the target with `input` as a single argument,
  * while atom tools return current state by calling the target without
  * arguments.
  *
- * Registration is intentionally explicit through `registerMCP()` so scope can
- * be controlled by the app:
+ * Registration for actions is intentionally explicit through `registerMCP()` so
+ * scope can be controlled by the app:
  *
  * - runtime: register in a root route/layout
  * - tests: register at test start and cleanup with returned unsubscribe
  *
- * The tool callback is wrapped at registration time with Reatom `wrap`, so
- * calls from agents run inside the same reactive context captured by that
- * registration scope.
+ * Tool callbacks are wrapped at registration time with Reatom `wrap`, so calls
+ * from agents run inside the reactive context captured by the registration
+ * scope.
  *
  * @see https://github.com/webmachinelearning/webmcp
  * @see https://modelcontextprotocol.io/specification/latest
@@ -175,18 +177,14 @@ const getDefaultDescription = (target: AtomLike): string =>
  *       annotations: { readOnlyHint: true },
  *     }),
  *   )
- *
- *   const unregister = goodsAtom.registerMCP()
- *   // Later cleanup:
- *   unregister()
+ *   // Registered automatically on first read.
+ *   goodsAtom()
  *
  * @example
  *   // Marketplace: search atom without explicit withMCP options.
  *   const searchAtom = atom('', 'marketplace.search').extend(withMCP({}))
- *
- *   const unregister = searchAtom.registerMCP()
- *   // Later cleanup:
- *   unregister()
+ *   // Registered automatically on first read.
+ *   searchAtom()
  *
  * @example
  *   // Marketplace: addToCard action with only description and inputSchema.
@@ -210,12 +208,26 @@ const getDefaultDescription = (target: AtomLike): string =>
  *       },
  *     }),
  *   )
+ *
+ *   const unregister = addToCard.registerMCP()
+ *   // Later cleanup:
+ *   unregister()
  */
-export const withMCP =
-  <Target extends AtomLike, Input extends object = Record<string, unknown>>(
-    options: WithMCPOptions<Target, Input>,
-  ): AssignerExt<MCPExt, Target> =>
-  (target) => {
+export function withMCP<
+  Target extends Action,
+  Input extends object = Record<string, unknown>,
+>(options: WithMCPOptions<Target, Input>): AssignerExt<MCPExt, Target>
+
+export function withMCP<
+  Target extends AtomLike,
+  Input extends object = Record<string, unknown>,
+>(options: WithMCPOptions<Target, Input>): Ext<Target>
+
+export function withMCP<
+  Target extends AtomLike,
+  Input extends object = Record<string, unknown>,
+>(options: WithMCPOptions<Target, Input>) {
+  return (target: Target) => {
     if (!isAtom(target)) {
       throw new ReatomError('withMCP can be used only with atoms or actions')
     }
@@ -244,14 +256,7 @@ export const withMCP =
     const toolDescription = description ?? getDefaultDescription(target)
     const toolName = name
 
-    const registerMCP = (
-      registrationOptions: RegisterMCPOptions = {},
-    ): Unsubscribe => {
-      const registrationModelContext =
-        registrationOptions.modelContext ?? resolveModelContext()
-
-      if (registrationModelContext === undefined) return noop
-
+    const registerTool = (registrationModelContext: MCPModelContext) => {
       const execute = wrap(async (input: Input, client: MCPModelContextClient) => {
         if (params) {
           return await target(...params(input, client, target))
@@ -278,11 +283,36 @@ export const withMCP =
       }
     }
 
-    if (autoRegister) {
-      registerMCP()
+    if (isAction(target)) {
+      const registerMCP = (
+        registrationOptions: RegisterMCPOptions = {},
+      ): Unsubscribe => {
+        const registrationModelContext =
+          registrationOptions.modelContext ?? resolveModelContext()
+
+        if (registrationModelContext === undefined) return noop
+
+        return registerTool(registrationModelContext)
+      }
+
+      if (autoRegister) {
+        registerMCP()
+      }
+
+      return {
+        registerMCP,
+      } satisfies MCPExt
     }
 
-    return {
-      registerMCP,
-    }
+    let initRegistered = false
+    withInitHook(() => {
+      if (initRegistered) return
+      const registrationModelContext = resolveModelContext()
+      if (registrationModelContext === undefined) return
+      registerTool(registrationModelContext)
+      initRegistered = true
+    })(target)
+
+    return target
   }
+}

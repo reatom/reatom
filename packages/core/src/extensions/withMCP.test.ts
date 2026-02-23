@@ -135,7 +135,7 @@ test('withMCP default action params forward input as first argument', async () =
 })
 
 test('withMCP supports atoms as state-reading tools', async () => {
-  const { modelContext, tools } = createModelContext()
+  const { modelContext, tools, registerToolSpy } = createModelContext()
 
   const user = atom({ id: 'u1', role: 'admin' }, 'user').extend(
     withMCP({
@@ -144,16 +144,19 @@ test('withMCP supports atoms as state-reading tools', async () => {
     }),
   )
 
-  const unregister = user.registerMCP()
+  expect('registerMCP' in user).toBe(false)
+  user()
+  await Promise.resolve()
+
+  expect(registerToolSpy).toBeCalledTimes(1)
   const tool = tools.get('user')
   expect(tool).toBeTruthy()
   const state = await tool!.execute({}, client)
 
   expect(state).toEqual({ id: 'u1', role: 'admin' })
-  unregister()
 })
 
-test('withMCP description has meaningful defaults for actions and atoms', () => {
+test('withMCP description has meaningful defaults for actions and atoms', async () => {
   const { modelContext, tools } = createModelContext()
 
   const doSome = action(() => 'ok', 'doSome').extend(withMCP({ modelContext }))
@@ -162,7 +165,8 @@ test('withMCP description has meaningful defaults for actions and atoms', () => 
   )
 
   const unregisterAction = doSome.registerMCP()
-  const unregisterAtom = stateAtom.registerMCP()
+  stateAtom()
+  await Promise.resolve()
 
   const actionToolDescription = tools.get('doSome')?.description
   const atomToolDescription = tools.get('stateAtom')?.description
@@ -173,7 +177,6 @@ test('withMCP description has meaningful defaults for actions and atoms', () => 
   )
 
   unregisterAction()
-  unregisterAtom()
 })
 
 test('withMCP allows register-time modelContext override', async () => {
