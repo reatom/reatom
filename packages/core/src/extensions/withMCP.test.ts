@@ -64,20 +64,40 @@ test('withMCP registers tool and bridges execution to action', async () => {
     }),
   )
 
-  expect(add.registerMCPTool()).toBe(true)
-  expect(add.registerMCPTool()).toBe(false)
-  expect(add.isMCPToolRegistered()).toBe(true)
+  const unregister = add.registerMCP()
   expect(registerToolSpy).toBeCalledTimes(1)
-  expect(tools.get('add')).toBe(add.mcpTool)
+  const tool = tools.get('add')
+  expect(tool).toBeTruthy()
 
-  const payload = await add.mcpTool.execute({ left: 2, right: 3 }, client)
+  const payload = await tool!.execute({ left: 2, right: 3 }, client)
   expect(payload).toBe(5)
 
-  expect(add.unregisterMCPTool()).toBe(true)
-  expect(add.unregisterMCPTool()).toBe(false)
-  expect(add.isMCPToolRegistered()).toBe(false)
+  unregister()
   expect(unregisterToolSpy).toBeCalledTimes(1)
   expect(unregisterToolSpy).toBeCalledWith('add')
+})
+
+test('withMCP registerMCP uses reference counting per modelContext', () => {
+  const { modelContext, registerToolSpy, unregisterToolSpy } = createModelContext()
+
+  const ping = action(() => 'pong', 'ping').extend(
+    withMCP({
+      modelContext,
+    }),
+  )
+
+  const unregister1 = ping.registerMCP()
+  const unregister2 = ping.registerMCP()
+
+  expect(registerToolSpy).toBeCalledTimes(1)
+  expect(unregisterToolSpy).toBeCalledTimes(0)
+
+  unregister1()
+  expect(unregisterToolSpy).toBeCalledTimes(0)
+
+  unregister2()
+  expect(unregisterToolSpy).toBeCalledTimes(1)
+  expect(unregisterToolSpy).toBeCalledWith('ping')
 })
 
 test('withMCP can auto-register tool on extension setup', () => {
@@ -85,40 +105,91 @@ test('withMCP can auto-register tool on extension setup', () => {
 
   const ping = action(() => 'pong', 'ping').extend(
     withMCP({
-      description: 'Returns pong',
       autoRegister: true,
       modelContext,
-      params: () => [],
     }),
   )
 
   expect(registerToolSpy).toBeCalledTimes(1)
-  expect(ping.isMCPToolRegistered()).toBe(true)
+  expect(typeof ping.registerMCP).toBe('function')
 })
 
-test('withMCP registration returns false without modelContext', () => {
-  const ping = action(() => 'pong', 'ping').extend(
+test('withMCP registration without modelContext returns noop unsubscribe', () => {
+  const ping = action(() => 'pong', 'ping').extend(withMCP({}))
+
+  const unregister = ping.registerMCP()
+  expect(() => unregister()).not.toThrow()
+})
+
+test('withMCP default action params forward input as first argument', async () => {
+  const { modelContext, tools } = createModelContext()
+
+  const echo = action(
+    (input: { text: string }) => input.text,
+    'echo',
+  ).extend(withMCP({ modelContext }))
+
+  const unregister = echo.registerMCP()
+  const tool = tools.get('echo')
+  expect(tool).toBeTruthy()
+  const result = await tool!.execute({ text: 'hello' }, client)
+
+  expect(result).toBe('hello')
+  unregister()
+})
+
+test('withMCP supports atoms as state-reading tools', async () => {
+  const { modelContext, tools } = createModelContext()
+
+  const user = atom({ id: 'u1', role: 'admin' }, 'user').extend(
     withMCP({
-      description: 'Returns pong',
-      params: () => [],
+      modelContext,
+      annotations: { readOnlyHint: true },
     }),
   )
 
-  expect(ping.registerMCPTool()).toBe(false)
-  expect(ping.unregisterMCPTool()).toBe(false)
-  expect(ping.isMCPToolRegistered()).toBe(false)
+  const unregister = user.registerMCP()
+  const tool = tools.get('user')
+  expect(tool).toBeTruthy()
+  const state = await tool!.execute({}, client)
+
+  expect(state).toEqual({ id: 'u1', role: 'admin' })
+  unregister()
 })
 
-test('withMCP throws when applied to atom', () => {
-  const count = atom(0, 'count')
+test('withMCP description has meaningful defaults for actions and atoms', () => {
+  const { modelContext, tools } = createModelContext()
 
-  expect(() =>
-    // @ts-expect-error withMCP should be applied only to actions
-    count.extend(
-      withMCP({
-        description: 'invalid',
-        params: () => [],
-      }),
-    ),
-  ).toThrow('withMCP can be used only with actions')
+  const doSome = action(() => 'ok', 'doSome').extend(withMCP({ modelContext }))
+  const stateAtom = atom({ ok: true }, 'stateAtom').extend(
+    withMCP({ modelContext }),
+  )
+
+  const unregisterAction = doSome.registerMCP()
+  const unregisterAtom = stateAtom.registerMCP()
+
+  const actionToolDescription = tools.get('doSome')?.description
+  const atomToolDescription = tools.get('stateAtom')?.description
+
+  expect(actionToolDescription).toContain('Run application logic through action')
+  expect(actionToolDescription).toContain('"doSome"')
+  expect(atomToolDescription).toContain('Read application state through atom')
+  expect(atomToolDescription).toContain('"stateAtom"')
+
+  unregisterAction()
+  unregisterAtom()
+})
+
+test('withMCP allows register-time modelContext override', async () => {
+  const { modelContext, tools } = createModelContext()
+
+  const ping = action(() => 'pong', 'ping').extend(withMCP({}))
+
+  const unregister = ping.registerMCP({ modelContext })
+  const tool = tools.get('ping')
+
+  expect(tool).toBeTruthy()
+  expect(await tool!.execute({}, client)).toBe('pong')
+
+  unregister()
 })
