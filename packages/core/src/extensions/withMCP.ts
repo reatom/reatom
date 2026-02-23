@@ -1,4 +1,4 @@
-import type { Action, AssignerExt, AtomLike, Ext } from '../core'
+import type { Action, AtomLike } from '../core'
 import { isAction, isAtom, ReatomError } from '../core'
 import { wrap } from '../methods'
 import type { OverloadParameters } from '../utils'
@@ -110,6 +110,10 @@ export interface MCPExt {
   registerMCP: (options?: RegisterMCPOptions) => Unsubscribe
 }
 
+export interface WithMCPExt<Target extends AtomLike = AtomLike> {
+  <T extends Target>(target: T): T extends Action ? MCPExt : T
+}
+
 const isMCPModelContext = (candidate: unknown): candidate is MCPModelContext => {
   if (!isObject(candidate)) return false
 
@@ -216,20 +220,10 @@ const getDefaultDescription = (target: AtomLike): string =>
  *   unregister()
  */
 export function withMCP<
-  Target extends Action,
+  Target extends AtomLike = AtomLike,
   Input extends object = Record<string, unknown>,
->(options: WithMCPOptions<Target, Input>): AssignerExt<MCPExt, Target>
-
-export function withMCP<
-  Target extends AtomLike,
-  Input extends object = Record<string, unknown>,
->(options: WithMCPOptions<Target, Input>): Ext<Target>
-
-export function withMCP<
-  Target extends AtomLike,
-  Input extends object = Record<string, unknown>,
->(options: WithMCPOptions<Target, Input>) {
-  return (target: Target) => {
+>(options: WithMCPOptions<Target, Input>): WithMCPExt<Target> {
+  return (<T extends Target>(target: T) => {
     if (!isAtom(target)) {
       throw new ReatomError('withMCP can be used only with atoms or actions')
     }
@@ -303,7 +297,7 @@ export function withMCP<
 
       return {
         registerMCP,
-      } satisfies MCPExt
+      } as T extends Action ? MCPExt : T
     }
 
     let initRegistered = false
@@ -315,6 +309,6 @@ export function withMCP<
       initRegistered = true
     })(target)
 
-    return target
-  }
+    return target as T extends Action ? MCPExt : T
+  }) as WithMCPExt<Target>
 }
