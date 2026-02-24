@@ -15,7 +15,7 @@ type EnumVariantSetters<T extends string, Format extends EnumFormat> = {
 export type EnumAtom<
   T extends string,
   Format extends EnumFormat = 'camelCase',
-> = Atom<T> &
+> = Atom<T, [T | ({} & string)]> &
   EnumVariantSetters<T, Format> & {
     reset: Action<[], T>
     enum: { [K in T]: K }
