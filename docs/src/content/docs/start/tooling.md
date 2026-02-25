@@ -94,6 +94,22 @@ We recommend using ESLint to enforce best practices and coding standards in your
 }
 ```
 
+Additionally to control the use of `wrap` inside `action`, `computed`, and `effect`, you can use this rule. It does not require installing any additional packages and ensures that all promises whose values are retrieved via await are wrapped in wrap.:
+
+```json
+{
+  "rules": {
+    "no-restricted-syntax": [
+      "error",
+      {
+        "selector": "CallExpression:matches([callee.name=\"action\"], [callee.name=\"computed\"], [callee.name=\"effect\"]) ArrowFunctionExpression AwaitExpression > :not(CallExpression[callee.name=\"wrap\"])",
+        "message": "Any awaited Promise inside \"action\", \"effect\", or \"computed\" must be wrapped with wrap()"
+      },
+    ],
+  }
+}
+```
+
 ## Global Extensions
 
 You can automatically track all Reatom entities (atoms and actions) in your application using global extensions. This is particularly useful for analytics, monitoring, debugging, or logging.
