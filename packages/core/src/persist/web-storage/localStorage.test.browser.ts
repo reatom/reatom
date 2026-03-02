@@ -100,6 +100,32 @@ test('storage error handling', () => {
   consoleSpy.mockRestore()
 })
 
+test('URL atom should restore as URL from localStorage', () => {
+  const key = 'test-url-key'
+
+  // When a URL is persisted to localStorage, JSON.stringify(url) calls
+  // URL.toJSON() which returns the href string. This simulates reading back
+  // that serialized data (e.g. from another tab or after page reload).
+  localStorage.setItem(
+    key,
+    JSON.stringify({
+      data: 'https://example.com/page',
+      id: 1,
+      timestamp: Date.now(),
+      to: Date.now() + 10000,
+      version: 0,
+    }),
+  )
+
+  const urlAtom = atom(new URL('https://example.com/'), 'urlAtom').extend(
+    withLocalStorage(key),
+  )
+
+  // The atom should have a URL object, not a string
+  expect(urlAtom()).toBeInstanceOf(URL)
+  expect(urlAtom().href).toBe('https://example.com/page')
+})
+
 test('fromSnapshot and toSnapshot', () => {
   const key = 'test-map-key'
 

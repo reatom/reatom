@@ -1,6 +1,6 @@
-import { expect, test, vi } from 'test'
+import { expect, test, vi, viTest } from 'test'
 
-import { atom } from '../../core'
+import { atom, context, notify } from '../../core'
 import {
   reatomPersistBroadcastChannel,
   withBroadcastChannel,
@@ -131,3 +131,47 @@ test('BroadcastChannel fallback when unavailable', () => {
   testAtom.set('fallback-value')
   expect(testAtom()).toBe('fallback-value')
 })
+
+viTest(
+  'BroadcastChannel cross-tab URL sync',
+  () =>
+    context.start(async () => {
+      // Simulate two tabs: channel1 sends, channel2 receives.
+      // Two BroadcastChannel instances with the same name deliver messages
+      // to each other but not to themselves.
+      const channel1 = new BroadcastChannel('url-cross-tab-test')
+      const channel2 = new BroadcastChannel('url-cross-tab-test')
+
+      const tab1Adapter = reatomPersistBroadcastChannel(channel1)
+      const tab2Adapter = reatomPersistBroadcastChannel(channel2)
+
+      const urlInTab1 = atom(
+        new URL('https://example.com/'),
+        'urlInTab1',
+      ).extend(tab1Adapter('url'))
+      const urlInTab2 = atom(
+        new URL('https://example.com/'),
+        'urlInTab2',
+      ).extend(tab2Adapter('url'))
+
+      // Subscribe to tab2 atom to activate BroadcastChannel listener
+      urlInTab2.subscribe()
+
+      // Flush effect queue so withConnectHook registers the BC listener
+      notify()
+
+      // Tab 1 navigates to a new URL (this broadcasts via channel1)
+      urlInTab1.set(new URL('https://example.com/new-page'))
+
+      // Wait for BroadcastChannel async message delivery
+      await new Promise((r) => setTimeout(r, 100))
+
+      // Tab 2 should have received the URL update as a proper URL object
+      expect(urlInTab2()).toBeInstanceOf(URL)
+      expect(urlInTab2().href).toBe('https://example.com/new-page')
+
+      channel1.close()
+      channel2.close()
+    }),
+  { timeout: 5000 },
+)

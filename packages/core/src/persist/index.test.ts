@@ -207,3 +207,47 @@ describe('should not accept an action', () => {
     expect(() => testAction.extend(withSomePersist('test'))).toThrow()
   })
 })
+
+describe('URL atom persist', () => {
+  test('should restore URL from string snapshot', () => {
+    // When a URL atom is persisted to localStorage, JSON.stringify converts
+    // URL to a string via URL.toJSON() (which returns href).
+    // This simulates reading back that serialized data.
+    withSomePersist.storageAtom.set(
+      createMemStorage({
+        name: 'test',
+        snapshot: {
+          url: 'https://example.com/page',
+        },
+      }),
+    )
+
+    const urlAtom = atom(new URL('https://example.com/'), 'urlAtom').extend(
+      withSomePersist('url'),
+    )
+
+    // After restoring from persist, the value should be a URL, not a string
+    expect(urlAtom()).toBeInstanceOf(URL)
+    expect(urlAtom().href).toBe('https://example.com/page')
+  })
+
+  test('should sync URL between atoms via shared storage', () => {
+    // Simulates cross-tab sync: two atoms sharing the same persist key.
+    // When atom1 sets a URL, atom2 should receive a proper URL object.
+    const urlAtom1 = atom(new URL('https://example.com/'), 'urlAtom1').extend(
+      withSomePersist({ key: 'url-sync' }),
+    )
+    const urlAtom2 = atom(new URL('https://example.com/'), 'urlAtom2').extend(
+      withSomePersist({ key: 'url-sync' }),
+    )
+
+    const track = subscribe(urlAtom2)
+    track.mockClear()
+
+    urlAtom1.set(new URL('https://example.com/new-page'))
+
+    // urlAtom2 should receive the update as a proper URL object
+    expect(urlAtom2()).toBeInstanceOf(URL)
+    expect(urlAtom2().href).toBe('https://example.com/new-page')
+  })
+})
