@@ -64,7 +64,7 @@ export class AbortVariable extends Variable<
     let result: undefined | Result
 
     super.find((controller) => {
-      result = cb?.(controller)
+      result = cb ? cb(controller) : (controller as undefined | Result)
       return result !== undefined || controller?.spawned ? true : undefined
     }, frame)
 
