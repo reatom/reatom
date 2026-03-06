@@ -1,6 +1,7 @@
 export * from './withAbort'
 export * from './withChangeHook'
 export * from './withComputed'
+export * from './withConnectEffect'
 export * from './withConnectHook'
 export * from './withDynamicSubscription'
 export * from './withInit'
