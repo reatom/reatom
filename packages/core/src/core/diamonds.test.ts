@@ -41,6 +41,7 @@ test('diamonds', () => {
   expect(atomCalls).toBe(8)
   expect(computedCalls).toBe(5)
   expect(track).toBeCalledTimes(1)
+  expect(track).toBeCalledWith(0)
   expect(_read(a1)!.subs).toEqual([a2, a2, a2, a3])
   expect(_read(a2)!.subs).toEqual([a4, a5])
   expect(_read(a3)!.subs).toEqual([a4, a5])
@@ -52,6 +53,7 @@ test('diamonds', () => {
   expect(atomCalls).toBe(6)
   expect(computedCalls).toBe(5)
   expect(track).toBeCalledTimes(2)
+  expect(track).toBeCalledWith(4)
 
   track.unsubscribe()
   for (const a of [a1, a2, a3, a4, a5, a6]) {
