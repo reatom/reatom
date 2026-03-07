@@ -1,7 +1,7 @@
 import { expect, silentQueuesErrors, test, vi } from 'test'
 
 import { withAsyncData } from '../async'
-import { action, atom, computed } from '../core'
+import { action, atom, computed, withMiddleware } from '../core'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
 import { variable } from './variable'
@@ -58,4 +58,56 @@ test('scope propagation for atoms', async () => {
   update(1)
   await wrap(sleep())
   expect(resource.data()).toEqual({ param: 1, paramVar: 1 })
+})
+
+test('tracer', async () => {
+  const traceIdVar = variable<string>('traceIdVar')
+  const spanIdVar = variable<string>('spanIdVar')
+
+  const traces = new Array<string>()
+  const spans = new Array<string>()
+
+  const withTracing = () =>
+    withMiddleware(() => (next, ...params) => {
+      try {
+        return next(...params)
+      } finally {
+        const parentSpanId = spanIdVar.get()
+        const parentTrace = traceIdVar.get()
+        const traceId = parentTrace ?? Math.random().toString(16)
+        const spanId = Math.random().toString(16)
+
+        spanIdVar.set(spanId)
+        if (!parentSpanId) {
+          traceIdVar.set(traceId)
+          traces.push(traceId)
+        }
+
+        spans.push(spanId)
+      }
+    })
+
+  const textAtom = atom('', 'textAtom').extend(withTracing())
+
+  const resource = computed(async () => {
+    const text = textAtom()
+    if (!text) return
+
+    await wrap(sleep())
+    return text
+  }, 'resource').extend(withAsyncData(), withTracing())
+
+  resource.data.extend(withTracing())
+
+  resource.subscribe()
+
+  expect(traces.length).toBe(1)
+  expect(spans.length).toBe(2)
+
+  textAtom.set('hey!')
+
+  await wrap(sleep())
+
+  expect(traces.length).toBe(2)
+  expect(spans.length).toBe(5)
 })
