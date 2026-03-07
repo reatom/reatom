@@ -9,10 +9,12 @@ import { withAsyncData } from './withAsyncData'
 
 test('action', async () => {
   const name = 'actionAsyncData'
-  const fetch = action(
-    async (param: number) => param + 1,
-    `${name}.fetch`,
-  ).extend(withAsyncData())
+
+  let aborts = 0
+  const fetch = action(async (param: number) => {
+    abortVar.require().signal.addEventListener('abort', () => aborts++)
+    return param + 1
+  }, `${name}.fetch`).extend(withAsyncData())
 
   expectTypeOf(fetch.data).toExtend<Atom<undefined | number>>()
 
@@ -32,6 +34,15 @@ test('action', async () => {
   expect(fetch.data()).toBe(2)
   expect(onFulfill).toBeCalledTimes(1)
   expect(onFulfill).toBeCalledWith({ payload: 2, params: [1] })
+
+  expect(aborts).toBe(0)
+
+  fetch(1)
+  // prev promise already resolved and controller outdated
+  expect(aborts).toBe(0)
+  fetch(1)
+  fetch(1)
+  expect(aborts).toBe(2)
 })
 
 test('action with mappings', async () => {

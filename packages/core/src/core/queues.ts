@@ -30,14 +30,7 @@ export let _enqueue = (fn: Fn, queue: QueueKind): void => {
     //.catch(noop) // TODO ?
   }
 
-  contextFrame.state.pushQueue(() => {
-    try {
-      fn()
-    } catch (error) {
-      console.error('Unhandled error in Reatom queue!')
-      console.log(error)
-    }
-  }, queue)
+  contextFrame.state.pushQueue(fn, queue)
 }
 
 /**
@@ -81,7 +74,13 @@ export let notify = () => {
     let next = queues[priority++]!()
     if (next !== undefined) {
       priority = 0 // need to recheck queues after user code
-      next()
+
+      try {
+        next()
+      } catch (error) {
+        console.error('Unhandled error in Reatom queue!')
+        console.log(error)
+      }
     }
   }
 
