@@ -287,6 +287,31 @@ test('route loader', async () => {
   ).toThrow()
 })
 
+test('route loader data reset on unmatch with extension', async () => {
+  const goodsRoute = reatomRoute({
+    path: 'goods/:category',
+    async loader({ category }) {
+      return [{ id: category }]
+    },
+  })
+
+  goodsRoute.extend(
+    withChangeHook((match) => {
+      if (match === null) goodsRoute.loader.data.reset()
+    }),
+  )
+
+  goodsRoute.go({ category: 'tech' })
+  expect(await wrap(goodsRoute.loader())).toEqual([{ id: 'tech' }])
+  expect(goodsRoute.loader.data()).toEqual([{ id: 'tech' }])
+
+  urlAtom.go('/')
+  await wrap(sleep())
+
+  expect(goodsRoute()).toBe(null)
+  expect(goodsRoute.loader.data()).toBe(undefined)
+})
+
 test('route loader lazyness (abortable)', async () => {
   let runs = 0
   let ticks = 0
@@ -531,12 +556,19 @@ test('exactRender should not render on children match', async () => {
 })
 
 test('exactRender should not affect children', async () => {
-  const parentRoute = reatomRoute(
+  const rootRoute = reatomRoute({
+    path: 'root',
+    render(self) {
+      return self.outlet().join('')
+    },
+  })
+
+  const parentRoute = rootRoute.reatomRoute(
     {
-      path: 'project',
+      path: 'parent',
       exactRender: true,
       render() {
-        return true
+        return 'parent'
       },
     },
     'parentRoute',
@@ -545,16 +577,120 @@ test('exactRender should not affect children', async () => {
     path: 'child',
 
     render() {
-      return true
+      return 'child'
     },
   })
 
+  parentRoute.go()
+  expect(parentRoute.render()).toBe('parent')
+  expect(childRoute.render()).toBeFalsy()
+
   childRoute.go()
-  await wrap(sleep())
-  expect(parentRoute.render()).toBeFalsy()
   expect(parentRoute.match()).toBeTruthy()
-  expect(childRoute.render()).toBeTruthy()
-  expect(childRoute.match()).toBeTruthy()
+  expect(parentRoute.render()).toBeFalsy()
+  expect(parentRoute.outlet()).toEqual(['child'])
+  expect(childRoute.render()).toBe('child')
+  expect(rootRoute.outlet()).toEqual(['child'])
+  expect(rootRoute.render()).toBe('child')
+})
+
+test('empty render function should skip children rendering', async () => {
+  const rootRoute = reatomRoute({
+    path: 'root',
+    render: (self) => self.outlet(),
+  })
+  const parentRoute = rootRoute.reatomRoute('parent')
+  const childRoute = parentRoute.reatomRoute({
+    path: 'child',
+    render: () => 'child',
+  })
+
+  childRoute.go()
+  expect(parentRoute.match()).toBe(true)
+  expect(rootRoute.render()).toEqual([])
+})
+
+test('nullable render function should skip children rendering', async () => {
+  const rootRoute = reatomRoute({
+    path: 'root',
+    render: (self) => self.outlet(),
+  })
+  const parentRoute = rootRoute.reatomRoute({
+    path: 'parent',
+    render: () => null as any,
+  })
+  const childRoute = parentRoute.reatomRoute({
+    path: 'child',
+    render: () => 'child',
+  })
+
+  childRoute.go()
+  expect(parentRoute.match()).toBe(true)
+  expect(rootRoute.render()).toEqual([])
+})
+
+test('exactRender grandchild should render through outlet chain', async () => {
+  const layoutRoute = reatomRoute(
+    {
+      render(self) {
+        return self.outlet().join('') || 'not found'
+      },
+    },
+    'layoutRoute',
+  )
+
+  const protectedRoute = layoutRoute.reatomRoute(
+    {
+      params: () => ({}),
+      render(self) {
+        return self.outlet()
+      },
+    },
+    'protectedRoute',
+  )
+
+  const projectOverviewRoute = protectedRoute.reatomRoute(
+    {
+      path: 'projects/:projectId',
+      render(self) {
+        return `This project #${self().projectId}`
+      },
+      exactRender: true,
+    },
+    'projectOverviewRoute',
+  )
+
+  const projectReviewRouteCorrect = projectOverviewRoute.reatomRoute(
+    {
+      path: 'review',
+      params: (params) => params,
+      render(self) {
+        return `This review for project #${self().projectId}`
+      },
+      exactRender: true,
+    },
+    'projectReviewRouteCorrect',
+  )
+
+  const projectReviewRouteWrong = projectOverviewRoute.reatomRoute(
+    {
+      path: 'projects/:projectId/review',
+      render() {
+        return 'reviewWrong'
+      },
+      exactRender: true,
+    },
+    'projectReviewRouteCorrect',
+  )
+
+  urlAtom.go('/projects/123/review')
+  await wrap(sleep())
+
+  expect(projectReviewRouteCorrect.render()).toEqual(
+    'This review for project #123',
+  )
+  expect(projectReviewRouteWrong.render()).toEqual(null)
+  expect(layoutRoute.render()).toEqual('This review for project #123')
 })
 
 test('inherence of callback params', async () => {

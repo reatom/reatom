@@ -206,8 +206,16 @@ export interface RouteOptions<
   ) => RouteChild
 
   /**
-   * Render only on exact path matches
+   * When `true`, the route's `render` function only fires on exact URL matches.
+   * When the route matches partially (a child route is active), `render`
+   * returns `null` and children propagate through the outlet chain to the
+   * nearest layout ancestor.
    *
+   * Defaults to `false` (layout behavior — render fires on any match). Set to
+   * `true` for feature/leaf routes where child routes should replace the parent
+   * content rather than be wrapped by it.
+   *
+   * @default false
    * @see RouteExt.exact
    */
   exactRender?: boolean
@@ -423,6 +431,8 @@ export interface RouteExt<
    *   {userRoute.exact() && <UserDetails />}
    */
   exact: Computed<boolean>
+
+  exactRender: boolean
 
   /**
    * Computed atom indicating if the current URL matches this route (partial or
@@ -864,9 +874,12 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       let outlet = computed(() => {
         let result: RouteChild[] = []
         for (let name in routes) {
-          let render = routes[name]!.render()
+          let childRoute = routes[name]!
+          let render = childRoute.render()
           if (render != null) {
             result.push(render)
+          } else if (childRoute.exactRender && childRoute.match()) {
+            result.push(...childRoute.outlet())
           }
         }
         return result
@@ -886,6 +899,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         go,
         loader,
         exact,
+        exactRender,
         match,
         pattern,
         path: getPath,
