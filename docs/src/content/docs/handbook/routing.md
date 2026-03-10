@@ -265,6 +265,57 @@ const App = computed(() => {
 - ✅ **Automatic cleanup** - No manual lifecycle management needed
 - ✅ **Type-safe** - Ability to define custom types for your framework
 
+#### Layout Routes vs Feature Routes
+
+By default, a route's `render` function fires whenever the route matches — partially or exactly. This is the **layout** behavior: the route wraps its children through `outlet()`, providing shared UI (headers, sidebars, footers) visible on all sub-routes.
+
+For **feature routes** (list pages, detail pages), you usually want the opposite: the render function should only fire on an **exact** URL match. When a child route is active, the parent should become transparent and let the child render directly into the nearest layout ancestor's outlet.
+
+Set `exactRender: true` to enable this:
+
+```typescript
+const layoutRoute = reatomRoute({
+  // exactRender defaults to false — renders on any match, wraps children
+  render(self) {
+    return html`<div>
+      <header>My App</header>
+      <main>${self.outlet()}</main>
+    </div>`
+  },
+})
+
+const projectsRoute = layoutRoute.reatomRoute({
+  path: 'projects',
+  exactRender: true,
+  render() {
+    return html`<ul>...projects list...</ul>`
+  },
+})
+
+const projectRoute = projectsRoute.reatomRoute({
+  path: ':projectId',
+  exactRender: true,
+  render(self) {
+    return html`<div>Project #${self().projectId}</div>`
+  },
+})
+```
+
+**At `/projects`:**
+
+- `layoutRoute` renders (matched) — wraps outlet with header/footer
+- `projectsRoute` renders (exact match) — projects list appears in layout's outlet
+
+**At `/projects/123`:**
+
+- `layoutRoute` renders (matched) — wraps outlet
+- `projectsRoute` matched but **not exact** — render returns `null`, becomes transparent
+- `projectRoute` renders (exact match) — bubbles up through `projectsRoute` into `layoutRoute`'s outlet
+
+When an `exactRender` route is not exactly matched, its children's rendered output propagates up through the outlet chain. The layout route sees only the deepest matched feature route's content — the projects list is completely replaced by the project detail, not wrapped around it.
+
+This distinction matters most for **index/list pages**. Without `exactRender`, navigating from `/projects` to `/projects/123` would nest the project detail inside the projects list. With `exactRender: true`, the list steps aside and the detail page takes its place in the layout.
+
 #### Custom types for your framework
 
 The `RouteChild` type can be redeclared for your framework:
