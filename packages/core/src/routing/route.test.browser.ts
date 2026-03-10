@@ -541,10 +541,9 @@ test('loader data types', async () => {
   }
 })
 
-test('exactRender should not render on children match', async () => {
+test('non-layout route should not render on children match', async () => {
   const parentRoute = reatomRoute({
     path: 'project',
-    exactRender: true,
     render() {
       return true
     },
@@ -555,9 +554,10 @@ test('exactRender should not render on children match', async () => {
   expect(parentRoute.render()).toBeFalsy()
 })
 
-test('exactRender should not affect children', async () => {
+test('non-layout route should not affect children', async () => {
   const rootRoute = reatomRoute({
     path: 'root',
+    layout: true,
     render(self) {
       return self.outlet().join('')
     },
@@ -566,7 +566,6 @@ test('exactRender should not affect children', async () => {
   const parentRoute = rootRoute.reatomRoute(
     {
       path: 'parent',
-      exactRender: true,
       render() {
         return 'parent'
       },
@@ -594,30 +593,15 @@ test('exactRender should not affect children', async () => {
   expect(rootRoute.render()).toBe('child')
 })
 
-test('empty render function should skip children rendering', async () => {
+test('layout route without render should block children rendering', async () => {
   const rootRoute = reatomRoute({
     path: 'root',
-    render: (self) => self.outlet(),
-  })
-  const parentRoute = rootRoute.reatomRoute('parent')
-  const childRoute = parentRoute.reatomRoute({
-    path: 'child',
-    render: () => 'child',
-  })
-
-  childRoute.go()
-  expect(parentRoute.match()).toBe(true)
-  expect(rootRoute.render()).toEqual([])
-})
-
-test('nullable render function should skip children rendering', async () => {
-  const rootRoute = reatomRoute({
-    path: 'root',
+    layout: true,
     render: (self) => self.outlet(),
   })
   const parentRoute = rootRoute.reatomRoute({
     path: 'parent',
-    render: () => null as any,
+    layout: true,
   })
   const childRoute = parentRoute.reatomRoute({
     path: 'child',
@@ -629,9 +613,31 @@ test('nullable render function should skip children rendering', async () => {
   expect(rootRoute.render()).toEqual([])
 })
 
-test('exactRender grandchild should render through outlet chain', async () => {
+test('layout route with null render should block children rendering', async () => {
+  const rootRoute = reatomRoute({
+    path: 'root',
+    layout: true,
+    render: (self) => self.outlet(),
+  })
+  const parentRoute = rootRoute.reatomRoute({
+    path: 'parent',
+    layout: true,
+    render: () => null as never,
+  })
+  const childRoute = parentRoute.reatomRoute({
+    path: 'child',
+    render: () => 'child',
+  })
+
+  childRoute.go()
+  expect(parentRoute.match()).toBe(true)
+  expect(rootRoute.render()).toEqual([])
+})
+
+test('grandchild should render through outlet chain', async () => {
   const layoutRoute = reatomRoute(
     {
+      layout: true,
       render(self) {
         return self.outlet().join('') || 'not found'
       },
@@ -641,6 +647,7 @@ test('exactRender grandchild should render through outlet chain', async () => {
 
   const protectedRoute = layoutRoute.reatomRoute(
     {
+      layout: true,
       params: () => ({}),
       render(self) {
         return self.outlet()
@@ -655,7 +662,6 @@ test('exactRender grandchild should render through outlet chain', async () => {
       render(self) {
         return `This project #${self().projectId}`
       },
-      exactRender: true,
     },
     'projectOverviewRoute',
   )
@@ -667,7 +673,6 @@ test('exactRender grandchild should render through outlet chain', async () => {
       render(self) {
         return `This review for project #${self().projectId}`
       },
-      exactRender: true,
     },
     'projectReviewRouteCorrect',
   )
@@ -678,7 +683,6 @@ test('exactRender grandchild should render through outlet chain', async () => {
       render() {
         return 'reviewWrong'
       },
-      exactRender: true,
     },
     'projectReviewRouteCorrect',
   )

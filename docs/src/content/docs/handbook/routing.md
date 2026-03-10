@@ -233,19 +233,23 @@ userRoute() // { userId: '123' }
 
 Reatom routing provides a **framework-agnostic component composition pattern** through the `render` option. This allows you to define components directly in your routes and compose them hierarchically, with automatic mounting/unmounting management - no framework coupling required!
 
-Each route may have a `render` function that receives the route itself and returns a component. This component will be added automatically in the parent outlet list when the route is active/inactive.
+There are two kinds of routes:
 
-The `render` function receives the whole route object, which means you can:
+- **Layout routes** (`layout: true`) — render on any match (partial or exact), wrap child content through `self.outlet()`. Use for shared UI shells: headers, sidebars, footers, protection layers.
+- **Page routes** (default, also called **feature routes**) — render only on exact URL match. When a child route is active, the page route steps aside and its children bubble up to the nearest layout's outlet.
 
-- Call it to get the current params: `self()` returns the params (guaranteed non-null when render is called)
-- Access child components: `self.outlet()` returns an array of active child route components
-- Access loader data: `self.loader.data()`, `self.loader.ready()`, etc.
-- Access other route properties: `self.exact()`, `self.match()`, `self.go()`, etc.
+The `render` function receives the route object (`self`), which provides:
+
+- `self()` — current params (guaranteed non-null inside render)
+- `self.outlet()` — array of active child components (**layout routes only**)
+- `self.loader` — loader data: `.data()`, `.ready()`, `.error()`, etc.
+- `self.exact()`, `self.match()`, `self.go()` — other route properties
 
 ```typescript
 import { reatomRoute } from '@reatom/core'
 
 const layoutRoute = reatomRoute({
+  layout: true,
   render(self) {
     return html`<div>
       <header>My App</header>
@@ -291,30 +295,30 @@ const App = computed(() => {
 
 **How it works:**
 
-1. **`render` option** - Each route can define a `render` function that receives the route itself and returns your component (string, object, or any type)
-2. **Route access** - Inside `render(self)`, call `self()` to get params (non-nullable), `self.outlet()` for child components, `self.loader` for data
-3. **Automatic rendering** - When the URL matches a route, its `render()` is called and added to parent's `outlet()`
-4. **Memory management** - Components are automatically cleaned up when routes become inactive
-5. **Layout routes** - Routes can omit the `path` to act as pure layout wrappers (always active)
+1. Each route defines a `render` function returning your component (string, JSX, any type)
+2. Page routes render on exact match; layout routes (`layout: true`) render on any match and use `outlet()` to wrap children
+3. When a page route has active children, it becomes transparent — content bubbles up to the nearest layout
+4. Components are automatically cleaned up when routes become inactive
+5. Omit `path` to create pure layout wrappers or protection layers (always active)
 
 **Key benefits:**
 
-- ✅ **Framework-agnostic** - Works with any rendering approach (tagged templates, JSX, hyperscript, etc.)
-- ✅ **Declarative composition** - Route hierarchy defines component hierarchy
-- ✅ **Automatic cleanup** - No manual lifecycle management needed
-- ✅ **Type-safe** - Ability to define custom types for your framework
+- ✅ **Framework-agnostic** — works with any rendering approach (tagged templates, JSX, hyperscript, etc.)
+- ✅ **Declarative composition** — route hierarchy defines component hierarchy
+- ✅ **Automatic cleanup** — no manual lifecycle management needed
+- ✅ **Type-safe** — ability to define custom types for your framework
 
-#### Layout Routes vs Feature Routes
+#### Layout Routes vs Page (Feature) Routes
 
-By default, a route's `render` function fires whenever the route matches — partially or exactly. This is the **layout** behavior: the route wraps its children through `outlet()`, providing shared UI (headers, sidebars, footers) visible on all sub-routes.
-
-For **feature routes** (list pages, detail pages), you usually want the opposite: the render function should only fire on an **exact** URL match. When a child route is active, the parent should become transparent and let the child render directly into the nearest layout ancestor's outlet.
-
-Set `exactRender: true` to enable this:
+| | **Layout route** (`layout: true`) | **Page / feature route** (default) |
+|---|---|---|
+| **Renders when** | Any match (partial or exact) | Exact match only |
+| **Uses `outlet()`** | Yes — wraps child content | No — has no children to wrap |
+| **When child is active** | Still renders, child appears in `outlet()` | Steps aside (`render → null`), child bubbles up |
 
 ```typescript
 const layoutRoute = reatomRoute({
-  // exactRender defaults to false — renders on any match, wraps children
+  layout: true,
   render(self) {
     return html`<div>
       <header>My App</header>
@@ -325,7 +329,6 @@ const layoutRoute = reatomRoute({
 
 const projectsRoute = layoutRoute.reatomRoute({
   path: 'projects',
-  exactRender: true,
   render() {
     return html`<ul>...projects list...</ul>`
   },
@@ -333,27 +336,17 @@ const projectsRoute = layoutRoute.reatomRoute({
 
 const projectRoute = projectsRoute.reatomRoute({
   path: ':projectId',
-  exactRender: true,
   render(self) {
     return html`<div>Project #${self().projectId}</div>`
   },
 })
 ```
 
-**At `/projects`:**
+**At `/projects`** — `layoutRoute` wraps outlet, `projectsRoute` renders (exact match).
 
-- `layoutRoute` renders (matched) — wraps outlet with header/footer
-- `projectsRoute` renders (exact match) — projects list appears in layout's outlet
+**At `/projects/123`** — `layoutRoute` wraps outlet, `projectsRoute` steps aside (not exact), `projectRoute` renders and bubbles up into `layoutRoute`'s outlet.
 
-**At `/projects/123`:**
-
-- `layoutRoute` renders (matched) — wraps outlet
-- `projectsRoute` matched but **not exact** — render returns `null`, becomes transparent
-- `projectRoute` renders (exact match) — bubbles up through `projectsRoute` into `layoutRoute`'s outlet
-
-When an `exactRender` route is not exactly matched, its children's rendered output propagates up through the outlet chain. The layout route sees only the deepest matched feature route's content — the projects list is completely replaced by the project detail, not wrapped around it.
-
-This distinction matters most for **index/list pages**. Without `exactRender`, navigating from `/projects` to `/projects/123` would nest the project detail inside the projects list. With `exactRender: true`, the list steps aside and the detail page takes its place in the layout.
+The projects list is completely replaced by the project detail — not wrapped around it. Page routes are transparent when children are active; only layout routes use `outlet()` to compose child content.
 
 #### Custom types for your framework
 
@@ -386,6 +379,7 @@ import { reatomRoute } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
 const layoutRoute = reatomRoute({
+  layout: true,
   render({ outlet }) {
     return (
       <div>
@@ -422,6 +416,7 @@ If you need to use the final reference of the route in its options and you see "
 import type { RouteChild } from '@reatom/core'
 
 const layoutRoute = reatomRoute({
+  layout: true,
   async loader() {
     /* ... */
   },
@@ -461,6 +456,7 @@ const user = computed(async () => {
 // Base layout route - always active
 const layoutRoute = reatomRoute(
   {
+    layout: true,
     render(self) {
       return html`<div>
         <header>My App</header>
@@ -506,6 +502,7 @@ const protectedRoute = layoutRoute.reatomRoute(
       return { rights: userData.rights }
     },
 
+    layout: true,
     render(self) {
       return self.outlet()
     },
@@ -544,6 +541,7 @@ You can create multiple protection layers:
 ```typescript
 // First layer: requires authentication
 const authRoute = layoutRoute.reatomRoute({
+  layout: true,
   params() {
     const userData = user.data()
     if (!userData) {
@@ -557,6 +555,7 @@ const authRoute = layoutRoute.reatomRoute({
 
 // Second layer: requires admin role
 const adminRoute = authRoute.reatomRoute({
+  layout: true,
   params() {
     const parent = authRoute()
     if (!parent?.roles.includes('admin')) {
