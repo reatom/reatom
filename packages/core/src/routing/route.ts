@@ -206,17 +206,22 @@ export interface RouteOptions<
   ) => RouteChild
 
   /**
-   * When `true`, the route's `render` function only fires on exact URL matches.
-   * When the route matches partially (a child route is active), `render`
+   * When `true`, the route acts as a **layout** — its `render` fires on any
+   * match (partial or exact) and wraps children through `outlet()`.
+   *
+   * When `false` (default), the route acts as a **feature/leaf** — `render`
+   * only fires on exact URL matches. When a child route is active, `render`
    * returns `null` and children propagate through the outlet chain to the
    * nearest layout ancestor.
    *
-   * Defaults to `false` (layout behavior — render fires on any match). Set to
-   * `true` for feature/leaf routes where child routes should replace the parent
-   * content rather than be wrapped by it.
-   *
    * @default false
    * @see RouteExt.exact
+   */
+  layout?: boolean
+
+  /**
+   * @deprecated Use `layout` instead (with inverted logic: `exactRender: true`
+   *   = `layout: false`).
    */
   exactRender?: boolean
 }
@@ -432,7 +437,7 @@ export interface RouteExt<
    */
   exact: Computed<boolean>
 
-  exactRender: boolean
+  layout: boolean
 
   /**
    * Computed atom indicating if the current URL matches this route (partial or
@@ -647,8 +652,11 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       search: searchSchema,
       loader: optionsLoader = identity,
       render: renderFn,
-      exactRender = false,
+      layout: optionLayout,
+      exactRender: optionExactRender,
     } = options
+
+    const layout = optionLayout ?? optionExactRender === false
 
     if (subPath.startsWith('/')) {
       throw new Error(
@@ -878,7 +886,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
           let render = childRoute.render()
           if (render != null) {
             result.push(render)
-          } else if (childRoute.exactRender && childRoute.match()) {
+          } else if (!childRoute.layout && childRoute.match()) {
             result.push(...childRoute.outlet())
           }
         }
@@ -887,7 +895,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       let render = computed(() => {
         if (renderFn) {
-          return (exactRender ? exact() : match()) ? renderFn(routeAtom) : null
+          return (layout ? match() : exact()) ? renderFn(routeAtom) : null
         }
 
         // subscribe params
@@ -899,7 +907,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         go,
         loader,
         exact,
-        exactRender,
+        layout,
+        exactRender: !layout,
         match,
         pattern,
         path: getPath,
