@@ -10,9 +10,8 @@ This documentation for `@reatom/core@1000` package and some ecosystem around it.
 - Isomorphic and SSR-friendly with predictable async control.
 - Composable primitives, minimal API surface, high leverage extensions.
 
-This summary is compact. The full handbook and reference cover deeper API
-details, recipes, and adapters in [site](https://v1000.reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and
-`/docs/reference/*`.
+This summary is intentionally **compact**. The full handbook and reference cover deeper API
+details, recipes, and adapters in [site](https://v1000.reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and `/docs/reference/*`.
 
 ## Core primitives and mental model
 
@@ -289,6 +288,9 @@ const users = atom<Array<UserModel>>([], 'users').extend((target) => ({
 This pattern avoids O(n) immutable name changes for each field edit and keeps updates
 focused on exactly the changed part. This data and actions modelling helps to archive the best part of OOP principles without the complexity of classes and so on.
 
+**Bad pattern**: normalize backend data, create separate additional list of elements states ("selected" / "checked" and so on).
+**Good pattern**: atomize backend data, expand each element with additional atoms for local states ("selected" / "checked" and so on).
+
 **Atomization is a main pattern with Reatom**, use it actively for dynamic editable structures, create factories for complex data structures and actions, nest and compose them for complex features.
 
 Some naming tips:
@@ -418,23 +420,77 @@ const page = atom(1, 'page').extend(
 
 ## Event sampling and orchestration
 
-Reatom treats actions as reactive events and supports procedural flows.
+Reatom treats actions as reactive events. Combined with `take`, `onEvent`, `race`, and `abortVar`, you write procedural async flows that read state, await events, and handle concurrency — with automatic abort and cleanup.
 
 ### **take**
 
-Waits for the next atom change or action call. Use **wrap** in async flows.
-Cool for forms: wait for **submit** or a validation change without extra wiring.
+Awaits the next atom update or action call inside an async action/effect. Resolves with the new value (atom) or payload (action).
+
+- `await wrap(take(someAtom))` — next state change
+- `await wrap(take(someAction))` — next call payload
+- Second arg is a filter: resolves only when it returns truthy. `throwAbort()` inside the filter cancels the wait if the action is aborted.
+
+```ts
+if (!formIsValid()) {
+  await wrap(take(formIsValid, (valid) => valid || throwAbort()))
+}
+await wrap(fetch('/api/submit', { method: 'POST' }))
+```
 
 ### **onEvent**
 
-Bridges external events with abort-aware subscriptions or a single await. It is recommended way to do "addEventListener" with automatic cleanup.
+Bridges DOM/external events into Reatom's abort-aware context. Listeners auto-clean on abort or disconnect.
 
-- `onEvent(target, type, cb)` - subscribe for the event
-- `onEvent(target, type)` - await for the event
+- `onEvent(target, type, cb)` — subscribe, returns unsubscribe
+- `onEvent(target, type)` — returns a promise, resolves on next event
+
+```ts
+const webhookPromise = onEvent(paymentEvents, 'payment.completed')
+await wrap(fetch('/api/charge', { method: 'POST', body }))
+const confirmation = await wrap(webhookPromise)
+```
+
+### **race** and **abortVar.createAndRun**
+
+`abortVar.createAndRun(fn, ...args)` — runs `fn` and returns a `ControlledPromise` with an attached `AbortController`. `race(...controlledPromises)` — resolves with the first to settle, aborts all others with reason `"race"`. All code after `wrap` in losing functions never executes.
+
+```ts
+const a = abortVar.createAndRun(translateGoogle, text, lang)
+const b = abortVar.createAndRun(translateDeepL, text, lang)
+const result = await wrap(race(a, b))
+```
+
+### **withAbort** strategies
+
+- `withAbort()` / `withAbort('last-in-win')` — default: aborts previous call when a new one starts (debounce-like)
+- `withAbort('first-in-win')` — ignores new calls while previous is running (throttle-like)
+- `withAbort('manual')` — no auto-abort; call `action.abort()` yourself (polling, long-running)
+- `withAbort('finally')` — aborts all child operations when the action completes, including fire-and-forget ones
+
+> **Note:** Abort errors (e.g. from route loaders on navigation away, or `withAbort` when cancelling) may appear as unhandled rejections in the console. This is not a bug in Reatom — it usually means an async/promise somewhere in the chain is not caught. Sometimes these can be safely ignored (e.g. aborted fetches when navigating away).
+
+### **framePromise**
+
+Returns a promise that resolves/rejects with the current action or atom frame's final result. Attach `.catch` / `.finally` at the top of the body instead of wrapping everything in try-catch. An alternative of `using` in some cases.
+
+```ts
+const processOrder = action(async (orderId: string) => {
+  framePromise().catch((error) => showErrorNotification(error))
+
+  const order = await wrap(fetchOrder(orderId))
+  await wrap(chargeCustomer(order))
+  return order
+}, 'processOrder')
+```
 
 ### **ifChanged** and **getCalls**
 
 Use inside **computed** or **effect** to react only to actual changes or new calls.
+
+- `ifChanged(atom, cb)` — runs `cb` only when atom value changed since last run
+- `getCalls(action)` — returns calls from the current batch (not a history store)
+
+### Combined example
 
 ```ts
 import {
@@ -475,19 +531,18 @@ effect(() => {
 }, 'checkout.lastOrderId')
 
 effect(() => {
-  const calls = getCalls(checkoutRequested)
-  calls.forEach(({ payload }) => {
-    const orderId = payload.orderId
-    console.log({ checkoutRequested: orderId })
+  getCalls(checkoutRequested).forEach(({ payload }) => {
+    console.log({ checkoutRequested: payload.orderId })
   })
 }, 'checkout.requested.calls')
 ```
 
 Tricky
 
-- **take** and **onEvent** must be wrapped inside async actions or effects.
+- **take** and **onEvent** return promises — always `await wrap(...)` them inside async actions or effects.
 - **getCalls** only returns calls in the current batch, it is not a history store.
-- Use **ifChanged** only inside **effect** or **computed** with a few dependencies.
+- **ifChanged** only inside **effect** or **computed** with a few dependencies.
+- **race** requires `ControlledPromise` from `abortVar.createAndRun`, not plain promises.
 
 ## Memoization: **memo** and **memoKey**
 
@@ -683,11 +738,20 @@ Route loaders are async computeds with `withAsyncData` built-in. They run when r
 
 Loader API (same as `withAsyncData`): **route.loader.data()**, **.ready()**, **.error()**, **.retry()**, **.status()**. Without explicit loader, `await wrap(route.loader())` returns validated params.
 
-### Render, outlet, protected routes, modal gate
+### Render and outlet — component composition
 
-Routes can define `render` for framework-agnostic component composition. `render(self)` receives the route: `self()` for params (non-null inside render), `self.outlet()` for child components list, `self.loader` for the loader data. Parent's `outlet()` auto-collects active children. Works with any renderer (tagged templates, JSX, hyperscript). Use `exactRender: true` to skip render when child routes match. Entire app renders from root: `computed(() => layoutRoute.render())`.
+Routes define `render` for framework-agnostic component composition. `render(self)` receives the route: `self()` for params (non-null inside render), `self.loader` for the loader data. Works with any renderer (tagged templates, JSX, hyperscript).
 
-Protected routes use `params()` callback returning `null` to block the route and all descendants. Reactive: re-runs when read atoms change — use for auth, roles, feature flags, wizards. Stack protection layers by nesting: layout → auth → admin → feature.
+Two kinds of routes:
+
+- **Layout routes** (`layout: true`) — render on any match, use `self.outlet()` to wrap child content. Use for shells, sidebars, protection layers.
+- **Page routes** (default, also called **feature routes**) — render only on exact match. When a child is active, the page steps aside and its content bubbles up to the nearest layout's `outlet()`.
+
+Typical app structure: root layout → optional auth/protection layers (also layout) → page routes. Entire app renders from root: `computed(() => layoutRoute.render())`.
+
+### Protected routes and modal gates
+
+Protected routes use `params()` callback returning `null` to block the route and all descendants. Reactive: re-runs when read atoms change — use for auth, roles, feature flags, wizards. Protection routes are layout routes — they forward children via `outlet()`. Stack layers by nesting: layout → auth → admin → feature.
 
 Modal gate — route without URL path, `params(arg)` callback controls activation via `.go({ data })` / `.go()` (deactivate). State in memory, no URL pollution.
 
@@ -722,6 +786,7 @@ type User = { id: string; name: string; role: string }
 
 // layout — no path, always active, renders outlet
 export const layoutRoute = reatomRoute({
+  layout: true,
   render({ outlet }) {
     return html`<div>
       <header>My App</header>
@@ -747,6 +812,7 @@ const user = computed(async () => {
 
 // protected route — blocks all children when not authenticated
 export const protectedRoute = layoutRoute.reatomRoute({
+  layout: true,
   params() {
     const userData = user.data()
     if (!userData) {
@@ -794,7 +860,6 @@ export const usersRoute = protectedRoute.reatomRoute({
             </li>`,
         )}
       </ul>
-      ${self.outlet()}
     </section>`
   },
 })
