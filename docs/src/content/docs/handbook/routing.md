@@ -153,6 +153,45 @@ You might think, "hmm, but this is going to be a native link with regular browse
 urlAtom.catchLinks(false)
 ```
 
+#### Links vs `go()` on the Same Route
+
+There is an important difference between plain link navigation and explicit route navigation when the target path resolves to the same route.
+
+```tsx
+<a href={homeRoute.path()}>Home</a>
+/* OR */
+<a
+  href={homeRoute.path()}
+  onClick={(e) => {
+    e.stopPropagation()
+    e.preventDefault()
+    homeRoute.go()
+  }}
+>
+  Home
+</a>
+```
+
+In this example, the `href` is only used to build the URL. The actual navigation happens through `homeRoute.go()`, so the route is explicitly updated and its loader is rerun even if the path did not change.
+
+If you remove `onClick` and keep only the `href`, the click is still intercepted by `urlAtom` and handled as SPA navigation. In that case, if the current URL already resolves to the same route, the route renders normally but its loader is not force-restarted.
+
+Use each option depending on the behavior you want:
+
+- `<a href={route.path()}>` for normal SPA links without forcing a loader refresh on the same route
+- `route.go()` when you want to explicitly rerun the route loader, even if the path stays the same
+- `urlAtom.set(...)` when you want a raw URL update without opting into explicit `route.go()` semantics
+
+```typescript
+import { urlAtom } from '@reatom/core'
+
+// Update the URL without forcing an explicit route refresh
+urlAtom.set((currentUrl) => new URL(homeRoute.path(), currentUrl))
+
+// Explicitly force the route update and loader rerun
+homeRoute.go()
+```
+
 ## Nested Routes
 
 Build route hierarchies by chaining `.reatomRoute()`:
