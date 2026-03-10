@@ -853,7 +853,7 @@ export const UserPage = reatomComponent(() => {
     return (
       <div>
         Error: {error.message}
-        <button onClick={wrap(userRoute.loader.reset)}>Retry</button>
+        <button onClick={wrap(userRoute.loader.retry)}>Retry</button>
       </div>
     )
 
@@ -868,12 +868,16 @@ export const UserPage = reatomComponent(() => {
 
 ### Loader State Properties
 
-Since route loader it's an async computed, you can access the same properties that available with `withAsyncData` extension:
+A route loader is an async computed extended with `withAsyncData`, so it exposes the same async helpers plus a cached payload atom:
 
-- `loader.ready()` - Boolean atom that is `true` when data has loaded successfully
-- `loader.data()` - Atom with the loaded data (throws if not ready)
-- `loader.error()` - Atom with error if loading failed, `null` otherwise
-- `loader.retry()` - Action to trigger a retry for loader, that will rerun the loader function
+- `loader.ready()` - `true` when no loader run is pending
+- `loader.data()` - the last successful payload, or `undefined` before the first success or after a reset
+- `loader.error()` - the last loader error, or `undefined` when there is no error
+- `loader.retry()` - reruns the loader for the current route params
+- `loader.reset()` - clears async state and cached data without automatically starting a new request
+- `loader.data.reset()` - clears only the cached payload
+
+If you need a real retry button, use `loader.retry()`. `loader.reset()` invalidates state, but it does not refetch by itself.
 
 ### Default Loader
 
@@ -932,7 +936,7 @@ Loaders are automatically aborted when navigating away:
 const lazyRoute = reatomRoute({
   path: 'dashboard',
   async loader() {
-    // This effect runs while the route is active and as long as the louder's
+    // This effect runs while the route is active and as long as the loader's
     // dependencies do not change (its parameters or any other atoms reactively
     // called inside this callback)
     effect(async () => {
@@ -953,6 +957,29 @@ const lazyRoute = reatomRoute({
 someOtherRoute.go({})
 // ✅ Loader fetch and effects are automatically aborted
 ```
+
+Aborting stops the in-flight work, but it does not automatically clear the last successful `loader.data()` value. That default is useful when you want to keep the last resolved payload available during navigation or while the next load is starting.
+
+### Reset Cached Data on Unmatch
+
+If you want the route to forget its payload as soon as it stops matching, attach the cleanup to the route atom itself:
+
+```typescript
+import { reatomRoute, withChangeHook } from '@reatom/core'
+
+const myRoute = reatomRoute({
+  path: 'my',
+  async loader() {},
+}).extend(
+  withChangeHook((match) => {
+    if (match === null) myRoute.loader.data.reset()
+  }),
+)
+```
+
+The hook runs on every route state change, so the `match === null` guard makes the reset happen only when the route becomes unmatched.
+
+Use this pattern when you want a fresh empty state on the next visit instead of keeping the previous loader result in memory.
 
 ## Building Page Components
 
