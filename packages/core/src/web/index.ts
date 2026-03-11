@@ -1,3 +1,4 @@
+export * from './connectWebAnalytics'
 export * from './fetch'
 export * from './onEvent'
 export * from './onLineAtom'
