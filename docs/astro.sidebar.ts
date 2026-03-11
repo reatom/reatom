@@ -12,6 +12,7 @@ export const sidebar = [
       'start/forms',
       'start/routing',
       'start/tooling',
+      'start/web-analytics',
     ],
   }),
 
