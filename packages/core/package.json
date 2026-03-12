@@ -1,6 +1,6 @@
 {
   "name": "@reatom/core",
-  "version": "1000.15.1",
+  "version": "1000.15.2",
   "description": "The ultimate state manager",
   "exports": {
     "types": "./build/index.d.ts",

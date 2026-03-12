@@ -1,3 +1,9 @@
+## 1000.15.2 (2026-02-11)
+
+### Fix
+
+- **form**: wrap transform in form submit
+
 ## 1000.15.1 (2026-02-11)
 
 ### Fix
