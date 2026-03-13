@@ -5,8 +5,18 @@ import { atom, computed, EXTENSIONS, notify, withActions } from '../core'
 import { connectLogger, log } from './connectLogger'
 import { getStackTrace } from './getStackTrace'
 
+// prevent tests flickering
+let normalizeFrameIds = (stack: string) => {
+  let nextId = 1
+  let idMap = new Map<string, number>()
+  return stack.replace(/\[#(\d+)\]/g, (_, raw) => {
+    let mapped = idMap.get(raw)
+    if (mapped === undefined) idMap.set(raw, (mapped = nextId++))
+    return `[#${mapped}]`
+  })
+}
+
 test('calc deps graph', async () => {
-  // Create atoms for a counter feature
   const counter = atom(0, 'counter').extend(
     withActions((target) => ({
       inc: () => target.set((s) => s + 1),
@@ -19,7 +29,7 @@ test('calc deps graph', async () => {
   computed(() => {
     return `Count: ${counter()}, Doubled: ${doubled()}, Is Even: ${isEven()}`
   }, 'effect').subscribe(() => {
-    stack = getStackTrace()
+    stack = normalizeFrameIds(getStackTrace())
   })
 
   // prettier-ignore
@@ -41,13 +51,13 @@ test('calc deps graph', async () => {
   expect(stack).toBe(
 `
 ─effect._subscribe
- └─ effect[#5]
-    ├─ counter[#6]
-    │  └─ counter.inc[#9]
-    ├─ doubled[#7]
-    │  └─ counter[#6]
-    └─ isEven[#8]
-       └─ counter[#6]`.slice(1),
+ └─ effect[#1]
+    ├─ counter[#2]
+    │  └─ counter.inc[#3]
+    ├─ doubled[#4]
+    │  └─ counter[#2]
+    └─ isEven[#5]
+       └─ counter[#2]`.slice(1),
 )
 })
 
@@ -61,7 +71,7 @@ test('BFS log simplification', () => {
   computed(() => {
     return d()
   }, 'effect').subscribe(() => {
-    stack = getStackTrace()
+    stack = normalizeFrameIds(getStackTrace())
   })
 
   a.set(1)
@@ -69,15 +79,15 @@ test('BFS log simplification', () => {
 
   // prettier-ignore
   expect(stack).toBe(
-    // there should be NO ` ─ a[#20]` after the second `b[#18]`
+    // there should be NO ` ─ a` after the second `b`
     `
 ─effect._subscribe
- └─ effect[#16]
-    └─ d[#17]
-       ├─ b[#18]
-       │  └─ a[#20]
-       └─ c[#19]
-          └─ b[#18]`.slice(1),
+ └─ effect[#1]
+    └─ d[#2]
+       ├─ b[#3]
+       │  └─ a[#4]
+       └─ c[#5]
+          └─ b[#3]`.slice(1),
   )
 })
 
