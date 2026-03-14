@@ -1,6 +1,14 @@
 import type { Fn, OverloadParameters, Rec } from '../utils'
 import type { Action, Atom, AtomLike, AtomState } from '.'
-import { atomMiddleware, computedParams, isAtom, ReatomError, top } from '.'
+import {
+  _recompile,
+  cacheMiddleware,
+  computedMiddleware,
+  computedParamsMiddleware,
+  isAtom,
+  ReatomError,
+  top,
+} from '.'
 
 /**
  * Extension function interface for modifying atoms and actions.
@@ -185,31 +193,30 @@ export type Middleware<Target extends AtomLike = AtomLike> = (
  * @template Result - The resulting type after applying the middleware
  * @param cb - A function that receives the target and returns a middleware
  *   function
- * @param tail - Whether to add the middleware at the end (true) or the
- *   beginning (false) of the middleware chain. IMPORTANT: `false` allows the
- *   middleware to be called inside the default "computed" middleware, which
- *   means all other atoms read are reactive here.
+ * @param place - Where to insert the middleware: "invalidation" (default),
+ *   "read", or "computed". "computed" runs inside the computed middleware so
+ *   all atoms read are reactive.
  * @returns An extension that applies the middleware when used with .extend()
  */
+export type MiddlewarePlace = 'invalidation' | 'read' | 'computed'
+
 // @ts-expect-error
 export let withMiddleware: {
   <Target extends AtomLike>(
     cb: (target: Target) => Middleware<Target>,
-    options?: { reactive?: boolean },
+    place?: MiddlewarePlace,
   ): GenericExt<Target>
 
   <Target extends AtomLike, Result extends AtomLike = Target>(
     cb: (target: Target) => Middleware<Target>,
-    options?: { reactive?: boolean },
+    place?: MiddlewarePlace,
   ): Ext<Target, Result>
 } =
   (
     cb: (target: AtomLike) => (next: Fn, ...params: any[]) => any,
-
-    options?: { reactive?: boolean },
+    place: MiddlewarePlace = 'invalidation',
   ) =>
   (target: AtomLike) => {
-    let { reactive = false } = options ?? {}
 
     let middleware = cb(target)
 
@@ -217,17 +224,23 @@ export let withMiddleware: {
       throw new ReatomError('function expected')
     }
 
-    if (reactive) {
+    if (place === 'read') {
+      target.__reatom.middlewares.push(middleware)
+    } else if (place === 'computed') {
       const computedMiddlewareIdx =
-        target.__reatom.middlewares.indexOf(atomMiddleware)
-      if (computedMiddlewareIdx === -1)
-        throw new ReatomError(
-          "Can't apply reactive middleware to not reactive atom",
-        )
+        target.__reatom.middlewares.indexOf(computedMiddleware)
       target.__reatom.middlewares.splice(computedMiddlewareIdx, 0, middleware)
     } else {
-      target.__reatom.middlewares.push(middleware)
+      const cacheMiddlewareIdx =
+        target.__reatom.middlewares.indexOf(cacheMiddleware)
+      if (cacheMiddlewareIdx !== -1) {
+        target.__reatom.middlewares.splice(cacheMiddlewareIdx, 0, middleware)
+      } else {
+        target.__reatom.middlewares.push(middleware)
+      }
     }
+
+    _recompile(target)
 
     return target
   }
@@ -351,7 +364,7 @@ export let withParams: {
   }
 
   return withMiddleware((target) => {
-    let idx = target.__reatom.middlewares.indexOf(computedParams)
+    let idx = target.__reatom.middlewares.indexOf(computedParamsMiddleware)
     if (idx !== -1) {
       target.__reatom.middlewares.splice(idx, 1)
     }

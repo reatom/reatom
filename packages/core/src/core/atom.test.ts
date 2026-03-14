@@ -1,6 +1,7 @@
 import { expect, subscribe, test, vi } from 'test'
 
 import { withComputed } from '../extensions'
+import { identity } from '../utils'
 import {
   _read,
   type Atom,
@@ -10,6 +11,7 @@ import {
   createAtom,
   isConnected,
   notify,
+  top,
   withMiddleware,
   withTap,
 } from './'
@@ -18,7 +20,7 @@ test('linking', () => {
   const name = 'linking'
   const a1 = atom(0, `${name}.a1`)
   const a2 = computed(() => a1(), `${name}.a2`)
-  const fn = vi.fn()
+  const fn = vi.fn(identity)
 
   const testEffect = computed(() => fn(a2()), `${name}.testEffect`)
 
@@ -27,6 +29,9 @@ test('linking', () => {
   expect(store.has(testEffect)).toBeFalsy()
 
   const un = testEffect.subscribe()
+  // expect(a1()).toBe(0)
+  // expect(a2()).toBe(0)
+  // expect(testEffect()).toBe(0)
   expect(store.has(testEffect)).toBeTruthy()
   expect(fn).toBeCalledTimes(1)
   expect(fn).toBeCalledWith(0)
@@ -396,4 +401,23 @@ test('middlewares order', () => {
 
   expect(a()).toBe(0)
   expect(logs).toEqual([2, 1])
+})
+
+test('read middleware', () => {
+  const name = 'readMiddleware'
+
+  let externalState = 1
+
+  const a = atom(0, `${name}.a`).extend(
+    withMiddleware(
+      () =>
+        (next, ...args) => {
+          top().state = externalState
+          return next(...args)
+        },
+      'read',
+    ),
+  )
+
+  expect(a()).toBe(1)
 })

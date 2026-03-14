@@ -28,7 +28,8 @@ test('action cause stack', () => {
     logData = getTrace()
   }, 'log')
   log.subscribe()
-  logData = undefined
+
+  expect(logData).toBe('─log\n └─ a2\n    └─ a1')
 
   act(1)
   notify()
@@ -87,7 +88,7 @@ test('subscribe', () => {
 
 action(() => 123).extend(
   withMiddleware(
-    (target) =>
+    () =>
       (next, ...params) =>
         next(...params),
   ),

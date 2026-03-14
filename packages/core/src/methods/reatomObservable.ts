@@ -1,144 +1,169 @@
 import type { Atom, AtomState, Ext } from '../core'
-import { atom, bind, named } from '../core'
-import { withConnectHook, withInit } from '../extensions'
-import { identity, type MaybeUnsubscribe } from '../utils'
+import {
+  _enqueue,
+  _read,
+  atom,
+  bind,
+  context,
+  named,
+  STACK,
+  top,
+  withMiddleware,
+} from '../core'
+import { withConnectHook } from '../extensions'
+import { type Fn, type MaybeUnsubscribe } from '../utils'
 
-/**
- * Type representing an observable producer that can be subscribed to. Supports
- * both function-based producers and object-based producers with subscribe
- * methods.
- */
-type Producer<T> =
-  | ((setter: (state: T) => void) => MaybeUnsubscribe)
-  | {
-      subscribe: (fn: (state: T) => void) => MaybeUnsubscribe
-    }
+interface ProducerObject<T> {
+  initState?: T
+  getState?: () => T
+  next?: (state: T) => void
+  subscribe?: (fn: (state: T) => void) => MaybeUnsubscribe
+}
+
+type Producer<T> = ProducerObject<T> | ((trigger: Fn) => ProducerObject<T>)
 
 /**
  * Extends an existing atom to synchronize with an observable-like data source.
  *
- * This extension bridges external observable sources (like RxJS observables,
- * event emitters, or custom observable implementations) with Reatom's reactive
- * system. The extended atom will automatically subscribe to the observable when
- * it gains subscribers and unsubscribe when it loses all subscribers.
- *
- * @example
- *   // Extending an existing atom with RxJS Observable
- *   import { interval } from 'rxjs'
- *   const counterAtom = atom(0)
- *   const timerAtom = counterAtom.extend(withObservable(interval(1000)))
- *
- * @example
- *   // With custom observable function
- *   const stateAtom = atom({ timestamp: 0 })
- *   const liveAtom = stateAtom.extend(
- *     withObservable((setter) => {
- *       const id = setInterval(() => setter({ timestamp: Date.now() }), 1000)
- *       return () => clearInterval(id)
- *     }),
- *   )
- *
- * @example
- *   // With MobX observable, providing initial value
- *   import { autorun, observable } from 'mobx'
- *   const mobxStore = observable({ count: 0 })
- *   const syncedAtom = atom(0).extend(
- *     withObservable((setter) => autorun(() => setter(mobxStore.count))),
- *   )
- *
- * @example
- *   // With DOM events
- *   const clickCountAtom = atom(0)
- *   const trackedAtom = clickCountAtom.extend(
- *     withObservable((setter) => {
- *       let count = 0
- *       const handler = () => setter(++count)
- *       document.addEventListener('click', handler)
- *       return () => document.removeEventListener('click', handler)
- *     }),
- *   )
- *
  * @template Target - The type of the atom being extended
- * @param producer - Either a function that accepts a setter callback and
- *   returns an unsubscribe function, or an object with a subscribe method (like
- *   RxJS observables)
- * @param init - Optional initialization function that returns the initial
- *   value. This will be called when the atom is first connected
+ * @param _producer - Either an object with optional `initState`, `getState`,
+ *   `next`, and `subscribe` fields, or a function that receives a `trigger`
+ *   callback and returns such an object.
  * @returns An extension function that adds observable synchronization to an
  *   atom
  */
 export const withObservable =
-  <Target extends Atom>(
-    producer: Producer<AtomState<Target>>,
-    init?: () => AtomState<Target>,
-  ): Ext<Target> =>
-  (target) =>
-    target.extend(
-      init ? withInit(init) : identity,
-      withConnectHook(() => {
-        const unsubscribe =
-          'subscribe' in producer
-            ? producer.subscribe(bind(target.set))
-            : producer(bind(target.set))
-
-        return unsubscribe && 'unsubscribe' in unsubscribe
-          ? unsubscribe.unsubscribe
-          : unsubscribe
-      }),
+  <Target extends Atom>(producer: Producer<AtomState<Target>>): Ext<Target> =>
+  (target) => {
+    const producerAtom = atom(
+      () =>
+        typeof producer === 'function'
+          ? producer(bind(() => void target(), context()))
+          : producer,
+      `${target.name}._producer`,
     )
+
+    return target.extend(
+      withMiddleware(
+        () =>
+          function withObservable(next, ...params) {
+            let frame = top()
+            let { state } = frame
+            let lastState = state
+            let isInit = !_read(producerAtom)
+            let producer = producerAtom()
+
+            if (isInit && 'initState' in producer) {
+              state = lastState = frame.state = producer.initState
+            }
+
+            if (producer.getState) {
+              state = producer.getState()
+              if (!Object.is(lastState, state)) {
+                state = next(() => state)
+                top().pubs[0] = _read(producerAtom)!
+
+                if (
+                  params.length > 0 ||
+                  STACK[STACK.length - 2]!.atom.__reatom.linking
+                ) {
+                  state = next(...params)
+                }
+              } else {
+                state = next(...params)
+              }
+            } else {
+              state = next(...params)
+            }
+
+            if (producer.next && !Object.is(lastState, state)) {
+              _enqueue(() => producer.next!(state), 'effect')
+            }
+
+            return state
+          },
+        'read',
+      ),
+      withConnectHook(() =>
+        producerAtom().subscribe?.((value) => {
+          target.set(value)
+        }),
+      ),
+    )
+  }
 
 /**
  * Creates a Reatom atom from an observable-like data source.
  *
- * This function bridges external observable sources (like RxJS observables,
- * event emitters, or custom observable implementations) with Reatom's reactive
- * system. The atom will automatically subscribe to the observable when it gains
+ * The atom will automatically subscribe to the observable when it gains
  * subscribers and unsubscribe when it loses all subscribers.
  *
- * @example
- *   // With RxJS Observable
- *   import { interval } from 'rxjs'
- *   const timerAtom = reatomObservable(interval(1000))
+ * Producer fields:
  *
- * @example
- *   // With custom observable function
- *   const customAtom = reatomObservable((setter) => {
- *     const id = setInterval(() => setter(Date.now()), 1000)
- *     return () => clearInterval(id)
- *   })
+ * - `initState` — static initial value
+ * - `getState` — pull current value from the external source
+ * - `next` — called when the atom is set, to push values back to the source
+ * - `subscribe` — called on connect, receives a callback to push values into the
+ *   atom
  *
- * @example
- *   // With MobX observable
- *   import { autorun, observable } from 'mobx'
- *   const mobxStore = observable({ count: 0 })
- *   const atomWithDefault = reatomObservable(
- *     () => autorun(() => mobxStore.count),
- *     () => mobxStore.count,
- *   )
+ * Function-based producers receive a `trigger` callback that re-reads
+ * `getState`.
  *
- * @example
- *   // With addEventListener
- *   const clickAtom = reatomObservable((setter) => {
- *     document.addEventListener('click', setter)
- *     return () => document.removeEventListener('click', setter)
- *   })
- *
- * @template T - The type of values emitted by the observable
- * @param producer - Either a function that accepts a setter callback and
- *   returns an unsubscribe function, or an object with a subscribe method
- * @param init - Optional initial value or function that returns the initial
- *   value. If not provided, the atom starts with `undefined`
- * @returns A Reatom atom that reflects the observable's values
+ * @template T - The type of values
+ * @param producer - Object or function returning an object with optional
+ *   `initState`, `getState`, `next`, and `subscribe` fields
+ * @param name - Optional debug name
+ * @returns A Reatom atom synchronized with the external source
  */
-export const reatomObservable: {
-  <T>(
-    producer: Producer<T>,
-    init?: undefined,
-    name?: string,
-  ): Atom<T | undefined>
-  <T>(producer: Producer<T>, init: (() => T) | T, name?: string): Atom<T>
-} = <T>(
+export function reatomObservable<T>(
+  producer:
+    | {
+        initState?: T
+        getState: () => T
+        next?: (state: T) => void
+        subscribe?: (fn: (state: T) => void) => MaybeUnsubscribe
+      }
+    | ((trigger: Fn) => {
+        initState?: T
+        getState: () => T
+        next?: (state: T) => void
+        subscribe?: (fn: (state: T) => void) => MaybeUnsubscribe
+      }),
+  name?: string,
+): Atom<T>
+export function reatomObservable<T>(
+  producer:
+    | {
+        initState: T
+        getState?: () => T
+        next?: (state: T) => void
+        subscribe?: (fn: (state: T) => void) => MaybeUnsubscribe
+      }
+    | ((trigger: Fn) => {
+        initState: T
+        getState?: () => T
+        next?: (state: T) => void
+        subscribe?: (fn: (state: T) => void) => MaybeUnsubscribe
+      }),
+  name?: string,
+): Atom<T>
+export function reatomObservable<T>(
+  producer:
+    | {
+        initState?: never
+        getState?: never
+        subscribe: (fn: (state: T) => void) => MaybeUnsubscribe
+      }
+    | ((trigger: Fn) => {
+        initState?: never
+        getState?: never
+        subscribe: (fn: (state: T) => void) => MaybeUnsubscribe
+      }),
+  name?: string,
+): Atom<undefined | T, [T]>
+export function reatomObservable<T>(
   producer: Producer<T>,
-  init?: (() => T) | T,
   name: string = named('reatomObservable'),
-) => atom(init, name).extend(withObservable(producer))
+): Atom {
+  return atom(undefined, name).extend(withObservable(producer))
+}

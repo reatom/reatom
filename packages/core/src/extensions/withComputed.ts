@@ -51,5 +51,5 @@ export let withComputed = <Target extends AtomLike>(
 
         return state
       },
-    { reactive: true },
+    'computed',
   )

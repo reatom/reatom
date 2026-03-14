@@ -289,7 +289,7 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
 
         if (!key) throw new Error('missed key')
 
-        let revalidate = () => _set(target)
+        let revalidate = () => _set(target, (state: AtomState<Target>) => state)
 
         let fromPersistRecord = (
           persist: PersistRecord<Snapshot> | null = null,

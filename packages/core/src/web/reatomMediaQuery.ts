@@ -1,5 +1,4 @@
-import { atom, computed, withMiddleware } from '../core'
-import { withConnectHook } from '../extensions'
+import { reatomObservable } from '../methods'
 import { onEvent } from './onEvent'
 
 /**
@@ -35,23 +34,11 @@ import { onEvent } from './onEvent'
  * @returns An atom that holds the current match state as a boolean
  */
 export let reatomMediaQuery = (query: string) => {
-  let media = globalThis.matchMedia?.(query)
-  let mediaSource = atom(() => media.matches, `mediaQuery#${query}._source`)
-  let mediaAtom = computed(() => mediaSource(), `mediaQuery#${query}`)
-
-  if (media) {
-    mediaAtom.extend(
-      withMiddleware(() => (next) => {
-        next()
-        return media.matches
-      }),
-      withConnectHook(() =>
-        onEvent(media, 'change', () => {
-          mediaSource.set(media.matches)
-        }),
-      ),
-    )
-  }
-
-  return mediaAtom
+  return reatomObservable(() => {
+    let media = globalThis.matchMedia?.(query)
+    return {
+      getState: () => media.matches,
+      subscribe: (fn) => onEvent(media, 'change', () => fn(media.matches)),
+    }
+  }, `mediaQuery#${query}`)
 }

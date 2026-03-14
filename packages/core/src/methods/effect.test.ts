@@ -3,7 +3,7 @@ import { expect, test } from 'test'
 import { action, atom, computed, isConnected } from '../core'
 import { withSuspenseInit } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
-import { sleep, throwAbort } from '../utils'
+import { sleep } from '../utils'
 import { abortVar } from './abortVar'
 import { effect } from './effect'
 import { wrap } from './wrap'
@@ -148,7 +148,7 @@ test('rerun on suspended dependency', async () => {
     return 'a'
   }, `${name}.resourceA`).extend(withSuspenseInit())
 
-  const resourceB = atom<string>(throwAbort, `${name}.resourceB`).extend(
+  const resourceB = atom('', `${name}.resourceB`).extend(
     withSuspenseInit(async () => {
       await sleep()
       return 'b'

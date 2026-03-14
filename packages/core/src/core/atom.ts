@@ -4,6 +4,23 @@ import { type Fn, isAbort, noop, type Rec, type Unsubscribe } from '../utils'
 import type { Action, Ext } from './'
 import { _enqueue, type Extend, extend, isAction } from './'
 
+/*
+Atom call flow:
+1. call
+   1. read params
+   2. create frame
+   3. middleware
+      1. init state
+      2. cache (connected or leaf)
+      3. middleware
+         1. push (if empty computed)
+         2. compute
+            1. middleware
+         3. push (if not empty computed)
+ */
+
+// const LOG = console.log
+
 let identity = <T>(value: T): T => value
 
 /**
@@ -18,14 +35,15 @@ export interface AtomMeta {
    */
   readonly reactive: boolean
 
-  /** The initial state of the atom. */
-  readonly initState: any
-
   /**
-   * Array of middleware functions that intercept and potentially transform atom
-   * operations.
+   * Middleware chain: `[setup.computed ?? identity, ...middlewares]`.
+   * Subsequent elements are middleware wrapping from inner to outer. DO NOT
+   * change this array directly, use `extend` instead.
    */
-  readonly middlewares: Array<(next: Fn, ...params: any[]) => any>
+  readonly middlewares: Array<Fn>
+
+  /** @internal precompiled middleware chain, rebuilt by `_recompile` on each extend */
+  pipeline: Fn
 
   /**
    * @internal
@@ -358,9 +376,7 @@ export function run<I extends any[], O>(
 export let _copy = (frame: Frame) => {
   // console.log(COLOR.dimGreen('copy'), frame.atom.name)
 
-  let pubs = (
-    frame.pubs.length === 1 ? [null] : frame.pubs.slice()
-  ) as typeof frame.pubs
+  let pubs = frame.pubs.slice() as typeof frame.pubs
 
   pubs[0] = null
 
@@ -394,12 +410,14 @@ export let _mark = (frame: Frame) => {
   for (let i = 0; i < frame.subs.length; i++) {
     let sub = frame.subs[i]!
     if (sub.__reatom.processing) {
+      // LOG('sub.__reatom.processing')
       _enqueue(() => {
-        _copy(frame.root.store.get(sub)!).pubs.splice(1)
+        _copy(frame.root.store.get(sub)!).pubs.length = 1
       }, 'compute')
     }
 
     if (sub === frame.atom) {
+      // LOG('compute')
       _enqueue(sub, 'compute')
     } else {
       let subFrame = frame.root.store.get(sub)!
@@ -422,6 +440,7 @@ let link = (frame: Frame) => {
     let pub = pubs[i]!
     if (pub.subs.push(atom) === 1) {
       if (pub.atom.__reatom.onConnect !== undefined) {
+        // LOG('onConnect')
         _enqueue(pub.atom.__reatom.onConnect, 'effect')
       }
       link(pub)
@@ -449,6 +468,7 @@ let unlink = (sub: AtomLike, oldPubs: Frame['pubs']) => {
     if (pub.subs.length === 1) {
       pub.subs.pop()
       if (pub.atom.__reatom.onConnect !== undefined) {
+        // LOG('onConnect.abort')
         _enqueue(pub.atom.__reatom.onConnect.abort, 'effect')
       }
       unlink(pub.atom, pub.pubs)
@@ -561,6 +581,7 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
   if (frame!.subs.push(this) === 1) {
     if (frame!.atom.__reatom.onConnect !== undefined) {
+      // LOG('subscribe onConnect')
       _enqueue(frame!.atom.__reatom.onConnect, 'effect')
     }
     relink(frame!, [null])
@@ -576,6 +597,7 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
     if (frame.subs.length === 0) {
       if (frame.atom.__reatom.onConnect !== undefined) {
+        // LOG('subscribe onConnect.abort')
         _enqueue(frame.atom.__reatom.onConnect.abort, 'effect')
       }
       unlink(this, rootFrame.state.store.get(this)!.pubs)
@@ -680,9 +702,7 @@ export function _isPubsChanged(
       if (from === 1) {
         frame.pubs = [null]
       } else {
-        while (from < frame.pubs.length) {
-          frame.pubs.pop()
-        }
+        frame.pubs.length = from
       }
 
       return true
@@ -695,10 +715,10 @@ export function _isPubsChanged(
 }
 
 /** The hurt of atom internal logic */
-export function atomMiddleware(next: Fn) {
+export function computedMiddleware(next: Fn, ...args: any[]) {
   let frame = STACK[STACK.length - 1]!
 
-  let push = arguments.length > 1
+  let push = args.length > 0
   let { state, pubs } = frame
   let dirty = pubs[0] === null
   let dependent = pubs.length !== 1
@@ -740,7 +760,7 @@ export function atomMiddleware(next: Fn) {
     if (push) {
       push = false
 
-      let update = arguments[1]
+      let update = args[0]
 
       newState = frame.state =
         typeof update === 'function' ? update(newState) : update
@@ -756,6 +776,84 @@ export function atomMiddleware(next: Fn) {
   return newState
 }
 
+/** @internal apply new middlewares to the atom */
+export let _recompile = (target: AtomLike) => {
+  let { middlewares } = target.__reatom
+  let fn: Fn = middlewares[0]!
+  for (let i = 1; i < middlewares.length; i++) {
+    fn = middlewares[i]!.bind(null, fn)
+  }
+  target.__reatom.pipeline = fn
+}
+
+/** Cache checking middleware, placed in every atom's middlewares */
+export function cacheMiddleware(next: Fn, ...args: any[]) {
+  let topFrame = STACK[STACK.length - 2]!
+  let frame = STACK[STACK.length - 1]!
+  let target = frame.atom
+  let { reactive } = target.__reatom
+  let push = !reactive || args.length > 0
+
+  let { error, state } = frame
+  let dirty = frame.pubs[0] === null
+  let dependent = frame.pubs.length !== 1
+  let subscribed = frame.subs.length !== 0
+  let isInit = frame.state instanceof AtomInitState
+
+  if (
+    !target.__reatom.processing &&
+    (push || dirty || (dependent && !subscribed))
+  ) {
+    if (!dirty) {
+      STACK[STACK.length - 1] = frame = _copy(frame)
+    }
+
+    if (reactive) target.__reatom.processing = true
+
+    try {
+      if (isInit) {
+        frame.state = frame.state.initState()
+      }
+      isInit = false
+      frame.state = next(...args)
+      frame.error = null
+    } catch (error) {
+      frame.error = error ?? new ReatomError('Unknown error')
+      if (isInit) frame.state = undefined
+    }
+
+    frame.pubs[0] ??= topFrame.root.frame
+
+    if (!push && topFrame.atom.__reatom.linking) {
+      topFrame.pubs.push(frame)
+    }
+
+    if (
+      !dirty &&
+      subscribed &&
+      (!Object.is(state, frame.state) || !Object.is(error, frame.error))
+    ) {
+      _mark(frame)
+    }
+
+    target.__reatom.processing = false
+  } else if (topFrame.atom.__reatom.linking) {
+    topFrame.pubs.push(frame)
+  }
+
+  if (frame.error != null) {
+    throw frame.error
+  }
+
+  return frame.state
+}
+
+/** @internal default pipeline for atoms */
+let _defaultPipeline = cacheMiddleware.bind(
+  null,
+  computedMiddleware.bind(null, identity),
+)
+
 let SET_PARAMS: null | any[] = null
 
 let castAtom = <T extends AtomLike>(
@@ -766,6 +864,9 @@ let castAtom = <T extends AtomLike>(
     extend,
 
     set(...params: any) {
+      if (params.length === 0) {
+        throw new ReatomError('Missing payload')
+      }
       SET_PARAMS = params
       return target()
     },
@@ -774,8 +875,8 @@ let castAtom = <T extends AtomLike>(
 
     __reatom: {
       reactive: meta.reactive,
-      initState: meta.initState,
       middlewares: meta.middlewares,
+      pipeline: meta.pipeline,
       processing: false,
       linking: false,
       onConnect: undefined,
@@ -796,8 +897,17 @@ export let anonymizeNames = () => {
 }
 
 export let _set = (target: AtomLike, ...params: any[]) => {
+  if (params.length === 0) {
+    throw new ReatomError('Missing payload')
+  }
   SET_PARAMS = params
   return target()
+}
+
+export class AtomInitState {
+  constructor(public initState: Fn) {
+    this.initState = initState
+  }
 }
 
 export let createAtom: {
@@ -805,6 +915,7 @@ export let createAtom: {
     setup: {
       initState: State | (() => State)
       computed: (prev: State) => State
+      middlewares?: Fn[]
     },
     name?: string,
   ): Atom<State>
@@ -812,6 +923,7 @@ export let createAtom: {
     setup: {
       initState?: State | (() => State)
       computed?: (() => State) | ((state?: State) => State)
+      middlewares?: Fn[]
     },
     name?: string,
   ): Atom<State>
@@ -819,41 +931,36 @@ export let createAtom: {
   setup: {
     initState?: State | (() => State)
     computed?: (prev: State | undefined) => State
+    middlewares?: Fn[]
   },
   name: string = named('atom', setup?.computed?.name),
 ): Atom<State> => {
-  let precompiledComputed =
-    setup.computed && atomMiddleware.bind(null, setup.computed)
-
   if (ANONYMOUS) {
     name = 'anonymous'
   }
 
   let target = castAtom<Atom<State>>(
     function (): State {
-      if (target.__reatom.reactive && !SET_PARAMS && arguments.length) {
+      let { reactive, pipeline } = target.__reatom
+      if (reactive && !SET_PARAMS && arguments.length) {
         throw new ReatomError(
           `Can't call atom "${name}" with arguments, use .set instead`,
         )
       }
-      // TODO optimize
-      let args = target.__reatom.reactive ? SET_PARAMS : arguments
-      let write = args !== null
+      let args = reactive ? SET_PARAMS : arguments
+      let write = args != undefined
       SET_PARAMS = null
-      let { reactive, initState, middlewares } = target.__reatom
-      let topFrame = top()
-      let frame = topFrame.root.store.get(target)!
-      let push = !reactive || write
-      let isInit = frame === undefined
 
-      if (isInit) {
+      let topFrame = top()
+      let frame = topFrame.root.store.get(target)
+
+      if (frame === undefined) {
         if (reactive && target.__reatom.processing) {
           throw new ReatomError('Cyclic initialization')
         }
-
         frame = {
           error: null,
-          state: undefined as State,
+          state: setup.initState as State,
           'var#abort': undefined,
           atom: target,
           pubs: [null],
@@ -862,113 +969,39 @@ export let createAtom: {
           root: topFrame.root,
         }
 
-        if (typeof initState === 'function') {
-          try {
-            STACK.push(frame)
-            if (reactive) target.__reatom.processing = true
-            frame.state = initState() as State
-          } catch (error) {
-            frame.error = error ?? new ReatomError('Unknown error')
-            // do nothing, need to try walk through the main process
-          } finally {
-            if (topFrame.atom.__reatom.linking) {
-              topFrame.pubs.push(frame)
-            }
-            if (reactive) target.__reatom.processing = false
-            STACK.pop()
-          }
-        } else {
-          frame.state = initState
+        if (typeof frame.state === 'function') {
+          frame.state = new AtomInitState(frame.state as Fn) as any
         }
 
         topFrame.root.store.set(target, frame)
       }
 
-      let { error, state } = frame
-      let newState = state
-      let newError = error
-      let dirty = frame.pubs[0] === null
-      let dependent = frame.pubs.length !== 1
-      let subscribed = frame.subs.length !== 0
+      try {
+        STACK.push(frame)
 
-      if (
-        !target.__reatom.processing &&
-        (push || dirty || (dependent && !subscribed))
-      ) {
-        STACK.push(isInit || dirty ? frame : (frame = _copy(frame)))
+        let state
+        if (!write) state = pipeline()
+        else if (args!.length === 1) state = pipeline(args![0])
+        else state = pipeline.apply(null, args as Parameters<typeof pipeline>)
 
-        if (reactive) target.__reatom.processing = true
-
-        middlewares: try {
-          if (
-            precompiledComputed !== undefined &&
-            middlewares.length === 1 &&
-            middlewares[0] === atomMiddleware
-          ) {
-            newState = precompiledComputed.apply(
-              null,
-              // @ts-ignore TODO
-              write ? args : [],
-            )
-            newError = null
-            break middlewares
-          }
-
-          let fn: Fn = setup.computed ?? identity
-
-          for (let middleware of middlewares) {
-            // TODO is `.bind` fast enough?
-            fn = middleware.bind(null, fn)
-          }
-          newState = fn.apply(
-            null,
-            // @ts-ignore TODO
-            write ? args : [],
-          )
-          newError = null
-        } catch (error) {
-          newError = error ?? new ReatomError('Unknown error')
-        }
-
-        frame.error = newError
-        frame.state = newState
-        frame.pubs[0] ??= topFrame.root.frame
-
-        if (!push && topFrame.atom.__reatom.linking) {
-          // if (topFrame.atom === frame.atom) console.log(COLOR.bgRed('topFrame.atom === frame.atom')) // prettier-ignore
-          topFrame.pubs.push(frame)
-        }
-
-        if (
-          !dirty &&
-          subscribed &&
-          (!Object.is(state, frame.state) || !Object.is(error, frame.error))
-        ) {
-          _mark(frame)
-        }
-
-        target.__reatom.processing = false
-
+        return reactive ? state : state.at(-1)!.payload
+      } finally {
         STACK.pop()
-      } else if (topFrame.atom.__reatom.linking) {
-        topFrame.pubs.push(frame)
       }
-
-      if (frame.error != null) {
-        throw frame.error
-      }
-
-      if (!reactive) {
-        // @ts-ignore TODO
-        return frame.state.at(-1).payload
-      }
-
-      return frame.state
     },
     {
       reactive: true,
-      initState: setup.initState,
-      middlewares: [atomMiddleware],
+      middlewares: [
+        setup.computed ?? identity,
+        computedMiddleware,
+        cacheMiddleware,
+      ],
+      pipeline: setup.computed
+        ? cacheMiddleware.bind(
+            null,
+            computedMiddleware.bind(null, setup.computed),
+          )
+        : _defaultPipeline,
     },
   )
 
@@ -979,6 +1012,12 @@ export let createAtom: {
     enumerable: false,
     configurable: true,
   })
+
+  if (setup.middlewares) {
+    // @ts-expect-error
+    target.__reatom.middlewares = setup.middlewares
+    _recompile(target)
+  }
 
   return EXTENSIONS.length === 0
     ? target
@@ -1017,8 +1056,8 @@ export let atom: {
   <T>(initState: T, name?: string): Atom<T>
 } = (initState?: any, name?: string) => createAtom({ initState }, name)
 
-export function computedParams(next: Fn) {
-  if (arguments.length > 1) {
+export function computedParamsMiddleware(next: Fn, ...args: any[]) {
+  if (args.length > 0) {
     throw new ReatomError("Computed can't accept parameters")
   }
   return next()
@@ -1051,7 +1090,8 @@ export let computed = <State>(
   assertFn(computed)
 
   return createAtom({ computed }, name).extend((target) => {
-    target.__reatom.middlewares.push(computedParams)
+    target.__reatom.middlewares.push(computedParamsMiddleware)
+    _recompile(target)
     // @ts-expect-error
     target.set = undefined
     return target
@@ -1065,7 +1105,7 @@ export let computed = <State>(
  * @returns Boolean
  */
 export let isComputed = (target: AtomLike): boolean =>
-  target.__reatom.middlewares.includes(computedParams)
+  target.__reatom.middlewares.includes(computedParamsMiddleware)
 
 /**
  * Core context object that manages the reactive state context in Reatom.
@@ -1084,8 +1124,8 @@ export let context = castAtom<ContextAtom>(
   },
   {
     reactive: false,
-    initState: undefined,
-    middlewares: [],
+    middlewares: [identity],
+    pipeline: identity,
   },
 )
 
@@ -1233,9 +1273,16 @@ export let mock = <Params extends any[], Payload>(
 
     return cb(...params)
   }
-  target.__reatom.middlewares.push(mockMiddleware)
+  let cacheMiddlewareIdx = target.__reatom.middlewares.indexOf(cacheMiddleware)
+  if (cacheMiddlewareIdx !== -1) {
+    target.__reatom.middlewares.splice(cacheMiddlewareIdx, 0, mockMiddleware)
+  } else {
+    target.__reatom.middlewares.push(mockMiddleware)
+  }
+  _recompile(target)
   return () => {
     let idx = target.__reatom.middlewares.indexOf(mockMiddleware)
     if (idx !== -1) target.__reatom.middlewares.splice(idx, 1)
+    _recompile(target)
   }
 }

@@ -8,6 +8,7 @@ import {
   type AssignerExt,
   type Atom,
   atom,
+  AtomInitState,
   type AtomLike,
   type AtomState,
   type BooleanAtom,
@@ -30,6 +31,7 @@ import {
   withComputed,
   withConnectHook,
   withInit,
+  withMiddleware,
   wrap,
 } from '../'
 import { toError } from './utils'
@@ -614,10 +616,24 @@ export const withBaseField =
 
     initStateAtom.extend(
       withInit((state, ...params) => (params.length ? state : target())),
-    )
+      withMiddleware(
+        () =>
+          function withBaseFieldInitState(next, ...params) {
+            const frame = top()
 
-    // @ts-expect-error access reatom internals
-    initStateAtom.__reatom.initState = null
+            if (
+              frame.pubs.length === 1 &&
+              frame.pubs[0] === null &&
+              frame.state instanceof AtomInitState
+            ) {
+              frame.state = null
+            }
+
+            return next(...params)
+          },
+        'read',
+      ),
+    )
 
     target.extend(
       withInit(() =>

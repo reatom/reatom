@@ -1,54 +1,189 @@
-import { expect, expectTypeOf, test, vi } from 'test'
+import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
-import { isConnected, notify } from '../core'
-import { sleep } from '../utils'
-import { reatomObservable } from './reatomObservable'
+import { type Atom, atom, isConnected, notify } from '../core'
+import { type Fn, sleep } from '../utils'
+import { reatomObservable, withObservable } from './reatomObservable'
 import { wrap } from './wrap'
 
+class Observable {
+  state = 0
+
+  listeners = new Array<(state: number) => void>()
+
+  next(state: number) {
+    this.state = state
+    this.listeners.forEach((listener) => listener(state))
+  }
+
+  subscribe(set: (state: number) => void) {
+    set = vi.fn<(state: number) => void>(set)
+    this.listeners.push(set)
+    set(this.state)
+    return () => {
+      const index = this.listeners.indexOf(set)
+      if (index !== -1) {
+        this.listeners.splice(index, 1)
+      }
+    }
+  }
+}
+
 test('subscription', async () => {
-  const setter = vi.fn<(value: number) => void>()
-  let capturedSetter: (value: number) => void
+  const observable = new Observable()
 
-  const observable = reatomObservable<number>((set) => {
-    capturedSetter = set
-    setter(0)
-    return () => setter(-1)
-  })
+  const observableAtom = reatomObservable<number>(observable, 'observableAtom')
 
-  expect(isConnected(observable)).toBe(false)
-  expect(setter).not.toBeCalled()
+  expect(isConnected(observableAtom)).toBe(false)
 
-  const unsubscribe = observable.subscribe()
+  const unsubscribe = observableAtom.subscribe()
 
-  expect(isConnected(observable)).toBe(true)
-  expect(setter).toBeCalledTimes(0)
+  expect(isConnected(observableAtom)).toBe(true)
+  expect(observable.listeners.length).toBe(0)
   notify()
-  expect(setter).toBeCalledTimes(1)
+  expect(observable.listeners.length).toBe(1)
 
-  capturedSetter!(42)
+  observable.next(42)
   await wrap(sleep())
 
-  expect(observable()).toBe(42)
+  expect(observableAtom()).toBe(42)
 
-  capturedSetter!(100)
+  observableAtom.set(100)
   await wrap(sleep())
 
-  expect(observable()).toBe(100)
+  expect(observable.state).toBe(100)
 
   unsubscribe()
   await wrap(sleep())
 
-  expect(isConnected(observable)).toBe(false)
-  expect(setter).toBeCalledTimes(2)
-  expect(setter).toHaveBeenLastCalledWith(-1)
+  expect(isConnected(observableAtom)).toBe(false)
+  expect(observable.listeners.length).toBe(0)
+})
+
+test('trigger rereads getState', async () => {
+  const observable = new Observable()
+
+  const observableAtom = reatomObservable(
+    (trigger) => ({
+      getState: () => observable.state,
+      subscribe() {
+        return observable.subscribe(trigger)
+      },
+    }),
+    'observableAtom',
+  )
+
+  const subscription = subscribe(observableAtom)
+
+  expect(observable.listeners.length).toBe(0)
+  expect(subscription).toBeCalledTimes(1)
+  expect(isConnected(observableAtom)).toBe(true)
+
+  notify()
+  expect(observable.listeners.length).toBe(1)
+  expect(subscription).toBeCalledTimes(1)
+
+  observable.next(1)
+  await wrap(sleep())
+
+  expect(observableAtom()).toBe(1)
+  expect(subscription).toBeCalledTimes(2)
+
+  subscription.unsubscribe()
+  await wrap(sleep())
+
+  expect(observable.listeners.length).toBe(0)
+  expect(subscription).toBeCalledTimes(2)
+})
+
+test('initState with getState', async () => {
+  const observable = new Observable()
+
+  const observableAtom = reatomObservable(
+    () => ({
+      initState: 42,
+      getState: () => observable.state,
+    }),
+    'initStateWithGetStateAtom',
+  )
+
+  // getState takes precedence over initState
+  expect(observableAtom()).toBe(0)
+
+  observable.next(100)
+
+  expect(observableAtom()).toBe(100)
+})
+
+test('dynamic initState', async () => {
+  const observable = new Observable()
+
+  const observableAtom = atom(() => 42, 'dynamicInitStateAtom').extend(
+    withObservable(() => ({
+      subscribe: (set) => observable.subscribe(set),
+    })),
+  )
+
+  expect(observableAtom()).toBe(42)
+
+  observableAtom.subscribe()
+  await wrap(sleep())
+
+  observable.next(100)
+
+  expect(observableAtom()).toBe(100)
+})
+
+test('dynamic initState', async () => {
+  const observable = new Observable()
+
+  const observableAtom = atom(() => 42, 'dynamicInitStateAtom').extend(
+    withObservable(() => ({
+      initState: observable.state,
+      subscribe: (set) => observable.subscribe(set),
+    })),
+  )
+
+  expect(observableAtom()).toBe(0)
 })
 
 test('types', () => {
-  reatomObservable(async (set) => {
-    expectTypeOf(set).toEqualTypeOf<(value: number) => void>()
-  }, 0)
+  const observable = new Observable()
 
-  reatomObservable<number>(async (set) => {
-    expectTypeOf(set).toEqualTypeOf<(value: number) => void>()
-  })
+  const withInitState = reatomObservable(() => {
+    return {
+      initState: observable.state,
+      subscribe(set) {
+        expectTypeOf(set).toEqualTypeOf<(state: number) => void>()
+        return observable.subscribe(set)
+      },
+    }
+  }, 'withInitState')
+  expectTypeOf(withInitState).toEqualTypeOf<Atom<number, [newState: number]>>()
+
+  const withGetState = reatomObservable(() => {
+    return {
+      getState: () => observable.state,
+      subscribe(set) {
+        expectTypeOf(set).toEqualTypeOf<(state: number) => void>()
+        return observable.subscribe(set)
+      },
+    }
+  }, 'withGetState')
+  expectTypeOf(withGetState).toEqualTypeOf<Atom<number, [newState: number]>>()
+
+  const withoutInitState = reatomObservable(() => {
+    // explicitly specify the subscribe type
+    return observable
+  }, 'withoutInitState')
+  expectTypeOf(withoutInitState).toEqualTypeOf<
+    Atom<undefined | number, [newState: number]>
+  >()
+
+  const withoutSubscribe = reatomObservable((trigger) => {
+    expectTypeOf(trigger).toEqualTypeOf<Fn>()
+    return { getState: () => 0 }
+  }, 'withoutSubscribe')
+  expectTypeOf(withoutSubscribe).toEqualTypeOf<
+    Atom<number, [newState: number]>
+  >()
 })

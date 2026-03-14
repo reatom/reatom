@@ -1,5 +1,5 @@
 import type { Action, AssignerExt, Frame } from '../core'
-import { _enqueue, action, top } from '../core'
+import { _enqueue, action, top, withMiddleware } from '../core'
 import { memoKey, ReatomAbortController } from '../methods'
 import { abortVar } from '../methods'
 import { _getPrevFrame } from '../methods/context'
@@ -199,13 +199,16 @@ export let withAbort =
     }
 
     if (target.__reatom.reactive) {
-      target.__reatom.middlewares.unshift((next, ...args) => {
-        recomputed.add(top())
-        return next(...args)
-      })
+      withMiddleware(
+        () => (next: Fn, ...args: any[]) => {
+          recomputed.add(top())
+          return next(...args)
+        },
+        'computed',
+      )(target)
     }
 
-    target.__reatom.middlewares.push(withAbort)
+    withMiddleware(() => withAbort)(target)
 
     return {
       abort: action((reason?: any) => {

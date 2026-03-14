@@ -172,11 +172,15 @@ export function withSearchParams<T = string>(
     path += '/'
   }
 
-  return <Target extends Atom<T>>(target: Target): Target =>
-    target.extend(
+  return <Target extends Atom<T>>(target: Target): Target => {
+    let initKey = {}
+
+    return target.extend(
       withInit((state) => {
         const currentPath = urlAtom().pathname
         const sp = searchParamsAtom()
+
+        top().root.inits.set(initKey, state)
 
         return key in sp && isSubpath(currentPath, path)
           ? (parse(sp[key]) as AtomState<Target>)
@@ -184,9 +188,9 @@ export function withSearchParams<T = string>(
       }),
       withComputed(
         (state) => {
+          let frame = top()
           let currentPath = peek(urlAtom).pathname
-          let pubs = _getPrevFrame()?.pubs
-          let { initState } = target.__reatom
+          let pubs = _getPrevFrame(frame)?.pubs
 
           ifChanged(searchParamsAtom, (next, prev) => {
             if (!prev) return
@@ -197,8 +201,7 @@ export function withSearchParams<T = string>(
 
             if (!isSubpath(currentPath, path)) {
               if (key in prev && isSubpath(prevUrl.pathname, path)) {
-                state =
-                  typeof initState === 'function' ? initState() : initState
+                state = frame.root.inits.get(initKey)
               }
               return
             }
@@ -208,8 +211,7 @@ export function withSearchParams<T = string>(
                 state = parse(next[key]) as AtomState<Target>
             } else {
               if (path === '' && currentPath !== prevUrl.pathname) {
-                state =
-                  typeof initState === 'function' ? initState() : initState
+                state = frame.root.inits.get(initKey)
                 return
               }
 
@@ -245,4 +247,5 @@ export function withSearchParams<T = string>(
         target()
       }),
     )
+  }
 }

@@ -1,6 +1,6 @@
 import type { Atom } from '../core'
-import { atom, withMiddleware } from '../core'
-import { withConnectHook } from '../extensions'
+import { atom } from '../core'
+import { reatomObservable } from '../methods'
 import { onEvent } from './onEvent'
 
 type OnlineAtom = Atom<boolean> & {
@@ -46,27 +46,22 @@ type OnlineAtom = Atom<boolean> & {
  *   The atom will correct itself once the first online/offline event fires.
  */
 export let onLineAtom: OnlineAtom = /* @__PURE__ */ (() =>
-  atom(() => navigator.onLine, 'onLine').extend(
-    withMiddleware(
-      () => (_next, update) =>
-        update === undefined ? navigator.onLine : update,
-    ),
+  reatomObservable(
     () => ({
-      offlineAtAtom: atom<number | undefined>(
-        undefined,
-        'onLine.offlineAtAtom',
-      ),
-      onlineAtAtom: atom<number | undefined>(undefined, 'onLine.onlineAtAtom'),
+      getState: () => navigator.onLine,
+      subscribe: (fn) => {
+        onEvent(window, 'online', () => {
+          fn(true)
+          onLineAtom.onlineAtAtom.set(Date.now())
+        })
+        onEvent(window, 'offline', () => {
+          fn(false)
+          onLineAtom.offlineAtAtom.set(Date.now())
+        })
+      },
     }),
-    withConnectHook((target) => {
-      target.set(navigator.onLine)
-      onEvent(window, 'online', () => {
-        target.set(true)
-        target.onlineAtAtom.set(Date.now())
-      })
-      onEvent(window, 'offline', () => {
-        target.set(false)
-        target.offlineAtAtom.set(Date.now())
-      })
-    }),
-  ))()
+    'onLine',
+  ).extend(() => ({
+    offlineAtAtom: atom<number | undefined>(undefined, 'onLine.offlineAtAtom'),
+    onlineAtAtom: atom<number | undefined>(undefined, 'onLine.onlineAtAtom'),
+  })))()

@@ -2,6 +2,8 @@ import type { Fn } from '../utils'
 import type { AtomLike, AtomMeta, Ext } from './'
 import {
   _enqueue,
+  _recompile,
+  cacheMiddleware,
   createAtom,
   EXTENSIONS,
   isAtom,
@@ -30,7 +32,7 @@ export interface Action<
 export type GenericAction<T extends Fn> = T &
   Action<Parameters<T>, ReturnType<T>>
 
-let actionMiddleware = (next: Fn, ...params: any[]) => {
+function actionMiddleware(next: Fn, ...params: any[]) {
   let frame = STACK[STACK.length - 1]!
 
   frame.pubs = [STACK[STACK.length - 2]!]
@@ -109,6 +111,7 @@ export let withActionMiddleware: {
     }
 
     target.__reatom.middlewares.splice(actionMiddlewareIdx, 0, cb(target))
+    _recompile(target)
 
     return target
   }
@@ -173,11 +176,17 @@ export let action: {
     throw new ReatomError('function expected')
   }
 
-  let target = createAtom({ initState: [], computed: cb }, name) as Action
+  let target = createAtom(
+    {
+      initState: [],
+      computed: cb,
+      middlewares: [cb, actionMiddleware, cacheMiddleware],
+    },
+    name,
+  ) as Action
 
   Object.assign(target.__reatom, {
     reactive: false,
-    middlewares: [actionMiddleware],
   } satisfies Partial<AtomMeta>)
 
   return (

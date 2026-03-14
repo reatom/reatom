@@ -1,6 +1,6 @@
 import type { AsyncExt } from '../async'
 import type { Action, ActionState, Atom, AtomState, Ext } from '../core'
-import { action, bind, context, isAction, top } from '../core'
+import { action, bind, context, isAction, top, withMiddleware } from '../core'
 import { withCallHook } from '../extensions'
 import type { Fn } from '../utils'
 import { isAbort } from '../utils'
@@ -356,30 +356,30 @@ export let reatomTransaction = ({
 
           let { onRollback = onRollbackDefault } = options ?? {}
 
-          target.__reatom.middlewares.push(function withRollback(
-            next,
-            ...params
-          ) {
-            let prevState = top().state
-            let nextState = next(...params)
+          withMiddleware(
+            () =>
+              function withRollback(next: Fn, ...params: any[]) {
+                let prevState = top().state
+                let nextState = next(...params)
 
-            if (
-              !Object.is(prevState, nextState) &&
-              !isCausedBy(transactionVar.rollback)
-            ) {
-              let rollbacks = transactionVar.set(transactionVar.find())
-              rollbacks.push(() =>
-                target.set((state) =>
-                  onRollback({
-                    beforeState: prevState,
-                    currentState: state,
-                    transactionState: nextState,
-                  }),
-                ),
-              )
-            }
-            return nextState
-          })
+                if (
+                  !Object.is(prevState, nextState) &&
+                  !isCausedBy(transactionVar.rollback)
+                ) {
+                  let rollbacks = transactionVar.set(transactionVar.find())
+                  rollbacks.push(() =>
+                    target.set((state) =>
+                      onRollback({
+                        beforeState: prevState,
+                        currentState: state,
+                        transactionState: nextState,
+                      }),
+                    ),
+                  )
+                }
+                return nextState
+              },
+          )(target)
 
           return target
         },
@@ -408,34 +408,34 @@ export let reatomTransaction = ({
             )
           }
 
-          target.__reatom.middlewares.push(function withTransaction(
-            next,
-            ...params
-          ) {
-            let parentRollbacks = transactionVar.get()
-            let selfRollbacks = transactionVar.set()
+          withMiddleware(
+            () =>
+              function withTransaction(next: Fn, ...params: any[]) {
+                let parentRollbacks = transactionVar.get()
+                let selfRollbacks = transactionVar.set()
 
-            parentRollbacks?.push(() =>
-              selfRollbacks
-                .splice(0)
-                .reverse()
-                .forEach((rollback) => rollback()),
-            )
+                parentRollbacks?.push(() =>
+                  selfRollbacks
+                    .splice(0)
+                    .reverse()
+                    .forEach((rollback) => rollback()),
+                )
 
-            if ('onReject' in target) return next(...params)
+                if ('onReject' in target) return next(...params)
 
-            try {
-              let result = next(...params) as ActionState
-              let call = result[result.length - 1]
-              if (call?.payload instanceof Promise) {
-                call.payload.catch(bind(triggerRollback))
-              }
-              return result
-            } catch (error) {
-              triggerRollback(error)
-              throw error
-            }
-          })
+                try {
+                  let result = next(...params) as ActionState
+                  let call = result[result.length - 1]
+                  if (call?.payload instanceof Promise) {
+                    call.payload.catch(bind(triggerRollback))
+                  }
+                  return result
+                } catch (error) {
+                  triggerRollback(error)
+                  throw error
+                }
+              },
+          )(target)
 
           let actionRollback = action<[error?: any], void>(
             (/* just for debug: */ error) => {
