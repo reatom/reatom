@@ -109,8 +109,12 @@ export const BuildAndInspectTodoList: StoryObj = {
     await expect(removeItem).not.toBeNull()
     const todosItemsAfterRemove = getLogItemsByName(shadowRoot, 'todos')
     const lastTodos = todosItemsAfterRemove[todosItemsAfterRemove.length - 1]
-    await expect(parseLogItem(lastTodos!).content).toContain('Walk dog')
-    await expect(parseLogItem(lastTodos!).content).not.toContain('Buy milk')
+    clickLogItem(lastTodos!)
+    await wrap(sleep(SETTLE_MS))
+    const removedTodosDetail = parseFrameDetail(shadowRoot)
+    const removedState = JSON.stringify(removedTodosDetail!.json.state)
+    await expect(removedState).toContain('Walk dog')
+    await expect(removedState).not.toContain('Buy milk')
 
     const addTodoBuyMilkItem = findLogItem(shadowRoot, 'addTodo', 'Buy milk')
     await expect(addTodoBuyMilkItem).not.toBeNull()

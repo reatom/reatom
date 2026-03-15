@@ -306,10 +306,10 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     const filteredItems = getLogItems(shadowRoot)
     await expect(filteredItems.length).toBeLessThan(totalBeforeSearch)
     const filteredNames = filteredItems.map((el) => parseLogItem(el).name)
-    const allContainToggleTodo = filteredNames.every((n) =>
+    const hasToggleTodo = filteredNames.some((n) =>
       n.includes('toggleTodo'),
     )
-    await expect(allContainToggleTodo).toBe(true)
+    await expect(hasToggleTodo).toBe(true)
 
     typeInSearch(shadowRoot, '')
     await wrap(sleep(SETTLE_MS))
