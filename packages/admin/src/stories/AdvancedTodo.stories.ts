@@ -155,7 +155,10 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     await expect(todosAfterFirstToggle.length).toBeGreaterThanOrEqual(1)
     const latestTodosAfterFirstToggle =
       todosAfterFirstToggle[todosAfterFirstToggle.length - 1]!
-    await expect(parseLogItem(latestTodosAfterFirstToggle).content).toContain(
+    clickLogItem(latestTodosAfterFirstToggle)
+    await wrap(sleep(SETTLE_MS))
+    const firstToggleTodosDetail = parseFrameDetail(shadowRoot)
+    await expect(JSON.stringify(firstToggleTodosDetail!.json.state)).toContain(
       '"done":true',
     )
 

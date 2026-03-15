@@ -91,7 +91,10 @@ export const BuildAndInspectTodoList: StoryObj = {
     await expect(toggleItem).not.toBeNull()
     const todosItemsAfterToggle = getLogItemsByName(shadowRoot, 'todos')
     const latestTodos = todosItemsAfterToggle[todosItemsAfterToggle.length - 1]
-    await expect(parseLogItem(latestTodos!).previews.state).toContain(
+    clickLogItem(latestTodos!)
+    await wrap(sleep(SETTLE_MS))
+    const toggledTodosDetail = parseFrameDetail(shadowRoot)
+    await expect(JSON.stringify(toggledTodosDetail!.json.state)).toContain(
       '"done":true',
     )
 
