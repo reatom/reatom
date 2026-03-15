@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "baseUrl": ".",
     "declarationMap": true,
     "jsx": "preserve",
     "jsxImportSource": "@reatom/jsx",
