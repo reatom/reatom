@@ -3,7 +3,14 @@ import { expect, test } from 'test'
 
 import { createCounterApp } from '../fixtures/counterApp'
 import { createTodoApp } from '../fixtures/todoApp'
-import { getRect, resizeViewport, setup, waitForDOM } from './helpers'
+import {
+  getDevtoolsSelector,
+  getRect,
+  page,
+  resizeViewport,
+  setup,
+  waitForDOM,
+} from './helpers'
 
 test('keeps the shell readable across viewport changes and visibility toggles', async () => {
   await resizeViewport(1280, 920)
@@ -28,6 +35,9 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
     }
     const wideRect = host.getBoundingClientRect()
     expect(wideRect.width).toBeGreaterThan(480)
+    await expect(
+      page.locator(getDevtoolsSelector(devtools.containerId)),
+    ).toMatchScreenshot('responsive-shell-wide')
 
     await resizeViewport(960, 720)
     await wrap(sleep(80))
@@ -44,6 +54,9 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
     expect(filterBarElement.scrollWidth).toBeLessThanOrEqual(
       filterBarElement.clientWidth + 16,
     )
+    await expect(
+      page.locator(getDevtoolsSelector(devtools.containerId)),
+    ).toMatchScreenshot('responsive-shell-narrow')
 
     devtools.hide()
     await wrap(sleep(60))

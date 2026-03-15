@@ -2,7 +2,15 @@ import { sleep, wrap } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { createAdvancedTodoApp, STORAGE_KEY } from '../fixtures/advancedTodoApp'
-import { getRect, openLogFrame, resizeViewport, setup, waitForDOM } from './helpers'
+import {
+  getDevtoolsSelector,
+  getRect,
+  openLogFrame,
+  page,
+  resizeViewport,
+  setup,
+  waitForDOM,
+} from './helpers'
 
 function goOffline(): void {
   Object.defineProperty(navigator, 'onLine', {
@@ -55,6 +63,9 @@ test('investigates an async rollback failure without breaking the activity works
     expect(inspectorRect.width).toBeGreaterThan(280)
     expect(shadowRoot.textContent?.includes('Captured error')).toBe(true)
     expect(shadowRoot.textContent?.includes('Network unavailable')).toBe(true)
+    await expect(
+      page.locator(getDevtoolsSelector(devtools.containerId)),
+    ).toMatchScreenshot('live-debugging-rollback-investigation')
   } finally {
     goOnline()
     teardown()

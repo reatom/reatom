@@ -19,6 +19,10 @@ export function getRect(root: ParentNode, selector: string): DOMRect {
   return element.getBoundingClientRect()
 }
 
+export function getDevtoolsSelector(containerId: string): string {
+  return `#${containerId}`
+}
+
 export async function navigate(root: ShadowRoot, label: string): Promise<void> {
   void root
   const button = Array.from(root.querySelectorAll('button')).find((candidate) =>
@@ -71,4 +75,4 @@ export async function resizeViewport(width: number, height: number): Promise<voi
   await wrap(page.viewport(width, height))
 }
 
-export { setup, waitForDOM }
+export { page, setup, waitForDOM }

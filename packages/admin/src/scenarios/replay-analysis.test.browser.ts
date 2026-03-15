@@ -3,12 +3,21 @@ import { expect, test } from 'test'
 
 import { createTodoApp } from '../fixtures/todoApp'
 import { ADMIN_FRAME } from '../root'
-import { getRect, navigate, openLogFrame, resizeViewport, setup, waitForDOM } from './helpers'
+import {
+  getDevtoolsSelector,
+  getRect,
+  navigate,
+  openLogFrame,
+  page,
+  resizeViewport,
+  setup,
+  waitForDOM,
+} from './helpers'
 
 test('switches into replay analysis and keeps graph exploration usable', async () => {
   await resizeViewport(1360, 1000)
 
-  const { shadowRoot, admin, teardown } = setup()
+  const { shadowRoot, admin, devtools, teardown } = setup()
   const todoApp = createTodoApp()
 
   try {
@@ -48,6 +57,9 @@ test('switches into replay analysis and keeps graph exploration usable', async (
     expect(controlsRect.height).toBeGreaterThan(50)
     expect(shadowRoot.textContent?.includes('Shortest path')).toBe(false)
     expect(shadowRoot.textContent?.includes('Replay analysis')).toBe(true)
+    await expect(
+      page.locator(getDevtoolsSelector(devtools.containerId)),
+    ).toMatchScreenshot('replay-analysis-graph-workspace')
   } finally {
     teardown()
   }

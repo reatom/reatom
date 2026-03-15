@@ -5,12 +5,20 @@ import { createCounterApp } from '../fixtures/counterApp'
 import { createTodoApp } from '../fixtures/todoApp'
 import { createWeatherApp } from '../fixtures/weatherApp'
 import { ADMIN_FRAME } from '../root'
-import { getRect, navigate, resizeViewport, setup, waitForDOM } from './helpers'
+import {
+  getDevtoolsSelector,
+  getRect,
+  navigate,
+  page,
+  resizeViewport,
+  setup,
+  waitForDOM,
+} from './helpers'
 
 test('curates a reusable filter workbench for a noisy multi-app debugging session', async () => {
   await resizeViewport(1440, 1100)
 
-  const { shadowRoot, admin, teardown } = setup()
+  const { shadowRoot, admin, devtools, teardown } = setup()
   const todoApp = createTodoApp()
   const counterApp = createCounterApp()
   const weatherApp = createWeatherApp()
@@ -69,6 +77,9 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
       true,
     )
     expect(shadowRoot.textContent?.includes('Show action traffic')).toBe(true)
+    await expect(
+      page.locator(getDevtoolsSelector(devtools.containerId)),
+    ).toMatchScreenshot('filter-workbench-curation')
   } finally {
     teardown()
   }
