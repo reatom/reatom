@@ -89,11 +89,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     return ids
   }
 
-  const captureFrame = (
-    frame: Frame,
-    state: unknown,
-    error: unknown,
-  ) => {
+  const captureFrame = (frame: Frame, state: unknown, error: unknown) => {
     if (paused()) return
     const target = frame.atom
     if (isSkip(target)) return

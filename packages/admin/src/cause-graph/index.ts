@@ -128,7 +128,12 @@ export function buildFullGraph(
   depthLimit?: number,
 ): CauseGraph {
   const ancestor = buildAncestorGraph(frameId, frameIndex, depthLimit)
-  const descendant = buildDescendantGraph(frameId, frames, frameIndex, depthLimit)
+  const descendant = buildDescendantGraph(
+    frameId,
+    frames,
+    frameIndex,
+    depthLimit,
+  )
 
   const nodeMap = new Map<number, CauseGraphNode>()
   for (const n of [...ancestor.nodes, ...descendant.nodes]) {

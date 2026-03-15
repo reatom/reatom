@@ -41,8 +41,9 @@ export function parseLogItem(el: Element): ParsedLogItem {
     previewElements.map((previewEl) => {
       const fieldName = previewEl.getAttribute('data-log-preview-field') ?? ''
       const fieldValue =
-        previewEl.querySelector('[data-log-preview-value]')?.textContent?.trim() ??
-        ''
+        previewEl
+          .querySelector('[data-log-preview-value]')
+          ?.textContent?.trim() ?? ''
       return [fieldName, fieldValue]
     }),
   )
@@ -110,7 +111,9 @@ export function parseFrameDetail(
   const h3 = detail.querySelector('h3')
   const atomName = h3?.textContent?.trim() ?? ''
   const kind = detail.getAttribute('data-frame-kind') ?? ''
-  const fieldElements = Array.from(detail.querySelectorAll('[data-frame-field]'))
+  const fieldElements = Array.from(
+    detail.querySelectorAll('[data-frame-field]'),
+  )
   const json = Object.fromEntries(
     fieldElements.map((fieldEl) => {
       const fieldName = fieldEl.getAttribute('data-frame-field') ?? ''

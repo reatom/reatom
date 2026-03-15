@@ -79,9 +79,7 @@ export function matchTimeRange(
   return frame.timestamp >= start && frame.timestamp <= end
 }
 
-export function matchError(
-  frame: AdminFrame,
-): boolean {
+export function matchError(frame: AdminFrame): boolean {
   if (!frame.error) return false
   if (isAbort(frame.error)) return false
   return true

@@ -215,11 +215,7 @@ let walkLinkedList = (
   let cb = (state: LinkedList<LLNode<JSX.Element>>) => {
     if (state.version - 1 > lastVersion) {
       element.innerHTML = ''
-      for (
-        let head = state.head;
-        head;
-        head = (head)[state.LL_NEXT] ?? null
-      ) {
+      for (let head = state.head; head; head = head[state.LL_NEXT] ?? null) {
         throwNativeFragment(head)
         element.append(head)
       }
