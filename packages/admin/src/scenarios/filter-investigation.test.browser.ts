@@ -1,4 +1,4 @@
-import { sleep, wrap } from '@reatom/core'
+import { context, sleep, wrap } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { createCounterApp } from '../fixtures/counterApp'
@@ -22,7 +22,9 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
   const todoApp = createTodoApp()
   const counterApp = createCounterApp()
   const weatherApp = createWeatherApp()
-  weatherApp.weather.subscribe(() => {})
+  context.start(() => {
+    weatherApp.weather.subscribe(() => {})
+  })
 
   try {
     todoApp.addTodo('Prepare stakeholder demo')

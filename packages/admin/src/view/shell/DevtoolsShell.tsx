@@ -164,8 +164,12 @@ export function createAdminDevtools(
     return {
       admin,
       containerId: id,
-      show: () => visible.setTrue(),
-      hide: () => visible.setFalse(),
+      show: () => {
+        ADMIN_FRAME.run(() => visible.setTrue())
+      },
+      hide: () => {
+        ADMIN_FRAME.run(() => visible.setFalse())
+      },
     }
   })
 }

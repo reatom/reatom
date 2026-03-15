@@ -228,7 +228,7 @@ export function setup(): {
   const shadowRoot = document.getElementById(containerId)!.shadowRoot!
 
   const teardown = () => {
-    devtools.hide()
+    ADMIN_FRAME.run(() => devtools.hide())
     admin.dispose()
     currentDevtools = null
   }
