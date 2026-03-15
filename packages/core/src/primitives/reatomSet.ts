@@ -14,6 +14,22 @@ export interface SetAtom<T> extends Atom<Set<T>, [newState: StateInit<T>]> {
   size: Computed<number>
 }
 
+/**
+ * Creates a set atom for unique selections and membership checks.
+ *
+ * @remarks
+ *   This is a natural choice for selected ids, expanded panels, pinned items, and
+ *   feature switches that should never contain duplicates.
+ * @example
+ *   // Store selected table rows
+ *   const selectedOrderIds = reatomSet<string>([], 'selectedOrderIds')
+ *
+ *   selectedOrderIds.add('ord-1')
+ *   selectedOrderIds.toggle('ord-2')
+ *   selectedOrderIds.toggle('ord-1')
+ *
+ *   [...selectedOrderIds()] // ['ord-2']
+ */
 export const reatomSet = <T>(
   initState: StateInit<T> = new Set<T>(),
   name: string = named('setAtom'),

@@ -276,6 +276,71 @@ const toArray = <T extends Rec>(
   return arr.length === prev?.length ? prev : arr
 }
 
+/**
+ * Creates a reactive linked list for collections where inserts, removals, and
+ * reordering are part of the main workflow.
+ *
+ * @remarks
+ *   Each item becomes a node with hidden prev/next links, so you can `move` or
+ *   `swap` existing items without rebuilding the whole collection. You can
+ *   start from existing nodes, a node factory, or a config with `initState` /
+ *   `initSnapshot`. Use `array()` when rendering with normal array helpers,
+ *   `key` when you need lookup by a stable id, and `batch()` when importing or
+ *   reordering many nodes at once.
+ * @example
+ *   // Build a reorderable upload queue
+ *   const uploads = reatomLinkedList(
+ *     {
+ *       create: (fileName: string) => ({
+ *         fileName,
+ *         progress: atom(0),
+ *       }),
+ *       key: 'fileName',
+ *     },
+ *     'uploads',
+ *   )
+ *
+ *   uploads.create('cover.png')
+ *   const hero = uploads.create('hero.png')
+ *
+ *   uploads.move(hero, null)
+ *   uploads.map().get('cover.png')?.progress.set(100)
+ *
+ *   uploads.array().map((upload) => ({
+ *     fileName: upload.fileName,
+ *     progress: upload.progress(),
+ *   }))
+ *   // [
+ *   //   { fileName: 'hero.png', progress: 0 },
+ *   //   { fileName: 'cover.png', progress: 100 },
+ *   // ]
+ *
+ * @example
+ *   // Keep derived row state in sync with the source order
+ *   const backlog = reatomLinkedList(
+ *     (title: string) => ({ title }),
+ *     'backlog',
+ *   )
+ *   const rows = backlog.reatomMap(
+ *     (task) => ({
+ *       title: task.title,
+ *       expanded: atom(false),
+ *     }),
+ *     'backlogRows',
+ *   )
+ *
+ *   const docsTask = backlog.create('Write docs')
+ *   backlog.create('Ship release')
+ *
+ *   rows.array()[0].expanded.set(true)
+ *   backlog.remove(docsTask)
+ *
+ *   rows.array().map((row) => ({
+ *     title: row.title,
+ *     expanded: row.expanded(),
+ *   }))
+ *   // [{ title: 'Ship release', expanded: false }]
+ */
 export function reatomLinkedList<
   Node extends Rec,
   Params extends any[] = [Node],
@@ -870,5 +935,14 @@ export function reatomLinkedList<
   }) as LinkedListAtom<Params, Node, Key>
 }
 
+/**
+ * Checks whether a value is a linked list atom or a linked-list derivative
+ * created by `reatomLinkedList`.
+ *
+ * @example
+ *   // Enable drag-and-drop only for linked lists
+ *   const canReorder = (value: unknown) =>
+ *     isLinkedListAtom(value) && value().size > 1
+ */
 export const isLinkedListAtom = (thing: any): thing is LinkedListLikeAtom =>
   thing?.__reatomLinkedList === true

@@ -1,4 +1,9 @@
-# Reatom SPA fast start summary
+---
+title: 'Reatom full framework documentation summary'
+description: 'A short overview of all Reatom features'
+---
+
+# Reatom full framework documentation summary
 
 This documentation for `@reatom/core@1000` package and some ecosystem around it.
 

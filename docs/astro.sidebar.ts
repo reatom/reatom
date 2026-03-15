@@ -90,7 +90,7 @@ export const sidebar = [
           },
           {
             label: 'Forms',
-            link: '/reference/form',
+            link: '/handbook/forms/introduction',
           },
           {
             label: 'Routing',

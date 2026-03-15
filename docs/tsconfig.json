@@ -3,7 +3,9 @@
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
     "allowImportingTsExtensions": true,
+    "noEmit": true,
     "module": "esnext",
-    "target": "es2022"
+    "moduleResolution": "bundler",
+    "target": "es2022",
   }
 }

@@ -53,21 +53,6 @@ jobs:
           run_install: true
 
 
-      - name: Build references
-        run: |
-          pnpm \
-            --filter @reatom/core \
-            --filter @reatom/jsx \
-            --filter @reatom/lit \
-            --filter @reatom/preact \
-            --filter @reatom/react \
-            --filter @reatom/vue \
-            --filter @reatom/zod \
-            exec tsc -b tsconfig.build.json
-
-      - name: Build typedoc
-        run: pnpm run autodocs
-
       - name: Build with Astro
         working-directory: ${{ env.BUILD_PATH }}
         run: |

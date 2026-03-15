@@ -7,11 +7,7 @@ import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro'
 export const getStaticPaths = (async () => {
   return (await getCollection('reference')).map((e) => ({
     params: {
-      slug: e.filePath
-        .split('/')
-        .slice(2)
-        .join('/')
-        .replace(/\.md$/, '')
+      slug: e.id,
     },
     props: {
       id: e.id,
@@ -22,9 +18,19 @@ export const getStaticPaths = (async () => {
 const { id } = Astro.props
 const entry = await getEntry('reference', id)
 
+if (entry === undefined) {
+  throw new Error(`Reference entry not found: ${id}`)
+}
+
 const { Content, headings } = await render(entry)
 ---
 
-<StarlightPage frontmatter={{ title: `Package @reatom/${id}` }} headings={headings}>
+<StarlightPage
+  frontmatter={{
+    title: entry.data.title,
+    description: entry.data.description,
+  }}
+  headings={headings}
+>
   <Content />
 </StarlightPage>

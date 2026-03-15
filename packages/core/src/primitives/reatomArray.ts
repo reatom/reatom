@@ -8,6 +8,23 @@ export interface ArrayAtom<T> extends Atom<Array<T>> {
   unshift: Action<[...items: T[]], number>
 }
 
+/**
+ * Creates an atom for ordered collections and adds immutable wrappers around
+ * the array operations you usually need in UI state.
+ *
+ * @remarks
+ *   This is a good fit for queues, recent items, and any state where order
+ *   matters but node-level reordering is not the main feature.
+ * @example
+ *   // Track a toast queue
+ *   const toasts = reatomArray<string>([], 'toasts')
+ *
+ *   toasts.push('Build finished')
+ *   toasts.push('New comment')
+ *   toasts.shift()
+ *
+ *   toasts() // ['New comment']
+ */
 export const reatomArray = <T>(
   initState = [] as T[],
   name: string = named('arrayAtom'),

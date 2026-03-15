@@ -38,6 +38,26 @@ export interface MapAtom<Key, Value> extends AtomLike<Map<Key, Value>, []> {
   size: Computed<number>
 }
 
+/**
+ * Creates a map atom for keyed entities, caches, and registries where random
+ * access matters more than iteration order.
+ *
+ * @remarks
+ *   Use `getOrCreate` for lazy initialization, and `size` when you need a cheap
+ *   derived counter for badges or limits.
+ * @example
+ *   // Cache user presence by id
+ *   const presenceByUserId = reatomMap<string, { online: boolean }>(
+ *     [],
+ *     'presenceByUserId',
+ *   )
+ *
+ *   presenceByUserId.getOrCreate('alice', () => ({ online: false }))
+ *   presenceByUserId.set('bob', { online: true })
+ *   presenceByUserId.delete('alice')
+ *
+ *   presenceByUserId.size() // 1
+ */
 export const reatomMap = <Key, Value>(
   initState: StateInit<Key, Value> = new Map<Key, Value>(),
   name: string = named('mapAtom'),

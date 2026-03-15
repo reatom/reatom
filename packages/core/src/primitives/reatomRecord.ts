@@ -9,6 +9,26 @@ export interface RecordAtom<T extends Rec> extends Atom<T> {
   reset: Action<Array<keyof T>, T>
 }
 
+/**
+ * Creates an object atom with helpers for shallow updates, key removal, and
+ * resetting to the initial snapshot.
+ *
+ * @remarks
+ *   This works well for filter panels, drafts, and settings objects where you
+ *   usually patch a few fields at a time.
+ * @example
+ *   // Edit a product filter draft
+ *   const filters = reatomRecord(
+ *     { query: '', onlyInStock: false, sort: 'popular' },
+ *     'filters',
+ *   )
+ *
+ *   filters.merge({ query: 'keyboard', onlyInStock: true })
+ *   filters.omit('sort')
+ *   filters.reset('query')
+ *
+ *   filters() // { query: '', onlyInStock: true }
+ */
 export const reatomRecord = <T extends Rec>(
   initState: Exclude<T, Fn>,
   name: string = named('recordAtom'),

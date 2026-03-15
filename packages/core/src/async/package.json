@@ -1,4 +1,5 @@
 {
   "name": "@reatom/async",
+  "type": "module",
   "private": true
 }

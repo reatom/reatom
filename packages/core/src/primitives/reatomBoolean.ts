@@ -8,6 +8,23 @@ export interface BooleanAtom extends Atom<boolean> {
   reset: Action<[], boolean>
 }
 
+/**
+ * Creates a boolean atom with the most common state transitions already wired
+ * in.
+ *
+ * @remarks
+ *   Useful for modal visibility, loading switches, feature flags, and other
+ *   binary UI state.
+ * @example
+ *   // Control a dialog visibility flag
+ *   const deleteDialogOpen = reatomBoolean(false, 'deleteDialogOpen')
+ *
+ *   deleteDialogOpen.setTrue()
+ *   deleteDialogOpen.toggle()
+ *   deleteDialogOpen.reset()
+ *
+ *   deleteDialogOpen() // false
+ */
 export const reatomBoolean = (
   init = false,
   name: string = named('booleanAtom'),

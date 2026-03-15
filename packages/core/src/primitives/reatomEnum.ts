@@ -30,6 +30,58 @@ export type EnumAtomOptions<
   initState?: T
 }
 
+/**
+ * Creates a string atom limited to a fixed set of variants and augments it with
+ * enum-specific helpers.
+ *
+ * @remarks
+ *   Treat `reatomEnum` as the default way to model enums in Reatom apps. It keeps
+ *   the reactive value, runtime validation, generated setter actions, and a
+ *   stable `myEnum.enum` object in one place.
+ *
+ *   Capabilities:
+ *
+ *   - Infers a string union from a readonly variants array.
+ *   - Rejects invalid values at runtime.
+ *   - Generates setter actions like `setOpen()` or `set_open()`.
+ *   - Exposes `reset()` to return to the configured initial variant.
+ *   - Exposes `myEnum.enum` so UI code, comparisons, and integrations can reuse the
+ *       same canonical values without repeating raw strings.
+ *
+ *   By default the first variant becomes the initial state. Setter names use
+ *   `camelCase`, or `snake_case` when requested.
+ * @example
+ *   // Use it as the default enum model and reuse `myEnum.enum` values
+ *   const ticketStatus = reatomEnum(
+ *     ['new', 'inProgress', 'resolved'],
+ *     'ticketStatus',
+ *   )
+ *
+ *   ticketStatus.set(ticketStatus.enum.inProgress)
+ *
+ *   if (ticketStatus() === ticketStatus.enum.inProgress) {
+ *     ticketStatus.setResolved()
+ *   }
+ *
+ *   Object.values(ticketStatus.enum)
+ *   // ['new', 'inProgress', 'resolved']
+ *
+ * @example
+ *   // Match backend-style names with `snake_case` setters
+ *   const deliveryState = reatomEnum(
+ *     ['not_started', 'in_progress', 'done'],
+ *     {
+ *       name: 'deliveryState',
+ *       format: 'snake_case',
+ *       initState: 'not_started',
+ *     },
+ *   )
+ *
+ *   deliveryState.set_in_progress()
+ *   deliveryState.reset()
+ *
+ *   deliveryState() // 'not_started'
+ */
 export const reatomEnum = <
   const T extends string,
   Format extends 'camelCase' | 'snake_case' = 'camelCase',

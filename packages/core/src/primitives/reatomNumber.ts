@@ -9,6 +9,23 @@ export interface NumberAtom extends Atom<number> {
   reset: Action<[], number>
 }
 
+/**
+ * Creates a number atom with counter-style helpers for incrementing,
+ * decrementing, resetting, and generating a random value.
+ *
+ * @remarks
+ *   Handy for pagination, retry counters, wizard steps, and other numeric UI
+ *   state that changes through user actions.
+ * @example
+ *   // Track retry attempts for a flaky request
+ *   const retryCount = reatomNumber(0, 'retryCount')
+ *
+ *   retryCount.increment()
+ *   retryCount.increment()
+ *   retryCount.decrement()
+ *
+ *   retryCount() // 1
+ */
 export const reatomNumber = (
   initState = 0,
   name: string = named('numberAtom'),
