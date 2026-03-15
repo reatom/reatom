@@ -10,6 +10,7 @@ import {
   openLogFrame,
   page,
   resizeViewport,
+  runInAppContext,
   setup,
   waitForDOM,
 } from './helpers'
@@ -21,9 +22,13 @@ test('switches into replay analysis and keeps graph exploration usable', async (
   const todoApp = createTodoApp()
 
   try {
-    todoApp.addTodo('Capture replay state')
-    todoApp.addTodo('Inspect causal path')
-    todoApp.toggleTodo(0)
+    runInAppContext(() => {
+      todoApp.addTodo('Capture replay state')
+      todoApp.addTodo('Inspect causal path')
+    })
+    runInAppContext(() => {
+      todoApp.toggleTodo(0)
+    })
     await waitForDOM(
       shadowRoot,
       (root) => root.querySelectorAll('[data-frame-id]').length >= 5,

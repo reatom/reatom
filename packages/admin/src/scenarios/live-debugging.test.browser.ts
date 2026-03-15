@@ -8,6 +8,7 @@ import {
   openLogFrame,
   page,
   resizeViewport,
+  runInAppContext,
   setup,
   waitForDOM,
 } from './helpers'
@@ -34,8 +35,10 @@ test('investigates an async rollback failure without breaking the activity works
   const advancedTodoApp = createAdvancedTodoApp()
 
   try {
-    advancedTodoApp.addTodo('Prepare release candidate')
-    advancedTodoApp.addTodo('Validate analytics dashboard')
+    runInAppContext(() => {
+      advancedTodoApp.addTodo('Prepare release candidate')
+      advancedTodoApp.addTodo('Validate analytics dashboard')
+    })
     await waitForDOM(
       shadowRoot,
       (root) => root.querySelectorAll('[data-frame-id]').length >= 4,
@@ -43,7 +46,7 @@ test('investigates an async rollback failure without breaking the activity works
     )
 
     goOffline()
-    advancedTodoApp.toggleTodo(0)
+    await runInAppContext(() => advancedTodoApp.toggleTodo(0))
     await waitForDOM(
       shadowRoot,
       (root) => root.textContent?.includes('toggleTodo.onReject') ?? false,

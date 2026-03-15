@@ -8,6 +8,7 @@ import {
   getRect,
   page,
   resizeViewport,
+  runInAppContext,
   setup,
   waitForDOM,
 } from './helpers'
@@ -20,8 +21,10 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
   const counterApp = createCounterApp()
 
   try {
-    todoApp.addTodo('Responsive layout smoke test')
-    counterApp.increment()
+    runInAppContext(() => {
+      todoApp.addTodo('Responsive layout smoke test')
+      counterApp.increment()
+    })
     await waitForDOM(
       shadowRoot,
       (root) => root.querySelectorAll('[data-frame-id]').length >= 3,

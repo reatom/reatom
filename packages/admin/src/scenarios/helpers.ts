@@ -1,4 +1,4 @@
-import { sleep, wrap } from '@reatom/core'
+import { context, sleep, wrap } from '@reatom/core'
 import { page } from 'vitest/browser'
 
 import { clickLogItem, getLogItems, parseLogItem, setup, waitForDOM } from '../stories/helpers'
@@ -73,6 +73,10 @@ export async function openLogFrame(
 
 export async function resizeViewport(width: number, height: number): Promise<void> {
   await wrap(page.viewport(width, height))
+}
+
+export function runInAppContext<T>(callback: () => T): T {
+  return context.start(callback)
 }
 
 export { page, setup, waitForDOM }

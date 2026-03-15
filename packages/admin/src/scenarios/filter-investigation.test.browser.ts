@@ -11,6 +11,7 @@ import {
   navigate,
   page,
   resizeViewport,
+  runInAppContext,
   setup,
   waitForDOM,
 } from './helpers'
@@ -27,9 +28,11 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
   })
 
   try {
-    todoApp.addTodo('Prepare stakeholder demo')
-    counterApp.increment()
-    weatherApp.setCity('Tallinn')
+    runInAppContext(() => {
+      todoApp.addTodo('Prepare stakeholder demo')
+      counterApp.increment()
+      weatherApp.setCity('Tallinn')
+    })
     await wrap(sleep(120))
 
     ADMIN_FRAME.run(() => {
