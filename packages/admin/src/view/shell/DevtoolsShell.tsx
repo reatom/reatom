@@ -61,7 +61,7 @@ export function createAdminDevtools(
   const {
     initVisibility = true,
     initialWidth = '520px',
-    initialHeight = '720px',
+    initialHeight = '760px',
     ...adminOptions
   } = options
 
@@ -144,7 +144,7 @@ export function createAdminDevtools(
           const rect = container.getBoundingClientRect()
           if (rect.width + rect.height < 400) {
             width.set(clampPanelWidth('560px'))
-            height.set(clampPanelHeight('720px'))
+            height.set(clampPanelHeight('760px'))
           } else {
             folded = { width: width(), height: height() }
             width.set('76px')
