@@ -21,7 +21,7 @@ type LinkedListJSXAtom = AtomLike<LinkedList<LLNode<Element>>> & {__reatomLinked
 type AtomOrGetterMaybe<T = any> = T | AtomLike<T> | (() => T)
 
 // TODO write it manually to improve perf
-type AttributesAtomMaybe<T extends Record<keyof any, any>> = {
+export type AttributesAtomMaybe<T extends Record<keyof any, any>> = {
   [K in keyof T]: K extends `on:${string}` | 'ref'
     ? T[K]
     : AtomOrGetterMaybe<T[K]>

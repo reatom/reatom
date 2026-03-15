@@ -443,7 +443,7 @@ const add = () => list.set((state) => [
 
 <div>
   <button on:click={add}>Add</button>
-  {computed(() => <ul>{list().map((item) => item)}</ul>)}
+  {() => <ul>{list().map((item) => item)}</ul>}
 </div>
 ```
 
@@ -499,11 +499,11 @@ Use `$spread` to declaratively bind multiple props or attributes at once. The ob
 
 ```tsx
 <div
-  $spread={computed(() =>
+  $spread={() =>
     valid()
       ? { disabled: true, readonly: true }
       : { disabled: false, readonly: false },
-  )}
+  }
 />
 ```
 
@@ -650,7 +650,7 @@ const MyComponent = () => {
   return (
     <Bind
       element={container}
-      class={computed(() => (visible() ? 'active' : 'disabled'))}
+      class={() => (visible() ? 'active' : 'disabled')}
     />
   )
 }

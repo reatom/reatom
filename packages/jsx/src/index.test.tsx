@@ -25,6 +25,9 @@ const parent = atom(() => {
   return main
 }, 'parent')
 
+const stripJsxCompilerProps = (value: string) =>
+  value.replaceAll(/\s__(?:self|source)="[^"]*"/g, '')
+
 test('static props & children', () =>
   context.start(async () => {
     const element = <div id="some-id">Hello, world!</div>
@@ -211,24 +214,24 @@ test('multiple render shared element', () =>
 
     mount(parent(), app)
     await wrap(sleep())
-    expect(app.innerHTML).toBe(
+    expect(stripJsxCompilerProps(app.innerHTML)).toBe(
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->abc<!--value--></p></div><!----><!--child-->',
     )
 
     valueAtom.set('def')
     await wrap(sleep())
-    expect(app.innerHTML).toBe(
+    expect(stripJsxCompilerProps(app.innerHTML)).toBe(
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->def<!--value--></p></div><!----><!--child-->',
     )
 
     childAtom.set(undefined)
     await wrap(sleep())
-    expect(app.innerHTML).toBe('<!--child--><!--child-->')
+    expect(stripJsxCompilerProps(app.innerHTML)).toBe('<!--child--><!--child-->')
 
     childAtom.set(<Component></Component>)
     valueAtom.set('ghi')
     await wrap(sleep())
-    expect(app.innerHTML).toBe(
+    expect(stripJsxCompilerProps(app.innerHTML)).toBe(
       '<!--child--><!----><div id="1"></div><div id="2"><p><!--value-->ghi<!--value--></p></div><!----><!--child-->',
     )
   }))
@@ -294,7 +297,7 @@ test('boolean as child', () =>
 
     await wrap(sleep())
     expect(element.childNodes.length).toBe(4)
-    expect(element.innerHTML).toBe(
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(
       '<!--true--><!--true--><!--false--><!--false-->',
     )
     expect(element.textContent).toBe('')
@@ -314,7 +317,7 @@ test('null as child', () =>
 
     await wrap(sleep())
     expect(element.childNodes.length).toBe(2)
-    expect(element.innerHTML).toBe('<!--null--><!--null-->')
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe('<!--null--><!--null-->')
     expect(element.textContent).toBe('')
   }))
 
@@ -332,7 +335,9 @@ test('undefined as child', () =>
 
     await wrap(sleep())
     expect(element.childNodes.length).toBe(2)
-    expect(element.innerHTML).toBe('<!--undefined--><!--undefined-->')
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(
+      '<!--undefined--><!--undefined-->',
+    )
     expect(element.textContent).toBe('')
   }))
 
@@ -350,7 +355,9 @@ test('empty string as child', () =>
 
     await wrap(sleep())
     expect(element.childNodes.length).toBe(2)
-    expect(element.innerHTML).toBe('<!--emptyString--><!--emptyString-->')
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(
+      '<!--emptyString--><!--emptyString-->',
+    )
     expect(element.textContent).toBe('')
   }))
 
@@ -380,7 +387,9 @@ test('render HTMLElement atom', () =>
 
     mount(parent(), element)
     await wrap(sleep())
-    expect(element.innerHTML).toBe('<!--html--><div>div</div><!--html-->')
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(
+      '<!--html--><div>div</div><!--html-->',
+    )
   }))
 
 test('render SVGElement atom', () =>
@@ -390,7 +399,9 @@ test('render SVGElement atom', () =>
 
     mount(parent(), element)
     await wrap(sleep())
-    expect(element.innerHTML).toBe('<!--svg--><svg>svg</svg><!--svg-->')
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(
+      '<!--svg--><svg>svg</svg><!--svg-->',
+    )
   }))
 
 test('custom component', () =>
@@ -540,15 +551,15 @@ test('css property generate class name', () =>
 
     expect({ ...first.dataset }).toEqual({
       reatomName: 'First',
-      reatomStyle: '1', // same
+      reatomStyle: '_1', // same
     })
     expect({ ...second.dataset }).toEqual({
       reatomName: 'Second',
-      reatomStyle: '1', // same
+      reatomStyle: '_1', // same
     })
     expect({ ...third.dataset }).toEqual({
       reatomName: 'Third',
-      reatomStyle: '2',
+      reatomStyle: '_2',
     })
   }))
 
@@ -752,42 +763,42 @@ test('render atom fragments', () =>
     bool1Atom.set(false)
     bool2Atom.set(false)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect1)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect1)
 
     bool1Atom.set(false)
     bool2Atom.set(true)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect1)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect1)
 
     bool1Atom.set(true)
     bool2Atom.set(false)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect2)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect2)
 
     bool1Atom.set(true)
     bool2Atom.set(true)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect3)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect3)
 
     bool1Atom.set(true)
     bool2Atom.set(false)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect2)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect2)
 
     bool1Atom.set(true)
     bool2Atom.set(true)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect3)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect3)
 
     bool1Atom.set(false)
     bool2Atom.set(true)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect1)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect1)
 
     bool1Atom.set(false)
     bool2Atom.set(false)
     await wrap(sleep())
-    expect(element.innerHTML).toBe(expect1)
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(expect1)
   }))
 
 test('Bind', () =>
@@ -833,7 +844,9 @@ test('Bind', () =>
 
     await wrap(sleep())
     expect(input.value).toBe('43')
-    expect(testSvg.innerHTML).toBe('<path d="M 10 10 H 100"></path>')
+    expect(stripJsxCompilerProps(testSvg.innerHTML)).toBe(
+      '<path d="M 10 10 H 100"></path>',
+    )
   }))
 
 test('dynamic atom fragment', () =>
@@ -844,13 +857,13 @@ test('dynamic atom fragment', () =>
     mount(parent(), container)
 
     await wrap(sleep())
-    expect(container.outerHTML).toBe(
+    expect(stripJsxCompilerProps(container.outerHTML)).toBe(
       '<div><!--test--><span></span><!--test--></div>',
     )
 
     child.set(() => atom('child atom', 'test.child'))
     await wrap(sleep())
-    expect(container.outerHTML).toBe(
+    expect(stripJsxCompilerProps(container.outerHTML)).toBe(
       '<div><!--test--><!--test.child-->child atom<!--test.child--><!--test--></div>',
     )
   }))
@@ -1103,7 +1116,7 @@ test.skip('fragment as child in double atom', () =>
     mount(parent(), element)
     await wrap(sleep())
 
-    expect(element.innerHTML).toBe(
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(
       '<!--first--><p><!--second--><!---->test<!----><!--second--></p><!--first-->',
     )
   }))

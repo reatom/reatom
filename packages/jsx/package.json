@@ -29,7 +29,7 @@
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "tsdown && mkdir -p jsx-runtime jsx-dev-runtime && cp -r dist/. jsx-runtime && cp -r dist/. jsx-dev-runtime",
+    "build": "tsdown",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch=true"
   },

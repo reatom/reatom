@@ -25,6 +25,9 @@ const parent = atom(() => {
   return main
 }, 'parent')
 
+const stripJsxCompilerProps = (value: string) =>
+  value.replaceAll(/\s__(?:self|source)="[^"]*"/g, '')
+
 test('linked list', () =>
   context.start(async () => {
     const list = reatomLinkedList((value: any) => atom(value))
@@ -71,25 +74,25 @@ test('linked list with fragment', () =>
     mount(parent(), container)
 
     await wrap(sleep())
-    expect(container.outerHTML).toBe(
+    expect(stripJsxCompilerProps(container.outerHTML)).toBe(
       '<div><!----><span>1</span><!--test--><a></a><!--test--><!----></div>',
     )
 
     a.set(false)
     await wrap(sleep())
-    expect(container.outerHTML).toBe(
+    expect(stripJsxCompilerProps(container.outerHTML)).toBe(
       '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
     )
 
     const node = list.create('2')
     await wrap(sleep())
-    expect(container.outerHTML).toBe(
+    expect(stripJsxCompilerProps(container.outerHTML)).toBe(
       '<div><!----><span>1</span><!--test--><br><!--test--><!----><!----><span>2</span><!--test--><br><!--test--><!----></div>',
     )
 
     list.remove(node)
     await wrap(sleep())
-    expect(container.outerHTML).toBe(
+    expect(stripJsxCompilerProps(container.outerHTML)).toBe(
       '<div><!----><span>1</span><!--test--><br><!--test--><!----></div>',
     )
   }))
@@ -102,16 +105,18 @@ test('linked list createMany', () =>
     mount(parent(), container)
 
     await wrap(sleep())
-    expect(container.innerHTML).toBe('')
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe('')
 
     const nodes = list.createMany([[1], [2], [3]])
     await wrap(sleep())
-    expect(container.innerHTML).toBe('<span>1</span><span>2</span><span>3</span>')
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>1</span><span>2</span><span>3</span>',
+    )
     expect(list.array()).toEqual(nodes)
 
     list.createMany([[4], [5]])
     await wrap(sleep())
-    expect(container.innerHTML).toBe(
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
       '<span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>',
     )
   }))
@@ -158,17 +163,19 @@ test('linked list removeMany', () =>
     mount(parent(), container)
 
     await wrap(sleep())
-    expect(container.innerHTML).toBe(
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
       '<span>1</span><span>2</span><span>3</span><span>4</span>',
     )
 
     list.removeMany([two!, four!])
     await wrap(sleep())
-    expect(container.innerHTML).toBe('<span>1</span><span>3</span>')
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>1</span><span>3</span>',
+    )
 
     list.removeMany([one!, three!])
     await wrap(sleep())
-    expect(container.innerHTML).toBe('')
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe('')
   }))
 
 test('linked list createMany and removeMany with reatomMap', () =>
@@ -180,7 +187,7 @@ test('linked list createMany and removeMany with reatomMap', () =>
     mount(parent(), container)
 
     await wrap(sleep())
-    expect(container.innerHTML).toBe('')
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe('')
     expect(isConnected(list)).toBe(true)
     expect(isConnected(jsxList)).toBe(true)
 
