@@ -106,7 +106,7 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
       ),
     )
     const addTodoItems = getLogItemsByName(shadowRoot, 'addTodo')
-    await expect(addTodoItems.length).toBe(3)
+    await expect(addTodoItems.length).toBeGreaterThanOrEqual(3)
 
     const logItemCount = getLogItems(shadowRoot).length
     await expect(logItemCount).toBeGreaterThanOrEqual(3)

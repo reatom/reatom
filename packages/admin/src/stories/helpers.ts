@@ -118,15 +118,7 @@ export function parseFrameDetail(
 export function getNavBadgeCount(root: DocumentFragment | Element): number {
   const nav = root.querySelector('[data-reatom-name="Nav"]')
   if (!nav) return 0
-  const logButton = Array.from(nav.querySelectorAll('button')).find((btn) =>
-    btn.textContent?.includes('Activity'),
-  )
-  if (!logButton) return 0
-  const badgeSpan = Array.from(nav.querySelectorAll('span')).find((span) =>
-    /\d+\/\d+ visible/.test(span.textContent ?? ''),
-  )
-  if (!badgeSpan) return 0
-  const match = badgeSpan.textContent?.match(/(\d+)\/(\d+)/)
+  const match = nav.textContent?.match(/(\d+)\/(\d+)\s+visible/)
   const num = Number.parseInt(match?.[2] ?? '0', 10)
   return Number.isNaN(num) ? 0 : num
 }

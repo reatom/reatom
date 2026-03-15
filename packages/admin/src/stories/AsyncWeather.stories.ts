@@ -74,10 +74,7 @@ export const AsyncLifecycleInDevtools: StoryObj = {
 
     const cityItems = getLogItemsByName(shadowRoot, 'weather.city')
     await expect(cityItems.length).toBeGreaterThanOrEqual(3)
-    const cityNamesInContent = cityItems.map((el) => {
-      const match = parseLogItem(el).content.match(/"([^"]+)"/)
-      return match ? match[1] : ''
-    })
+    const cityNamesInContent = cityItems.map((el) => parseLogItem(el).content)
     const hasAllCities = cities.every((c) => cityNamesInContent.includes(c))
     await expect(hasAllCities).toBe(true)
   },
