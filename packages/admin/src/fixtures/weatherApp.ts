@@ -7,10 +7,18 @@ export interface WeatherData {
   condition: string
 }
 
+function getStableTemperature(city: string): number {
+  let total = 0
+  for (const character of city) {
+    total += character.charCodeAt(0)
+  }
+  return 18 + (total % 10)
+}
+
 function mockFetch(city: string): Promise<WeatherData> {
   return Promise.resolve({
     city,
-    temp: 18 + Math.floor(Math.random() * 10),
+    temp: getStableTemperature(city),
     condition: 'Partly cloudy',
   })
 }

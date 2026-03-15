@@ -13,6 +13,8 @@ let devtoolsCounter = 0
 
 export interface AdminDevtoolsOptions extends AdminOptions {
   initVisibility?: boolean
+  initialWidth?: string
+  initialHeight?: string
 }
 
 export interface AdminDevtools {
@@ -25,7 +27,12 @@ export interface AdminDevtools {
 export function createAdminDevtools(
   options: AdminDevtoolsOptions = {},
 ): AdminDevtools {
-  const { initVisibility = true, ...adminOptions } = options
+  const {
+    initVisibility = true,
+    initialWidth = '520px',
+    initialHeight = '760px',
+    ...adminOptions
+  } = options
 
   const admin = createAdmin(adminOptions)
 
@@ -45,8 +52,8 @@ export function createAdminDevtools(
     stylesheet.set(sheet)
 
     const visible = reatomBoolean(initVisibility, '_Admin.devtools.visible')
-    const width = atom('520px', '_Admin.devtools.width')
-    const height = atom('760px', '_Admin.devtools.height')
+    const width = atom(initialWidth, '_Admin.devtools.width')
+    const height = atom(initialHeight, '_Admin.devtools.height')
     let folded: { width: string; height: string } | null = null
     let moved = false
 
@@ -114,6 +121,7 @@ export function createAdminDevtools(
 
     const panel = (
       <div
+        data-reatom-name="DevtoolsPanel"
         css:width={width}
         css:height={height}
         css={`
