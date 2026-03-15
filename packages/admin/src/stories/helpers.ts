@@ -273,6 +273,15 @@ export function setup(options: AdminDevtoolsOptions = {}): {
   const { admin, containerId } = devtools
 
   ADMIN_FRAME.run(() => urlAtom.go('/'))
+  ADMIN_FRAME.run(() => {
+    admin.filters.search.searchQuery.set('')
+    admin.filters.search.searchTarget.set('all')
+    admin.filters.engine.clearConfigs()
+    admin.filters.expression.setExpression({
+      operator: 'AND',
+      children: [],
+    })
+  })
 
   const shadowRoot = document.getElementById(containerId)!.shadowRoot!
 

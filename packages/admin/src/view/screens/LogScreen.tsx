@@ -49,6 +49,7 @@ export const LogScreen = ({ admin }: LogScreenProps) => {
         `}
       >
         <section
+          data-reatom-name="ActivityFeedPanel"
           css={`
             ${card}
             ${p(2)}
@@ -93,6 +94,7 @@ export const LogScreen = ({ admin }: LogScreenProps) => {
               />
             ) : (
               <div
+                data-reatom-name="ActivityFeedList"
                 css={`
                   display: grid;
                   gap: 0.55rem;

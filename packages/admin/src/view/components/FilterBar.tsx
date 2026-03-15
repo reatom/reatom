@@ -25,13 +25,12 @@ export const FilterBar = ({ admin }: FilterBarProps) => {
     const tagId = builtInTagId(tagName)
     if (!tagId) return
 
-    const existing = admin.filters.engine.configs().find(
-      (config) =>
-        config.name === `Quick ${tagName}` &&
-        config.expression.children.some(
-          (child) => 'tagId' in child && child.tagId === tagId,
-        ),
-    )
+    const existing = admin.filters.engine.configs().find((config) => {
+      if (config.name !== `Quick ${tagName}`) return false
+      return config.expression.children.some(
+        (child) => 'tagId' in child && child.tagId === tagId,
+      )
+    })
 
     if (existing) {
       admin.filters.engine.removeConfig(existing.id)
@@ -46,6 +45,18 @@ export const FilterBar = ({ admin }: FilterBarProps) => {
         children: [{ tagId, negated: false }],
       },
       mode,
+    })
+  }
+
+  const hasQuickRule = (tagName: string): boolean => {
+    const tagId = builtInTagId(tagName)
+    if (!tagId) return false
+
+    return admin.filters.engine.configs().some((config) => {
+      if (config.name !== `Quick ${tagName}`) return false
+      return config.expression.children.some(
+        (child) => 'tagId' in child && child.tagId === tagId,
+      )
     })
   }
 
@@ -150,7 +161,22 @@ export const FilterBar = ({ admin }: FilterBarProps) => {
           ].map((quickRule) => (
             <button
               type="button"
-              css={buttonGhost}
+              aria-pressed={() => hasQuickRule(quickRule.tagName)}
+              css={`
+                ${buttonGhost}
+                border-color: ${() =>
+                  hasQuickRule(quickRule.tagName)
+                    ? colors.accent
+                    : colors.borderStrong};
+                background: ${() =>
+                  hasQuickRule(quickRule.tagName)
+                    ? colors.accentSoft
+                    : 'transparent'};
+                color: ${() =>
+                  hasQuickRule(quickRule.tagName)
+                    ? colors.text
+                    : colors.textMuted};
+              `}
               on:click={() =>
                 toggleQuickRule(quickRule.tagName, quickRule.mode)
               }
