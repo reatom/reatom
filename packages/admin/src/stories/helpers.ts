@@ -12,7 +12,7 @@ import { createAdminDevtools } from '../view'
 export const SETTLE_MS = 50
 
 export function getLogItems(root: DocumentFragment | Element): Element[] {
-  return Array.from(root.querySelectorAll('[data-reatom-name="LogItem"]'))
+  return Array.from(root.querySelectorAll('[data-frame-id]'))
 }
 
 export function getLogText(root: DocumentFragment | Element): string {

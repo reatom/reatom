@@ -359,3 +359,22 @@ test('session export and import', async () => {
 
   admin2.dispose()
 })
+
+test('action frames are captured only once per call', async () => {
+  const admin = createAdmin()
+  const { addTodo } = createTodoApp()
+
+  addTodo('debug')
+  await wrap(sleep(10))
+
+  const frames = ADMIN_FRAME.run(() => admin.store.frames())
+  const names = ADMIN_FRAME.run(() =>
+    frames.map((frame) => admin.store.getAtoms().get(frame.atomId)?.name ?? ''),
+  )
+  const actionFrames = names.filter((name) => name === 'addTodo')
+  const ids = frames.map((frame) => frame.id)
+
+  expect(actionFrames).toEqual(['addTodo'])
+  expect(new Set(ids).size).toBe(ids.length)
+  admin.dispose()
+})

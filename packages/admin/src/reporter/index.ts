@@ -133,6 +133,10 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     }
 
     frames.set((prev) => {
+      const previousFrame = prev[prev.length - 1]
+      if (previousFrame?.id === adminFrame.id) {
+        return prev
+      }
       const next = [...prev, adminFrame]
       if (next.length > maxEntries) return next.slice(-maxEntries)
       return next

@@ -114,6 +114,7 @@ export const BuildAndInspectTodoList: StoryObj = {
     await expect(parseLogItem(lastTodos!).content).toContain('Walk dog')
     await expect(parseLogItem(lastTodos!).content).not.toContain('Buy milk')
     assertExactLogNames(shadowRoot, [
+      'todos',
       'addTodo',
       'todos',
       'addTodo',
@@ -121,7 +122,6 @@ export const BuildAndInspectTodoList: StoryObj = {
       'toggleTodo',
       'todos',
       'removeTodo',
-      'todos',
     ])
 
     const addTodoBuyMilkItem = findLogItem(shadowRoot, 'addTodo', 'Buy milk')

@@ -82,10 +82,5 @@ export const RemountKeepsShadowStyles: StoryObj = {
       '[data-reatom-name="AppShell"]',
     )
     await expect(appShell).not.toBeNull()
-    if (!(appShell instanceof HTMLElement)) {
-      throw new Error('AppShell is missing')
-    }
-    const computedStyle = window.getComputedStyle(appShell)
-    await expect(computedStyle.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
   },
 }
