@@ -499,9 +499,8 @@ describe(`standard schema validation`, () => {
     const field = reatomField(90, {
       name: 'field',
       validateOnChange: true,
-      validate: ({ focus }) => {
-        if (focus.dirty) return z.number().min(100, 'min')
-      },
+      validate: ({ focus }) =>
+        focus.dirty ? z.number().min(100, 'min') : undefined,
     })
 
     field.change(90)
@@ -517,11 +516,12 @@ describe(`standard schema validation`, () => {
       validateOnChange: true,
       validate: async ({ focus }) => {
         await wrap(sleep(1))
-        if (focus.dirty)
-          return z.number().refine(async (value) => {
-            await wrap(sleep(1))
-            return value >= 100
-          }, 'min')
+        return focus.dirty
+          ? z.number().refine(async (value) => {
+              await wrap(sleep(1))
+              return value >= 100
+            }, 'min')
+          : undefined
       },
     })
 
@@ -626,6 +626,7 @@ describe(`reactivity of validate function`, () => {
           passwordField.value() != confirmField.value()
         )
           return 'Passwords do not match'
+        return undefined
       },
     })
 
@@ -660,6 +661,7 @@ describe(`reactivity of validate function`, () => {
 
         const cookingTime = await wrap(fetchBurgerCookingTime(burger))
         if (cookingTime > pickupTime) return 'cookTooLong'
+        return undefined
       },
     })
 

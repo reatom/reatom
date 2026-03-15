@@ -12,7 +12,7 @@ import {
 } from '../core'
 import { abortVar, getCalls, ifChanged, reset, retryComputed } from '../methods'
 import type { Fn } from '../utils'
-import { assert, isAbort } from '../utils'
+import { isAbort } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
 
 let defaultStatus = computed(() => {
@@ -306,7 +306,9 @@ export let withAsync: {
         promise = state.at(-1)?.payload
       }
 
-      assert(promise instanceof Promise, 'promise expected', ReatomError)
+      if (!(promise instanceof Promise)) {
+        throw new ReatomError('promise expected')
+      }
 
       if (touched.has(promise)) return state
       touched.add(promise)

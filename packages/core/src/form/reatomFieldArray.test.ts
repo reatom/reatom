@@ -230,6 +230,7 @@ describe(`standard schema validation`, () => {
       validateOnChange: true,
       validate: ({ focus }) => {
         if (focus.dirty) return z.array(z.any()).min(2, 'min')
+        return undefined
       },
     })
 
@@ -251,6 +252,7 @@ describe(`standard schema validation`, () => {
             await wrap(sleep(1))
             return value.length >= 2
           }, 'min')
+        return undefined
       },
     })
 
@@ -313,6 +315,7 @@ describe(`reactivity of validate function`, () => {
       validateOnChange: true,
       validate: ({ value }) => {
         if (value.length < minLength()) return 'too few items'
+        return undefined
       },
     })
 
@@ -337,6 +340,7 @@ describe(`reactivity of validate function`, () => {
       validateOnChange: true,
       validate: ({ value }) => {
         if (value.length < requiredCount()) return 'Need more items'
+        return undefined
       },
     })
 
