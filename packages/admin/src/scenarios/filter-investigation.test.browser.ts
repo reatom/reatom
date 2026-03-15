@@ -62,11 +62,15 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
     await navigate(shadowRoot, 'Filters')
     await waitForDOM(
       shadowRoot,
-      (root) => root.querySelector('[data-reatom-name="FilterEditor"]') !== null,
+      (root) =>
+        root.querySelector('[data-reatom-name="FilterWorkbench"]') !== null,
       5000,
     )
 
-    const editorRect = getRect(shadowRoot, '[data-reatom-name="FilterEditor"]')
+    const editorRect = getRect(
+      shadowRoot,
+      '[data-reatom-name="FilterWorkbench"]',
+    )
     const predicateBuilderRect = getRect(
       shadowRoot,
       '[data-reatom-name="PredicateBuilder"]',
@@ -79,14 +83,20 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
     expect(editorRect.width).toBeGreaterThan(480)
     expect(predicateBuilderRect.width).toBeGreaterThan(220)
     expect(expressionRect.width).toBeGreaterThan(220)
+    expect(predicateBuilderRect.top).toBeGreaterThanOrEqual(expressionRect.top)
     expect(shadowRoot.textContent?.includes('Highlight cross-app work')).toBe(
       true,
     )
     expect(shadowRoot.textContent?.includes('Show action traffic')).toBe(true)
+    const filterWorkbenchElement = getElement(
+      shadowRoot,
+      '[data-reatom-name="FilterWorkbench"]',
+    )
+    filterWorkbenchElement.style.maxHeight = '44rem'
+    filterWorkbenchElement.style.overflow = 'hidden'
+    filterWorkbenchElement.style.background = '#11131a'
     await expect(
-      page.elementLocator(
-        getElement(shadowRoot, '[data-reatom-name="FilterEditor"]'),
-      ),
+      page.elementLocator(filterWorkbenchElement),
     ).toMatchScreenshot('filter-workbench-curation')
   } finally {
     teardown()

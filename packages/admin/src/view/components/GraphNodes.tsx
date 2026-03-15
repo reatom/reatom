@@ -1,6 +1,15 @@
 import type { Admin } from '../../index'
 import type { CauseGraph } from '../../types'
-import { buttonGhost, colors, flex, flexCol, gap, mono, panelTitle, rounded } from '../styles'
+import {
+  buttonGhost,
+  colors,
+  flex,
+  flexCol,
+  gap,
+  mono,
+  panelTitle,
+  rounded,
+} from '../styles'
 
 export interface GraphNodesProps {
   admin: Admin
@@ -14,6 +23,7 @@ export const GraphNodes = ({ admin, graph }: GraphNodesProps) => {
 
   return (
     <div
+      data-reatom-name="GraphNodes"
       css={`
         ${flex}
         ${flexCol}
@@ -23,7 +33,10 @@ export const GraphNodes = ({ admin, graph }: GraphNodesProps) => {
     >
       <div
         css={`
-          ${flex} ${gap(1)};
+          ${flex}
+          ${gap(1)}
+          align-items: center;
+          flex-wrap: wrap;
         `}
       >
         <h3
@@ -37,14 +50,16 @@ export const GraphNodes = ({ admin, graph }: GraphNodesProps) => {
           <button
             type="button"
             css={`
-              padding: 0.25rem 0.5rem;
-              border: 1px solid ${colors.border};
+              ${buttonGhost}
+              padding: 0.35rem 0.7rem;
+              border-color: ${() =>
+                direction() === d ? colors.accent : colors.borderStrong};
               background: ${() =>
-                direction() === d ? colors.accent : colors.bg};
-              color: ${colors.text};
-              cursor: pointer;
-              font-size: 0.75rem;
-              ${rounded}
+                direction() === d ? colors.accentSoft : colors.bgElevated};
+              color: ${() =>
+                direction() === d ? colors.accent : colors.textMuted};
+              font-size: 0.72rem;
+              text-transform: capitalize;
             `}
             on:click={() => direction.set(d)}
           >

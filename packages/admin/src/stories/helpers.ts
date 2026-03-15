@@ -7,7 +7,10 @@ General notes:
 import { sleep, urlAtom, wrap } from '@reatom/core'
 
 import { ADMIN_FRAME } from '../root'
-import { createAdminDevtools } from '../view'
+import {
+  createAdminDevtools,
+  type AdminDevtoolsOptions,
+} from '../view'
 
 export const SETTLE_MS = 50
 
@@ -258,18 +261,27 @@ export function setCurrentDevtools(
   currentDevtools = devtools
 }
 
-export function setup(): {
+export function setup(options: AdminDevtoolsOptions = {}): {
   shadowRoot: ShadowRoot
   admin: AdminDevtoolsInstance['admin']
   devtools: AdminDevtoolsInstance
   teardown: () => void
 } {
   clearAdminStorage()
-  const devtools = createAdminDevtools()
+  const devtools = createAdminDevtools(options)
   currentDevtools = devtools
   const { admin, containerId } = devtools
 
   ADMIN_FRAME.run(() => urlAtom.go('/'))
+  ADMIN_FRAME.run(() => {
+    admin.filters.search.searchQuery.set('')
+    admin.filters.search.searchTarget.set('all')
+    admin.filters.engine.clearConfigs()
+    admin.filters.expression.setExpression({
+      operator: 'AND',
+      children: [],
+    })
+  })
 
   const shadowRoot = document.getElementById(containerId)!.shadowRoot!
 

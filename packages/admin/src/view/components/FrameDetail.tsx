@@ -43,6 +43,7 @@ export const FrameDetail = ({
 
   return (
     <div
+      data-reatom-name="FrameDetail"
       css={`
         ${card}
         ${p(3)}
@@ -105,6 +106,7 @@ export const FrameDetail = ({
             {atomName}
           </h3>
           <div
+            data-testid="frame-detail-meta"
             css={`
               color: ${colors.textMuted};
               font-size: 0.78rem;

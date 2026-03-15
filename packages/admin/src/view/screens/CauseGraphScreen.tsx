@@ -14,6 +14,7 @@ export const CauseGraphScreen = ({ admin }: CauseGraphScreenProps) => {
 
   return (
     <div
+      data-reatom-name="CauseGraphWorkspace"
       css={`
         display: grid;
         gap: 1rem;

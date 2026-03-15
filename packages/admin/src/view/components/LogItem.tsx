@@ -65,6 +65,7 @@ export const LogItem = ({
       }}
     >
       <span
+        data-testid="log-item-timestamp"
         css={`
           flex-shrink: 0;
           width: 4.5rem;

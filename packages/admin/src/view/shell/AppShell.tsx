@@ -12,9 +12,10 @@ export const AppShell = ({ admin }: AppShellProps) => {
 
   return (
     <div
+      data-reatom-name="AppShell"
       css={`
         height: 100%;
-        min-height: 100vh;
+        min-height: 0;
         background:
           radial-gradient(circle at top, rgba(139, 183, 255, 0.12), transparent 32%),
           linear-gradient(180deg, ${colors.bgElevated} 0%, ${colors.bg} 28%, ${colors.bg} 100%);

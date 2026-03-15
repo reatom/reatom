@@ -9,10 +9,15 @@ import { colors } from '../styles'
 import { AppShell } from './AppShell'
 
 const MAX_Z = 2 ** 32 - 1
+const MIN_PANEL_WIDTH = 360
+const MIN_PANEL_HEIGHT = 320
+const PANEL_MARGIN = 16
 let devtoolsCounter = 0
 
 export interface AdminDevtoolsOptions extends AdminOptions {
   initVisibility?: boolean
+  initialWidth?: string
+  initialHeight?: string
 }
 
 export interface AdminDevtools {
@@ -22,10 +27,43 @@ export interface AdminDevtools {
   hide: () => void
 }
 
+function parsePixelSize(value: string): number | null {
+  if (!value.endsWith('px')) return null
+  const parsed = Number.parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function clampPanelWidth(value: string): string {
+  const parsed = parsePixelSize(value)
+  if (parsed === null) return value
+
+  const maxWidth = Math.max(
+    MIN_PANEL_WIDTH,
+    window.innerWidth - PANEL_MARGIN * 2,
+  )
+  return `${Math.min(maxWidth, Math.max(MIN_PANEL_WIDTH, parsed))}px`
+}
+
+function clampPanelHeight(value: string): string {
+  const parsed = parsePixelSize(value)
+  if (parsed === null) return value
+
+  const maxHeight = Math.max(
+    MIN_PANEL_HEIGHT,
+    window.innerHeight - PANEL_MARGIN * 2,
+  )
+  return `${Math.min(maxHeight, Math.max(MIN_PANEL_HEIGHT, parsed))}px`
+}
+
 export function createAdminDevtools(
   options: AdminDevtoolsOptions = {},
 ): AdminDevtools {
-  const { initVisibility = true, ...adminOptions } = options
+  const {
+    initVisibility = true,
+    initialWidth = '520px',
+    initialHeight = '760px',
+    ...adminOptions
+  } = options
 
   const admin = createAdmin(adminOptions)
 
@@ -45,8 +83,8 @@ export function createAdminDevtools(
     stylesheet.set(sheet)
 
     const visible = reatomBoolean(initVisibility, '_Admin.devtools.visible')
-    const width = atom('520px', '_Admin.devtools.width')
-    const height = atom('760px', '_Admin.devtools.height')
+    const width = atom(clampPanelWidth(initialWidth), '_Admin.devtools.width')
+    const height = atom(clampPanelHeight(initialHeight), '_Admin.devtools.height')
     let folded: { width: string; height: string } | null = null
     let moved = false
 
@@ -87,10 +125,14 @@ export function createAdminDevtools(
             moved = true
             folded = null
             width.set(
-              `${Math.min(window.innerWidth * 0.95, window.innerWidth - pointerEvent.clientX)}px`,
+              clampPanelWidth(
+                `${window.innerWidth - pointerEvent.clientX}px`,
+              ),
             )
             height.set(
-              `${Math.min(window.innerHeight * 0.95, window.innerHeight - pointerEvent.clientY)}px`,
+              clampPanelHeight(
+                `${window.innerHeight - pointerEvent.clientY}px`,
+              ),
             )
           }
         }}
@@ -101,8 +143,8 @@ export function createAdminDevtools(
           if (moved) return
           const rect = container.getBoundingClientRect()
           if (rect.width + rect.height < 400) {
-            width.set(`${Math.min(window.innerWidth * 0.8, 800)}px`)
-            height.set(`${Math.min(window.innerHeight * 0.92, 920)}px`)
+            width.set(clampPanelWidth('560px'))
+            height.set(clampPanelHeight('760px'))
           } else {
             folded = { width: width(), height: height() }
             width.set('76px')
@@ -114,15 +156,18 @@ export function createAdminDevtools(
 
     const panel = (
       <div
+        data-reatom-name="DevtoolsPanel"
         css:width={width}
         css:height={height}
         css={`
           all: initial;
           position: fixed;
-          bottom: 1rem;
-          right: 1rem;
+          inset-inline-end: 1rem;
+          inset-block-end: 1rem;
           width: var(--width);
           height: var(--height);
+          max-width: calc(100vw - 2rem);
+          max-height: calc(100vh - 2rem);
           z-index: ${MAX_Z};
           background: ${colors.bg};
           border: 1px solid ${colors.borderStrong};
@@ -138,7 +183,8 @@ export function createAdminDevtools(
         <div
           css={`
             height: 100%;
-            overflow: auto;
+            min-height: 0;
+            overflow: hidden;
             border-radius: inherit;
           `}
         >

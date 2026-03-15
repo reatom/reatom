@@ -24,9 +24,11 @@ export const InspectorPanel = ({ admin, frame }: InspectorPanelProps) => {
 
   return (
     <div
+      data-reatom-name="InspectorPanel"
       css={`
         display: grid;
         gap: 1rem;
+        align-content: start;
       `}
     >
       <FrameDetail

@@ -108,6 +108,7 @@ export const HeaderBar = ({ admin }: HeaderBarProps) => {
             )
           }}
           <div
+            data-testid="header-session-meta"
             css={`
               color: ${colors.textMuted};
               font-size: 0.72rem;

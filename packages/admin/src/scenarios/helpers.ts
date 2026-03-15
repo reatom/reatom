@@ -89,6 +89,39 @@ export async function resizeViewport(
   await page.viewport(width, height)
 }
 
+export function stabilizeDevtoolsText(root: ShadowRoot): void {
+  const headerSessionMeta = root.querySelector('[data-testid="header-session-meta"]')
+  if (headerSessionMeta instanceof HTMLElement) {
+    headerSessionMeta.replaceChildren(
+      Object.assign(document.createElement('div'), {
+        textContent: 'Session stable-review',
+      }),
+      Object.assign(document.createElement('div'), {
+        textContent: 'Started 3/15/2026, 5:16 PM',
+      }),
+    )
+  }
+
+  const frameDetailMeta = root.querySelector('[data-testid="frame-detail-meta"]')
+  if (frameDetailMeta instanceof HTMLElement) {
+    frameDetailMeta.replaceChildren(
+      Object.assign(document.createElement('div'), {
+        textContent: '3/15/2026, 5:16 PM',
+      }),
+      Object.assign(document.createElement('div'), {
+        textContent: 'Session stable-review',
+      }),
+    )
+  }
+
+  const logTimestamps = root.querySelectorAll('[data-testid="log-item-timestamp"]')
+  for (const timestamp of logTimestamps) {
+    if (timestamp instanceof HTMLElement) {
+      timestamp.textContent = '05:16:00 PM'
+    }
+  }
+}
+
 export function runInAppContext<T>(callback: () => T): T {
   return context.start(callback)
 }

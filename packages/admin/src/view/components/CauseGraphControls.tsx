@@ -11,6 +11,7 @@ export const CauseGraphControls = ({ admin }: CauseGraphControlsProps) => {
 
   return (
     <div
+      data-reatom-name="CauseGraphControls"
       css={`
         ${flex}
         ${gap(2)}

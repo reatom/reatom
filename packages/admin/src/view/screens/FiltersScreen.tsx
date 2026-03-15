@@ -9,10 +9,13 @@ export interface FiltersScreenProps {
 export const FiltersScreen = ({ admin }: FiltersScreenProps) => {
   return (
     <div
+      data-reatom-name="FiltersScreen"
       css={`
         ${scrollable}
         display: grid;
         gap: 1rem;
+        align-content: start;
+        align-items: start;
         color: ${colors.text};
       `}
     >
