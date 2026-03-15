@@ -17,9 +17,10 @@
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "tsdown",
-    "test": "pnpm test:unit && pnpm test:stories",
+    "test": "pnpm test:unit && pnpm test:stories && pnpm test:browser",
     "test:unit": "vitest run --project=@reatom/admin",
     "test:stories": "vitest run --project=storybook",
+    "test:browser": "vitest run --project=admin-browser",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

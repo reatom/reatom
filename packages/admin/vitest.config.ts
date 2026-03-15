@@ -58,6 +58,21 @@ export default defineConfig({
           setupFiles: [resolve(dir, '.storybook/vitest.setup.ts')],
         },
       },
+      {
+        extends: true,
+        test: {
+          name: 'admin-browser',
+          include: ['./src/scenarios/**/*.test.browser.ts'],
+          fileParallelism: false,
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            screenshotFailures: true,
+            instances: [{ browser: 'chromium' }],
+          },
+        },
+      },
     ],
   },
 })

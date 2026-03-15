@@ -25,3 +25,17 @@ jobs:
 
       - name: Run tests
         run: pnpm run --filter @reatom/core test
+
+      - name: Run admin tests
+        run: pnpm run --filter @reatom/admin test
+
+      - name: Upload admin ui artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-ui-artifacts
+          if-no-files-found: ignore
+          path: |
+            packages/admin/**/__screenshots__/**
+            packages/admin/**/.vitest/**
+            packages/admin/**/test-results/**
