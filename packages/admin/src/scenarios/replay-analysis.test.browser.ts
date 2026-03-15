@@ -77,7 +77,7 @@ test('switches into replay analysis and keeps graph exploration usable', async (
     expect(shadowRoot.textContent?.includes('Replay analysis')).toBe(true)
     await expect(
       page.elementLocator(
-        getElement(shadowRoot, '[data-reatom-name="GraphNodes"]'),
+        getElement(shadowRoot, '[data-reatom-name="CauseGraphControls"]'),
       ),
     ).toMatchScreenshot('replay-analysis-graph-workspace')
   } finally {
