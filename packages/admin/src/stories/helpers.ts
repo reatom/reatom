@@ -230,6 +230,17 @@ export function clearCurrentDevtools(): void {
   currentDevtools = null
 }
 
+export function clearAdminStorage(): void {
+  if (typeof window === 'undefined') return
+
+  const adminKeys = Object.keys(localStorage).filter(
+    (key) => key.startsWith('_Admin.') || key.startsWith('_Admin'),
+  )
+  for (const key of adminKeys) {
+    localStorage.removeItem(key)
+  }
+}
+
 export function setCurrentDevtools(
   devtools: AdminDevtoolsInstance | null,
 ): void {
@@ -242,6 +253,7 @@ export function setup(): {
   devtools: AdminDevtoolsInstance
   teardown: () => void
 } {
+  clearAdminStorage()
   const devtools = createAdminDevtools()
   currentDevtools = devtools
   const { admin, containerId } = devtools
@@ -253,6 +265,7 @@ export function setup(): {
   const teardown = () => {
     ADMIN_FRAME.run(() => devtools.hide())
     admin.dispose()
+    clearAdminStorage()
     currentDevtools = null
   }
 

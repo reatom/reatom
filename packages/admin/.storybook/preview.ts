@@ -1,18 +1,11 @@
 import { urlAtom } from '@reatom/core'
 import type { Preview } from '@storybook/html'
 
-import { clearCurrentDevtools, currentDevtools } from '../src/stories/helpers'
-
-function clearAdminStorage(): void {
-  if (typeof window === 'undefined') return
-
-  const adminKeys = Object.keys(localStorage).filter(
-    (key) => key.startsWith('_Admin.') || key.startsWith('_Admin'),
-  )
-  for (const key of adminKeys) {
-    localStorage.removeItem(key)
-  }
-}
+import {
+  clearAdminStorage,
+  clearCurrentDevtools,
+  currentDevtools,
+} from '../src/stories/helpers'
 
 const preview: Preview = {
   beforeEach() {
