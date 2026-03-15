@@ -126,7 +126,13 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     const parsedAddTodo = parseFrameDetail(shadowRoot)
     await expect(parsedAddTodo).not.toBeNull()
     await expect(parsedAddTodo!.atomName).toContain('addTodo')
-    await expect(JSON.stringify(parsedAddTodo!.json)).toContain('Buy groceries')
+    await expect(parsedAddTodo!.kind).toBe('action')
+    await expect(JSON.stringify(parsedAddTodo!.json.params)).toContain(
+      'Buy groceries',
+    )
+    await expect(parsedAddTodo!.json.state).toBeUndefined()
+    await expect(parsedAddTodo!.openSections).not.toContain('stats')
+    await expect(parsedAddTodo!.openSections).not.toContain('atom-history')
 
     const todosLogItems = getLogItemsByName(shadowRoot, 'todos')
     await expect(todosLogItems.length).toBeGreaterThanOrEqual(1)
@@ -135,6 +141,8 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     const parsedTodosDetail = parseFrameDetail(shadowRoot)
     await expect(parsedTodosDetail).not.toBeNull()
     await expect(parsedTodosDetail!.atomName).toContain('todos')
+    await expect(parsedTodosDetail!.kind).toBe('atom')
+    await expect(parsedTodosDetail!.json.params).toBeUndefined()
     await expect(
       parsedTodosDetail!.causeChainNames.length,
     ).toBeGreaterThanOrEqual(0)
@@ -157,6 +165,9 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     await wrap(sleep(SETTLE_MS))
     const parsedToggleDetail = parseFrameDetail(shadowRoot)
     await expect(parsedToggleDetail).not.toBeNull()
+    await expect(parsedToggleDetail!.kind).toBe('action')
+    await expect(JSON.stringify(parsedToggleDetail!.json.params)).toContain('0')
+    await expect(parsedToggleDetail!.json.state).toBeUndefined()
     await expect(
       parsedToggleDetail!.causeChainNames.length,
     ).toBeGreaterThanOrEqual(0)
@@ -181,7 +192,8 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     await wrap(sleep(SETTLE_MS))
     const secondToggleDetail = parseFrameDetail(shadowRoot)
     await expect(secondToggleDetail).not.toBeNull()
-    const secondToggleState = JSON.stringify(secondToggleDetail!.json)
+    await expect(secondToggleDetail!.kind).toBe('atom')
+    const secondToggleState = JSON.stringify(secondToggleDetail!.json.state)
     const doneCount = (secondToggleState.match(/"done":true/g) ?? []).length
     await expect(doneCount).toBeGreaterThanOrEqual(2)
     await expect(secondToggleState).toContain('Read a book')
@@ -199,9 +211,10 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     await wrap(sleep(SETTLE_MS))
     const parsedRejectDetail = parseFrameDetail(shadowRoot)
     await expect(parsedRejectDetail).not.toBeNull()
+    await expect(parsedRejectDetail!.kind).toBe('action')
     await expect(
       parsedRejectDetail!.hasError ||
-        JSON.stringify(parsedRejectDetail!.json).includes(
+        JSON.stringify(parsedRejectDetail!.json.error).includes(
           'Network unavailable',
         ),
     ).toBe(true)
@@ -228,7 +241,8 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     await wrap(sleep(SETTLE_MS))
     const recoveryDetail = parseFrameDetail(shadowRoot)
     await expect(recoveryDetail).not.toBeNull()
-    const recoveryState = JSON.stringify(recoveryDetail!.json)
+    await expect(recoveryDetail!.kind).toBe('atom')
+    const recoveryState = JSON.stringify(recoveryDetail!.json.state)
     const doneCountAfterRecovery = (recoveryState.match(/"done":true/g) ?? [])
       .length
     await expect(doneCountAfterRecovery).toBe(3)
@@ -248,7 +262,8 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     await wrap(sleep(SETTLE_MS))
     const removeDetail = parseFrameDetail(shadowRoot)
     await expect(removeDetail).not.toBeNull()
-    await expect(JSON.stringify(removeDetail!.json)).not.toContain(
+    await expect(removeDetail!.kind).toBe('atom')
+    await expect(JSON.stringify(removeDetail!.json.state)).not.toContain(
       'Buy groceries',
     )
 
@@ -277,7 +292,8 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     await wrap(sleep(SETTLE_MS))
     const clearDetail = parseFrameDetail(shadowRoot)
     await expect(clearDetail).not.toBeNull()
-    const clearState = JSON.stringify(clearDetail!.json)
+    await expect(clearDetail!.kind).toBe('atom')
+    const clearState = JSON.stringify(clearDetail!.json.state)
     await expect(clearState).toContain('Write tests')
     await expect(clearState).not.toContain('Walk the dog')
 

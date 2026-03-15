@@ -1,60 +1,89 @@
-import type { AdminFrame } from '../../types'
-import { colors, flex, gap, px, py, truncate } from '../styles'
+import type { AdminAtom, AdminFrame } from '../../types'
+import {
+  colors,
+  flex,
+  flexCol,
+  gap,
+  mono,
+  px,
+  py,
+  rounded,
+  roundedSm,
+  shadowSm,
+  transitionBase,
+  truncate,
+} from '../styles'
+import {
+  formatTimestamp,
+  getCompactFieldPreviews,
+  getFramePresentation,
+} from './framePresentation'
 
 export interface LogItemProps {
   frame: AdminFrame
-  atomName: string
+  atom: AdminAtom | undefined
   isHighlighted: boolean
   isSelected: boolean
   onSelect: () => void
 }
 
-function formatTs(ts: number): string {
-  const d = new Date(ts)
-  return d.toTimeString().slice(0, 12)
-}
-
-function preview(value: unknown): string {
-  if (value === null) return 'null'
-  if (value === undefined) return 'undefined'
-  const s = JSON.stringify(value)
-  return s.length > 60 ? s.slice(0, 57) + '...' : s
-}
-
 export const LogItem = ({
   frame,
-  atomName,
+  atom,
   isHighlighted,
   isSelected,
   onSelect,
 }: LogItemProps) => {
-  const hasError = frame.error !== null
-  const content =
-    frame.params !== undefined
-      ? preview(frame.params)
-      : frame.payload !== undefined
-        ? preview(frame.payload)
-        : preview(frame.state)
+  const atomName = atom?.name ?? frame.atomId
+  const presentation = getFramePresentation(frame, atom)
+  const previewFields = getCompactFieldPreviews(presentation, 72)
 
   return (
     <div
+      data-reatom-name="LogItem"
       data-frame-id={frame.id}
+      data-frame-kind={presentation.kind}
       role="button"
       tabindex={0}
       css={`
         ${flex}
-        ${gap(2)}
-        ${px(2)}
-        ${py(1)}
-        border-bottom: 1px solid ${colors.border};
+        ${flexCol}
+        ${gap(1)}
+        ${px(3)}
+        ${py(2)}
+        ${rounded}
+        ${transitionBase}
         cursor: pointer;
+        border: 1px solid
+          ${() =>
+            isSelected
+              ? colors.accent
+              : presentation.hasError
+                ? 'rgba(243, 139, 168, 0.4)'
+                : isHighlighted
+                  ? 'rgba(137, 180, 250, 0.3)'
+                  : 'rgba(69, 71, 90, 0.72)'};
         background: ${() =>
           isSelected
-            ? colors.highlight
+            ? 'linear-gradient(180deg, rgba(137, 180, 250, 0.22), rgba(137, 180, 250, 0.14))'
             : isHighlighted
-              ? 'rgba(137,180,250,0.08)'
-              : 'transparent'};
-        color: ${hasError ? colors.error : colors.text};
+              ? 'linear-gradient(180deg, rgba(137, 180, 250, 0.1), rgba(137, 180, 250, 0.04))'
+              : presentation.hasError
+                ? 'linear-gradient(180deg, rgba(243, 139, 168, 0.1), rgba(243, 139, 168, 0.04))'
+                : colors.surface};
+        color: ${colors.text};
+        box-shadow: ${() => (isSelected ? '0 12px 28px rgba(0, 0, 0, 0.24)' : 'none')};
+        &:hover {
+          transform: translateY(-1px);
+          ${shadowSm}
+          border-color: ${presentation.hasError
+            ? 'rgba(243, 139, 168, 0.56)'
+            : 'rgba(137, 180, 250, 0.42)'};
+        }
+        &:focus-visible {
+          outline: 2px solid ${colors.accent};
+          outline-offset: 2px;
+        }
       `}
       on:click={onSelect}
       on:keydown={(e: KeyboardEvent) => {
@@ -64,36 +93,160 @@ export const LogItem = ({
         }
       }}
     >
-      <span
+      <div
         css={`
-          flex-shrink: 0;
-          width: 4rem;
-          font-size: 0.65rem;
-          color: ${colors.textMuted};
-        `}
-      >
-        {formatTs(frame.timestamp)}
-      </span>
-      <span
-        css={`
-          flex-shrink: 0;
-          width: 8rem;
-          ${truncate}
-          font-weight: 500;
-        `}
-      >
-        {atomName}
-      </span>
-      <span
-        css={`
-          flex: 1;
+          ${flex}
+          ${gap(2)}
+          justify-content: space-between;
+          align-items: flex-start;
           min-width: 0;
-          ${truncate}
-          color: ${colors.textMuted};
         `}
       >
-        {content}
-      </span>
+        <div
+          css={`
+            ${flex}
+            ${gap(1)}
+            align-items: center;
+            min-width: 0;
+          `}
+        >
+          <span
+            data-slot="kind"
+            css={`
+              ${roundedSm}
+              ${px(1)}
+              ${py(0)}
+              flex-shrink: 0;
+              background: ${presentation.kind === 'atom'
+                ? colors.accentSoft
+                : colors.surfaceSoft};
+              color: ${presentation.kind === 'atom'
+                ? colors.accent
+                : colors.textMuted};
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              font-size: 0.58rem;
+              font-weight: 700;
+            `}
+          >
+            {presentation.badgeLabel}
+          </span>
+          <span
+            data-slot="name"
+            css={`
+              min-width: 0;
+              font-size: 0.84rem;
+              font-weight: 600;
+              ${truncate}
+            `}
+          >
+            {atomName}
+          </span>
+        </div>
+        <span
+          data-slot="timestamp"
+          css={`
+            flex-shrink: 0;
+            font-size: 0.68rem;
+            color: ${colors.textMuted};
+            ${mono}
+          `}
+        >
+          {formatTimestamp(frame.timestamp)}
+        </span>
+      </div>
+      <div
+        css={`
+          ${flex}
+          ${gap(1)}
+          flex-wrap: wrap;
+          min-width: 0;
+        `}
+      >
+        {previewFields.map((field) => (
+          <div
+            data-log-preview-field={field.name}
+            css={`
+              ${flex}
+              ${gap(1)}
+              align-items: center;
+              min-width: 0;
+              max-width: 100%;
+              ${roundedSm}
+              ${px(1)}
+              ${py(1)}
+              background: ${colors.surfaceSoft};
+              border: 1px solid rgba(69, 71, 90, 0.72);
+            `}
+          >
+            <span
+              data-log-preview-label
+              css={`
+                flex-shrink: 0;
+                color: ${colors.textMuted};
+                font-size: 0.62rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+              `}
+            >
+              {field.label}
+            </span>
+            <span
+              data-log-preview-value
+              css={`
+                min-width: 0;
+                color: ${colors.text};
+                font-size: 0.72rem;
+                ${mono}
+                ${truncate}
+              `}
+            >
+              {field.valueText}
+            </span>
+          </div>
+        ))}
+        {presentation.hasError && (
+          <div
+            data-log-preview-field="error"
+            css={`
+              ${flex}
+              ${gap(1)}
+              align-items: center;
+              min-width: 0;
+              max-width: 100%;
+              ${roundedSm}
+              ${px(1)}
+              ${py(1)}
+              background: ${colors.errorSoft};
+              border: 1px solid rgba(243, 139, 168, 0.4);
+              color: ${colors.error};
+            `}
+          >
+            <span
+              data-log-preview-label
+              css={`
+                flex-shrink: 0;
+                font-size: 0.62rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+              `}
+            >
+              Error
+            </span>
+            <span
+              data-log-preview-value
+              css={`
+                min-width: 0;
+                font-size: 0.72rem;
+                ${mono}
+                ${truncate}
+              `}
+            >
+              {presentation.errorText ?? 'Error'}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

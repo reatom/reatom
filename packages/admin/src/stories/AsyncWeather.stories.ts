@@ -63,7 +63,9 @@ export const AsyncLifecycleInDevtools: StoryObj = {
     }
     const parsed = parseFrameDetail(shadowRoot)
     if (parsed) {
-      await expect(JSON.stringify(parsed.json)).toContain('Paris')
+      await expect(parsed.kind).toBe('atom')
+      await expect(JSON.stringify(parsed.json.state)).toContain('Paris')
+      await expect(parsed.json.params).toBeUndefined()
     }
 
     const cities = ['Tokyo', 'Berlin', 'Sydney']

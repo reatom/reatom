@@ -82,7 +82,9 @@ export const ThreeAppsDistinctlyCaptured: StoryObj = {
     const parsed = parseFrameDetail(shadowRoot)
     await expect(parsed).not.toBeNull()
     await expect(parsed!.atomName).toContain('todos')
-    await expect(JSON.stringify(parsed!.json)).toContain('Ship')
+    await expect(parsed!.kind).toBe('atom')
+    await expect(JSON.stringify(parsed!.json.state)).toContain('Ship')
+    await expect(parsed!.json.params).toBeUndefined()
     await expect(parsed!.causeChainNames.length).toBeGreaterThanOrEqual(0)
   },
 }

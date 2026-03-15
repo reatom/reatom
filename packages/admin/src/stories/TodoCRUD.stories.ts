@@ -116,7 +116,11 @@ export const BuildAndInspectTodoList: StoryObj = {
     const parsed = parseFrameDetail(shadowRoot)
     await expect(parsed).not.toBeNull()
     await expect(parsed!.atomName).toContain('addTodo')
-    await expect(JSON.stringify(parsed!.json)).toContain('Buy milk')
+    await expect(parsed!.kind).toBe('action')
+    await expect(JSON.stringify(parsed!.json.params)).toContain('Buy milk')
+    await expect(parsed!.json.state).toBeUndefined()
+    await expect(parsed!.openSections).not.toContain('stats')
+    await expect(parsed!.openSections).not.toContain('atom-history')
 
     const todosLogItems = getLogItemsByName(shadowRoot, 'todos')
     await expect(todosLogItems.length).toBeGreaterThanOrEqual(1)
@@ -125,5 +129,10 @@ export const BuildAndInspectTodoList: StoryObj = {
     const parsedTodosDetail = parseFrameDetail(shadowRoot)
     await expect(parsedTodosDetail).not.toBeNull()
     await expect(parsedTodosDetail!.atomName).toContain('todos')
+    await expect(parsedTodosDetail!.kind).toBe('atom')
+    await expect(JSON.stringify(parsedTodosDetail!.json.state)).toContain(
+      'Walk dog',
+    )
+    await expect(parsedTodosDetail!.json.params).toBeUndefined()
   },
 }

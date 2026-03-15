@@ -25,14 +25,32 @@ export interface ParsedLogItem {
   name: string
   content: string
   timestamp: string
+  kind: string
+  previews: Record<string, string>
 }
 
 export function parseLogItem(el: Element): ParsedLogItem {
-  const spans = el.querySelectorAll(':scope > span')
-  const timestamp = spans[0]?.textContent ?? ''
-  const name = spans[1]?.textContent ?? ''
-  const content = spans[2]?.textContent ?? ''
-  return { timestamp, name, content }
+  const timestamp =
+    el.querySelector('[data-slot="timestamp"]')?.textContent?.trim() ?? ''
+  const name = el.querySelector('[data-slot="name"]')?.textContent?.trim() ?? ''
+  const kind = el.querySelector('[data-slot="kind"]')?.textContent?.trim() ?? ''
+  const previewElements = Array.from(
+    el.querySelectorAll('[data-log-preview-field]'),
+  )
+  const previews = Object.fromEntries(
+    previewElements.map((previewEl) => {
+      const fieldName = previewEl.getAttribute('data-log-preview-field') ?? ''
+      const fieldValue =
+        previewEl.querySelector('[data-log-preview-value]')?.textContent?.trim() ??
+        ''
+      return [fieldName, fieldValue]
+    }),
+  )
+  const content = Object.entries(previews)
+    .map(([fieldName, value]) => `${fieldName}: ${value}`)
+    .join(' | ')
+
+  return { timestamp, name, content, kind, previews }
 }
 
 export function getLogItemsByName(
@@ -69,6 +87,19 @@ export interface ParsedFrameDetail {
   json: Record<string, unknown>
   causeChainNames: string[]
   hasError: boolean
+  kind: string
+  openSections: string[]
+}
+
+function parseValueText(text: string): unknown {
+  const normalizedText = text.trim()
+  if (!normalizedText) return ''
+
+  try {
+    return JSON.parse(normalizedText) as unknown
+  } catch {
+    return normalizedText
+  }
 }
 
 export function parseFrameDetail(
@@ -78,17 +109,16 @@ export function parseFrameDetail(
   if (!detail) return null
   const h3 = detail.querySelector('h3')
   const atomName = h3?.textContent?.trim() ?? ''
-  const jsonDiv = Array.from(detail.querySelectorAll('div')).find((d) =>
-    d.textContent?.includes('"state"'),
+  const kind = detail.getAttribute('data-frame-kind') ?? ''
+  const fieldElements = Array.from(detail.querySelectorAll('[data-frame-field]'))
+  const json = Object.fromEntries(
+    fieldElements.map((fieldEl) => {
+      const fieldName = fieldEl.getAttribute('data-frame-field') ?? ''
+      const fieldValue =
+        fieldEl.querySelector('[data-frame-field-value]')?.textContent ?? ''
+      return [fieldName, parseValueText(fieldValue)]
+    }),
   )
-  let json: Record<string, unknown> = {}
-  if (jsonDiv?.textContent) {
-    try {
-      json = JSON.parse(jsonDiv.textContent) as Record<string, unknown>
-    } catch {
-      json = {}
-    }
-  }
   const causeChainDiv = Array.from(detail.querySelectorAll('div')).find((d) =>
     d.textContent?.includes('Cause chain:'),
   )
@@ -96,17 +126,14 @@ export function parseFrameDetail(
   const causeChainNames = Array.from(causeChainButtons).map(
     (b) => b.textContent ?? '',
   )
-  const errorDiv = Array.from(detail.querySelectorAll('div')).find(
-    (d) =>
-      d.textContent !== null &&
-      d.textContent.length > 0 &&
-      !d.textContent.includes('ID:') &&
-      !d.textContent.includes('"state"') &&
-      !d.textContent.includes('Cause chain:') &&
-      /^(Error|TypeError|ReferenceError)/m.test(d.textContent.trim()),
+  const hasError = fieldElements.some(
+    (fieldEl) => fieldEl.getAttribute('data-frame-field') === 'error',
   )
-  const hasError = errorDiv !== undefined
-  return { atomName, json, causeChainNames, hasError }
+  const openSections = Array.from(
+    detail.querySelectorAll('[data-frame-section][open]'),
+  ).map((sectionEl) => sectionEl.getAttribute('data-frame-section') ?? '')
+
+  return { atomName, json, causeChainNames, hasError, kind, openSections }
 }
 
 export function getNavBadgeCount(root: DocumentFragment | Element): number {
