@@ -27,7 +27,6 @@ export function buildAncestorGraph(
   const edges: CauseGraphEdge[] = []
   const visited = new Set<number>()
   const queue: { frameId: number; depth: number }[] = [{ frameId, depth: 0 }]
-  const rootAtom = atomRegistry.get(rootFrame.atomId)
 
   nodes.push({
     frameId,

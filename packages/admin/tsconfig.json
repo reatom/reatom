@@ -6,7 +6,7 @@
     "jsxImportSource": "@reatom/jsx",
     "jsxFactory": "h",
     "jsxFragmentFactory": "hf",
-    "types": ["@vitest/browser-playwright", "@storybook/html"],
+    "types": ["@vitest/browser-playwright"],
     "paths": { "test": ["./src/test.ts"] }
   },
   "include": ["src", ".storybook/**/*"]
