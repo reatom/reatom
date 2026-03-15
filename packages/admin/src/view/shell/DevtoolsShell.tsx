@@ -82,6 +82,12 @@ export function createAdminDevtools(
         }}
         on:pointerup={() => {
           if (moved) return
+          if (folded) {
+            width.set(folded.width)
+            height.set(folded.height)
+            folded = null
+            return
+          }
           const rect = container.getBoundingClientRect()
           if (rect.width + rect.height < 400) {
             width.set(`${Math.min(window.innerWidth * 0.8, 800)}px`)
@@ -125,7 +131,7 @@ export function createAdminDevtools(
     root.append(mountHost)
     const mountPoint = document.createElement('div')
     mountHost.append(mountPoint)
-    const { unmount: unmountPanel } = mount(mountPoint, panel)
+    mount(mountPoint, panel)
 
     let bodyMount: { unmount: () => void } | null = null
     if (visible()) {

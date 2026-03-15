@@ -30,7 +30,7 @@ export const TimelineBars = ({ admin }: TimelineBarsProps) => {
         `}
       >
         {() =>
-          buckets().map((bucket, i) => {
+          buckets().map((bucket) => {
             const height = (bucket.entries.length / maxCount()) * 100
             const hasError = bucket.errorCount > 0
             return (

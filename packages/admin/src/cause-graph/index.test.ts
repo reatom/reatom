@@ -2,7 +2,7 @@ import { atom } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { ADMIN_FRAME } from '../root'
-import type { AdminAtom, AdminFrame } from '../types'
+import type { AdminFrame } from '../types'
 import {
   buildAncestorGraph,
   buildDescendantGraph,
@@ -26,12 +26,6 @@ function makeFrame(overrides: Partial<AdminFrame> = {}): AdminFrame {
   }
 }
 
-const atomRegistry = new Map<string, AdminAtom>([
-  ['a1', { id: 'a1', name: 'a', isReactive: true }],
-  ['a2', { id: 'a2', name: 'b', isReactive: true }],
-  ['a3', { id: 'a3', name: 'c', isReactive: true }],
-])
-
 test('buildAncestorGraph walks pubIds upward', () => {
   const frame1 = makeFrame({ id: 1, atomId: 'a1', pubIds: [] })
   const frame2 = makeFrame({ id: 2, atomId: 'a2', pubIds: [1] })
@@ -42,7 +36,7 @@ test('buildAncestorGraph walks pubIds upward', () => {
     [3, frame3],
   ])
 
-  const graph = buildAncestorGraph(3, frameIndex, atomRegistry)
+  const graph = buildAncestorGraph(3, frameIndex)
   expect(graph.rootFrameId).toBe(3)
   expect(graph.nodes.length).toBeGreaterThanOrEqual(2)
   expect(
@@ -58,7 +52,7 @@ test('buildDescendantGraph finds downstream effects', () => {
   ]
   const frameIndex = new Map(frames.map((f) => [f.id, f]))
 
-  const graph = buildDescendantGraph(1, frames, frameIndex, atomRegistry)
+  const graph = buildDescendantGraph(1, frames, frameIndex)
   expect(graph.rootFrameId).toBe(1)
   expect(graph.nodes.length).toBe(3)
   expect(graph.edges.length).toBe(2)
@@ -71,7 +65,7 @@ test('buildFullGraph combines both directions', () => {
   ]
   const frameIndex = new Map(frames.map((f) => [f.id, f]))
 
-  const graph = buildFullGraph(2, frames, frameIndex, atomRegistry)
+  const graph = buildFullGraph(2, frames, frameIndex)
   expect(graph.rootFrameId).toBe(2)
   expect(graph.nodes.length).toBeGreaterThanOrEqual(1)
 })

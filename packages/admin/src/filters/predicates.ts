@@ -81,12 +81,9 @@ export function matchTimeRange(
 
 export function matchError(
   frame: AdminFrame,
-  atomRegistry: AtomRegistry,
 ): boolean {
   if (!frame.error) return false
   if (isAbort(frame.error)) return false
-  const atom = atomRegistry.get(frame.atomId)
-  const isOnReject = atom?.name.endsWith('.onReject') ?? false
   return true
 }
 
@@ -105,9 +102,6 @@ export function matchCause(
   atomRegistry: AtomRegistry,
   allFrames?: AdminFrame[],
 ): boolean {
-  const atom = atomRegistry.get(frame.atomId)
-  const frameName = atom?.name ?? ''
-
   if (direction === '>') {
     const visited = new Set<number>()
     const queue = [...frame.pubIds]
@@ -170,7 +164,7 @@ export function evaluatePredicate(
       return matchTimeRange(frame, start, end)
     }
     case 'error':
-      return matchError(frame, atomRegistry)
+      return matchError(frame)
     case 'cause': {
       const causePred = predicate as CausePredicate
       return matchCause(

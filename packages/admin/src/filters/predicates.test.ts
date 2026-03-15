@@ -86,20 +86,19 @@ test('matchTimeRange', () => {
 })
 
 test('matchError excludes null and abort', () => {
-  expect(matchError(makeFrame({ error: null }), atomRegistry)).toBe(false)
+  expect(matchError(makeFrame({ error: null }))).toBe(false)
   expect(
     matchError(
       makeFrame({
         error: Object.assign(new Error('abort'), { name: 'AbortError' }),
       }),
-      atomRegistry,
     ),
   ).toBe(false)
 })
 
 test('matchError includes real errors', () => {
   const frame = makeFrame({ error: new Error('something broke') })
-  expect(matchError(frame, atomRegistry)).toBe(true)
+  expect(matchError(frame)).toBe(true)
 })
 
 test('matchError includes onReject frames with error', () => {
@@ -107,7 +106,7 @@ test('matchError includes onReject frames with error', () => {
     atomId: 'a2',
     error: new Error('fetch failed'),
   })
-  expect(matchError(frame, atomRegistry)).toBe(true)
+  expect(matchError(frame)).toBe(true)
 })
 
 test('matchSession', () => {

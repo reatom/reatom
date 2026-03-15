@@ -1,7 +1,5 @@
-import type { JSX } from '@reatom/jsx'
-
 declare module '@reatom/core' {
-  interface RouteChild extends JSX.Element {}
+  interface RouteChild extends ChildNode {}
 }
 
 declare global {
