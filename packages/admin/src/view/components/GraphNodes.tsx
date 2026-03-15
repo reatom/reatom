@@ -14,6 +14,7 @@ export const GraphNodes = ({ admin, graph }: GraphNodesProps) => {
 
   return (
     <div
+      data-reatom-name="GraphNodes"
       css={`
         ${flex}
         ${flexCol}

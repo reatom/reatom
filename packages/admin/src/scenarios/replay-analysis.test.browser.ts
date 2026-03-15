@@ -72,12 +72,15 @@ test('switches into replay analysis and keeps graph exploration usable', async (
     const source = ADMIN_FRAME.run(() => admin.view.summary().source)
     expect(source).toBe('replay')
     expect(graphRect.width).toBeGreaterThan(450)
+    expect(graphRect.height).toBeGreaterThan(120)
     expect(controlsRect.height).toBeGreaterThan(50)
     expect(shadowRoot.textContent?.includes('Shortest path')).toBe(false)
     expect(shadowRoot.textContent?.includes('Replay analysis')).toBe(true)
+    expect(shadowRoot.textContent?.includes('Graph nodes')).toBe(true)
+    expect(shadowRoot.textContent?.includes('depth 0')).toBe(true)
     await expect(
       page.elementLocator(
-        getElement(shadowRoot, '[data-reatom-name="CauseGraphControls"]'),
+        getElement(shadowRoot, '[data-reatom-name="CauseGraphWorkspace"]'),
       ),
     ).toMatchScreenshot('replay-analysis-graph-workspace')
   } finally {
