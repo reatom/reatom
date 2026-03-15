@@ -67,7 +67,6 @@ export function createEngine(deps: EngineDeps) {
     const atomRegistry = deps.atoms() as AtomRegistry
     const frameIndex = new Map(data.map((f) => [f.id, f]))
     const tags = deps.tags()
-    const expr = deps.expression()
 
     if (showConfigs.length === 0 && hideConfigs.length === 0) {
       return data
