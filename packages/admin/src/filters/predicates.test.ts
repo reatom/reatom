@@ -6,6 +6,7 @@ import {
   evaluatePredicate,
   type FrameIndex,
   matchError,
+  matchKind,
   matchRegex,
   matchSession,
   matchText,
@@ -77,6 +78,11 @@ test('matchRegex with pattern', () => {
   expect(matchRegex(frame, /^foo/, 'name', atomRegistry)).toBe(false)
 })
 
+test('matchRegex ignores invalid patterns safely', () => {
+  const frame = makeFrame()
+  expect(matchRegex(frame, '[broken', 'name', atomRegistry)).toBe(false)
+})
+
 test('matchTimeRange', () => {
   const frame = makeFrame({ timestamp: 1500 })
   expect(matchTimeRange(frame, 1000, 2000)).toBe(true)
@@ -116,6 +122,24 @@ test('matchSession', () => {
   expect(matchSession(frame, 's2')).toBe(false)
 })
 
+test('matchKind distinguishes reactive, action and async atoms', () => {
+  expect(matchKind(makeFrame({ atomId: 'a1' }), 'reactive', atomRegistry)).toBe(
+    true,
+  )
+  expect(matchKind(makeFrame({ atomId: 'a1' }), 'action', atomRegistry)).toBe(
+    false,
+  )
+  expect(matchKind(makeFrame({ atomId: 'a3' }), 'action', atomRegistry)).toBe(
+    true,
+  )
+  expect(matchKind(makeFrame({ atomId: 'a2' }), 'reject', atomRegistry)).toBe(
+    true,
+  )
+  expect(matchKind(makeFrame({ atomId: 'a2' }), 'async', atomRegistry)).toBe(
+    true,
+  )
+})
+
 test('evaluatePredicate text', () => {
   const frame = makeFrame()
   const predicate: FilterPredicate = {
@@ -123,6 +147,18 @@ test('evaluatePredicate text', () => {
     type: 'text',
     target: 'name',
     value: 'counter',
+  }
+  expect(evaluatePredicate(frame, predicate, atomRegistry, new Map())).toBe(
+    true,
+  )
+})
+
+test('evaluatePredicate kind', () => {
+  const frame = makeFrame({ atomId: 'a3' })
+  const predicate: FilterPredicate = {
+    id: 'kind1',
+    type: 'kind',
+    value: 'action',
   }
   expect(evaluatePredicate(frame, predicate, atomRegistry, new Map())).toBe(
     true,

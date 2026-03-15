@@ -242,3 +242,62 @@ test('frameIndex provides O(1) lookup', () => {
     expect(index.get(999)).toBeUndefined()
   })
 })
+
+test('latestFrames and summary counters reflect current store state', () => {
+  const frames: AdminFrame[] = [
+    {
+      id: 1,
+      timestamp: 100,
+      sessionId: 's1',
+      atomId: 'a1',
+      state: 1,
+      error: null,
+      params: undefined,
+      payload: undefined,
+      pubIds: [],
+    },
+    {
+      id: 2,
+      timestamp: 200,
+      sessionId: 's1',
+      atomId: 'a1',
+      state: 2,
+      error: null,
+      params: undefined,
+      payload: undefined,
+      pubIds: [],
+    },
+    {
+      id: 3,
+      timestamp: 250,
+      sessionId: 's1',
+      atomId: 'a2',
+      state: 3,
+      error: new Error('boom'),
+      params: undefined,
+      payload: undefined,
+      pubIds: [],
+    },
+  ]
+  const atoms = new Map<string, AdminAtom>([
+    ['a1', { id: 'a1', name: 'counter', isReactive: true }],
+    ['a2', { id: 'a2', name: 'fetchUser', isReactive: false }],
+  ])
+  const session: AdminSession = {
+    id: 's1',
+    startedAt: 10,
+    metadata: { env: 'test' },
+  }
+  const store = ADMIN_FRAME.run(() => createStoreManager(makeDeps(frames, atoms, session)))
+  ADMIN_FRAME.run(() => store.syncFromReporter())
+
+  ADMIN_FRAME.run(() => {
+    expect(store.frameCount()).toBe(3)
+    expect(store.errorCount()).toBe(1)
+    expect(store.uniqueAtomsCount()).toBe(2)
+    expect(store.currentSession().id).toBe('s1')
+    expect(store.latestFrameByAtom().get('a1')?.id).toBe(2)
+    expect(store.latestFrames().length).toBe(2)
+    expect(store.latestStateEntries()[0]?.atom?.name).toBe('counter')
+  })
+})

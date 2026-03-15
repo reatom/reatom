@@ -11,6 +11,7 @@ import { createSessionManager } from './session'
 import { createStoreManager } from './store'
 import { createTimelineManager } from './timeline'
 import type { AdminFrame } from './types'
+import { createAdminViewModelManager } from './view/model'
 
 export { createCauseGraphManager } from './cause-graph'
 export {
@@ -24,7 +25,14 @@ export { ADMIN_FRAME } from './root'
 export { createSessionManager } from './session'
 export { createStoreManager } from './store'
 export { createTimelineManager } from './timeline'
-export type { AdminAtom, AdminFrame, AdminSession } from './types'
+export type {
+  AdminAtom,
+  AdminFrame,
+  AdminSession,
+  AdminSummary,
+  HighlightStyle,
+  StateTreeNode,
+} from './types'
 export type { ExportedSession } from './types'
 export type { AdminDevtools, AdminDevtoolsOptions } from './view'
 export { createAdminApp, createAdminDevtools } from './view'
@@ -48,6 +56,7 @@ export interface Admin {
   }
   timeline: ReturnType<typeof createTimelineManager>
   causeGraph: ReturnType<typeof createCauseGraphManager>
+  view: ReturnType<typeof createAdminViewModelManager>
   dispose: () => void
 }
 
@@ -75,7 +84,7 @@ export function createAdmin(options: AdminOptions = {}): Admin {
     const engine = createEngineManager({
       frames: () => store.frames(),
       atoms: () => store.getAtoms(),
-      sessionId: () => store.exportSession().session.id,
+      sessionId: () => store.currentSession().id,
       tags: () => tags.tags(),
       expression: () => expression.expression(),
     })
@@ -92,6 +101,15 @@ export function createAdmin(options: AdminOptions = {}): Admin {
     const causeGraph = createCauseGraphManager({
       visibleFrames: () => engine.visibleFrames(),
       atoms: () => store.getAtoms(),
+    })
+
+    const view = createAdminViewModelManager({
+      frames: () => store.frames(),
+      visibleFrames: () => engine.visibleFrames(),
+      highlightedFrames: () => engine.highlightedFrames(),
+      atoms: () => store.getAtoms(),
+      selectedFrameId: () => store.selectedFrameId(),
+      source: () => store.source(),
     })
 
     const syncStore = () => store.syncFromReporter()
@@ -115,6 +133,7 @@ export function createAdmin(options: AdminOptions = {}): Admin {
       },
       timeline,
       causeGraph,
+      view,
       dispose,
     }
   })

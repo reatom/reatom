@@ -1,12 +1,19 @@
-import { atom } from '@reatom/core'
+import { atom, withLocalStorage } from '@reatom/core'
 
 import { ADMIN_FRAME } from '../root'
 import type { AdminFrame, FilterGroup, FilterTag, FilterTagRef } from '../types'
+import { canPersistToLocalStorage } from './persistence'
 import {
   type AtomRegistry,
   evaluatePredicate,
   type FrameIndex,
 } from './predicates'
+
+const EXPRESSION_STORAGE_KEY = '_Admin.filters.expression.v1'
+
+function isTagRef(child: FilterTagRef | FilterGroup): child is FilterTagRef {
+  return 'tagId' in child
+}
 
 export function evaluateExpression(
   frame: AdminFrame,
@@ -19,8 +26,8 @@ export function evaluateExpression(
   const tagById = new Map(tags.map((t) => [t.id, t]))
 
   function evalChild(child: FilterTagRef | FilterGroup): boolean {
-    if ('tagId' in child) {
-      const tagRef = child as FilterTagRef
+    if (isTagRef(child)) {
+      const tagRef = child
       const tag = tagById.get(tagRef.tagId)
       if (!tag) return false
       const match = tag.predicates.every((p) =>
@@ -28,10 +35,9 @@ export function evaluateExpression(
       )
       return tagRef.negated ? !match : match
     }
-    const group = child as FilterGroup
     return evaluateExpression(
       frame,
-      group,
+      child,
       tags,
       atomRegistry,
       frameIndex,
@@ -51,7 +57,13 @@ const EMPTY_GROUP: FilterGroup = {
 }
 
 export function createExpression() {
-  const expression = atom<FilterGroup>(EMPTY_GROUP, '_Admin.filters.expression')
+  const expressionBase = atom<FilterGroup>(
+    EMPTY_GROUP,
+    '_Admin.filters.expression',
+  )
+  const expression = canPersistToLocalStorage()
+    ? expressionBase.extend(withLocalStorage(EXPRESSION_STORAGE_KEY))
+    : expressionBase
 
   const setExpression = (value: FilterGroup) => {
     expression.set(value)

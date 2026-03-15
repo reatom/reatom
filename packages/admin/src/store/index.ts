@@ -31,6 +31,7 @@ export function createStore(deps: StoreDeps) {
   const selectedFrameId = atom<number | null>(null, `${PREFIX}.selectedFrameId`)
 
   const getAtoms = () => atomsOverride() ?? deps.atoms()
+  const getSession = () => sessionOverride() ?? deps.session()
 
   const syncFromReporter = action(() => {
     const repFrames = deps.frames()
@@ -63,6 +64,18 @@ export function createStore(deps: StoreDeps) {
     `${PREFIX}.importSession`,
   )
 
+  const clear = action(() => {
+    frames.set([])
+    atomsOverride.set(null)
+    sessionOverride.set(null)
+    selectedFrameId.set(null)
+    source.set('live')
+  }, `${PREFIX}.clear`)
+
+  const selectFrame = action((frameId: number | null) => {
+    selectedFrameId.set(frameId)
+  }, `${PREFIX}.selectFrame`)
+
   const selectedFrame = computed(() => {
     const id = selectedFrameId()
     if (id === null) return null
@@ -88,6 +101,20 @@ export function createStore(deps: StoreDeps) {
     return Array.from(names)
   }, `${PREFIX}.uniqueNames`)
 
+  const frameCount = computed(() => frames().length, `${PREFIX}.frameCount`)
+
+  const errorCount = computed(() => {
+    return frames().reduce(
+      (count, frame) => (frame.error !== null ? count + 1 : count),
+      0,
+    )
+  }, `${PREFIX}.errorCount`)
+
+  const uniqueAtomsCount = computed(
+    () => uniqueNames().length,
+    `${PREFIX}.uniqueAtomsCount`,
+  )
+
   const timeRange = computed((): [number, number] => {
     const list = frames()
     if (list.length === 0) return [0, 0]
@@ -99,6 +126,30 @@ export function createStore(deps: StoreDeps) {
     }
     return [min === Infinity ? 0 : min, max === -Infinity ? 0 : max]
   }, `${PREFIX}.timeRange`)
+
+  const latestFrameByAtom = computed(() => {
+    const latest = new Map<string, AdminFrame>()
+    for (const frame of frames()) {
+      latest.set(frame.atomId, frame)
+    }
+    return latest
+  }, `${PREFIX}.latestFrameByAtom`)
+
+  const latestFrames = computed(() => {
+    return Array.from(latestFrameByAtom().values()).sort(
+      (left, right) => left.timestamp - right.timestamp,
+    )
+  }, `${PREFIX}.latestFrames`)
+
+  const latestStateEntries = computed(() => {
+    const atoms = getAtoms()
+    return latestFrames().map((frame) => ({
+      atom: atoms.get(frame.atomId),
+      frame,
+    }))
+  }, `${PREFIX}.latestStateEntries`)
+
+  const currentSession = computed(() => getSession(), `${PREFIX}.currentSession`)
 
   const exportSession = computed((): ExportedSession => {
     const atomsMap = getAtoms()
@@ -118,15 +169,25 @@ export function createStore(deps: StoreDeps) {
     frames,
     maxFrames,
     source,
+    currentSession,
     selectedFrameId,
+    selectFrame,
     selectedFrame,
     frameIndex,
     uniqueNames,
+    frameCount,
+    errorCount,
+    uniqueAtomsCount,
     timeRange,
+    latestFrameByAtom,
+    latestFrames,
+    latestStateEntries,
     importSession,
     exportSession,
     syncFromReporter,
+    clear,
     getAtoms,
+    getSession,
   }
 }
 

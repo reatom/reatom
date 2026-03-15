@@ -20,6 +20,7 @@ test('createAdmin wires reporter, store, filters, timeline, causeGraph', () => {
     expect(storeFrames).toEqual(visibleFrames)
     const buckets = admin.timeline.buckets()
     expect(Array.isArray(buckets)).toBe(true)
+    expect(admin.view.summary().source).toBe('live')
   })
 
   admin.dispose()
@@ -354,6 +355,7 @@ test('session export and import', async () => {
   expect(frames.length).toBe(exportFrameCount)
   expect(exportFrameCount).toBeGreaterThan(0)
   expect(exported.session.id).toBeDefined()
+  expect(ADMIN_FRAME.run(() => admin2.view.summary().source)).toBe('replay')
 
   admin2.dispose()
 })
