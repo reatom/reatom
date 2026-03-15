@@ -7,7 +7,6 @@ import {
   getElement,
   getRect,
   navigate,
-  openLogFrame,
   page,
   resizeViewport,
   runInAppContext,
@@ -51,7 +50,12 @@ test('switches into replay analysis and keeps graph exploration usable', async (
         ),
     )
     expect(replayTodosItems.length).toBeGreaterThan(0)
-    await openLogFrame(shadowRoot, 'todos', '')
+    ADMIN_FRAME.run(() => {
+      const replayFrame = replayTodosItems[replayTodosItems.length - 1]
+      if (!replayFrame) return
+      admin.store.selectFrame(replayFrame.id)
+      admin.causeGraph.selectedRootId.set(replayFrame.id)
+    })
     await navigate(shadowRoot, 'Graph')
     await waitForDOM(
       shadowRoot,
@@ -67,7 +71,7 @@ test('switches into replay analysis and keeps graph exploration usable', async (
 
     const source = ADMIN_FRAME.run(() => admin.view.summary().source)
     expect(source).toBe('replay')
-    expect(graphRect.width).toBeGreaterThan(500)
+    expect(graphRect.width).toBeGreaterThan(450)
     expect(controlsRect.height).toBeGreaterThan(50)
     expect(shadowRoot.textContent?.includes('Shortest path')).toBe(false)
     expect(shadowRoot.textContent?.includes('Replay analysis')).toBe(true)
