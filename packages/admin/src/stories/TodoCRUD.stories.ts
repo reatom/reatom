@@ -4,6 +4,7 @@ import { expect } from 'storybook/test'
 
 import { createTodoApp } from '../fixtures/todoApp'
 import {
+  assertExactLogNames,
   clickLogItem,
   currentDevtools,
   findLogItem,
@@ -112,6 +113,16 @@ export const BuildAndInspectTodoList: StoryObj = {
     const lastTodos = todosItemsAfterRemove[todosItemsAfterRemove.length - 1]
     await expect(parseLogItem(lastTodos!).content).toContain('Walk dog')
     await expect(parseLogItem(lastTodos!).content).not.toContain('Buy milk')
+    assertExactLogNames(shadowRoot, [
+      'addTodo',
+      'todos',
+      'addTodo',
+      'todos',
+      'toggleTodo',
+      'todos',
+      'removeTodo',
+      'todos',
+    ])
 
     const addTodoBuyMilkItem = findLogItem(shadowRoot, 'addTodo', 'Buy milk')
     await expect(addTodoBuyMilkItem).not.toBeNull()

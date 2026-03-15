@@ -30,12 +30,18 @@ export function createAdminDevtools(
   const admin = createAdmin(adminOptions)
 
   return ADMIN_FRAME.run(() => {
+    const previousStylesheet = stylesheet()
     const id = `_ReatomAdminDevtools_${++devtoolsCounter}`
     const container = globalThis.document.createElement('div')
     container.id = id
     const root = container.attachShadow({ mode: 'open' })
     const sheet = new CSSStyleSheet()
     root.adoptedStyleSheets = [sheet]
+
+    for (const rule of Array.from(previousStylesheet.cssRules)) {
+      sheet.insertRule(rule.cssText)
+    }
+
     stylesheet.set(sheet)
 
     const visible = reatomBoolean(initVisibility, '_Admin.devtools.visible')
@@ -55,7 +61,7 @@ export function createAdminDevtools(
         css={`
           position: absolute;
           top: 12px;
-          right: 12px;
+          left: 12px;
           width: 18px;
           height: 18px;
           background:

@@ -182,6 +182,29 @@ export function assertLogOrder(
   }
 }
 
+export function assertExactLogNames(
+  root: DocumentFragment | Element,
+  expectedNames: string[],
+): void {
+  const actualNames = getLogItems(root).map((el) => parseLogItem(el).name)
+  if (actualNames.length !== expectedNames.length) {
+    throw new Error(
+      `Expected exact log count ${expectedNames.length}, got ${actualNames.length}. ` +
+        `Actual names: [${actualNames.join(', ')}]`,
+    )
+  }
+  for (let index = 0; index < expectedNames.length; index++) {
+    const expectedName = expectedNames[index]
+    const actualName = actualNames[index]
+    if (actualName !== expectedName) {
+      throw new Error(
+        `Expected exact log name "${expectedName}" at index ${index}, got "${actualName}". ` +
+          `Actual names: [${actualNames.join(', ')}]`,
+      )
+    }
+  }
+}
+
 const POLL_INTERVAL_MS = 16
 
 export async function waitForDOM(

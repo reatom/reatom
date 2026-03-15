@@ -28,6 +28,15 @@ export const MountsWithShadowDOM: StoryObj = {
       '[data-reatom-name="AppShell"]',
     )
     await expect(appShell).not.toBeNull()
+    const handle = devtoolsContainer!.shadowRoot!.querySelector(
+      '[aria-label="Reatom Admin devtools resize handle"]',
+    )
+    await expect(handle).not.toBeNull()
+    if (!(handle instanceof HTMLElement)) {
+      throw new Error('Resize handle is missing')
+    }
+    const handleStyle = window.getComputedStyle(handle)
+    await expect(handleStyle.left).toBe('12px')
   },
 }
 
@@ -49,5 +58,34 @@ export const ShowHideTogglesContainer: StoryObj = {
     show()
     await wrap(sleep(SETTLE_MS))
     await expect(document.getElementById(containerId)).not.toBeNull()
+  },
+}
+
+export const RemountKeepsShadowStyles: StoryObj = {
+  render: () => {
+    const firstDevtools = createAdminDevtools()
+    firstDevtools.hide()
+    firstDevtools.admin.dispose()
+
+    const secondDevtools = createAdminDevtools()
+    setCurrentDevtools(secondDevtools)
+    return document.createElement('div')
+  },
+  play: async () => {
+    await wrap(sleep(SETTLE_MS))
+    const container = document.getElementById(currentDevtools!.containerId)
+    await expect(container).not.toBeNull()
+    const sheet = container!.shadowRoot!.adoptedStyleSheets[0]
+    await expect(sheet).toBeDefined()
+    await expect(sheet!.cssRules.length).toBeGreaterThan(0)
+    const appShell = container!.shadowRoot!.querySelector(
+      '[data-reatom-name="AppShell"]',
+    )
+    await expect(appShell).not.toBeNull()
+    if (!(appShell instanceof HTMLElement)) {
+      throw new Error('AppShell is missing')
+    }
+    const computedStyle = window.getComputedStyle(appShell)
+    await expect(computedStyle.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
   },
 }
