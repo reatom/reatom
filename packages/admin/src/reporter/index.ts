@@ -79,11 +79,10 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
 
   const buildPubIds = (frame: Frame): number[] => {
     const ids: number[] = []
-    for (let i = 1; i < frame.pubs.length; i++) {
+    for (let i = 0; i < frame.pubs.length; i++) {
       const pub = frame.pubs[i]
       if (pub !== null && pub.atom !== context) {
-        const pid = frameIdMap.get(pub)
-        if (pid !== undefined) ids.push(pid)
+        ids.push(getOrCreateFrameId(pub))
       }
     }
     return ids

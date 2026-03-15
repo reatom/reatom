@@ -181,10 +181,9 @@ test('pubIds capture dependency structure', () => {
   const reporter = ADMIN_FRAME.run(() =>
     createReporter({ getSessionId: () => 's1' }),
   )
-  const a = atom(0, 'a')
-  const b = computed(() => a() + 1, 'b')
-  b.subscribe(() => {})
-  a.set(1)
+  const inner = action(() => 'done', 'inner')
+  const outer = action(() => inner(), 'outer')
+  outer()
   notify()
 
   ADMIN_FRAME.run(() => {
@@ -192,15 +191,15 @@ test('pubIds capture dependency structure', () => {
     expect(frames.length).toBeGreaterThanOrEqual(1)
     expect(reporter.atoms().size).toBeGreaterThanOrEqual(1)
     const atomsById = reporter.atoms()
-    const sourceFrame = frames.find(
-      (frame) => atomsById.get(frame.atomId)?.name === 'a',
+    const outerFrame = frames.find(
+      (frame) => atomsById.get(frame.atomId)?.name === 'outer',
     )
-    const derivedFrame = frames.find(
-      (frame) => atomsById.get(frame.atomId)?.name === 'b',
+    const innerFrame = frames.find(
+      (frame) => atomsById.get(frame.atomId)?.name === 'inner',
     )
-    expect(sourceFrame).toBeDefined()
-    expect(derivedFrame).toBeDefined()
-    expect(derivedFrame?.pubIds).toContain(sourceFrame?.id)
+    expect(outerFrame).toBeDefined()
+    expect(innerFrame).toBeDefined()
+    expect(innerFrame?.pubIds).toContain(outerFrame?.id)
   })
 
   reporter.dispose()
