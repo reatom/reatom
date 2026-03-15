@@ -9,8 +9,10 @@
     "types": ["@vitest/browser-playwright"],
     "paths": {
       "test": ["./src/test.ts"],
-      "@reatom/jsx/jsx-runtime": ["../jsx/src/index.ts"],
-      "@reatom/jsx/jsx-dev-runtime": ["../jsx/src/index.ts"]
+      "@reatom/core": ["../core/build/index.d.ts"],
+      "@reatom/jsx": ["../jsx/build/index.d.ts"],
+      "@reatom/jsx/jsx-runtime": ["../jsx/build/index.d.ts"],
+      "@reatom/jsx/jsx-dev-runtime": ["../jsx/build/index.d.ts"]
     }
   },
   "include": ["src", ".storybook/**/*"]
