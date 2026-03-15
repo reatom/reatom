@@ -1,5 +1,6 @@
 {
   "name": "@reatom/vue",
+  "type": "module",
   "version": "1000.0.0-alpha.31",
   "publishConfig": {
     "tag": "alpha"
@@ -7,21 +8,25 @@
   "sideEffects": false,
   "description": "Reatom adapter for Vue",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "default": "./dist/index.js"
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "browserslist": [
     "last 1 year"
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "tsdown",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
+  },
+  "tsdown": {
+    "format": ["esm", "cjs"],
+    "fixedExtension": false
   },
   "peerDependencies": {
     "@reatom/core": "workspace:^",
@@ -29,6 +34,7 @@
   },
   "devDependencies": {
     "@vitest/browser-playwright": "catalog:",
+    "tsdown": "catalog:",
     "vitest": "catalog:"
   },
   "author": {
@@ -62,6 +68,6 @@
     "reatom"
   ],
   "files": [
-    "/build"
+    "/dist"
   ]
 }

@@ -8,22 +8,26 @@
   "type": "module",
   "description": "Reatom for lit",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "default": "./dist/index.js"
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "browserslist": [
     "last 1 year"
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "tsdown",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*",
     "demo": "vite demo"
+  },
+  "tsdown": {
+    "format": ["esm", "cjs"],
+    "fixedExtension": false
   },
   "peerDependencies": {
     "lit": "^2.6.0",
@@ -31,6 +35,7 @@
   },
   "devDependencies": {
     "@vitest/browser-playwright": "catalog:",
+    "tsdown": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
   },
@@ -55,6 +60,6 @@
   },
   "homepage": "https://www.reatom.dev/package/lit",
   "files": [
-    "/build"
+    "/dist"
   ]
 }

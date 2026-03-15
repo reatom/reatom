@@ -1,33 +1,42 @@
 {
   "name": "@reatom/jsx",
+  "type": "module",
   "version": "1000.1.0",
   "sideEffects": false,
   "description": "Reatom for jsx",
   "exports": {
     ".": {
-      "types": "./build/index.d.ts",
-      "default": "./build/index.mjs"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     },
     "./jsx-runtime": {
-      "types": "./build/index.d.ts",
-      "default": "./build/index.mjs"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     },
     "./jsx-dev-runtime": {
-      "types": "./build/index.d.ts",
-      "default": "./build/index.mjs"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     }
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "browserslist": [
     "last 1 year"
   ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -f esm,cjs && cp src/jsx.d.ts build/ && cp -r build jsx-runtime/ && cp -r build jsx-dev-runtime/",
+    "build": "tsdown && mkdir -p jsx-runtime jsx-dev-runtime && cp -r dist/. jsx-runtime && cp -r dist/. jsx-dev-runtime",
     "test": "vitest --watch=false",
     "test:watch": "vitest --watch=true"
+  },
+  "tsdown": {
+    "copy": ["src/jsx.d.ts"],
+    "format": ["esm", "cjs"],
+    "fixedExtension": false
   },
   "peerDependencies": {
     "@reatom/core": "workspace:^"
@@ -38,6 +47,7 @@
   "devDependencies": {
     "@vitest/browser-playwright": "catalog:",
     "playwright": "catalog:",
+    "tsdown": "catalog:",
     "vitest": "catalog:"
   },
   "author": "artalar",
@@ -61,7 +71,7 @@
   },
   "homepage": "https://www.reatom.dev/package/jsx",
   "files": [
-    "/build",
+    "/dist",
     "/jsx-runtime",
     "/jsx-dev-runtime"
   ]

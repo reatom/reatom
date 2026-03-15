@@ -1,41 +1,44 @@
 {
   "name": "@reatom/preact",
+  "type": "module",
   "version": "1000.0.0",
   "private": false,
   "description": "Reatom adapter for Preact",
   "exports": {
     ".": {
-      "types": "./build/index.d.ts",
-      "require": "./build/index.js",
-      "default": "./build/index.mjs"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     },
     "./auto": {
-      "types": "./build/auto.d.ts",
-      "require": "./build/auto.js",
-      "default": "./build/auto.mjs"
+      "types": "./dist/auto.d.ts",
+      "require": "./dist/auto.cjs",
+      "default": "./dist/auto.js"
     },
     "./signal": {
-      "types": "./build/signal.d.ts",
-      "require": "./build/signal.js",
-      "default": "./build/signal.mjs"
+      "types": "./dist/signal.d.ts",
+      "require": "./dist/signal.cjs",
+      "default": "./dist/signal.js"
     }
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "browserslist": [
     "last 1 year"
   ],
-  "minify": {
-    "mangle": false
-  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -i src/index.ts -i src/auto.ts -i src/signal.ts -f esm,cjs --raw",
+    "build": "tsdown",
     "test": "pnpm run test:unit && pnpm run test:browser",
     "test:unit": "vitest run",
     "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
     "test:watch": "vitest"
+  },
+  "tsdown": {
+    "entry": ["src/index.ts", "src/auto.ts", "src/signal.ts"],
+    "format": ["esm", "cjs"],
+    "fixedExtension": false
   },
   "peerDependencies": {
     "@preact/signals": "catalog:",
@@ -62,14 +65,15 @@
   },
   "homepage": "https://www.reatom.dev/package/preact",
   "files": [
-    "/build"
+    "/dist"
   ],
   "devDependencies": {
     "@preact/preset-vite": "catalog:",
     "@preact/signals": "catalog:",
     "@preact/signals-core": "catalog:",
-    "preact": "catalog:",
     "@vitest/browser-playwright": "catalog:",
+    "preact": "catalog:",
+    "tsdown": "catalog:",
     "vitest": "catalog:"
   }
 }

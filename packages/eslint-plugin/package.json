@@ -1,5 +1,6 @@
 {
   "name": "@reatom/eslint-plugin",
+  "type": "module",
   "version": "1000.0.0-alpha.2",
   "publishConfig": {
     "tag": "alpha"
@@ -8,18 +9,22 @@
   "sideEffects": false,
   "description": "Reatom-specific ESLint rules",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "default": "./dist/index.js"
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "tsdown",
     "test": "tsx src/index.test.ts",
     "test:watch": "tsx watch src/index.test.ts"
+  },
+  "tsdown": {
+    "format": ["esm", "cjs"],
+    "fixedExtension": false
   },
   "author": "pivaszbs",
   "maintainers": [
@@ -50,13 +55,14 @@
   },
   "homepage": "https://www.reatom.dev/package/eslint-plugin",
   "files": [
-    "/build"
+    "/dist"
   ],
   "devDependencies": {
     "@eslint/js": "catalog:",
     "@types/eslint": "catalog:",
     "@typescript-eslint/rule-tester": "catalog:",
     "eslint": "catalog:",
+    "tsdown": "catalog:",
     "typescript-eslint": "catalog:"
   }
 }

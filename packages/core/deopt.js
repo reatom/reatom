@@ -1,7 +1,7 @@
 // Test code for Deopt Explorer
 // run `dexnode deopt.js`
 
-import { atom, computed, notify } from './build/index.js'
+import { atom, computed, notify } from './dist/index.js'
 
 const name = 'diamonds'
 const a1 = atom(0, `${name}.a1`)

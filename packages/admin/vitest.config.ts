@@ -1,9 +1,9 @@
-import { playwright } from '@vitest/browser-playwright'
-import { resolve, dirname } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vitest/config'
 
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
+import { playwright } from '@vitest/browser-playwright'
+import { defineConfig } from 'vitest/config'
 
 const dir = dirname(fileURLToPath(import.meta.url))
 
@@ -15,15 +15,19 @@ export default defineConfig({
       test: resolve(dir, './src/test.ts'),
     },
   },
-  esbuild: {
-    jsxFactory: 'h',
-    jsxFragment: 'hf',
+  oxc: {
+    jsx: {
+      runtime: 'classic',
+      pragma: 'h',
+      pragmaFrag: 'hf',
+    },
     jsxInject: `import { h, hf } from "@reatom/jsx"`,
   },
 
   test: {
     projects: [
       {
+        extends: true,
         test: {
           name: '@reatom/admin',
           include: ['./src/**/*.test.ts'],

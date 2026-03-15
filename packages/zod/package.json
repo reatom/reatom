@@ -1,5 +1,6 @@
 {
   "name": "@reatom/zod",
+  "type": "module",
   "version": "1000.0.0-alpha.60",
   "publishConfig": {
     "tag": "alpha"
@@ -8,33 +9,39 @@
   "description": "Reatom for zod",
   "exports": {
     ".": {
-      "types": "./build/index.d.ts",
-      "require": "./build/index.js",
-      "default": "./build/index.mjs"
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
     },
     "./v4": {
-      "types": "./build/v4.d.ts",
-      "require": "./build/v4.js",
-      "default": "./build/v4.mjs"
+      "types": "./dist/v4.d.ts",
+      "require": "./dist/v4.cjs",
+      "default": "./dist/v4.js"
     }
   },
-  "main": "build/index.js",
-  "module": "build/index.module.js",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "browserslist": [
     "last 1 year"
   ],
   "scripts": {
     "prepublishOnly": "eslint src --fix && prettier src -w && pnpm run test && pnpm run build",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "tsdown",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
+  },
+  "tsdown": {
+    "entry": ["src/index.ts", "src/v4.ts"],
+    "format": ["esm", "cjs"],
+    "fixedExtension": false
   },
   "dependencies": {
     "@reatom/core": "workspace:^",
     "zod": "^3.25.0"
   },
   "devDependencies": {
+    "tsdown": "catalog:",
     "vitest": "catalog:"
   },
   "author": "artalar",
@@ -65,6 +72,6 @@
     "reatom"
   ],
   "files": [
-    "/build"
+    "/dist"
   ]
 }

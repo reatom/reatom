@@ -1,28 +1,23 @@
 {
   "name": "@reatom/core",
+  "type": "module",
   "version": "1000.15.2",
   "description": "The ultimate state manager",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "default": "./dist/index.js"
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "sideEffects": false,
   "browserslist": [
     "last 1 year"
   ],
-  "minify": {
-    "mangle": false,
-    "format": {
-      "beautify": true
-    }
-  },
   "scripts": {
     "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run build",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "tsdown",
     "test": "pnpm run test:unit && pnpm run test:browser",
     "test:unit": "vitest run",
     "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
@@ -31,6 +26,21 @@
     "bench_dynamic": "tsx bench_dynamic.ts",
     "bench_computed": "tsx bench_computed.ts",
     "bench_computed:mem": "node --expose-gc --import=tsx bench_computed.ts"
+  },
+  "tsdown": {
+    "format": {
+      "esm": {
+        "target": [
+          "es2024"
+        ]
+      },
+      "cjs": {
+        "target": [
+          "node18"
+        ]
+      }
+    },
+    "fixedExtension": false
   },
   "author": "artalar",
   "contributors": [
@@ -60,7 +70,7 @@
     "reatom"
   ],
   "files": [
-    "/build"
+    "/dist"
   ],
   "dependencies": {
     "@standard-schema/spec": "catalog:"
@@ -69,6 +79,7 @@
     "idb-keyval": "*"
   },
   "devDependencies": {
+    "tsdown": "catalog:",
     "@artalar/act": "latest",
     "@frp-ts/core": "latest",
     "@ngrx/store": "latest",
@@ -77,12 +88,12 @@
     "@types/ws": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@webreflection/signal": "latest",
-    "alien-signals": "catalog:",
+    "alien-signals": "^3.1.2",
     "cellx": "latest",
     "dexnode": "catalog:",
     "effector": "latest",
     "idb-keyval": "^6.2.2",
-    "jotai": "catalog:",
+    "jotai": "latest",
     "mobx": "latest",
     "mol_wire_lib": "latest",
     "nanostores": "latest",
@@ -92,7 +103,7 @@
     "redux": "latest",
     "reselect": "latest",
     "s-js": "latest",
-    "solid-js": "catalog:",
+    "solid-js": "^1.9.11",
     "spred": "latest",
     "typescript": "catalog:",
     "usignal": "latest",

@@ -1,27 +1,29 @@
 {
   "name": "@reatom/react",
+  "type": "module",
   "version": "1000.2.2",
   "private": false,
   "description": "Reatom adapter for React",
   "exports": {
-    "types": "./build/index.d.ts",
-    "require": "./build/index.js",
-    "default": "./build/index.mjs"
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "default": "./dist/index.js"
   },
-  "main": "build/index.js",
-  "module": "build/index.mjs",
-  "types": "build/index.d.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "browserslist": [
     "last 1 year"
   ],
-  "minify": {
-    "mangle": false
-  },
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
-    "build": "microbundle -f esm,cjs --raw",
+    "build": "tsdown",
     "test": "vitest run src/*",
     "test:watch": "vitest src/*"
+  },
+  "tsdown": {
+    "format": ["esm", "cjs"],
+    "fixedExtension": false
   },
   "peerDependencies": {
     "@reatom/core": "workspace:^",
@@ -39,15 +41,16 @@
   },
   "homepage": "https://www.reatom.dev/package/eact",
   "files": [
-    "/build"
+    "/dist"
   ],
   "devDependencies": {
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
-    "@vitest/browser-playwright": "catalog:",
+    "tsdown": "catalog:",
     "vitest": "catalog:"
   }
 }

@@ -19,9 +19,12 @@ const config: StorybookConfig = {
           test: resolve(dir, '../src/test.ts'),
         },
       },
-      esbuild: {
-        jsxFactory: 'h',
-        jsxFragment: 'hf',
+      oxc: {
+        jsx: {
+          runtime: 'classic',
+          pragma: 'h',
+          pragmaFrag: 'hf',
+        },
         jsxInject: `import { h, hf } from "@reatom/jsx"`,
       },
     })

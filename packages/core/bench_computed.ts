@@ -401,7 +401,7 @@ const testComputers = setupComputersTest({
   // },
   async reatom({ listener, startCreation, endCreation }) {
     const { atom, computed, context, wrap, notify, clearStack } =
-      await import('./build')
+      await import('./dist')
 
     startCreation()
 

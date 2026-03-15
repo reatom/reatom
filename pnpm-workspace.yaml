@@ -7,11 +7,11 @@ catalog:
   '@commitlint/cli': ^20.2.0
   '@commitlint/config-conventional': ^20.2.0
   '@eslint/js': ^9.39.1
+  '@ffmpeg-installer/ffmpeg': ^1.1.0
   '@frp-ts/core': latest
   '@ngrx/store': latest
+  '@observablehq/inspector': ^5.0.1
   '@preact/preset-vite': ^2.10.2
-  "@observablehq/inspector": "^5.0.1"
-  "jsondiffpatch": "^0.7.3"
   '@preact/signals': ^1.3.0
   '@preact/signals-core': ^1.6.0
   '@standard-schema/spec': ^1.0.0
@@ -19,15 +19,12 @@ catalog:
   '@types/node': latest
   '@types/react': ^19.2.0
   '@types/react-dom': ^19.2.0
-  remark-cli: ^12.0.1
-  remark-lint: ^10.0.1
-  remark-lint-expressive-code-label: ^0.1.0
   '@types/ws': ^8.18.1
   '@typescript-eslint/eslint-plugin': ^8.49.0
   '@typescript-eslint/parser': ^8.49.0
   '@typescript-eslint/rule-tester': ^8.49.0
-  '@vitejs/plugin-react': ^5.1.2
-  '@vitest/browser-playwright': ^4.0.16
+  '@vitejs/plugin-react': ^6.0.1
+  '@vitest/browser-playwright': ^4.1.0
   '@webreflection/signal': latest
   alien-signals: ^3.1.1
   cellx: latest
@@ -40,14 +37,13 @@ catalog:
   globals: ^16.5.0
   husky: ^9.1.7
   jotai: ^2.16.0
+  jsondiffpatch: ^0.7.3
   lit: ^3.0.0
-  microbundle: ^0.15.1
   mobx: latest
   mol_wire_lib: latest
   nanostores: latest
   playwright: ^1.57.0
   playwright-video: ^2.1.4
-  "@ffmpeg-installer/ffmpeg": ^1.1.0
   preact: ^10.0.0
   prettier: ^3.7.4
   prettier-plugin-astro: ^0.14.1
@@ -55,6 +51,9 @@ catalog:
   react: ^19.2.0
   react-dom: ^19.2.0
   redux: latest
+  remark-cli: ^12.0.1
+  remark-lint: ^10.0.1
+  remark-lint-expressive-code-label: ^0.1.0
   reselect: latest
   s-js: latest
   solid-js: ^1.0.0
@@ -62,10 +61,11 @@ catalog:
   tsx: ^4.21.0
   typescript: ^5.9.3
   typescript-eslint: ^8.49.0
+  tsdown: ^0.21.2
   usignal: latest
-  vite: ^7.2.7
+  vite: ^8.0.0
   vite-plugin-solid: ^2.11.10
-  vitest: ^4.0.16
+  vitest: ^4.1.0
   vue: ^3.0.0
   whatsup: latest
   wonka: latest
