@@ -97,10 +97,9 @@ export function parseFrameDetail(
   )
   let json: Record<string, unknown> = {}
   if (jsonDiv?.textContent) {
-    const normalizedText = jsonDiv.textContent
-      .replace(/\s+/g, ' ')
-      .replace(/value\s*/g, '')
-      .trim()
+    const normalizedText = normalizePreviewText(
+      jsonDiv.textContent.replace(/value\s*/g, ''),
+    )
     json = {
       raw: normalizedText,
     }
