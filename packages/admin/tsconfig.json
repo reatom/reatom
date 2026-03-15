@@ -7,7 +7,11 @@
     "jsxFactory": "h",
     "jsxFragmentFactory": "hf",
     "types": ["@vitest/browser-playwright"],
-    "paths": { "test": ["./src/test.ts"] }
+    "paths": {
+      "test": ["./src/test.ts"],
+      "@reatom/jsx/jsx-runtime": ["../jsx/src/index.ts"],
+      "@reatom/jsx/jsx-dev-runtime": ["../jsx/src/index.ts"]
+    }
   },
   "include": ["src", ".storybook/**/*"]
 }
