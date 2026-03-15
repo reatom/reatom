@@ -1,7 +1,7 @@
-import { context, sleep, wrap } from '@reatom/core'
+import { context } from '@reatom/core'
 import { page } from 'vitest/browser'
 
-import { clickLogItem, getLogItems, parseLogItem, setup, waitForDOM } from '../stories/helpers'
+import { clickLogItem, getLogItems, parseLogItem, setup } from '../stories/helpers'
 
 export function getShadowRoot(containerId: string): ShadowRoot {
   const host = document.getElementById(containerId)
@@ -24,7 +24,6 @@ export function getDevtoolsSelector(containerId: string): string {
 }
 
 export async function navigate(root: ShadowRoot, label: string): Promise<void> {
-  void root
   const button = Array.from(root.querySelectorAll('button')).find((candidate) =>
     candidate.textContent?.includes(label),
   )
@@ -33,7 +32,7 @@ export async function navigate(root: ShadowRoot, label: string): Promise<void> {
   }
 
   button.click()
-  await wrap(sleep(80))
+  await delay(80)
 }
 
 export async function waitForLogName(
@@ -71,12 +70,36 @@ export async function openLogFrame(
   clickLogItem(item)
 }
 
-export async function resizeViewport(width: number, height: number): Promise<void> {
-  await wrap(page.viewport(width, height))
+export async function resizeViewport(
+  width: number,
+  height: number,
+): Promise<void> {
+  await page.viewport(width, height)
 }
 
 export function runInAppContext<T>(callback: () => T): T {
   return context.start(callback)
 }
 
-export { page, setup, waitForDOM }
+export function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
+
+export async function waitForDOM(
+  root: DocumentFragment | Element,
+  predicate: (root: DocumentFragment | Element) => boolean,
+  timeoutMs: number = 5000,
+): Promise<void> {
+  const start = Date.now()
+  while (true) {
+    if (predicate(root)) return
+    if (Date.now() - start >= timeoutMs) {
+      throw new Error(`waitForDOM timed out after ${timeoutMs}ms`)
+    }
+    await delay(16)
+  }
+}
+
+export { page, setup }

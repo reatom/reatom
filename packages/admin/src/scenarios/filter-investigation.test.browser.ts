@@ -1,4 +1,4 @@
-import { context, sleep, wrap } from '@reatom/core'
+import { context } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { createCounterApp } from '../fixtures/counterApp'
@@ -6,6 +6,7 @@ import { createTodoApp } from '../fixtures/todoApp'
 import { createWeatherApp } from '../fixtures/weatherApp'
 import { ADMIN_FRAME } from '../root'
 import {
+  delay,
   getDevtoolsSelector,
   getRect,
   navigate,
@@ -33,7 +34,7 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
       counterApp.increment()
       weatherApp.setCity('Tallinn')
     })
-    await wrap(sleep(120))
+    await delay(120)
 
     ADMIN_FRAME.run(() => {
       const weatherTag = admin.filters.tags.createTag('weather reads', [

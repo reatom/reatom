@@ -1,9 +1,9 @@
-import { sleep, wrap } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { createCounterApp } from '../fixtures/counterApp'
 import { createTodoApp } from '../fixtures/todoApp'
 import {
+  delay,
   getDevtoolsSelector,
   getRect,
   page,
@@ -43,7 +43,7 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
     ).toMatchScreenshot('responsive-shell-wide')
 
     await resizeViewport(960, 720)
-    await wrap(sleep(80))
+    await delay(80)
 
     const headerRect = getRect(shadowRoot, '[data-reatom-name="HeaderBar"]')
     const filterBarElement = shadowRoot.querySelector(
@@ -62,11 +62,11 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
     ).toMatchScreenshot('responsive-shell-narrow')
 
     devtools.hide()
-    await wrap(sleep(60))
+    await delay(60)
     expect(document.getElementById(devtools.containerId)).toBeNull()
 
     devtools.show()
-    await wrap(sleep(60))
+    await delay(60)
     expect(document.getElementById(devtools.containerId)).not.toBeNull()
   } finally {
     teardown()

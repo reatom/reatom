@@ -1,8 +1,8 @@
-import { sleep, wrap } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { createAdvancedTodoApp, STORAGE_KEY } from '../fixtures/advancedTodoApp'
 import {
+  delay,
   getDevtoolsSelector,
   getRect,
   openLogFrame,
@@ -53,7 +53,7 @@ test('investigates an async rollback failure without breaking the activity works
       5000,
     )
     await openLogFrame(shadowRoot, 'toggleTodo.onReject', '')
-    await wrap(sleep(80))
+    await delay(80)
 
     const host = document.getElementById(devtools.containerId)
     expect(host).not.toBeNull()

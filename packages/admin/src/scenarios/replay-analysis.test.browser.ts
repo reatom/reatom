@@ -1,9 +1,9 @@
-import { sleep, wrap } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { createTodoApp } from '../fixtures/todoApp'
 import { ADMIN_FRAME } from '../root'
 import {
+  delay,
   getDevtoolsSelector,
   getRect,
   navigate,
@@ -41,7 +41,7 @@ test('switches into replay analysis and keeps graph exploration usable', async (
       admin.store.clear()
       admin.store.importSession(exported)
     })
-    await wrap(sleep(100))
+    await delay(100)
 
     await openLogFrame(shadowRoot, 'todos', 'Capture replay state')
     await navigate(shadowRoot, 'Graph')
