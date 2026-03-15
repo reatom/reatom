@@ -9,6 +9,7 @@ export interface FiltersScreenProps {
 export const FiltersScreen = ({ admin }: FiltersScreenProps) => {
   return (
     <div
+      data-reatom-name="FiltersScreen"
       css={`
         ${scrollable}
         display: grid;

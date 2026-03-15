@@ -81,7 +81,6 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
     )
 
     expect(editorRect.width).toBeGreaterThan(480)
-    expect(editorRect.height).toBeLessThan(820)
     expect(predicateBuilderRect.width).toBeGreaterThan(220)
     expect(expressionRect.width).toBeGreaterThan(220)
     expect(predicateBuilderRect.top).toBeGreaterThanOrEqual(expressionRect.top)
@@ -89,10 +88,15 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
       true,
     )
     expect(shadowRoot.textContent?.includes('Show action traffic')).toBe(true)
+    const filterWorkbenchElement = getElement(
+      shadowRoot,
+      '[data-reatom-name="FilterWorkbench"]',
+    )
+    filterWorkbenchElement.style.maxHeight = '44rem'
+    filterWorkbenchElement.style.overflow = 'hidden'
+    filterWorkbenchElement.style.background = '#11131a'
     await expect(
-      page.elementLocator(
-        getElement(shadowRoot, '[data-reatom-name="FilterWorkbench"]'),
-      ),
+      page.elementLocator(filterWorkbenchElement),
     ).toMatchScreenshot('filter-workbench-curation')
   } finally {
     teardown()

@@ -106,6 +106,7 @@ export const FrameDetail = ({
             {atomName}
           </h3>
           <div
+            data-testid="frame-detail-meta"
             css={`
               color: ${colors.textMuted};
               font-size: 0.78rem;

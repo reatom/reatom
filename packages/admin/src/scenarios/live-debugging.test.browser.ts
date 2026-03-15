@@ -75,6 +75,15 @@ test('investigates an async rollback failure without breaking the activity works
     expect(
       shadowRoot.textContent?.includes('Structured payload'),
     ).toBe(true)
+    const frameMeta = getElement(shadowRoot, '[data-testid="frame-detail-meta"]')
+    frameMeta.replaceChildren(
+      Object.assign(document.createElement('div'), {
+        textContent: '3/15/2026, 5:16 PM',
+      }),
+      Object.assign(document.createElement('div'), {
+        textContent: 'Session stable-live-debug',
+      }),
+    )
     await expect(
       page.elementLocator(
         getElement(shadowRoot, '[data-reatom-name="InspectorPanel"]'),
