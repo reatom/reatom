@@ -165,6 +165,7 @@ export const PredicateBuilder = ({ admin }: PredicateBuilderProps) => {
 
   return (
     <section
+      data-reatom-name="PredicateBuilder"
       css={`
         ${card}
         ${p(3)}

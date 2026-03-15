@@ -13,6 +13,8 @@ export const FiltersScreen = ({ admin }: FiltersScreenProps) => {
         ${scrollable}
         display: grid;
         gap: 1rem;
+        align-content: start;
+        align-items: start;
         color: ${colors.text};
       `}
     >

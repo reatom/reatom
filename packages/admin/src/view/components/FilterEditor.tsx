@@ -34,12 +34,16 @@ export const FilterEditor = ({ admin }: FilterEditorProps) => {
 
   return (
     <div
+      data-reatom-name="FilterWorkbench"
       css={`
         display: grid;
         ${gap(2)}
+        align-content: start;
+        align-items: start;
       `}
     >
       <section
+        data-reatom-name="FilterEditor"
         css={`
           ${card}
           ${p(3)}
@@ -118,8 +122,9 @@ export const FilterEditor = ({ admin }: FilterEditorProps) => {
       <div
         css={`
           display: grid;
-          grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+          grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
           gap: 1rem;
+          align-items: start;
         `}
       >
         <div
@@ -132,6 +137,7 @@ export const FilterEditor = ({ admin }: FilterEditorProps) => {
             css={`
               display: grid;
               gap: 0.85rem;
+              align-content: start;
             `}
           >
             <h3

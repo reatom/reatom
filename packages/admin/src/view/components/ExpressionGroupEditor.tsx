@@ -287,7 +287,7 @@ function renderGroup(
 
 export const ExpressionGroupEditor = ({ admin }: ExpressionGroupEditorProps) => {
   return (
-    <div>
+    <div data-reatom-name="ExpressionGroupEditor">
       {() =>
         renderGroup(
           admin,
