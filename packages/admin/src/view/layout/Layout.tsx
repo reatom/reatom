@@ -12,11 +12,12 @@ export const Layout = ({ admin, outlet }: LayoutProps) => {
   return (
     <div
       css={`
-        ${flex}
-        ${flexCol}
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr) auto;
         background: ${colors.bg};
         color: ${colors.text};
-        min-height: 100%;
+        height: 100%;
+        min-height: 0;
         font-size: 0.875rem;
       `}
     >
@@ -30,7 +31,6 @@ export const Layout = ({ admin, outlet }: LayoutProps) => {
       </div>
       <main
         css={`
-          flex: 1;
           ${scrollable}
           min-height: 0;
           ${p(2)}

@@ -36,8 +36,8 @@ import {
 
 const FULL_HD_WIDTH = 1920
 const FULL_HD_HEIGHT = 1080
-const REVIEW_PANEL_WIDTH = '960px'
-const REVIEW_PANEL_HEIGHT = '940px'
+const REVIEW_PANEL_WIDTH = '880px'
+const REVIEW_PANEL_HEIGHT = '820px'
 
 interface SceneTodoItem {
   text: string
@@ -75,7 +75,7 @@ async function prepareFullHdReview(shadowRoot: ShadowRoot): Promise<void> {
   storySceneRoot.style.height = `${FULL_HD_HEIGHT}px`
   storySceneRoot.style.minHeight = `${FULL_HD_HEIGHT}px`
   storySceneRoot.style.overflow = 'hidden'
-  storySceneRoot.style.padding = '2rem 62rem 2rem 2rem'
+  storySceneRoot.style.padding = '2rem 58rem 2rem 2rem'
 
   stabilizeDevtoolsText(shadowRoot)
   await delay(120)

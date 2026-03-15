@@ -43,9 +43,14 @@ export const LogScreen = ({ admin }: LogScreenProps) => {
       <div
         css={`
           display: grid;
-          grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 26rem);
+          grid-template-columns: minmax(0, 1.08fr) minmax(19rem, 24rem);
           gap: 1rem;
           min-height: 0;
+          align-items: start;
+
+          @media (max-width: 1100px) {
+            grid-template-columns: minmax(0, 1fr);
+          }
         `}
       >
         <section
@@ -57,6 +62,13 @@ export const LogScreen = ({ admin }: LogScreenProps) => {
             gap: 0.85rem;
             ${scrollable}
             min-width: 0;
+            min-height: 15rem;
+            max-height: 30rem;
+            align-self: start;
+
+            @media (max-width: 1100px) {
+              max-height: 24rem;
+            }
           `}
         >
           <div
