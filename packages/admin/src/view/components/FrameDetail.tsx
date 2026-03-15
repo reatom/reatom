@@ -160,6 +160,7 @@ export const FrameDetail = ({
 
       {frame.error !== null && (
         <div
+          data-testid="frame-error-panel"
           css={`
             ${mono}
             ${badge}
