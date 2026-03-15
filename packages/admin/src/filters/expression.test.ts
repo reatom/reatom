@@ -1,4 +1,4 @@
-import { expect, test } from 'test'
+import { expect, test } from 'vitest'
 
 import { ADMIN_FRAME } from '../root'
 import type { AdminFrame, FilterGroup, FilterTag } from '../types'

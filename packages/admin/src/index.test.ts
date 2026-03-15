@@ -1,5 +1,5 @@
 import { atom, computed, notify, sleep, wrap } from '@reatom/core'
-import { expect, test } from 'test'
+import { expect, test } from 'vitest'
 
 import { createCounterApp } from './fixtures/counterApp'
 import { createTodoApp } from './fixtures/todoApp'

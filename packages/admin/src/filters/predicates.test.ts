@@ -1,4 +1,4 @@
-import { expect, test } from 'test'
+import { expect, test } from 'vitest'
 
 import type { AdminFrame, CausePredicate, FilterPredicate } from '../types'
 import {

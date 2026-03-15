@@ -1,5 +1,5 @@
 import { action, atom, computed, notify } from '@reatom/core'
-import { expect, test } from 'test'
+import { expect, test } from 'vitest'
 
 import { ADMIN_FRAME } from '../root'
 import { createReporter } from './index'

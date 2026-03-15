@@ -1,5 +1,5 @@
 import { atom } from '@reatom/core'
-import { expect, test } from 'test'
+import { expect, test } from 'vitest'
 
 import { ADMIN_FRAME } from '../root'
 import type { AdminAtom, AdminFrame } from '../types'
