@@ -93,8 +93,6 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     frame: Frame,
     state: unknown,
     error: unknown,
-    params: unknown[] | undefined,
-    payload: unknown,
   ) => {
     if (paused()) return
     const target = frame.atom
@@ -183,13 +181,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
                     error = (lastCall.payload as { error?: unknown })?.error
                   }
                 }
-                captureFrame(
-                  frame,
-                  state,
-                  error,
-                  params as unknown[] | undefined,
-                  undefined,
-                )
+                captureFrame(frame, state, error)
               }, ADMIN_FRAME),
               'hook',
             )
