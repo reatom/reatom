@@ -45,7 +45,6 @@ export function createEngine(deps: EngineDeps) {
     const atomRegistry = deps.atoms() as AtomRegistry
     const frameIndex = new Map(sessionFiltered.map((f) => [f.id, f]))
     const tags = deps.tags()
-    const expr = deps.expression()
     return sessionFiltered.filter((f) => {
       const matchesExclude = excludeConfigs.some((config) =>
         evaluateExpression(
