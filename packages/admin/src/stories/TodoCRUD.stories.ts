@@ -91,7 +91,9 @@ export const BuildAndInspectTodoList: StoryObj = {
     await expect(toggleItem).not.toBeNull()
     const todosItemsAfterToggle = getLogItemsByName(shadowRoot, 'todos')
     const latestTodos = todosItemsAfterToggle[todosItemsAfterToggle.length - 1]
-    await expect(parseLogItem(latestTodos!).content).toContain('"done":true')
+    await expect(parseLogItem(latestTodos!).previews.state).toContain(
+      '"done":true',
+    )
 
     todoApp.removeTodo(0)
     await wrap(
