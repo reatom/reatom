@@ -28,10 +28,14 @@ export interface ParsedLogItem {
 }
 
 export function parseLogItem(el: Element): ParsedLogItem {
-  const spans = el.querySelectorAll(':scope > span')
-  const timestamp = spans[0]?.textContent ?? ''
-  const name = spans[1]?.textContent ?? ''
-  const content = spans[2]?.textContent ?? ''
+  const timestamp = el.querySelector(':scope > span')?.textContent ?? ''
+  const name =
+    el.querySelector(':scope > div strong, :scope > div > span')?.textContent ??
+    ''
+  const content = Array.from(el.querySelectorAll(':scope > span'))
+    .map((span) => span.textContent ?? '')
+    .find((text) => text !== timestamp && !text.startsWith('#'))
+    ?? ''
   return { timestamp, name, content }
 }
 
@@ -78,32 +82,34 @@ export function parseFrameDetail(
   if (!detail) return null
   const h3 = detail.querySelector('h3')
   const atomName = h3?.textContent?.trim() ?? ''
-  const jsonDiv = Array.from(detail.querySelectorAll('div')).find((d) =>
-    d.textContent?.includes('"state"'),
+  const jsonDiv = Array.from(detail.querySelectorAll('[data-reatom-name="JsonInspector"], details, div')).find(
+    (element) =>
+      element.textContent?.includes('state') ||
+      element.textContent?.includes('payload') ||
+      element.textContent?.includes('params'),
   )
   let json: Record<string, unknown> = {}
   if (jsonDiv?.textContent) {
-    try {
-      json = JSON.parse(jsonDiv.textContent) as Record<string, unknown>
-    } catch {
-      json = {}
+    const normalizedText = jsonDiv.textContent
+      .replace(/\s+/g, ' ')
+      .replace(/value\s*/g, '')
+      .trim()
+    json = {
+      raw: normalizedText,
     }
   }
-  const causeChainDiv = Array.from(detail.querySelectorAll('div')).find((d) =>
-    d.textContent?.includes('Cause chain:'),
+  const causeChainDiv = Array.from(detail.querySelectorAll('section, div')).find(
+    (element) => element.textContent?.includes('Cause chain'),
   )
   const causeChainButtons = causeChainDiv?.querySelectorAll('button') ?? []
   const causeChainNames = Array.from(causeChainButtons).map(
     (b) => b.textContent ?? '',
   )
   const errorDiv = Array.from(detail.querySelectorAll('div')).find(
-    (d) =>
-      d.textContent !== null &&
-      d.textContent.length > 0 &&
-      !d.textContent.includes('ID:') &&
-      !d.textContent.includes('"state"') &&
-      !d.textContent.includes('Cause chain:') &&
-      /^(Error|TypeError|ReferenceError)/m.test(d.textContent.trim()),
+    (element) =>
+      element.textContent !== null &&
+      element.textContent.length > 0 &&
+      element.textContent.includes('Captured error'),
   )
   const hasError = errorDiv !== undefined
   return { atomName, json, causeChainNames, hasError }
@@ -113,13 +119,15 @@ export function getNavBadgeCount(root: DocumentFragment | Element): number {
   const nav = root.querySelector('[data-reatom-name="Nav"]')
   if (!nav) return 0
   const logButton = Array.from(nav.querySelectorAll('button')).find((btn) =>
-    btn.textContent?.includes('Log'),
+    btn.textContent?.includes('Activity'),
   )
   if (!logButton) return 0
-  const spans = logButton.querySelectorAll('span')
-  const badgeSpan = spans[spans.length - 1]
+  const badgeSpan = Array.from(nav.querySelectorAll('span')).find((span) =>
+    /\d+\/\d+ visible/.test(span.textContent ?? ''),
+  )
   if (!badgeSpan) return 0
-  const num = Number.parseInt(badgeSpan.textContent ?? '0', 10)
+  const match = badgeSpan.textContent?.match(/(\d+)\/(\d+)/)
+  const num = Number.parseInt(match?.[2] ?? '0', 10)
   return Number.isNaN(num) ? 0 : num
 }
 
@@ -127,10 +135,8 @@ export function typeInSearch(
   root: DocumentFragment | Element,
   query: string,
 ): void {
-  const input = root.querySelector(
-    'input[type="search"]',
-  ) as HTMLInputElement | null
-  if (!input) return
+  const input = root.querySelector('input[type="search"]')
+  if (!(input instanceof HTMLInputElement)) return
   input.value = query
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }

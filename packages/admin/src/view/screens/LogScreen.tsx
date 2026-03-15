@@ -1,8 +1,18 @@
 import type { Admin } from '../../index'
 import { FilterBar } from '../components/FilterBar'
-import { FrameDetail } from '../components/FrameDetail'
+import { EmptyStateCard } from '../components/EmptyStateCard'
+import { InspectorPanel } from '../components/InspectorPanel'
 import { LogItem } from '../components/LogItem'
-import { colors, flex, flexCol, scrollable } from '../styles'
+import { StateExplorer } from '../components/StateExplorer'
+import {
+  card,
+  colors,
+  flex,
+  gap,
+  p,
+  panelTitle,
+  scrollable,
+} from '../styles'
 
 export interface LogScreenProps {
   admin: Admin
@@ -16,7 +26,7 @@ export const LogScreen = ({ admin }: LogScreenProps) => {
     }
     return admin.filters.engine.visibleFrames()
   }
-  const highlightedIds = () => admin.filters.engine.highlightedIds()
+  const highlightStyles = () => admin.filters.engine.highlightedFrames()
   const atoms = () => admin.store.getAtoms()
   const selectedFrameId = () => admin.store.selectedFrameId()
   const selectedFrame = () => admin.store.selectedFrame()
@@ -24,65 +34,107 @@ export const LogScreen = ({ admin }: LogScreenProps) => {
   return (
     <div
       css={`
-        ${flex}
-        ${flexCol}
-        height: 100%;
+        display: grid;
+        gap: 1rem;
+        min-height: 0;
       `}
     >
       <FilterBar admin={admin} />
       <div
         css={`
-          flex: 1;
-          display: flex;
-          flex-direction: row;
+          display: grid;
+          grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 26rem);
+          gap: 1rem;
           min-height: 0;
         `}
       >
-        <div
+        <section
           css={`
-            flex: 1;
+            ${card}
+            ${p(2)}
+            display: grid;
+            gap: 0.85rem;
             ${scrollable}
             min-width: 0;
           `}
         >
-          {() =>
-            frames().map((frame) => (
-              <LogItem
-                frame={frame}
-                atomName={atoms().get(frame.atomId)?.name ?? frame.atomId}
-                isHighlighted={highlightedIds().has(frame.id)}
-                isSelected={selectedFrameId() === frame.id}
-                onSelect={() => {
-                  admin.store.selectedFrameId.set(frame.id)
-                  admin.causeGraph.selectedRootId.set(frame.id)
-                }}
-              />
-            ))
-          }
-        </div>
-        {() => {
-          const frame = selectedFrame()
-          if (!frame) return null
-          const atomName = atoms().get(frame.atomId)?.name ?? frame.atomId
-          return (
-            <div
+          <div
+            css={`
+              ${flex}
+              ${gap(1)}
+              justify-content: space-between;
+              align-items: center;
+            `}
+          >
+            <h2
               css={`
-                width: 20rem;
-                flex-shrink: 0;
-                border-left: 1px solid ${colors.border};
-                ${scrollable}
-                padding: 0.5rem;
+                ${panelTitle}
               `}
             >
-              <FrameDetail
-                admin={admin}
-                frame={frame}
-                atomName={atomName}
-                onClose={() => admin.store.selectedFrameId.set(null)}
-              />
+              Activity feed
+            </h2>
+            <div
+              css={`
+                color: ${colors.textSubtle};
+                font-size: 0.74rem;
+              `}
+            >
+              {() =>
+                `${frames().length} visible · ${admin.store.frameCount()} captured`
+              }
             </div>
-          )
-        }}
+          </div>
+
+          {() =>
+            frames().length === 0 ? (
+              <EmptyStateCard
+                title="No frames match the current filters"
+                description="Clear the search query, disable saved rules, or interact with your app to capture new state transitions."
+              />
+            ) : (
+              <div
+                css={`
+                  display: grid;
+                  gap: 0.55rem;
+                `}
+              >
+                {frames().map((frame) => (
+                  <LogItem
+                    frame={frame}
+                    atomName={atoms().get(frame.atomId)?.name ?? frame.atomId}
+                    highlightStyle={highlightStyles().get(frame.id)}
+                    isSelected={selectedFrameId() === frame.id}
+                    onSelect={() => {
+                      admin.store.selectFrame(frame.id)
+                      admin.causeGraph.selectedRootId.set(frame.id)
+                    }}
+                  />
+                ))}
+              </div>
+            )
+          }
+        </section>
+
+        <aside
+          css={`
+            display: grid;
+            gap: 1rem;
+            align-content: start;
+            min-height: 0;
+          `}
+        >
+          {() => <InspectorPanel admin={admin} frame={selectedFrame()} />}
+          <section
+            css={`
+              ${card}
+              ${p(3)}
+              display: grid;
+              gap: 0.85rem;
+            `}
+          >
+            <StateExplorer admin={admin} />
+          </section>
+        </aside>
       </div>
     </div>
   )

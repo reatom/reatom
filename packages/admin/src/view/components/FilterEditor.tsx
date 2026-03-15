@@ -1,6 +1,19 @@
 import type { Admin } from '../../index'
 import type { FilterMode } from '../../types'
-import { colors, flex, flexCol, gap, p, rounded } from '../styles'
+import {
+  buttonBase,
+  buttonGhost,
+  card,
+  colors,
+  flex,
+  flexWrap,
+  gap,
+  p,
+  panelTitle,
+} from '../styles'
+import { ExpressionGroupEditor } from './ExpressionGroupEditor'
+import { FilterConfigCard } from './FilterConfigCard'
+import { PredicateBuilder } from './PredicateBuilder'
 
 export interface FilterEditorProps {
   admin: Admin
@@ -17,134 +30,257 @@ export const FilterEditor = ({ admin }: FilterEditorProps) => {
   const engine = admin.filters.engine
   const tags = admin.filters.tags
   const configs = () => engine.configs()
+  const draftExpression = () => admin.filters.expression.expression()
 
   return (
     <div
       css={`
-        ${flex}
-        ${flexCol}
+        display: grid;
         ${gap(2)}
       `}
     >
-      <h3
+      <section
         css={`
-          margin: 0;
-          color: ${colors.text};
-          font-size: 1rem;
+          ${card}
+          ${p(3)}
+          display: grid;
+          gap: 1rem;
         `}
       >
-        Filter configs
-      </h3>
-      {() =>
-        configs().map((config) => (
+        <div
+          css={`
+            ${flex}
+            ${gap(2)}
+            ${flexWrap}
+            justify-content: space-between;
+            align-items: flex-start;
+          `}
+        >
+          <div>
+            <h3
+              css={`
+                ${panelTitle}
+              `}
+            >
+              Filter studio
+            </h3>
+            <p
+              css={`
+                margin: 0.4rem 0 0;
+                color: ${colors.textMuted};
+                line-height: 1.5;
+              `}
+            >
+              Compose reusable tags, build nested expressions, and save them as
+              show, hide, highlight, or exclude rules for different debugging
+              workflows.
+            </p>
+          </div>
           <div
             css={`
-              ${p(2)}
-              background: ${colors.surface};
-              border: 1px solid ${colors.border};
-              ${rounded}
+              ${flex}
+              ${gap(1)}
+              ${flexWrap}
             `}
           >
             <div
               css={`
-                ${flex} ${gap(2)};
-                margin-bottom: 0.5rem;
+                color: ${colors.textSubtle};
+                font-size: 0.74rem;
+                align-self: center;
+              `}
+            >
+              {() => `Draft nodes: ${draftExpression().children.length}`}
+            </div>
+            {MODES.map((mode) => (
+              <button
+                type="button"
+                css={buttonGhost}
+                on:click={() => {
+                  const defaultName = `${mode.label} rule`
+                  admin.filters.engine.addDraftConfig(defaultName, mode.value)
+                }}
+              >
+                Save as {mode.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              css={buttonBase}
+              on:click={() => engine.clearConfigs()}
+            >
+              Clear saved rules
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <div
+        css={`
+          display: grid;
+          grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+          gap: 1rem;
+        `}
+      >
+        <div
+          css={`
+            display: grid;
+            gap: 1rem;
+          `}
+        >
+          <section
+            css={`
+              display: grid;
+              gap: 0.85rem;
+            `}
+          >
+            <h3
+              css={`
+                ${panelTitle}
+              `}
+            >
+              Saved rules
+            </h3>
+            {() =>
+              configs().length === 0 ? (
+                <div
+                  css={`
+                    color: ${colors.textSubtle};
+                    font-size: 0.8rem;
+                  `}
+                >
+                  No saved rules yet. Build a draft expression and save it in
+                  one of the supported modes.
+                </div>
+              ) : (
+                configs().map((config) => (
+                  <FilterConfigCard admin={admin} config={config} />
+                ))
+              )
+            }
+          </section>
+
+          <section
+            css={`
+              ${card}
+              ${p(3)}
+              display: grid;
+              gap: 0.85rem;
+            `}
+          >
+            <div
+              css={`
+                ${flex}
+                ${gap(1)}
+                ${flexWrap}
+                justify-content: space-between;
                 align-items: center;
               `}
             >
-              <select
-                value={config.mode}
+              <h3
                 css={`
-                  padding: 0.25rem 0.5rem;
-                  border: 1px solid ${colors.border};
-                  background: ${colors.bg};
-                  color: ${colors.text};
-                  font-size: 0.75rem;
-                  ${rounded}
+                  ${panelTitle}
                 `}
-                on:change={(e: Event) => {
-                  const target = e.currentTarget as HTMLSelectElement
-                  engine.updateConfig(config.id, {
-                    mode: target.value as FilterMode,
-                  })
-                }}
               >
-                {MODES.map((m) => (
-                  <option value={m.value}>{m.label}</option>
-                ))}
-              </select>
+                Quick apply
+              </h3>
               <button
                 type="button"
-                css={`
-                  padding: 0.25rem 0.5rem;
-                  border: 1px solid ${colors.error};
-                  background: transparent;
-                  color: ${colors.error};
-                  cursor: pointer;
-                  font-size: 0.75rem;
-                  ${rounded}
-                `}
-                on:click={() => engine.removeConfig(config.id)}
+                css={buttonGhost}
+                on:click={() =>
+                  admin.filters.expression.setExpression({
+                    operator: 'AND',
+                    children: [],
+                  })
+                }
               >
-                Remove
+                Reset draft expression
               </button>
             </div>
+
             <div
               css={`
-                font-size: 0.7rem;
-                color: ${colors.textMuted};
+                ${flex}
+                ${gap(1)}
+                ${flexWrap}
               `}
             >
-              Tags:{' '}
-              {config.expression.children
-                .filter(
-                  (c): c is { tagId: string; negated: boolean } => 'tagId' in c,
-                )
-                .map((c) => {
-                  const tag = tags.getTag(c.tagId)
-                  return (
-                    (tag?.name ?? c.tagId) + (c.negated ? ' (negated)' : '')
-                  )
-                })
-                .join(', ')}
-            </div>
-          </div>
-        ))
-      }
-      <div
-        css={`
-          ${flex} ${gap(2)};
-          flex-wrap: wrap;
-        `}
-      >
-        {() =>
-          tags.tags().map((tag) => (
-            <button
-              type="button"
-              css={`
-                padding: 0.25rem 0.5rem;
-                border: 1px solid ${colors.border};
-                background: ${colors.bg};
-                color: ${colors.text};
-                cursor: pointer;
-                font-size: 0.75rem;
-                ${rounded}
-              `}
-              on:click={() =>
-                engine.addConfig({
-                  id: `config-${Date.now()}`,
-                  expression: {
-                    operator: 'AND',
-                    children: [{ tagId: tag.id, negated: false }],
-                  },
-                  mode: 'show',
-                })
+              {() =>
+                tags.tags().map((tag) => (
+                  <button
+                    type="button"
+                    css={buttonGhost}
+                    on:click={() =>
+                      engine.addConfig({
+                        id: `config-${Date.now()}-${tag.id}`,
+                        name: `Show ${tag.name}`,
+                        expression: {
+                          operator: 'AND',
+                          children: [{ tagId: tag.id, negated: false }],
+                        },
+                        mode: 'show',
+                      })
+                    }
+                  >
+                    + {tag.name}
+                  </button>
+                ))
               }
+            </div>
+          </section>
+        </div>
+
+        <div
+          css={`
+            display: grid;
+            gap: 1rem;
+            align-content: start;
+          `}
+        >
+          <ExpressionGroupEditor admin={admin} />
+          <PredicateBuilder admin={admin} />
+          <section
+            css={`
+              ${card}
+              ${p(3)}
+              display: grid;
+              gap: 0.75rem;
+            `}
+          >
+            <h3
+              css={`
+                ${panelTitle}
+              `}
             >
-              + {tag.name}
-            </button>
-          ))
-        }
+              Available tags
+            </h3>
+            <div
+              css={`
+                ${flex}
+                ${gap(1)}
+                ${flexWrap}
+              `}
+            >
+              {() =>
+                tags.tags().map((tag) => (
+                  <span
+                    css={`
+                      ${buttonGhost}
+                      display: inline-flex;
+                      align-items: center;
+                      background: ${tag.builtIn
+                        ? colors.bgElevated
+                        : colors.surfaceInteractive};
+                      color: ${tag.builtIn ? colors.textMuted : colors.text};
+                    `}
+                  >
+                    {tag.name}
+                  </span>
+                ))
+              }
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   )

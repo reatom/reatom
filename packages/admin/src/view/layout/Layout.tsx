@@ -1,5 +1,6 @@
 import type { Admin } from '../../index'
-import { colors, flex, flexCol, scrollable } from '../styles'
+import { HeaderBar } from '../components/HeaderBar'
+import { colors, flex, flexCol, p, scrollable } from '../styles'
 import { Nav } from './Nav'
 
 export interface LayoutProps {
@@ -19,11 +20,20 @@ export const Layout = ({ admin, outlet }: LayoutProps) => {
         font-size: 0.875rem;
       `}
     >
+      <div
+        css={`
+          ${p(2)}
+          padding-bottom: 0;
+        `}
+      >
+        <HeaderBar admin={admin} />
+      </div>
       <main
         css={`
           flex: 1;
           ${scrollable}
           min-height: 0;
+          ${p(2)}
         `}
       >
         {() => outlet().map((child) => child)}

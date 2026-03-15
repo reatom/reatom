@@ -2,7 +2,22 @@ import { urlAtom } from '@reatom/core'
 
 import type { Admin } from '../../index'
 import type { AdminFrame } from '../../types'
-import { colors, flex, flexCol, gap, p, rounded } from '../styles'
+import { formatDateTime, formatJson } from '../format'
+import {
+  badge,
+  buttonBase,
+  buttonGhost,
+  card,
+  colors,
+  flex,
+  flexCol,
+  flexWrap,
+  gap,
+  mono,
+  p,
+  panelTitle,
+} from '../styles'
+import { JsonInspector } from './JsonInspector'
 
 export interface FrameDetailProps {
   admin: Admin
@@ -19,97 +34,187 @@ export const FrameDetail = ({
 }: FrameDetailProps) => {
   const atoms = admin.store.getAtoms()
   const frameIndex = admin.store.frameIndex()
+  const framePayload = {
+    state: frame.state,
+    params: frame.params,
+    payload: frame.payload,
+    error: frame.error,
+  }
 
   return (
     <div
       css={`
-        ${flex}
-        ${flexCol}
+        ${card}
+        ${p(3)}
         ${gap(2)}
-        ${p(2)}
-        background: ${colors.surface};
-        border: 1px solid ${colors.border};
-        ${rounded}
+        display: grid;
       `}
     >
       <div
         css={`
-          ${flex} ${gap(2)};
+          ${flex}
+          ${gap(2)}
+          ${flexWrap}
           justify-content: space-between;
           align-items: center;
         `}
       >
-        <h3
-          css={`
-            margin: 0;
-            color: ${colors.text};
-          `}
-        >
-          {atomName}
-        </h3>
-        <button
-          type="button"
-          css={`
-            padding: 0.25rem 0.5rem;
-            border: 1px solid ${colors.border};
-            background: ${colors.bg};
-            color: ${colors.text};
-            cursor: pointer;
-            ${rounded}
-          `}
-          on:click={onClose}
-        >
-          Close
-        </button>
-      </div>
-      <div
-        css={`
-          font-size: 0.75rem;
-          color: ${colors.textMuted};
-        `}
-      >
-        ID: {frame.id} | {new Date(frame.timestamp).toISOString()}
-      </div>
-      {frame.error !== null && (
         <div
           css={`
-            color: ${colors.error};
-            font-family: monospace;
-            white-space: pre-wrap;
+            display: grid;
+            gap: 0.65rem;
           `}
         >
-          {String(frame.error)}
-        </div>
-      )}
-      <div
-        css={`
-          font-family: monospace;
-          font-size: 0.75rem;
-          white-space: pre-wrap;
-          word-break: break-all;
-        `}
-      >
-        {JSON.stringify(
-          { state: frame.state, params: frame.params, payload: frame.payload },
-          null,
-          2,
-        )}
-      </div>
-      {frame.pubIds.length > 0 && (
-        <div>
+          <div
+            css={`
+              ${flex}
+              ${gap(1)}
+              ${flexWrap}
+              align-items: center;
+            `}
+          >
+            <span
+              css={`
+                ${badge}
+                background: ${frame.error !== null
+                  ? colors.errorSoft
+                  : colors.accentSoft};
+                border-color: ${frame.error !== null
+                  ? colors.error
+                  : colors.accent};
+                color: ${frame.error !== null ? colors.error : colors.accent};
+              `}
+            >
+              {frame.error !== null ? 'Error frame' : 'Frame'}
+            </span>
+            <span
+              css={`
+                ${badge}
+                background: ${colors.bgElevated};
+                color: ${colors.textMuted};
+              `}
+            >
+              #{frame.id}
+            </span>
+          </div>
+          <h3
+            css={`
+              ${panelTitle}
+            `}
+          >
+            {atomName}
+          </h3>
           <div
             css={`
               color: ${colors.textMuted};
-              font-size: 0.75rem;
-              margin-bottom: 0.25rem;
+              font-size: 0.78rem;
+              line-height: 1.5;
             `}
           >
-            Cause chain:
+            <div>{formatDateTime(frame.timestamp)}</div>
+            <div>Session {frame.sessionId}</div>
           </div>
+        </div>
+
+        <div
+          css={`
+            ${flex}
+            ${gap(1)}
+            ${flexWrap}
+            justify-content: flex-end;
+          `}
+        >
+          <button
+            type="button"
+            css={buttonGhost}
+            on:click={() => {
+              navigator.clipboard.writeText(formatJson(framePayload))
+            }}
+          >
+            Copy JSON
+          </button>
+          <button
+            type="button"
+            css={buttonGhost}
+            on:click={() => {
+              const blob = new Blob([formatJson(framePayload)], {
+                type: 'application/json',
+              })
+              const url = URL.createObjectURL(blob)
+              const anchor = document.createElement('a')
+              anchor.href = url
+              anchor.download = `frame-${frame.id}.json`
+              document.body.append(anchor)
+              anchor.click()
+              anchor.remove()
+              URL.revokeObjectURL(url)
+            }}
+          >
+            Download
+          </button>
+          <button type="button" css={buttonGhost} on:click={onClose}>
+            Close
+          </button>
+        </div>
+      </div>
+
+      {frame.error !== null && (
+        <div
+          css={`
+            ${mono}
+            ${badge}
+            display: grid;
+            gap: 0.5rem;
+            padding: 0.85rem 1rem;
+            background: ${colors.errorSoft};
+            border-color: ${colors.error};
+            color: ${colors.error};
+            white-space: pre-wrap;
+            word-break: break-word;
+          `}
+        >
+          <strong>Captured error</strong>
+          <div>{formatJson(frame.error)}</div>
+        </div>
+      )}
+
+      <section
+        css={`
+          display: grid;
+          gap: 0.75rem;
+        `}
+      >
+        <h4
+          css={`
+            ${panelTitle}
+            font-size: 0.9rem;
+          `}
+        >
+          Structured payload
+        </h4>
+        <JsonInspector value={framePayload} />
+      </section>
+
+      {frame.pubIds.length > 0 && (
+        <section
+          css={`
+            display: grid;
+            gap: 0.75rem;
+          `}
+        >
+          <h4
+            css={`
+              ${panelTitle}
+              font-size: 0.9rem;
+            `}
+          >
+            Cause chain
+          </h4>
           <div
             css={`
-              ${flex} ${gap(1)};
-              flex-wrap: wrap;
+              ${flex}
+              ${gap(1)}
+              ${flexWrap}
             `}
           >
             {frame.pubIds.map((pubId) => {
@@ -120,18 +225,10 @@ export const FrameDetail = ({
               return (
                 <button
                   type="button"
-                  css={`
-                    padding: 0.25rem 0.5rem;
-                    border: 1px solid ${colors.border};
-                    background: ${colors.bg};
-                    color: ${colors.accent};
-                    cursor: pointer;
-                    font-size: 0.75rem;
-                    ${rounded}
-                  `}
+                  css={buttonGhost}
                   on:click={() => {
                     if (pubFrame) {
-                      admin.store.selectedFrameId.set(pubId)
+                      admin.store.selectFrame(pubId)
                       admin.causeGraph.selectedRootId.set(pubId)
                     }
                   }}
@@ -141,22 +238,24 @@ export const FrameDetail = ({
               )
             })}
           </div>
-        </div>
+        </section>
       )}
-      <button
-        type="button"
+
+      <div
         css={`
-          padding: 0.5rem 1rem;
-          border: 1px solid ${colors.border};
-          background: ${colors.accent};
-          color: ${colors.bg};
-          cursor: pointer;
-          ${rounded}
+          ${flex}
+          ${gap(1)}
+          ${flexWrap}
         `}
-        on:click={() => urlAtom.go('/graph')}
       >
-        Show in Graph
-      </button>
+        <button
+          type="button"
+          css={buttonBase}
+          on:click={() => urlAtom.go('/graph')}
+        >
+          Open in cause graph
+        </button>
+      </div>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import type { Admin } from '../../index'
-import { colors, flex, gap, px, py, rounded } from '../styles'
+import { buttonGhost, colors, flex, flexWrap, gap, inputLike, px, py } from '../styles'
 
 export interface FilterBarProps {
   admin: Admin
@@ -18,96 +18,119 @@ const TARGETS: Array<{
 
 export const FilterBar = ({ admin }: FilterBarProps) => {
   const search = admin.filters.search
-  const errorTagId = () =>
-    admin.filters.tags.tags().find((t) => t.builtIn && t.name === 'error')?.id
+  const builtInTagId = (name: string) =>
+    admin.filters.tags.tags().find((tag) => tag.builtIn && tag.name === name)?.id
+
+  const toggleQuickRule = (tagName: string, mode: 'show' | 'hide') => {
+    const tagId = builtInTagId(tagName)
+    if (!tagId) return
+
+    const existing = admin.filters.engine.configs().find(
+      (config) =>
+        config.name === `Quick ${tagName}` &&
+        config.expression.children.some(
+          (child) => 'tagId' in child && child.tagId === tagId,
+        ),
+    )
+
+    if (existing) {
+      admin.filters.engine.removeConfig(existing.id)
+      return
+    }
+
+    admin.filters.engine.addConfig({
+      id: `quick-${tagName}-${Date.now()}`,
+      name: `Quick ${tagName}`,
+      expression: {
+        operator: 'AND',
+        children: [{ tagId, negated: false }],
+      },
+      mode,
+    })
+  }
 
   return (
     <div
       css={`
         ${flex}
         ${gap(2)}
+        ${flexWrap}
         ${px(2)}
         ${py(1)}
         background: ${colors.surface};
         border-bottom: 1px solid ${colors.border};
+        align-items: center;
       `}
     >
       <input
         type="search"
-        placeholder="Search..."
+        placeholder="Search frames, params, payloads, and state..."
         model:value={search.searchQuery}
         css={`
           flex: 1;
-          ${px(2)}
-          ${py(1)}
-          ${rounded}
-          border: 1px solid ${colors.border};
-          background: ${colors.bg};
-          color: ${colors.text};
+          ${px(2)} ${py(1)}
+          ${inputLike}
           min-width: 0;
         `}
       />
       <select
         model:value={search.searchTarget}
         css={`
-          ${px(2)}
-          ${py(1)}
-          ${rounded}
-          border: 1px solid ${colors.border};
-          background: ${colors.bg};
-          color: ${colors.text};
+          ${px(2)} ${py(1)}
+          ${inputLike}
         `}
       >
         {TARGETS.map((t) => (
           <option value={t.value}>{t.label}</option>
         ))}
       </select>
-      {() => {
-        const errId = errorTagId()
-        if (!errId) return null
-        return (
+
+      <div
+        css={`
+          ${flex}
+          ${gap(1)}
+          ${flexWrap}
+        `}
+      >
+        {[
+          { label: 'Errors', tagName: 'error', mode: 'show' as const },
+          { label: 'Actions', tagName: 'action', mode: 'show' as const },
+          { label: 'State only', tagName: 'reactive', mode: 'show' as const },
+        ].map((quickRule) => (
           <button
             type="button"
-            css={`
-              ${px(2)}
-              ${py(1)}
-              ${rounded}
-              border: 1px solid ${colors.border};
-              background: ${colors.bg};
-              color: ${colors.error};
-              font-size: 0.75rem;
-              cursor: pointer;
-            `}
-            on:click={() => {
-              const configs = admin.filters.engine.configs()
-              const hasError = configs.some((c) =>
-                c.expression.children.some(
-                  (ch) => 'tagId' in ch && ch.tagId === errId,
-                ),
-              )
-              if (hasError) {
-                const toRemove = configs.find((c) =>
-                  c.expression.children.some(
-                    (ch) => 'tagId' in ch && ch.tagId === errId,
-                  ),
-                )
-                if (toRemove) admin.filters.engine.removeConfig(toRemove.id)
-              } else {
-                admin.filters.engine.addConfig({
-                  id: `err-${Date.now()}`,
-                  expression: {
-                    operator: 'AND',
-                    children: [{ tagId: errId, negated: false }],
-                  },
-                  mode: 'show',
-                })
-              }
-            }}
+            css={buttonGhost}
+            on:click={() =>
+              toggleQuickRule(quickRule.tagName, quickRule.mode)
+            }
           >
-            Errors
+            {quickRule.label}
           </button>
-        )
-      }}
+        ))}
+      </div>
+
+      <div
+        css={`
+          color: ${colors.textSubtle};
+          font-size: 0.72rem;
+          margin-left: auto;
+        `}
+      >
+        {() =>
+          `${search.resultCount()} result(s) · ${admin.filters.engine.configs().length} active rule(s)`
+        }
+      </div>
+
+      <button
+        type="button"
+        css={buttonGhost}
+        on:click={() => {
+          admin.filters.search.searchQuery.set('')
+          admin.filters.engine.clearConfigs()
+        }}
+      >
+        Reset
+      </button>
     </div>
   )
 }
