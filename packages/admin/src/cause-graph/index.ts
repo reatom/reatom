@@ -15,7 +15,6 @@ export type FrameIndex = Map<number, AdminFrame>
 export function buildAncestorGraph(
   frameId: number,
   frameIndex: FrameIndex,
-  atomRegistry: AtomRegistry,
   depthLimit?: number,
 ): CauseGraph {
   const rootFrame = frameIndex.get(frameId)
@@ -70,7 +69,6 @@ export function buildDescendantGraph(
   frameId: number,
   frames: AdminFrame[],
   frameIndex: FrameIndex,
-  atomRegistry: AtomRegistry,
   depthLimit?: number,
 ): CauseGraph {
   const nodes: CauseGraphNode[] = []
@@ -127,22 +125,10 @@ export function buildFullGraph(
   frameId: number,
   frames: AdminFrame[],
   frameIndex: FrameIndex,
-  atomRegistry: AtomRegistry,
   depthLimit?: number,
 ): CauseGraph {
-  const ancestor = buildAncestorGraph(
-    frameId,
-    frameIndex,
-    atomRegistry,
-    depthLimit,
-  )
-  const descendant = buildDescendantGraph(
-    frameId,
-    frames,
-    frameIndex,
-    atomRegistry,
-    depthLimit,
-  )
+  const ancestor = buildAncestorGraph(frameId, frameIndex, depthLimit)
+  const descendant = buildDescendantGraph(frameId, frames, frameIndex, depthLimit)
 
   const nodeMap = new Map<number, CauseGraphNode>()
   for (const n of [...ancestor.nodes, ...descendant.nodes]) {
@@ -209,27 +195,14 @@ export function createCauseGraph(deps: CauseGraphDeps) {
     if (rootId === null) return null
     const frames = deps.visibleFrames()
     const frameIndex = new Map(frames.map((f) => [f.id, f]))
-    const atomRegistry = deps.atoms()
 
     if (direction() === 'ancestors') {
-      return buildAncestorGraph(rootId, frameIndex, atomRegistry, depthLimit())
+      return buildAncestorGraph(rootId, frameIndex, depthLimit())
     }
     if (direction() === 'descendants') {
-      return buildDescendantGraph(
-        rootId,
-        frames,
-        frameIndex,
-        atomRegistry,
-        depthLimit(),
-      )
+      return buildDescendantGraph(rootId, frames, frameIndex, depthLimit())
     }
-    return buildFullGraph(
-      rootId,
-      frames,
-      frameIndex,
-      atomRegistry,
-      depthLimit(),
-    )
+    return buildFullGraph(rootId, frames, frameIndex, depthLimit())
   }, `${PREFIX}.graph`)
 
   const path = computed((): number[] | null => {
