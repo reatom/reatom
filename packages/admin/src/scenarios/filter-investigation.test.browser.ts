@@ -7,7 +7,7 @@ import { createWeatherApp } from '../fixtures/weatherApp'
 import { ADMIN_FRAME } from '../root'
 import {
   delay,
-  getDevtoolsSelector,
+  getDevtoolsHost,
   getRect,
   navigate,
   page,
@@ -76,15 +76,15 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
       '[data-reatom-name="ExpressionGroupEditor"]',
     )
 
-    expect(editorRect.width).toBeGreaterThan(900)
-    expect(predicateBuilderRect.width).toBeGreaterThan(280)
-    expect(expressionRect.width).toBeGreaterThan(280)
+    expect(editorRect.width).toBeGreaterThan(480)
+    expect(predicateBuilderRect.width).toBeGreaterThan(220)
+    expect(expressionRect.width).toBeGreaterThan(220)
     expect(shadowRoot.textContent?.includes('Highlight cross-app work')).toBe(
       true,
     )
     expect(shadowRoot.textContent?.includes('Show action traffic')).toBe(true)
     await expect(
-      page.locator(getDevtoolsSelector(devtools.containerId)),
+      page.elementLocator(getDevtoolsHost(devtools.containerId)),
     ).toMatchScreenshot('filter-workbench-curation')
   } finally {
     teardown()

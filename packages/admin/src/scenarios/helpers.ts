@@ -23,6 +23,14 @@ export function getDevtoolsSelector(containerId: string): string {
   return `#${containerId}`
 }
 
+export function getDevtoolsHost(containerId: string): HTMLElement {
+  const host = document.getElementById(containerId)
+  if (!(host instanceof HTMLElement)) {
+    throw new Error(`Missing devtools host ${containerId}`)
+  }
+  return host
+}
+
 export async function navigate(root: ShadowRoot, label: string): Promise<void> {
   const button = Array.from(root.querySelectorAll('button')).find((candidate) =>
     candidate.textContent?.includes(label),

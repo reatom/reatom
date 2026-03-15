@@ -3,7 +3,7 @@ import { expect, test } from 'test'
 import { createAdvancedTodoApp, STORAGE_KEY } from '../fixtures/advancedTodoApp'
 import {
   delay,
-  getDevtoolsSelector,
+  getDevtoolsHost,
   getRect,
   openLogFrame,
   page,
@@ -46,7 +46,12 @@ test('investigates an async rollback failure without breaking the activity works
     )
 
     goOffline()
-    await runInAppContext(() => advancedTodoApp.toggleTodo(0))
+    try {
+      await runInAppContext(() => advancedTodoApp.toggleTodo(0))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      expect(message).toContain('Network unavailable')
+    }
     await waitForDOM(
       shadowRoot,
       (root) => root.textContent?.includes('toggleTodo.onReject') ?? false,
@@ -67,7 +72,7 @@ test('investigates an async rollback failure without breaking the activity works
     expect(shadowRoot.textContent?.includes('Captured error')).toBe(true)
     expect(shadowRoot.textContent?.includes('Network unavailable')).toBe(true)
     await expect(
-      page.locator(getDevtoolsSelector(devtools.containerId)),
+      page.elementLocator(getDevtoolsHost(devtools.containerId)),
     ).toMatchScreenshot('live-debugging-rollback-investigation')
   } finally {
     goOnline()

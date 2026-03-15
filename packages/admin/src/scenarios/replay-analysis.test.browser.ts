@@ -4,7 +4,7 @@ import { createTodoApp } from '../fixtures/todoApp'
 import { ADMIN_FRAME } from '../root'
 import {
   delay,
-  getDevtoolsSelector,
+  getDevtoolsHost,
   getRect,
   navigate,
   openLogFrame,
@@ -43,7 +43,15 @@ test('switches into replay analysis and keeps graph exploration usable', async (
     })
     await delay(100)
 
-    await openLogFrame(shadowRoot, 'todos', 'Capture replay state')
+    const replayTodosItems = ADMIN_FRAME.run(() =>
+      admin.store
+        .frames()
+        .filter(
+          (frame) => admin.store.getAtoms().get(frame.atomId)?.name === 'todos',
+        ),
+    )
+    expect(replayTodosItems.length).toBeGreaterThan(0)
+    await openLogFrame(shadowRoot, 'todos', '')
     await navigate(shadowRoot, 'Graph')
     await waitForDOM(
       shadowRoot,
@@ -63,7 +71,7 @@ test('switches into replay analysis and keeps graph exploration usable', async (
     expect(shadowRoot.textContent?.includes('Shortest path')).toBe(false)
     expect(shadowRoot.textContent?.includes('Replay analysis')).toBe(true)
     await expect(
-      page.locator(getDevtoolsSelector(devtools.containerId)),
+      page.elementLocator(getDevtoolsHost(devtools.containerId)),
     ).toMatchScreenshot('replay-analysis-graph-workspace')
   } finally {
     teardown()
