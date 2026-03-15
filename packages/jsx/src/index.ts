@@ -1,12 +1,10 @@
 import {
   _read,
   action,
-  addChangeHook,
   assert,
   atom,
   type AtomLike,
   computed,
-  context,
   isAction,
   isAtom,
   isLinkedListAtom,
@@ -14,7 +12,6 @@ import {
   isWritableAtom,
   type LinkedList,
   type LLNode,
-  noop,
   peek,
   ReatomError,
   type Rec,
@@ -215,11 +212,7 @@ let walkLinkedList = (
   let cb = (state: LinkedList<LLNode<JSX.Element>>) => {
     if (state.version - 1 > lastVersion) {
       element.innerHTML = ''
-      for (
-        let head = state.head;
-        head;
-        head = (head)[state.LL_NEXT] ?? null
-      ) {
+      for (let head = state.head; head; head = head[state.LL_NEXT] ?? null) {
         throwNativeFragment(head)
         element.append(head)
       }
@@ -285,7 +278,7 @@ let walkLinkedList = (
           if (change.after) {
             change.after.insertAdjacentElement('afterend', change.node)
           } else {
-            element.append(change.node)
+            element.prepend(change.node)
           }
         } else if (change.kind === 'clear') {
           element.innerHTML = ''
@@ -297,23 +290,12 @@ let walkLinkedList = (
     lastVersion = state.version
   }
 
-  unlink(element, () => {
-    // it's critical to not use not a last state, but the each state.
-    let unSubscribe = list.subscribe(noop)
-    let rootFrame = context()
-    let unChange = addChangeHook(list, (state) => {
-      if (rootFrame === context()) cb(state as LinkedList<LLNode<JSX.Element>>)
-    })
+  unlink(element, () =>
+    list.subscribe((state) => cb(state as LinkedList<LLNode<JSX.Element>>)),
+  )
 
-    return () => {
-      unSubscribe()
-      unChange()
-    }
-  })
-
-  let state = list()
   // check if change hook wasn't called by initialization
-  if (lastVersion === -1) cb(state as LinkedList<LLNode<JSX.Element>>)
+  if (lastVersion === -1) cb(list() as LinkedList<LLNode<JSX.Element>>)
 }
 
 interface LiveDocumentFragment extends DocumentFragment {

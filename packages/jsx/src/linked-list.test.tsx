@@ -116,6 +116,39 @@ test('linked list createMany', () =>
     )
   }))
 
+test('linked list move to head', () =>
+  context.start(async () => {
+    const list = reatomLinkedList((value: number) => <span>{value}</span>)
+    const nodes = list.createMany([[1], [2], [3]])
+    const [one, two, three] = nodes
+
+    if (!one || !two || !three) {
+      throw new Error('Expected linked list nodes to be created')
+    }
+
+    const container = <div>{list}</div>
+    mount(parent(), container)
+
+    await wrap(sleep())
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>1</span><span>2</span><span>3</span>',
+    )
+
+    list.move(three, null)
+    await wrap(sleep())
+    expect(list.array()).toEqual([three, one, two])
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>3</span><span>1</span><span>2</span>',
+    )
+
+    list.move(one, two)
+    await wrap(sleep())
+    expect(list.array()).toEqual([three, two, one])
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>3</span><span>2</span><span>1</span>',
+    )
+  }))
+
 test('linked list removeMany', () =>
   context.start(async () => {
     const list = reatomLinkedList((value: number) => <span>{value}</span>)
