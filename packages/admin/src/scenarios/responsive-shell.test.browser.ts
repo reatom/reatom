@@ -38,6 +38,13 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
     }
     const wideRect = host.getBoundingClientRect()
     expect(wideRect.width).toBeGreaterThan(480)
+    const wideSearchInput = shadowRoot.querySelector(
+      '[data-testid="filter-search-input"]',
+    )
+    if (!(wideSearchInput instanceof HTMLInputElement)) {
+      throw new Error('Missing filter search input')
+    }
+    expect(wideSearchInput.getBoundingClientRect().width).toBeGreaterThan(240)
     await expect(
       page.elementLocator(
         getElement(shadowRoot, '[data-reatom-name="FilterBar"]'),
@@ -54,11 +61,19 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
     if (!(filterBarElement instanceof HTMLElement)) {
       throw new Error('Missing filter bar')
     }
+    const narrowSearchInput = shadowRoot.querySelector(
+      '[data-testid="filter-search-input"]',
+    )
+    if (!(narrowSearchInput instanceof HTMLInputElement)) {
+      throw new Error('Missing filter search input')
+    }
 
     expect(headerRect.width).toBeLessThanOrEqual(window.innerWidth)
+    expect(narrowSearchInput.getBoundingClientRect().width).toBeGreaterThan(180)
     expect(filterBarElement.scrollWidth).toBeLessThanOrEqual(
-      filterBarElement.clientWidth + 16,
+      filterBarElement.clientWidth + 8,
     )
+    expect(filterBarElement.textContent?.includes('result(s)')).toBe(true)
     await expect(
       page.elementLocator(filterBarElement),
     ).toMatchScreenshot('responsive-shell-narrow')
