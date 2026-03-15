@@ -174,7 +174,16 @@ test('highlight mode', async () => {
   const highlighted = ADMIN_FRAME.run(() =>
     admin.filters.engine.highlightedIds(),
   )
-  expect(highlighted.size).toBeGreaterThanOrEqual(0)
+  expect(highlighted.size).toBeGreaterThan(0)
+  const frames = ADMIN_FRAME.run(() => admin.store.frames())
+  const highlightedFrames = frames.filter((frame) => highlighted.has(frame.id))
+  expect(highlightedFrames.length).toBeGreaterThan(0)
+  const atoms = ADMIN_FRAME.run(() => admin.store.getAtoms())
+  const highlightedTodoFrame = highlightedFrames.find((frame) => {
+    const atomName = atoms.get(frame.atomId)?.name ?? ''
+    return atomName === 'todos' && JSON.stringify(frame.state).includes('x')
+  })
+  expect(highlightedTodoFrame).toBeDefined()
 
   admin.dispose()
 })

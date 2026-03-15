@@ -191,6 +191,16 @@ test('pubIds capture dependency structure', () => {
     const frames = reporter.frames()
     expect(frames.length).toBeGreaterThanOrEqual(1)
     expect(reporter.atoms().size).toBeGreaterThanOrEqual(1)
+    const atomsById = reporter.atoms()
+    const sourceFrame = frames.find(
+      (frame) => atomsById.get(frame.atomId)?.name === 'a',
+    )
+    const derivedFrame = frames.find(
+      (frame) => atomsById.get(frame.atomId)?.name === 'b',
+    )
+    expect(sourceFrame).toBeDefined()
+    expect(derivedFrame).toBeDefined()
+    expect(derivedFrame?.pubIds).toContain(sourceFrame?.id)
   })
 
   reporter.dispose()
