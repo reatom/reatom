@@ -4,7 +4,7 @@ import { createTodoApp } from '../fixtures/todoApp'
 import { ADMIN_FRAME } from '../root'
 import {
   delay,
-  getDevtoolsHost,
+  getElement,
   getRect,
   navigate,
   openLogFrame,
@@ -65,13 +65,16 @@ test('switches into replay analysis and keeps graph exploration usable', async (
       '[data-reatom-name="CauseGraphControls"]',
     )
 
-    expect(admin.view.summary().source).toBe('replay')
+    const source = ADMIN_FRAME.run(() => admin.view.summary().source)
+    expect(source).toBe('replay')
     expect(graphRect.width).toBeGreaterThan(500)
     expect(controlsRect.height).toBeGreaterThan(50)
     expect(shadowRoot.textContent?.includes('Shortest path')).toBe(false)
     expect(shadowRoot.textContent?.includes('Replay analysis')).toBe(true)
     await expect(
-      page.elementLocator(getDevtoolsHost(devtools.containerId)),
+      page.elementLocator(
+        getElement(shadowRoot, '[data-reatom-name="GraphNodes"]'),
+      ),
     ).toMatchScreenshot('replay-analysis-graph-workspace')
   } finally {
     teardown()

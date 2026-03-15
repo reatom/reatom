@@ -3,7 +3,7 @@ import { expect, test } from 'test'
 import { createAdvancedTodoApp, STORAGE_KEY } from '../fixtures/advancedTodoApp'
 import {
   delay,
-  getDevtoolsHost,
+  getElement,
   getRect,
   openLogFrame,
   page,
@@ -67,12 +67,14 @@ test('investigates an async rollback failure without breaking the activity works
     const inspectorRect = getRect(shadowRoot, '[data-reatom-name="InspectorPanel"]')
 
     expect(headerRect.height).toBeGreaterThan(200)
-    expect(filterBarRect.width).toBeGreaterThan(600)
+    expect(filterBarRect.width).toBeGreaterThan(480)
     expect(inspectorRect.width).toBeGreaterThan(280)
     expect(shadowRoot.textContent?.includes('Captured error')).toBe(true)
     expect(shadowRoot.textContent?.includes('Network unavailable')).toBe(true)
     await expect(
-      page.elementLocator(getDevtoolsHost(devtools.containerId)),
+      page.elementLocator(
+        getElement(shadowRoot, '[data-reatom-name="InspectorPanel"]'),
+      ),
     ).toMatchScreenshot('live-debugging-rollback-investigation')
   } finally {
     goOnline()

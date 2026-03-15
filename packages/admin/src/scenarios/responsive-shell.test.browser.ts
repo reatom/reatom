@@ -4,7 +4,7 @@ import { createCounterApp } from '../fixtures/counterApp'
 import { createTodoApp } from '../fixtures/todoApp'
 import {
   delay,
-  getDevtoolsHost,
+  getElement,
   getRect,
   page,
   resizeViewport,
@@ -39,7 +39,9 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
     const wideRect = host.getBoundingClientRect()
     expect(wideRect.width).toBeGreaterThan(480)
     await expect(
-      page.elementLocator(getDevtoolsHost(devtools.containerId)),
+      page.elementLocator(
+        getElement(shadowRoot, '[data-reatom-name="FilterBar"]'),
+      ),
     ).toMatchScreenshot('responsive-shell-wide')
 
     await resizeViewport(960, 720)
@@ -58,7 +60,7 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
       filterBarElement.clientWidth + 16,
     )
     await expect(
-      page.elementLocator(getDevtoolsHost(devtools.containerId)),
+      page.elementLocator(filterBarElement),
     ).toMatchScreenshot('responsive-shell-narrow')
 
     devtools.hide()

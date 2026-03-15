@@ -12,11 +12,15 @@ export function getShadowRoot(containerId: string): ShadowRoot {
 }
 
 export function getRect(root: ParentNode, selector: string): DOMRect {
+  return getElement(root, selector).getBoundingClientRect()
+}
+
+export function getElement(root: ParentNode, selector: string): HTMLElement {
   const element = root.querySelector(selector)
   if (!(element instanceof HTMLElement)) {
     throw new Error(`Missing element ${selector}`)
   }
-  return element.getBoundingClientRect()
+  return element
 }
 
 export function getDevtoolsSelector(containerId: string): string {

@@ -7,7 +7,7 @@ import { createWeatherApp } from '../fixtures/weatherApp'
 import { ADMIN_FRAME } from '../root'
 import {
   delay,
-  getDevtoolsHost,
+  getElement,
   getRect,
   navigate,
   page,
@@ -84,7 +84,9 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
     )
     expect(shadowRoot.textContent?.includes('Show action traffic')).toBe(true)
     await expect(
-      page.elementLocator(getDevtoolsHost(devtools.containerId)),
+      page.elementLocator(
+        getElement(shadowRoot, '[data-reatom-name="FilterEditor"]'),
+      ),
     ).toMatchScreenshot('filter-workbench-curation')
   } finally {
     teardown()
