@@ -43,6 +43,7 @@ export const FrameDetail = ({
 
   return (
     <div
+      data-reatom-name="FrameDetail"
       css={`
         ${card}
         ${p(3)}

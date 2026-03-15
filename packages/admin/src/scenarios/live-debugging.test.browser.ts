@@ -71,9 +71,13 @@ test('investigates an async rollback failure without breaking the activity works
     expect(inspectorRect.width).toBeGreaterThan(280)
     expect(shadowRoot.textContent?.includes('Captured error')).toBe(true)
     expect(shadowRoot.textContent?.includes('Network unavailable')).toBe(true)
+    expect(shadowRoot.textContent?.includes('Atom timeline')).toBe(true)
+    expect(
+      shadowRoot.textContent?.includes('Structured payload'),
+    ).toBe(true)
     await expect(
       page.elementLocator(
-        getElement(shadowRoot, '[data-testid="frame-error-panel"]'),
+        getElement(shadowRoot, '[data-reatom-name="InspectorPanel"]'),
       ),
     ).toMatchScreenshot('live-debugging-rollback-investigation')
   } finally {
