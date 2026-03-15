@@ -5,6 +5,7 @@ import { expect } from 'storybook/test'
 import { createCounterApp } from '../fixtures/counterApp'
 import { createTodoApp } from '../fixtures/todoApp'
 import { ADMIN_FRAME, currentDevtools, setup } from './helpers'
+import { createControlWorkbenchScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
 let counterApp: ReturnType<typeof createCounterApp>
@@ -41,7 +42,12 @@ export const BuildReusableHighlightAndShowRules: StoryObj = {
       admin.filters.engine.addDraftConfig('Show business activity', 'show')
       admin.filters.engine.addDraftConfig('Highlight flow pivots', 'highlight')
     })
-    return document.createElement('div')
+    return createControlWorkbenchScene(
+      todoApp,
+      counterApp,
+      'Filter workbench fixture',
+      'The visible todo and counter state helps you compare what the app is doing with the saved filter rules you build inside the admin panel.',
+    )
   },
   play: async () => {
     const shadowRoot = document.getElementById(

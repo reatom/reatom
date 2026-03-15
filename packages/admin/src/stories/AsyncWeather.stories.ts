@@ -12,6 +12,7 @@ import {
   SETTLE_MS,
   setup,
 } from './helpers'
+import { createWeatherScene } from './sceneHelpers'
 
 let weatherApp: ReturnType<typeof createWeatherApp>
 
@@ -32,7 +33,11 @@ export const AsyncLifecycleInDevtools: StoryObj = {
     setup()
     weatherApp = createWeatherApp()
     weatherApp.weather.subscribe(() => {})
-    return document.createElement('div')
+    return createWeatherScene(
+      weatherApp,
+      'Async weather fixture',
+      'Drive a tiny weather selector and compare visible UI state with the async traces recorded in the admin panel.',
+    )
   },
   play: async () => {
     const shadowRoot = document.getElementById(

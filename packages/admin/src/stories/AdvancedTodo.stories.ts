@@ -20,6 +20,7 @@ import {
   waitForDOM,
   waitForLogItem,
 } from './helpers'
+import { createAdvancedTodoScene } from './sceneHelpers'
 
 let advancedTodoApp: ReturnType<typeof createAdvancedTodoApp>
 
@@ -54,7 +55,7 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     localStorage.removeItem(STORAGE_KEY)
     setup()
     advancedTodoApp = createAdvancedTodoApp()
-    return document.createElement('div')
+    return createAdvancedTodoScene(advancedTodoApp)
   },
   play: async () => {
     const shadowRoot = document.getElementById(

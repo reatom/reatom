@@ -225,9 +225,20 @@ export async function waitForDOM(
 export type AdminDevtoolsInstance = ReturnType<typeof createAdminDevtools>
 
 export let currentDevtools: AdminDevtoolsInstance | null = null
+let storyCleanups: Array<() => void> = []
 
 export function clearCurrentDevtools(): void {
   currentDevtools = null
+}
+
+export function registerStoryCleanup(cleanup: () => void): void {
+  storyCleanups.push(cleanup)
+}
+
+export function runStoryCleanups(): void {
+  for (const cleanup of storyCleanups.splice(0)) {
+    cleanup()
+  }
 }
 
 export function clearAdminStorage(): void {
@@ -266,6 +277,7 @@ export function setup(): {
     ADMIN_FRAME.run(() => devtools.hide())
     admin.dispose()
     clearAdminStorage()
+    runStoryCleanups()
     currentDevtools = null
   }
 

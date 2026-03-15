@@ -16,6 +16,7 @@ import {
   setup,
   waitForDOM,
 } from './helpers'
+import { createMultiAppScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
 let counterApp: ReturnType<typeof createCounterApp>
@@ -40,7 +41,7 @@ export const ThreeAppsDistinctlyCaptured: StoryObj = {
     counterApp = createCounterApp()
     weatherApp = createWeatherApp()
     weatherApp.weather.subscribe(() => {})
-    return document.createElement('div')
+    return createMultiAppScene(todoApp, counterApp, weatherApp)
   },
   play: async () => {
     const shadowRoot = document.getElementById(

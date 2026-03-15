@@ -14,6 +14,7 @@ import {
   setup,
   waitForDOM,
 } from './helpers'
+import { createTodoScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
 
@@ -33,7 +34,11 @@ export const ExportImportAndContinueInvestigation: StoryObj = {
   render: () => {
     setup()
     todoApp = createTodoApp()
-    return document.createElement('div')
+    return createTodoScene(
+      todoApp,
+      'Replay analysis fixture',
+      'This todo fixture stays visible while you export a captured session, import it back into replay mode, and continue the investigation.',
+    )
   },
   play: async () => {
     const shadowRoot = document.getElementById(

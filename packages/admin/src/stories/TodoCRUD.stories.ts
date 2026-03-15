@@ -18,6 +18,7 @@ import {
   setup,
   waitForDOM,
 } from './helpers'
+import { createTodoScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
 
@@ -37,7 +38,11 @@ export const BuildAndInspectTodoList: StoryObj = {
   render: () => {
     setup()
     todoApp = createTodoApp()
-    return document.createElement('div')
+    return createTodoScene(
+      todoApp,
+      'Todo CRUD fixture',
+      'Use the miniature todo application on the left while the admin devtools records the corresponding mutations on the right.',
+    )
   },
   play: async () => {
     const shadowRoot = document.getElementById(

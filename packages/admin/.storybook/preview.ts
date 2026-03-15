@@ -5,6 +5,7 @@ import {
   clearAdminStorage,
   clearCurrentDevtools,
   currentDevtools,
+  runStoryCleanups,
 } from '../src/stories/helpers'
 
 const preview: Preview = {
@@ -20,6 +21,7 @@ const preview: Preview = {
         currentDevtools.admin.dispose()
         clearCurrentDevtools()
       }
+      runStoryCleanups()
       clearAdminStorage()
     }
   },

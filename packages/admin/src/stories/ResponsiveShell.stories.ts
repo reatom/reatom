@@ -5,6 +5,7 @@ import { expect } from 'storybook/test'
 import { createCounterApp } from '../fixtures/counterApp'
 import { createTodoApp } from '../fixtures/todoApp'
 import { currentDevtools, setup } from './helpers'
+import { createControlWorkbenchScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
 let counterApp: ReturnType<typeof createCounterApp>
@@ -25,7 +26,12 @@ export const KeepsWorkspaceReadableWhenViewportTightens: StoryObj = {
     counterApp.increment()
     counterApp.increment()
 
-    return document.createElement('div')
+    return createControlWorkbenchScene(
+      todoApp,
+      counterApp,
+      'Responsive shell fixture',
+      'A small visible application stays on the canvas so the devtools overlay can be judged in context while the viewport tightens.',
+    )
   },
   play: async () => {
     const devtools = currentDevtools
