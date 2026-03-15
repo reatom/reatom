@@ -12,7 +12,7 @@ import { createAdminDevtools } from '../view'
 export const SETTLE_MS = 50
 
 export function getLogItems(root: DocumentFragment | Element): Element[] {
-  return Array.from(root.querySelectorAll('[data-reatom-name="LogItem"]'))
+  return Array.from(root.querySelectorAll('[data-frame-id]'))
 }
 
 export function getLogText(root: DocumentFragment | Element): string {
@@ -27,12 +27,23 @@ export interface ParsedLogItem {
   timestamp: string
 }
 
+function normalizePreviewText(text: string): string {
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([\[\]\{\}:,])\s*/g, '$1')
+    .trim()
+}
+
 export function parseLogItem(el: Element): ParsedLogItem {
-  const spans = el.querySelectorAll(':scope > span')
-  const timestamp = spans[0]?.textContent ?? ''
-  const name = spans[1]?.textContent ?? ''
-  const content = spans[2]?.textContent ?? ''
-  return { timestamp, name, content }
+  const timestamp = el.querySelector(':scope > span')?.textContent ?? ''
+  const name =
+    el.querySelector(':scope > div strong, :scope > div > span')?.textContent ??
+    ''
+  const content = Array.from(el.querySelectorAll(':scope > span'))
+    .map((span) => span.textContent ?? '')
+    .find((text) => text !== timestamp && !text.startsWith('#'))
+    ?? ''
+  return { timestamp, name, content: normalizePreviewText(content) }
 }
 
 export function getLogItemsByName(
@@ -78,59 +89,48 @@ export function parseFrameDetail(
   if (!detail) return null
   const h3 = detail.querySelector('h3')
   const atomName = h3?.textContent?.trim() ?? ''
-  const jsonDiv = Array.from(detail.querySelectorAll('div')).find((d) =>
-    d.textContent?.includes('"state"'),
+  const jsonDiv = Array.from(detail.querySelectorAll('[data-reatom-name="JsonInspector"], details, div')).find(
+    (element) =>
+      element.textContent?.includes('state') ||
+      element.textContent?.includes('payload') ||
+      element.textContent?.includes('params'),
   )
   let json: Record<string, unknown> = {}
   if (jsonDiv?.textContent) {
-    try {
-      json = JSON.parse(jsonDiv.textContent) as Record<string, unknown>
-    } catch {
-      json = {}
+    const normalizedText = normalizePreviewText(
+      jsonDiv.textContent.replace(/value\s*/g, ''),
+    )
+    json = {
+      raw: normalizedText,
     }
   }
-  const causeChainDiv = Array.from(detail.querySelectorAll('div')).find((d) =>
-    d.textContent?.includes('Cause chain:'),
+  const causeChainDiv = Array.from(detail.querySelectorAll('section, div')).find(
+    (element) => element.textContent?.includes('Cause chain'),
   )
   const causeChainButtons = causeChainDiv?.querySelectorAll('button') ?? []
   const causeChainNames = Array.from(causeChainButtons).map(
     (b) => b.textContent ?? '',
   )
   const errorDiv = Array.from(detail.querySelectorAll('div')).find(
-    (d) =>
-      d.textContent !== null &&
-      d.textContent.length > 0 &&
-      !d.textContent.includes('ID:') &&
-      !d.textContent.includes('"state"') &&
-      !d.textContent.includes('Cause chain:') &&
-      /^(Error|TypeError|ReferenceError)/m.test(d.textContent.trim()),
+    (element) =>
+      element.textContent !== null &&
+      element.textContent.length > 0 &&
+      element.textContent.includes('Captured error'),
   )
   const hasError = errorDiv !== undefined
   return { atomName, json, causeChainNames, hasError }
 }
 
 export function getNavBadgeCount(root: DocumentFragment | Element): number {
-  const nav = root.querySelector('[data-reatom-name="Nav"]')
-  if (!nav) return 0
-  const logButton = Array.from(nav.querySelectorAll('button')).find((btn) =>
-    btn.textContent?.includes('Log'),
-  )
-  if (!logButton) return 0
-  const spans = logButton.querySelectorAll('span')
-  const badgeSpan = spans[spans.length - 1]
-  if (!badgeSpan) return 0
-  const num = Number.parseInt(badgeSpan.textContent ?? '0', 10)
-  return Number.isNaN(num) ? 0 : num
+  return getLogItems(root).length
 }
 
 export function typeInSearch(
   root: DocumentFragment | Element,
   query: string,
 ): void {
-  const input = root.querySelector(
-    'input[type="search"]',
-  ) as HTMLInputElement | null
-  if (!input) return
+  const input = root.querySelector('input[type="search"]')
+  if (!(input instanceof HTMLInputElement)) return
   input.value = query
   input.dispatchEvent(new Event('input', { bubbles: true }))
 }
@@ -182,6 +182,29 @@ export function assertLogOrder(
   }
 }
 
+export function assertExactLogNames(
+  root: DocumentFragment | Element,
+  expectedNames: string[],
+): void {
+  const actualNames = getLogItems(root).map((el) => parseLogItem(el).name)
+  if (actualNames.length !== expectedNames.length) {
+    throw new Error(
+      `Expected exact log count ${expectedNames.length}, got ${actualNames.length}. ` +
+        `Actual names: [${actualNames.join(', ')}]`,
+    )
+  }
+  for (let index = 0; index < expectedNames.length; index++) {
+    const expectedName = expectedNames[index]
+    const actualName = actualNames[index]
+    if (actualName !== expectedName) {
+      throw new Error(
+        `Expected exact log name "${expectedName}" at index ${index}, got "${actualName}". ` +
+          `Actual names: [${actualNames.join(', ')}]`,
+      )
+    }
+  }
+}
+
 const POLL_INTERVAL_MS = 16
 
 export async function waitForDOM(
@@ -202,9 +225,31 @@ export async function waitForDOM(
 export type AdminDevtoolsInstance = ReturnType<typeof createAdminDevtools>
 
 export let currentDevtools: AdminDevtoolsInstance | null = null
+let storyCleanups: Array<() => void> = []
 
 export function clearCurrentDevtools(): void {
   currentDevtools = null
+}
+
+export function registerStoryCleanup(cleanup: () => void): void {
+  storyCleanups.push(cleanup)
+}
+
+export function runStoryCleanups(): void {
+  for (const cleanup of storyCleanups.splice(0)) {
+    cleanup()
+  }
+}
+
+export function clearAdminStorage(): void {
+  if (typeof window === 'undefined') return
+
+  const adminKeys = Object.keys(localStorage).filter(
+    (key) => key.startsWith('_Admin.') || key.startsWith('_Admin'),
+  )
+  for (const key of adminKeys) {
+    localStorage.removeItem(key)
+  }
 }
 
 export function setCurrentDevtools(
@@ -219,6 +264,7 @@ export function setup(): {
   devtools: AdminDevtoolsInstance
   teardown: () => void
 } {
+  clearAdminStorage()
   const devtools = createAdminDevtools()
   currentDevtools = devtools
   const { admin, containerId } = devtools
@@ -228,8 +274,10 @@ export function setup(): {
   const shadowRoot = document.getElementById(containerId)!.shadowRoot!
 
   const teardown = () => {
-    devtools.hide()
+    ADMIN_FRAME.run(() => devtools.hide())
     admin.dispose()
+    clearAdminStorage()
+    runStoryCleanups()
     currentDevtools = null
   }
 

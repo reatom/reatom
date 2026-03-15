@@ -14,6 +14,7 @@ import {
   typeInSearch,
   waitForDOM,
 } from './helpers'
+import { createControlWorkbenchScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
 let counterApp: ReturnType<typeof createCounterApp>
@@ -29,7 +30,12 @@ export const PauseResumeAndSearch: StoryObj = {
     setup()
     todoApp = createTodoApp()
     counterApp = createCounterApp()
-    return document.createElement('div')
+    return createControlWorkbenchScene(
+      todoApp,
+      counterApp,
+      'Devtools controls fixture',
+      'Interact with a compact todo and counter surface while testing pause, resume, and search behavior in the admin panel.',
+    )
   },
   play: async () => {
     const shadowRoot = document.getElementById(

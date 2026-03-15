@@ -23,10 +23,23 @@ export interface AdminSession {
 }
 
 export type FilterTarget = 'name' | 'state' | 'params' | 'payload'
+export type FilterKind =
+  | 'reactive'
+  | 'action'
+  | 'async'
+  | 'reject'
+  | 'fulfill'
 
 export interface FilterPredicate {
   id: string
-  type: 'text' | 'timeRange' | 'error' | 'cause' | 'session' | 'regex'
+  type:
+    | 'text'
+    | 'timeRange'
+    | 'error'
+    | 'cause'
+    | 'session'
+    | 'regex'
+    | 'kind'
   target?: FilterTarget
   value: unknown
 }
@@ -62,8 +75,11 @@ export type FilterMode = 'show' | 'hide' | 'highlight' | 'exclude'
 
 export interface FilterConfig {
   id: string
+  name: string
   expression: FilterGroup
   mode: FilterMode
+  enabled: boolean
+  highlightColor?: string
 }
 
 export interface CauseGraphNode {
@@ -87,4 +103,32 @@ export interface ExportedSession {
   session: AdminSession
   atoms: Record<string, AdminAtom>
   frames: Array<AdminFrame>
+}
+
+export interface HighlightStyle {
+  background: string
+  borderColor: string
+  textColor: string
+}
+
+export interface AdminSummary {
+  totalFrames: number
+  visibleFrames: number
+  hiddenFrames: number
+  highlightedFrames: number
+  errorFrames: number
+  uniqueAtoms: number
+  selectedFrameId: number | null
+  source: 'live' | 'replay'
+}
+
+export interface StateTreeNode {
+  id: string
+  kind: 'group' | 'atom'
+  label: string
+  path: string
+  atomId?: string
+  frameId?: number
+  value?: unknown
+  children: Array<StateTreeNode>
 }

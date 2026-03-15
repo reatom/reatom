@@ -1,7 +1,12 @@
 import { urlAtom } from '@reatom/core'
 import type { Preview } from '@storybook/html'
 
-import { clearCurrentDevtools, currentDevtools } from '../src/stories/helpers'
+import {
+  clearAdminStorage,
+  clearCurrentDevtools,
+  currentDevtools,
+  runStoryCleanups,
+} from '../src/stories/helpers'
 
 const preview: Preview = {
   beforeEach() {
@@ -9,12 +14,15 @@ const preview: Preview = {
     if (typeof window !== 'undefined' && window.location.pathname !== '/') {
       window.history.replaceState({}, '', '/')
     }
+    clearAdminStorage()
     return () => {
       if (currentDevtools) {
         currentDevtools.hide()
         currentDevtools.admin.dispose()
         clearCurrentDevtools()
       }
+      runStoryCleanups()
+      clearAdminStorage()
     }
   },
 }

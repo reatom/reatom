@@ -20,6 +20,7 @@ test('createAdmin wires reporter, store, filters, timeline, causeGraph', () => {
     expect(storeFrames).toEqual(visibleFrames)
     const buckets = admin.timeline.buckets()
     expect(Array.isArray(buckets)).toBe(true)
+    expect(admin.view.summary().source).toBe('live')
   })
 
   admin.dispose()
@@ -354,6 +355,26 @@ test('session export and import', async () => {
   expect(frames.length).toBe(exportFrameCount)
   expect(exportFrameCount).toBeGreaterThan(0)
   expect(exported.session.id).toBeDefined()
+  expect(ADMIN_FRAME.run(() => admin2.view.summary().source)).toBe('replay')
 
   admin2.dispose()
+})
+
+test('action frames are captured only once per call', async () => {
+  const admin = createAdmin()
+  const { addTodo } = createTodoApp()
+
+  addTodo('debug')
+  await wrap(sleep(10))
+
+  const frames = ADMIN_FRAME.run(() => admin.store.frames())
+  const names = ADMIN_FRAME.run(() =>
+    frames.map((frame) => admin.store.getAtoms().get(frame.atomId)?.name ?? ''),
+  )
+  const actionFrames = names.filter((name) => name === 'addTodo')
+  const ids = frames.map((frame) => frame.id)
+
+  expect(actionFrames).toEqual(['addTodo'])
+  expect(new Set(ids).size).toBe(ids.length)
+  admin.dispose()
 })

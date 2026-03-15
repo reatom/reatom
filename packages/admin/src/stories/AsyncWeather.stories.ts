@@ -12,8 +12,15 @@ import {
   SETTLE_MS,
   setup,
 } from './helpers'
+import { createWeatherScene } from './sceneHelpers'
 
 let weatherApp: ReturnType<typeof createWeatherApp>
+
+function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+  if (!detail) return ''
+  const raw = detail.json.raw
+  return typeof raw === 'string' ? raw : JSON.stringify(detail.json)
+}
 
 const meta: Meta = {
   title: 'Admin/Async Weather',
@@ -26,7 +33,11 @@ export const AsyncLifecycleInDevtools: StoryObj = {
     setup()
     weatherApp = createWeatherApp()
     weatherApp.weather.subscribe(() => {})
-    return document.createElement('div')
+    return createWeatherScene(
+      weatherApp,
+      'Async weather fixture',
+      'Drive a tiny weather selector and compare visible UI state with the async traces recorded in the admin panel.',
+    )
   },
   play: async () => {
     const shadowRoot = document.getElementById(
@@ -63,7 +74,7 @@ export const AsyncLifecycleInDevtools: StoryObj = {
     }
     const parsed = parseFrameDetail(shadowRoot)
     if (parsed) {
-      await expect(JSON.stringify(parsed.json)).toContain('Paris')
+      await expect(getDetailText(parsed)).toContain('Paris')
     }
 
     const cities = ['Tokyo', 'Berlin', 'Sydney']
@@ -74,10 +85,7 @@ export const AsyncLifecycleInDevtools: StoryObj = {
 
     const cityItems = getLogItemsByName(shadowRoot, 'weather.city')
     await expect(cityItems.length).toBeGreaterThanOrEqual(3)
-    const cityNamesInContent = cityItems.map((el) => {
-      const match = parseLogItem(el).content.match(/"([^"]+)"/)
-      return match ? match[1] : ''
-    })
+    const cityNamesInContent = cityItems.map((el) => parseLogItem(el).content)
     const hasAllCities = cities.every((c) => cityNamesInContent.includes(c))
     await expect(hasAllCities).toBe(true)
   },

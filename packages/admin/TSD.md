@@ -1,371 +1,304 @@
-# @reatom/admin -- Technical Specification Document
+# @reatom/admin — Technical Specification
 
-## Vision
+## Product objective
 
-Two products built on shared infrastructure:
+`@reatom/admin` is now a unified debugging product rather than a data-layer
+prototype.
 
-1. **Sentry Killer** -- remote error/event tracking dashboard that replays Reatom sessions from backend-stored logs
-2. **Client Debugger** -- in-page devtools for live Reatom debugging during development
+It has two primary modes:
 
-This TSD covers the **data layer (Epic 1)**: types, reporter, session, store, filters, timeline, cause graph, and public API. The view layer (Epic 2) will be planned separately.
+1. **Live devtools** for in-page debugging during development
+2. **Replay analysis** for exported sessions that can be inspected later without
+   a backend
 
----
-
-## Architecture Overview
+## High-level architecture
 
 ```mermaid
-graph TB
-  subgraph runtime [Reatom Runtime]
-    Atoms[Atoms / Actions]
-    GlobExt[addGlobalExtension]
-  end
+flowchart TD
+  A[User Reatom runtime] --> B[Reporter]
+  B --> C[Session manager]
+  B --> D[Store]
+  D --> E[Filter engine]
+  D --> F[Timeline analytics]
+  D --> G[Cause graph]
+  D --> H[View model]
 
-  subgraph admin [@reatom/admin]
-    Reporter[Reporter]
-    FrameStore[FrameStore - ring buffer]
-    Session[Session Manager]
-    Filters[Filter Engine]
-    Timeline[Timeline / Analytics]
-    CauseGraph[Cause Graph]
-    PublicAPI[Public API - index.ts]
-  end
+  E --> I[Activity workspace]
+  E --> J[Filter studio]
+  F --> K[Timeline workspace]
+  G --> L[Cause graph workspace]
+  H --> M[Header summary]
+  H --> N[State explorer]
 
-  GlobExt -->|withMiddleware hook| Reporter
-  Reporter -->|pushes AdminFrames + AdminAtoms| FrameStore
-  Session -->|sessionId| Reporter
-  FrameStore -->|AdminFrame array| Filters
-  Filters -->|filtered + modes| Timeline
-  Filters -->|filtered + modes| CauseGraph
-  CauseGraph -->|graph nodes/edges| PublicAPI
-  PublicAPI --> Reporter
-  PublicAPI --> FrameStore
-  PublicAPI --> Session
-  PublicAPI --> Filters
-  PublicAPI --> Timeline
-  PublicAPI --> CauseGraph
+  D --> O[Export replay]
+  O --> P[Import replay]
+  P --> D
 ```
 
-The local debugger is simply the admin panel with the current session pre-selected and live updates enabled.
+## Context isolation
 
----
-
-## Context Isolation (`src/root.ts`)
-
-Reatom's core singletons (like `STACK`) are shared across the entire JS runtime. When a developer uses the admin devtools alongside their own app, the admin's internal atoms must NOT be captured by the admin's own reporter, and the admin's state must live in a separate context from user code.
-
-This follows the same pattern established in `packages/devtools/src/root.ts`:
-
-```ts
-import { context } from '@reatom/core'
-
-export const ADMIN_FRAME = context.start()
-```
-
-### How it works
-
-1. `context.start()` creates a fresh isolated `RootState` with its own `Store` (WeakMap), queues, and frame. All admin-internal atoms created inside `ADMIN_FRAME.run(() => {...})` live in this separate store, invisible to the user's context.
-
-2. The `addGlobalExtension` hook intercepts atoms/actions in the **user's** context. Inside the middleware, we use `bind(callback, ADMIN_FRAME)` to route captured data into the admin's context.
-
-3. Admin atoms use the `_Admin.` prefix. The reporter's `addGlobalExtension` callback skips atoms with `_`-prefixed names via `isSkip()`, preventing infinite recursion.
-
-4. `createAdmin()` wraps all internal setup in `ADMIN_FRAME.run(() => {...})`.
+Admin state continues to live inside `ADMIN_FRAME`, which isolates admin atoms
+from the application under inspection.
 
 ```mermaid
 sequenceDiagram
-  participant UserCtx as User Context
-  participant Reporter as addGlobalExtension hook
-  participant AdminCtx as Admin Context - ADMIN_FRAME
+  participant App as User app context
+  participant Reporter as Reporter middleware
+  participant Admin as ADMIN_FRAME
 
-  UserCtx->>Reporter: atom state change
+  App->>Reporter: atom or action update
   Reporter->>Reporter: build AdminFrame
-  Reporter->>AdminCtx: bind(pushFrame, ADMIN_FRAME)
-  AdminCtx->>AdminCtx: update _Admin.store.frames
+  Reporter->>Admin: push frame metadata
+  Admin->>Admin: update store, filters, timeline, graph, view model
 ```
 
-### Testing pattern
+This guarantees:
 
-In tests, all admin modules are tested against the default global context (no `clearStack`, no `context.start`). Use `context.reset()` in `beforeEach` to ensure a clean slate:
+- admin internals are not self-recorded
+- the product can observe the app without polluting the app context
+- live and replay sessions share the same downstream UI model
 
-```ts
-import { context } from '@reatom/core'
-import { beforeEach } from 'vitest'
+## Core serializable entities
 
-beforeEach(() => {
-  context.reset()
-})
+### `AdminAtom`
+
+- stable atom metadata
+- shared across all frames referencing the same runtime atom
+
+### `AdminFrame`
+
+- timestamped frame record
+- holds:
+  - `state`
+  - `params`
+  - `payload`
+  - `error`
+  - `pubIds`
+
+### `AdminSession`
+
+- stable session identifier
+- start timestamp
+- arbitrary metadata payload
+
+## Store responsibilities
+
+The store is now responsible for more than simple frame retention.
+
+### Primary responsibilities
+
+- maintain live and replay sources
+- hold the selected frame
+- export and import serialized sessions
+- derive frame indexes and time ranges
+
+### New UI-facing derived state
+
+- total frame count
+- total error count
+- unique atom count
+- latest frame per atom
+- latest frame list
+- current resolved session
+
+These derivations support:
+
+- summary cards
+- state explorer construction
+- inspector history navigation
+- source badges and replay state
+
+## Filter system
+
+The filter model now powers a real filter studio rather than a placeholder
+toolbar.
+
+### Predicate support
+
+- text
+- regex
+- time range
+- error
+- cause traversal
+- session
+- kind
+
+### Built-in kinds
+
+- reactive
+- action
+- async
+- reject
+- fulfill
+
+### Built-in tags
+
+- error
+- action
+- reactive
+- async
+- reject
+- fulfill
+
+### Saved rule model
+
+Each saved rule now contains:
+
+- stable id
+- name
+- enabled flag
+- mode
+- optional highlight color
+- nested expression tree
+
+### Persistence
+
+When browser storage is available, the following are persisted:
+
+- custom tags
+- saved filter configs
+- search query
+- search target
+- draft expression
+
+## View model
+
+The view model is a dedicated adapter between the reactive data layer and the
+product UI.
+
+### Responsibilities
+
+- compute summary cards
+- build the full state tree
+- build the visible state tree
+
+### Summary shape
+
+- total frames
+- visible frames
+- hidden frames
+- highlighted frames
+- error frames
+- unique atoms
+- source
+- selected frame id
+
+## Product shell
+
+The UI is now organized as a multi-workspace product shell.
+
+```mermaid
+flowchart LR
+  A[Header] --> B[Summary cards]
+  A --> C[Session controls]
+  D[Navigation] --> E[Activity]
+  D --> F[Timeline]
+  D --> G[Cause graph]
+  D --> H[Filter studio]
 ```
 
-Each `createAdmin()` call in tests creates a fresh `ADMIN_FRAME` internally, so admin state is also fresh.
+### Header
 
----
+- live vs replay badge
+- session metadata
+- recording status
+- summary cards
+- session controls
 
-## Core Types (`src/types.ts`)
+### Activity workspace
 
-### AdminAtom
+- search and quick built-in filters
+- styled feed with colored highlights
+- structured frame inspector
+- recent atom history
+- state explorer
 
-Serializable representation of a real atom/action. Registered once per unique atom, referenced by ID from AdminFrames.
+### Timeline workspace
 
-```ts
-interface AdminAtom {
-  id: string
-  name: string
-  isReactive: boolean
-}
+- bucket size control
+- zoom control
+- offset control
+- bucket focus panel
+
+### Cause graph workspace
+
+- direction switching
+- depth limit control
+- path-from control
+- synchronized node selection
+
+### Filter studio
+
+- saved rule cards
+- nested expression editor
+- reusable predicate builder
+- quick apply section
+
+## Testing strategy
+
+The package now has a dedicated multi-layer testing strategy.
+
+```mermaid
+flowchart TD
+  A[Unit tests] --> B[Data correctness]
+  C[Storybook scenarios] --> D[Interactive journeys]
+  E[Browser scenario tests] --> F[Layout stability and replay workflows]
+  G[CI artifacts] --> H[Failure inspection]
 ```
 
-The reporter maintains a `WeakMap<AtomLike, string>` to map runtime atoms to `AdminAtom.id`. Each unique atom is registered once; all its frames reference the same `AdminAtom.id`.
+### Unit tests
 
-### AdminFrame
+Cover:
 
-Serializable snapshot of a single frame execution. Uses ID-based links instead of object references.
+- reporter
+- store
+- predicates
+- tags
+- expressions
+- engine
+- timeline
+- cause graph
+- view model
 
-```ts
-interface AdminFrame {
-  id: number
-  timestamp: number
-  sessionId: string
-  atomId: string
-  state: unknown
-  error: unknown | null
-  params: Array<unknown> | undefined
-  payload: unknown | undefined
-  pubIds: Array<number>
-}
-```
+### Storybook scenarios
 
-`pubIds` stores IDs of dependency AdminFrames, making the causal graph fully serializable. This mirrors how `Frame.pubs` works in core but uses numeric references. `atomId` references an `AdminAtom` for metadata lookup.
+Stories are written as real debugging journeys, including:
 
-### AdminSession
+- CRUD analysis
+- async weather inspection
+- advanced rollback investigation
+- multi-app traces
+- filter workbench curation
 
-```ts
-interface AdminSession {
-  id: string
-  startedAt: number
-  metadata: Record<string, unknown>
-}
-```
+### Browser scenario tests
 
-### Filter Types
+The browser suite validates realistic workflows:
 
-```ts
-type FilterTarget = 'name' | 'state' | 'params' | 'payload'
+- async rollback failure investigation
+- noisy multi-app filter curation
+- replay analysis
+- responsive shell behavior
 
-interface FilterPredicate {
-  id: string
-  type: 'text' | 'timeRange' | 'error' | 'cause' | 'session' | 'regex'
-  target?: FilterTarget
-  value: unknown
-}
+These tests emphasize:
 
-type CauseDirection = '>' | '<'
+- layout geometry
+- route-level usability
+- replay safety
+- visibility toggles and shell stability
 
-interface CausePredicate extends FilterPredicate {
-  type: 'cause'
-  direction: CauseDirection
-  referencePattern: string
-}
+### CI pipeline expectations
 
-interface FilterTag {
-  id: string
-  name: string
-  predicates: Array<FilterPredicate>
-  builtIn: boolean
-}
+The repository workflow should run:
 
-type LogicalOperator = 'AND' | 'OR'
+- `@reatom/core` tests
+- `@reatom/admin` unit tests
+- `@reatom/admin` Storybook scenario tests
+- `@reatom/admin` browser scenario tests
 
-interface FilterGroup {
-  operator: LogicalOperator
-  children: Array<FilterTagRef | FilterGroup>
-}
+Failure artifacts should include any browser screenshot outputs generated by the
+runner.
 
-interface FilterTagRef {
-  tagId: string
-  negated: boolean
-}
-
-type FilterMode = 'show' | 'hide' | 'highlight' | 'exclude'
-
-interface FilterConfig {
-  id: string
-  expression: FilterGroup
-  mode: FilterMode
-}
-```
-
-Filter modes:
-
-- **show**: only show matched frames
-- **hide**: hide matched, show everything else
-- **highlight**: show all, visually mark matched
-- **exclude**: remove from datasource entirely (performance optimization)
-
-### Cause Graph Types
-
-```ts
-interface CauseGraphNode {
-  frameId: number
-  atomId: string
-  depth: number
-}
-
-interface CauseGraphEdge {
-  fromFrameId: number
-  toFrameId: number
-}
-
-interface CauseGraph {
-  nodes: Array<CauseGraphNode>
-  edges: Array<CauseGraphEdge>
-  rootFrameId: number
-}
-```
-
----
-
-## Reporter (`src/reporter/`)
-
-Hooks into the runtime via `addGlobalExtension`, captures structured `AdminFrame` objects instead of console output.
-
-- Uses `withMiddleware` to intercept atom/action calls in the user's context
-- Uses `bind(callback, ADMIN_FRAME)` to route captured data into the admin's isolated context
-- Captures `state`, `error`, `params`, `payload` from the middleware
-- Maintains a `WeakMap<AtomLike, string>` to register `AdminAtom` entries on first encounter
-- Resolves `pubIds` by maintaining a `WeakMap<Frame, number>` mapping runtime frames to AdminFrame IDs
-- Uses `isSkip()` to ignore private atoms (`_`-prefixed)
-- All admin-internal atoms use `_Admin.` prefix to avoid self-recording
-- All internal atom creation happens inside `ADMIN_FRAME.run(() => {...})`
-- Fires an `onFrame` callback for each captured frame (transport hook)
-- Supports `match` filter for selective recording
-- `dispose()` removes the global extension
-
-### Reporter public API
-
-- `_Admin.reporter.atoms` -- atom: `Map<string, AdminAtom>` registry of all seen atoms
-- `_Admin.reporter.frames` -- ring buffer atom
-- `_Admin.reporter.paused` -- boolean atom
-- `_Admin.reporter.clear` -- action
-- `_Admin.reporter.dispose` -- action
-- `_Admin.reporter.onFrame` -- action (fires per frame)
-
----
-
-## Session Manager (`src/session/`)
-
-- `_Admin.session.current` -- atom holding `AdminSession`
-- `_Admin.session.id` -- computed, extracts `current().id`
-- `_Admin.session.start` -- action, creates a new session with UUID + timestamp
-- Auto-starts on reporter init
-
----
-
-## Frame Store (`src/store/`)
-
-Central data management, works with both live reporter data and imported sessions.
-
-- `_Admin.store.frames` -- atom: the master `Array<AdminFrame>` (from reporter or imported)
-- `_Admin.store.maxFrames` -- atom: ring buffer capacity (default 10000)
-- `_Admin.store.importSession` -- action: loads frames from JSON, tags with session ID
-- `_Admin.store.exportSession` -- computed/action: serializes current frames + session metadata
-- `_Admin.store.source` -- atom: `'live' | 'replay'`
-- `_Admin.store.selectedFrameId` -- atom: currently selected frame ID or null
-- `_Admin.store.selectedFrame` -- computed: resolved AdminFrame
-- `_Admin.store.uniqueNames` -- computed: distinct atom names
-- `_Admin.store.timeRange` -- computed: `[min, max]` timestamps
-- `_Admin.store.frameIndex` -- computed: `Map<number, AdminFrame>` for O(1) lookup by ID
-
----
-
-## Filter System (`src/filters/`)
-
-### Predicates (`predicates.ts`)
-
-Pure functions that test a single `AdminFrame` against a `FilterPredicate`:
-
-- `matchText(frame, text, target, atomRegistry)` -- substring match in name/state/params/payload depending on `FilterTarget`
-- `matchRegex(frame, pattern, target, atomRegistry)` -- regex match against the chosen target
-- `matchTimeRange(frame, start, end)` -- timestamp within range
-- `matchError(frame, atomRegistry)` -- has error AND is not an abort error; also match `.onReject` actions
-- `matchCause(frame, direction, referencePattern, frameIndex, atomRegistry)` -- traverse `pubIds` graph:
-  - `>` means "caused by": walk the `pubIds` of `frame` recursively, check if any ancestor matches `referencePattern`
-  - `<` means "caused": find frames whose `pubIds` contain `frame.id` (reverse lookup)
-- `matchSession(frame, sessionId)` -- session ID equality
-
-### Tags (`tags.ts`)
-
-Named, saveable filter presets:
-
-- `_Admin.filters.tags` -- atom: `Array<FilterTag>`
-- `_Admin.filters.createTag` -- action: creates a new named tag from predicates
-- `_Admin.filters.updateTag` -- action
-- `_Admin.filters.deleteTag` -- action
-- Built-in tags (non-deletable):
-  - `"error"`: matches `.onReject` actions (excluding abort errors)
-
-### Expression (`expression.ts`)
-
-Builds and evaluates logical expressions from tags:
-
-- `_Admin.filters.expression` -- atom: the current `FilterGroup`
-- `_Admin.filters.setExpression` -- action
-- `evaluateExpression(frame, expression, tags, frameIndex)` -- recursive evaluator
-
-### Engine (`engine.ts`)
-
-Applies filter configs to the frame array:
-
-- `_Admin.filters.configs` -- atom: `Array<FilterConfig>` (multiple configs coexist)
-- `_Admin.filters.addConfig` -- action
-- `_Admin.filters.removeConfig` -- action
-- `_Admin.filters.updateConfig` -- action
-- `_Admin.filters.activeDataSource` -- computed: frames after `exclude`-mode configs
-- `_Admin.filters.visibleFrames` -- computed: frames after `show`/`hide` configs
-- `_Admin.filters.highlightedIds` -- computed: `Set<number>` matched by `highlight` configs
-- Session ID filter is implicitly always active (cannot be disabled)
-
-### Search (`search.ts`)
-
-- `_Admin.filters.searchQuery` -- atom: string
-- `_Admin.filters.searchTarget` -- atom: `FilterTarget | 'all'`
-- `_Admin.filters.searchResults` -- computed: frames matching search within `visibleFrames`
-
----
-
-## Timeline & Analytics (`src/timeline/`)
-
-- `_Admin.timeline.bucketSize` -- atom: ms per bucket
-- `_Admin.timeline.buckets` -- computed: frames bucketed by time intervals
-- `_Admin.timeline.zoom` -- atom: zoom level
-- `_Admin.timeline.offset` -- atom: scroll offset timestamp
-- `_Admin.timeline.visibleRange` -- computed: `[start, end]` timestamps
-- `_Admin.timeline.frameGroups` -- computed: cluster frames that share the same timestamp (same transaction)
-
----
-
-## Cause Graph (`src/cause-graph/`)
-
-Dedicated module for building and querying causal relationship graphs. Powers a separate screen visualizing how frames connect through `pubIds` dependency chains.
-
-### Pure Functions
-
-- `buildAncestorGraph(frameId, frameIndex, atomRegistry)` -- walks `pubIds` upward recursively
-- `buildDescendantGraph(frameId, frames, frameIndex, atomRegistry)` -- finds downstream effects
-- `buildFullGraph(frameId, frames, frameIndex, atomRegistry)` -- combines ancestor + descendant
-- `findPath(fromFrameId, toFrameId, frameIndex)` -- BFS shortest causal path
-
-### Reactive State
-
-- `_Admin.causeGraph.selectedRootId` -- atom: root frame ID for exploration
-- `_Admin.causeGraph.direction` -- atom: `'ancestors' | 'descendants' | 'full'`
-- `_Admin.causeGraph.graph` -- computed: `CauseGraph` from root + direction
-- `_Admin.causeGraph.depthLimit` -- atom: max traversal depth
-- `_Admin.causeGraph.pathFrom` -- atom: second frame ID for path-finding
-- `_Admin.causeGraph.path` -- computed: shortest path or null
-
----
-
-## Public API (`src/index.ts`)
+## Public API
 
 ```ts
 interface AdminOptions {
@@ -375,66 +308,18 @@ interface AdminOptions {
   onFrame?: (frame: AdminFrame) => void
 }
 
-function createAdmin(options?: AdminOptions): Admin
-
 interface Admin {
-  reporter: { atoms, frames, paused, clear, dispose, onFrame }
-  session: { current, id, start }
-  store: { frames, importSession, exportSession, selectedFrameId, ... }
-  filters: { tags, configs, expression, visibleFrames, highlightedIds, searchQuery, ... }
-  timeline: { buckets, zoom, offset, visibleRange, ... }
-  causeGraph: { selectedRootId, direction, graph, depthLimit, pathFrom, path }
+  reporter: ...
+  session: ...
+  store: ...
+  filters: ...
+  timeline: ...
+  causeGraph: ...
+  view: ...
   dispose: () => void
 }
 ```
 
----
-
-## Dependencies
-
-- `@reatom/core` -- atoms, actions, addGlobalExtension, withMiddleware, isAbort, Frame, AtomLike
-- `vitest` -- test runner (unit config for `.test.ts`)
-
----
-
-## File Structure
-
-```
-packages/admin/
-  src/
-    root.ts
-    types.ts
-    reporter/
-      index.ts
-      index.test.ts
-    session/
-      index.ts
-      index.test.ts
-    store/
-      index.ts
-      index.test.ts
-    filters/
-      predicates.ts
-      predicates.test.ts
-      tags.ts
-      tags.test.ts
-      expression.ts
-      expression.test.ts
-      engine.ts
-      engine.test.ts
-      search.ts
-      search.test.ts
-      index.ts
-    timeline/
-      index.ts
-      index.test.ts
-    cause-graph/
-      index.ts
-      index.test.ts
-    index.ts
-  vitest.config.ts
-  vitest.browser.config.ts
-  package.json
-  tsconfig.json
-  TSD.md
-```
+The `view` branch is intentionally public because the shell relies on it for
+summary cards and state explorer rendering, and custom hosts may want the same
+derived state.

@@ -4,6 +4,7 @@ import { expect } from 'storybook/test'
 
 import { createTodoApp } from '../fixtures/todoApp'
 import {
+  assertExactLogNames,
   clickLogItem,
   currentDevtools,
   findLogItem,
@@ -17,8 +18,15 @@ import {
   setup,
   waitForDOM,
 } from './helpers'
+import { createTodoScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
+
+function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+  if (!detail) return ''
+  const raw = detail.json.raw
+  return typeof raw === 'string' ? raw : JSON.stringify(detail.json)
+}
 
 const meta: Meta = {
   title: 'Admin/Todo CRUD',
@@ -30,7 +38,11 @@ export const BuildAndInspectTodoList: StoryObj = {
   render: () => {
     setup()
     todoApp = createTodoApp()
-    return document.createElement('div')
+    return createTodoScene(
+      todoApp,
+      'Todo CRUD fixture',
+      'Use the miniature todo application on the left while the admin devtools records the corresponding mutations on the right.',
+    )
   },
   play: async () => {
     const shadowRoot = document.getElementById(
@@ -106,6 +118,16 @@ export const BuildAndInspectTodoList: StoryObj = {
     const lastTodos = todosItemsAfterRemove[todosItemsAfterRemove.length - 1]
     await expect(parseLogItem(lastTodos!).content).toContain('Walk dog')
     await expect(parseLogItem(lastTodos!).content).not.toContain('Buy milk')
+    assertExactLogNames(shadowRoot, [
+      'todos',
+      'addTodo',
+      'todos',
+      'addTodo',
+      'todos',
+      'toggleTodo',
+      'todos',
+      'removeTodo',
+    ])
 
     const addTodoBuyMilkItem = findLogItem(shadowRoot, 'addTodo', 'Buy milk')
     await expect(addTodoBuyMilkItem).not.toBeNull()
@@ -116,7 +138,7 @@ export const BuildAndInspectTodoList: StoryObj = {
     const parsed = parseFrameDetail(shadowRoot)
     await expect(parsed).not.toBeNull()
     await expect(parsed!.atomName).toContain('addTodo')
-    await expect(JSON.stringify(parsed!.json)).toContain('Buy milk')
+    await expect(getDetailText(parsed)).toContain('Buy milk')
 
     const todosLogItems = getLogItemsByName(shadowRoot, 'todos')
     await expect(todosLogItems.length).toBeGreaterThanOrEqual(1)

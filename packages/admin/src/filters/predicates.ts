@@ -4,12 +4,57 @@ import type {
   AdminAtom,
   AdminFrame,
   CausePredicate,
+  FilterKind,
   FilterPredicate,
   FilterTarget,
 } from '../types'
 
 export type AtomRegistry = Map<string, AdminAtom>
 export type FrameIndex = Map<number, AdminFrame>
+
+function serializeValue(value: unknown): string {
+  if (value === undefined) return 'undefined'
+  if (value === null) return 'null'
+  if (value instanceof Error) {
+    return [value.name, value.message, value.stack ?? ''].join(' ')
+  }
+  if (value instanceof URL) return value.href
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (typeof value === 'bigint') return value.toString()
+  if (typeof value === 'symbol') return value.toString()
+  if (typeof value === 'function') {
+    return value.name ? `[Function ${value.name}]` : '[Function anonymous]'
+  }
+
+  try {
+    return JSON.stringify(value)
+  } catch {
+    return Object.prototype.toString.call(value)
+  }
+}
+
+function getPatternRegex(pattern: string | RegExp): RegExp | null {
+  if (pattern instanceof RegExp) return pattern
+
+  const delimitedMatch = pattern.match(/^\/(.+)\/([a-z]*)$/i)
+  if (delimitedMatch) {
+    const [, source, flags] = delimitedMatch
+    try {
+      return new RegExp(source, flags)
+    } catch {
+      return null
+    }
+  }
+
+  try {
+    return new RegExp(pattern, 'i')
+  } catch {
+    return null
+  }
+}
 
 function getTargetValue(
   frame: AdminFrame,
@@ -22,11 +67,11 @@ function getTargetValue(
     case 'name':
       return name
     case 'state':
-      return JSON.stringify(frame.state)
+      return serializeValue(frame.state)
     case 'params':
-      return JSON.stringify(frame.params ?? [])
+      return serializeValue(frame.params ?? [])
     case 'payload':
-      return JSON.stringify(frame.payload)
+      return serializeValue(frame.payload)
     default:
       return name
   }
@@ -40,13 +85,14 @@ function getSearchableString(
   if (target === 'all') {
     const parts = [
       atomRegistry.get(frame.atomId)?.name ?? '',
-      JSON.stringify(frame.state),
-      JSON.stringify(frame.params ?? []),
-      JSON.stringify(frame.payload),
+      serializeValue(frame.state),
+      serializeValue(frame.params ?? []),
+      serializeValue(frame.payload),
+      serializeValue(frame.error),
     ]
     return parts.join(' ')
   }
-  return getTargetValue(frame, target as FilterTarget, atomRegistry)
+  return getTargetValue(frame, target, atomRegistry)
 }
 
 export function matchText(
@@ -67,7 +113,8 @@ export function matchRegex(
   atomRegistry: AtomRegistry,
 ): boolean {
   const str = getSearchableString(frame, target, atomRegistry)
-  const re = typeof pattern === 'string' ? new RegExp(pattern, 'i') : pattern
+  const re = getPatternRegex(pattern)
+  if (!re) return false
   return re.test(str)
 }
 
@@ -86,15 +133,60 @@ export function matchError(
   if (!frame.error) return false
   if (isAbort(frame.error)) return false
   const atom = atomRegistry.get(frame.atomId)
-  const isOnReject = atom?.name.endsWith('.onReject') ?? false
+  if (atom?.name.endsWith('.onReject')) return true
   return true
 }
 
-function nameMatchesPattern(name: string, pattern: string | RegExp): boolean {
-  if (typeof pattern === 'string') {
-    return name.includes(pattern) || new RegExp(pattern, 'i').test(name)
+function toFilterKind(value: unknown): FilterKind {
+  if (typeof value !== 'string') return 'action'
+
+  switch (value) {
+    case 'reactive':
+    case 'action':
+    case 'async':
+    case 'reject':
+    case 'fulfill':
+      return value
+    default:
+      return 'action'
   }
-  return pattern.test(name)
+}
+
+export function matchKind(
+  frame: AdminFrame,
+  kind: FilterKind,
+  atomRegistry: AtomRegistry,
+): boolean {
+  const atom = atomRegistry.get(frame.atomId)
+  if (!atom) return false
+
+  const isReactive = atom.isReactive
+  const isAction = !isReactive
+  const isReject = atom.name.endsWith('.onReject')
+  const isFulfill = atom.name.endsWith('.onFulfill')
+  const isAsync = isReject || isFulfill
+
+  switch (kind) {
+    case 'reactive':
+      return isReactive
+    case 'action':
+      return isAction
+    case 'async':
+      return isAsync
+    case 'reject':
+      return isReject
+    case 'fulfill':
+      return isFulfill
+    default:
+      return false
+  }
+}
+
+function nameMatchesPattern(name: string, pattern: string | RegExp): boolean {
+  if (typeof pattern === 'string' && name.includes(pattern)) return true
+  const regex = getPatternRegex(pattern)
+  if (!regex) return false
+  return regex.test(name)
 }
 
 export function matchCause(
@@ -105,9 +197,6 @@ export function matchCause(
   atomRegistry: AtomRegistry,
   allFrames?: AdminFrame[],
 ): boolean {
-  const atom = atomRegistry.get(frame.atomId)
-  const frameName = atom?.name ?? ''
-
   if (direction === '>') {
     const visited = new Set<number>()
     const queue = [...frame.pubIds]
@@ -142,6 +231,23 @@ export function matchSession(frame: AdminFrame, sessionId: string): boolean {
   return frame.sessionId === sessionId
 }
 
+function toRegexPattern(value: unknown): string | RegExp {
+  return value instanceof RegExp || typeof value === 'string' ? value : ''
+}
+
+function toTimeRange(value: unknown): [number, number] {
+  if (!Array.isArray(value)) return [0, 0]
+  const [start, end] = value
+  return [
+    typeof start === 'number' ? start : 0,
+    typeof end === 'number' ? end : 0,
+  ]
+}
+
+function isCausePredicate(predicate: FilterPredicate): predicate is CausePredicate {
+  return predicate.type === 'cause'
+}
+
 export function evaluatePredicate(
   frame: AdminFrame,
   predicate: FilterPredicate,
@@ -149,7 +255,7 @@ export function evaluatePredicate(
   frameIndex: FrameIndex,
   allFrames?: AdminFrame[],
 ): boolean {
-  const target = (predicate.target ?? 'name') as FilterTarget
+  const target = predicate.target ?? 'name'
   switch (predicate.type) {
     case 'text':
       return matchText(
@@ -159,20 +265,18 @@ export function evaluatePredicate(
         atomRegistry,
       )
     case 'regex':
-      return matchRegex(
-        frame,
-        predicate.value as string | RegExp,
-        target,
-        atomRegistry,
-      )
+      return matchRegex(frame, toRegexPattern(predicate.value), target, atomRegistry)
     case 'timeRange': {
-      const [start, end] = (predicate.value as [number, number]) ?? [0, 0]
+      const [start, end] = toTimeRange(predicate.value)
       return matchTimeRange(frame, start, end)
     }
     case 'error':
       return matchError(frame, atomRegistry)
+    case 'kind':
+      return matchKind(frame, toFilterKind(predicate.value), atomRegistry)
     case 'cause': {
-      const causePred = predicate as CausePredicate
+      if (!isCausePredicate(predicate)) return false
+      const causePred = predicate
       return matchCause(
         frame,
         causePred.direction,

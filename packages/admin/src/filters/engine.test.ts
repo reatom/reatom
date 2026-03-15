@@ -213,13 +213,67 @@ test('highlight mode marks matched ids', () => {
   ADMIN_FRAME.run(() => {
     engine.addConfig({
       id: 'hl1',
+      name: 'Highlight fetch operations',
       expression: exprManager.expression(),
       mode: 'highlight',
+      highlightColor: '#ff00aa',
     })
     const visible = engine.visibleFrames()
     expect(visible.length).toBe(2)
     const highlighted = engine.highlightedIds()
     expect(highlighted.has(2)).toBe(true)
     expect(highlighted.has(1)).toBe(false)
+    const highlightStyles = engine.highlightedFrames()
+    expect(highlightStyles.get(2)?.borderColor).toBe('#ff00aa')
+    expect(highlightStyles.get(1)).toBeUndefined()
+  })
+})
+
+test('disabled configs stop affecting visibility and stats still count matches', () => {
+  const framesAtom = atom([
+    makeFrame({ id: 1, atomId: 'a1' }),
+    makeFrame({ id: 2, atomId: 'a2' }),
+  ])
+  const atoms = new Map<string, AdminAtom>([
+    ['a1', { id: 'a1', name: 'counter', isReactive: true }],
+    ['a2', { id: 'a2', name: 'fetch', isReactive: false }],
+  ])
+  const tagsManager = ADMIN_FRAME.run(() => createTagsManager())
+  const exprManager = ADMIN_FRAME.run(() => createExpressionManager())
+
+  ADMIN_FRAME.run(() => {
+    const tag = tagsManager.createTag('fetchTag', [
+      { id: 'p1', type: 'text', target: 'name', value: 'fetch' },
+    ])
+    exprManager.setExpression({
+      operator: 'AND',
+      children: [{ tagId: tag.id, negated: false }],
+    })
+  })
+
+  const engine = ADMIN_FRAME.run(() =>
+    createEngineManager({
+      frames: () => framesAtom(),
+      atoms: () => atoms,
+      sessionId: () => 's1',
+      tags: () => tagsManager.tags(),
+      expression: () => exprManager.expression(),
+    }),
+  )
+
+  ADMIN_FRAME.run(() => {
+    engine.addConfig({
+      id: 'h1',
+      name: 'Hide fetch work',
+      expression: exprManager.expression(),
+      mode: 'hide',
+    })
+
+    expect(engine.visibleFrames().length).toBe(1)
+    expect(engine.configMatches().get('h1')).toBe(1)
+
+    engine.toggleConfig('h1')
+
+    expect(engine.visibleFrames().length).toBe(2)
   })
 })

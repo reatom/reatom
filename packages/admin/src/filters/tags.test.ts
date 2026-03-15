@@ -9,9 +9,13 @@ test('built-in error tag exists', () => {
   ADMIN_FRAME.run(() => {
     const tags = tagsManager.tags()
     const errorTag = tags.find((t) => t.name === 'error')
+    const actionTag = tags.find((t) => t.name === 'action')
+    const reactiveTag = tags.find((t) => t.name === 'reactive')
     expect(errorTag).toBeDefined()
     expect(errorTag!.builtIn).toBe(true)
     expect(errorTag!.predicates.length).toBeGreaterThan(0)
+    expect(actionTag?.builtIn).toBe(true)
+    expect(reactiveTag?.builtIn).toBe(true)
   })
 })
 

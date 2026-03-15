@@ -1,10 +1,12 @@
 export { createEngineManager } from './engine'
+export type { FilterConfigInput } from './engine'
 export { createExpressionManager, evaluateExpression } from './expression'
 export type { AtomRegistry, FrameIndex } from './predicates'
 export {
   evaluatePredicate,
   matchCause,
   matchError,
+  matchKind,
   matchRegex,
   matchSession,
   matchText,
