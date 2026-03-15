@@ -20,6 +20,12 @@ import {
 
 let todoApp: ReturnType<typeof createTodoApp>
 
+function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+  if (!detail) return ''
+  const raw = detail.json.raw
+  return typeof raw === 'string' ? raw : JSON.stringify(detail.json)
+}
+
 const meta: Meta = {
   title: 'Admin/Todo CRUD',
 }
@@ -116,7 +122,7 @@ export const BuildAndInspectTodoList: StoryObj = {
     const parsed = parseFrameDetail(shadowRoot)
     await expect(parsed).not.toBeNull()
     await expect(parsed!.atomName).toContain('addTodo')
-    await expect(JSON.stringify(parsed!.json)).toContain('Buy milk')
+    await expect(getDetailText(parsed)).toContain('Buy milk')
 
     const todosLogItems = getLogItemsByName(shadowRoot, 'todos')
     await expect(todosLogItems.length).toBeGreaterThanOrEqual(1)

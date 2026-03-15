@@ -15,6 +15,12 @@ import {
 
 let weatherApp: ReturnType<typeof createWeatherApp>
 
+function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+  if (!detail) return ''
+  const raw = detail.json.raw
+  return typeof raw === 'string' ? raw : JSON.stringify(detail.json)
+}
+
 const meta: Meta = {
   title: 'Admin/Async Weather',
 }
@@ -63,7 +69,7 @@ export const AsyncLifecycleInDevtools: StoryObj = {
     }
     const parsed = parseFrameDetail(shadowRoot)
     if (parsed) {
-      await expect(JSON.stringify(parsed.json)).toContain('Paris')
+      await expect(getDetailText(parsed)).toContain('Paris')
     }
 
     const cities = ['Tokyo', 'Berlin', 'Sydney']

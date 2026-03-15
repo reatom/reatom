@@ -21,6 +21,12 @@ let todoApp: ReturnType<typeof createTodoApp>
 let counterApp: ReturnType<typeof createCounterApp>
 let weatherApp: ReturnType<typeof createWeatherApp>
 
+function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+  if (!detail) return ''
+  const raw = detail.json.raw
+  return typeof raw === 'string' ? raw : JSON.stringify(detail.json)
+}
+
 const meta: Meta = {
   title: 'Admin/Multi App',
 }
@@ -82,7 +88,7 @@ export const ThreeAppsDistinctlyCaptured: StoryObj = {
     const parsed = parseFrameDetail(shadowRoot)
     await expect(parsed).not.toBeNull()
     await expect(parsed!.atomName).toContain('todos')
-    await expect(JSON.stringify(parsed!.json)).toContain('Ship')
+    await expect(getDetailText(parsed)).toContain('Ship')
     await expect(parsed!.causeChainNames.length).toBeGreaterThanOrEqual(0)
   },
 }

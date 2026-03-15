@@ -17,6 +17,12 @@ import {
 
 let todoApp: ReturnType<typeof createTodoApp>
 
+function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+  if (!detail) return ''
+  const raw = detail.json.raw
+  return typeof raw === 'string' ? raw : JSON.stringify(detail.json)
+}
+
 const meta: Meta = {
   title: 'Admin/Replay Analysis',
 }
@@ -72,9 +78,7 @@ export const ExportImportAndContinueInvestigation: StoryObj = {
     const parsedDetail = parseFrameDetail(shadowRoot)
     await expect(parsedDetail).not.toBeNull()
     await expect(parsedDetail!.atomName).toContain('todos')
-    await expect(JSON.stringify(parsedDetail!.json)).toContain(
-      'Capture replay state',
-    )
+    await expect(getDetailText(parsedDetail)).toContain('Capture replay state')
 
     const graphButton = Array.from(shadowRoot.querySelectorAll('button')).find(
       (button) => button.textContent?.includes('Open in cause graph'),
