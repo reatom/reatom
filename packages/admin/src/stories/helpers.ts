@@ -27,6 +27,13 @@ export interface ParsedLogItem {
   timestamp: string
 }
 
+function normalizePreviewText(text: string): string {
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(/\s*([\[\]\{\}:,])\s*/g, '$1')
+    .trim()
+}
+
 export function parseLogItem(el: Element): ParsedLogItem {
   const timestamp = el.querySelector(':scope > span')?.textContent ?? ''
   const name =
@@ -36,7 +43,7 @@ export function parseLogItem(el: Element): ParsedLogItem {
     .map((span) => span.textContent ?? '')
     .find((text) => text !== timestamp && !text.startsWith('#'))
     ?? ''
-  return { timestamp, name, content }
+  return { timestamp, name, content: normalizePreviewText(content) }
 }
 
 export function getLogItemsByName(
