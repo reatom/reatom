@@ -2,12 +2,6 @@
   "name": "reatom-workspace",
   "type": "module",
   "scripts": {
-    "admin:setup": "pnpm install && pnpm exec playwright install chromium",
-    "admin:storybook": "pnpm --filter @reatom/admin storybook --no-open --ci",
-    "admin:test": "pnpm --filter @reatom/admin test",
-    "admin:test:unit": "pnpm --filter @reatom/admin test:unit",
-    "admin:test:stories": "pnpm --filter @reatom/admin test:stories",
-    "admin:test:browser": "pnpm --filter @reatom/admin test:browser",
     "postinstall": "pnpm --filter @reatom/core run build",
     "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "test": "vitest run",
