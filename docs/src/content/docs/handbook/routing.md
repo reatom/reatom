@@ -310,10 +310,10 @@ const App = computed(() => {
 
 #### Layout Routes vs Page (Feature) Routes
 
-| | **Layout route** (`layout: true`) | **Page / feature route** (default) |
-|---|---|---|
-| **Renders when** | Any match (partial or exact) | Exact match only |
-| **Uses `outlet()`** | Yes — wraps child content | No — has no children to wrap |
+|                          | **Layout route** (`layout: true`)          | **Page / feature route** (default)              |
+| ------------------------ | ------------------------------------------ | ----------------------------------------------- |
+| **Renders when**         | Any match (partial or exact)               | Exact match only                                |
+| **Uses `outlet()`**      | Yes — wraps child content                  | No — has no children to wrap                    |
 | **When child is active** | Still renders, child appears in `outlet()` | Steps aside (`render → null`), child bubbles up |
 
 ```typescript
@@ -330,7 +330,9 @@ const layoutRoute = reatomRoute({
 const projectsRoute = layoutRoute.reatomRoute({
   path: 'projects',
   render() {
-    return html`<ul>...projects list...</ul>`
+    return html`<ul>
+      ...projects list...
+    </ul>`
   },
 })
 

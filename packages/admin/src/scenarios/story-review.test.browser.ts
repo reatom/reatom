@@ -200,8 +200,12 @@ test('captures the lifecycle shell story in full hd', async () => {
 
   try {
     await prepareFullHdReview(shadowRoot)
-    expect(shadowRoot.querySelector('[data-reatom-name="AppShell"]')).not.toBeNull()
-    expect(shadowRoot.querySelector('[data-reatom-name="DevtoolsPanel"]')).not.toBeNull()
+    expect(
+      shadowRoot.querySelector('[data-reatom-name="AppShell"]'),
+    ).not.toBeNull()
+    expect(
+      shadowRoot.querySelector('[data-reatom-name="DevtoolsPanel"]'),
+    ).not.toBeNull()
     await captureFullHdReview(shadowRoot, 'story-review-lifecycle-full-hd')
   } finally {
     removeScene()
@@ -253,11 +257,14 @@ test('captures todo crud story states in full hd', async () => {
     ])
 
     await prepareFullHdReview(shadowRoot)
-    await captureFullHdReview(shadowRoot, 'story-review-todo-crud-overview-full-hd')
-
-    const actionsQuickFilter = Array.from(shadowRoot.querySelectorAll('button')).find(
-      (button) => button.textContent?.trim() === 'Actions',
+    await captureFullHdReview(
+      shadowRoot,
+      'story-review-todo-crud-overview-full-hd',
     )
+
+    const actionsQuickFilter = Array.from(
+      shadowRoot.querySelectorAll('button'),
+    ).find((button) => button.textContent?.trim() === 'Actions')
     if (!(actionsQuickFilter instanceof HTMLButtonElement)) {
       throw new Error('Missing quick filter button for actions')
     }
@@ -407,14 +414,18 @@ test('captures filter workbench story in full hd', async () => {
     await navigate(shadowRoot, 'Filters')
     await waitForDOM(
       shadowRoot,
-      (root) => root.querySelector('[data-reatom-name="FilterWorkbench"]') !== null,
+      (root) =>
+        root.querySelector('[data-reatom-name="FilterWorkbench"]') !== null,
       5000,
     )
     syncTodoScene([{ text: 'Investigate checkout flow', done: false }])
     syncCounterScene(1)
 
     await prepareFullHdReview(shadowRoot)
-    await captureFullHdReview(shadowRoot, 'story-review-filter-workbench-full-hd')
+    await captureFullHdReview(
+      shadowRoot,
+      'story-review-filter-workbench-full-hd',
+    )
   } finally {
     removeScene()
     teardown()
@@ -446,7 +457,10 @@ test('captures responsive shell story in full hd', async () => {
     syncCounterScene(2)
 
     await prepareFullHdReview(shadowRoot)
-    await captureFullHdReview(shadowRoot, 'story-review-responsive-shell-full-hd')
+    await captureFullHdReview(
+      shadowRoot,
+      'story-review-responsive-shell-full-hd',
+    )
   } finally {
     removeScene()
     teardown()
@@ -547,7 +561,10 @@ test('captures replay analysis story in full hd', async () => {
     ])
 
     await prepareFullHdReview(shadowRoot)
-    await captureFullHdReview(shadowRoot, 'story-review-replay-analysis-full-hd')
+    await captureFullHdReview(
+      shadowRoot,
+      'story-review-replay-analysis-full-hd',
+    )
   } finally {
     removeScene()
     teardown()
@@ -591,7 +608,10 @@ test('captures devtools controls story in full hd', async () => {
     syncCounterScene(2)
 
     await prepareFullHdReview(shadowRoot)
-    await captureFullHdReview(shadowRoot, 'story-review-devtools-controls-full-hd')
+    await captureFullHdReview(
+      shadowRoot,
+      'story-review-devtools-controls-full-hd',
+    )
   } finally {
     removeScene()
     teardown()

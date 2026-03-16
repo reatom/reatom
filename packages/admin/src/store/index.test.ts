@@ -288,7 +288,9 @@ test('latestFrames and summary counters reflect current store state', () => {
     startedAt: 10,
     metadata: { env: 'test' },
   }
-  const store = ADMIN_FRAME.run(() => createStoreManager(makeDeps(frames, atoms, session)))
+  const store = ADMIN_FRAME.run(() =>
+    createStoreManager(makeDeps(frames, atoms, session)),
+  )
   ADMIN_FRAME.run(() => store.syncFromReporter())
 
   ADMIN_FRAME.run(() => {

@@ -47,12 +47,8 @@ export const KeepsWorkspaceReadableWhenViewportTightens: StoryObj = {
 
     await wrap(sleep(120))
 
-    const header = shadowRoot.querySelector(
-      '[data-reatom-name="HeaderBar"]',
-    )
-    const filterBar = shadowRoot.querySelector(
-      '[data-reatom-name="FilterBar"]',
-    )
+    const header = shadowRoot.querySelector('[data-reatom-name="HeaderBar"]')
+    const filterBar = shadowRoot.querySelector('[data-reatom-name="FilterBar"]')
 
     await expect(header).not.toBeNull()
     await expect(filterBar).not.toBeNull()

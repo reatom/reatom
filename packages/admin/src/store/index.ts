@@ -149,7 +149,10 @@ export function createStore(deps: StoreDeps) {
     }))
   }, `${PREFIX}.latestStateEntries`)
 
-  const currentSession = computed(() => getSession(), `${PREFIX}.currentSession`)
+  const currentSession = computed(
+    () => getSession(),
+    `${PREFIX}.currentSession`,
+  )
 
   const exportSession = computed((): ExportedSession => {
     const atomsMap = getAtoms()

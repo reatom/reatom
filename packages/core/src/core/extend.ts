@@ -217,7 +217,6 @@ export let withMiddleware: {
     place: MiddlewarePlace = 'invalidation',
   ) =>
   (target: AtomLike) => {
-
     let middleware = cb(target)
 
     if (typeof middleware !== 'function') {

@@ -74,9 +74,9 @@ test('keeps the shell readable across viewport changes and visibility toggles', 
       filterBarElement.clientWidth + 8,
     )
     expect(filterBarElement.textContent?.includes('result(s)')).toBe(true)
-    await expect(
-      page.elementLocator(filterBarElement),
-    ).toMatchScreenshot('responsive-shell-narrow')
+    await expect(page.elementLocator(filterBarElement)).toMatchScreenshot(
+      'responsive-shell-narrow',
+    )
 
     devtools.hide()
     await delay(60)

@@ -126,7 +126,10 @@ function createSceneShell(
   return { root, hero, content }
 }
 
-function createListCard(title: string, subtitle: string): {
+function createListCard(
+  title: string,
+  subtitle: string,
+): {
   card: HTMLDivElement
   headerMeta: HTMLSpanElement
   list: HTMLUListElement
@@ -189,10 +192,9 @@ function renderTodoList(
 
     const state = document.createElement('span')
     state.textContent = todo.done ? 'done' : 'open'
-    state.style.cssText =
-      todo.done
-        ? 'color: #8ce6b1; font-size: 0.8rem;'
-        : 'color: #f7d774; font-size: 0.8rem;'
+    state.style.cssText = todo.done
+      ? 'color: #8ce6b1; font-size: 0.8rem;'
+      : 'color: #f7d774; font-size: 0.8rem;'
 
     item.append(text, state)
     target.append(item)
@@ -388,9 +390,13 @@ export function createMultiAppScene(
     'Async request workflow',
   )
 
-  const todoCard = todoScene.querySelector('[data-story-card="Todo application"]')
+  const todoCard = todoScene.querySelector(
+    '[data-story-card="Todo application"]',
+  )
   const counterCard = counterScene.querySelector('[data-story-card="Counter"]')
-  const weatherCard = weatherScene.querySelector('[data-story-card="Weather selector"]')
+  const weatherCard = weatherScene.querySelector(
+    '[data-story-card="Weather selector"]',
+  )
 
   if (todoCard instanceof HTMLDivElement) grid.append(todoCard)
   if (counterCard instanceof HTMLDivElement) grid.append(counterCard)
@@ -422,7 +428,9 @@ export function createControlWorkbenchScene(
     'High-frequency mutations',
   )
 
-  const todoCard = todoScene.querySelector('[data-story-card="Todo application"]')
+  const todoCard = todoScene.querySelector(
+    '[data-story-card="Todo application"]',
+  )
   const counterCard = counterScene.querySelector('[data-story-card="Counter"]')
 
   if (todoCard instanceof HTMLDivElement) grid.append(todoCard)

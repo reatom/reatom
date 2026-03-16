@@ -22,7 +22,9 @@ let todoApp: ReturnType<typeof createTodoApp>
 let counterApp: ReturnType<typeof createCounterApp>
 let weatherApp: ReturnType<typeof createWeatherApp>
 
-function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+function getDetailText(
+  detail: { json: Record<string, unknown> } | null,
+): string {
   if (!detail) return ''
   const raw = detail.json.raw
   return typeof raw === 'string' ? raw : JSON.stringify(detail.json)

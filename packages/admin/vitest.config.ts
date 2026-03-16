@@ -31,10 +31,7 @@ export default defineConfig({
         test: {
           name: '@reatom/admin',
           include: ['./src/**/*.test.ts'],
-          exclude: [
-            './src/**/*.test.browser.ts',
-            './src/stories/**',
-          ],
+          exclude: ['./src/**/*.test.browser.ts', './src/stories/**'],
           isolate: false,
           fileParallelism: false,
         },

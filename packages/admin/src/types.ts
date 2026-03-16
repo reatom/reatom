@@ -23,23 +23,11 @@ export interface AdminSession {
 }
 
 export type FilterTarget = 'name' | 'state' | 'params' | 'payload'
-export type FilterKind =
-  | 'reactive'
-  | 'action'
-  | 'async'
-  | 'reject'
-  | 'fulfill'
+export type FilterKind = 'reactive' | 'action' | 'async' | 'reject' | 'fulfill'
 
 export interface FilterPredicate {
   id: string
-  type:
-    | 'text'
-    | 'timeRange'
-    | 'error'
-    | 'cause'
-    | 'session'
-    | 'regex'
-    | 'kind'
+  type: 'text' | 'timeRange' | 'error' | 'cause' | 'session' | 'regex' | 'kind'
   target?: FilterTarget
   value: unknown
 }

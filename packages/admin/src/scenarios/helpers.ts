@@ -1,7 +1,12 @@
 import { context } from '@reatom/core'
 import { page } from 'vitest/browser'
 
-import { clickLogItem, getLogItems, parseLogItem, setup } from '../stories/helpers'
+import {
+  clickLogItem,
+  getLogItems,
+  parseLogItem,
+  setup,
+} from '../stories/helpers'
 
 export function getShadowRoot(containerId: string): ShadowRoot {
   const host = document.getElementById(containerId)
@@ -54,7 +59,9 @@ export async function waitForLogName(
   await waitForDOM(root, (currentRoot) =>
     getLogItems(currentRoot).some((item) => parseLogItem(item).name === name),
   )
-  const item = getLogItems(root).find((entry) => parseLogItem(entry).name === name)
+  const item = getLogItems(root).find(
+    (entry) => parseLogItem(entry).name === name,
+  )
   if (!item) {
     throw new Error(`Log item ${name} was not found`)
   }
@@ -90,7 +97,9 @@ export async function resizeViewport(
 }
 
 export function stabilizeDevtoolsText(root: ShadowRoot): void {
-  const headerSessionMeta = root.querySelector('[data-testid="header-session-meta"]')
+  const headerSessionMeta = root.querySelector(
+    '[data-testid="header-session-meta"]',
+  )
   if (headerSessionMeta instanceof HTMLElement) {
     headerSessionMeta.replaceChildren(
       Object.assign(document.createElement('div'), {
@@ -102,7 +111,9 @@ export function stabilizeDevtoolsText(root: ShadowRoot): void {
     )
   }
 
-  const frameDetailMeta = root.querySelector('[data-testid="frame-detail-meta"]')
+  const frameDetailMeta = root.querySelector(
+    '[data-testid="frame-detail-meta"]',
+  )
   if (frameDetailMeta instanceof HTMLElement) {
     frameDetailMeta.replaceChildren(
       Object.assign(document.createElement('div'), {
@@ -114,7 +125,9 @@ export function stabilizeDevtoolsText(root: ShadowRoot): void {
     )
   }
 
-  const logTimestamps = root.querySelectorAll('[data-testid="log-item-timestamp"]')
+  const logTimestamps = root.querySelectorAll(
+    '[data-testid="log-item-timestamp"]',
+  )
   for (const timestamp of logTimestamps) {
     if (timestamp instanceof HTMLElement) {
       timestamp.textContent = '05:16:00 PM'

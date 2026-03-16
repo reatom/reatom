@@ -22,7 +22,9 @@ import { createTodoScene } from './sceneHelpers'
 
 let todoApp: ReturnType<typeof createTodoApp>
 
-function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+function getDetailText(
+  detail: { json: Record<string, unknown> } | null,
+): string {
   if (!detail) return ''
   const raw = detail.json.raw
   return typeof raw === 'string' ? raw : JSON.stringify(detail.json)

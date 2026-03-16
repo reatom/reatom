@@ -93,7 +93,10 @@ function buildStateTree(
         groupPath,
       )
 
-      if (parentNode && !parentNode.children.some((child) => child.id === groupNode.id)) {
+      if (
+        parentNode &&
+        !parentNode.children.some((child) => child.id === groupNode.id)
+      ) {
         parentNode.children.push(groupNode)
       }
 
@@ -158,10 +161,9 @@ export function createAdminViewModel(deps: AdminViewModelDeps) {
     const visibleFrames = deps.visibleFrames().length
     const hiddenFrames = Math.max(0, totalFrames - visibleFrames)
     const highlightedFrames = deps.highlightedFrames().size
-    const errorFrames = deps.frames().reduce(
-      (count, frame) => (frame.error !== null ? count + 1 : count),
-      0,
-    )
+    const errorFrames = deps
+      .frames()
+      .reduce((count, frame) => (frame.error !== null ? count + 1 : count), 0)
     const uniqueAtoms = new Set(deps.frames().map((frame) => frame.atomId)).size
 
     return {

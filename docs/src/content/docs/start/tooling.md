@@ -104,8 +104,8 @@ Additionally to control the use of `wrap` inside `action`, `computed`, and `effe
       {
         "selector": "CallExpression:matches([callee.name=\"action\"], [callee.name=\"computed\"], [callee.name=\"effect\"]) ArrowFunctionExpression AwaitExpression > :not(CallExpression[callee.name=\"wrap\"])",
         "message": "Any awaited Promise inside \"action\", \"effect\", or \"computed\" must be wrapped with wrap()"
-      },
-    ],
+      }
+    ]
   }
 }
 ```
