@@ -172,6 +172,19 @@ The package is designed to be tested with realistic user scenarios:
   - replay workflows
   - filter studio usability
 
+## Repo root quickstart
+
+From the workspace root, feature agents can use:
+
+```sh
+pnpm run admin:setup
+pnpm run admin:storybook
+pnpm run admin:test
+```
+
+`admin:setup` installs workspace dependencies and the Playwright Chromium
+browser required by the Storybook and browser suites.
+
 ## Development scripts
 
 ```sh
