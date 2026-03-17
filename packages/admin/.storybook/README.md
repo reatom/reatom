@@ -5,7 +5,7 @@ A portable guide to the **codecept-style actor** and **fluent locator DSL** used
 ## Core Philosophy
 
 - Tests read like **user scenarios**, not DOM queries.
-- The `I` object (the *actor*) is the only entry point for all interactions.
+- The `I` object (the _actor_) is the only entry point for all interactions.
 - Locators are **composable functions** with a fluent API for wait/maybe/all/within modifiers.
 - No standalone `*.test.ts` files; all tests live inside Storybook stories.
 
@@ -49,18 +49,18 @@ const meta = preview.meta({
 
 ### Base actor methods
 
-| Method | Signature | Purpose |
-|--------|-----------|---------|
-| `I.see` | `(locator) => Promise<HTMLElement>` | Assert element is in the document |
-| `I.dontSee` | `(fluentLocator) => Promise<void>` | Assert element is **not** in the document (uses `.maybe()` internally) |
-| `I.waitExit` | `(fluentLocator) => Promise<void>` | Poll until element disappears (uses `.maybe()` + `waitFor`) |
-| `I.click` | `(locator) => Promise<void>` | Click an element |
-| `I.fill` | `(locator, value) => Promise<void>` | Clear + type into an input, then tab out |
-| `I.clear` | `(locator) => Promise<void>` | Clear an input |
-| `I.selectOption` | `(locator, value) => Promise<void>` | Click a select trigger, then click the matching option |
-| `I.seeInField` | `(locator, value) => Promise<void>` | Assert an input has a specific value |
-| `I.scope` | `(locator, callback) => Promise<void>` | Narrow all queries inside `callback` to a subtree |
-| `I.resolveLocator` | `(locator) => Promise<HTMLElement>` | Low-level: resolve a locator to a DOM element |
+| Method             | Signature                              | Purpose                                                                |
+| ------------------ | -------------------------------------- | ---------------------------------------------------------------------- |
+| `I.see`            | `(locator) => Promise<HTMLElement>`    | Assert element is in the document                                      |
+| `I.dontSee`        | `(fluentLocator) => Promise<void>`     | Assert element is **not** in the document (uses `.maybe()` internally) |
+| `I.waitExit`       | `(fluentLocator) => Promise<void>`     | Poll until element disappears (uses `.maybe()` + `waitFor`)            |
+| `I.click`          | `(locator) => Promise<void>`           | Click an element                                                       |
+| `I.fill`           | `(locator, value) => Promise<void>`    | Clear + type into an input, then tab out                               |
+| `I.clear`          | `(locator) => Promise<void>`           | Clear an input                                                         |
+| `I.selectOption`   | `(locator, value) => Promise<void>`    | Click a select trigger, then click the matching option                 |
+| `I.seeInField`     | `(locator, value) => Promise<void>`    | Assert an input has a specific value                                   |
+| `I.scope`          | `(locator, callback) => Promise<void>` | Narrow all queries inside `callback` to a subtree                      |
+| `I.resolveLocator` | `(locator) => Promise<HTMLElement>`    | Low-level: resolve a locator to a DOM element                          |
 
 ### Extending the actor per page
 
@@ -105,13 +105,13 @@ Locators are **callable objects** (functions with chainable methods). They are t
 
 ### Factory functions
 
-| Factory | Shorthand for | Example |
-|---------|---------------|---------|
-| `role(ariaRole, name?)` | `getByRole(role, { name })` | `role('button', 'Submit')` |
-| `text(value)` | `getByText(value)` | `text('Loading...')` |
-| `heading(name?)` | `role('heading', name)` | `heading('Dashboard')` |
-| `button(name?)` | `role('button', name)` | `button('Try again')` |
-| `link(name?)` | `role('link', name)` | `link(/Quarterly report/i)` |
+| Factory                 | Shorthand for               | Example                     |
+| ----------------------- | --------------------------- | --------------------------- |
+| `role(ariaRole, name?)` | `getByRole(role, { name })` | `role('button', 'Submit')`  |
+| `text(value)`           | `getByText(value)`          | `text('Loading...')`        |
+| `heading(name?)`        | `role('heading', name)`     | `heading('Dashboard')`      |
+| `button(name?)`         | `role('button', name)`      | `button('Try again')`       |
+| `link(name?)`           | `role('link', name)`        | `link(/Quarterly report/i)` |
 
 All name arguments accept `string | RegExp`.
 
@@ -119,23 +119,23 @@ All name arguments accept `string | RegExp`.
 
 Each modifier returns a **new locator** (immutable chain):
 
-| Modifier | Effect | Underlying query prefix |
-|----------|--------|------------------------|
-| *(none)* | Synchronous, throws if missing | `getBy*` |
-| `.wait()` | Retries until found (async) | `findBy*` |
-| `.maybe()` | Returns `null` if missing (no throw) | `queryBy*` |
-| `.all()` | Returns `HTMLElement[]` | `*AllBy*` |
-| `.within(scope)` | Resolves inside a specific subtree | scoped canvas |
-| `.options(opts)` | Merge additional query options | passed to underlying `*By*` call |
+| Modifier         | Effect                               | Underlying query prefix          |
+| ---------------- | ------------------------------------ | -------------------------------- |
+| _(none)_         | Synchronous, throws if missing       | `getBy*`                         |
+| `.wait()`        | Retries until found (async)          | `findBy*`                        |
+| `.maybe()`       | Returns `null` if missing (no throw) | `queryBy*`                       |
+| `.all()`         | Returns `HTMLElement[]`              | `*AllBy*`                        |
+| `.within(scope)` | Resolves inside a specific subtree   | scoped canvas                    |
+| `.options(opts)` | Merge additional query options       | passed to underlying `*By*` call |
 
 #### Modifier combinations
 
 ```typescript
-role('listitem').all()                     // getAllByRole('listitem')
-role('status', 'Loading ...').wait()       // findByRole('status', { name: 'Loading ...' })
-heading('Title').maybe()                   // queryByRole('heading', { name: 'Title' })
-role('listitem').all().wait()              // findAllByRole('listitem')
-text('Done').all()                         // getAllByText('Done')
+role('listitem').all() // getAllByRole('listitem')
+role('status', 'Loading ...').wait() // findByRole('status', { name: 'Loading ...' })
+heading('Title').maybe() // queryByRole('heading', { name: 'Title' })
+role('listitem').all().wait() // findAllByRole('listitem')
+text('Done').all() // getAllByText('Done')
 ```
 
 `.maybe()` + `.wait()` is **forbidden** (throws at build time).
@@ -202,14 +202,14 @@ await I.see(role('status', 'Loading ...').wait())
 
 ### Naming conventions
 
-| Variant | Story name | Test name prefix |
-|---------|-----------|-----------------|
-| Happy path (desktop) | `Default` | *(none)* |
-| Happy path (mobile) | `Default (Mobile)` | `[mobile]` |
-| Error state | `<Feature> Load Server Error` | *(none)* |
-| Error (mobile) | `<Feature> Load Server Error (Mobile)` | `[mobile]` |
-| Loading state | `<Feature> Request Loading State` | *(none)* |
-| Loading (mobile) | `<Feature> Request Loading State (Mobile)` | `[mobile]` |
+| Variant              | Story name                                 | Test name prefix |
+| -------------------- | ------------------------------------------ | ---------------- |
+| Happy path (desktop) | `Default`                                  | _(none)_         |
+| Happy path (mobile)  | `Default (Mobile)`                         | `[mobile]`       |
+| Error state          | `<Feature> Load Server Error`              | _(none)_         |
+| Error (mobile)       | `<Feature> Load Server Error (Mobile)`     | `[mobile]`       |
+| Loading state        | `<Feature> Request Loading State`          | _(none)_         |
+| Loading (mobile)     | `<Feature> Request Loading State (Mobile)` | `[mobile]`       |
 
 ### Story structure template
 
@@ -300,19 +300,19 @@ export const featureList = {
 }
 ```
 
-| Variant | Behavior |
-|---------|----------|
-| `.default` | Successful response with realistic delay |
-| `.error` | Immediate 500 response |
+| Variant    | Behavior                                                 |
+| ---------- | -------------------------------------------------------- |
+| `.default` | Successful response with realistic delay                 |
+| `.error`   | Immediate 500 response                                   |
 | `.loading` | Promise that never resolves (simulates infinite loading) |
 
 Shared utilities in `shared/mocks/utils.ts`:
 
-| Helper | Description |
-|--------|-------------|
-| `to400(msg?)` | Throw HTTP 400 |
-| `to404(msg?)` | Throw HTTP 404 |
-| `to500(msg?)` | Throw HTTP 500 |
+| Helper           | Description             |
+| ---------------- | ----------------------- |
+| `to400(msg?)`    | Throw HTTP 400          |
+| `to404(msg?)`    | Throw HTTP 404          |
+| `to500(msg?)`    | Throw HTTP 500          |
 | `neverResolve()` | `new Promise(() => {})` |
 
 Default handlers are aggregated centrally and loaded by Storybook preview. Stories override only specific handler keys via `parameters.msw.handlers`.
@@ -385,7 +385,10 @@ export const dashboardLoc = {
 Import and use in tests:
 
 ```typescript
-import { dashboardActor as I, dashboardLoc as loc } from 'pages/dashboard/testing'
+import {
+  dashboardActor as I,
+  dashboardLoc as loc,
+} from 'pages/dashboard/testing'
 
 await I.see(loc.heading)
 ```
@@ -407,30 +410,30 @@ await I.see(loc.heading)
 
 ```typescript
 // Locators
-role('button', 'Submit')          // by ARIA role + accessible name
-text('Hello world')               // by text content
-heading('Dashboard')              // shorthand for role('heading', ...)
-button('Save')                    // shorthand for role('button', ...)
-link(/Report/i)                   // shorthand for role('link', ...) with regex
+role('button', 'Submit') // by ARIA role + accessible name
+text('Hello world') // by text content
+heading('Dashboard') // shorthand for role('heading', ...)
+button('Save') // shorthand for role('button', ...)
+link(/Report/i) // shorthand for role('link', ...) with regex
 
 // Modifiers
-locator.wait()                    // async retry (findBy)
-locator.maybe()                   // nullable (queryBy)
-locator.all()                     // array (getAllBy / findAllBy)
-locator.within(scopeOrElement)    // restrict to subtree
-locator.options({ level: 2 })     // extra query options
+locator.wait() // async retry (findBy)
+locator.maybe() // nullable (queryBy)
+locator.all() // array (getAllBy / findAllBy)
+locator.within(scopeOrElement) // restrict to subtree
+locator.options({ level: 2 }) // extra query options
 
 // Actor basics
-await I.see(locator)              // assert visible
-await I.dontSee(locator)          // assert absent
-await I.waitExit(locator)         // poll until gone
-await I.click(locator)            // user click
-await I.fill(locator, 'text')    // clear + type + tab
-await I.scope(locator, fn)        // narrow queries
+await I.see(locator) // assert visible
+await I.dontSee(locator) // assert absent
+await I.waitExit(locator) // poll until gone
+await I.click(locator) // user click
+await I.fill(locator, 'text') // clear + type + tab
+await I.scope(locator, fn) // narrow queries
 
 // Stabilization
-play: () => I.waitExit(role('status'))   // story-level wait
-await I.click(link(/Item/i))             // trigger navigation
-await I.waitExit(role('status'))         // wait for load
-await I.see(heading('Item'))             // assert result
+play: () => I.waitExit(role('status')) // story-level wait
+await I.click(link(/Item/i)) // trigger navigation
+await I.waitExit(role('status')) // wait for load
+await I.see(heading('Item')) // assert result
 ```

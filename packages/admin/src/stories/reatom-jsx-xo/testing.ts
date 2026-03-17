@@ -1,8 +1,4 @@
-import {
-  expect,
-  userEvent,
-  waitFor,
-} from 'storybook/test'
+import { expect, userEvent, waitFor } from 'storybook/test'
 
 import { button, createActor, heading, role } from '../../../.storybook/helpers'
 import {
@@ -50,7 +46,9 @@ function getAdminButton(matcher: RegExp | string): HTMLButtonElement | null {
 }
 
 function getAdminSearchInput(): HTMLInputElement {
-  const input = getAdminShadowRoot().querySelector('[data-testid="filter-search-input"]')
+  const input = getAdminShadowRoot().querySelector(
+    '[data-testid="filter-search-input"]',
+  )
   if (!(input instanceof HTMLInputElement)) {
     throw new Error('Admin search input is missing')
   }
@@ -107,8 +105,8 @@ export const xoAdminActor = createActor().extend((I) => ({
   waitForWinningLogs: async () => {
     await waitFor(() => {
       const shadowRoot = getAdminShadowRoot()
-      const moveParams = getLogItemsByName(shadowRoot, 'makeMove').map((item) =>
-        parseLogItem(item).content,
+      const moveParams = getLogItemsByName(shadowRoot, 'makeMove').map(
+        (item) => parseLogItem(item).content,
       )
 
       expect(moveParams).toEqual(['[0]', '[3]', '[1]', '[4]', '[2]'])
@@ -129,7 +127,9 @@ export const xoAdminActor = createActor().extend((I) => ({
   },
   assertCapturedActivity: async () => {
     const shadowRoot = getAdminShadowRoot()
-    const logNames = getLogItems(shadowRoot).map((item) => parseLogItem(item).name)
+    const logNames = getLogItems(shadowRoot).map(
+      (item) => parseLogItem(item).name,
+    )
     const logPreview = getLogItems(shadowRoot).map((item) => parseLogItem(item))
 
     expect(getAdminText()).toContain('0 errors')
@@ -173,8 +173,8 @@ export const xoAdminActor = createActor().extend((I) => ({
   },
   assertWinnerSearchResults: async () => {
     await waitFor(() => {
-      const visibleLogNames = getLogItems(getAdminShadowRoot()).map((item) =>
-        parseLogItem(item).name,
+      const visibleLogNames = getLogItems(getAdminShadowRoot()).map(
+        (item) => parseLogItem(item).name,
       )
 
       expect(visibleLogNames.length).toBeGreaterThan(0)
