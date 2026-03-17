@@ -2,6 +2,18 @@ import { computed } from '@reatom/core'
 
 import { board, isComputerThinking, makeMove, winner } from '../model'
 
+const cellLabels = [
+  'Top left cell',
+  'Top center cell',
+  'Top right cell',
+  'Middle left cell',
+  'Center cell',
+  'Middle right cell',
+  'Bottom left cell',
+  'Bottom center cell',
+  'Bottom right cell',
+] as const
+
 export const AnimatedCell = ({ index }: { index: number }) => {
   const isWinningCell = computed(() => {
     const w = winner()
@@ -23,9 +35,11 @@ export const AnimatedCell = ({ index }: { index: number }) => {
       (combo) => combo.includes(index) && combo.every((i) => b[i] === w),
     )
   })
+  const cellLabel = cellLabels[index] ?? `Cell ${index + 1}`
 
   return (
     <button
+      aria-label={cellLabel}
       on:click={() => makeMove(index)}
       prop:disabled={() => board()[index] !== null || winner() !== 'none'}
       data-winning={isWinningCell}

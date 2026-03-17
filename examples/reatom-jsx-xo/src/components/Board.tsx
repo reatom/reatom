@@ -3,6 +3,8 @@ import { AnimatedCell } from './AnimatedCell'
 export const Board = () => {
   return (
     <div
+      aria-label="Tic-tac-toe board"
+      role="group"
       css={`
         display: grid;
         grid-template-columns: repeat(3, 1fr);
