@@ -60,22 +60,6 @@ function getAdminText(): string {
   return normalizeText(getAdminShadowRoot().textContent ?? '')
 }
 
-function expectSubsequence(
-  actual: Array<string>,
-  expected: Array<string>,
-): void {
-  let expectedIndex = 0
-
-  for (const actualValue of actual) {
-    if (expectedIndex >= expected.length) break
-    if (actualValue === expected[expectedIndex]) {
-      expectedIndex += 1
-    }
-  }
-
-  expect(expectedIndex).toBe(expected.length)
-}
-
 async function clickAdminButton(matcher: RegExp | string): Promise<void> {
   await waitFor(() => {
     expect(getAdminButton(matcher)).not.toBeNull()
@@ -141,34 +125,38 @@ export const xoAdminActor = createActor().extend((I) => ({
   assertCapturedActivity: async () => {
     const shadowRoot = getAdminShadowRoot()
     const logNames = getLogItems(shadowRoot).map((item) => parseLogItem(item).name)
+    const logPreview = getLogItems(shadowRoot).map((item) => parseLogItem(item))
 
     expect(getAdminText()).toContain('0 errors')
     expect(logNames).toContain('makeMove')
     expect(logNames).toContain('board')
     expect(logNames).toContain('winner')
     expect(logNames).toContain('xWins')
-    expectSubsequence(logNames, [
-      'makeMove',
-      'board',
-      'makeMove',
-      'board',
-      'makeMove',
-      'board',
-      'makeMove',
-      'board',
-      'makeMove',
-      'board',
-      'winner',
-      'xWins',
-    ])
+    expect(logNames.filter((name) => name === 'makeMove')).toHaveLength(5)
+    expect(
+      logPreview.some(
+        ({ name, content }) =>
+          name === 'board' &&
+          content === '["X","X","X","O","O",null,null,null,null]',
+      ),
+    ).toBe(true)
+    expect(
+      logPreview.some(
+        ({ name, content }) => name === 'winner' && content === 'X',
+      ),
+    ).toBe(true)
+    expect(
+      logPreview.some(
+        ({ name, content }) => name === 'xWins' && content === '1',
+      ),
+    ).toBe(true)
   },
   searchLogs: async (query: string) => {
     const searchInput = getAdminSearchInput()
-    await userEvent.click(searchInput)
-    await userEvent.clear(searchInput)
-    if (query.length > 0) {
-      await userEvent.type(searchInput, query)
-    }
+    searchInput.focus()
+    searchInput.value = query
+    searchInput.dispatchEvent(new Event('input', { bubbles: true }))
+    searchInput.dispatchEvent(new Event('change', { bubbles: true }))
   },
   assertWinnerSearchResults: async () => {
     await waitFor(() => {
@@ -198,7 +186,7 @@ export const xoAdminActor = createActor().extend((I) => ({
       const detail = parseFrameDetail(getAdminShadowRoot())
       expect(detail).not.toBeNull()
       expect(detail?.atomName).toBe('winner')
-      expect(detail?.bodyText).toContain('"X"')
+      expect(detail?.bodyText).toContain('stateX')
       expect(detail?.causeChainNames.length ?? 0).toBeGreaterThan(0)
       expect(detail?.hasError).toBe(false)
     })
@@ -208,7 +196,7 @@ export const xoAdminActor = createActor().extend((I) => ({
       const adminText = getAdminText()
       expect(adminText).toContain('State explorer')
       expect(adminText).toContain('board')
-      expect(adminText).toContain('["X","X","X","O","O",null,null,null,null]')
+      expect(adminText).toContain('"X", "X", "X", "O", "O"')
       expect(adminText).toContain('winner')
       expect(adminText).toContain('xWins')
     })

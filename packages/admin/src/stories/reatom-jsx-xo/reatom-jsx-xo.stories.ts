@@ -1,27 +1,23 @@
-import preview from '../../../.storybook/preview-factory'
+import type { Meta, StoryObj } from '@storybook/html'
 
 import { renderXoHarness } from './boot'
 import { xoAdminActor as I } from './testing'
 
-const meta = preview.meta({
+const meta: Meta = {
   title: 'Integration/Reatom JSX XO',
-  component: renderXoHarness,
+  render: renderXoHarness,
   parameters: {
     layout: 'fullscreen',
   },
   loaders: [(ctx) => void I.init(ctx)],
-})
+}
 
 export default meta
 
-export const WinningDebuggingJourney = meta.story({
+export const WinningDebuggingJourney: StoryObj = {
   name: 'Winning debugging journey',
-  play: () => I.waitForReady(),
-})
-
-WinningDebuggingJourney.test(
-  'plays the game and investigates the captured logs',
-  async () => {
+  play: async () => {
+    await I.waitForReady()
     await I.startFreshSession()
     await I.playWinningGame()
     await I.waitForWinningLogs()
@@ -35,4 +31,4 @@ WinningDebuggingJourney.test(
     await I.searchLogs('')
     await I.assertStateExplorer()
   },
-)
+}
