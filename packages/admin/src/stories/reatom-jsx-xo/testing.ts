@@ -205,21 +205,24 @@ export const xoAdminActor = createActor().extend((I) => ({
     })
   },
   waitForFooterErrorLogs: async () => {
-    await waitFor(() => {
-      const footerLogs = getVisibleLogs().filter((logItem) =>
-        logItem.name.includes('footer.repositoryStarCount'),
-      )
+    await waitFor(
+      () => {
+        const footerLogs = getVisibleLogs().filter((logItem) =>
+          logItem.name.includes('footer.repositoryStarCount'),
+        )
 
-      expect(footerLogs.length).toBeGreaterThan(0)
-      expect(
-        footerLogs.some(
-          (logItem) =>
-            logItem.isError ||
-            logItem.name.includes('.onReject') ||
-            logItem.content.includes('Service Unavailable'),
-        ),
-      ).toBe(true)
-    }, { timeout: 5000 })
+        expect(footerLogs.length).toBeGreaterThan(0)
+        expect(
+          footerLogs.some(
+            (logItem) =>
+              logItem.isError ||
+              logItem.name.includes('.onReject') ||
+              logItem.content.includes('Service Unavailable'),
+          ),
+        ).toBe(true)
+      },
+      { timeout: 5000 },
+    )
   },
   assertFooterErrorCaptured: async () => {
     const footerLogs = getVisibleLogs().filter((logItem) =>
@@ -238,11 +241,7 @@ export const xoAdminActor = createActor().extend((I) => ({
         logItem.name.includes('footer.repositoryStarCount.retry'),
       ),
     ).toBe(true)
-    expect(
-      footerLogs.some((logItem) =>
-        logItem.isError,
-      ),
-    ).toBe(true)
+    expect(footerLogs.some((logItem) => logItem.isError)).toBe(true)
   },
   assertFooterErrorSearchResults: async () => {
     await waitFor(() => {
