@@ -1,6 +1,6 @@
 import type { Admin } from '../../index'
 import type { AdminAtom, AdminFrame, AdminSession } from '../../types'
-import { buttonBase, buttonGhost, colors, flex, flexWrap, gap } from '../styles'
+import { buttonBase, buttonGhost, colors } from '../styles'
 
 export interface SessionControlsProps {
   admin: Admin
@@ -69,10 +69,19 @@ export const SessionControls = ({ admin }: SessionControlsProps) => {
   return (
     <div
       css={`
-        ${flex}
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, max-content));
         gap: 0.5rem;
-        ${flexWrap}
         align-items: center;
+        justify-content: start;
+
+        @media (max-width: 520px) {
+          grid-template-columns: repeat(2, minmax(0, max-content));
+        }
+
+        @media (max-width: 420px) {
+          grid-template-columns: minmax(0, max-content);
+        }
       `}
     >
       <button
