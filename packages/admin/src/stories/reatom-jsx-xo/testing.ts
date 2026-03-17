@@ -6,6 +6,7 @@ import {
 
 import { button, createActor, heading, role } from '../../../.storybook/helpers'
 import {
+  getLastLogItemMatching,
   getLastLogItemByName,
   getLogItems,
   getLogItemsByName,
@@ -58,6 +59,10 @@ function getAdminSearchInput(): HTMLInputElement {
 
 function getAdminText(): string {
   return normalizeText(getAdminShadowRoot().textContent ?? '')
+}
+
+function getVisibleLogs(): Array<ReturnType<typeof parseLogItem>> {
+  return getLogItems(getAdminShadowRoot()).map((item) => parseLogItem(item))
 }
 
 async function clickAdminButton(matcher: RegExp | string): Promise<void> {
@@ -158,6 +163,14 @@ export const xoAdminActor = createActor().extend((I) => ({
     searchInput.dispatchEvent(new Event('input', { bubbles: true }))
     searchInput.dispatchEvent(new Event('change', { bubbles: true }))
   },
+  showOnlyErrors: async () => {
+    await clickAdminButton(/^Errors$/)
+    await waitFor(() => {
+      const visibleLogs = getVisibleLogs()
+      expect(visibleLogs.length).toBeGreaterThan(0)
+      expect(visibleLogs.every((logItem) => logItem.isError)).toBe(true)
+    })
+  },
   assertWinnerSearchResults: async () => {
     await waitFor(() => {
       const visibleLogNames = getLogItems(getAdminShadowRoot()).map((item) =>
@@ -189,6 +202,107 @@ export const xoAdminActor = createActor().extend((I) => ({
       expect(detail?.bodyText).toContain('stateX')
       expect(detail?.causeChainNames.length ?? 0).toBeGreaterThan(0)
       expect(detail?.hasError).toBe(false)
+    })
+  },
+  waitForFooterErrorLogs: async () => {
+    await waitFor(() => {
+      const footerLogs = getVisibleLogs().filter((logItem) =>
+        logItem.name.includes('footer.repositoryStarCount'),
+      )
+
+      expect(footerLogs.length).toBeGreaterThan(0)
+      expect(
+        footerLogs.some(
+          (logItem) =>
+            logItem.isError ||
+            logItem.name.includes('.onReject') ||
+            logItem.content.includes('Service Unavailable'),
+        ),
+      ).toBe(true)
+    }, { timeout: 5000 })
+  },
+  assertFooterErrorCaptured: async () => {
+    const footerLogs = getVisibleLogs().filter((logItem) =>
+      logItem.name.includes('footer.repositoryStarCount'),
+    )
+
+    expect(getAdminText()).toContain('Errors')
+    expect(footerLogs.length).toBeGreaterThan(0)
+    expect(
+      footerLogs.some((logItem) =>
+        logItem.name.includes('footer.repositoryStarCount.onReject'),
+      ),
+    ).toBe(true)
+    expect(
+      footerLogs.some((logItem) =>
+        logItem.name.includes('footer.repositoryStarCount.retry'),
+      ),
+    ).toBe(true)
+    expect(
+      footerLogs.some((logItem) =>
+        logItem.isError,
+      ),
+    ).toBe(true)
+  },
+  assertFooterErrorSearchResults: async () => {
+    await waitFor(() => {
+      const footerLogs = getVisibleLogs()
+      expect(footerLogs.length).toBeGreaterThan(0)
+      expect(
+        footerLogs.every((logItem) =>
+          logItem.name.includes('footer.repositoryStarCount'),
+        ),
+      ).toBe(true)
+    })
+  },
+  openLatestFooterErrorLog: async () => {
+    await waitFor(() => {
+      expect(
+        getLastLogItemMatching(getAdminShadowRoot(), (logItem) => {
+          return (
+            logItem.name.includes('footer.repositoryStarCount') &&
+            (logItem.isError ||
+              logItem.name.includes('.onReject') ||
+              logItem.content.includes('Service Unavailable'))
+          )
+        }),
+      ).not.toBeNull()
+    })
+
+    const logItem = getLastLogItemMatching(getAdminShadowRoot(), (logItem) => {
+      return (
+        logItem.name.includes('footer.repositoryStarCount') &&
+        (logItem.isError ||
+          logItem.name.includes('.onReject') ||
+          logItem.content.includes('Service Unavailable'))
+      )
+    })
+
+    if (!logItem) {
+      throw new Error('Missing footer error log item')
+    }
+
+    await userEvent.click(logItem)
+  },
+  assertFooterErrorFrameDetail: async () => {
+    await waitFor(() => {
+      const detail = parseFrameDetail(getAdminShadowRoot())
+      expect(detail).not.toBeNull()
+      expect(detail?.atomName).toContain('footer.repositoryStarCount')
+      expect(detail?.bodyText).toContain('Service Unavailable')
+      expect(detail?.hasError).toBe(true)
+    })
+  },
+  assertErrorFilterHighlightsFooterRequest: async () => {
+    await waitFor(() => {
+      const footerLogs = getVisibleLogs()
+      expect(footerLogs.length).toBeGreaterThan(0)
+      expect(footerLogs.some((logItem) => logItem.isError)).toBe(true)
+      expect(
+        footerLogs.some((logItem) =>
+          logItem.name.includes('footer.repositoryStarCount'),
+        ),
+      ).toBe(true)
     })
   },
   assertStateExplorer: async () => {

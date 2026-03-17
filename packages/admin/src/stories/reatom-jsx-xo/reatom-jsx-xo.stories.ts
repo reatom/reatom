@@ -1,11 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
-import { renderXoHarness } from './boot'
+import {
+  renderXoHarness,
+  retryGithubStarsRequest,
+  setGithubStarsMode,
+  type XoHarnessOptions,
+} from './boot'
 import { xoAdminActor as I } from './testing'
 
-const meta: Meta = {
+const meta: Meta<XoHarnessOptions> = {
   title: 'Integration/Reatom JSX XO',
-  render: renderXoHarness,
+  render: (args) => renderXoHarness(args),
   parameters: {
     layout: 'fullscreen',
   },
@@ -14,14 +19,16 @@ const meta: Meta = {
 
 export default meta
 
-export const WinningDebuggingJourney: StoryObj = {
+export const WinningDebuggingJourney: StoryObj<XoHarnessOptions> = {
   name: 'Winning debugging journey',
+  args: {
+    githubStarsMode: 'success',
+  },
   play: async () => {
     await I.waitForReady()
     await I.startFreshSession()
     await I.playWinningGame()
     await I.waitForWinningLogs()
-    await I.pauseCapture()
     await I.seeWinningState()
     await I.assertCapturedActivity()
     await I.searchLogs('winner')
@@ -30,5 +37,17 @@ export const WinningDebuggingJourney: StoryObj = {
     await I.assertWinnerFrameDetail()
     await I.searchLogs('')
     await I.assertStateExplorer()
+    setGithubStarsMode('error')
+    await retryGithubStarsRequest()
+    await I.waitForFooterErrorLogs()
+    await I.assertFooterErrorCaptured()
+    await I.searchLogs('footer.repositoryStarCount')
+    await I.assertFooterErrorSearchResults()
+    await I.openLatestFooterErrorLog()
+    await I.assertFooterErrorFrameDetail()
+    await I.searchLogs('')
+    await I.showOnlyErrors()
+    await I.assertErrorFilterHighlightsFooterRequest()
+    await I.pauseCapture()
   },
 }

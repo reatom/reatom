@@ -2,6 +2,8 @@ export interface ParsedLogItem {
   name: string
   content: string
   timestamp: string
+  badges: Array<string>
+  isError: boolean
 }
 
 export interface ParsedFrameDetail {
@@ -31,6 +33,9 @@ export function parseLogItem(element: Element): ParsedLogItem {
   const name =
     element.querySelector(':scope > div strong, :scope > div > span')
       ?.textContent ?? ''
+  const badges = Array.from(element.querySelectorAll(':scope > div div span'))
+    .map((badge) => normalizePreviewText(badge.textContent ?? ''))
+    .filter((badge) => badge.length > 0)
   const content =
     Array.from(element.querySelectorAll(':scope > span'))
       .map((span) => span.textContent ?? '')
@@ -40,6 +45,8 @@ export function parseLogItem(element: Element): ParsedLogItem {
     timestamp,
     name,
     content: normalizePreviewText(content),
+    badges,
+    isError: badges.includes('error'),
   }
 }
 
@@ -55,6 +62,17 @@ export function getLastLogItemByName(
   name: string,
 ): HTMLElement | null {
   return getLogItemsByName(root, name).at(-1) ?? null
+}
+
+export function getLastLogItemMatching(
+  root: ParentNode,
+  predicate: (logItem: ParsedLogItem) => boolean,
+): HTMLElement | null {
+  return (
+    getLogItems(root)
+      .filter((item) => predicate(parseLogItem(item)))
+      .at(-1) ?? null
+  )
 }
 
 export function parseFrameDetail(root: ParentNode): ParsedFrameDetail | null {

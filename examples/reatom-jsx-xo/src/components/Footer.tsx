@@ -22,7 +22,7 @@ const isRepositoryPayload = (
   )
 }
 
-const repositoryStarCountResource = computed(async () => {
+export const repositoryStarCountResource = computed(async () => {
   const response = await wrap(
     fetch(repositoryApiUrl, {
       headers: {
