@@ -13,7 +13,9 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "browserslist": ["last 1 year"],
+  "browserslist": [
+    "last 1 year"
+  ],
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "tsdown",
@@ -26,7 +28,10 @@
     "build-storybook": "storybook build"
   },
   "tsdown": {
-    "format": ["esm", "cjs"],
+    "format": [
+      "esm",
+      "cjs"
+    ],
     "fixedExtension": false
   },
   "dependencies": {
@@ -64,19 +69,21 @@
     "tracing",
     "logging"
   ],
-  "files": ["/dist"],
+  "files": [
+    "/dist"
+  ],
   "devDependencies": {
     "@reatom/jsx": ">=1000.14.1",
-    "@storybook/addon-vitest": "^10",
-    "@storybook/html": "^10",
-    "@storybook/html-vite": "^10",
+    "@storybook/addon-vitest": "^10.2.19",
+    "@storybook/html": "^10.2.19",
+    "@storybook/html-vite": "^10.2.19",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
     "@vitest/browser": "^4.0.18",
     "@vitest/browser-playwright": "^4.0.18",
     "@vitest/ui": "4.0.18",
     "eslint-plugin-simple-import-sort": "^12.1.1",
-    "storybook": "^10",
+    "storybook": "^10.2.19",
     "tsdown": "catalog:",
     "vitest": "^4.0.18"
   }

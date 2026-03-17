@@ -7,6 +7,7 @@ declare module '@reatom/core' {
 declare global {
   interface ImportMetaEnv {
     readonly RECORD_VIDEO: boolean
+    readonly VITEST?: boolean
   }
 
   interface ImportMeta {

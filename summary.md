@@ -121,6 +121,8 @@ Also withAsyncData used `withAbort` under the hood, that prevent race conditions
 
 **Important**: computed + withAsyncData is the main recommended way to fetch data with Reatom.
 
+> **Feature agent default**: when adding async read/query data for a feature, component, widget, page, or route-adjacent model, start with `computed(async () => ...)` extended by `withAsyncData()`. Do not begin with `effect`, `ref`, or imperative mount-time fetch code unless you have a specific reason. Use `action(...).extend(withAsync())` for mutations / commands instead.
+
 `withAsyncData` accepts partial parameters:
 
 - `initState` - undefined by default
@@ -853,7 +855,7 @@ export const usersRoute = protectedRoute.reatomRoute({
     return await wrap(response.json())
   },
   render(self) {
-    const { isPending, data, data } = self.status()
+    const { isPending, data } = self.status()
     if (isPending) return html`<div>Loading users...</div>`
     return html`<section>
       <h1>Users</h1>
