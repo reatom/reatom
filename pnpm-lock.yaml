@@ -472,10 +472,6 @@ importers:
       jsondiffpatch:
         specifier: 'catalog:'
         version: 0.7.3
-    devDependencies:
-      tsdown:
-        specifier: 'catalog:'
-        version: 0.21.2(typescript@5.9.3)
 
   packages/eslint-plugin:
     devDependencies:

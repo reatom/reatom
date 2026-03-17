@@ -461,8 +461,16 @@ const detectLanguage = async (text) => {
 }
 
 const translate = action(async (text, targetLang) => {
-  const googlePromise = abortVar.createAndRun(translateWithGoogle, text, targetLang)
-  const deeplPromise = abortVar.createAndRun(translateWithDeepL, text, targetLang)
+  const googlePromise = abortVar.createAndRun(
+    translateWithGoogle,
+    text,
+    targetLang,
+  )
+  const deeplPromise = abortVar.createAndRun(
+    translateWithDeepL,
+    text,
+    targetLang,
+  )
   const detectPromise = abortVar.createAndRun(detectLanguage, text)
 
   // first translation wins; the slower service is aborted

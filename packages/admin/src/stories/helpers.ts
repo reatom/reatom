@@ -7,10 +7,7 @@ General notes:
 import { sleep, urlAtom, wrap } from '@reatom/core'
 
 import { ADMIN_FRAME } from '../root'
-import {
-  createAdminDevtools,
-  type AdminDevtoolsOptions,
-} from '../view'
+import { createAdminDevtools, type AdminDevtoolsOptions } from '../view'
 
 export const SETTLE_MS = 50
 
@@ -42,10 +39,10 @@ export function parseLogItem(el: Element): ParsedLogItem {
   const name =
     el.querySelector(':scope > div strong, :scope > div > span')?.textContent ??
     ''
-  const content = Array.from(el.querySelectorAll(':scope > span'))
-    .map((span) => span.textContent ?? '')
-    .find((text) => text !== timestamp && !text.startsWith('#'))
-    ?? ''
+  const content =
+    Array.from(el.querySelectorAll(':scope > span'))
+      .map((span) => span.textContent ?? '')
+      .find((text) => text !== timestamp && !text.startsWith('#')) ?? ''
   return { timestamp, name, content: normalizePreviewText(content) }
 }
 
@@ -92,7 +89,9 @@ export function parseFrameDetail(
   if (!detail) return null
   const h3 = detail.querySelector('h3')
   const atomName = h3?.textContent?.trim() ?? ''
-  const jsonDiv = Array.from(detail.querySelectorAll('[data-reatom-name="JsonInspector"], details, div')).find(
+  const jsonDiv = Array.from(
+    detail.querySelectorAll('[data-reatom-name="JsonInspector"], details, div'),
+  ).find(
     (element) =>
       element.textContent?.includes('state') ||
       element.textContent?.includes('payload') ||
@@ -107,9 +106,9 @@ export function parseFrameDetail(
       raw: normalizedText,
     }
   }
-  const causeChainDiv = Array.from(detail.querySelectorAll('section, div')).find(
-    (element) => element.textContent?.includes('Cause chain'),
-  )
+  const causeChainDiv = Array.from(
+    detail.querySelectorAll('section, div'),
+  ).find((element) => element.textContent?.includes('Cause chain'))
   const causeChainButtons = causeChainDiv?.querySelectorAll('button') ?? []
   const causeChainNames = Array.from(causeChainButtons).map(
     (b) => b.textContent ?? '',

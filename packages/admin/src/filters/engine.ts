@@ -30,7 +30,9 @@ export type FilterConfigInput = Pick<
 > &
   Partial<Pick<FilterConfig, 'name' | 'enabled' | 'highlightColor'>>
 
-function normalizeConfig(config: FilterConfigInput | FilterConfig): FilterConfig {
+function normalizeConfig(
+  config: FilterConfigInput | FilterConfig,
+): FilterConfig {
   return {
     enabled: true,
     name: 'Custom filter',

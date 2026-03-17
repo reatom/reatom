@@ -24,7 +24,9 @@ import { createAdvancedTodoScene } from './sceneHelpers'
 
 let advancedTodoApp: ReturnType<typeof createAdvancedTodoApp>
 
-function getDetailText(detail: { json: Record<string, unknown> } | null): string {
+function getDetailText(
+  detail: { json: Record<string, unknown> } | null,
+): string {
   if (!detail) return ''
   const raw = detail.json.raw
   return typeof raw === 'string' ? raw : JSON.stringify(detail.json)
@@ -285,9 +287,7 @@ export const FullFlowWithPersistenceAndRollback: StoryObj = {
     const filteredItems = getLogItems(shadowRoot)
     await expect(filteredItems.length).toBeLessThan(totalBeforeSearch)
     const filteredNames = filteredItems.map((el) => parseLogItem(el).name)
-    const hasToggleTodo = filteredNames.some((n) =>
-      n.includes('toggleTodo'),
-    )
+    const hasToggleTodo = filteredNames.some((n) => n.includes('toggleTodo'))
     await expect(hasToggleTodo).toBe(true)
 
     typeInSearch(shadowRoot, '')

@@ -64,7 +64,10 @@ test('investigates an async rollback failure without breaking the activity works
     expect(host).not.toBeNull()
     const headerRect = getRect(shadowRoot, '[data-reatom-name="HeaderBar"]')
     const filterBarRect = getRect(shadowRoot, '[data-reatom-name="FilterBar"]')
-    const inspectorRect = getRect(shadowRoot, '[data-reatom-name="InspectorPanel"]')
+    const inspectorRect = getRect(
+      shadowRoot,
+      '[data-reatom-name="InspectorPanel"]',
+    )
 
     expect(headerRect.height).toBeGreaterThan(200)
     expect(filterBarRect.width).toBeGreaterThan(480)
@@ -72,10 +75,11 @@ test('investigates an async rollback failure without breaking the activity works
     expect(shadowRoot.textContent?.includes('Captured error')).toBe(true)
     expect(shadowRoot.textContent?.includes('Network unavailable')).toBe(true)
     expect(shadowRoot.textContent?.includes('Atom timeline')).toBe(true)
-    expect(
-      shadowRoot.textContent?.includes('Structured payload'),
-    ).toBe(true)
-    const frameMeta = getElement(shadowRoot, '[data-testid="frame-detail-meta"]')
+    expect(shadowRoot.textContent?.includes('Structured payload')).toBe(true)
+    const frameMeta = getElement(
+      shadowRoot,
+      '[data-testid="frame-detail-meta"]',
+    )
     frameMeta.replaceChildren(
       Object.assign(document.createElement('div'), {
         textContent: '3/15/2026, 5:16 PM',

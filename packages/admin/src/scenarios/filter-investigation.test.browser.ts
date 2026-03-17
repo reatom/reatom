@@ -55,7 +55,10 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
         })
       }
 
-      admin.filters.engine.addDraftConfig('Highlight cross-app work', 'highlight')
+      admin.filters.engine.addDraftConfig(
+        'Highlight cross-app work',
+        'highlight',
+      )
       admin.filters.engine.addDraftConfig('Show action traffic', 'show')
     })
 
@@ -95,9 +98,9 @@ test('curates a reusable filter workbench for a noisy multi-app debugging sessio
     filterWorkbenchElement.style.maxHeight = '44rem'
     filterWorkbenchElement.style.overflow = 'hidden'
     filterWorkbenchElement.style.background = '#11131a'
-    await expect(
-      page.elementLocator(filterWorkbenchElement),
-    ).toMatchScreenshot('filter-workbench-curation')
+    await expect(page.elementLocator(filterWorkbenchElement)).toMatchScreenshot(
+      'filter-workbench-curation',
+    )
   } finally {
     teardown()
   }

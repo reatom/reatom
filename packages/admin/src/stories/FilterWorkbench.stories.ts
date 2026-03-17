@@ -54,9 +54,9 @@ export const BuildReusableHighlightAndShowRules: StoryObj = {
       currentDevtools!.containerId,
     )!.shadowRoot!
 
-    const filtersButton = Array.from(shadowRoot.querySelectorAll('button')).find(
-      (button) => button.textContent?.includes('Filters'),
-    )
+    const filtersButton = Array.from(
+      shadowRoot.querySelectorAll('button'),
+    ).find((button) => button.textContent?.includes('Filters'))
     filtersButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     await wrap(sleep(120))
 

@@ -282,7 +282,11 @@ async function buildEntry(
   }
 
   const entryFile = await resolveEntryFile(absolutePath, isDirectory)
-  const sourceFiles = await collectSourceFiles(absolutePath, isDirectory, entryFile)
+  const sourceFiles = await collectSourceFiles(
+    absolutePath,
+    isDirectory,
+    entryFile,
+  )
   const symbols = extractPublicSymbols({
     entryFile,
     repoRoot,
@@ -474,7 +478,8 @@ function collectSymbolDoc({
   for (const declaration of declarations) {
     const node = toDocumentableNode(declaration)
     if (!node) continue
-    if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node)) continue
+    if (ts.isInterfaceDeclaration(node) || ts.isTypeAliasDeclaration(node))
+      continue
     if (getDeclaredNames(node).some((n) => n.startsWith('_'))) continue
     if (hasJsDocTag(node, 'internal')) continue
 
@@ -494,17 +499,15 @@ function collectSymbolDoc({
   }
 
   const descriptions = dedupeBy(allDescriptions, (d) => d)
-  const examples = dedupeBy(
-    allExamples,
-    (e) => `${e.caption ?? ''}\0${e.code}`,
-  )
+  const examples = dedupeBy(allExamples, (e) => `${e.caption ?? ''}\0${e.code}`)
 
   if (descriptions.length === 0 && examples.length === 0) return undefined
 
   return {
     name: publicName,
     kind,
-    description: descriptions.length > 0 ? descriptions.join('\n\n') : undefined,
+    description:
+      descriptions.length > 0 ? descriptions.join('\n\n') : undefined,
     examples,
     sourcePath,
     sortPath,
@@ -581,7 +584,8 @@ function jsDocCommentToString(
   sourceFile: ts.SourceFile,
 ): string {
   if (comment === undefined) return ''
-  if (typeof comment === 'string') return normalizeInlineTags(stripJsDocSyntax(comment))
+  if (typeof comment === 'string')
+    return normalizeInlineTags(stripJsDocSyntax(comment))
 
   if (isIterable(comment)) {
     const joined = joinCommentSegments(
@@ -711,9 +715,7 @@ function renderSymbolMarkdown(symbol: SymbolDoc): string {
 
   symbol.examples.forEach((example, index) => {
     parts.push(
-      symbol.examples.length === 1
-        ? '### Example'
-        : `### Example ${index + 1}`,
+      symbol.examples.length === 1 ? '### Example' : `### Example ${index + 1}`,
     )
 
     if (example.caption && example.caption.length > 0) {
@@ -858,7 +860,9 @@ function parsePackageJson(content: string): PackageMetadata {
   return {
     packageName: typeof rawValue.name === 'string' ? rawValue.name : undefined,
     packageDescription:
-      typeof rawValue.description === 'string' ? rawValue.description : undefined,
+      typeof rawValue.description === 'string'
+        ? rawValue.description
+        : undefined,
   }
 }
 

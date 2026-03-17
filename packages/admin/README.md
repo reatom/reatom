@@ -138,11 +138,7 @@ const { admin, unmount } = createAdminApp(target, {
 ## Public API
 
 ```ts
-import {
-  createAdmin,
-  createAdminApp,
-  createAdminDevtools,
-} from '@reatom/admin'
+import { createAdmin, createAdminApp, createAdminDevtools } from '@reatom/admin'
 ```
 
 ### `createAdmin(options?)`

@@ -200,10 +200,11 @@ export let withAbort =
 
     if (target.__reatom.reactive) {
       withMiddleware(
-        () => (next: Fn, ...args: any[]) => {
-          recomputed.add(top())
-          return next(...args)
-        },
+        () =>
+          (next: Fn, ...args: any[]) => {
+            recomputed.add(top())
+            return next(...args)
+          },
         'computed',
       )(target)
     }

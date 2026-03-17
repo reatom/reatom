@@ -244,7 +244,9 @@ function toTimeRange(value: unknown): [number, number] {
   ]
 }
 
-function isCausePredicate(predicate: FilterPredicate): predicate is CausePredicate {
+function isCausePredicate(
+  predicate: FilterPredicate,
+): predicate is CausePredicate {
   return predicate.type === 'cause'
 }
 
@@ -265,7 +267,12 @@ export function evaluatePredicate(
         atomRegistry,
       )
     case 'regex':
-      return matchRegex(frame, toRegexPattern(predicate.value), target, atomRegistry)
+      return matchRegex(
+        frame,
+        toRegexPattern(predicate.value),
+        target,
+        atomRegistry,
+      )
     case 'timeRange': {
       const [start, end] = toTimeRange(predicate.value)
       return matchTimeRange(frame, start, end)

@@ -16,10 +16,7 @@ export interface SearchDeps {
 
 export function createSearch(deps: SearchDeps) {
   const searchQueryBase = atom('', `${PREFIX}.query`)
-  const searchTargetBase = atom<FilterTarget | 'all'>(
-    'all',
-    `${PREFIX}.target`,
-  )
+  const searchTargetBase = atom<FilterTarget | 'all'>('all', `${PREFIX}.target`)
   const searchQuery = canPersistToLocalStorage()
     ? searchQueryBase.extend(withLocalStorage(QUERY_STORAGE_KEY))
     : searchQueryBase
