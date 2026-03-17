@@ -6,27 +6,11 @@ import {
   clearCurrentDevtools,
   currentDevtools,
   runStoryCleanups,
-} from '../src/stories/helpers'
+} from '../src/testing/storybook-runtime'
+import { FALLBACK_VIEWPORT, getViewportSize } from './viewports'
 
-const FALLBACK_VIEWPORT = { width: 1280, height: 720 } as const
 type ViewportGlobal = { value?: string } | string | undefined
 type PreviewGlobals = Record<string, ViewportGlobal>
-
-const breakpointWidths: Record<string, number> = {
-  sm: 640,
-  md: 768,
-  lg: 1024,
-  xl: 1280,
-  '2xl': 1536,
-}
-
-function getViewportSize(
-  name: string,
-): { width: number; height: number } | null {
-  const width = breakpointWidths[name]
-  if (width === undefined) return null
-  return { width, height: FALLBACK_VIEWPORT.height }
-}
 
 const preview = {
   parameters: {
