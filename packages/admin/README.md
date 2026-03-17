@@ -161,12 +161,13 @@ capabilities.
 The package is designed to be tested with realistic user scenarios:
 
 - unit tests for the reporter, store, filters, timeline, and graph
-- Storybook interaction stories that simulate real debugging journeys
-- browser scenario tests that validate:
-  - layout geometry
-  - responsive shell behavior
-  - replay workflows
-  - filter studio usability
+- Storybook interaction stories that simulate real debugging journeys with real
+  example applications
+- high-level Storybook investigations that validate:
+  - admin-first instrumentation setup
+  - captured action and atom activity
+  - replayable inspection flows
+  - user-visible debugging workflows
 
 ## Development scripts
 
@@ -174,6 +175,5 @@ The package is designed to be tested with realistic user scenarios:
 pnpm --filter @reatom/admin storybook
 pnpm --filter @reatom/admin test:unit
 pnpm --filter @reatom/admin test:stories
-pnpm --filter @reatom/admin test:browser
 pnpm --filter @reatom/admin test
 ```
