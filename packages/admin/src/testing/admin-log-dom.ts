@@ -73,6 +73,7 @@ export function parseFrameDetail(root: ParentNode): ParsedFrameDetail | null {
     atomName,
     bodyText: normalizePreviewText(detail.textContent ?? ''),
     causeChainNames,
-    hasError: detail.querySelector('[data-testid="frame-error-panel"]') !== null,
+    hasError:
+      detail.querySelector('[data-testid="frame-error-panel"]') !== null,
   }
 }
