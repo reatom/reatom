@@ -1,3 +1,44 @@
+import { computed, withAsyncData, wrap } from '@reatom/core'
+
+const repositoryUrl = 'https://github.com/reatom/reatom'
+const repositoryApiUrl = 'https://api.github.com/repos/reatom/reatom'
+const sourceCodeUrl =
+  'https://github.com/reatom/reatom/blob/v1000/examples/reatom-jsx-xo/src/App.tsx'
+
+const repositoryStarCountFormatter = new Intl.NumberFormat(undefined, {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+const isRepositoryPayload = (
+  value: unknown,
+): value is { stargazers_count: number } => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'stargazers_count' in value &&
+    typeof value.stargazers_count === 'number' &&
+    Number.isFinite(value.stargazers_count)
+  )
+}
+
+const repositoryStarCountResource = computed(async () => {
+  const response = await wrap(
+    fetch(repositoryApiUrl, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+      },
+    }),
+  )
+
+  if (!response.ok) throw new Error(response.statusText)
+
+  const repositoryPayload: unknown = await wrap(response.json())
+  if (!isRepositoryPayload(repositoryPayload)) return null
+
+  return repositoryPayload.stargazers_count
+}, 'footer.repositoryStarCount').extend(withAsyncData({ initState: null }))
+
 export const Footer = () => {
   return (
     <div
@@ -27,7 +68,40 @@ export const Footer = () => {
         </a>
       </span>
       <a
-        href="https://github.com/reatom/reatom/blob/v1000/examples/reatom-jsx-xo/src/App.tsx"
+        href={repositoryUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        css={`
+          color: rgba(255, 255, 255, 0.7);
+          transition: color 0.2s;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          text-decoration: none;
+          font-weight: 600;
+
+          &:hover {
+            color: rgba(255, 255, 255, 1);
+          }
+        `}
+      >
+        GitHub
+        <span
+          hidden={() => repositoryStarCountResource.data() === null}
+          css={`
+            font-variant-numeric: tabular-nums;
+          `}
+        >
+          {() => {
+            const repositoryStarCount = repositoryStarCountResource.data()
+            return repositoryStarCount === null
+              ? ''
+              : `★ ${repositoryStarCountFormatter.format(repositoryStarCount)}`
+          }}
+        </span>
+      </a>
+      <a
+        href={sourceCodeUrl}
         target="_blank"
         rel="noopener noreferrer"
         css={`
