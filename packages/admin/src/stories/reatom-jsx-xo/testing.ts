@@ -106,7 +106,9 @@ export async function openLatestAdminLogMatching(
   predicate: (logItem: ParsedLogItem) => boolean,
 ): Promise<void> {
   await waitFor(() => {
-    expect(getLastLogItemMatching(getAdminShadowRoot(), predicate)).not.toBeNull()
+    expect(
+      getLastLogItemMatching(getAdminShadowRoot(), predicate),
+    ).not.toBeNull()
   })
 
   const logItem = getLastLogItemMatching(getAdminShadowRoot(), predicate)
