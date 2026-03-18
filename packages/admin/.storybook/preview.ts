@@ -37,12 +37,12 @@ const preview = {
     }
 
     return () => {
+      runStoryCleanups()
       if (currentDevtools) {
         currentDevtools.hide()
         currentDevtools.admin.dispose()
         clearCurrentDevtools()
       }
-      runStoryCleanups()
       clearAdminStorage()
     }
   },

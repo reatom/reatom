@@ -1,11 +1,15 @@
 import { mount } from '@reatom/jsx'
+import { urlAtom } from '@reatom/core'
 
+import { ADMIN_FRAME } from '../../root'
 import { createAdminDevtools } from '../../view'
 import {
+  clearCurrentDevtools,
   clearAdminStorage,
   registerStoryCleanup,
   setCurrentDevtools,
 } from '../../testing/storybook-runtime'
+import type { repositoryStarCountResource } from './src/components/Footer'
 
 export type GithubStarsMode = 'success' | 'error'
 
@@ -16,6 +20,9 @@ export interface XoHarnessOptions {
 const githubStarsState = {
   mode: 'success' as GithubStarsMode,
 }
+
+type GithubStarsResource = typeof repositoryStarCountResource
+type PersistentDevtools = ReturnType<typeof createAdminDevtools>
 
 function mockFetchResponse(payload: unknown): Response {
   return new Response(JSON.stringify(payload), {
@@ -92,13 +99,43 @@ async function bootXoApplication(target: HTMLElement): Promise<() => void> {
   return mountedApplication.unmount
 }
 
-export function setGithubStarsMode(mode: GithubStarsMode): void {
-  githubStarsState.mode = mode
+let persistentDevtools: PersistentDevtools | null = null
+
+function getPersistentDevtools(): PersistentDevtools {
+  if (persistentDevtools) return persistentDevtools
+  persistentDevtools = createAdminDevtools({
+    initialWidth: '560px',
+    initialHeight: '760px',
+  })
+  return persistentDevtools
 }
 
-export async function retryGithubStarsRequest(): Promise<void> {
+function resetPersistentAdminState(devtools: PersistentDevtools): void {
+  clearAdminStorage()
+  devtools.show()
+
+  ADMIN_FRAME.run(() => {
+    urlAtom.go('/')
+    devtools.admin.reporter.paused.setFalse()
+    devtools.admin.reporter.clear()
+    devtools.admin.store.clear()
+    devtools.admin.session.start()
+    devtools.admin.filters.search.searchQuery.set('')
+    devtools.admin.filters.search.searchTarget.set('all')
+    devtools.admin.filters.engine.clearConfigs()
+    devtools.admin.filters.expression.setExpression({
+      operator: 'AND',
+      children: [],
+    })
+  })
+}
+
+async function refreshGithubStarsRequest(mode: GithubStarsMode): Promise<void> {
+  githubStarsState.mode = mode
   const footerModule = await import('./src/components/Footer')
-  footerModule.repositoryStarCountResource.retry()
+  const githubStarsResource: GithubStarsResource =
+    footerModule.repositoryStarCountResource
+  githubStarsResource.retry()
 }
 
 export function renderXoHarness(
@@ -115,12 +152,8 @@ export function renderXoHarness(
 
   void (async () => {
     const restoreEnvironment = installEnvironmentMocks(options)
-    clearAdminStorage()
-
-    const devtools = createAdminDevtools({
-      initialWidth: '560px',
-      initialHeight: '760px',
-    })
+    const devtools = getPersistentDevtools()
+    resetPersistentAdminState(devtools)
     setCurrentDevtools(devtools)
 
     let unmountApplication: (() => void) | null = null
@@ -128,12 +161,18 @@ export function renderXoHarness(
     registerStoryCleanup(() => {
       try {
         unmountApplication?.()
-      } catch {}
-      restoreEnvironment()
-      applicationRoot.replaceChildren()
+      } catch {
+        return
+      } finally {
+        devtools.hide()
+        clearCurrentDevtools()
+        restoreEnvironment()
+        applicationRoot.replaceChildren()
+      }
     })
 
     unmountApplication = await bootXoApplication(applicationRoot)
+    await refreshGithubStarsRequest(options.githubStarsMode ?? 'success')
   })()
 
   return storyRoot
