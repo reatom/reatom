@@ -90,7 +90,9 @@ export const WinningDebuggingJourney: StoryObj<XoHarnessOptions> = {
 
     const allVisibleLogs = getVisibleLogs()
     expect(getAdminText()).toContain('0 errors')
-    expect(allVisibleLogs.filter((logItem) => logItem.name === 'makeMove')).toHaveLength(5)
+    expect(
+      allVisibleLogs.filter((logItem) => logItem.name === 'makeMove'),
+    ).toHaveLength(5)
     expect(
       allVisibleLogs.some(
         (logItem) =>
