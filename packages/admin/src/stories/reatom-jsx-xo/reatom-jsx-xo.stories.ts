@@ -2,7 +2,6 @@ import type { Meta, StoryObj } from '@storybook/html'
 import { expect, waitFor } from 'storybook/test'
 
 import { button, createActor, heading, role } from '../../../.storybook/helpers'
-
 import { renderXoHarness, type XoHarnessOptions } from './boot'
 import {
   clickAdminButton,

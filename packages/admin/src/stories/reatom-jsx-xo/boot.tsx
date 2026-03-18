@@ -1,14 +1,14 @@
-import { mount } from '@reatom/jsx'
 import { urlAtom } from '@reatom/core'
+import { mount } from '@reatom/jsx'
 
 import { ADMIN_FRAME } from '../../root'
-import { createAdminDevtools } from '../../view'
 import {
-  clearCurrentDevtools,
   clearAdminStorage,
+  clearCurrentDevtools,
   registerStoryCleanup,
   setCurrentDevtools,
 } from '../../testing/storybook-runtime'
+import { createAdminDevtools } from '../../view'
 import type { repositoryStarCountResource } from './src/components/Footer'
 
 export type GithubStarsMode = 'success' | 'error'
@@ -88,7 +88,7 @@ function installEnvironmentMocks({
       )
       return
     }
-    delete (Navigator.prototype as Navigator & { vibrate?: unknown }).vibrate
+    Reflect.deleteProperty(Navigator.prototype, 'vibrate')
   }
 }
 
