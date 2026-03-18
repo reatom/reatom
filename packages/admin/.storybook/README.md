@@ -8,6 +8,21 @@ A portable guide to the **codecept-style actor** and **fluent locator DSL** used
 - The `I` object (the _actor_) is the only entry point for all interactions.
 - Locators are **composable functions** with a fluent API for wait/maybe/all/within modifiers.
 - No standalone `*.test.ts` files; all tests live inside Storybook stories.
+- **Application-specific logic stays in the story file.** The story should spell out
+  which buttons are pressed, which requests fail, and which logs are expected.
+- Shared `testing.ts` helpers are for **system specifics only**:
+  - shadow-root selectors
+  - low-level DOM extraction
+  - timer stabilization
+  - browser and screenshot quirks
+  - generic admin-shell controls like searching logs or clicking toolbar buttons
+- Do **not** hide domain workflows in shared helpers. Avoid methods like:
+  - `playWinningGame()`
+  - `assertCheckoutRollbackFlow()`
+  - `assertArticleLoaderFailureLogs()`
+
+Instead, keep those steps inline in the story so future readers can understand
+the application behavior without opening helper files.
 
 ## Architecture Overview
 
@@ -62,39 +77,47 @@ const meta = preview.meta({
 | `I.scope`          | `(locator, callback) => Promise<void>` | Narrow all queries inside `callback` to a subtree                      |
 | `I.resolveLocator` | `(locator) => Promise<HTMLElement>`    | Low-level: resolve a locator to a DOM element                          |
 
-### Extending the actor per page
+### Extending the actor with low-level helpers
 
-Each page defines its own actor in `src/pages/<page>/testing.ts` using `.extend()`:
+Shared helpers may extend the actor, but only with low-level or cross-cutting
+behavior. Keep business expectations out of them.
 
 ```typescript
-import { button, createActor, heading, link, role, text } from 'shared/test'
+import { createActor } from 'shared/test'
 
-export const articlesActor = createActor().extend((I) => ({
-  seeError: async () => {
-    await I.see(heading('Could not load articles'))
-    await I.see(role('alert'))
-    await I.see(button('Try again'))
-  },
-  seeLoading: async () => {
-    await I.see(role('status', 'Loading articles page'))
-    await I.dontSee(role('alert'))
-  },
-  goBack: async () => {
-    await I.click((canvas) => canvas.findByLabelText('Back to articles'))
-  },
-  seeArticleList: async () => {
-    await I.scope(role('list', 'Articles'), async () => {
-      await I.see(link(/Quarterly report/i))
-      await I.see(link(/Hiring plan/i))
-    })
+export const I = createActor().extend((actor) => ({
+  clickAdminButton: async (name: string | RegExp) => {
+    const target = Array.from(document.querySelectorAll('button')).find(
+      (button) =>
+        button instanceof HTMLButtonElement &&
+        (typeof name === 'string'
+          ? button.textContent?.includes(name)
+          : name.test(button.textContent ?? '')),
+    )
+    if (!(target instanceof HTMLButtonElement)) {
+      throw new Error(`Missing button ${String(name)}`)
+    }
+    await actor.click(() => target)
   },
 }))
 ```
 
-The story file then imports and renames this extended actor as `I`:
+Then keep the application flow in the story itself:
 
 ```typescript
-import { articlesActor as I } from 'pages/articles/testing'
+Default.test('plays the winning tic-tac-toe flow', async () => {
+  await I.click(button('Top left cell'))
+  await I.click(button('Middle left cell'))
+  await I.click(button('Top center cell'))
+  await I.click(button('Center cell'))
+  await I.click(button('Top right cell'))
+
+  await waitFor(() => {
+    const logs = getVisibleLogs()
+    expect(logs.map((log) => log.name)).toContain('winner')
+    expect(logs.map((log) => log.content)).toContain('X')
+  })
+})
 ```
 
 ---
@@ -218,7 +241,7 @@ import preview from '.storybook/preview'
 import { App } from 'app/App'
 import { featureList } from 'entities/feature/mocks/handlers'
 import { featureActor as I } from 'pages/feature/testing'
-import { heading, link, role, text } from 'shared/test'
+import { button, heading, link, role, text } from 'shared/test'
 
 const meta = preview.meta({
   title: 'Integration/Feature',
@@ -236,7 +259,10 @@ export const Default = meta.story({
 })
 
 Default.test('renders feature content', async () => {
-  await I.seeFeatureContent()
+  await I.see(heading('Feature heading'))
+  await I.click(link(/Quarterly report/i))
+  await I.waitExit(role('status'))
+  await I.see(text('Quarterly report'))
 })
 
 // --- Mobile variant (reuse desktop params where possible) ---
@@ -258,7 +284,9 @@ export const HandlesFeatureLoadServerError = meta.story({
 })
 
 HandlesFeatureLoadServerError.test('shows error state', async () => {
-  await I.seeError()
+  await I.see(heading('Could not load feature'))
+  await I.see(role('alert'))
+  await I.click(button('Try again'))
 })
 
 // --- Error mobile (reuse error parameters) ---
