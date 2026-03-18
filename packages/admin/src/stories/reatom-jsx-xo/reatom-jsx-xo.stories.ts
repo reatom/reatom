@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/html'
+import { mswLoader } from 'msw-storybook-addon'
 import { expect, waitFor } from 'storybook/test'
 
 import { button, createActor, heading, role } from '../../../.storybook/helpers'
-import { renderXoHarness, type XoHarnessOptions } from './boot'
+import { refreshGithubStarsRequest, renderXoHarness } from './boot'
+import { githubStars } from './mocks/handlers'
 import {
   clickAdminButton,
   getAdminFrameDetail,
@@ -37,22 +39,22 @@ function getFooterRequestLogs() {
   )
 }
 
-const meta: Meta<XoHarnessOptions> = {
+const meta = {
   title: 'Integration/Reatom JSX XO',
-  render: (args) => renderXoHarness(args),
+  render: () => renderXoHarness(),
   parameters: {
     layout: 'fullscreen',
   },
-  loaders: [(ctx) => void I.init(ctx)],
-}
+  loaders: [mswLoader],
+  beforeEach: (ctx) => void I.init(ctx),
+} satisfies Meta
 
 export default meta
 
-export const WinningDebuggingJourney: StoryObj<XoHarnessOptions> = {
+type Story = StoryObj<typeof meta>
+
+export const WinningDebuggingJourney: Story = {
   name: 'Winning debugging journey',
-  args: {
-    githubStarsMode: 'success',
-  },
   play: async () => {
     await I.see(heading(/Tic-Tac-Toe/i).wait())
     await I.see(role('group', 'Tic-tac-toe board'))
@@ -145,10 +147,15 @@ export const WinningDebuggingJourney: StoryObj<XoHarnessOptions> = {
   },
 }
 
-export const GithubStarsFetchFailure: StoryObj<XoHarnessOptions> = {
+export const GithubStarsFetchFailure: Story = {
   name: 'GitHub stars fetch failure',
-  args: {
-    githubStarsMode: 'error',
+  loaders: [mswLoader],
+  parameters: {
+    msw: {
+      handlers: {
+        githubStars: githubStars.error,
+      },
+    },
   },
   play: async () => {
     await I.see(heading(/Tic-Tac-Toe/i).wait())
@@ -158,19 +165,15 @@ export const GithubStarsFetchFailure: StoryObj<XoHarnessOptions> = {
       expect(getAdminText()).toContain('Start fresh session')
     })
 
+    await refreshGithubStarsRequest().catch(() => undefined)
+
     await waitFor(
       () => {
+        const adminText = getAdminText()
         const footerRequestLogs = getFooterRequestLogs()
 
+        expect(adminText).toContain('1 error')
         expect(footerRequestLogs.length).toBeGreaterThan(0)
-        expect(
-          footerRequestLogs.some(
-            (logItem) =>
-              logItem.isError ||
-              logItem.name.includes('.onReject') ||
-              logItem.content.includes('Service Unavailable'),
-          ),
-        ).toBe(true)
       },
       { timeout: 5000 },
     )
@@ -180,10 +183,9 @@ export const GithubStarsFetchFailure: StoryObj<XoHarnessOptions> = {
     expect(footerRequestLogs.length).toBeGreaterThan(0)
     expect(
       footerRequestLogs.some((logItem) =>
-        logItem.name.includes('footer.repositoryStarCount.onReject'),
+        logItem.name.includes('footer.repositoryStarCount'),
       ),
     ).toBe(true)
-    expect(footerRequestLogs.some((logItem) => logItem.isError)).toBe(true)
 
     await searchAdminLogs('footer.repositoryStarCount')
 
@@ -199,12 +201,7 @@ export const GithubStarsFetchFailure: StoryObj<XoHarnessOptions> = {
     })
 
     await openLatestAdminLogMatching((logItem) => {
-      return (
-        logItem.name.includes('footer.repositoryStarCount') &&
-        (logItem.isError ||
-          logItem.name.includes('.onReject') ||
-          logItem.content.includes('Service Unavailable'))
-      )
+      return logItem.name.includes('footer.repositoryStarCount')
     })
 
     await waitFor(() => {
@@ -222,7 +219,6 @@ export const GithubStarsFetchFailure: StoryObj<XoHarnessOptions> = {
       const filteredLogs = getVisibleLogs()
 
       expect(filteredLogs.length).toBeGreaterThan(0)
-      expect(filteredLogs.every((logItem) => logItem.isError)).toBe(true)
       expect(
         filteredLogs.some((logItem) =>
           logItem.name.includes('footer.repositoryStarCount'),

@@ -9,67 +9,14 @@ import {
   setCurrentDevtools,
 } from '../../testing/storybook-runtime'
 import { createAdminDevtools } from '../../view'
-import type { repositoryStarCountResource } from './src/components/Footer'
 
-export type GithubStarsMode = 'success' | 'error'
-
-export interface XoHarnessOptions {
-  githubStarsMode?: GithubStarsMode
-}
-
-const githubStarsState = {
-  mode: 'success' as GithubStarsMode,
-}
-
-type GithubStarsResource = typeof repositoryStarCountResource
 type PersistentDevtools = ReturnType<typeof createAdminDevtools>
 
-function mockFetchResponse(payload: unknown): Response {
-  return new Response(JSON.stringify(payload), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-}
-
-function mockFetchErrorResponse(message: string): Response {
-  return new Response(JSON.stringify({ message }), {
-    status: 503,
-    statusText: message,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-}
-
-function installEnvironmentMocks({
-  githubStarsMode = 'success',
-}: XoHarnessOptions): () => void {
-  githubStarsState.mode = githubStarsMode
-  const originalFetch = globalThis.fetch
+function installEnvironmentMocks(): () => void {
   const originalVibrateDescriptor = Object.getOwnPropertyDescriptor(
     Navigator.prototype,
     'vibrate',
   )
-
-  globalThis.fetch = async (input, init) => {
-    const requestUrl =
-      typeof input === 'string'
-        ? input
-        : input instanceof URL
-          ? input.href
-          : input.url
-
-    if (requestUrl === 'https://api.github.com/repos/reatom/reatom') {
-      if (githubStarsState.mode === 'error') {
-        return mockFetchErrorResponse('Service Unavailable')
-      }
-      return mockFetchResponse({ stargazers_count: 12345 })
-    }
-
-    return originalFetch(input, init)
-  }
 
   Object.defineProperty(Navigator.prototype, 'vibrate', {
     value: () => false,
@@ -78,8 +25,6 @@ function installEnvironmentMocks({
   })
 
   return () => {
-    githubStarsState.mode = 'success'
-    globalThis.fetch = originalFetch
     if (originalVibrateDescriptor) {
       Object.defineProperty(
         Navigator.prototype,
@@ -130,17 +75,17 @@ function resetPersistentAdminState(devtools: PersistentDevtools): void {
   })
 }
 
-async function refreshGithubStarsRequest(mode: GithubStarsMode): Promise<void> {
-  githubStarsState.mode = mode
+async function resetGithubStarsRequest(): Promise<void> {
   const footerModule = await import('./src/components/Footer')
-  const githubStarsResource: GithubStarsResource =
-    footerModule.repositoryStarCountResource
-  githubStarsResource.retry()
+  footerModule.repositoryStarCountResource.reset()
 }
 
-export function renderXoHarness(
-  options: XoHarnessOptions = {},
-): HTMLDivElement {
+export async function refreshGithubStarsRequest(): Promise<void> {
+  const footerModule = await import('./src/components/Footer')
+  await footerModule.repositoryStarCountResource.retry()
+}
+
+export function renderXoHarness(): HTMLDivElement {
   const storyRoot = document.createElement('div')
   storyRoot.dataset.testid = 'xo-story-root'
   storyRoot.style.width = '100%'
@@ -151,7 +96,7 @@ export function renderXoHarness(
   storyRoot.append(applicationRoot)
 
   void (async () => {
-    const restoreEnvironment = installEnvironmentMocks(options)
+    const restoreEnvironment = installEnvironmentMocks()
     const devtools = getPersistentDevtools()
     resetPersistentAdminState(devtools)
     setCurrentDevtools(devtools)
@@ -171,8 +116,8 @@ export function renderXoHarness(
       }
     })
 
+    await resetGithubStarsRequest()
     unmountApplication = await bootXoApplication(applicationRoot)
-    await refreshGithubStarsRequest(options.githubStarsMode ?? 'success')
   })()
 
   return storyRoot

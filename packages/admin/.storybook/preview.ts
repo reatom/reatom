@@ -1,6 +1,8 @@
 /// <reference path="../src/global.d.ts" />
 import { urlAtom } from '@reatom/core'
+import { initialize, mswLoader } from 'msw-storybook-addon'
 
+import { reatomJsxXoHandlers } from '../src/stories/reatom-jsx-xo/mocks/handlers'
 import {
   clearAdminStorage,
   clearCurrentDevtools,
@@ -12,10 +14,22 @@ import { FALLBACK_VIEWPORT, getViewportSize } from './viewports'
 type ViewportGlobal = { value?: string } | string | undefined
 type PreviewGlobals = Record<string, ViewportGlobal>
 
+initialize({
+  onUnhandledRequest: 'bypass',
+  quiet: true,
+  serviceWorker: {
+    url: `${import.meta.env['BASE_URL']}mockServiceWorker.js`,
+  },
+}, [reatomJsxXoHandlers.githubStars])
+
 const preview = {
   parameters: {
     a11y: { test: 'todo' },
+    msw: {
+      handlers: reatomJsxXoHandlers,
+    },
   },
+  loaders: [mswLoader],
   async beforeEach({ globals }: { globals: PreviewGlobals }) {
     urlAtom.routes = {}
     if (typeof window !== 'undefined' && window.location.pathname !== '/') {

@@ -26,6 +26,9 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
+  "msw": {
+    "workerDirectory": "public"
+  },
   "tsdown": {
     "format": [
       "esm",
@@ -82,6 +85,8 @@
     "@vitest/browser-playwright": "^4.0.18",
     "@vitest/ui": "4.0.18",
     "eslint-plugin-simple-import-sort": "^12.1.1",
+    "msw": "^2.12.13",
+    "msw-storybook-addon": "^2.0.6",
     "storybook": "^10.2.19",
     "tsdown": "catalog:",
     "vitest": "^4.0.18"

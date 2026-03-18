@@ -1,5 +1,5 @@
 import { setProjectAnnotations } from '@storybook/html-vite'
 
-import * as previewAnnotations from './preview'
+import preview from './preview'
 
-setProjectAnnotations([previewAnnotations])
+setProjectAnnotations([preview])

@@ -2,14 +2,16 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import type { StorybookConfig } from '@storybook/html-vite'
+import type { InlineConfig } from 'vite'
 
 const dir = dirname(fileURLToPath(import.meta.url))
 
 const config: StorybookConfig = {
   stories: ['../src/stories/**/*.stories.ts'],
+  staticDirs: ['../public'],
   addons: ['@storybook/addon-vitest'],
   framework: '@storybook/html-vite',
-  async viteFinal(config) {
+  async viteFinal(config: InlineConfig) {
     const { mergeConfig } = await import('vite')
     return mergeConfig(config, {
       resolve: {
