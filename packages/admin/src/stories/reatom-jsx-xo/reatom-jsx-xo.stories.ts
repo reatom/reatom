@@ -15,7 +15,6 @@ import {
   showOnlyAdminErrors,
   startFreshAdminSession,
 } from './testing'
-
 const I = createActor()
 
 const winningMoveLabels = [

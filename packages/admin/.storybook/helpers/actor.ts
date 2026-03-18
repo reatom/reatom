@@ -1,4 +1,4 @@
-import { assert } from '@reatom/core'
+import { assert, sleep } from '@reatom/core'
 import {
   expect,
   userEvent,
@@ -21,6 +21,11 @@ type ActorContext = {
   canvas: Canvas
   canvasElement: HTMLElement
 }
+
+// skip pause in test run
+const shouldPauseBeforeClick =
+  typeof navigator !== 'undefined' && navigator.webdriver !== true
+const clickPauseMs = 500
 
 // Inspired by codecept.js
 function createBase(ctx: () => ActorContext) {
@@ -81,6 +86,7 @@ function createBase(ctx: () => ActorContext) {
   }
 
   const click = async (locator: DefiniteLocator) => {
+    if (shouldPauseBeforeClick) await sleep(clickPauseMs)
     const el = await resolveLocator(locator)
     assert(
       el instanceof HTMLElement,
