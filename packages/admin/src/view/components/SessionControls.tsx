@@ -1,6 +1,6 @@
 import type { Admin } from '../../index'
 import type { AdminAtom, AdminFrame, AdminSession } from '../../types'
-import { buttonBase, buttonGhost, colors, flex, flexWrap, gap } from '../styles'
+import { buttonBase, buttonGhost, colors } from '../styles'
 
 export interface SessionControlsProps {
   admin: Admin
@@ -13,6 +13,18 @@ interface ImportedSessionPayload {
 }
 
 let importInputCounter = 0
+
+const primaryControlButton = `
+  ${buttonBase}
+  font-size: 0.78rem;
+  white-space: nowrap;
+`
+
+const secondaryControlButton = `
+  ${buttonGhost}
+  font-size: 0.78rem;
+  white-space: nowrap;
+`
 
 function downloadJson(filename: string, data: unknown): void {
   const serialized = JSON.stringify(data, null, 2)
@@ -57,15 +69,24 @@ export const SessionControls = ({ admin }: SessionControlsProps) => {
   return (
     <div
       css={`
-        ${flex}
-        ${gap(2)}
-        ${flexWrap}
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, max-content));
+        gap: 0.5rem;
         align-items: center;
+        justify-content: start;
+
+        @media (max-width: 520px) {
+          grid-template-columns: repeat(2, minmax(0, max-content));
+        }
+
+        @media (max-width: 420px) {
+          grid-template-columns: minmax(0, max-content);
+        }
       `}
     >
       <button
         type="button"
-        css={buttonBase}
+        css={primaryControlButton}
         on:click={() => {
           if (admin.reporter.paused()) {
             admin.reporter.paused.setFalse()
@@ -79,7 +100,7 @@ export const SessionControls = ({ admin }: SessionControlsProps) => {
 
       <button
         type="button"
-        css={buttonGhost}
+        css={secondaryControlButton}
         on:click={() => {
           admin.reporter.clear()
           admin.store.clear()
@@ -90,7 +111,7 @@ export const SessionControls = ({ admin }: SessionControlsProps) => {
 
       <button
         type="button"
-        css={buttonGhost}
+        css={secondaryControlButton}
         on:click={() => {
           admin.session.start()
           admin.reporter.clear()
@@ -102,7 +123,7 @@ export const SessionControls = ({ admin }: SessionControlsProps) => {
 
       <button
         type="button"
-        css={buttonGhost}
+        css={secondaryControlButton}
         on:click={() => {
           const session = admin.store.exportSession()
           downloadJson(`reatom-admin-session-${session.session.id}.json`, session)
@@ -114,7 +135,7 @@ export const SessionControls = ({ admin }: SessionControlsProps) => {
       <label
         for={inputId}
         css={`
-          ${buttonGhost}
+          ${secondaryControlButton}
           display: inline-flex;
           align-items: center;
           justify-content: center;

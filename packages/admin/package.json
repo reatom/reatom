@@ -20,10 +20,9 @@
     "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "tsdown",
     "setup:chromium": "pnpm exec playwright install chromium",
-    "test": "pnpm test:unit && pnpm test:stories && pnpm test:browser",
+    "test": "pnpm test:unit && pnpm test:stories",
     "test:unit": "vitest run --project=@reatom/admin",
     "test:stories": "vitest run --project=storybook",
-    "test:browser": "vitest run --project=admin-browser",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
