@@ -20,6 +20,16 @@ function isAudioFileName(name: string): boolean {
   return AUDIO_EXTENSIONS.has(extensionOf(name))
 }
 
+function isFileHandle(entry: FileSystemHandle): entry is FileSystemFileHandle {
+  return entry.kind === 'file'
+}
+
+function isDirectoryHandle(
+  entry: FileSystemHandle,
+): entry is FileSystemDirectoryHandle {
+  return entry.kind === 'directory'
+}
+
 export type PlaylistEntry = {
   relativePath: string
   fileName: string
@@ -39,7 +49,7 @@ async function collectFromDirectory(
   for await (const handle of dirHandle.values()) {
     const segment = prefix ? `${prefix}/${handle.name}` : handle.name
 
-    if (handle.kind === 'file') {
+    if (isFileHandle(handle)) {
       if (isAudioFileName(handle.name)) {
         out.push({
           relativePath: segment,
@@ -47,7 +57,7 @@ async function collectFromDirectory(
           handle,
         })
       }
-    } else {
+    } else if (isDirectoryHandle(handle)) {
       await collectFromDirectory(handle, segment, depth + 1, out)
     }
   }
