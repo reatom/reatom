@@ -25,6 +25,7 @@ export const WinampShell = () => {
       <AudioHost />
       <main
         ref={(element) => bindPlayerShellHost(element)}
+        aria-label="Folder music player"
         css={`
           min-height: 100dvh;
           display: flex;

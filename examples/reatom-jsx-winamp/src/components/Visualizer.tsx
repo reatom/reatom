@@ -5,6 +5,7 @@ const bars = [72, 48, 86, 58, 94, 38, 76, 52, 88, 46, 82, 60]
 export const Visualizer = () => {
   return (
     <div
+      aria-hidden="true"
       css={`
         padding: 8px 9px 9px;
         border: 1px solid rgba(0, 0, 0, 0.72);

@@ -3,6 +3,8 @@ import { currentSlot, playlist, playOrder, selectPlayOrderSlot } from '../model'
 export const Playlist = () => {
   return (
     <div
+      role="region"
+      aria-label="Playlist"
       css={`
         flex: 1;
         min-height: 160px;
@@ -172,6 +174,7 @@ export const Playlist = () => {
               return (
                 <li
                   on:click={() => selectPlayOrderSlot(slot)}
+                  prop:aria-current={() => (isCurrent ? 'true' : null)}
                   css={() =>
                     isCurrent
                       ? `

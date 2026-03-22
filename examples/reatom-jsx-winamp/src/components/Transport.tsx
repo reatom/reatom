@@ -269,6 +269,7 @@ export const Transport = () => {
         `}
       >
         <span
+          aria-hidden="true"
           css={`
             min-width: 48px;
             padding: 5px 7px;
@@ -290,6 +291,12 @@ export const Transport = () => {
           type="range"
           min={0}
           max={1000}
+          aria-label="Playback position"
+          prop:aria-valuetext={() => {
+            const duration = durationSec()
+            const position = positionSec()
+            return `${formatClock(position)} / ${formatClock(duration)}`
+          }}
           prop:value={() => {
             const duration = durationSec()
             const position = positionSec()
@@ -352,6 +359,7 @@ export const Transport = () => {
           `}
         />
         <span
+          aria-hidden="true"
           css={`
             min-width: 48px;
             padding: 5px 7px;
@@ -441,6 +449,8 @@ export const Transport = () => {
             css={() => (shuffleEnabled() ? baseBtn + btnPressed : baseBtn)}
             on:click={() => toggleShuffle()}
             title="Shuffle"
+            aria-label="Shuffle"
+            prop:aria-pressed={() => shuffleEnabled()}
           >
             SHUF
           </button>
@@ -449,6 +459,8 @@ export const Transport = () => {
             css={() => (repeatMode() === 'none' ? baseBtn : baseBtn + btnPressed)}
             on:click={() => cycleRepeat()}
             title="Repeat"
+            aria-label="Repeat"
+            prop:aria-pressed={() => repeatMode() !== 'none'}
           >
             {() => {
               const mode = repeatMode()
@@ -468,6 +480,7 @@ export const Transport = () => {
           prop:disabled={() => !openFolder.ready()}
           on:click={() => openFolder()}
           title="Open folder"
+          aria-label="Open music folder"
         >
           LOAD
         </button>

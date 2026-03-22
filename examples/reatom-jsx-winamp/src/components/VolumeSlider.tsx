@@ -2,6 +2,8 @@ import { volume } from '../model'
 
 const ticks = [0, 1, 2, 3, 4, 5, 6, 7]
 
+const volumeLabelId = 'winamp-volume-label'
+
 export const VolumeSlider = () => {
   return (
     <div
@@ -21,6 +23,7 @@ export const VolumeSlider = () => {
       `}
     >
       <span
+        id={volumeLabelId}
         css={`
           color: var(--winamp-muted);
           font-size: 10px;
@@ -59,6 +62,7 @@ export const VolumeSlider = () => {
             type="range"
             min={0}
             max={100}
+            aria-labelledby={volumeLabelId}
             prop:value={() => Math.round(volume() * 100)}
             on:input={(event) => {
               volume.set(Number(event.currentTarget.value) / 100)
@@ -75,6 +79,7 @@ export const VolumeSlider = () => {
           />
         </div>
         <div
+          aria-hidden="true"
           css={`
             display: flex;
             flex-direction: column-reverse;
@@ -108,6 +113,7 @@ export const VolumeSlider = () => {
         </div>
       </div>
       <span
+        aria-hidden="true"
         css={`
           min-width: 40px;
           padding: 4px 8px;

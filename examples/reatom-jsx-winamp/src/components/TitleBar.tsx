@@ -49,6 +49,8 @@ const sourcesUrl =
 
 const titleBarMenuOpen = atom(false, 'titleBarMenuOpen')
 
+const titleBarPlayerMenuId = 'winamp-title-player-menu'
+
 const toggleTitleBarMenu = action(() => {
   titleBarMenuOpen.set(!titleBarMenuOpen())
 }, 'toggleTitleBarMenu')
@@ -199,6 +201,7 @@ export const TitleBar = () => {
           type="button"
           aria-haspopup="menu"
           prop:aria-expanded={() => titleBarMenuOpen()}
+          aria-controls={titleBarPlayerMenuId}
           aria-label="Open menu"
           on:click={() => toggleTitleBarMenu()}
           css={`
@@ -389,10 +392,11 @@ export const TitleBar = () => {
       </div>
       <div
         role="presentation"
-        aria-hidden="true"
+        prop:hidden={() => !titleBarMenuOpen()}
+        prop:aria-hidden={() => (titleBarMenuOpen() ? true : null)}
         on:click={() => closeTitleBarMenu()}
-        css={() => `
-          display: ${titleBarMenuOpen() ? 'block' : 'none'};
+        css={`
+          display: block;
           position: fixed;
           inset: 0;
           z-index: 200;
@@ -400,9 +404,11 @@ export const TitleBar = () => {
       />
       <div
         role="menu"
+        id={titleBarPlayerMenuId}
         aria-label="Player menu"
-        css={() => `
-          display: ${titleBarMenuOpen() ? 'block' : 'none'};
+        prop:hidden={() => !titleBarMenuOpen()}
+        css={`
+          display: block;
           position: absolute;
           left: 8px;
           top: calc(100% - 1px);
