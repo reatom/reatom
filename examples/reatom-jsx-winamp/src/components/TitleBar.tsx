@@ -392,11 +392,11 @@ export const TitleBar = () => {
       </div>
       <div
         role="presentation"
-        prop:hidden={() => !titleBarMenuOpen()}
-        prop:aria-hidden={() => (titleBarMenuOpen() ? true : null)}
+        aria-hidden="true"
         on:click={() => closeTitleBarMenu()}
-        css={`
-          display: block;
+        css={() => `
+          display: ${titleBarMenuOpen() ? 'block' : 'none'};
+          pointer-events: ${titleBarMenuOpen() ? 'auto' : 'none'};
           position: fixed;
           inset: 0;
           z-index: 200;
@@ -406,9 +406,9 @@ export const TitleBar = () => {
         role="menu"
         id={titleBarPlayerMenuId}
         aria-label="Player menu"
-        prop:hidden={() => !titleBarMenuOpen()}
-        css={`
-          display: block;
+        css={() => `
+          display: ${titleBarMenuOpen() ? 'block' : 'none'};
+          pointer-events: ${titleBarMenuOpen() ? 'auto' : 'none'};
           position: absolute;
           left: 8px;
           top: calc(100% - 1px);
