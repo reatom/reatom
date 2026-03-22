@@ -1,3 +1,5 @@
+import { action, atom } from '@reatom/core'
+
 import { isPlaying } from '../model'
 import {
   closePlayerPage,
@@ -38,6 +40,22 @@ const windowButtonBase = `
     opacity: 0.42;
   }
 `
+
+const readmeUrl =
+  'https://github.com/reatom/reatom/blob/v1001/examples/reatom-jsx-music/README.md'
+
+const sourcesUrl =
+  'https://github.com/reatom/reatom/tree/v1001/examples/reatom-jsx-music'
+
+const titleBarMenuOpen = atom(false, 'titleBarMenuOpen')
+
+const toggleTitleBarMenu = action(() => {
+  titleBarMenuOpen.set(!titleBarMenuOpen())
+}, 'toggleTitleBarMenu')
+
+const closeTitleBarMenu = action(() => {
+  titleBarMenuOpen.set(false)
+}, 'closeTitleBarMenu')
 
 type WindowControlKind = 'pictureInPicture' | 'fullscreen' | 'close'
 
@@ -171,94 +189,210 @@ export const TitleBar = () => {
           display: flex;
           align-items: center;
           gap: 8px;
+          position: relative;
         `}
       >
-        <div
-          css={`
-            width: 18px;
-            height: 18px;
-            padding: 2px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            border: 1px solid rgba(0, 0, 0, 0.8);
-            border-radius: 4px;
-            background: linear-gradient(
-              180deg,
-              rgba(8, 18, 34, 0.85),
-              rgba(9, 14, 25, 0.95)
-            );
-            box-shadow:
-              inset 0 1px 0 rgba(255, 255, 255, 0.12),
-              0 0 0 1px rgba(255, 255, 255, 0.05);
-          `}
-        >
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.95;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.55;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.8;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.42;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.92;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.62;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.78;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.48;
-            `}
-          />
-          <span
-            css={`
-              background: #57ff6b;
-              opacity: 0.88;
-            `}
-          />
-        </div>
-        <span
+        <button
+          type="button"
+          aria-haspopup="menu"
+          prop:aria-expanded={() => titleBarMenuOpen()}
+          aria-label="Open menu"
+          on:click={() => toggleTitleBarMenu()}
           css={`
             flex: 1;
             min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: inherit;
+            font: inherit;
+            font-weight: bold;
+            letter-spacing: 0.04em;
+            text-shadow: 1px 1px 0 #000;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 4px;
+
+            &:focus-visible {
+              outline: 2px solid rgba(255, 255, 255, 0.65);
+              outline-offset: 2px;
+            }
           `}
         >
-          Reatom Folder Player
-        </span>
+          <div
+            css={`
+              flex-shrink: 0;
+              width: 18px;
+              height: 18px;
+              padding: 2px;
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 1px;
+              border: 1px solid rgba(0, 0, 0, 0.8);
+              border-radius: 4px;
+              background: linear-gradient(
+                180deg,
+                rgba(8, 18, 34, 0.85),
+                rgba(9, 14, 25, 0.95)
+              );
+              box-shadow:
+                inset 0 1px 0 rgba(255, 255, 255, 0.12),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+            `}
+          >
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.95;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.55;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.8;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.42;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.92;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.62;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.78;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.48;
+              `}
+            />
+            <span
+              css={`
+                background: #57ff6b;
+                opacity: 0.88;
+              `}
+            />
+          </div>
+          <span
+            css={`
+              flex: 1;
+              min-width: 0;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            `}
+          >
+            Reatom Folder Player
+          </span>
+        </button>
+        {() =>
+          titleBarMenuOpen() ? (
+            <>
+              <div
+                role="presentation"
+                aria-hidden="true"
+                on:click={() => closeTitleBarMenu()}
+                css={`
+                  position: fixed;
+                  inset: 0;
+                  z-index: 200;
+                `}
+              />
+              <div
+                role="menu"
+                aria-label="Player menu"
+                css={`
+                  position: absolute;
+                  left: 0;
+                  top: 100%;
+                  margin-top: 4px;
+                  z-index: 201;
+                  min-width: 152px;
+                  padding: 3px 0;
+                  background: linear-gradient(180deg, #d9d9d9, #c6c6c6);
+                  border: 1px solid #0a0a0a;
+                  border-radius: 0;
+                  box-shadow:
+                    inset 1px 1px 0 #fff,
+                    inset -1px -1px 0 #6a6a6a,
+                    2px 2px 6px rgba(0, 0, 0, 0.45);
+                  color: #000;
+                  font-size: 11px;
+                  font-weight: 600;
+                  letter-spacing: 0.02em;
+                  text-shadow: none;
+                `}
+              >
+                <a
+                  role="menuitem"
+                  href={readmeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  on:click={() => closeTitleBarMenu()}
+                  css={`
+                    display: block;
+                    padding: 5px 18px 5px 22px;
+                    color: inherit;
+                    text-decoration: none;
+
+                    &:hover {
+                      background: #0a246a;
+                      color: #fff;
+                    }
+                  `}
+                >
+                  About
+                </a>
+                <a
+                  role="menuitem"
+                  href={sourcesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  on:click={() => closeTitleBarMenu()}
+                  css={`
+                    display: block;
+                    padding: 5px 18px 5px 22px;
+                    color: inherit;
+                    text-decoration: none;
+
+                    &:hover {
+                      background: #0a246a;
+                      color: #fff;
+                    }
+                  `}
+                >
+                  Sources
+                </a>
+              </div>
+            </>
+          ) : null
+        }
         <span
           css={() => `
             padding: 2px 6px;
