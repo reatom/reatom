@@ -78,6 +78,165 @@ const btnPressed = `
     0 0 16px rgba(243, 163, 63, 0.16);
 `
 
+type TransportIconKind = 'previous' | 'play' | 'pause' | 'stop' | 'next'
+
+const TransportIcon = ({
+  kind,
+  size = 'normal',
+}: {
+  kind: TransportIconKind
+  size?: 'normal' | 'large'
+}) => {
+  const iconSize = size === 'large' ? 18 : 16
+  const barWidth = size === 'large' ? 4 : 3
+  const barHeight = size === 'large' ? 16 : 14
+  const triangleHeight = size === 'large' ? 9 : 8
+  const triangleWidth = size === 'large' ? 12 : 10
+
+  if (kind === 'play') {
+    return (
+      <span
+        css={`
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: ${iconSize}px;
+          height: ${iconSize}px;
+        `}
+      >
+        <span
+          css={`
+            width: 0;
+            height: 0;
+            border-top: ${triangleHeight}px solid transparent;
+            border-bottom: ${triangleHeight}px solid transparent;
+            border-left: ${triangleWidth}px solid currentColor;
+          `}
+        />
+      </span>
+    )
+  }
+
+  if (kind === 'pause') {
+    return (
+      <span
+        css={`
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          width: ${iconSize}px;
+          height: ${iconSize}px;
+        `}
+      >
+        <span
+          css={`
+            width: ${barWidth}px;
+            height: ${barHeight}px;
+            border-radius: 999px;
+            background: currentColor;
+          `}
+        />
+        <span
+          css={`
+            width: ${barWidth}px;
+            height: ${barHeight}px;
+            border-radius: 999px;
+            background: currentColor;
+          `}
+        />
+      </span>
+    )
+  }
+
+  if (kind === 'stop') {
+    return (
+      <span
+        css={`
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: ${iconSize}px;
+          height: ${iconSize}px;
+        `}
+      >
+        <span
+          css={`
+            width: ${size === 'large' ? 12 : 11}px;
+            height: ${size === 'large' ? 12 : 11}px;
+            border-radius: 2px;
+            background: currentColor;
+          `}
+        />
+      </span>
+    )
+  }
+
+  if (kind === 'previous') {
+    return (
+      <span
+        css={`
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 3px;
+          width: ${iconSize + 2}px;
+          height: ${iconSize}px;
+        `}
+      >
+        <span
+          css={`
+            width: ${barWidth}px;
+            height: ${barHeight}px;
+            border-radius: 999px;
+            background: currentColor;
+          `}
+        />
+        <span
+          css={`
+            width: 0;
+            height: 0;
+            border-top: ${triangleHeight}px solid transparent;
+            border-bottom: ${triangleHeight}px solid transparent;
+            border-right: ${triangleWidth}px solid currentColor;
+          `}
+        />
+      </span>
+    )
+  }
+
+  return (
+    <span
+      css={`
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        width: ${iconSize + 2}px;
+        height: ${iconSize}px;
+      `}
+    >
+      <span
+        css={`
+          width: 0;
+          height: 0;
+          border-top: ${triangleHeight}px solid transparent;
+          border-bottom: ${triangleHeight}px solid transparent;
+          border-left: ${triangleWidth}px solid currentColor;
+        `}
+      />
+      <span
+        css={`
+          width: ${barWidth}px;
+          height: ${barHeight}px;
+          border-radius: 999px;
+          background: currentColor;
+        `}
+      />
+    </span>
+  )
+}
+
 export const Transport = () => {
   return (
     <div
@@ -229,17 +388,43 @@ export const Transport = () => {
             gap: 6px;
           `}
         >
-          <button type="button" css={transportBtn} on:click={() => prevTrack()}>
-            |◀
+          <button
+            type="button"
+            css={transportBtn}
+            on:click={() => prevTrack()}
+            title="Previous track"
+            aria-label="Previous track"
+          >
+            <TransportIcon kind="previous" />
           </button>
-          <button type="button" css={() => (isPlaying() ? primaryTransportBtn + btnPressed : primaryTransportBtn)} on:click={() => togglePlay()}>
-            {() => (isPlaying() ? '⏸' : '▶')}
+          <button
+            type="button"
+            css={() => (isPlaying() ? primaryTransportBtn + btnPressed : primaryTransportBtn)}
+            on:click={() => togglePlay()}
+            title={isPlaying() ? 'Pause' : 'Play'}
+            aria-label={isPlaying() ? 'Pause' : 'Play'}
+          >
+            {() => (
+              <TransportIcon kind={isPlaying() ? 'pause' : 'play'} size="large" />
+            )}
           </button>
-          <button type="button" css={transportBtn} on:click={() => stopPlayback()}>
-            ■
+          <button
+            type="button"
+            css={transportBtn}
+            on:click={() => stopPlayback()}
+            title="Stop"
+            aria-label="Stop"
+          >
+            <TransportIcon kind="stop" />
           </button>
-          <button type="button" css={transportBtn} on:click={() => nextTrack()}>
-            ▶|
+          <button
+            type="button"
+            css={transportBtn}
+            on:click={() => nextTrack()}
+            title="Next track"
+            aria-label="Next track"
+          >
+            <TransportIcon kind="next" />
           </button>
         </div>
         <div

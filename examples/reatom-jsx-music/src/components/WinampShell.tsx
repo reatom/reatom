@@ -7,6 +7,10 @@ import {
   repeatMode,
   shuffleEnabled,
 } from '../model'
+import {
+  bindPlayerShellHost,
+  bindPlayerShellRoot,
+} from '../windowControls'
 import { AudioHost } from './AudioHost'
 import { Playlist } from './Playlist'
 import { TitleBar } from './TitleBar'
@@ -19,6 +23,7 @@ export const WinampShell = () => {
     <>
       <AudioHost />
       <main
+        ref={(element) => bindPlayerShellHost(element)}
         css={`
           min-height: 100dvh;
           display: flex;
@@ -28,6 +33,7 @@ export const WinampShell = () => {
         `}
       >
         <div
+          ref={(element) => bindPlayerShellRoot(element)}
           css={`
             width: 100%;
             max-width: 528px;

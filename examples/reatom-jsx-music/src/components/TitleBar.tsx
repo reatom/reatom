@@ -1,19 +1,139 @@
 import { isPlaying, openFolder } from '../model'
+import {
+  closePlayerPage,
+  fullscreenActive,
+  pictureInPictureActive,
+  pictureInPictureSupported,
+  togglePlayerFullscreen,
+  togglePlayerPictureInPicture,
+} from '../windowControls'
 
 const windowButtonBase = `
-  width: 18px;
-  height: 17px;
+  width: 34px;
+  height: 30px;
+  padding: 0;
   display: grid;
   place-items: center;
   border: 1px solid #000;
-  border-radius: 4px;
+  border-radius: 8px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.34),
     inset 0 -1px 0 rgba(0, 0, 0, 0.34);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1;
+  transition:
+    transform 120ms ease,
+    filter 120ms ease,
+    opacity 120ms ease;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
 `
+
+type WindowControlKind = 'pictureInPicture' | 'fullscreen' | 'close'
+
+const WindowControlIcon = ({ kind }: { kind: WindowControlKind }) => {
+  if (kind === 'pictureInPicture') {
+    return (
+      <span
+        css={`
+          position: relative;
+          display: block;
+          width: 16px;
+          height: 12px;
+        `}
+      >
+        <span
+          css={`
+            position: absolute;
+            inset: 0;
+            border: 2px solid currentColor;
+            border-radius: 2px;
+          `}
+        />
+        <span
+          css={`
+            position: absolute;
+            right: -1px;
+            bottom: -1px;
+            width: 6px;
+            height: 4px;
+            border: 2px solid currentColor;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.12);
+          `}
+        />
+      </span>
+    )
+  }
+
+  if (kind === 'fullscreen') {
+    return (
+      <span
+        css={`
+          position: relative;
+          display: block;
+          width: 14px;
+          height: 14px;
+        `}
+      >
+        <span
+          css={`
+            position: absolute;
+            inset: 0;
+            border: 2px solid currentColor;
+            border-radius: 2px;
+          `}
+        />
+      </span>
+    )
+  }
+
+  return (
+    <span
+      css={`
+        position: relative;
+        display: block;
+        width: 14px;
+        height: 14px;
+      `}
+    >
+      <span
+        css={`
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 6px;
+          height: 2px;
+          border-radius: 999px;
+          background: currentColor;
+          transform: rotate(45deg);
+        `}
+      />
+      <span
+        css={`
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 6px;
+          height: 2px;
+          border-radius: 999px;
+          background: currentColor;
+          transform: rotate(-45deg);
+        `}
+      />
+    </span>
+  )
+}
 
 export const TitleBar = () => {
   return (
@@ -118,33 +238,54 @@ export const TitleBar = () => {
           align-items: center;
         `}
       >
-        <span
+        <button
+          type="button"
+          title="Picture in picture"
+          aria-label="Picture in picture"
+          prop:disabled={() => !pictureInPictureSupported()}
+          on:click={() => void togglePlayerPictureInPicture()}
           css={`
             ${windowButtonBase}
-            color: #10264b;
-            background: linear-gradient(180deg, #8eb3ea, #4c6f9f);
+            color: ${pictureInPictureActive() ? '#102f14' : '#10264b'};
+            background: ${
+              pictureInPictureActive()
+                ? 'linear-gradient(180deg, #9ef0a6, #4f9f59)'
+                : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'
+            };
           `}
         >
-          _
-        </span>
-        <span
+          <WindowControlIcon kind="pictureInPicture" />
+        </button>
+        <button
+          type="button"
+          title="Toggle fullscreen"
+          aria-label="Toggle fullscreen"
+          on:click={() => void togglePlayerFullscreen()}
           css={`
             ${windowButtonBase}
-            color: #10264b;
-            background: linear-gradient(180deg, #8eb3ea, #4c6f9f);
+            color: ${fullscreenActive() ? '#2f1c06' : '#10264b'};
+            background: ${
+              fullscreenActive()
+                ? 'linear-gradient(180deg, #f5cb77, #b57931)'
+                : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'
+            };
           `}
         >
-          □
-        </span>
-        <span
+          <WindowControlIcon kind="fullscreen" />
+        </button>
+        <button
+          type="button"
+          title="Close page"
+          aria-label="Close page"
+          on:click={() => closePlayerPage()}
           css={`
             ${windowButtonBase}
             color: #fff3f3;
             background: linear-gradient(180deg, #dd6e6e, #8f2020);
           `}
         >
-          ×
-        </span>
+          <WindowControlIcon kind="close" />
+        </button>
       </div>
       <button
         type="button"
