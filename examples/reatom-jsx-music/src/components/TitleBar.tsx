@@ -1,4 +1,4 @@
-import { isPlaying, openFolder } from '../model'
+import { isPlaying } from '../model'
 import {
   closePlayerPage,
   fullscreenActive,
@@ -183,21 +183,70 @@ export const TitleBar = () => {
             gap: 1px;
             border: 1px solid rgba(0, 0, 0, 0.8);
             border-radius: 4px;
-            background: linear-gradient(180deg, rgba(8, 18, 34, 0.85), rgba(9, 14, 25, 0.95));
+            background: linear-gradient(
+              180deg,
+              rgba(8, 18, 34, 0.85),
+              rgba(9, 14, 25, 0.95)
+            );
             box-shadow:
               inset 0 1px 0 rgba(255, 255, 255, 0.12),
               0 0 0 1px rgba(255, 255, 255, 0.05);
           `}
         >
-          <span css={`background: #57ff6b; opacity: 0.95;`} />
-          <span css={`background: #57ff6b; opacity: 0.55;`} />
-          <span css={`background: #57ff6b; opacity: 0.8;`} />
-          <span css={`background: #57ff6b; opacity: 0.42;`} />
-          <span css={`background: #57ff6b; opacity: 0.92;`} />
-          <span css={`background: #57ff6b; opacity: 0.62;`} />
-          <span css={`background: #57ff6b; opacity: 0.78;`} />
-          <span css={`background: #57ff6b; opacity: 0.48;`} />
-          <span css={`background: #57ff6b; opacity: 0.88;`} />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.95;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.55;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.8;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.42;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.92;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.62;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.78;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.48;
+            `}
+          />
+          <span
+            css={`
+              background: #57ff6b;
+              opacity: 0.88;
+            `}
+          />
         </div>
         <span
           css={`
@@ -247,11 +296,9 @@ export const TitleBar = () => {
           css={`
             ${windowButtonBase}
             color: ${pictureInPictureActive() ? '#102f14' : '#10264b'};
-            background: ${
-              pictureInPictureActive()
-                ? 'linear-gradient(180deg, #9ef0a6, #4f9f59)'
-                : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'
-            };
+            background: ${pictureInPictureActive()
+              ? 'linear-gradient(180deg, #9ef0a6, #4f9f59)'
+              : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'};
           `}
         >
           <WindowControlIcon kind="pictureInPicture" />
@@ -264,11 +311,9 @@ export const TitleBar = () => {
           css={`
             ${windowButtonBase}
             color: ${fullscreenActive() ? '#2f1c06' : '#10264b'};
-            background: ${
-              fullscreenActive()
-                ? 'linear-gradient(180deg, #f5cb77, #b57931)'
-                : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'
-            };
+            background: ${fullscreenActive()
+              ? 'linear-gradient(180deg, #f5cb77, #b57931)'
+              : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'};
           `}
         >
           <WindowControlIcon kind="fullscreen" />
@@ -287,44 +332,6 @@ export const TitleBar = () => {
           <WindowControlIcon kind="close" />
         </button>
       </div>
-      <button
-        type="button"
-        prop:disabled={() => !openFolder.ready()}
-        on:click={() => openFolder()}
-        css={`
-          padding: 4px 13px;
-          cursor: pointer;
-          color: #10233f;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          background: linear-gradient(180deg, #f7fbff, #bccbe4 58%, #96a8c4 100%);
-          border: 1px solid #000;
-          border-radius: 6px;
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.86),
-            inset 0 -1px 0 rgba(45, 62, 90, 0.38),
-            0 1px 0 rgba(255, 255, 255, 0.08);
-          transition:
-            transform 120ms ease,
-            filter 120ms ease,
-            opacity 120ms ease;
-
-          &:hover:not(:disabled) {
-            filter: brightness(1.03);
-          }
-
-          &:active:not(:disabled) {
-            transform: translateY(1px);
-          }
-
-          &:disabled {
-            cursor: not-allowed;
-            opacity: 0.58;
-          }
-        `}
-      >
-        OPEN
-      </button>
     </div>
   )
 }
