@@ -42,10 +42,10 @@ const windowButtonBase = `
 `
 
 const readmeUrl =
-  'https://github.com/reatom/reatom/blob/v1001/examples/reatom-jsx-music/README.md'
+  'https://github.com/reatom/reatom/blob/v1001/examples/reatom-jsx-winamp/README.md'
 
 const sourcesUrl =
-  'https://github.com/reatom/reatom/tree/v1001/examples/reatom-jsx-music'
+  'https://github.com/reatom/reatom/tree/v1001/examples/reatom-jsx-winamp'
 
 const titleBarMenuOpen = atom(false, 'titleBarMenuOpen')
 
