@@ -1,11 +1,11 @@
 import {
   cycleRepeat,
+  durationSec,
   formatClock,
   isPlaying,
   nextTrack,
   openFolder,
   positionSec,
-  durationSec,
   prevTrack,
   repeatMode,
   seekToRatio,
@@ -58,7 +58,13 @@ export const Transport = () => {
           text-shadow: 0 0 4px rgba(56, 242, 56, 0.5);
         `}
       >
-        <span css={`min-width: 38px;`}>{() => formatClock(positionSec())}</span>
+        <span
+          css={`
+            min-width: 38px;
+          `}
+        >
+          {() => formatClock(positionSec())}
+        </span>
         <input
           type="range"
           min={0}
@@ -83,12 +89,24 @@ export const Transport = () => {
             cursor: pointer;
           `}
         />
-        <span css={`min-width: 38px; text-align: right;`}>
+        <span
+          css={`
+            min-width: 38px;
+            text-align: right;
+          `}
+        >
           {() => formatClock(durationSec())}
         </span>
       </div>
 
-      <div css={`display: flex; flex-wrap: wrap; align-items: center; gap: 4px;`}>
+      <div
+        css={`
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 4px;
+        `}
+      >
         <button type="button" css={baseBtn} on:click={() => prevTrack()}>
           |◀
         </button>

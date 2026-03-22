@@ -9,7 +9,12 @@ export const TitleBar = () => {
         justify-content: space-between;
         gap: 6px;
         padding: 3px 5px 4px;
-        background: linear-gradient(180deg, #3a5a8a 0%, var(--winamp-title) 45%, #1a2840 100%);
+        background: linear-gradient(
+          180deg,
+          #3a5a8a 0%,
+          var(--winamp-title) 45%,
+          #1a2840 100%
+        );
         border: 1px solid #000;
         border-bottom: none;
         box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -29,7 +34,13 @@ export const TitleBar = () => {
       >
         Reatom Folder Player
       </span>
-      <div css={`display: flex; gap: 2px; align-items: center;`}>
+      <div
+        css={`
+          display: flex;
+          gap: 2px;
+          align-items: center;
+        `}
+      >
         <span
           css={`
             width: 12px;

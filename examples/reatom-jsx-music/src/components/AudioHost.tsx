@@ -4,7 +4,9 @@ export const AudioHost = () => {
   return (
     <audio
       ref={(el) => bindAudioElement(el)}
-      css={`display: none;`}
+      css={`
+        display: none;
+      `}
     />
   )
 }

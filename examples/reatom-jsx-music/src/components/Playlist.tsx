@@ -1,9 +1,4 @@
-import {
-  currentSlot,
-  playOrder,
-  playlist,
-  selectPlayOrderSlot,
-} from '../model'
+import { currentSlot, playlist, playOrder, selectPlayOrderSlot } from '../model'
 
 export const Playlist = () => {
   return (

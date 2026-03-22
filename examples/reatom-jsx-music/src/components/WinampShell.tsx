@@ -1,5 +1,4 @@
 import { folderLabel, nowPlayingTitle } from '../model'
-
 import { AudioHost } from './AudioHost'
 import { Playlist } from './Playlist'
 import { TitleBar } from './TitleBar'
@@ -63,7 +62,9 @@ export const WinampShell = () => {
               >
                 {() => {
                   const name = folderLabel()
-                  return name ? `Folder: ${name}` : 'No folder loaded — press OPEN'
+                  return name
+                    ? `Folder: ${name}`
+                    : 'No folder loaded — press OPEN'
                 }}
               </div>
               <div

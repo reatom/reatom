@@ -17,8 +17,7 @@ export const UnsupportedBrowser = () => {
       `}
     >
       <p>
-        This demo needs the{' '}
-        <strong>File System Access API</strong> (
+        This demo needs the <strong>File System Access API</strong> (
         <code>showDirectoryPicker</code>). Use a recent Chromium-based browser
         (Chrome, Edge, Brave) on <strong>HTTPS</strong> or{' '}
         <strong>localhost</strong>.

@@ -13,7 +13,14 @@ export const VolumeSlider = () => {
         border: 1px solid #000;
       `}
     >
-      <span css={`color: #888; font-size: 10px;`}>VOL</span>
+      <span
+        css={`
+          color: #888;
+          font-size: 10px;
+        `}
+      >
+        VOL
+      </span>
       <input
         type="range"
         min={0}
