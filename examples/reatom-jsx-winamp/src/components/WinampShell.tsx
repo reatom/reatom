@@ -41,7 +41,7 @@ export const WinampShell = () => {
             display: flex;
             flex-direction: column;
             border-radius: ${pictureInPictureActive() ? '0' : 'var(--winamp-radius)'};
-            overflow: hidden;
+            overflow: visible;
             background:
               linear-gradient(180deg, rgba(73, 79, 91, 0.98) 0%, rgba(25, 28, 35, 0.98) 16%, rgba(14, 16, 21, 1) 100%);
             box-shadow:

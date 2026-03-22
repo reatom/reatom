@@ -157,6 +157,9 @@ export const TitleBar = () => {
   return (
     <div
       css={`
+        position: relative;
+        z-index: 5;
+        overflow: visible;
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -311,88 +314,6 @@ export const TitleBar = () => {
             Reatom Folder Player
           </span>
         </button>
-        {() =>
-          titleBarMenuOpen() ? (
-            <>
-              <div
-                role="presentation"
-                aria-hidden="true"
-                on:click={() => closeTitleBarMenu()}
-                css={`
-                  position: fixed;
-                  inset: 0;
-                  z-index: 200;
-                `}
-              />
-              <div
-                role="menu"
-                aria-label="Player menu"
-                css={`
-                  position: absolute;
-                  left: 0;
-                  top: 100%;
-                  margin-top: 4px;
-                  z-index: 201;
-                  min-width: 152px;
-                  padding: 3px 0;
-                  background: linear-gradient(180deg, #d9d9d9, #c6c6c6);
-                  border: 1px solid #0a0a0a;
-                  border-radius: 0;
-                  box-shadow:
-                    inset 1px 1px 0 #fff,
-                    inset -1px -1px 0 #6a6a6a,
-                    2px 2px 6px rgba(0, 0, 0, 0.45);
-                  color: #000;
-                  font-size: 11px;
-                  font-weight: 600;
-                  letter-spacing: 0.02em;
-                  text-shadow: none;
-                `}
-              >
-                <a
-                  role="menuitem"
-                  href={readmeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  on:click={() => closeTitleBarMenu()}
-                  css={`
-                    display: block;
-                    padding: 5px 18px 5px 22px;
-                    color: inherit;
-                    text-decoration: none;
-
-                    &:hover {
-                      background: #0a246a;
-                      color: #fff;
-                    }
-                  `}
-                >
-                  About
-                </a>
-                <a
-                  role="menuitem"
-                  href={sourcesUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  on:click={() => closeTitleBarMenu()}
-                  css={`
-                    display: block;
-                    padding: 5px 18px 5px 22px;
-                    color: inherit;
-                    text-decoration: none;
-
-                    &:hover {
-                      background: #0a246a;
-                      color: #fff;
-                    }
-                  `}
-                >
-                  Sources
-                </a>
-              </div>
-            </>
-          ) : null
-        }
         <span
           css={() => `
             padding: 2px 6px;
@@ -465,6 +386,83 @@ export const TitleBar = () => {
         >
           <WindowControlIcon kind="close" />
         </button>
+      </div>
+      <div
+        role="presentation"
+        aria-hidden="true"
+        on:click={() => closeTitleBarMenu()}
+        css={() => `
+          display: ${titleBarMenuOpen() ? 'block' : 'none'};
+          position: fixed;
+          inset: 0;
+          z-index: 200;
+        `}
+      />
+      <div
+        role="menu"
+        aria-label="Player menu"
+        css={() => `
+          display: ${titleBarMenuOpen() ? 'block' : 'none'};
+          position: absolute;
+          left: 8px;
+          top: calc(100% - 1px);
+          z-index: 201;
+          min-width: 152px;
+          padding: 3px 0;
+          background: linear-gradient(180deg, #d9d9d9, #c6c6c6);
+          border: 1px solid #0a0a0a;
+          border-radius: 0;
+          box-shadow:
+            inset 1px 1px 0 #fff,
+            inset -1px -1px 0 #6a6a6a,
+            2px 2px 6px rgba(0, 0, 0, 0.45);
+          color: #000;
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-shadow: none;
+        `}
+      >
+        <a
+          role="menuitem"
+          href={readmeUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          on:click={() => closeTitleBarMenu()}
+          css={`
+            display: block;
+            padding: 5px 18px 5px 22px;
+            color: inherit;
+            text-decoration: none;
+
+            &:hover {
+              background: #0a246a;
+              color: #fff;
+            }
+          `}
+        >
+          About
+        </a>
+        <a
+          role="menuitem"
+          href={sourcesUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          on:click={() => closeTitleBarMenu()}
+          css={`
+            display: block;
+            padding: 5px 18px 5px 22px;
+            color: inherit;
+            text-decoration: none;
+
+            &:hover {
+              background: #0a246a;
+              color: #fff;
+            }
+          `}
+        >
+          Sources
+        </a>
       </div>
     </div>
   )

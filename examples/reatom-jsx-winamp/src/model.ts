@@ -129,10 +129,14 @@ export const loadCurrentTrack = action(async () => {
   }
   const canRead = await wrap(ensureFileReadAccess(entry.handle))
   if (!canRead) {
-    playlist.set([])
-    playOrder.set([])
-    currentSlot.set(-1)
-    folderLabel.set('')
+    revokeObjectUrlAtom()
+    const mediaEl = audioElementHost()
+    if (mediaEl) {
+      mediaEl.pause()
+      mediaEl.removeAttribute('src')
+      mediaEl.load()
+    }
+    isPlaying.set(false)
     return
   }
   revokeObjectUrlAtom()
