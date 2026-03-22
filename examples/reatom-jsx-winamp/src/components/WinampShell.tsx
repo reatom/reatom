@@ -10,6 +10,7 @@ import {
 import {
   bindPlayerShellHost,
   bindPlayerShellRoot,
+  pictureInPictureActive,
 } from '../windowControls'
 import { AudioHost } from './AudioHost'
 import { Playlist } from './Playlist'
@@ -34,25 +35,26 @@ export const WinampShell = () => {
       >
         <div
           ref={(element) => bindPlayerShellRoot(element)}
-          css={`
+          css={() => `
             width: 100%;
-            max-width: 528px;
+            max-width: ${pictureInPictureActive() ? 'none' : '528px'};
             display: flex;
             flex-direction: column;
-            border-radius: var(--winamp-radius);
+            border-radius: ${pictureInPictureActive() ? '0' : 'var(--winamp-radius)'};
             overflow: hidden;
             background:
               linear-gradient(180deg, rgba(73, 79, 91, 0.98) 0%, rgba(25, 28, 35, 0.98) 16%, rgba(14, 16, 21, 1) 100%);
             box-shadow:
-              0 22px 60px rgba(0, 0, 0, 0.58),
-              0 8px 18px rgba(0, 0, 0, 0.38),
+              ${pictureInPictureActive()
+                ? 'none'
+                : '0 22px 60px rgba(0, 0, 0, 0.58), 0 8px 18px rgba(0, 0, 0, 0.38),'}
               inset 0 0 0 1px var(--winamp-frame-inner),
               inset 0 1px 0 rgba(255, 255, 255, 0.1);
             border: 1px solid var(--winamp-frame);
-            backdrop-filter: blur(10px);
+            backdrop-filter: ${pictureInPictureActive() ? 'none' : 'blur(10px)'};
           `}
         >
-          <TitleBar />
+          {() => !pictureInPictureActive() && <TitleBar />}
 
           <div
             css={`

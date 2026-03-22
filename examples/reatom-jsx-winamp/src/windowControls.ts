@@ -55,6 +55,27 @@ function getPictureInPictureController() {
   return window.documentPictureInPicture ?? null
 }
 
+function measurePictureInPictureSize() {
+  const fallbackWidth = 560
+  const fallbackHeight = 620
+
+  if (!shellRootElement) {
+    return {
+      width: fallbackWidth,
+      height: fallbackHeight,
+    }
+  }
+
+  const { width, height } = shellRootElement.getBoundingClientRect()
+  const nextWidth = Math.ceil(width) + 12
+  const nextHeight = Math.ceil(height) + 24
+
+  return {
+    width: Math.max(420, Math.min(960, nextWidth || fallbackWidth)),
+    height: Math.max(520, Math.min(1200, nextHeight || fallbackHeight)),
+  }
+}
+
 function readStylesheetRules(sourceSheet: CSSStyleSheet) {
   try {
     return Array.from(sourceSheet.cssRules, (rule) => rule.cssText)
@@ -224,9 +245,10 @@ export async function togglePlayerPictureInPicture() {
 
   try {
     hostStylesheet = stylesheet()
+    const { width, height } = measurePictureInPictureSize()
     const nextWindow = await controller.requestWindow({
-      width: 560,
-      height: 420,
+      width,
+      height,
     })
 
     pictureInPictureWindow = nextWindow
@@ -246,7 +268,8 @@ export async function togglePlayerPictureInPicture() {
     nextWindow.document.body.style.minHeight = '100vh'
     nextWindow.document.body.style.display = 'flex'
     nextWindow.document.body.style.alignItems = 'stretch'
-    nextWindow.document.body.style.justifyContent = 'stretch'
+    nextWindow.document.body.style.justifyContent = 'flex-start'
+    nextWindow.document.body.style.overflow = 'hidden'
     nextWindow.document.body.style.background =
       'linear-gradient(135deg, #0b0d11 0%, #06070b 42%, #11151d 100%)'
 
