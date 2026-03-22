@@ -224,7 +224,22 @@ effect(() => {
 
 export const togglePlay = action(async () => {
   const el = audioElementHost()
-  if (!el?.src) {
+  if (!el) {
+    return
+  }
+  if (!el.src) {
+    const slot = currentSlot()
+    const order = playOrder()
+    const list = playlist()
+    if (
+      list.length === 0 ||
+      order.length === 0 ||
+      slot < 0 ||
+      slot >= order.length
+    ) {
+      return
+    }
+    await loadCurrentTrack()
     return
   }
   if (isPlaying()) {
