@@ -1,9 +1,11 @@
+import type { GenericExt } from '@reatom/core'
 import {
   action,
   atom,
   computed,
   effect,
   withAsync,
+  withIndexedDb,
   wrap,
 } from '@reatom/core'
 
@@ -11,27 +13,37 @@ import { pickMusicFolder, type PlaylistEntry } from './scanFolder'
 
 export type { PlaylistEntry }
 
-export const folderLabel = atom('', 'folderLabel')
+const idb: GenericExt = (target) =>
+  target.extend(withIndexedDb({ key: target.name, version: 1 }))
 
-export const playlist = atom<PlaylistEntry[]>([], 'playlist')
+export const folderLabel = atom('', 'folderLabel').extend(idb)
 
-export const playOrder = atom<number[]>([], 'playOrder')
+export const playlist = atom<PlaylistEntry[]>([], 'playlist').extend(idb)
 
-export const currentSlot = atom(-1, 'currentSlot')
+export const playOrder = atom<number[]>([], 'playOrder').extend(idb)
 
-export const shuffleEnabled = atom(false, 'shuffleEnabled')
+export const currentSlot = atom(-1, 'currentSlot').extend(idb)
+
+export const shuffleEnabled = atom(false, 'shuffleEnabled').extend(idb)
 
 export type RepeatMode = 'none' | 'all' | 'one'
 
-export const repeatMode = atom<RepeatMode>('none', 'repeatMode')
+export const repeatMode = atom<RepeatMode>('none', 'repeatMode').extend(idb)
+
+export const volume = atom(0.75, 'volume').extend(idb)
 
 export const isPlaying = atom(false, 'isPlaying')
-
-export const volume = atom(0.75, 'volume')
 
 export const positionSec = atom(0, 'positionSec')
 
 export const durationSec = atom(0, 'durationSec')
+
+export const audioElementHost = atom<HTMLAudioElement | null>(
+  null,
+  'audioElementHost',
+)
+
+export const currentObjectUrl = atom<string | null>(null, 'currentObjectUrl')
 
 export const nowPlayingTitle = computed(() => {
   const slot = currentSlot()
@@ -44,16 +56,6 @@ export const nowPlayingTitle = computed(() => {
   return entry?.relativePath ?? 'No file'
 }, 'nowPlayingTitle')
 
-let audioElement: HTMLAudioElement | null = null
-let currentBlobUrl: string | null = null
-
-function revokeCurrentUrl() {
-  if (currentBlobUrl) {
-    URL.revokeObjectURL(currentBlobUrl)
-    currentBlobUrl = null
-  }
-}
-
 function shuffledIndices(length: number): number[] {
   const indices = Array.from({ length }, (_, index) => index)
   for (let i = indices.length - 1; i > 0; i--) {
@@ -65,8 +67,25 @@ function shuffledIndices(length: number): number[] {
   return indices
 }
 
+function revokeObjectUrlAtom() {
+  const url = currentObjectUrl()
+  if (url) {
+    URL.revokeObjectURL(url)
+    currentObjectUrl.set(null)
+  }
+}
+
+async function ensureFileReadAccess(handle: FileSystemFileHandle) {
+  const readMode = { mode: 'read' as const }
+  let allowed = (await handle.queryPermission(readMode)) === 'granted'
+  if (!allowed) {
+    allowed = (await handle.requestPermission(readMode)) === 'granted'
+  }
+  return allowed
+}
+
 function handleTrackEnded() {
-  const el = audioElement
+  const el = audioElementHost()
   const mode = repeatMode()
   if (mode === 'one') {
     if (el) {
@@ -94,7 +113,7 @@ function handleTrackEnded() {
 }
 
 export const loadCurrentTrack = action(async () => {
-  const el = audioElement
+  const el = audioElementHost()
   if (!el) {
     return
   }
@@ -108,30 +127,35 @@ export const loadCurrentTrack = action(async () => {
   if (!entry) {
     return
   }
-  revokeCurrentUrl()
+  const canRead = await wrap(ensureFileReadAccess(entry.handle))
+  if (!canRead) {
+    playlist.set([])
+    playOrder.set([])
+    currentSlot.set(-1)
+    folderLabel.set('')
+    return
+  }
+  revokeObjectUrlAtom()
   const file = await wrap(entry.handle.getFile())
   const url = URL.createObjectURL(file)
-  currentBlobUrl = url
+  currentObjectUrl.set(url)
   el.src = url
   await wrap(el.play())
 }, 'loadCurrentTrack').extend(withAsync())
 
-export const openFolder = action(async () => {
-  const picked = await wrap(pickMusicFolder())
-  if (!picked) {
-    return
-  }
-  folderLabel.set(picked.name)
-  playlist.set(picked.tracks)
-  const trackCount = picked.tracks.length
+function applyScannedTracks(folderName: string, tracks: PlaylistEntry[]) {
+  folderLabel.set(folderName)
+  playlist.set(tracks)
+  const trackCount = tracks.length
   if (trackCount === 0) {
     playOrder.set([])
     currentSlot.set(-1)
-    revokeCurrentUrl()
-    if (audioElement) {
-      audioElement.pause()
-      audioElement.removeAttribute('src')
-      audioElement.load()
+    revokeObjectUrlAtom()
+    const mediaEl = audioElementHost()
+    if (mediaEl) {
+      mediaEl.pause()
+      mediaEl.removeAttribute('src')
+      mediaEl.load()
     }
     isPlaying.set(false)
     positionSec.set(0)
@@ -143,11 +167,63 @@ export const openFolder = action(async () => {
     : Array.from({ length: trackCount }, (_, index) => index)
   playOrder.set(order)
   currentSlot.set(0)
-  await loadCurrentTrack()
+  void loadCurrentTrack()
+}
+
+export const openFolder = action(async () => {
+  const picked = await wrap(pickMusicFolder())
+  if (!picked) {
+    return
+  }
+  applyScannedTracks(picked.name, picked.tracks)
 }, 'openFolder').extend(withAsync())
 
+// TODO remove (need withIndexedDb fix)
+effect(() => {
+  const list = playlist()
+  const order = playOrder()
+  let slot = currentSlot()
+  if (list.length === 0) {
+    if (order.length !== 0) {
+      playOrder.set([])
+    }
+    if (slot !== -1) {
+      currentSlot.set(-1)
+    }
+    revokeObjectUrlAtom()
+    const mediaEl = audioElementHost()
+    if (mediaEl) {
+      mediaEl.pause()
+      mediaEl.removeAttribute('src')
+      mediaEl.load()
+    }
+    isPlaying.set(false)
+    positionSec.set(0)
+    durationSec.set(0)
+    return
+  }
+  const permutationOk =
+    order.length === list.length &&
+    order.every((idx: number) => idx >= 0 && idx < list.length) &&
+    new Set(order).size === order.length
+  if (!permutationOk) {
+    const rebuilt = shuffleEnabled()
+      ? shuffledIndices(list.length)
+      : Array.from({ length: list.length }, (_, index) => index)
+    playOrder.set(rebuilt)
+    slot = Math.min(Math.max(slot, 0), rebuilt.length - 1)
+    currentSlot.set(slot)
+    void loadCurrentTrack()
+    return
+  }
+  if (slot < 0 || slot >= order.length) {
+    currentSlot.set(0)
+    void loadCurrentTrack()
+  }
+}, 'reconcilePlaybackWithPlaylist')
+
 export const togglePlay = action(async () => {
-  const el = audioElement
+  const el = audioElementHost()
   if (!el?.src) {
     return
   }
@@ -159,7 +235,7 @@ export const togglePlay = action(async () => {
 }, 'togglePlay')
 
 export const stopPlayback = action(() => {
-  const el = audioElement
+  const el = audioElementHost()
   if (!el) {
     return
   }
@@ -187,7 +263,7 @@ export const nextTrack = action(() => {
 }, 'nextTrack')
 
 export const prevTrack = action(() => {
-  const el = audioElement
+  const el = audioElementHost()
   const order = playOrder()
   if (order.length === 0) {
     return
@@ -242,7 +318,7 @@ export const cycleRepeat = action(() => {
 }, 'cycleRepeat')
 
 export const seekToRatio = action((ratio: number) => {
-  const el = audioElement
+  const el = audioElementHost()
   const duration = durationSec()
   if (!el || !Number.isFinite(duration) || duration <= 0) {
     return
@@ -254,12 +330,12 @@ export const seekToRatio = action((ratio: number) => {
 
 export function bindAudioElement(el: HTMLAudioElement | null) {
   if (!el) {
-    revokeCurrentUrl()
-    audioElement = null
+    revokeObjectUrlAtom()
+    audioElementHost.set(null)
     return
   }
 
-  audioElement = el
+  audioElementHost.set(el)
   el.volume = volume()
 
   const onTimeUpdate = () => {
@@ -290,15 +366,16 @@ export function bindAudioElement(el: HTMLAudioElement | null) {
     el.removeEventListener('ended', onEnded)
     el.removeEventListener('play', onPlay)
     el.removeEventListener('pause', onPause)
-    revokeCurrentUrl()
-    audioElement = null
+    revokeObjectUrlAtom()
+    audioElementHost.set(null)
   }
 }
 
 effect(() => {
   const level = volume()
-  if (audioElement) {
-    audioElement.volume = level
+  const el = audioElementHost()
+  if (el) {
+    el.volume = level
   }
 }, 'syncVolume')
 
