@@ -842,3 +842,31 @@ test('route pattern collision - routes with same pattern but different names', a
   expect(route1.loader.data()).toBeTruthy()
   expect(route2.loader.data()).toBeTruthy()
 })
+
+test('params callback with correct search params inherence', () => {
+  const userRoute = reatomRoute({
+    path: 'user',
+    search: z.object({ userId: z.string().optional() }),
+  })
+
+  const screenRoute = userRoute.reatomRoute({
+    params: (params: { screen: 'main' | 'success' }) => params,
+  })
+
+  userRoute.go({ userId: '123' })
+  expect(userRoute()).toMatchObject({ userId: '123' })
+
+  screenRoute.go({ screen: 'main' })
+  expect(screenRoute()).toMatchObject({ screen: 'main' })
+  expect(userRoute()).toMatchObject({ userId: '123' })
+})
+
+test('search params transform', () => {
+  const userRoute = reatomRoute({
+    path: 'user',
+    search: z.object({ u: z.string().optional() }).transform(raw => ({ userId: raw.u })),
+  })
+
+  userRoute.go({ u: '123' })
+  expect(userRoute()).toMatchObject({ userId: '123' })
+})
