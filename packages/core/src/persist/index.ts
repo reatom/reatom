@@ -648,6 +648,16 @@ export const createMemStorage = ({
         snapshotAtom.set((snapshot) => ({ ...snapshot, [options.key]: rec }))
       }
     },
+    clear: (options) => {
+      if (mutable) {
+        delete snapshotAtom()[options.key]
+      } else {
+        snapshotAtom.set((snapshot) => {
+          let { [options.key]: _, ...rest } = snapshot
+          return rest
+        })
+      }
+    },
     subscribe: subscribeOption ? subscribe : undefined,
     snapshotAtom,
   }

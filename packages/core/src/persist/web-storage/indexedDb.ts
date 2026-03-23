@@ -12,8 +12,8 @@ import {
  * with a storage atom for managing the underlying storage mechanism.
  */
 export interface WithPersistWebStorage extends WithPersist {
-  /** Atom that holds the current storage instance */
   storageAtom: Atom<PersistStorage>
+  init: () => Promise<void>
 }
 
 /**
@@ -129,7 +129,17 @@ export const reatomPersistIndexedDb = (
   // @ts-ignore TODO
   return reatomPersist({
     name: 'withIndexedDb',
-    get() {
+    async get({ key }) {
+      try {
+        const idbLib = await checkIdb()
+        const idbStore = await getStore()
+        if (idbLib && idbStore) {
+          const rec = await idbLib.get(key, idbStore)
+          return rec ?? null
+        }
+      } catch (error) {
+        console.warn('Failed to read from IndexedDB:', error)
+      }
       return null
     },
     async set({ key }, rec) {
@@ -170,12 +180,6 @@ export const reatomPersistIndexedDb = (
 
         try {
           if (event.data._type === 'pull') {
-            // We can't access cache here directly, but reatomPersist wrapper handles pull?
-            // Wait, reatomPersist wrapper doesn't handle 'pull' logic for us.
-            // We need to respond to pull if we have data.
-            // But we don't have access to cache!
-            // And we can't easily read from IDB sync.
-            // Maybe we should read from IDB and push?
             ;(async () => {
               try {
                 const idbLib = await checkIdb()
