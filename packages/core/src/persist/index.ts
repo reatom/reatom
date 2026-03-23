@@ -26,12 +26,21 @@ import {
 export interface PersistRecord<Snapshot = unknown> {
   data: Snapshot
   id: number
-  // TODO remove?
   timestamp: number
   version: number | string
   /** Time stamp after which the record is cleared. */
   to: number
 }
+
+export interface PersistRegistryEntry {
+  key: string
+  to: number
+  version: number | string
+  timestamp: number
+  id: number
+}
+
+export type PersistRegistry = PersistRegistryEntry[]
 
 export let isPersistRecord = (value: unknown): value is PersistRecord => {
   return (
@@ -168,6 +177,20 @@ export interface WithPersist<Snapshot = unknown, Options extends Rec = {}> {
    * like SSR or tests to provide the storage instance to the user.
    */
   storageAtom: Atom<PersistStorage<Snapshot>>
+
+  /**
+   * Registry of all persisted atoms metadata for garbage collection and preloading.
+   * Persisted as a special key to allow collecting obsolete records independently
+   * of individual atom access.
+   */
+  registryAtom: Atom<PersistRegistry>
+
+  /**
+   * Initializes the persistence layer (loads registry, performs GC, preloads cache).
+   * Call this at app startup for async storages like IndexedDB to ensure
+   * persisted atoms are initialized during rendering.
+   */
+  init(): Promise<void>
 }
 
 export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
@@ -176,6 +199,15 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
     'cache'
   >,
 ): WithPersist<Snapshot, Options> => {
+  const REGISTRY_KEY = '__reatom_persist_registry__'
+
+  const registryAtom = atom<PersistRegistry>(
+    () => [],
+    'persistRegistry',
+  ).extend(
+    withInit(() => []),
+  )
+
   const storageAtom = atom((): PersistStorage<Snapshot, Options> => {
     let cache: PersistCache = new Map()
 
