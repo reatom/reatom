@@ -132,34 +132,66 @@ export interface RouteOptions<
   path?: Path
 
   /**
-   * Schema to validate and transform path parameters. Uses Standard Schema
-   * (compatible with Zod, Valibot, etc.).
+   * Schema to validate and transform path parameters.
    *
-   * URL parameters are always strings, so validation schemas should accept
-   * strings and transform them to the desired types.
+   * Accepts one of:
+   *
+   * - **Standard Schema** (Zod, Valibot, etc.) — one-directional validation.
+   *   `go()` accepts raw string params, the schema parses them on URL read.
+   * - **Function** `(params) => result | null` — custom validator, return `null`
+   *   to unmatch the route.
+   * - **{@link Codec}** `{ parse, serialize }` — bidirectional transform. `go()`
+   *   accepts typed (Output) params, `serialize` converts them to URL strings,
+   *   `parse` converts URL strings back. Parse errors cause unmatch.
    *
    * @example
+   *   // Standard Schema
    *   params: z.object({
    *     userId: z.string().regex(/^\d+$/).transform(Number),
    *   })
+   *
+   * @example
+   *   // Codec — go() accepts numbers, serialize converts to strings
+   *   params: {
+   *   parse: (input) => ({ id: Number(input.id) }),
+   *   serialize: (output) => ({ id: String(output.id) }),
+   *   }
    */
   params?:
     | StandardSchemaV1<ParamsInput, ParamsOutput>
     | ((params: ParamsInput) => null | ParamsOutput)
+    | Codec<ParamsInput, ParamsOutput>
 
   /**
-   * Schema to validate and transform search/query parameters. Uses Standard
-   * Schema (compatible with Zod, Valibot, etc.).
+   * Schema to validate and transform search/query parameters.
+   *
+   * Accepts one of:
+   *
+   * - **Standard Schema** (Zod, Valibot, etc.) — one-directional validation.
+   *   `go()` accepts raw string params, the schema parses them on URL read.
+   * - **{@link Codec}** `{ parse, serialize }` — bidirectional transform. `go()`
+   *   accepts typed (Output) params, `serialize` converts them to URL strings,
+   *   `parse` converts URL strings back. Parse errors cause unmatch.
    *
    * Note: All search parameters should be optional in the schema.
    *
    * @example
+   *   // Standard Schema
    *   search: z.object({
    *     sort: z.enum(['asc', 'desc']).optional(),
    *     page: z.string().transform(Number).default('1'),
    *   })
+   *
+   * @example
+   *   // Codec — go() accepts numbers, serialize converts to strings
+   *   search: {
+   *   parse: (input) => ({ page: Number(input.page) }),
+   *   serialize: (output) => ({ page: String(output.page) }),
+   *   }
    */
-  search?: StandardSchemaV1<SearchInput, SearchOutput>
+  search?:
+    | StandardSchemaV1<SearchInput, SearchOutput>
+    | Codec<SearchInput, SearchOutput>
 
   /**
    * Async function that loads data when the route becomes active.
@@ -229,7 +261,7 @@ export interface RouteOptions<
 export interface RouteMixin<
   Path extends string,
   Params extends PathKeys<Path> = PathParams<Path>,
-  InputParams = Params,
+  GoParams = Params,
 > {
   /**
    * Create a sub-route by appending a path pattern to the current route.
@@ -251,7 +283,119 @@ export interface RouteMixin<
     Plain<Params & PathParams<SubPath>>,
     {},
     {},
-    Plain<InputParams & PathParams<SubPath>>
+    Plain<GoParams & PathParams<SubPath>>
+  >
+
+  /**
+   * Create a sub-route with **{@link Codec}** for both params and search.
+   *
+   * `go()` and `path()` accept the codec's **Output** types — `serialize`
+   * converts them back to URL-safe strings automatically.
+   *
+   * @example
+   *   const route = parentRoute.reatomRoute({
+   *     path: 'items/:id',
+   *     params: {
+   *       parse: (input) => ({ id: Number(input.id) }),
+   *       serialize: (output) => ({ id: String(output.id) }),
+   *     },
+   *     search: {
+   *       parse: (input) => ({ page: Number(input.page) }),
+   *       serialize: (output) => ({ page: String(output.page) }),
+   *     },
+   *   })
+   *   route.go({ id: 42, page: 3 })
+   */
+  reatomRoute<
+    SubPath extends string = '',
+    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
+    SubSearchInput extends Partial<Rec<string>> = {},
+    SubParamsOutput extends Rec = SubParamsInput,
+    SubSearchOutput extends Rec = SubSearchInput,
+    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    Payload = LoaderParams,
+  >(
+    options: RouteOptions<
+      SubPath,
+      Params & SubParamsInput,
+      SubSearchInput,
+      SubParamsOutput,
+      SubSearchOutput,
+      LoaderParams,
+      Payload
+    > & {
+      params: Codec<Params & SubParamsInput, SubParamsOutput>
+      search: Codec<SubSearchInput, SubSearchOutput>
+    },
+    name?: string,
+  ): RouteAtom<
+    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+    // @ts-expect-error TODO
+    Plain<SubParamsOutput>,
+    Plain<SubSearchOutput>,
+    Payload,
+    Plain<GoParams & SubParamsOutput>,
+    Plain<SubSearchOutput>
+  >
+
+  /** Create a sub-route with a **params {@link Codec}**. */
+  reatomRoute<
+    SubPath extends string = '',
+    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
+    SubSearchInput extends Partial<Rec<string>> = {},
+    SubParamsOutput extends Rec = SubParamsInput,
+    SubSearchOutput extends Rec = SubSearchInput,
+    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    Payload = LoaderParams,
+  >(
+    options: RouteOptions<
+      SubPath,
+      Params & SubParamsInput,
+      SubSearchInput,
+      SubParamsOutput,
+      SubSearchOutput,
+      LoaderParams,
+      Payload
+    > & { params: Codec<Params & SubParamsInput, SubParamsOutput> },
+    name?: string,
+  ): RouteAtom<
+    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+    // @ts-expect-error TODO
+    Plain<SubParamsOutput>,
+    Plain<SubSearchOutput>,
+    Payload,
+    Plain<GoParams & SubParamsOutput>,
+    Plain<SubSearchInput>
+  >
+
+  /** Create a sub-route with a **search {@link Codec}**. */
+  reatomRoute<
+    SubPath extends string = '',
+    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
+    SubSearchInput extends Partial<Rec<string>> = {},
+    SubParamsOutput extends Rec = SubParamsInput,
+    SubSearchOutput extends Rec = SubSearchInput,
+    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    Payload = LoaderParams,
+  >(
+    options: RouteOptions<
+      SubPath,
+      Params & SubParamsInput,
+      SubSearchInput,
+      SubParamsOutput,
+      SubSearchOutput,
+      LoaderParams,
+      Payload
+    > & { search: Codec<SubSearchInput, SubSearchOutput> },
+    name?: string,
+  ): RouteAtom<
+    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+    // @ts-expect-error TODO
+    Plain<SubParamsOutput>,
+    Plain<SubSearchOutput>,
+    Payload,
+    Plain<GoParams & SubParamsInput>,
+    Plain<SubSearchOutput>
   >
 
   /**
@@ -263,19 +407,11 @@ export interface RouteMixin<
    *
    *   const userRoute = reatomRoute({
    *     path: 'user/:id',
-   *     params: z.object({ id: z.number() }), // Should match the path
+   *     params: z.object({ id: z.number() }),
    *     search: z.object({ sort: z.enum(['asc', 'desc']).optional() }),
    *   })
    *
-   *   // Navigate with validated params
    *   userRoute.go({ id: 123, tab: 'profile' })
-   *
-   * @param options Route configuration object or just a path string
-   * @param options.path The sub-path pattern to append
-   * @param options.params Optional schema to validate the path parameters
-   * @param options.search Optional schema to validate search parameters. Each
-   *   param should be optional!
-   * @returns A new RouteAtom for the combined path with validation
    */
   reatomRoute<
     SubPath extends string = '',
@@ -302,7 +438,7 @@ export interface RouteMixin<
     Plain<SubParamsOutput>,
     Plain<SubSearchOutput>,
     Payload,
-    Plain<InputParams & SubParamsInput>,
+    Plain<GoParams & SubParamsInput>,
     Plain<SubSearchInput>
   >
 }
@@ -316,6 +452,65 @@ function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
     throw new Error('Async search validation is not supported')
   }
 }
+
+/**
+ * Bidirectional transformer for route parameters.
+ *
+ * Unlike one-directional Standard Schema transforms, a Codec explicitly defines
+ * both directions: parsing raw URL strings into typed values (`parse`) and
+ * serializing typed values back into URL strings (`serialize`). This guarantees
+ * a lossless round-trip through the URL.
+ *
+ * When `parse` throws, the route is treated as unmatched (returns `null`)
+ * instead of producing an unhandled error. When `serialize` throws, the error
+ * propagates from `go()` / `path()` so callers can handle it.
+ *
+ * To use Zod codecs (`z.codec`, `z.stringbool`, etc.) wrap them with a small
+ * adapter that maps `decode`/`encode` to `parse`/`serialize`.
+ *
+ * @example
+ *   // Inline codec for base64-encoded JSON in a path segment
+ *   reatomRoute({
+ *     path: 'data/:payload',
+ *     params: {
+ *       parse: (input) => ({
+ *         payload: JSON.parse(atob(input.payload)),
+ *       }),
+ *       serialize: (output) => ({
+ *         payload: btoa(JSON.stringify(output.payload)),
+ *       }),
+ *     },
+ *   })
+ *
+ * @example
+ *   // Adapter for Zod codecs
+ *   const fromZodCodec = <I, O>(zc: {
+ *     decode: (i: I) => O
+ *     encode: (o: O) => I
+ *   }): Codec<I, O> => ({
+ *     parse: (i) => zc.decode(i),
+ *     serialize: (o) => zc.encode(o),
+ *   })
+ *
+ *   reatomRoute({
+ *     path: 'items/:id',
+ *     params: fromZodCodec(z.object({ id: z.stringbool() })),
+ *   })
+ */
+export type Codec<Input, Output> = {
+  /** Convert raw URL parameter(s) into typed value(s). */
+  parse: (input: Input) => Output
+  /** Convert typed value(s) back into raw URL parameter(s). */
+  serialize: (output: Output) => Input
+}
+
+/**
+ * Runtime check for {@link Codec} — returns `true` when the value has both
+ * `parse` and `serialize` methods and is NOT a Standard Schema (which also
+ * exposes `parse` but lacks `serialize`).
+ */
+const isCodec = (v: unknown): v is Codec<any, any> =>
+  typeof v === 'object' && v !== null && 'parse' in v && 'serialize' in v
 
 const validateParams = <Input, Output>(
   validator:
@@ -371,9 +566,9 @@ export interface RouteExt<
   Params extends PathKeys<Path> = PathParams<Path>,
   Search extends Rec<string> = {},
   Payload = Plain<Params & Search>,
-  InputParams = Params,
-  InputSearch = Search,
-> extends RouteMixin<Path, Params, InputParams> {
+  GoParams = Params,
+  GoSearch = Search,
+> extends RouteMixin<Path, Params, GoParams> {
   /**
    * Navigate to this route with the given parameters.
    *
@@ -398,10 +593,7 @@ export interface RouteExt<
    *   creating a new one. Defaults to `false`.
    * @returns The new URL object
    */
-  go: Action<
-    [params: MaybeVoid<InputParams & InputSearch>, replace?: boolean],
-    URL
-  >
+  go: Action<[params: MaybeVoid<GoParams & GoSearch>, replace?: boolean], URL>
 
   /**
    * Async loader for fetching route data.
@@ -494,7 +686,7 @@ export interface RouteExt<
    *   has no required parameters.
    * @returns The URL path string (including search params if applicable)
    */
-  path: (params: MaybeVoid<InputParams & InputSearch>) => string
+  path: (params: MaybeVoid<GoParams & GoSearch>) => string
 
   /**
    * Registry of all child routes created from this route.
@@ -545,7 +737,7 @@ export interface RouteExt<
 
   parent: RouteAtom | null
 
-  inputParams: Atom<null | InputParams>
+  cachedParams: Atom<null | GoParams>
 }
 
 /**
@@ -587,19 +779,12 @@ export interface RouteAtom<
   ParamsOutput extends PathKeys<Path> = PathParams<Path>,
   SearchOutput extends Rec<string> = {},
   Payload = Plain<ParamsOutput & SearchOutput>,
-  ParamsInput = ParamsOutput,
-  SearchInput = SearchOutput,
+  GoParams = ParamsOutput,
+  GoSearch = SearchOutput,
 >
   extends
     Computed<null | Plain<ParamsOutput & SearchOutput>>,
-    RouteExt<
-      Path,
-      ParamsOutput,
-      SearchOutput,
-      Payload,
-      ParamsInput,
-      SearchInput
-    > {}
+    RouteExt<Path, ParamsOutput, SearchOutput, Payload, GoParams, GoSearch> {}
 
 const getPatternName = (part: string) => {
   const start = part.startsWith(':') ? 1 : 0
@@ -607,32 +792,33 @@ const getPatternName = (part: string) => {
   return start || end ? part.slice(start, end) : part
 }
 
-const getParentInputParams = (
+const getParentCachedParams = (
   parent: RouteAtom | UrlAtom | null,
 ): Atom<null | {}> | null => {
   if (!parent) return null
-  if ('inputParams' in parent && parent.inputParams) return parent.inputParams
+  if ('cachedParams' in parent && parent.cachedParams)
+    return parent.cachedParams
   return parent === urlAtom
     ? null
     : // @ts-expect-error
-      getParentInputParams(parent.parent)
+      getParentCachedParams(parent.parent)
 }
 
-const setAllParentInputParams = (
+const setAllParentCachedParams = (
   parent: RouteAtom | UrlAtom | null,
   params: any,
   exclude: Atom<null | {}> | null,
 ): void => {
   if (!parent || parent === urlAtom) return
   if (
-    'inputParams' in parent &&
-    parent.inputParams &&
-    parent.inputParams !== exclude
+    'cachedParams' in parent &&
+    parent.cachedParams &&
+    parent.cachedParams !== exclude
   ) {
-    parent.inputParams.set(params)
+    parent.cachedParams.set(params)
   }
   if ('parent' in parent && parent.parent) {
-    setAllParentInputParams(parent.parent, params, exclude)
+    setAllParentCachedParams(parent.parent, params, exclude)
   }
 }
 
@@ -655,6 +841,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       layout: optionLayout,
       exactRender: optionExactRender,
     } = options
+
+    const paramsIsCodec = isCodec(paramsSchema)
+    const searchIsCodec = isCodec(searchSchema)
 
     const layout = optionLayout ?? optionExactRender === false
 
@@ -690,16 +879,20 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       let pathParams: Rec
       if (!paramsSchema) {
         pathParams = params || {}
+      } else if (paramsIsCodec) {
+        pathParams = paramsSchema.serialize(params)
       } else {
         pathParams = validateParams(paramsSchema, params as any, 'params')
         if (pathParams === null) {
-          if (inputParams) pathParams = {}
+          if (cachedParams) pathParams = {}
           else throw new Error(`Invalid params for route ${pattern}`)
         }
       }
-      let searchParams = searchSchema
-        ? validate(searchSchema, params, 'search')
-        : null
+      let searchParams = !searchSchema
+        ? null
+        : searchIsCodec
+          ? searchSchema.serialize(params)
+          : validate(searchSchema, params, 'search')
 
       let path = ''
 
@@ -731,11 +924,11 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       return path
     }
 
-    let parentInputParams = getParentInputParams(parent)
-    let inputParams =
-      typeof paramsSchema === 'function'
-        ? atom(null, `${name}._inputParams`)
-        : parentInputParams
+    let parentCachedParams = getParentCachedParams(parent)
+    let cachedParams =
+      typeof paramsSchema === 'function' || paramsIsCodec
+        ? atom(null, `${name}._cachedParams`)
+        : parentCachedParams
 
     const loader = computed(async () => {
       let params = routeAtom()
@@ -787,9 +980,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
-        inputParams?.set(params)
-        if (inputParams !== parentInputParams) {
-          setAllParentInputParams(parent, params, inputParams)
+        cachedParams?.set(params)
+        if (cachedParams !== parentCachedParams) {
+          setAllParentCachedParams(parent, params, cachedParams)
         }
         const newUrl = new URL(getPath(params), url)
         if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
@@ -804,8 +997,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
       let url = urlAtom()
       let pathname = url.pathname
-      let inputParamsState = inputParams?.() ?? null
-      let params: null | Rec = inputParamsState ?? null
+      let cachedParamsState =
+        typeof paramsSchema === 'function' ? (cachedParams?.() ?? null) : null
+      let params: null | Rec = cachedParamsState ?? null
 
       if (!params) {
         params = {}
@@ -840,6 +1034,10 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       try {
         if (!paramsSchema) {
           validatedParams = params
+        } else if (paramsIsCodec) {
+          validatedParams = cachedParamsState
+            ? params
+            : paramsSchema.parse(params as any)
         } else {
           validatedParams = validateParams(
             paramsSchema,
@@ -851,7 +1049,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
         if (searchSchema) {
           let searchParams = Object.fromEntries(url.searchParams)
-          validatedSearch = validate(searchSchema, searchParams, 'search')
+          validatedSearch = searchIsCodec
+            ? searchSchema.parse(searchParams)
+            : validate(searchSchema, searchParams, 'search')
         }
       } catch {
         return null
@@ -862,7 +1062,10 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       if (validatedSearch) {
         result = { ...validatedParams }
         for (let key in validatedSearch) {
-          if (key in result && !(inputParamsState && key in inputParamsState)) {
+          if (
+            key in result &&
+            !(cachedParamsState && key in cachedParamsState)
+          ) {
             throw new ReatomError(
               `Params collision for "${key}" in route ${pattern}`,
             )
@@ -916,16 +1119,16 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         outlet,
         render,
         parent,
-        inputParams:
-          inputParams ??
-          ('inputParams' in parent ? parent.inputParams : undefined),
+        cachedParams:
+          cachedParams ??
+          ('cachedParams' in parent ? parent.cachedParams : undefined),
         reatomRoute,
       } as RouteExt
     }) as RouteAtom
 
     parent.routes[name] = urlAtom.routes[name] = routeAtom
 
-    if (inputParams && inputParams !== parentInputParams) {
+    if (cachedParams && cachedParams !== parentCachedParams) {
       routeAtom.extend(
         withMiddleware(() => (next, ...params) => {
           let state
@@ -935,8 +1138,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
             state = null
             throw error
           } finally {
-            if (state === null && inputParams() !== null) {
-              inputParams.set(null)
+            if (state === null && cachedParams() !== null) {
+              cachedParams.set(null)
             }
           }
         }),
