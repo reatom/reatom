@@ -187,14 +187,12 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
     'cache'
   >,
 ): WithPersist<Snapshot, Options> => {
-  let updateRegistry = (
-    cache: PersistCache,
-    key: string,
-    to?: number,
-  ) => {
+  let sharedCache: PersistCache = new Map()
+
+  let updateRegistry = (key: string, to?: number) => {
     if (key === REGISTRY_KEY) return
 
-    let registryRec = cache.get(REGISTRY_KEY)
+    let registryRec = sharedCache.get(REGISTRY_KEY)
     let registryData: PersistRegistryData = registryRec
       ? { ...(registryRec.data as PersistRegistryData) }
       : {}
@@ -212,17 +210,15 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       to: Date.now() + MAX_SAFE_TIMEOUT,
       version: 0,
     }
-    cache.set(REGISTRY_KEY, newRegistryRec as PersistRecord)
+    sharedCache.set(REGISTRY_KEY, newRegistryRec as PersistRecord)
     storage.set(
-      { cache, key: REGISTRY_KEY } as Options & {
+      { cache: sharedCache, key: REGISTRY_KEY } as Options & {
         cache: PersistCache
         key: string
       },
       newRegistryRec as PersistRecord<Snapshot>,
     )
   }
-
-  let sharedCache: PersistCache = new Map()
 
   const storageAtom = atom((): PersistStorage<Snapshot, Options> => {
     return {
@@ -280,7 +276,7 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
             { ...options, cache: sharedCache },
             rec,
           )
-          updateRegistry(sharedCache, options.key, rec.to)
+          updateRegistry(options.key, rec.to)
           return result
         } catch (error) {
           console.warn(`Error in storage ${storage.name}`)
@@ -291,7 +287,7 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       clear(options) {
         try {
           sharedCache.delete(options.key)
-          updateRegistry(sharedCache, options.key)
+          updateRegistry(options.key)
           return storage.clear?.({ ...options, cache: sharedCache })
         } catch (error) {
           console.warn(`Error in storage ${storage.name}`)
