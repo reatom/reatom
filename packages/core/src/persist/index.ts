@@ -63,6 +63,7 @@ export type PersistRegistryRecord<Options extends Rec = { key: string }> =
 
 export const PERSIST_REGISTRY_KEY = '__reatom.persist.registry'
 const PERSIST_STORAGE_STATE = Symbol('reatom.persist.storageState')
+const PERSIST_STORAGE_SOURCE = Symbol('reatom.persist.storageSource')
 
 export let isPersistRegistryEntry = <
   Options extends Rec = { key: string },
@@ -573,8 +574,10 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         return initPromise
       },
       [PERSIST_STORAGE_STATE]: true,
+      [PERSIST_STORAGE_SOURCE]: baseStorage,
     } satisfies PersistStorage<Snapshot, Options> & {
       [PERSIST_STORAGE_STATE]: true
+      [PERSIST_STORAGE_SOURCE]: Storage
     }
   }
 
@@ -584,7 +587,10 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
   ).extend(
     withParams((nextStorage: Storage | PersistStorage<Snapshot, Options>) =>
       PERSIST_STORAGE_STATE in nextStorage
-        ? nextStorage
+        ? createStorageState({
+            ...nextStorage[PERSIST_STORAGE_SOURCE],
+            ...nextStorage,
+          })
         : createStorageState(nextStorage as Storage),
     ),
   )
