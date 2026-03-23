@@ -123,21 +123,21 @@ describe('async', () => {
     number1Atom.set(11)
     expect(number1Atom()).toBe(11)
     expect(number2Atom()).toBe(0)
-    expect(await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' }))).toBe(
-      null,
-    )
+    expect(
+      await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })),
+    ).toBe(null)
     await wrap(sleep())
     expect(number2Atom()).toBe(0)
-    expect(await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' }))).toBe(
-      null,
-    )
+    expect(
+      await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })),
+    ).toBe(null)
 
     trigger()
     await wrap(sleep())
 
-    expect((await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })))?.data).toBe(
-      11,
-    )
+    expect(
+      (await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })))?.data,
+    ).toBe(11)
   })
 
   test('should preload async storage on init', async () => {
@@ -218,11 +218,13 @@ describe('registry init', () => {
 
     expect(context.start(() => expiredAtom())).toBe(0)
     expect(
-      await context.start(() => withRegistryPersist.storageAtom().get({ key: 'expired' })),
+      await context.start(() =>
+        withRegistryPersist.storageAtom().get({ key: 'expired' }),
+      ),
     ).toBe(null)
-    expect(context.start(() => withRegistryPersist.storageAtom().registry?.get())).toEqual(
-      [],
-    )
+    expect(
+      context.start(() => withRegistryPersist.storageAtom().registry?.get()),
+    ).toEqual([])
   })
 })
 

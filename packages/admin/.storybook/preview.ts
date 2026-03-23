@@ -14,13 +14,16 @@ import { FALLBACK_VIEWPORT, getViewportSize } from './viewports'
 type ViewportGlobal = { value?: string } | string | undefined
 type PreviewGlobals = Record<string, ViewportGlobal>
 
-initialize({
-  onUnhandledRequest: 'bypass',
-  quiet: true,
-  serviceWorker: {
-    url: `${import.meta.env['BASE_URL']}mockServiceWorker.js`,
+initialize(
+  {
+    onUnhandledRequest: 'bypass',
+    quiet: true,
+    serviceWorker: {
+      url: `${import.meta.env['BASE_URL']}mockServiceWorker.js`,
+    },
   },
-}, [reatomJsxXoHandlers.githubStars])
+  [reatomJsxXoHandlers.githubStars],
+)
 
 const preview = {
   parameters: {

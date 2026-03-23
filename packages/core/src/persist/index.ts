@@ -219,16 +219,12 @@ interface PersistRuntime<Snapshot = unknown> {
   registryPromise: null | Promise<Map<string, PersistRegistryEntry>>
 }
 
-interface PersistStorageInstance<Snapshot = unknown, Options extends Rec = {}>
-  extends PersistStorage<Snapshot, Options> {
-  rawGet: PersistStorage<
-    Snapshot,
-    Options & PersistStorageCacheOption
-  >['get']
-  rawSet: PersistStorage<
-    Snapshot,
-    Options & PersistStorageCacheOption
-  >['set']
+interface PersistStorageInstance<
+  Snapshot = unknown,
+  Options extends Rec = {},
+> extends PersistStorage<Snapshot, Options> {
+  rawGet: PersistStorage<Snapshot, Options & PersistStorageCacheOption>['get']
+  rawSet: PersistStorage<Snapshot, Options & PersistStorageCacheOption>['set']
   rawClear?: PersistStorage<
     Snapshot,
     Options & PersistStorageCacheOption
@@ -262,7 +258,10 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
   }
 
   const createStorageInstance = (
-    sourceStorage: PersistStorage<Snapshot, Options & PersistStorageCacheOption>,
+    sourceStorage: PersistStorage<
+      Snapshot,
+      Options & PersistStorageCacheOption
+    >,
   ): ThisStorage => {
     if (runtimeMap.has(sourceStorage as ThisStorage)) {
       return sourceStorage
@@ -338,21 +337,27 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
   const storageAtom = atom(
     () =>
       (storageInstance ??= createStorageInstance(
-        storage as PersistStorage<Snapshot, Options & PersistStorageCacheOption>,
-      )),
-    `storageAtom#${storage.name}`,
-  ).extend(
-    withParams((nextStorage) =>
-      (storageInstance = createStorageInstance(
-        nextStorage as PersistStorage<
+        storage as PersistStorage<
           Snapshot,
           Options & PersistStorageCacheOption
         >,
       )),
+    `storageAtom#${storage.name}`,
+  ).extend(
+    withParams(
+      (nextStorage) =>
+        (storageInstance = createStorageInstance(
+          nextStorage as PersistStorage<
+            Snapshot,
+            Options & PersistStorageCacheOption
+          >,
+        )),
     ),
   )
 
-  const getRuntime = (currentStorage: ThisStorage): PersistRuntime<Snapshot> => {
+  const getRuntime = (
+    currentStorage: ThisStorage,
+  ): PersistRuntime<Snapshot> => {
     const runtime = runtimeMap.get(currentStorage)
 
     if (runtime) {
@@ -443,32 +448,34 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       return runtime.registry
     }
 
-    runtime.registryPromise = Promise.resolve(entriesOrPromise).then(
-      (entries) => {
-        const safeEntries = isPersistRegistry(entries) ? entries : []
-        const registry = new Map<string, PersistRegistryEntry>()
+    runtime.registryPromise = Promise.resolve(entriesOrPromise)
+      .then(
+        (entries) => {
+          const safeEntries = isPersistRegistry(entries) ? entries : []
+          const registry = new Map<string, PersistRegistryEntry>()
 
-        for (const entry of safeEntries) {
-          if (isPersistRegistryEntry(entry)) {
-            registry.set(entry.key, entry)
+          for (const entry of safeEntries) {
+            if (isPersistRegistryEntry(entry)) {
+              registry.set(entry.key, entry)
+            }
           }
-        }
 
-        runtime.registry = registry
-        runtime.registryLoaded = true
+          runtime.registry = registry
+          runtime.registryLoaded = true
 
-        return registry
-      },
-      (error) => {
-        logStorageError(currentStorage, error)
-        runtime.registry = new Map()
-        runtime.registryLoaded = true
+          return registry
+        },
+        (error) => {
+          logStorageError(currentStorage, error)
+          runtime.registry = new Map()
+          runtime.registryLoaded = true
 
-        return runtime.registry
-      },
-    ).finally(() => {
-      runtime.registryPromise = null
-    })
+          return runtime.registry
+        },
+      )
+      .finally(() => {
+        runtime.registryPromise = null
+      })
 
     return runtime.registryPromise
   }
@@ -671,24 +678,27 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       )
 
       if (writeResult instanceof Promise) {
-        return writeResult.then(() => {
-          currentStorage.cache.set(options.key, rec)
-          runtime.emptyKeys.delete(options.key)
-          runtime.emptyKeysFromAsyncGet.delete(options.key)
+        return writeResult.then(
+          () => {
+            currentStorage.cache.set(options.key, rec)
+            runtime.emptyKeys.delete(options.key)
+            runtime.emptyKeysFromAsyncGet.delete(options.key)
 
-          if (runtime.initialized) {
-            runtime.loadedKeys.add(options.key)
-          }
+            if (runtime.initialized) {
+              runtime.loadedKeys.add(options.key)
+            }
 
-          return syncRegistryEntry(currentStorage, options.key, rec)
-        }, (error) => {
-          if (cacheBeforeWrite === undefined) {
-            currentStorage.cache.delete(options.key)
-          } else {
-            currentStorage.cache.set(options.key, cacheBeforeWrite)
-          }
-          logStorageError(currentStorage, error)
-        })
+            return syncRegistryEntry(currentStorage, options.key, rec)
+          },
+          (error) => {
+            if (cacheBeforeWrite === undefined) {
+              currentStorage.cache.delete(options.key)
+            } else {
+              currentStorage.cache.set(options.key, cacheBeforeWrite)
+            }
+            logStorageError(currentStorage, error)
+          },
+        )
       }
 
       currentStorage.cache.set(options.key, rec)
@@ -759,10 +769,10 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
           emptyKeys.add(entry.key)
           await wrap(
             Promise.resolve(
-            currentStorage.rawClear?.({
-              key: entry.key,
-              cache: currentStorage.cache,
-            }),
+              currentStorage.rawClear?.({
+                key: entry.key,
+                cache: currentStorage.cache,
+              }),
             ),
             frame,
           )
@@ -774,8 +784,8 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
           const rec = await wrap(
             Promise.resolve(
               currentStorage.rawGet({
-              key: entry.key,
-              cache: currentStorage.cache,
+                key: entry.key,
+                cache: currentStorage.cache,
               }),
             ),
             frame,
@@ -786,10 +796,10 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
             emptyKeys.add(entry.key)
             await wrap(
               Promise.resolve(
-              currentStorage.rawClear?.({
-                key: entry.key,
-                cache: currentStorage.cache,
-              }),
+                currentStorage.rawClear?.({
+                  key: entry.key,
+                  cache: currentStorage.cache,
+                }),
               ),
               frame,
             )
@@ -963,7 +973,10 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         return target
       }
     },
-    { storageAtom, init: () => top().run(() => initPersistStorage(storageAtom())) },
+    {
+      storageAtom,
+      init: () => top().run(() => initPersistStorage(storageAtom())),
+    },
   )
 }
 
