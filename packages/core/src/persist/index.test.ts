@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, subscribe, test } from 'test'
 
 import { wrap } from '..'
-import { action, atom } from '../core'
+import { action, atom, context } from '../core'
 import { withComputed } from '../extensions'
 import { noop, random, sleep } from '../utils'
 import { createMemStorage, reatomPersist } from './'
@@ -9,7 +9,9 @@ import { createMemStorage, reatomPersist } from './'
 const withSomePersist = reatomPersist(createMemStorage({ name: 'somePersist' }))
 
 afterEach(() => {
-  withSomePersist.storageAtom.set(createMemStorage({ name: 'somePersist' }))
+  context.start(() => {
+    withSomePersist.storageAtom.set(createMemStorage({ name: 'somePersist' }))
+  })
 })
 
 describe('base', () => {
@@ -115,25 +117,27 @@ describe('async', () => {
       },
     })
 
-    const track = subscribe(number2Atom)
-    track.mockClear()
-
     expect(number1Atom()).toBe(0)
     expect(number2Atom()).toBe(0)
 
     number1Atom.set(11)
     expect(number1Atom()).toBe(11)
     expect(number2Atom()).toBe(0)
-    expect(track).toBeCalledTimes(0)
+    expect(await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' }))).toBe(
+      null,
+    )
     await wrap(sleep())
     expect(number2Atom()).toBe(0)
-    expect(track).toBeCalledTimes(0)
+    expect(await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' }))).toBe(
+      null,
+    )
 
     trigger()
     await wrap(sleep())
 
-    expect(track).toBeCalledTimes(1)
-    expect(track).toBeCalledWith(11)
+    expect((await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })))?.data).toBe(
+      11,
+    )
   })
 
   test('should preload async storage on init', async () => {
@@ -181,9 +185,9 @@ describe('async', () => {
 
     const persistedAtom = atom(0).extend(withAsyncPersist('async-key'))
 
-    await withAsyncPersist.init()
+    await context.start(() => withAsyncPersist.init())
 
-    expect(persistedAtom()).toBe(7)
+    expect(context.start(() => persistedAtom())).toBe(7)
     expect(getCalls).toBe(1)
   })
 })
@@ -210,13 +214,15 @@ describe('registry init', () => {
     const withRegistryPersist = reatomPersist(storage)
     const expiredAtom = atom(0).extend(withRegistryPersist('expired'))
 
-    await withRegistryPersist.init()
+    await context.start(() => withRegistryPersist.init())
 
-    expect(expiredAtom()).toBe(0)
-    expect(await wrap(withRegistryPersist.storageAtom().get({ key: 'expired' }))).toBe(
-      null,
+    expect(context.start(() => expiredAtom())).toBe(0)
+    expect(
+      await context.start(() => withRegistryPersist.storageAtom().get({ key: 'expired' })),
+    ).toBe(null)
+    expect(context.start(() => withRegistryPersist.storageAtom().registry?.get())).toEqual(
+      [],
     )
-    expect(withRegistryPersist.storageAtom().registry?.get()).toEqual([])
   })
 })
 

@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { atom } from '../../core'
+import { atom, context } from '../../core'
 import { wrap } from '../../methods'
 import { sleep } from '../../utils'
 import { reatomPersistIndexedDb, withIndexedDb } from './indexedDb'
@@ -207,7 +207,7 @@ test('IndexedDB init preloads persisted records', async () => {
 
   await withHydratedIndexedDb.init()
 
-  expect(hydratedAtom()).toBe('persisted-before-init')
+  expect(context.start(() => hydratedAtom())).toBe('persisted-before-init')
 
   channel.close()
 })

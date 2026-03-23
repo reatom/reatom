@@ -137,7 +137,7 @@ export const reatomPersistIndexedDb = (
     }
 
     const value = await idbLib.get(key, store)
-    return value as null | PersistRecord
+    return value === undefined ? null : (value as PersistRecord)
   }
 
   const readRegistry = async (): Promise<PersistRegistry> => {
