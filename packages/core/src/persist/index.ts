@@ -13,6 +13,7 @@ import {
 import { withInit } from '../extensions'
 import { withConnectHook } from '../extensions/withConnectHook'
 import { memoKey } from '../methods/memo'
+import { wrap } from '../methods'
 import {
   type Fn,
   MAX_SAFE_TIMEOUT,
@@ -450,12 +451,50 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       storageAtom,
       registryAtom,
       async init() {
-        // TODO: implement registry loading, GC of expired entries, preload cache
-        // Load registry from storage using REGISTRY_KEY
-        // Filter expired entries and delete from storage
-        // Preload non-expired records into cache
-        // Update registryAtom
-        console.warn('persist.init() not fully implemented yet')
+        const storage = storageAtom()
+        const now = Date.now()
+
+        // load registry (special key in underlying storage)
+        let registryRec = await wrap(storage.get({ key: REGISTRY_KEY, cache: storage.cache } as any))
+        let registry: PersistRegistry = []
+
+        if (registryRec && isPersistRecord(registryRec) && Array.isArray(registryRec.data)) {
+          registry = registryRec.data as PersistRegistry
+        }
+
+        // GC expired + collect keys to preload
+        const validRegistry: PersistRegistry = []
+        const toPreload: string[] = []
+
+        for (const entry of registry) {
+          if (entry.to > now) {
+            validRegistry.push(entry)
+            toPreload.push(entry.key)
+          } else if (storage.clear) {
+            storage.clear({ key: entry.key, cache: storage.cache } as any)
+          }
+        }
+
+        // preload non-expired into cache (triggers get which populates cache)
+        for (const key of toPreload) {
+          await wrap(storage.get({ key, cache: storage.cache } as any))
+        }
+
+        // update registry (persist new valid list)
+        if (validRegistry.length !== registry.length) {
+          const newRegistryRec: PersistRecord<PersistRegistry> = {
+            data: validRegistry,
+            id: random(),
+            timestamp: now,
+            to: now + MAX_SAFE_TIMEOUT,
+            version: 0,
+          }
+          storage.set({ key: REGISTRY_KEY, cache: storage.cache } as any, newRegistryRec)
+          registryAtom.set(validRegistry)
+        } else {
+          registryAtom.set(validRegistry)
+        }
+
         return
       },
     },
