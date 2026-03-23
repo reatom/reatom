@@ -23,6 +23,10 @@ import {
   type Unsubscribe,
 } from '../utils'
 
+export const REGISTRY_KEY = '__reatom_persist_registry__'
+
+export type PersistRegistryData = Record<string, number>
+
 export interface PersistRecord<Snapshot = unknown> {
   data: Snapshot
   id: number
@@ -168,6 +172,13 @@ export interface WithPersist<Snapshot = unknown, Options extends Rec = {}> {
    * like SSR or tests to provide the storage instance to the user.
    */
   storageAtom: Atom<PersistStorage<Snapshot>>
+
+  /**
+   * Loads the registry from storage, garbage-collects expired entries,
+   * and preloads valid entries into the memory cache.
+   * Useful for async storages (IndexedDB) to guarantee atoms are initialized during rendering.
+   */
+  init: () => Promise<void>
 }
 
 export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
@@ -176,31 +187,73 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
     'cache'
   >,
 ): WithPersist<Snapshot, Options> => {
-  const storageAtom = atom((): PersistStorage<Snapshot, Options> => {
-    let cache: PersistCache = new Map()
+  let updateRegistry = (
+    cache: PersistCache,
+    key: string,
+    to?: number,
+  ) => {
+    if (key === REGISTRY_KEY) return
 
+    let registryRec = cache.get(REGISTRY_KEY)
+    let registryData: PersistRegistryData = registryRec
+      ? { ...(registryRec.data as PersistRegistryData) }
+      : {}
+
+    if (to !== undefined) {
+      registryData[key] = to
+    } else {
+      delete registryData[key]
+    }
+
+    let newRegistryRec: PersistRecord<PersistRegistryData> = {
+      data: registryData,
+      id: random(),
+      timestamp: Date.now(),
+      to: Date.now() + MAX_SAFE_TIMEOUT,
+      version: 0,
+    }
+    cache.set(REGISTRY_KEY, newRegistryRec as PersistRecord)
+    storage.set(
+      { cache, key: REGISTRY_KEY } as Options & {
+        cache: PersistCache
+        key: string
+      },
+      newRegistryRec as PersistRecord<Snapshot>,
+    )
+  }
+
+  let sharedCache: PersistCache = new Map()
+
+  const storageAtom = atom((): PersistStorage<Snapshot, Options> => {
     return {
       name: storage.name,
-      cache,
+      cache: sharedCache,
       // @ts-ignore TODO
       get(options) {
         try {
-          let cacheRec = cache.get(options.key)
+          let cacheRec = sharedCache.get(options.key)
 
           if (cacheRec !== undefined) {
             if (cacheRec.to > Date.now()) {
               return cacheRec
             }
-            cache.delete(options.key)
+            sharedCache.delete(options.key)
           }
 
-          let recOrPromise = storage.get({ ...options, cache })
+          let recOrPromise = storage.get({
+            ...options,
+            cache: sharedCache,
+          })
 
           if (recOrPromise instanceof Promise) {
             return recOrPromise.then(
               bind((rec) => {
-                if (rec && rec.to >= Date.now() && !cache.has(options.key)) {
-                  cache.set(options.key, rec)
+                if (
+                  rec &&
+                  rec.to >= Date.now() &&
+                  !sharedCache.has(options.key)
+                ) {
+                  sharedCache.set(options.key, rec)
                 }
                 return rec
               }),
@@ -211,7 +264,7 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
 
           if (!rec || rec.to < Date.now()) return null
 
-          cache.set(options.key, rec)
+          sharedCache.set(options.key, rec)
 
           return rec
         } catch (error) {
@@ -222,8 +275,13 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       },
       set(options, rec) {
         try {
-          cache.set(options.key, rec)
-          return storage.set({ ...options, cache }, rec)
+          sharedCache.set(options.key, rec)
+          let result = storage.set(
+            { ...options, cache: sharedCache },
+            rec,
+          )
+          updateRegistry(sharedCache, options.key, rec.to)
+          return result
         } catch (error) {
           console.warn(`Error in storage ${storage.name}`)
           console.log(error)
@@ -232,8 +290,9 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       },
       clear(options) {
         try {
-          cache.delete(options.key)
-          return storage.clear?.({ ...options, cache })
+          sharedCache.delete(options.key)
+          updateRegistry(sharedCache, options.key)
+          return storage.clear?.({ ...options, cache: sharedCache })
         } catch (error) {
           console.warn(`Error in storage ${storage.name}`)
           console.log(error)
@@ -245,9 +304,9 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         function subscribe(options, callback) {
           try {
             return storage.subscribe!(
-              { ...options, cache },
+              { ...options, cache: sharedCache },
               bind((rec) => {
-                cache.set(options.key, rec)
+                sharedCache.set(options.key, rec)
                 callback(rec)
               }, top().root.frame),
             )
@@ -259,6 +318,80 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         },
     }
   }, `storageAtom#${storage.name}`)
+
+  type StorageOptions = Options & { cache: PersistCache; key: string }
+
+  let init = async () => {
+    let registryRecOrPromise = storage.get({
+      cache: sharedCache,
+      key: REGISTRY_KEY,
+    } as StorageOptions)
+    let registryRec =
+      registryRecOrPromise instanceof Promise
+        ? await registryRecOrPromise
+        : registryRecOrPromise
+
+    if (!registryRec) return
+
+    let registryData = registryRec.data as PersistRegistryData
+    let now = Date.now()
+    let validRegistry: PersistRegistryData = {}
+    let hasExpired = false
+
+    let loadPromises: Promise<void>[] = []
+
+    for (let key in registryData) {
+      let to = registryData[key]!
+      if (to <= now) {
+        hasExpired = true
+        sharedCache.delete(key)
+        if (storage.clear) {
+          let clearResult = storage.clear({
+            cache: sharedCache,
+            key,
+          } as StorageOptions)
+          if (clearResult instanceof Promise) loadPromises.push(clearResult)
+        }
+      } else {
+        validRegistry[key] = to
+        if (!sharedCache.has(key)) {
+          let recOrPromise = storage.get({
+            cache: sharedCache,
+            key,
+          } as StorageOptions)
+          if (recOrPromise instanceof Promise) {
+            loadPromises.push(
+              recOrPromise.then((rec) => {
+                if (rec && rec.to > now) sharedCache.set(key, rec)
+              }),
+            )
+          } else if (recOrPromise && recOrPromise.to > now) {
+            sharedCache.set(key, recOrPromise)
+          }
+        }
+      }
+    }
+
+    await Promise.all(loadPromises)
+
+    if (hasExpired) {
+      let newRegistryRec: PersistRecord<PersistRegistryData> = {
+        data: validRegistry,
+        id: random(),
+        timestamp: now,
+        to: now + MAX_SAFE_TIMEOUT,
+        version: 0,
+      }
+      sharedCache.set(REGISTRY_KEY, newRegistryRec as PersistRecord)
+      let setResult = storage.set(
+        { cache: sharedCache, key: REGISTRY_KEY } as StorageOptions,
+        newRegistryRec as PersistRecord<Snapshot>,
+      )
+      if (setResult instanceof Promise) await setResult
+    } else {
+      sharedCache.set(REGISTRY_KEY, registryRec as PersistRecord)
+    }
+  }
 
   // @ts-ignore TODO
   return Object.assign(
@@ -414,7 +547,7 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         return target
       }
     },
-    { storageAtom },
+    { storageAtom, init },
   )
 }
 
