@@ -210,7 +210,9 @@ describe('should not accept an action', () => {
 
 describe('persist registry', () => {
   test('should expose registryAtom and init method', () => {
-    const withPersist = reatomPersist(createMemStorage({ name: 'registryTest' }))
+    const withPersist = reatomPersist(
+      createMemStorage({ name: 'registryTest' }),
+    )
 
     expect(withPersist.registryAtom).toBeDefined()
     expect(typeof withPersist.init).toBe('function')
@@ -218,13 +220,17 @@ describe('persist registry', () => {
   })
 
   test('init should resolve without error for mem storage', async () => {
-    const withPersist = reatomPersist(createMemStorage({ name: 'registryTest' }))
+    const withPersist = reatomPersist(
+      createMemStorage({ name: 'registryTest' }),
+    )
 
     await expect(withPersist.init()).resolves.toBeUndefined()
   })
 
   test('registry should collect entries when persisting', () => {
-    const withPersist = reatomPersist(createMemStorage({ name: 'registryTest' }))
+    const withPersist = reatomPersist(
+      createMemStorage({ name: 'registryTest' }),
+    )
     const testAtom = atom(0).extend(withPersist('testKey'))
 
     testAtom.set(42)

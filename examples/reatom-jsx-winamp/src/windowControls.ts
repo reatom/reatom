@@ -2,10 +2,7 @@ import { atom } from '@reatom/core'
 import { stylesheet } from '@reatom/jsx'
 
 interface DocumentPictureInPictureController {
-  requestWindow(options?: {
-    width?: number
-    height?: number
-  }): Promise<Window>
+  requestWindow(options?: { width?: number; height?: number }): Promise<Window>
 }
 
 declare global {
@@ -125,7 +122,7 @@ function copyStyleElement(
   nextStyleElement.textContent =
     sourceRules.length > 0
       ? sourceRules.join('\n')
-      : sourceStyleElement.textContent ?? ''
+      : (sourceStyleElement.textContent ?? '')
 
   targetDocument.head.append(nextStyleElement)
 }
@@ -152,7 +149,9 @@ function copyDocumentStyles(
 ) {
   targetDocument.head.replaceChildren()
 
-  for (const sourceNode of document.querySelectorAll('style, link[rel="stylesheet"]')) {
+  for (const sourceNode of document.querySelectorAll(
+    'style, link[rel="stylesheet"]',
+  )) {
     if (sourceNode instanceof HTMLLinkElement) {
       targetDocument.head.append(sourceNode.cloneNode(true))
       continue
