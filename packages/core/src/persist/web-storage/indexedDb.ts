@@ -1,6 +1,8 @@
 import { type Atom } from '../../core'
 import {
   createMemStorage,
+  isPersistRegistry,
+  type PersistRegistry,
   type PersistRecord,
   type PersistStorage,
   reatomPersist,
@@ -117,6 +119,7 @@ export const reatomPersistIndexedDb = (
   dbName: string,
   channel: BroadcastChannel,
 ): WithPersistWebStorage => {
+  const registryKey = '__reatom_persist_registry__'
   const postMessage = (msg: BroadcastMessage) => channel.postMessage(msg)
 
   let store: any
@@ -126,11 +129,65 @@ export const reatomPersistIndexedDb = (
     return (store ??= idbLib.createStore(dbName, 'atoms'))
   }
 
-  // @ts-ignore TODO
+  const readRecord = async (key: string) => {
+    const idbLib = await checkIdb()
+    const store = await getStore()
+    if (!(idbLib && store)) {
+      return null
+    }
+
+    const value = await idbLib.get(key, store)
+    return value as null | PersistRecord
+  }
+
+  const readRegistry = async (): Promise<PersistRegistry> => {
+    const value = await readRecord(registryKey)
+    if (value === null) {
+      return []
+    }
+
+    return isPersistRegistry(value.data) ? value.data : []
+  }
+
+  const writeRegistry = async (entries: PersistRegistry) => {
+    const idbLib = await checkIdb()
+    const store = await getStore()
+    if (!(idbLib && store)) {
+      return
+    }
+
+    if (entries.length === 0) {
+      await idbLib.del(registryKey, store)
+      return
+    }
+
+    const timestamp = Date.now()
+    const registryRecord: PersistRecord<PersistRegistry> = {
+      data: entries,
+      id: timestamp,
+      timestamp,
+      version: 0,
+      to: Number.MAX_SAFE_INTEGER,
+    }
+
+    await idbLib.set(registryKey, registryRecord, store)
+  }
+
   return reatomPersist({
     name: 'withIndexedDb',
-    get() {
-      return null
+    registry: {
+      get: readRegistry,
+      set: writeRegistry,
+      clear: async () => {
+        const idbLib = await checkIdb()
+        const store = await getStore()
+        if (idbLib && store) {
+          await idbLib.del(registryKey, store)
+        }
+      },
+    },
+    get({ key }) {
+      return readRecord(key)
     },
     async set({ key }, rec) {
       try {
@@ -170,24 +227,14 @@ export const reatomPersistIndexedDb = (
 
         try {
           if (event.data._type === 'pull') {
-            // We can't access cache here directly, but reatomPersist wrapper handles pull?
-            // Wait, reatomPersist wrapper doesn't handle 'pull' logic for us.
-            // We need to respond to pull if we have data.
-            // But we don't have access to cache!
-            // And we can't easily read from IDB sync.
-            // Maybe we should read from IDB and push?
             ;(async () => {
               try {
-                const idbLib = await checkIdb()
-                const store = await getStore()
-                if (idbLib && store) {
-                  const rec = await idbLib.get(key, store)
-                  if (rec) {
-                    postMessage({ _type: 'push', key, rec })
-                  }
+                const rec = await readRecord(key)
+                if (rec) {
+                  postMessage({ _type: 'push', key, rec })
                 }
               } catch {
-                // ignore
+                //
               }
             })()
           } else if (event.data._type === 'push') {
@@ -202,22 +249,7 @@ export const reatomPersistIndexedDb = (
       }
 
       channel.addEventListener('message', handler)
-
-      // Load initial data from IndexedDB
-      ;(async () => {
-        try {
-          const idbLib = await checkIdb()
-          const store = await getStore()
-          if (idbLib && store) {
-            const rec = await idbLib.get(key, store)
-            if (rec) {
-              cb(rec)
-            }
-          }
-        } catch (error) {
-          console.warn('Failed to load from IndexedDB:', error)
-        }
-      })()
+      postMessage({ _type: 'pull', key })
 
       return () => channel.removeEventListener('message', handler)
     },

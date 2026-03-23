@@ -1,4 +1,4 @@
-import { describe, expect, subscribe, test } from 'test'
+import { afterEach, describe, expect, subscribe, test } from 'test'
 
 import { wrap } from '..'
 import { action, atom } from '../core'
@@ -7,6 +7,10 @@ import { noop, random, sleep } from '../utils'
 import { createMemStorage, reatomPersist } from './'
 
 const withSomePersist = reatomPersist(createMemStorage({ name: 'somePersist' }))
+
+afterEach(() => {
+  withSomePersist.storageAtom.set(createMemStorage({ name: 'somePersist' }))
+})
 
 describe('base', () => {
   test('should persist and update state correctly', async () => {
@@ -105,9 +109,9 @@ describe('async', () => {
     const storage = withSomePersist.storageAtom()
     withSomePersist.storageAtom.set({
       ...storage,
-      async set(options, rec) {
+      async rawSet(options, rec) {
         await wrap(new Promise((resolve) => (trigger = resolve)))
-        storage.set(options, rec)
+        return storage.rawSet(options, rec)
       },
     })
 
@@ -130,6 +134,89 @@ describe('async', () => {
 
     expect(track).toBeCalledTimes(1)
     expect(track).toBeCalledWith(11)
+  })
+
+  test('should preload async storage on init', async () => {
+    const now = Date.now()
+    const records = new Map([
+      [
+        'async-key',
+        {
+          data: 7,
+          id: 1,
+          timestamp: now,
+          to: now + 10_000,
+          version: 0,
+        },
+      ],
+    ])
+    let getCalls = 0
+    const withAsyncPersist = reatomPersist({
+      name: 'asyncInit',
+      cache: new Map(),
+      registry: {
+        get: async () => [
+          {
+            id: 1,
+            key: 'async-key',
+            timestamp: now,
+            to: now + 10_000,
+            version: 0,
+          },
+        ],
+        set: noop,
+        clear: noop,
+      },
+      async get({ key }) {
+        getCalls++
+        return records.get(key) ?? null
+      },
+      set({ key }, rec) {
+        records.set(key, rec)
+      },
+      clear({ key }) {
+        records.delete(key)
+      },
+    })
+
+    const persistedAtom = atom(0).extend(withAsyncPersist('async-key'))
+
+    await withAsyncPersist.init()
+
+    expect(persistedAtom()).toBe(7)
+    expect(getCalls).toBe(1)
+  })
+})
+
+describe('registry init', () => {
+  test('should garbage collect expired records on init', async () => {
+    const expiredRecord = {
+      data: 1,
+      id: 1,
+      timestamp: Date.now() - 1_000,
+      to: Date.now() - 100,
+      version: 0,
+    }
+
+    const storage = createMemStorage({
+      name: 'registry-gc',
+      snapshot: {
+        expired: expiredRecord.data,
+      },
+    })
+
+    storage.set({ key: 'expired' }, expiredRecord)
+
+    const withRegistryPersist = reatomPersist(storage)
+    const expiredAtom = atom(0).extend(withRegistryPersist('expired'))
+
+    await withRegistryPersist.init()
+
+    expect(expiredAtom()).toBe(0)
+    expect(await wrap(withRegistryPersist.storageAtom().get({ key: 'expired' }))).toBe(
+      null,
+    )
+    expect(withRegistryPersist.storageAtom().registry?.get()).toEqual([])
   })
 })
 

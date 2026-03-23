@@ -1,6 +1,8 @@
 import {
   assertPersistRecord,
   createMemStorage,
+  isPersistRegistry,
+  type PersistRegistry,
   type PersistRecord,
   reatomPersist,
   type WithPersist,
@@ -52,8 +54,36 @@ export const reatomPersistWebStorage = (
   name: string,
   storage: Storage,
 ): WithPersist => {
+  const registryKey = '__reatom_persist_registry__'
+
+  const readRegistry = (): PersistRegistry => {
+    const value = storage.getItem(registryKey)
+
+    if (value === null) {
+      return []
+    }
+
+    const parsedValue = JSON.parse(value)
+
+    return isPersistRegistry(parsedValue) ? parsedValue : []
+  }
+
+  const writeRegistry = (entries: PersistRegistry) => {
+    if (entries.length === 0) {
+      storage.removeItem(registryKey)
+      return
+    }
+
+    storage.setItem(registryKey, JSON.stringify(entries))
+  }
+
   return reatomPersist({
     name,
+    registry: {
+      get: readRegistry,
+      set: writeRegistry,
+      clear: () => storage.removeItem(registryKey),
+    },
     get({ key }) {
       const dataStr = storage.getItem(key)
 
