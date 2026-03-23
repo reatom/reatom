@@ -64,6 +64,7 @@ export type PersistRegistryRecord<Options extends Rec = { key: string }> =
 export const PERSIST_REGISTRY_KEY = '__reatom.persist.registry'
 const PERSIST_STORAGE_STATE = Symbol('reatom.persist.storageState')
 const PERSIST_STORAGE_SOURCE = Symbol('reatom.persist.storageSource')
+const PERSIST_STORAGE_META = Symbol('reatom.persist.storageMeta')
 
 export let isPersistRegistryEntry = <
   Options extends Rec = { key: string },
@@ -269,7 +270,12 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
     }
   }
 
-  const createStorageState = (baseStorage: Storage) => {
+  const createStorageState = (
+    baseStorage: Storage,
+    meta?: {
+      sourceStorage?: Storage
+    },
+  ) => {
     const cache =
       'cache' in baseStorage && baseStorage.cache instanceof Map
         ? baseStorage.cache
@@ -457,18 +463,21 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
       },
       set(options, record) {
         try {
-          cache.set(options.key, record)
-
           if (options.key === PERSIST_REGISTRY_KEY) {
+            cache.set(options.key, record)
             return baseStorage.set({ ...options, cache }, record)
           }
 
           const setResult = baseStorage.set({ ...options, cache }, record)
 
           if (setResult instanceof Promise) {
-            return setResult.then(() => upsertRegistryEntry(options, record))
+            return setResult.then(() => {
+              cache.set(options.key, record)
+              return upsertRegistryEntry(options, record)
+            })
           }
 
+          cache.set(options.key, record)
           return upsertRegistryEntry(options, record)
         } catch (error) {
           warn(error)
@@ -574,10 +583,16 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         return initPromise
       },
       [PERSIST_STORAGE_STATE]: true,
-      [PERSIST_STORAGE_SOURCE]: baseStorage,
+      [PERSIST_STORAGE_SOURCE]: meta?.sourceStorage ?? baseStorage,
+      [PERSIST_STORAGE_META]: {
+        sourceStorage: meta?.sourceStorage ?? baseStorage,
+      },
     } satisfies PersistStorage<Snapshot, Options> & {
       [PERSIST_STORAGE_STATE]: true
       [PERSIST_STORAGE_SOURCE]: Storage
+      [PERSIST_STORAGE_META]: {
+        sourceStorage: Storage
+      }
     }
   }
 
@@ -588,9 +603,10 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
     withParams((nextStorage: Storage | PersistStorage<Snapshot, Options>) =>
       PERSIST_STORAGE_STATE in nextStorage
         ? createStorageState({
-            ...nextStorage[PERSIST_STORAGE_SOURCE],
+            ...(nextStorage[PERSIST_STORAGE_META]?.sourceStorage ??
+              nextStorage[PERSIST_STORAGE_SOURCE]),
             ...nextStorage,
-          })
+          }, nextStorage[PERSIST_STORAGE_META])
         : createStorageState(nextStorage as Storage),
     ),
   )
@@ -673,7 +689,7 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
           version,
         })
 
-        function withPersistRead(next: Fn, ...params: Array<unknown>) {
+        const hydrateFrame = () => {
           const frame = top()
           const storage = storageAtom()
           const ref = memoKey(`persist#${storage.name}.${key}`, () => ({
@@ -698,11 +714,28 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
               frame.state = fromPersistRecord(persistRecord, frame.state)
             }
           }
+        }
+
+        function withPersistRead(next: Fn, ...params: Array<unknown>) {
+          if (params.length === 0) {
+            const frame = top()
+            const isCleanRead = frame.pubs[0] !== null
+            const hasDynamicDependencies = frame.pubs.length !== 1
+            const isSubscribed = frame.subs.length !== 0
+
+            if (!isCleanRead || (hasDynamicDependencies && !isSubscribed)) {
+              hydrateFrame()
+            }
+          }
 
           return next(...params)
         }
 
         function withPersistWrite(next: Fn, ...params: Array<unknown>) {
+          if (params.length !== 0) {
+            hydrateFrame()
+          }
+
           const { state } = top()
           const newState = next(...params)
 
@@ -771,6 +804,7 @@ export const createMemStorage = ({
     ),
     {} as Rec<PersistRecord>,
   )
+  let frame: null | ReturnType<typeof top> = null
   let snapshotAtom = atom(
     () => ({ ...initState }),
     `${name}._snapshotAtom`,
@@ -807,11 +841,23 @@ export const createMemStorage = ({
     `${name}._listenersAtom`,
   )
 
+  const runWithFrame = <Result>(callback: () => Result): Result => {
+    if (frame === null) {
+      try {
+        frame = top()
+      } catch {
+        return callback()
+      }
+    }
+
+    return bind(callback, frame)()
+  }
+
   function subscribe(
     options: { key: string },
     callback: (rec: PersistRecord) => void,
   ) {
-    let listeners = listenersAtom()
+    let listeners = runWithFrame(() => listenersAtom())
     listeners.set(
       options.key,
       (listeners.get(options.key) ?? new Set()).add(callback),
@@ -831,27 +877,35 @@ export const createMemStorage = ({
   return {
     name,
     cache: new Map(),
-    get: (options) => snapshotAtom()[options.key] ?? null,
+    get: (options) => runWithFrame(() => snapshotAtom()[options.key] ?? null),
     set: (options, rec) => {
       if (mutable) {
-        snapshotAtom()[options.key] = rec
-        listenersAtom()
-          .get(options.key)
-          ?.forEach((cb) => cb(rec))
+        runWithFrame(() => {
+          snapshotAtom()[options.key] = rec
+          listenersAtom()
+            .get(options.key)
+            ?.forEach((cb) => cb(rec))
+        })
       } else {
-        snapshotAtom.set((snapshot) => ({ ...snapshot, [options.key]: rec }))
+        runWithFrame(() => {
+          snapshotAtom.set((snapshot) => ({ ...snapshot, [options.key]: rec }))
+        })
       }
     },
     clear: (options) => {
       if (mutable) {
-        delete snapshotAtom()[options.key]
+        runWithFrame(() => {
+          delete snapshotAtom()[options.key]
+        })
       } else {
-        snapshotAtom.set((snapshot) => {
-          if (!(options.key in snapshot)) return snapshot
+        runWithFrame(() => {
+          snapshotAtom.set((snapshot) => {
+            if (!(options.key in snapshot)) return snapshot
 
-          let nextSnapshot = { ...snapshot }
-          delete nextSnapshot[options.key]
-          return nextSnapshot
+            let nextSnapshot = { ...snapshot }
+            delete nextSnapshot[options.key]
+            return nextSnapshot
+          })
         })
       }
     },
