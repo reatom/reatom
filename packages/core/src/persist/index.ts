@@ -446,7 +446,19 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         return target
       }
     },
-    { storageAtom },
+    {
+      storageAtom,
+      registryAtom,
+      async init() {
+        // TODO: implement registry loading, GC of expired entries, preload cache
+        // Load registry from storage using REGISTRY_KEY
+        // Filter expired entries and delete from storage
+        // Preload non-expired records into cache
+        // Update registryAtom
+        console.warn('persist.init() not fully implemented yet')
+        return
+      },
+    },
   )
 }
 
