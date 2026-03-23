@@ -10,7 +10,6 @@ import {
   withMiddleware,
   withParams,
 } from '../core'
-import { withInit } from '../extensions'
 import { withConnectHook } from '../extensions/withConnectHook'
 import { memoKey } from '../methods/memo'
 import {
@@ -59,6 +58,55 @@ export interface PersistStorageCacheOption {
 
 export type PersistCache = Map<string, PersistRecord>
 
+export interface PersistRegistryEntry<Options extends Rec = { key: string }> {
+  options: Options
+  id: number
+  timestamp: number
+  version: number | string
+  to: number
+}
+
+export type PersistRegistryRecord<Options extends Rec = { key: string }> =
+  PersistRecord<Array<PersistRegistryEntry<Options>>>
+
+export const PERSIST_REGISTRY_KEY = '__reatom.persist.registry'
+
+export let isPersistRegistryEntry = <
+  Options extends Rec = { key: string },
+>(
+  value: unknown,
+): value is PersistRegistryEntry<Options> => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'options' in value &&
+    typeof value.options === 'object' &&
+    value.options !== null &&
+    'key' in value.options &&
+    typeof value.options.key === 'string' &&
+    'id' in value &&
+    typeof value.id === 'number' &&
+    'timestamp' in value &&
+    typeof value.timestamp === 'number' &&
+    'version' in value &&
+    (typeof value.version === 'number' || typeof value.version === 'string') &&
+    'to' in value &&
+    typeof value.to === 'number'
+  )
+}
+
+export let isPersistRegistryRecord = <
+  Options extends Rec = { key: string },
+>(
+  value: unknown,
+): value is PersistRegistryRecord<Options> => {
+  return (
+    isPersistRecord(value) &&
+    Array.isArray(value.data) &&
+    value.data.every((entry) => isPersistRegistryEntry<Options>(entry))
+  )
+}
+
 export interface PersistStorage<Snapshot = unknown, Options extends Rec = {}> {
   name: string
   cache: PersistCache
@@ -70,10 +118,22 @@ export interface PersistStorage<Snapshot = unknown, Options extends Rec = {}> {
     rec: PersistRecord<Snapshot>,
   ): void | Promise<void>
   clear?(options: Options & { key: string }): void | Promise<void>
+  getRegistry?(
+    options?: PersistStorageCacheOption,
+  ):
+    | null
+    | PersistRegistryRecord<Options & { key: string }>
+    | Promise<null | PersistRegistryRecord<Options & { key: string }>>
+  setRegistry?(
+    record: PersistRegistryRecord<Options & { key: string }>,
+    options?: PersistStorageCacheOption,
+  ): void | Promise<void>
+  clearRegistry?(options?: PersistStorageCacheOption): void | Promise<void>
   subscribe?(
     options: Options & { key: string },
     callback: (record: PersistRecord<Snapshot>) => void,
   ): Unsubscribe
+  init?(): void | Promise<void>
 }
 
 // FIXME is it really needed?
@@ -167,7 +227,8 @@ export interface WithPersist<Snapshot = unknown, Options extends Rec = {}> {
    * Atom that holds the current storage instance, useful other environments,
    * like SSR or tests to provide the storage instance to the user.
    */
-  storageAtom: Atom<PersistStorage<Snapshot>>
+  storageAtom: Atom<PersistStorage<Snapshot, Options>>
+  init(): Promise<void>
 }
 
 export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
@@ -176,91 +237,356 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
     'cache'
   >,
 ): WithPersist<Snapshot, Options> => {
-  const storageAtom = atom((): PersistStorage<Snapshot, Options> => {
-    let cache: PersistCache = new Map()
+  type ThisOptions = Options & { key: string }
+  type ThisRegistryEntry = PersistRegistryEntry<ThisOptions>
+  type ThisRegistryRecord = PersistRegistryRecord<ThisOptions>
+  type Storage = Omit<
+    PersistStorage<Snapshot, Options & { cache: PersistCache }>,
+    'cache'
+  >
+
+  const createRegistryEntry = (
+    options: ThisOptions,
+    persistRecord: PersistRecord<Snapshot>,
+  ): ThisRegistryEntry => ({
+    options: { ...options },
+    id: persistRecord.id,
+    timestamp: persistRecord.timestamp,
+    version: persistRecord.version,
+    to: persistRecord.to,
+  })
+
+  const createRegistryRecord = (
+    entries: Array<ThisRegistryEntry>,
+  ): null | ThisRegistryRecord => {
+    if (entries.length === 0) return null
+
+    const timestamp = Date.now()
 
     return {
-      name: storage.name,
+      data: entries,
+      id: random(),
+      timestamp,
+      version: 0,
+      to: entries.reduce(
+        (maxTo, entry) => Math.max(maxTo, entry.to),
+        timestamp,
+      ),
+    }
+  }
+
+  const createStorageState = (baseStorage: Storage) => {
+    const cache =
+      'cache' in baseStorage && baseStorage.cache instanceof Map
+        ? baseStorage.cache
+        : new Map<string, PersistRecord>()
+    const pending = new Map<string, Promise<null | PersistRecord<Snapshot>>>()
+
+    let initPromise: null | Promise<void> = null
+    let registryLoaded = false
+    let registryPromise: null | Promise<null | ThisRegistryRecord> = null
+    let registryRecord: null | ThisRegistryRecord = null
+
+    const warn = (error: unknown) => {
+      console.warn(`Error in storage ${baseStorage.name}`)
+      console.log(error)
+    }
+
+    const normalizeRegistryRecord = (
+      value: unknown,
+    ): null | ThisRegistryRecord => {
+      if (!isPersistRegistryRecord<ThisOptions>(value)) return null
+      if (value.to < Date.now() || value.data.length === 0) return null
+      return value
+    }
+
+    const clearValue = (options: ThisOptions) => {
+      cache.delete(options.key)
+      return baseStorage.clear?.({ ...options, cache })
+    }
+
+    const readRegistry = (
+      force = false,
+    ):
+      | null
+      | ThisRegistryRecord
+      | Promise<null | ThisRegistryRecord> => {
+      if (!force) {
+        if (registryPromise) return registryPromise
+        if (registryLoaded) return registryRecord
+      }
+
+      const assignRegistry = (value: unknown) => {
+        registryLoaded = true
+        registryRecord = normalizeRegistryRecord(value)
+        return registryRecord
+      }
+
+      const registry = baseStorage.getRegistry
+        ? baseStorage.getRegistry({ cache })
+        : baseStorage.get({ key: PERSIST_REGISTRY_KEY, cache } as ThisOptions)
+
+      if (registry instanceof Promise) {
+        const promise = registry.then(assignRegistry)
+        registryPromise = promise.finally(() => {
+          if (registryPromise === promise) registryPromise = null
+        })
+        return registryPromise
+      }
+
+      return assignRegistry(registry)
+    }
+
+    const writeRegistry = (entries: Array<ThisRegistryEntry>) => {
+      registryLoaded = true
+      registryRecord = createRegistryRecord(entries)
+
+      if (!registryRecord) {
+        return baseStorage.clearRegistry
+          ? baseStorage.clearRegistry({ cache })
+          : baseStorage.clear?.({ key: PERSIST_REGISTRY_KEY, cache } as ThisOptions)
+      }
+
+      return baseStorage.setRegistry
+        ? baseStorage.setRegistry(registryRecord, { cache })
+        : baseStorage.set(
+            { key: PERSIST_REGISTRY_KEY, cache } as ThisOptions,
+            registryRecord as PersistRecord<Snapshot>,
+          )
+    }
+
+    const updateRegistry = (
+      updater: (entries: Array<ThisRegistryEntry>) => Array<ThisRegistryEntry>,
+    ) => {
+      const registry = readRegistry(true)
+      const write = (currentRegistry: null | ThisRegistryRecord) =>
+        writeRegistry(updater(currentRegistry?.data ?? []))
+
+      return registry instanceof Promise ? registry.then(write) : write(registry)
+    }
+
+    const upsertRegistryEntry = (
+      options: ThisOptions,
+      persistRecord: PersistRecord<Snapshot>,
+    ) =>
+      updateRegistry((entries) => [
+        ...entries.filter((entry) => entry.options.key !== options.key),
+        createRegistryEntry(options, persistRecord),
+      ])
+
+    const deleteRegistryEntry = (key: string) =>
+      updateRegistry((entries) =>
+        entries.filter((entry) => entry.options.key !== key),
+      )
+
+    const clearPersisted = (options: ThisOptions) => {
+      if (options.key === PERSIST_REGISTRY_KEY) {
+        cache.delete(options.key)
+        return clearValue(options)
+      }
+
+      const clearResult = clearValue(options)
+
+      if (clearResult instanceof Promise) {
+        return clearResult.then(() => deleteRegistryEntry(options.key))
+      }
+
+      return deleteRegistryEntry(options.key)
+    }
+
+    return {
+      name: baseStorage.name,
       cache,
-      // @ts-ignore TODO
       get(options) {
         try {
-          let cacheRec = cache.get(options.key)
+          if (options.key === PERSIST_REGISTRY_KEY) {
+            return baseStorage.get({ ...options, cache })
+          }
 
-          if (cacheRec !== undefined) {
-            if (cacheRec.to > Date.now()) {
-              return cacheRec
+          const cacheRecord = cache.get(options.key)
+
+          if (cacheRecord !== undefined) {
+            if (cacheRecord.to > Date.now()) {
+              return cacheRecord
             }
-            cache.delete(options.key)
+            void clearPersisted(options)
+            return null
           }
 
-          let recOrPromise = storage.get({ ...options, cache })
+          const pendingRecord = pending.get(options.key)
 
-          if (recOrPromise instanceof Promise) {
-            return recOrPromise.then(
-              bind((rec) => {
-                if (rec && rec.to >= Date.now() && !cache.has(options.key)) {
-                  cache.set(options.key, rec)
+          if (pendingRecord) {
+            return pendingRecord
+          }
+
+          const record = baseStorage.get({ ...options, cache })
+
+          if (record instanceof Promise) {
+            const promise = record
+              .then((nextRecord) => {
+                if (!nextRecord || nextRecord.to < Date.now()) {
+                  if (nextRecord) {
+                    void clearPersisted(options)
+                  }
+                  return null
                 }
-                return rec
-              }),
-            )
+
+                if (!cache.has(options.key)) {
+                  cache.set(options.key, nextRecord)
+                }
+
+                return nextRecord
+              })
+              .finally(() => {
+                pending.delete(options.key)
+              })
+
+            pending.set(options.key, promise)
+
+            return promise
           }
 
-          let rec = recOrPromise
+          if (!record || record.to < Date.now()) {
+            if (record) {
+              void clearPersisted(options)
+            }
+            return null
+          }
 
-          if (!rec || rec.to < Date.now()) return null
+          cache.set(options.key, record)
 
-          cache.set(options.key, rec)
-
-          return rec
+          return record
         } catch (error) {
-          console.warn(`Error in storage ${storage.name}`)
-          console.log(error)
+          warn(error)
           return null
         }
       },
-      set(options, rec) {
+      set(options, record) {
         try {
-          cache.set(options.key, rec)
-          return storage.set({ ...options, cache }, rec)
+          cache.set(options.key, record)
+
+          if (options.key === PERSIST_REGISTRY_KEY) {
+            return baseStorage.set({ ...options, cache }, record)
+          }
+
+          const setResult = baseStorage.set({ ...options, cache }, record)
+
+          if (setResult instanceof Promise) {
+            return setResult.then(() => upsertRegistryEntry(options, record))
+          }
+
+          return upsertRegistryEntry(options, record)
         } catch (error) {
-          console.warn(`Error in storage ${storage.name}`)
-          console.log(error)
-          /* ignore */
+          warn(error)
         }
       },
       clear(options) {
         try {
-          cache.delete(options.key)
-          return storage.clear?.({ ...options, cache })
+          return clearPersisted(options)
         } catch (error) {
-          console.warn(`Error in storage ${storage.name}`)
-          console.log(error)
-          /* ignore */
+          warn(error)
+        }
+      },
+      getRegistry() {
+        try {
+          return readRegistry()
+        } catch (error) {
+          warn(error)
+          return null
+        }
+      },
+      setRegistry(record) {
+        try {
+          return writeRegistry(record.data)
+        } catch (error) {
+          warn(error)
+        }
+      },
+      clearRegistry() {
+        try {
+          return writeRegistry([])
+        } catch (error) {
+          warn(error)
         }
       },
       subscribe:
-        storage.subscribe &&
+        baseStorage.subscribe &&
         function subscribe(options, callback) {
           try {
-            return storage.subscribe!(
+            return baseStorage.subscribe!(
               { ...options, cache },
-              bind((rec) => {
-                cache.set(options.key, rec)
-                callback(rec)
+              bind((record) => {
+                if (record.to < Date.now()) {
+                  void clearPersisted(options)
+                  return
+                }
+
+                cache.set(options.key, record)
+                void upsertRegistryEntry(options, record)
+                callback(record)
               }, top().root.frame),
             )
           } catch (error) {
-            console.warn(`Error in storage ${storage.name}`)
-            console.log(error)
+            warn(error)
             return noop
           }
         },
-    }
-  }, `storageAtom#${storage.name}`)
+      init() {
+        if (initPromise) return initPromise
 
-  // @ts-ignore TODO
+        initPromise = (async () => {
+          try {
+            await baseStorage.init?.()
+
+            const currentRegistry = await readRegistry(true)
+
+            if (!currentRegistry) return
+
+            const nextEntries: Array<ThisRegistryEntry> = []
+
+            for (const entry of currentRegistry.data) {
+              if (entry.to < Date.now()) {
+                await clearValue(entry.options)
+                continue
+              }
+
+              const record = await baseStorage.get({
+                ...entry.options,
+                cache,
+              })
+
+              if (!record) {
+                cache.delete(entry.options.key)
+                continue
+              }
+
+              if (record.to < Date.now()) {
+                await clearValue(entry.options)
+                continue
+              }
+
+              cache.set(entry.options.key, record)
+              nextEntries.push(createRegistryEntry(entry.options, record))
+            }
+
+            await writeRegistry(nextEntries)
+          } catch (error) {
+            warn(error)
+          } finally {
+            initPromise = null
+          }
+        })()
+
+        return initPromise
+      },
+    } satisfies PersistStorage<Snapshot, Options>
+  }
+
+  const storageAtom = atom(
+    () => createStorageState(storage),
+    `storageAtom#${storage.name}`,
+  ).extend(withParams((nextStorage: Storage) => createStorageState(nextStorage)))
+
   return Object.assign(
     function withPersist<Target extends Atom>(
       options: string | WithPersistOptions<AtomState<Target>, Snapshot>,
@@ -336,69 +662,47 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
           version,
         })
 
-        if (subscribe) {
-          function withProactivePersist(next: Fn, ...params: any[]) {
-            let frame = top()
+        function withPersistRead(next: Fn, ...params: Array<unknown>) {
+          const frame = top()
+          const storage = storageAtom()
+          const ref = memoKey(`persist#${storage.name}.${key}`, () => ({
+            persistRecord:
+              null as null | ReturnType<typeof storage.get>,
+          }))
 
-            const storage = storageAtom()
+          const persistRecord = storage.get(storageOptions as ThisOptions)
 
-            const ref = memoKey(`persist#${storage.name}`, () => ({
-              persistRecord: null as ReturnType<typeof storage.get>,
-            }))
+          if (ref.persistRecord !== persistRecord) {
+            ref.persistRecord = persistRecord
 
-            let persistRecord = storage.get(storageOptions as ThisOptions)
-
-            if (ref.persistRecord !== persistRecord) {
-              ref.persistRecord = persistRecord
-
-              if (persistRecord instanceof Promise) {
-                persistRecord.then(bind(revalidate, frame.root.frame))
-              } else if (persistRecord) {
-                frame.state = fromPersistRecord(persistRecord, frame.state)
-              }
+            if (persistRecord instanceof Promise) {
+              persistRecord.then(bind(revalidate, frame.root.frame))
+            } else if (persistRecord) {
+              frame.state = fromPersistRecord(persistRecord, frame.state)
             }
-
-            let { state } = frame
-
-            let newState = next(...params)
-
-            if (!Object.is(state, newState)) {
-              storage.set(
-                storageOptions as ThisOptions,
-                toPersistRecord(newState),
-              )
-            }
-
-            return newState
           }
 
-          target.extend(withMiddleware(() => withProactivePersist))
-        } else {
-          target.extend(
-            withInit(function withInitPersist(state) {
-              let persistRecord = storageAtom().get(
-                storageOptions as ThisOptions,
-              )
-              return persistRecord instanceof Promise
-                ? state // FIXME should we subscribe to the promise?
-                : fromPersistRecord(persistRecord, state)
-            }),
-            withMiddleware(
-              () =>
-                function withPersistSync(next, ...params) {
-                  let { state } = top()
-                  let newState = next(...params)
-                  if (!Object.is(state, newState)) {
-                    storageAtom().set(
-                      storageOptions as ThisOptions,
-                      toPersistRecord(newState),
-                    )
-                  }
-                  return newState
-                },
-            ),
-          )
+          return next(...params)
         }
+
+        function withPersistWrite(next: Fn, ...params: Array<unknown>) {
+          const { state } = top()
+          const newState = next(...params)
+
+          if (!Object.is(state, newState)) {
+            storageAtom().set(
+              storageOptions as ThisOptions,
+              toPersistRecord(newState),
+            )
+          }
+
+          return newState
+        }
+
+        target.extend(
+          withMiddleware(() => withPersistWrite),
+          withMiddleware(() => withPersistRead, 'read'),
+        )
 
         if (subscribe) {
           target.extend(
@@ -414,7 +718,13 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         return target
       }
     },
-    { storageAtom },
+    {
+      storageAtom,
+      init() {
+        const result = storageAtom().init?.()
+        return result instanceof Promise ? result : Promise.resolve()
+      },
+    },
   )
 }
 
@@ -513,6 +823,19 @@ export const createMemStorage = ({
           ?.forEach((cb) => cb(rec))
       } else {
         snapshotAtom.set((snapshot) => ({ ...snapshot, [options.key]: rec }))
+      }
+    },
+    clear: (options) => {
+      if (mutable) {
+        delete snapshotAtom()[options.key]
+      } else {
+        snapshotAtom.set((snapshot) => {
+          if (!(options.key in snapshot)) return snapshot
+
+          let nextSnapshot = { ...snapshot }
+          delete nextSnapshot[options.key]
+          return nextSnapshot
+        })
       }
     },
     subscribe: subscribeOption ? subscribe : undefined,
