@@ -1,15 +1,7 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 import type { Atom, AtomLike, AtomState, Ext } from '../core'
-import {
-  _set,
-  atom,
-  bind,
-  ReatomError,
-  top,
-  withMiddleware,
-  withParams,
-} from '../core'
+import { _set, atom, bind, ReatomError, top, withMiddleware, withParams } from '../core'
 import { withConnectHook } from '../extensions/withConnectHook'
 import { memoKey } from '../methods/memo'
 import {
@@ -70,6 +62,7 @@ export type PersistRegistryRecord<Options extends Rec = { key: string }> =
   PersistRecord<Array<PersistRegistryEntry<Options>>>
 
 export const PERSIST_REGISTRY_KEY = '__reatom.persist.registry'
+const PERSIST_STORAGE_STATE = Symbol('reatom.persist.storageState')
 
 export let isPersistRegistryEntry = <
   Options extends Rec = { key: string },
@@ -579,13 +572,22 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
 
         return initPromise
       },
-    } satisfies PersistStorage<Snapshot, Options>
+      [PERSIST_STORAGE_STATE]: true,
+    } satisfies PersistStorage<Snapshot, Options> & {
+      [PERSIST_STORAGE_STATE]: true
+    }
   }
 
   const storageAtom = atom(
     () => createStorageState(storage),
     `storageAtom#${storage.name}`,
-  ).extend(withParams((nextStorage: Storage) => createStorageState(nextStorage)))
+  ).extend(
+    withParams((nextStorage: Storage | PersistStorage<Snapshot, Options>) =>
+      PERSIST_STORAGE_STATE in nextStorage
+        ? nextStorage
+        : createStorageState(nextStorage as Storage),
+    ),
+  )
 
   return Object.assign(
     function withPersist<Target extends Atom>(
@@ -614,8 +616,6 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         let { key } = storageOptions
 
         if (!key) throw new Error('missed key')
-
-        let revalidate = () => _set(target, (state: AtomState<Target>) => state)
 
         let fromPersistRecord = (
           persist: PersistRecord<Snapshot> | null = null,
@@ -652,6 +652,11 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
           return state
         }
 
+        let revalidate = (persist: PersistRecord<Snapshot>) =>
+          _set(target, (state: AtomState<Target>) =>
+            fromPersistRecord(persist, state),
+          )
+
         let toPersistRecord = (
           state: AtomState<Target>,
         ): PersistRecord<Snapshot> => ({
@@ -676,7 +681,13 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
             ref.persistRecord = persistRecord
 
             if (persistRecord instanceof Promise) {
-              persistRecord.then(bind(revalidate, frame.root.frame))
+              persistRecord.then(
+                bind((record) => {
+                  if (record) {
+                    revalidate(record)
+                  }
+                }, frame.root.frame),
+              )
             } else if (persistRecord) {
               frame.state = fromPersistRecord(persistRecord, frame.state)
             }
