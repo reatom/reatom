@@ -1,8 +1,8 @@
 import {
   PLAYER_THEME_IDS,
   PLAYER_THEME_VARS,
-  serializeThemeVars,
   type PlayerThemeId,
+  serializeThemeVars,
 } from '../themes'
 
 function themeAttributeBlocks(): string {

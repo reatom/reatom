@@ -15,7 +15,11 @@ export const UnsupportedBrowser = () => {
           padding: 22px 24px;
           border: 1px solid var(--winamp-frame);
           border-radius: var(--winamp-radius);
-          background: linear-gradient(180deg, rgba(43, 47, 56, 0.96), rgba(18, 20, 25, 0.98));
+          background: linear-gradient(
+            180deg,
+            rgba(43, 47, 56, 0.96),
+            rgba(18, 20, 25, 0.98)
+          );
           box-shadow:
             0 20px 48px rgba(0, 0, 0, 0.45),
             inset 0 0 0 1px rgba(255, 255, 255, 0.06);

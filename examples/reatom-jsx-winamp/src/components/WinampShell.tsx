@@ -1,11 +1,17 @@
-import { nextTrack, openFolder, prevTrack, toggleMute, togglePlay } from '../model'
+import {
+  nextTrack,
+  openFolder,
+  prevTrack,
+  toggleMute,
+  togglePlay,
+} from '../model'
 import {
   bindPlayerShellHost,
   bindPlayerShellRoot,
   pictureInPictureActive,
 } from '../windowControls'
 import { AudioHost } from './AudioHost'
-import { Playlist, focusPlaylistSearch } from './Playlist'
+import { focusPlaylistSearch, Playlist } from './Playlist'
 import { TitleBar } from './TitleBar'
 import { Transport } from './Transport'
 import { Visualizer } from './Visualizer'
@@ -56,7 +62,9 @@ function bindShellRoot(element: HTMLElement | null) {
   }
 }
 
-function handleShellKeyDown(event: KeyboardEvent & { currentTarget: HTMLDivElement }) {
+function handleShellKeyDown(
+  event: KeyboardEvent & { currentTarget: HTMLDivElement },
+) {
   if (event.repeat || isShortcutBlockedTarget(event.target)) {
     return
   }
@@ -139,9 +147,11 @@ export const WinampShell = () => {
             padding: ${pictureInPictureActive() ? '0' : '6px'};
             border-radius: 0;
             overflow: visible;
-            background: ${pictureInPictureActive()
-              ? 'transparent'
-              : 'linear-gradient(180deg, var(--skin-chassis-top), var(--skin-chassis) 40%, var(--skin-chassis-bottom))'};
+            background: ${
+              pictureInPictureActive()
+                ? 'transparent'
+                : 'linear-gradient(180deg, var(--skin-chassis-top), var(--skin-chassis) 40%, var(--skin-chassis-bottom))'
+            };
             border: ${pictureInPictureActive() ? 'none' : '1px solid var(--skin-border-dark)'};
             box-shadow:
               ${pictureInPictureActive() ? 'none' : 'var(--skin-shadow),'}

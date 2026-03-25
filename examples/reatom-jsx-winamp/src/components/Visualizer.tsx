@@ -1,11 +1,11 @@
 import { action, atom } from '@reatom/core'
 
 import {
-  EQ_GAIN_MAX,
-  EQ_GAIN_MIN,
   activeEqPresetId,
   activeEqPresetLabel,
   applyEqPreset,
+  EQ_GAIN_MAX,
+  EQ_GAIN_MIN,
   eqEnabled,
   equalizerBands,
   equalizerPresets,
@@ -138,7 +138,9 @@ export const Visualizer = () => {
             prop:aria-pressed={() => eqEnabled()}
             css={`
               ${chromeButton}
-              color: ${eqEnabled() ? 'var(--skin-display-text)' : 'var(--skin-button-text)'};
+              color: ${eqEnabled()
+                ? 'var(--skin-display-text)'
+                : 'var(--skin-button-text)'};
             `}
           >
             {() => (eqEnabled() ? 'On' : 'Off')}
@@ -233,11 +235,14 @@ export const Visualizer = () => {
                 >
                   {preset.label}
                 </span>
-                <span>{() => (activeEqPresetId() === preset.id ? '*' : '')}</span>
+                <span>
+                  {() => (activeEqPresetId() === preset.id ? '*' : '')}
+                </span>
               </button>
             ))}
           </div>
-        )}
+        )
+      }
 
       <div
         css={`
@@ -266,9 +271,7 @@ export const Visualizer = () => {
           `}
         >
           {gainMarkers.map((marker) => (
-            <span>
-              {marker > 0 ? `+${marker}` : marker}
-            </span>
+            <span>{marker > 0 ? `+${marker}` : marker}</span>
           ))}
         </div>
         <div
@@ -289,7 +292,11 @@ export const Visualizer = () => {
               padding: 2px 3px 0;
               border: 1px solid #6c728c;
               background:
-                linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 18%),
+                linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.2),
+                  transparent 18%
+                ),
                 repeating-linear-gradient(
                   180deg,
                   rgba(255, 255, 255, 0.18) 0 1px,
@@ -332,7 +339,11 @@ export const Visualizer = () => {
                     &::-webkit-slider-runnable-track {
                       width: 6px;
                       border: 1px solid #0a0a0a;
-                      background: linear-gradient(180deg, #4b4f61 0%, #303446 100%);
+                      background: linear-gradient(
+                        180deg,
+                        #4b4f61 0%,
+                        #303446 100%
+                      );
                     }
 
                     &::-webkit-slider-thumb {
@@ -354,7 +365,11 @@ export const Visualizer = () => {
                     &::-moz-range-track {
                       width: 6px;
                       border: 1px solid #0a0a0a;
-                      background: linear-gradient(180deg, #4b4f61 0%, #303446 100%);
+                      background: linear-gradient(
+                        180deg,
+                        #4b4f61 0%,
+                        #303446 100%
+                      );
                     }
 
                     &::-moz-range-thumb {

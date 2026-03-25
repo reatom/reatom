@@ -2,10 +2,7 @@ import { atom } from '@reatom/core'
 import { stylesheet } from '@reatom/jsx'
 
 interface DocumentPictureInPictureController {
-  requestWindow(options?: {
-    width?: number
-    height?: number
-  }): Promise<Window>
+  requestWindow(options?: { width?: number; height?: number }): Promise<Window>
 }
 
 declare global {
@@ -98,7 +95,9 @@ function appendStylesheetRules(
     try {
       targetSheet.insertRule(rule, targetSheet.cssRules.length)
       knownRules.add(rule)
-    } catch {}
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -125,7 +124,7 @@ function copyStyleElement(
   nextStyleElement.textContent =
     sourceRules.length > 0
       ? sourceRules.join('\n')
-      : sourceStyleElement.textContent ?? ''
+      : (sourceStyleElement.textContent ?? '')
 
   targetDocument.head.append(nextStyleElement)
 }
@@ -152,7 +151,9 @@ function copyDocumentStyles(
 ) {
   targetDocument.head.replaceChildren()
 
-  for (const sourceNode of document.querySelectorAll('style, link[rel="stylesheet"]')) {
+  for (const sourceNode of document.querySelectorAll(
+    'style, link[rel="stylesheet"]',
+  )) {
     if (sourceNode instanceof HTMLLinkElement) {
       targetDocument.head.append(sourceNode.cloneNode(true))
       continue
@@ -167,7 +168,9 @@ function copyDocumentStyles(
     targetDocument.adoptedStyleSheets = document.adoptedStyleSheets.filter(
       (sheet) => sheet !== activeStylesheet,
     )
-  } catch {}
+  } catch {
+    // ignore
+  }
 
   const dynamicStylesheet = createDocumentStylesheet(targetDocument)
   if (dynamicStylesheet) {

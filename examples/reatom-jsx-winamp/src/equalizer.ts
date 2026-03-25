@@ -38,7 +38,11 @@ export const defaultEqualizerGains = equalizerBands.map(() => 0)
 
 export const equalizerPresets = [
   { id: 'flat', label: 'Flat', gains: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
-  { id: 'classical', label: 'Classical', gains: [0, 0, 0, 0, 0, 0, -6, -6, -6, -8] },
+  {
+    id: 'classical',
+    label: 'Classical',
+    gains: [0, 0, 0, 0, 0, 0, -6, -6, -6, -8],
+  },
   { id: 'club', label: 'Club', gains: [0, 0, 8, 6, 6, 6, 4, 0, 0, 0] },
   { id: 'dance', label: 'Dance', gains: [8, 6, 2, 0, 0, -4, -6, -6, 0, 0] },
   {
@@ -93,14 +97,18 @@ function clampGain(value: number) {
 }
 
 function gainsMatch(left: readonly number[], right: readonly number[]) {
-  return left.every((gain, index) => Math.abs(gain - (right[index] ?? 0)) < 0.001)
+  return left.every(
+    (gain, index) => Math.abs(gain - (right[index] ?? 0)) < 0.001,
+  )
 }
 
 export function getEqualizerGains() {
   const gains = eqBandGains()
   return equalizerBands.map((_, index) => {
     const gain = gains[index]
-    return typeof gain === 'number' && Number.isFinite(gain) ? clampGain(gain) : 0
+    return typeof gain === 'number' && Number.isFinite(gain)
+      ? clampGain(gain)
+      : 0
   })
 }
 

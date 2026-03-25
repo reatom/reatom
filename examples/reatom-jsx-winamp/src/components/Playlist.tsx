@@ -13,7 +13,10 @@ const playlistSearch = atom('', 'playlistSearch')
 
 const playlistViewport = atom<HTMLElement | null>(null, 'playlistViewport')
 
-const playlistSearchInput = atom<HTMLInputElement | null>(null, 'playlistSearchInput')
+const playlistSearchInput = atom<HTMLInputElement | null>(
+  null,
+  'playlistSearchInput',
+)
 
 const normalizedPlaylistSearch = computed(() => {
   return playlistSearch().trim().toLowerCase()
@@ -34,7 +37,8 @@ const visibleQueueSlots = computed(() => {
       return []
     }
 
-    const searchableText = `${entry.fileName} ${entry.relativePath}`.toLowerCase()
+    const searchableText =
+      `${entry.fileName} ${entry.relativePath}`.toLowerCase()
     return searchableText.includes(query) ? [slot] : []
   })
 }, 'visibleQueueSlots')
@@ -165,7 +169,9 @@ export const Playlist = () => {
         `}
       >
         <input
-          ref={(element) => playlistSearchInput.set(element)}
+          ref={(element) => {
+            playlistSearchInput.set(element)
+          }}
           type="search"
           prop:value={() => playlistSearch()}
           placeholder="filter"
@@ -180,7 +186,9 @@ export const Playlist = () => {
                 clearPlaylistSearch()
                 return
               }
-              const playerShell = event.currentTarget.closest('[data-player-shell="true"]')
+              const playerShell = event.currentTarget.closest(
+                '[data-player-shell="true"]',
+              )
               if (playerShell instanceof HTMLDivElement) {
                 playerShell.focus()
               } else {
@@ -195,7 +203,11 @@ export const Playlist = () => {
             border: 1px solid #000000;
             background:
               linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
-              linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+              linear-gradient(
+                180deg,
+                var(--skin-display-bg),
+                var(--skin-display-dark)
+              );
             box-shadow:
               inset 1px 1px 0 rgba(133, 190, 133, 0.22),
               inset -1px -1px 0 #010401;
@@ -307,8 +319,16 @@ export const Playlist = () => {
                 padding: 12px;
                 border: 1px solid #000000;
                 background:
-                  linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
-                  linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+                  linear-gradient(
+                    180deg,
+                    rgba(42, 94, 50, 0.22),
+                    transparent 28%
+                  ),
+                  linear-gradient(
+                    180deg,
+                    var(--skin-display-bg),
+                    var(--skin-display-dark)
+                  );
                 box-shadow:
                   inset 1px 1px 0 rgba(133, 190, 133, 0.22),
                   inset -1px -1px 0 #010401;
@@ -334,8 +354,16 @@ export const Playlist = () => {
                 padding: 12px;
                 border: 1px solid #000000;
                 background:
-                  linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
-                  linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+                  linear-gradient(
+                    180deg,
+                    rgba(42, 94, 50, 0.22),
+                    transparent 28%
+                  ),
+                  linear-gradient(
+                    180deg,
+                    var(--skin-display-bg),
+                    var(--skin-display-dark)
+                  );
                 box-shadow:
                   inset 1px 1px 0 rgba(133, 190, 133, 0.22),
                   inset -1px -1px 0 #010401;
@@ -353,7 +381,11 @@ export const Playlist = () => {
 
         return (
           <div
-            ref={(element) => playlistViewport.set(element)}
+            ref={(element) => {
+              if (element) {
+                playlistViewport.set(element)
+              }
+            }}
             css={`
               min-height: 152px;
               max-height: 188px;
@@ -457,7 +489,11 @@ export const Playlist = () => {
             border: 1px solid #000000;
             background:
               linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
-              linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+              linear-gradient(
+                180deg,
+                var(--skin-display-bg),
+                var(--skin-display-dark)
+              );
             box-shadow:
               inset 1px 1px 0 rgba(133, 190, 133, 0.22),
               inset -1px -1px 0 #010401;
@@ -484,7 +520,11 @@ export const Playlist = () => {
             border: 1px solid #000000;
             background:
               linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
-              linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+              linear-gradient(
+                180deg,
+                var(--skin-display-bg),
+                var(--skin-display-dark)
+              );
             box-shadow:
               inset 1px 1px 0 rgba(133, 190, 133, 0.22),
               inset -1px -1px 0 #010401;

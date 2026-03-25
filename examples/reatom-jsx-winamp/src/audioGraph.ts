@@ -59,7 +59,7 @@ function syncAudioGraph() {
   const time = audioGraph.context.currentTime
 
   audioGraph.filters.forEach((filter, index) => {
-    const nextGain = enabled ? gains[index] ?? 0 : 0
+    const nextGain = enabled ? (gains[index] ?? 0) : 0
     filter.gain.cancelScheduledValues(time)
     filter.gain.setValueAtTime(filter.gain.value, time)
     filter.gain.linearRampToValueAtTime(nextGain, time + 0.04)
@@ -106,7 +106,9 @@ export async function resumeAudioGraph() {
 
   try {
     await audioGraph.context.resume()
-  } catch {}
+  } catch {
+    // ignore
+  }
 }
 
 effect(() => {

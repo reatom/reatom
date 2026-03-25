@@ -15,9 +15,9 @@ import {
   seekToRatio,
   shuffleEnabled,
   stopPlayback,
-  trackCount,
   togglePlay,
   toggleShuffle,
+  trackCount,
 } from '../model'
 
 const lcdBars = [32, 50, 26, 58, 38, 66, 44, 54]
@@ -272,7 +272,11 @@ export const Transport = () => {
               text-transform: uppercase;
             `}
           >
-            <span>{() => (isPlaying() ? 'play' : trackCount() > 0 ? 'stop' : 'idle')}</span>
+            <span>
+              {() =>
+                isPlaying() ? 'play' : trackCount() > 0 ? 'stop' : 'idle'
+              }
+            </span>
             <span>{() => (shuffleEnabled() ? 'rnd' : 'line')}</span>
           </div>
           <div
@@ -403,7 +407,15 @@ export const Transport = () => {
               text-transform: uppercase;
             `}
           >
-            <span>{() => (isPlaying() ? 'state play' : trackCount() > 0 ? 'state stop' : 'state idle')}</span>
+            <span>
+              {() =>
+                isPlaying()
+                  ? 'state play'
+                  : trackCount() > 0
+                    ? 'state stop'
+                    : 'state idle'
+              }
+            </span>
             <span>{() => (shuffleEnabled() ? 'shuf on' : 'shuf off')}</span>
             <span>{() => repeatLabel().toLowerCase()}</span>
           </div>
@@ -429,7 +441,11 @@ export const Transport = () => {
         </button>
         <button
           type="button"
-          css={() => (isPlaying() ? primaryIconButton + activeIconButton : primaryIconButton)}
+          css={() =>
+            isPlaying()
+              ? primaryIconButton + activeIconButton
+              : primaryIconButton
+          }
           on:click={() => togglePlay()}
           title={isPlaying() ? 'Pause' : 'Play'}
           aria-label={isPlaying() ? 'Pause' : 'Play'}

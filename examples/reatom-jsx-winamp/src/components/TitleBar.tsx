@@ -1,7 +1,11 @@
 import { action, atom } from '@reatom/core'
 
 import { isPlaying, playerTheme } from '../model'
-import { PLAYER_THEME_IDS, PLAYER_THEME_LABELS, type PlayerThemeId } from '../themes'
+import {
+  PLAYER_THEME_IDS,
+  PLAYER_THEME_LABELS,
+  type PlayerThemeId,
+} from '../themes'
 import {
   closePlayerPage,
   fullscreenActive,
@@ -226,9 +230,9 @@ export const TitleBar = () => {
                   css={`
                     width: 2px;
                     height: 2px;
-                    background: ${
-                      row === column ? 'var(--skin-display-text)' : 'var(--skin-button-text)'
-                    };
+                    background: ${row === column
+                      ? 'var(--skin-display-text)'
+                      : 'var(--skin-button-text)'};
                   `}
                 />
               ))}
@@ -293,7 +297,9 @@ export const TitleBar = () => {
           on:click={() => void togglePlayerPictureInPicture()}
           css={`
             ${chromeButtonBase}
-            color: ${pictureInPictureActive() ? 'var(--skin-display-text)' : 'var(--skin-button-text)'};
+            color: ${pictureInPictureActive()
+              ? 'var(--skin-display-text)'
+              : 'var(--skin-button-text)'};
           `}
         >
           <WindowControlIcon kind="pictureInPicture" />
@@ -305,7 +311,9 @@ export const TitleBar = () => {
           on:click={() => void togglePlayerFullscreen()}
           css={`
             ${chromeButtonBase}
-            color: ${fullscreenActive() ? 'var(--skin-accent)' : 'var(--skin-button-text)'};
+            color: ${fullscreenActive()
+              ? 'var(--skin-accent)'
+              : 'var(--skin-button-text)'};
           `}
         >
           <WindowControlIcon kind="fullscreen" />

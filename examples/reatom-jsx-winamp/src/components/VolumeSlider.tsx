@@ -63,7 +63,11 @@ export const VolumeSlider = () => {
           border: 1px solid #000000;
           background:
             linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
-            linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+            linear-gradient(
+              180deg,
+              var(--skin-display-bg),
+              var(--skin-display-dark)
+            );
           box-shadow:
             inset 1px 1px 0 rgba(133, 190, 133, 0.22),
             inset -1px -1px 0 #010401;
