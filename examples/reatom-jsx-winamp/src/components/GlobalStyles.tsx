@@ -1,36 +1,51 @@
+import {
+  PLAYER_THEME_IDS,
+  PLAYER_THEME_VARS,
+  serializeThemeVars,
+  type PlayerThemeId,
+} from '../themes'
+
+function themeAttributeBlocks(): string {
+  return PLAYER_THEME_IDS.filter((id) => id !== 'classic')
+    .map(
+      (id: PlayerThemeId) => `
+      html[data-player-theme="${id}"] {
+${serializeThemeVars(PLAYER_THEME_VARS[id])}
+      }`,
+    )
+    .join('')
+}
+
 export const GlobalStyles = () => {
+  const rootSkin = serializeThemeVars(PLAYER_THEME_VARS.classic)
+
   return (
     <style>{`
       :root {
-        --winamp-bg: #171a1f;
-        --winamp-panel: #2c3038;
-        --winamp-panel-alt: #20242b;
-        --winamp-frame: #050608;
-        --winamp-frame-inner: #5a6170;
-        --winamp-bevel-light: rgba(255, 255, 255, 0.18);
-        --winamp-bevel-dark: #090a0d;
-        --winamp-text: #d7f5d2;
-        --winamp-led: #57ff6b;
-        --winamp-led-soft: rgba(87, 255, 107, 0.18);
-        --winamp-accent: #f3a33f;
-        --winamp-accent-soft: rgba(243, 163, 63, 0.24);
-        --winamp-title: #243b63;
-        --winamp-title-start: #4f77b4;
-        --winamp-title-end: #111d33;
-        --winamp-muted: #a1a8b3;
-        --winamp-radius: 10px;
+        --player-width: 320px;
+${rootSkin}
+        --pixel-font:
+          ui-monospace,
+          'SFMono-Regular',
+          Menlo,
+          Monaco,
+          Consolas,
+          'Liberation Mono',
+          monospace;
+        --player-mono: var(--pixel-font);
       }
+${themeAttributeBlocks()}
 
       @keyframes winamp-meter {
         0% {
           transform: scaleY(0.18);
         }
 
-        30% {
+        34% {
           transform: scaleY(0.52);
         }
 
-        55% {
+        60% {
           transform: scaleY(1);
         }
 
@@ -39,35 +54,13 @@ export const GlobalStyles = () => {
         }
 
         100% {
-          transform: scaleY(0.84);
-        }
-      }
-
-      @keyframes winamp-led-pulse {
-        0%,
-        100% {
-          opacity: 0.62;
-          filter: saturate(0.88);
-        }
-
-        50% {
-          opacity: 1;
-          filter: saturate(1.08);
-        }
-      }
-
-      @keyframes winamp-sheen {
-        0% {
-          transform: translateX(-140%);
-        }
-
-        100% {
-          transform: translateX(180%);
+          transform: scaleY(0.8);
         }
       }
 
       html {
         color-scheme: dark;
+        background: var(--page-html-bg);
       }
 
       * {
@@ -82,17 +75,23 @@ export const GlobalStyles = () => {
         margin: 0;
         min-height: 100dvh;
         background:
-          radial-gradient(circle at 16% 16%, rgba(243, 163, 63, 0.18), transparent 18%),
-          radial-gradient(circle at 82% 14%, rgba(97, 146, 255, 0.22), transparent 24%),
-          radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.06), transparent 28%),
-          linear-gradient(135deg, #0b0d11 0%, #06070b 42%, #11151d 100%);
+          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 22%),
+          repeating-linear-gradient(
+            45deg,
+            var(--page-body-stripe-a) 0 12px,
+            var(--page-body-stripe-b) 12px 24px
+          ),
+          linear-gradient(
+            180deg,
+            var(--page-body-grad-top) 0%,
+            var(--page-body-grad-bottom) 100%
+          );
         font-family:
           Tahoma,
-          'MS Sans Serif',
           'Segoe UI',
           sans-serif;
         font-size: 11px;
-        color: #ddd;
+        color: var(--page-body-text);
       }
 
       body::before {
@@ -100,15 +99,13 @@ export const GlobalStyles = () => {
         position: fixed;
         inset: 0;
         pointer-events: none;
-        opacity: 0.24;
         background:
-          linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 18%),
-          linear-gradient(90deg, rgba(255, 255, 255, 0.02), transparent 16%, rgba(255, 255, 255, 0.02) 84%, transparent),
           repeating-linear-gradient(
             180deg,
-            rgba(255, 255, 255, 0.018) 0 1px,
+            rgba(255, 255, 255, 0.03) 0 1px,
             transparent 1px 4px
           );
+        opacity: 0.24;
       }
 
       body::after {
@@ -117,18 +114,42 @@ export const GlobalStyles = () => {
         inset: 0;
         pointer-events: none;
         background:
-          radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.08), transparent 42%),
-          radial-gradient(circle at 50% 120%, rgba(255, 160, 48, 0.06), transparent 32%);
+          radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 24%);
       }
 
       button,
-      input {
+      input,
+      a {
         font: inherit;
       }
 
+      button {
+        color: inherit;
+        border-radius: 0;
+      }
+
+      input {
+        color: inherit;
+      }
+
+      ::placeholder {
+        color: var(--skin-display-dim);
+      }
+
       ::selection {
-        background: rgba(243, 163, 63, 0.35);
-        color: #fff;
+        background: var(--skin-selection-bg);
+        color: var(--skin-selection-text);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.01ms !important;
+          scroll-behavior: auto !important;
+        }
       }
     `}</style>
   )

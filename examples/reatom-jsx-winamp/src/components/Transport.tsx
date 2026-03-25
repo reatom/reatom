@@ -1,9 +1,13 @@
 import {
+  currentSlot,
   cycleRepeat,
   durationSec,
+  folderLabel,
   formatClock,
   isPlaying,
   nextTrack,
+  nowPlayingContext,
+  nowPlayingFileName,
   openFolder,
   positionSec,
   prevTrack,
@@ -11,71 +15,80 @@ import {
   seekToRatio,
   shuffleEnabled,
   stopPlayback,
+  trackCount,
   togglePlay,
   toggleShuffle,
 } from '../model'
 
-const baseBtn = `
-  min-width: 40px;
-  height: 34px;
-  padding: 0 10px;
+const lcdBars = [32, 50, 26, 58, 38, 66, 44, 54]
+
+const chromeButton = `
+  min-width: 0;
+  height: 26px;
+  padding: 0 6px;
   display: grid;
   place-items: center;
-  cursor: pointer;
-  color: #141922;
-  font-weight: 700;
-  line-height: 1;
-  background: linear-gradient(180deg, #f3f6fb 0%, #bcc4cf 56%, #8d949f 100%);
-  border: 1px solid #000;
-  border-radius: 6px;
+  border: 1px solid var(--skin-border-dark);
+  background: linear-gradient(
+    180deg,
+    var(--skin-button-top) 0%,
+    var(--skin-button-face) 55%,
+    var(--skin-button-bottom) 100%
+  );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.74),
-    inset 0 -1px 0 rgba(35, 39, 48, 0.45),
-    0 1px 0 rgba(255, 255, 255, 0.08);
-  transition:
-    transform 120ms ease,
-    filter 120ms ease,
-    opacity 120ms ease;
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 var(--skin-button-shadow-mid);
+  color: var(--skin-button-text);
+  cursor: pointer;
 
   &:hover:not(:disabled) {
-    filter: brightness(1.04);
+    filter: brightness(1.03);
   }
 
   &:active:not(:disabled) {
-    transform: translateY(1px);
+    box-shadow:
+      inset 1px 1px 0 var(--skin-button-shadow-mid),
+      inset -1px -1px 0 #ffffff;
   }
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.55;
+    opacity: 0.5;
   }
 `
 
-const transportBtn = `
-  ${baseBtn}
-  font-size: 15px;
+const iconButton = `
+  ${chromeButton}
+  padding: 0;
+  min-width: 30px;
 `
 
-const primaryTransportBtn = `
-  ${transportBtn}
-  min-width: 50px;
-  height: 38px;
-  font-size: 18px;
-  color: #1d1404;
-  background: linear-gradient(180deg, #ffe09d 0%, #efad49 54%, #ad671d 100%);
+const primaryIconButton = `
+  ${iconButton}
+  min-width: 38px;
+  color: #2a220c;
+  background: linear-gradient(180deg, #ffe08a 0%, #dcb25a 100%);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1px 0 rgba(88, 51, 8, 0.42),
-    0 0 18px rgba(243, 163, 63, 0.18);
+    inset 1px 1px 0 #fff6cb,
+    inset -1px -1px 0 #87672e;
 `
 
-const btnPressed = `
-  color: #2a1604;
-  background: linear-gradient(180deg, #ffd089 0%, #e6a042 54%, #a86525 100%);
+const activeIconButton = `
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    inset 0 -1px 0 rgba(81, 45, 8, 0.45),
-    0 0 16px rgba(243, 163, 63, 0.16);
+    inset 1px 1px 0 #87672e,
+    inset -1px -1px 0 #fff6cb;
+`
+
+const lcdPanel = `
+  border: 1px solid #000000;
+  background:
+    linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
+    linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+  box-shadow:
+    inset 1px 1px 0 rgba(133, 190, 133, 0.22),
+    inset -1px -1px 0 #010401;
+  color: var(--skin-display-text);
+  font-family: var(--pixel-font);
 `
 
 type TransportIconKind = 'previous' | 'play' | 'pause' | 'stop' | 'next'
@@ -87,33 +100,22 @@ const TransportIcon = ({
   kind: TransportIconKind
   size?: 'normal' | 'large'
 }) => {
-  const iconSize = size === 'large' ? 18 : 16
-  const barWidth = size === 'large' ? 4 : 3
-  const barHeight = size === 'large' ? 16 : 14
-  const triangleHeight = size === 'large' ? 9 : 8
-  const triangleWidth = size === 'large' ? 12 : 10
+  const barWidth = size === 'large' ? 3 : 2
+  const barHeight = size === 'large' ? 11 : 9
+  const triangleHeight = size === 'large' ? 6 : 5
+  const triangleWidth = size === 'large' ? 8 : 7
 
   if (kind === 'play') {
     return (
       <span
         css={`
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: ${iconSize}px;
-          height: ${iconSize}px;
+          width: 0;
+          height: 0;
+          border-top: ${triangleHeight}px solid transparent;
+          border-bottom: ${triangleHeight}px solid transparent;
+          border-left: ${triangleWidth}px solid currentColor;
         `}
-      >
-        <span
-          css={`
-            width: 0;
-            height: 0;
-            border-top: ${triangleHeight}px solid transparent;
-            border-bottom: ${triangleHeight}px solid transparent;
-            border-left: ${triangleWidth}px solid currentColor;
-          `}
-        />
-      </span>
+      />
     )
   }
 
@@ -122,18 +124,13 @@ const TransportIcon = ({
       <span
         css={`
           display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          width: ${iconSize}px;
-          height: ${iconSize}px;
+          gap: 3px;
         `}
       >
         <span
           css={`
             width: ${barWidth}px;
             height: ${barHeight}px;
-            border-radius: 999px;
             background: currentColor;
           `}
         />
@@ -141,7 +138,6 @@ const TransportIcon = ({
           css={`
             width: ${barWidth}px;
             height: ${barHeight}px;
-            border-radius: 999px;
             background: currentColor;
           `}
         />
@@ -153,22 +149,11 @@ const TransportIcon = ({
     return (
       <span
         css={`
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: ${iconSize}px;
-          height: ${iconSize}px;
+          width: ${size === 'large' ? 10 : 8}px;
+          height: ${size === 'large' ? 10 : 8}px;
+          background: currentColor;
         `}
-      >
-        <span
-          css={`
-            width: ${size === 'large' ? 12 : 11}px;
-            height: ${size === 'large' ? 12 : 11}px;
-            border-radius: 2px;
-            background: currentColor;
-          `}
-        />
-      </span>
+      />
     )
   }
 
@@ -178,17 +163,13 @@ const TransportIcon = ({
         css={`
           display: flex;
           align-items: center;
-          justify-content: center;
           gap: 3px;
-          width: ${iconSize + 2}px;
-          height: ${iconSize}px;
         `}
       >
         <span
           css={`
             width: ${barWidth}px;
             height: ${barHeight}px;
-            border-radius: 999px;
             background: currentColor;
           `}
         />
@@ -210,10 +191,7 @@ const TransportIcon = ({
       css={`
         display: flex;
         align-items: center;
-        justify-content: center;
         gap: 3px;
-        width: ${iconSize + 2}px;
-        height: ${iconSize}px;
       `}
     >
       <span
@@ -229,7 +207,6 @@ const TransportIcon = ({
         css={`
           width: ${barWidth}px;
           height: ${barHeight}px;
-          border-radius: 999px;
           background: currentColor;
         `}
       />
@@ -237,52 +214,269 @@ const TransportIcon = ({
   )
 }
 
+function repeatLabel() {
+  const mode = repeatMode()
+  if (mode === 'one') {
+    return 'REP1'
+  }
+  if (mode === 'all') {
+    return 'REP*'
+  }
+  return 'REP'
+}
+
 export const Transport = () => {
   return (
-    <div
+    <section
       css={`
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        padding: 10px;
+        display: grid;
+        gap: 6px;
+        padding: 6px;
+        border: 1px solid var(--skin-border-dark);
         background: linear-gradient(
           180deg,
-          rgba(44, 48, 57, 0.98) 0%,
-          rgba(23, 25, 30, 0.98) 100%
+          rgba(95, 100, 148, 0.98) 0%,
+          var(--skin-panel) 26%,
+          var(--skin-panel-dark) 100%
         );
-        border-left: 1px solid var(--winamp-frame);
-        border-right: 1px solid var(--winamp-frame);
-        border-top: 1px solid rgba(255, 255, 255, 0.07);
-        border-bottom: 1px solid rgba(0, 0, 0, 0.6);
+        box-shadow:
+          inset 1px 1px 0 var(--skin-border-light),
+          inset -1px -1px 0 var(--skin-panel-inset-dark);
       `}
     >
       <div
         css={`
           display: grid;
+          grid-template-columns: 84px minmax(0, 1fr);
+          gap: 6px;
+          align-items: stretch;
+        `}
+      >
+        <div
+          css={`
+            ${lcdPanel}
+            padding: 4px 5px;
+            display: grid;
+            gap: 4px;
+            min-height: 60px;
+          `}
+        >
+          <div
+            css={`
+              display: flex;
+              justify-content: space-between;
+              gap: 6px;
+              color: var(--skin-display-dim);
+              font-size: 7px;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+            `}
+          >
+            <span>{() => (isPlaying() ? 'play' : trackCount() > 0 ? 'stop' : 'idle')}</span>
+            <span>{() => (shuffleEnabled() ? 'rnd' : 'line')}</span>
+          </div>
+          <div
+            css={`
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              min-width: 0;
+              overflow: hidden;
+              white-space: nowrap;
+              font-size: 21px;
+              line-height: 1;
+              letter-spacing: 0.03em;
+            `}
+          >
+            {() => formatClock(positionSec())}
+          </div>
+          <div
+            css={`
+              display: flex;
+              align-items: flex-end;
+              gap: 2px;
+              height: 12px;
+            `}
+          >
+            {lcdBars.map((baseHeight, index) => (
+              <span
+                css={() => `
+                  flex: 1;
+                  min-width: 3px;
+                  height: ${baseHeight}%;
+                  background: linear-gradient(
+                    180deg,
+                    var(--skin-display-warn) 0%,
+                    var(--skin-display-text) 100%
+                  );
+                  opacity: ${isPlaying() ? 0.92 : 0.28};
+                  transform-origin: bottom;
+                  transform: scaleY(${isPlaying() ? 0.48 + index * 0.03 : 0.18});
+                  animation: winamp-meter ${520 + index * 40}ms steps(4, end) infinite alternate;
+                  animation-play-state: ${isPlaying() ? 'running' : 'paused'};
+                `}
+              />
+            ))}
+          </div>
+        </div>
+        <div
+          css={`
+            display: grid;
+            gap: 4px;
+            min-width: 0;
+          `}
+        >
+          <div
+            css={`
+              ${lcdPanel}
+              padding: 4px 6px;
+              display: grid;
+              gap: 4px;
+              min-height: 40px;
+            `}
+          >
+            <div
+              css={`
+                display: flex;
+                justify-content: space-between;
+                gap: 6px;
+                color: var(--skin-display-dim);
+                font-size: 7px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+              `}
+            >
+              <span>
+                {() => {
+                  const totalTracks = trackCount()
+                  const activeTrack = currentSlot()
+                  if (activeTrack < 0 || totalTracks === 0) {
+                    return 'trk --/--'
+                  }
+                  return `trk ${String(activeTrack + 1).padStart(2, '0')}/${String(totalTracks).padStart(2, '0')}`
+                }}
+              </span>
+              <span>{() => formatClock(durationSec())}</span>
+            </div>
+            <div
+              css={`
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                color: var(--skin-display-warn);
+                font-size: 10px;
+              `}
+            >
+              {nowPlayingFileName}
+            </div>
+            <div
+              css={`
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                color: var(--skin-display-dim);
+                font-size: 7px;
+                letter-spacing: 0.06em;
+                text-transform: uppercase;
+              `}
+              title={nowPlayingContext()}
+            >
+              {() => {
+                const folderName = folderLabel()
+                if (folderName) {
+                  return `folder ${folderName}`
+                }
+                return nowPlayingContext()
+              }}
+            </div>
+          </div>
+          <div
+            css={`
+              ${lcdPanel}
+              padding: 3px 6px;
+              display: flex;
+              justify-content: space-between;
+              gap: 6px;
+              color: var(--skin-display-dim);
+              font-size: 7px;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+            `}
+          >
+            <span>{() => (isPlaying() ? 'state play' : trackCount() > 0 ? 'state stop' : 'state idle')}</span>
+            <span>{() => (shuffleEnabled() ? 'shuf on' : 'shuf off')}</span>
+            <span>{() => repeatLabel().toLowerCase()}</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        css={`
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 4px;
+        `}
+      >
+        <button
+          type="button"
+          css={iconButton}
+          on:click={() => prevTrack()}
+          title="Previous track"
+          aria-label="Previous track"
+          prop:disabled={() => trackCount() === 0}
+        >
+          <TransportIcon kind="previous" />
+        </button>
+        <button
+          type="button"
+          css={() => (isPlaying() ? primaryIconButton + activeIconButton : primaryIconButton)}
+          on:click={() => togglePlay()}
+          title={isPlaying() ? 'Pause' : 'Play'}
+          aria-label={isPlaying() ? 'Pause' : 'Play'}
+          prop:disabled={() => trackCount() === 0}
+        >
+          {() => (
+            <TransportIcon kind={isPlaying() ? 'pause' : 'play'} size="large" />
+          )}
+        </button>
+        <button
+          type="button"
+          css={iconButton}
+          on:click={() => stopPlayback()}
+          title="Stop"
+          aria-label="Stop"
+          prop:disabled={() => trackCount() === 0}
+        >
+          <TransportIcon kind="stop" />
+        </button>
+        <button
+          type="button"
+          css={iconButton}
+          on:click={() => nextTrack()}
+          title="Next track"
+          aria-label="Next track"
+          prop:disabled={() => trackCount() === 0}
+        >
+          <TransportIcon kind="next" />
+        </button>
+      </div>
+
+      <div
+        css={`
+          display: grid;
           grid-template-columns: auto 1fr auto;
+          gap: 4px;
           align-items: center;
-          gap: 10px;
-          font-family: ui-monospace, 'Courier New', monospace;
-          font-size: 12px;
-          color: var(--winamp-led);
-          text-shadow: 0 0 8px rgba(87, 255, 107, 0.4);
         `}
       >
         <span
           aria-hidden="true"
           css={`
-            min-width: 48px;
-            padding: 5px 7px;
-            border: 1px solid #071109;
-            border-radius: 6px;
-            background:
-              linear-gradient(180deg, rgba(13, 38, 18, 0.98), rgba(7, 18, 10, 0.98)),
-              repeating-linear-gradient(
-                180deg,
-                rgba(255, 255, 255, 0.03) 0 1px,
-                transparent 1px 4px
-              );
-            box-shadow: inset 0 0 0 1px rgba(135, 255, 145, 0.08);
+            ${lcdPanel}
+            min-width: 44px;
+            padding: 3px 4px;
+            text-align: center;
+            font-size: 9px;
           `}
         >
           {() => formatClock(positionSec())}
@@ -306,12 +500,11 @@ export const Transport = () => {
             return Math.round((position / duration) * 1000)
           }}
           on:input={(event) => {
-            const input = event.currentTarget
-            const ratio = Number(input.value) / 1000
+            const ratio = Number(event.currentTarget.value) / 1000
             seekToRatio(ratio)
           }}
           css={`
-            flex: 1;
+            width: 100%;
             height: 18px;
             appearance: none;
             background: transparent;
@@ -319,61 +512,57 @@ export const Transport = () => {
 
             &::-webkit-slider-runnable-track {
               height: 6px;
-              border: 1px solid #06070a;
-              border-radius: 999px;
-              background: linear-gradient(180deg, #777f8c, #2d3037);
-              box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+              border: 1px solid #09110b;
+              background: linear-gradient(180deg, #517f59 0%, #1b2f1f 100%);
             }
 
             &::-webkit-slider-thumb {
               appearance: none;
-              width: 22px;
-              height: 22px;
-              margin-top: -9px;
-              border: 1px solid #201206;
-              border-radius: 999px;
-              background: linear-gradient(180deg, #ffc770, #ea9833 58%, #a9611a 100%);
+              width: 11px;
+              height: 14px;
+              margin-top: -5px;
+              border: 1px solid var(--skin-border-dark);
+              background: linear-gradient(
+                180deg,
+                var(--skin-button-top) 0%,
+                var(--skin-button-face) 55%,
+                var(--skin-button-bottom) 100%
+              );
               box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.36),
-                0 0 12px rgba(243, 163, 63, 0.28);
+                inset 1px 1px 0 #ffffff,
+                inset -1px -1px 0 var(--skin-button-shadow-mid);
             }
 
             &::-moz-range-track {
               height: 6px;
-              border: 1px solid #06070a;
-              border-radius: 999px;
-              background: linear-gradient(180deg, #777f8c, #2d3037);
-              box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+              border: 1px solid #09110b;
+              background: linear-gradient(180deg, #517f59 0%, #1b2f1f 100%);
             }
 
             &::-moz-range-thumb {
-              width: 22px;
-              height: 22px;
-              border: 1px solid #201206;
-              border-radius: 999px;
-              background: linear-gradient(180deg, #ffc770, #ea9833 58%, #a9611a 100%);
+              width: 11px;
+              height: 14px;
+              border: 1px solid var(--skin-border-dark);
+              background: linear-gradient(
+                180deg,
+                var(--skin-button-top) 0%,
+                var(--skin-button-face) 55%,
+                var(--skin-button-bottom) 100%
+              );
               box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.36),
-                0 0 12px rgba(243, 163, 63, 0.28);
+                inset 1px 1px 0 #ffffff,
+                inset -1px -1px 0 var(--skin-button-shadow-mid);
             }
           `}
         />
         <span
           aria-hidden="true"
           css={`
-            min-width: 48px;
-            padding: 5px 7px;
-            text-align: right;
-            border: 1px solid #071109;
-            border-radius: 6px;
-            background:
-              linear-gradient(180deg, rgba(13, 38, 18, 0.98), rgba(7, 18, 10, 0.98)),
-              repeating-linear-gradient(
-                180deg,
-                rgba(255, 255, 255, 0.03) 0 1px,
-                transparent 1px 4px
-              );
-            box-shadow: inset 0 0 0 1px rgba(135, 255, 145, 0.08);
+            ${lcdPanel}
+            min-width: 44px;
+            padding: 3px 4px;
+            text-align: center;
+            font-size: 9px;
           `}
         >
           {() => formatClock(durationSec())}
@@ -382,101 +571,36 @@ export const Transport = () => {
 
       <div
         css={`
-          display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 10px;
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 4px;
         `}
       >
-        <div
-          css={`
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          `}
-        >
-          <button
-            type="button"
-            css={transportBtn}
-            on:click={() => prevTrack()}
-            title="Previous track"
-            aria-label="Previous track"
-          >
-            <TransportIcon kind="previous" />
-          </button>
-          <button
-            type="button"
-            css={() => (isPlaying() ? primaryTransportBtn + btnPressed : primaryTransportBtn)}
-            on:click={() => togglePlay()}
-            title={isPlaying() ? 'Pause' : 'Play'}
-            aria-label={isPlaying() ? 'Pause' : 'Play'}
-          >
-            {() => (
-              <TransportIcon kind={isPlaying() ? 'pause' : 'play'} size="large" />
-            )}
-          </button>
-          <button
-            type="button"
-            css={transportBtn}
-            on:click={() => stopPlayback()}
-            title="Stop"
-            aria-label="Stop"
-          >
-            <TransportIcon kind="stop" />
-          </button>
-          <button
-            type="button"
-            css={transportBtn}
-            on:click={() => nextTrack()}
-            title="Next track"
-            aria-label="Next track"
-          >
-            <TransportIcon kind="next" />
-          </button>
-        </div>
-        <div
-          css={`
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 6px;
-            justify-content: center;
-          `}
-        >
-          <button
-            type="button"
-            css={() => (shuffleEnabled() ? baseBtn + btnPressed : baseBtn)}
-            on:click={() => toggleShuffle()}
-            title="Shuffle"
-            aria-label="Shuffle"
-            prop:aria-pressed={() => shuffleEnabled()}
-          >
-            SHUF
-          </button>
-          <button
-            type="button"
-            css={() => (repeatMode() === 'none' ? baseBtn : baseBtn + btnPressed)}
-            on:click={() => cycleRepeat()}
-            title="Repeat"
-            aria-label="Repeat"
-            prop:aria-pressed={() => repeatMode() !== 'none'}
-          >
-            {() => {
-              const mode = repeatMode()
-              if (mode === 'one') {
-                return 'REP1'
-              }
-              if (mode === 'all') {
-                return 'REP*'
-              }
-              return 'REP'
-            }}
-          </button>
-        </div>
         <button
           type="button"
-          css={baseBtn}
+          css={chromeButton}
+          on:click={() => toggleShuffle()}
+          title="Shuffle"
+          aria-label="Shuffle"
+          prop:aria-pressed={() => shuffleEnabled()}
+          prop:disabled={() => trackCount() < 2}
+        >
+          SHUF
+        </button>
+        <button
+          type="button"
+          css={chromeButton}
+          on:click={() => cycleRepeat()}
+          title="Repeat"
+          aria-label="Repeat"
+          prop:aria-pressed={() => repeatMode() !== 'none'}
+          prop:disabled={() => trackCount() === 0}
+        >
+          {() => repeatLabel()}
+        </button>
+        <button
+          type="button"
+          css={chromeButton}
           prop:disabled={() => !openFolder.ready()}
           on:click={() => openFolder()}
           title="Open folder"
@@ -485,6 +609,6 @@ export const Transport = () => {
           LOAD
         </button>
       </div>
-    </div>
+    </section>
   )
 }

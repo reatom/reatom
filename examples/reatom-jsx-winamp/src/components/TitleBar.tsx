@@ -1,6 +1,7 @@
 import { action, atom } from '@reatom/core'
 
-import { isPlaying } from '../model'
+import { isPlaying, playerTheme } from '../model'
+import { PLAYER_THEME_IDS, PLAYER_THEME_LABELS, type PlayerThemeId } from '../themes'
 import {
   closePlayerPage,
   fullscreenActive,
@@ -10,34 +11,38 @@ import {
   togglePlayerPictureInPicture,
 } from '../windowControls'
 
-const windowButtonBase = `
-  width: 34px;
-  height: 30px;
+const chromeButtonBase = `
+  width: 18px;
+  height: 16px;
   padding: 0;
   display: grid;
   place-items: center;
-  border: 1px solid #000;
-  border-radius: 8px;
+  border: 1px solid var(--skin-border-dark);
+  background: linear-gradient(
+    180deg,
+    var(--skin-button-top) 0%,
+    var(--skin-button-face) 55%,
+    var(--skin-button-bottom) 100%
+  );
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.34);
-  transition:
-    transform 120ms ease,
-    filter 120ms ease,
-    opacity 120ms ease;
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 var(--skin-button-shadow-mid);
+  color: var(--skin-button-text);
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    filter: brightness(1.05);
+    filter: brightness(1.03);
   }
 
   &:active:not(:disabled) {
-    transform: translateY(1px);
+    box-shadow:
+      inset 1px 1px 0 var(--skin-button-shadow-mid),
+      inset -1px -1px 0 #ffffff;
   }
 
   &:disabled {
     cursor: not-allowed;
-    opacity: 0.42;
+    opacity: 0.45;
   }
 `
 
@@ -68,16 +73,15 @@ const WindowControlIcon = ({ kind }: { kind: WindowControlKind }) => {
         css={`
           position: relative;
           display: block;
-          width: 16px;
-          height: 12px;
+          width: 10px;
+          height: 8px;
         `}
       >
         <span
           css={`
             position: absolute;
             inset: 0;
-            border: 2px solid currentColor;
-            border-radius: 2px;
+            border: 1px solid currentColor;
           `}
         />
         <span
@@ -85,11 +89,10 @@ const WindowControlIcon = ({ kind }: { kind: WindowControlKind }) => {
             position: absolute;
             right: -1px;
             bottom: -1px;
-            width: 6px;
-            height: 4px;
-            border: 2px solid currentColor;
-            border-radius: 2px;
-            background: rgba(255, 255, 255, 0.12);
+            width: 4px;
+            height: 3px;
+            border: 1px solid currentColor;
+            background: #f6f7fa;
           `}
         />
       </span>
@@ -102,16 +105,15 @@ const WindowControlIcon = ({ kind }: { kind: WindowControlKind }) => {
         css={`
           position: relative;
           display: block;
-          width: 14px;
-          height: 14px;
+          width: 9px;
+          height: 9px;
         `}
       >
         <span
           css={`
             position: absolute;
             inset: 0;
-            border: 2px solid currentColor;
-            border-radius: 2px;
+            border: 1px solid currentColor;
           `}
         />
       </span>
@@ -123,8 +125,8 @@ const WindowControlIcon = ({ kind }: { kind: WindowControlKind }) => {
       css={`
         position: relative;
         display: block;
-        width: 14px;
-        height: 14px;
+        width: 8px;
+        height: 8px;
       `}
     >
       <span
@@ -132,9 +134,8 @@ const WindowControlIcon = ({ kind }: { kind: WindowControlKind }) => {
           position: absolute;
           left: 0;
           right: 0;
-          top: 6px;
-          height: 2px;
-          border-radius: 999px;
+          top: 3px;
+          height: 1px;
           background: currentColor;
           transform: rotate(45deg);
         `}
@@ -144,9 +145,8 @@ const WindowControlIcon = ({ kind }: { kind: WindowControlKind }) => {
           position: absolute;
           left: 0;
           right: 0;
-          top: 6px;
-          height: 2px;
-          border-radius: 999px;
+          top: 3px;
+          height: 1px;
           background: currentColor;
           transform: rotate(-45deg);
         `}
@@ -162,186 +162,126 @@ export const TitleBar = () => {
         position: relative;
         z-index: 5;
         overflow: visible;
-        display: flex;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 6px 8px 7px 6px;
+        gap: 4px;
+        padding: 3px;
+        border: 1px solid var(--skin-border-dark);
         background: linear-gradient(
           180deg,
-          var(--winamp-title-start) 0%,
-          #355686 28%,
-          var(--winamp-title) 58%,
-          var(--winamp-title-end) 100%
+          var(--skin-title-highlight) 0%,
+          var(--skin-chassis-top) 18%,
+          var(--skin-chassis) 60%,
+          var(--skin-title-deep) 100%
         );
-        border: 1px solid var(--winamp-frame);
-        border-bottom: none;
-        border-top-left-radius: var(--winamp-radius);
-        border-top-right-radius: var(--winamp-radius);
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.24),
-          inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-        color: #e0e8ff;
-        font-weight: bold;
-        letter-spacing: 0.04em;
-        text-shadow: 1px 1px 0 #000;
+          inset 1px 1px 0 var(--skin-border-light),
+          inset -1px -1px 0 var(--skin-title-inset-dark);
+        color: #f4f6ff;
       `}
     >
-      <div
+      <button
+        type="button"
+        aria-haspopup="menu"
+        prop:aria-expanded={() => titleBarMenuOpen()}
+        aria-controls={titleBarPlayerMenuId}
+        aria-label="Open menu"
+        on:click={() => toggleTitleBarMenu()}
         css={`
-          flex: 1;
-          min-width: 0;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          position: relative;
+          width: 20px;
+          height: 18px;
+          padding: 0;
+          display: grid;
+          place-items: center;
+          border: 1px solid var(--skin-border-dark);
+          background: linear-gradient(
+            180deg,
+            var(--skin-button-top) 0%,
+            var(--skin-button-face) 55%,
+            var(--skin-button-bottom) 100%
+          );
+          box-shadow:
+            inset 1px 1px 0 #ffffff,
+            inset -1px -1px 0 var(--skin-button-shadow-mid);
+          cursor: pointer;
         `}
       >
-        <button
-          type="button"
-          aria-haspopup="menu"
-          prop:aria-expanded={() => titleBarMenuOpen()}
-          aria-controls={titleBarPlayerMenuId}
-          aria-label="Open menu"
-          on:click={() => toggleTitleBarMenu()}
+        <span
           css={`
-            flex: 1;
-            min-width: 0;
             display: flex;
             align-items: center;
-            gap: 8px;
-            margin: 0;
-            padding: 0;
-            border: none;
-            background: transparent;
-            color: inherit;
-            font: inherit;
-            font-weight: bold;
-            letter-spacing: 0.04em;
-            text-shadow: 1px 1px 0 #000;
-            text-align: left;
-            cursor: pointer;
-            border-radius: 4px;
-
-            &:focus-visible {
-              outline: 2px solid rgba(255, 255, 255, 0.65);
-              outline-offset: 2px;
-            }
+            gap: 1px;
           `}
         >
-          <div
-            css={`
-              flex-shrink: 0;
-              width: 18px;
-              height: 18px;
-              padding: 2px;
-              display: grid;
-              grid-template-columns: repeat(3, 1fr);
-              gap: 1px;
-              border: 1px solid rgba(0, 0, 0, 0.8);
-              border-radius: 4px;
-              background: linear-gradient(
-                180deg,
-                rgba(8, 18, 34, 0.85),
-                rgba(9, 14, 25, 0.95)
-              );
-              box-shadow:
-                inset 0 1px 0 rgba(255, 255, 255, 0.12),
-                0 0 0 1px rgba(255, 255, 255, 0.05);
-            `}
-          >
+          {[1, 2, 3].map((row) => (
             <span
               css={`
-                background: #57ff6b;
-                opacity: 0.95;
+                display: grid;
+                gap: 1px;
               `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.55;
-              `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.8;
-              `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.42;
-              `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.92;
-              `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.62;
-              `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.78;
-              `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.48;
-              `}
-            />
-            <span
-              css={`
-                background: #57ff6b;
-                opacity: 0.88;
-              `}
-            />
-          </div>
-          <span
-            css={`
-              flex: 1;
-              min-width: 0;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-            `}
-          >
-            Reatom Folder Player
-          </span>
-        </button>
+            >
+              {[1, 2].map((column) => (
+                <span
+                  css={`
+                    width: 2px;
+                    height: 2px;
+                    background: ${
+                      row === column ? 'var(--skin-display-text)' : 'var(--skin-button-text)'
+                    };
+                  `}
+                />
+              ))}
+            </span>
+          ))}
+        </span>
+      </button>
+      <div
+        css={`
+          min-width: 0;
+          height: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 0 6px;
+          border: 1px solid rgba(0, 0, 0, 0.55);
+          background: linear-gradient(
+            180deg,
+            rgba(44, 49, 91, 0.95) 0%,
+            rgba(28, 31, 64, 0.95) 100%
+          );
+          box-shadow:
+            inset 1px 1px 0 rgba(255, 255, 255, 0.22),
+            inset -1px -1px 0 rgba(0, 0, 0, 0.28);
+          font-family: var(--pixel-font);
+          font-size: 10px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        `}
+      >
+        <span
+          css={`
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          `}
+        >
+          Winamp
+        </span>
         <span
           css={() => `
-            padding: 2px 6px;
-            border: 1px solid rgba(0, 0, 0, 0.6);
-            border-radius: 999px;
-            color: ${isPlaying() ? '#ffe9a6' : 'rgba(224, 232, 255, 0.74)'};
-            background: ${
-              isPlaying()
-                ? 'linear-gradient(180deg, rgba(90, 66, 18, 0.94), rgba(47, 31, 6, 0.94))'
-                : 'linear-gradient(180deg, rgba(26, 35, 57, 0.9), rgba(17, 23, 37, 0.95))'
-            };
-            font-size: 9px;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            animation: winamp-led-pulse 900ms ease-in-out infinite;
-            animation-play-state: ${isPlaying() ? 'running' : 'paused'};
+            color: ${isPlaying() ? 'var(--skin-display-warn)' : '#c6cce2'};
           `}
         >
-          {() => (isPlaying() ? 'Live' : 'Deck')}
+          {() => (isPlaying() ? 'Play' : 'Stop')}
         </span>
       </div>
       <div
         css={`
           display: flex;
-          gap: 3px;
+          gap: 2px;
           align-items: center;
         `}
       >
@@ -352,11 +292,8 @@ export const TitleBar = () => {
           prop:disabled={() => !pictureInPictureSupported()}
           on:click={() => void togglePlayerPictureInPicture()}
           css={`
-            ${windowButtonBase}
-            color: ${pictureInPictureActive() ? '#102f14' : '#10264b'};
-            background: ${pictureInPictureActive()
-              ? 'linear-gradient(180deg, #9ef0a6, #4f9f59)'
-              : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'};
+            ${chromeButtonBase}
+            color: ${pictureInPictureActive() ? 'var(--skin-display-text)' : 'var(--skin-button-text)'};
           `}
         >
           <WindowControlIcon kind="pictureInPicture" />
@@ -367,11 +304,8 @@ export const TitleBar = () => {
           aria-label="Toggle fullscreen"
           on:click={() => void togglePlayerFullscreen()}
           css={`
-            ${windowButtonBase}
-            color: ${fullscreenActive() ? '#2f1c06' : '#10264b'};
-            background: ${fullscreenActive()
-              ? 'linear-gradient(180deg, #f5cb77, #b57931)'
-              : 'linear-gradient(180deg, #8eb3ea, #4c6f9f)'};
+            ${chromeButtonBase}
+            color: ${fullscreenActive() ? 'var(--skin-accent)' : 'var(--skin-button-text)'};
           `}
         >
           <WindowControlIcon kind="fullscreen" />
@@ -382,9 +316,8 @@ export const TitleBar = () => {
           aria-label="Close page"
           on:click={() => closePlayerPage()}
           css={`
-            ${windowButtonBase}
-            color: #fff3f3;
-            background: linear-gradient(180deg, #dd6e6e, #8f2020);
+            ${chromeButtonBase}
+            color: var(--skin-danger);
           `}
         >
           <WindowControlIcon kind="close" />
@@ -403,71 +336,158 @@ export const TitleBar = () => {
         `}
       />
       <div
-        role="menu"
         id={titleBarPlayerMenuId}
         aria-label="Player menu"
         css={() => `
           display: ${titleBarMenuOpen() ? 'block' : 'none'};
           pointer-events: ${titleBarMenuOpen() ? 'auto' : 'none'};
           position: absolute;
-          left: 8px;
-          top: calc(100% - 1px);
+          left: 0;
+          top: calc(100% + 2px);
           z-index: 201;
-          min-width: 152px;
-          padding: 3px 0;
-          background: linear-gradient(180deg, #d9d9d9, #c6c6c6);
-          border: 1px solid #0a0a0a;
-          border-radius: 0;
+          min-width: 146px;
+          padding: 2px;
+          border: 1px solid var(--skin-border-dark);
+          background: #c4c8d6;
           box-shadow:
-            inset 1px 1px 0 #fff,
-            inset -1px -1px 0 #6a6a6a,
-            2px 2px 6px rgba(0, 0, 0, 0.45);
-          color: #000;
+            inset 1px 1px 0 #ffffff,
+            inset -1px -1px 0 #6d748e,
+            2px 2px 0 rgba(0, 0, 0, 0.45);
+          color: #15192f;
+          font-family: Tahoma, 'Segoe UI', sans-serif;
           font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.02em;
-          text-shadow: none;
         `}
       >
+        <div
+          css={`
+            padding: 4px 8px 6px;
+            color: #4b5472;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+          `}
+        >
+          Menu
+        </div>
+        <div
+          css={`
+            padding: 4px 8px 2px;
+            color: #4b5472;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+          `}
+        >
+          Theme
+        </div>
+        {PLAYER_THEME_IDS.map((id: PlayerThemeId) => (
+          <button
+            type="button"
+            on:click={() => {
+              playerTheme.set(id)
+              closeTitleBarMenu()
+            }}
+            css={() => `
+              width: 100%;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 8px;
+              padding: 5px 10px;
+              border: none;
+              background: transparent;
+              color: inherit;
+              cursor: pointer;
+              text-align: left;
+              font: inherit;
+
+              &:hover {
+                background: #213f9a;
+                color: #ffffff;
+              }
+            `}
+          >
+            {PLAYER_THEME_LABELS[id]}
+            <span
+              css={`
+                min-width: 1em;
+                text-align: right;
+                font-size: 10px;
+              `}
+            >
+              {() => (playerTheme() === id ? '✓' : '')}
+            </span>
+          </button>
+        ))}
+        <div
+          css={`
+            margin: 4px 6px;
+            border-top: 1px solid #9aa0b0;
+          `}
+        />
         <a
-          role="menuitem"
           href={readmeUrl}
           target="_blank"
           rel="noopener noreferrer"
           on:click={() => closeTitleBarMenu()}
           css={`
-            display: block;
-            padding: 5px 18px 5px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 5px 10px;
             color: inherit;
             text-decoration: none;
 
             &:hover {
-              background: #0a246a;
-              color: #fff;
+              background: #213f9a;
+              color: #ffffff;
             }
           `}
         >
-          About
+          Readme
+          <span
+            css={`
+              color: inherit;
+              opacity: 0.7;
+              font-size: 10px;
+            `}
+          >
+            Doc
+          </span>
         </a>
         <a
-          role="menuitem"
           href={sourcesUrl}
           target="_blank"
           rel="noopener noreferrer"
           on:click={() => closeTitleBarMenu()}
           css={`
-            display: block;
-            padding: 5px 18px 5px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 5px 10px;
             color: inherit;
             text-decoration: none;
 
             &:hover {
-              background: #0a246a;
-              color: #fff;
+              background: #213f9a;
+              color: #ffffff;
             }
           `}
         >
           Sources
+          <span
+            css={`
+              color: inherit;
+              opacity: 0.7;
+              font-size: 10px;
+            `}
+          >
+            Git
+          </span>
         </a>
       </div>
     </div>

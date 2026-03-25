@@ -1,6 +1,4 @@
-import { volume } from '../model'
-
-const ticks = [0, 1, 2, 3, 4, 5, 6, 7]
+import { toggleMute, volume } from '../model'
 
 const volumeLabelId = 'winamp-volume-label'
 
@@ -8,54 +6,105 @@ export const VolumeSlider = () => {
   return (
     <div
       css={`
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 9px;
-        width: 100%;
-        padding: 9px 8px 10px;
-        border: 1px solid rgba(0, 0, 0, 0.6);
-        border-radius: 9px;
-        background: linear-gradient(180deg, rgba(48, 52, 60, 0.96), rgba(20, 22, 27, 0.98));
+        display: grid;
+        gap: 4px;
+        padding: 5px;
+        border: 1px solid var(--skin-border-dark);
+        background: linear-gradient(
+          180deg,
+          rgba(95, 100, 148, 0.98) 0%,
+          var(--skin-panel) 26%,
+          var(--skin-panel-dark) 100%
+        );
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.08),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+          inset 1px 1px 0 var(--skin-border-light),
+          inset -1px -1px 0 var(--skin-panel-inset-dark);
       `}
     >
-      <span
-        id={volumeLabelId}
-        css={`
-          color: var(--winamp-muted);
-          font-size: 10px;
-          letter-spacing: 0.12em;
-        `}
-      >
-        VOL
-      </span>
       <div
         css={`
-          width: 100%;
-          padding: 8px 8px 9px;
-          display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 10px;
+          display: flex;
           align-items: center;
-          border: 1px solid #071109;
-          border-radius: 8px;
-          background:
-            linear-gradient(180deg, rgba(17, 19, 24, 0.96), rgba(7, 8, 11, 0.98)),
-            repeating-linear-gradient(
-              180deg,
-              rgba(255, 255, 255, 0.02) 0 1px,
-              transparent 1px 4px
-            );
-          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+          justify-content: space-between;
+          gap: 6px;
+          padding: 0 1px;
         `}
       >
+        <span
+          id={volumeLabelId}
+          css={`
+            color: #dde2f3;
+            font-family: var(--pixel-font);
+            font-size: 8px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          `}
+        >
+          Vol
+        </span>
+        <span
+          css={() => `
+            color: ${volume() === 0 ? '#bcc3d9' : 'var(--skin-display-warn)'};
+            font-family: var(--pixel-font);
+            font-size: 8px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          `}
+        >
+          {() => (volume() === 0 ? 'Off' : 'On')}
+        </span>
+      </div>
+      <div
+        css={`
+          display: grid;
+          justify-items: center;
+          gap: 6px;
+          padding: 4px 3px 5px;
+          border: 1px solid #000000;
+          background:
+            linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
+            linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+          box-shadow:
+            inset 1px 1px 0 rgba(133, 190, 133, 0.22),
+            inset -1px -1px 0 #010401;
+        `}
+      >
+        <button
+          type="button"
+          aria-label={volume() === 0 ? 'Unmute' : 'Mute'}
+          on:click={() => toggleMute()}
+          css={`
+            width: 100%;
+            height: 18px;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--skin-border-dark);
+            background: linear-gradient(
+              180deg,
+              var(--skin-button-top) 0%,
+              var(--skin-button-face) 55%,
+              var(--skin-button-bottom) 100%
+            );
+            box-shadow:
+              inset 1px 1px 0 #ffffff,
+              inset -1px -1px 0 var(--skin-button-shadow-mid);
+            color: var(--skin-button-text);
+            font-family: var(--pixel-font);
+            font-size: 8px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+          `}
+        >
+          {() => (volume() === 0 ? 'Off' : 'Mute')}
+        </button>
         <div
           css={`
-            display: flex;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: auto auto;
+            gap: 4px;
+            align-items: end;
           `}
         >
           <input
@@ -68,70 +117,110 @@ export const VolumeSlider = () => {
               volume.set(Number(event.currentTarget.value) / 100)
             }}
             css={`
-              width: 22px;
-              height: 102px;
+              width: 18px;
+              height: 96px;
+              margin: 0;
               writing-mode: vertical-lr;
               direction: rtl;
-              accent-color: var(--winamp-accent);
-              filter: drop-shadow(0 0 8px rgba(243, 163, 63, 0.18));
+              appearance: none;
+              background: transparent;
               cursor: pointer;
+
+              &::-webkit-slider-runnable-track {
+                width: 6px;
+                border: 1px solid #09110b;
+                background: linear-gradient(180deg, #517f59 0%, #1b2f1f 100%);
+              }
+
+              &::-webkit-slider-thumb {
+                appearance: none;
+                width: 12px;
+                height: 10px;
+                margin-left: -4px;
+                border: 1px solid var(--skin-border-dark);
+                background: linear-gradient(
+                  180deg,
+                  var(--skin-button-top) 0%,
+                  var(--skin-button-face) 55%,
+                  var(--skin-button-bottom) 100%
+                );
+                box-shadow:
+                  inset 1px 1px 0 #ffffff,
+                  inset -1px -1px 0 var(--skin-button-shadow-mid);
+              }
+
+              &::-moz-range-track {
+                width: 6px;
+                border: 1px solid #09110b;
+                background: linear-gradient(180deg, #517f59 0%, #1b2f1f 100%);
+              }
+
+              &::-moz-range-thumb {
+                width: 12px;
+                height: 10px;
+                border: 1px solid var(--skin-border-dark);
+                background: linear-gradient(
+                  180deg,
+                  var(--skin-button-top) 0%,
+                  var(--skin-button-face) 55%,
+                  var(--skin-button-bottom) 100%
+                );
+                box-shadow:
+                  inset 1px 1px 0 #ffffff,
+                  inset -1px -1px 0 var(--skin-button-shadow-mid);
+              }
             `}
           />
-        </div>
-        <div
-          aria-hidden="true"
-          css={`
-            display: flex;
-            flex-direction: column-reverse;
-            gap: 4px;
-          `}
-        >
-          {ticks.map((tick) => (
-            <span
-              css={() => {
-                const filledCount = Math.round(volume() * ticks.length)
-                const isFilled = tick < filledCount
-                return `
-                  width: 12px;
-                  height: 7px;
-                  border-radius: 999px;
-                  background: ${
-                    isFilled
-                      ? 'linear-gradient(180deg, #ffd782, #ff9e2b)'
-                      : 'linear-gradient(180deg, #39404c, #242832)'
-                  };
-                  box-shadow: ${
-                    isFilled
-                      ? '0 0 10px rgba(255, 165, 48, 0.22)'
-                      : 'inset 0 1px 0 rgba(255, 255, 255, 0.05)'
-                  };
-                  opacity: ${isFilled ? 1 : 0.7};
-                `
-              }}
-            />
-          ))}
+          <div
+            aria-hidden="true"
+            css={`
+              display: flex;
+              flex-direction: column-reverse;
+              box-sizing: border-box;
+              justify-content: space-between;
+              height: 96px;
+              padding: 2px 0;
+            `}
+          >
+            {Array.from({ length: 8 }, (_, index) => index).map((index) => (
+              <span
+                css={() => {
+                  const filledCount = Math.round(volume() * 8)
+                  const isFilled = index < filledCount
+                  return `
+                    width: 12px;
+                    height: 5px;
+                    background: ${
+                      isFilled
+                        ? 'linear-gradient(180deg, var(--skin-display-warn), var(--skin-display-text))'
+                        : '#233128'
+                    };
+                    opacity: ${isFilled ? 1 : 0.85};
+                  `
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
       <span
         aria-hidden="true"
         css={`
-          min-width: 40px;
-          padding: 4px 8px;
+          ${`
+            border: 1px solid #000000;
+            background:
+              linear-gradient(180deg, rgba(42, 94, 50, 0.22), transparent 28%),
+              linear-gradient(180deg, var(--skin-display-bg), var(--skin-display-dark));
+            box-shadow:
+              inset 1px 1px 0 rgba(133, 190, 133, 0.22),
+              inset -1px -1px 0 #010401;
+          `}
+          width: 100%;
+          padding: 3px 4px;
+          color: var(--skin-display-warn);
           text-align: center;
-          color: var(--winamp-led);
-          font-family: ui-monospace, 'Courier New', monospace;
-          font-size: 11px;
-          border: 1px solid #071109;
-          border-radius: 999px;
-          background:
-            linear-gradient(180deg, rgba(13, 38, 18, 0.98), rgba(7, 18, 10, 0.98)),
-            repeating-linear-gradient(
-              180deg,
-              rgba(255, 255, 255, 0.03) 0 1px,
-              transparent 1px 4px
-            );
-          box-shadow: inset 0 0 0 1px rgba(135, 255, 145, 0.08);
-          text-shadow: 0 0 8px rgba(87, 255, 107, 0.3);
+          font-family: var(--pixel-font);
+          font-size: 9px;
         `}
       >
         {() => `${Math.round(volume() * 100)}%`}

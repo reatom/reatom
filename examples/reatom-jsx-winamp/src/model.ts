@@ -4,12 +4,17 @@ import {
   atom,
   computed,
   effect,
+  reatomEnum,
   withAsync,
+  withChangeHook,
   withIndexedDb,
+  withLocalStorage,
   wrap,
 } from '@reatom/core'
 
+import { ensureAudioGraph, resumeAudioGraph } from './audioGraph'
 import { pickMusicFolder, type PlaylistEntry } from './scanFolder'
+import { PLAYER_THEME_IDS } from './themes'
 
 export type { PlaylistEntry }
 
@@ -26,11 +31,26 @@ export const currentSlot = atom(-1, 'currentSlot').extend(idb)
 
 export const shuffleEnabled = atom(false, 'shuffleEnabled').extend(idb)
 
-export type RepeatMode = 'none' | 'all' | 'one'
-
-export const repeatMode = atom<RepeatMode>('none', 'repeatMode').extend(idb)
+export const repeatMode = reatomEnum(
+  ['none', 'all', 'one'],
+  'repeatMode',
+).extend(idb)
 
 export const volume = atom(0.75, 'volume').extend(idb)
+
+export const playerTheme = reatomEnum(PLAYER_THEME_IDS, {
+  name: 'playerTheme',
+  initState: 'classic',
+}).extend(
+  withLocalStorage('playerTheme'),
+  withChangeHook((value) => {
+    if (value === 'classic') {
+      delete document.documentElement.dataset.playerTheme
+    } else {
+      document.documentElement.dataset.playerTheme = value
+    }
+  }),
+)
 
 export const isPlaying = atom(false, 'isPlaying')
 
@@ -45,16 +65,43 @@ export const audioElementHost = atom<HTMLAudioElement | null>(
 
 export const currentObjectUrl = atom<string | null>(null, 'currentObjectUrl')
 
-export const nowPlayingTitle = computed(() => {
+export const lastAudibleVolume = atom(0.75, 'lastAudibleVolume')
+
+export const currentEntry = computed(() => {
   const slot = currentSlot()
   const order = playOrder()
   const list = playlist()
   if (slot < 0 || slot >= order.length || list.length === 0) {
-    return 'No file'
+    return null
   }
-  const entry = list[order[slot]]
-  return entry?.relativePath ?? 'No file'
+  return list[order[slot]!] ?? null
+}, 'currentEntry')
+
+export const trackCount = computed(() => playOrder().length, 'trackCount')
+
+export const nowPlayingTitle = computed(() => {
+  return currentEntry()?.relativePath ?? 'Nothing queued'
 }, 'nowPlayingTitle')
+
+function folderPathLabel(relativePath: string) {
+  const lastSlash = relativePath.lastIndexOf('/')
+  if (lastSlash === -1) {
+    return 'Root folder'
+  }
+  return relativePath.slice(0, lastSlash).split('/').join(' / ')
+}
+
+export const nowPlayingFileName = computed(() => {
+  return currentEntry()?.fileName ?? 'Nothing queued'
+}, 'nowPlayingFileName')
+
+export const nowPlayingContext = computed(() => {
+  const entry = currentEntry()
+  if (!entry) {
+    return 'Open a folder to turn local files into a playable queue.'
+  }
+  return folderPathLabel(entry.relativePath)
+}, 'nowPlayingContext')
 
 function shuffledIndices(length: number): number[] {
   const indices = Array.from({ length }, (_, index) => index)
@@ -73,6 +120,24 @@ function revokeObjectUrlAtom() {
     URL.revokeObjectURL(url)
     currentObjectUrl.set(null)
   }
+}
+
+function clearMediaElementSource() {
+  const mediaElement = audioElementHost()
+  if (!mediaElement) {
+    return
+  }
+  mediaElement.pause()
+  mediaElement.removeAttribute('src')
+  mediaElement.load()
+}
+
+function resetPlaybackState() {
+  revokeObjectUrlAtom()
+  clearMediaElementSource()
+  isPlaying.set(false)
+  positionSec.set(0)
+  durationSec.set(0)
 }
 
 async function ensureFileReadAccess(handle: FileSystemFileHandle) {
@@ -129,21 +194,17 @@ export const loadCurrentTrack = action(async () => {
   }
   const canRead = await wrap(ensureFileReadAccess(entry.handle))
   if (!canRead) {
-    revokeObjectUrlAtom()
-    const mediaEl = audioElementHost()
-    if (mediaEl) {
-      mediaEl.pause()
-      mediaEl.removeAttribute('src')
-      mediaEl.load()
-    }
-    isPlaying.set(false)
+    resetPlaybackState()
     return
   }
   revokeObjectUrlAtom()
   const file = await wrap(entry.handle.getFile())
   const url = URL.createObjectURL(file)
   currentObjectUrl.set(url)
+  positionSec.set(0)
+  durationSec.set(0)
   el.src = url
+  await resumeAudioGraph()
   await wrap(el.play())
 }, 'loadCurrentTrack').extend(withAsync())
 
@@ -154,16 +215,7 @@ function applyScannedTracks(folderName: string, tracks: PlaylistEntry[]) {
   if (trackCount === 0) {
     playOrder.set([])
     currentSlot.set(-1)
-    revokeObjectUrlAtom()
-    const mediaEl = audioElementHost()
-    if (mediaEl) {
-      mediaEl.pause()
-      mediaEl.removeAttribute('src')
-      mediaEl.load()
-    }
-    isPlaying.set(false)
-    positionSec.set(0)
-    durationSec.set(0)
+    resetPlaybackState()
     return
   }
   const order = shuffleEnabled()
@@ -182,6 +234,14 @@ export const openFolder = action(async () => {
   applyScannedTracks(picked.name, picked.tracks)
 }, 'openFolder').extend(withAsync())
 
+export const clearQueue = action(() => {
+  folderLabel.set('')
+  playlist.set([])
+  playOrder.set([])
+  currentSlot.set(-1)
+  resetPlaybackState()
+}, 'clearQueue')
+
 // TODO remove (need withIndexedDb fix)
 effect(() => {
   const list = playlist()
@@ -194,16 +254,7 @@ effect(() => {
     if (slot !== -1) {
       currentSlot.set(-1)
     }
-    revokeObjectUrlAtom()
-    const mediaEl = audioElementHost()
-    if (mediaEl) {
-      mediaEl.pause()
-      mediaEl.removeAttribute('src')
-      mediaEl.load()
-    }
-    isPlaying.set(false)
-    positionSec.set(0)
-    durationSec.set(0)
+    resetPlaybackState()
     return
   }
   const permutationOk =
@@ -249,6 +300,7 @@ export const togglePlay = action(async () => {
   if (isPlaying()) {
     el.pause()
   } else {
+    await resumeAudioGraph()
     await wrap(el.play())
   }
 }, 'togglePlay')
@@ -331,10 +383,20 @@ export const toggleShuffle = action(() => {
 }, 'toggleShuffle')
 
 export const cycleRepeat = action(() => {
-  const sequence: RepeatMode[] = ['none', 'all', 'one']
+  const sequence = Object.values(repeatMode.enum)
   const index = sequence.indexOf(repeatMode())
   repeatMode.set(sequence[(index + 1) % sequence.length]!)
 }, 'cycleRepeat')
+
+export const toggleMute = action(() => {
+  const currentVolume = volume()
+  if (currentVolume > 0) {
+    lastAudibleVolume.set(currentVolume)
+    volume.set(0)
+    return
+  }
+  volume.set(lastAudibleVolume() || 0.75)
+}, 'toggleMute')
 
 export const seekToRatio = action((ratio: number) => {
   const el = audioElementHost()
@@ -355,6 +417,7 @@ export function bindAudioElement(el: HTMLAudioElement | null) {
   }
 
   audioElementHost.set(el)
+  ensureAudioGraph(el)
   el.volume = volume()
 
   const onTimeUpdate = () => {
@@ -393,6 +456,9 @@ export function bindAudioElement(el: HTMLAudioElement | null) {
 effect(() => {
   const level = volume()
   const el = audioElementHost()
+  if (level > 0) {
+    lastAudibleVolume.set(level)
+  }
   if (el) {
     el.volume = level
   }

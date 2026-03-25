@@ -1,19 +1,92 @@
-import { isPlaying, volume } from '../model'
+import { action, atom } from '@reatom/core'
 
-const bars = [72, 48, 86, 58, 94, 38, 76, 52, 88, 46, 82, 60]
+import {
+  EQ_GAIN_MAX,
+  EQ_GAIN_MIN,
+  activeEqPresetId,
+  activeEqPresetLabel,
+  applyEqPreset,
+  eqEnabled,
+  equalizerBands,
+  equalizerPresets,
+  getEqualizerGains,
+  resetEqBandGains,
+  setEqBandGain,
+  toggleEq,
+} from '../equalizer'
+
+const chromeButton = `
+  min-width: 0;
+  height: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--skin-border-dark);
+  background: linear-gradient(
+    180deg,
+    var(--skin-button-top) 0%,
+    var(--skin-button-face) 55%,
+    var(--skin-button-bottom) 100%
+  );
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 var(--skin-button-shadow-mid);
+  color: var(--skin-button-text);
+  font-family: var(--pixel-font);
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.03);
+  }
+
+  &:active {
+    box-shadow:
+      inset 1px 1px 0 var(--skin-button-shadow-mid),
+      inset -1px -1px 0 #ffffff;
+  }
+`
+
+const gainMarkers = [EQ_GAIN_MAX, 0, EQ_GAIN_MIN]
+
+const eqPresetMenuOpen = atom(false, 'eqPresetMenuOpen')
+
+const closeEqPresetMenu = action(() => {
+  eqPresetMenuOpen.set(false)
+}, 'closeEqPresetMenu')
+
+const toggleEqPresetMenu = action(() => {
+  eqPresetMenuOpen.set(!eqPresetMenuOpen())
+}, 'toggleEqPresetMenu')
 
 export const Visualizer = () => {
   return (
-    <div
-      aria-hidden="true"
+    <section
+      role="region"
+      aria-label="Equalizer"
+      on:keydown={(event) => {
+        if (event.key === 'Escape') {
+          closeEqPresetMenu()
+        }
+      }}
       css={`
-        padding: 8px 9px 9px;
-        border: 1px solid rgba(0, 0, 0, 0.72);
-        border-radius: 9px;
-        background: linear-gradient(180deg, rgba(43, 47, 56, 0.94), rgba(18, 21, 27, 0.98));
+        position: relative;
+        display: grid;
+        grid-template-rows: auto minmax(116px, 1fr);
+        gap: 4px;
+        height: 100%;
+        min-height: 0;
+        padding: 4px;
+        border: 1px solid var(--skin-border-dark);
+        background: linear-gradient(
+          180deg,
+          rgba(95, 100, 148, 0.98) 0%,
+          var(--skin-panel) 26%,
+          var(--skin-panel-dark) 100%
+        );
         box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.08),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+          inset 1px 1px 0 var(--skin-border-light),
+          inset -1px -1px 0 var(--skin-panel-inset-dark);
       `}
     >
       <div
@@ -21,112 +94,307 @@ export const Visualizer = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 7px;
-          color: var(--winamp-muted);
-          font-size: 9px;
-          letter-spacing: 0.12em;
+          gap: 8px;
+          padding: 0 1px;
+          color: #dde2f3;
+          font-family: var(--pixel-font);
+          font-size: 8px;
+          line-height: 1;
+          letter-spacing: 0.08em;
           text-transform: uppercase;
-        `}
-      >
-        <span>EQ</span>
-        <span
-          css={() => `
-            color: ${isPlaying() ? '#ffd978' : 'rgba(255, 217, 120, 0.42)'};
-            animation: winamp-led-pulse 900ms ease-in-out infinite;
-            animation-play-state: ${isPlaying() ? 'running' : 'paused'};
-          `}
-        >
-          {() => (isPlaying() ? 'Live' : 'Idle')}
-        </span>
-      </div>
-
-      <div
-        css={`
-          position: relative;
-          display: flex;
-          align-items: flex-end;
-          gap: 4px;
-          height: 60px;
-          padding: 8px 7px 7px;
-          border: 1px solid #061008;
-          border-radius: 8px;
-          overflow: hidden;
-          background:
-            linear-gradient(180deg, rgba(9, 34, 15, 0.98), rgba(5, 17, 9, 0.98)),
-            repeating-linear-gradient(
-              180deg,
-              rgba(255, 255, 255, 0.026) 0 1px,
-              transparent 1px 4px
-            );
-          box-shadow:
-            inset 0 0 0 1px rgba(135, 255, 145, 0.08),
-            inset 0 0 20px rgba(44, 255, 93, 0.08);
         `}
       >
         <div
           css={`
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(
-              110deg,
-              transparent 0%,
-              rgba(255, 255, 255, 0.1) 46%,
-              transparent 54%
-            );
-            animation: winamp-sheen 2.8s linear infinite;
-            opacity: 0.28;
-            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            min-width: 0;
           `}
-        />
-        {bars.map((baseHeight, index) => (
+        >
+          <span>EQ</span>
           <span
-            css={() => {
-              const level = volume()
-              const active = isPlaying()
-              const idleScale = 0.18 + (index % 4) * 0.04
-              const activeScale = 0.5 + level * 0.6
-              return `
-                position: relative;
-                z-index: 1;
-                width: 4px;
-                height: ${baseHeight}%;
-                border-radius: 999px 999px 2px 2px;
-                background: linear-gradient(
-                  180deg,
-                  #fff0a0 0%,
-                  #ffc85d 22%,
-                  #ff9831 48%,
-                  #61ff83 100%
-                );
-                box-shadow:
-                  0 0 8px rgba(255, 165, 52, 0.2),
-                  0 0 14px rgba(97, 255, 131, 0.16);
-                transform-origin: bottom;
-                transform: scaleY(${active ? activeScale : idleScale});
-                animation: winamp-meter ${660 + index * 45}ms ease-in-out infinite alternate;
-                animation-delay: ${index * 55}ms;
-                animation-play-state: ${active ? 'running' : 'paused'};
-                opacity: ${active ? 0.96 : 0.45};
-              `
-            }}
-          />
-        ))}
+            css={`
+              min-width: 0;
+              color: #ffdc73;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            `}
+          >
+            {() => activeEqPresetLabel()}
+          </span>
+        </div>
+        <div
+          css={`
+            display: flex;
+            gap: 3px;
+            align-items: center;
+          `}
+        >
+          <button
+            type="button"
+            on:click={() => toggleEq()}
+            prop:aria-pressed={() => eqEnabled()}
+            css={`
+              ${chromeButton}
+              color: ${eqEnabled() ? 'var(--skin-display-text)' : 'var(--skin-button-text)'};
+            `}
+          >
+            {() => (eqEnabled() ? 'On' : 'Off')}
+          </button>
+          <button
+            type="button"
+            on:click={() => toggleEqPresetMenu()}
+            aria-haspopup="menu"
+            prop:aria-expanded={() => eqPresetMenuOpen()}
+            css={`
+              ${chromeButton}
+              color: ${eqPresetMenuOpen()
+                ? 'var(--skin-display-text)'
+                : 'var(--skin-button-text)'};
+            `}
+          >
+            Prs
+          </button>
+          <button
+            type="button"
+            on:click={() => resetEqBandGains()}
+            css={chromeButton}
+          >
+            Rst
+          </button>
+        </div>
       </div>
+
+      {() =>
+        eqPresetMenuOpen() && (
+          <div
+            role="menu"
+            aria-label="Equalizer presets"
+            css={`
+              position: absolute;
+              top: 23px;
+              right: 4px;
+              z-index: 5;
+              width: 142px;
+              max-height: 178px;
+              overflow: auto;
+              display: grid;
+              padding: 2px;
+              border: 1px solid #000000;
+              background: linear-gradient(180deg, #d5d9e9 0%, #b1b7cf 100%);
+              box-shadow:
+                1px 1px 0 rgba(7, 9, 24, 0.9),
+                inset 1px 1px 0 #f8f9ff,
+                inset -1px -1px 0 #6f7690;
+            `}
+          >
+            {equalizerPresets.map((preset) => (
+              <button
+                type="button"
+                role="menuitemradio"
+                prop:aria-checked={() => activeEqPresetId() === preset.id}
+                on:click={() => {
+                  applyEqPreset(preset.id)
+                  closeEqPresetMenu()
+                }}
+                css={() => `
+                  min-width: 0;
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 6px;
+                  height: 18px;
+                  padding: 0 5px;
+                  border: 1px solid transparent;
+                  background: ${activeEqPresetId() === preset.id ? '#2a3157' : 'transparent'};
+                  color: ${activeEqPresetId() === preset.id ? '#ffef9c' : '#22263e'};
+                  font-family: var(--pixel-font);
+                  font-size: 7px;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  text-align: left;
+                  cursor: pointer;
+
+                  &:hover {
+                    background: ${activeEqPresetId() === preset.id ? '#2a3157' : '#596084'};
+                    color: ${activeEqPresetId() === preset.id ? '#ffef9c' : '#f7f8ff'};
+                  }
+                `}
+              >
+                <span
+                  css={`
+                    min-width: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  `}
+                >
+                  {preset.label}
+                </span>
+                <span>{() => (activeEqPresetId() === preset.id ? '*' : '')}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
       <div
         css={`
-          display: flex;
-          justify-content: space-between;
-          margin-top: 6px;
-          color: rgba(191, 255, 198, 0.7);
-          font-family: ui-monospace, 'Courier New', monospace;
-          font-size: 9px;
-          letter-spacing: 0.08em;
+          min-height: 0;
+          display: grid;
+          grid-template-columns: 22px minmax(0, 1fr);
+          gap: 4px;
+          padding: 4px 3px 5px;
+          border: 1px solid #000000;
+          background: linear-gradient(180deg, #dadde8 0%, #b6bbd0 100%);
+          box-shadow:
+            inset 1px 1px 0 #f8f9ff,
+            inset -1px -1px 0 #6f7690;
         `}
       >
-        <span>L</span>
-        <span>R</span>
+        <div
+          css={`
+            display: grid;
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            align-items: center;
+            color: #5a617b;
+            font-family: var(--pixel-font);
+            font-size: 7px;
+            line-height: 1;
+            letter-spacing: 0.06em;
+          `}
+        >
+          {gainMarkers.map((marker) => (
+            <span>
+              {marker > 0 ? `+${marker}` : marker}
+            </span>
+          ))}
+        </div>
+        <div
+          css={() => `
+            min-height: 0;
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) auto;
+            gap: 4px;
+            opacity: ${eqEnabled() ? 1 : 0.58};
+          `}
+        >
+          <div
+            css={`
+              min-height: 0;
+              display: grid;
+              grid-template-columns: repeat(10, minmax(0, 1fr));
+              gap: 4px;
+              padding: 2px 3px 0;
+              border: 1px solid #6c728c;
+              background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 18%),
+                repeating-linear-gradient(
+                  180deg,
+                  rgba(255, 255, 255, 0.18) 0 1px,
+                  transparent 1px 24px
+                );
+            `}
+          >
+            {equalizerBands.map((band, index) => (
+              <div
+                css={`
+                  min-width: 0;
+                  display: grid;
+                  place-items: center;
+                `}
+              >
+                <input
+                  type="range"
+                  min={EQ_GAIN_MIN}
+                  max={EQ_GAIN_MAX}
+                  step={0.5}
+                  aria-label={`${band.label} equalizer band`}
+                  title={`${band.label} Hz`}
+                  prop:value={() => getEqualizerGains()[index] ?? 0}
+                  on:input={(event) => {
+                    setEqBandGain({
+                      index,
+                      gain: Number(event.currentTarget.value),
+                    })
+                  }}
+                  css={`
+                    width: 14px;
+                    height: 102px;
+                    margin: 0;
+                    writing-mode: vertical-lr;
+                    direction: rtl;
+                    appearance: none;
+                    background: transparent;
+                    cursor: pointer;
+
+                    &::-webkit-slider-runnable-track {
+                      width: 6px;
+                      border: 1px solid #0a0a0a;
+                      background: linear-gradient(180deg, #4b4f61 0%, #303446 100%);
+                    }
+
+                    &::-webkit-slider-thumb {
+                      appearance: none;
+                      width: 12px;
+                      height: 10px;
+                      margin-left: -4px;
+                      border: 1px solid var(--skin-border-dark);
+                      background: linear-gradient(
+                        180deg,
+                        #f6d76f 0%,
+                        #d7b453 100%
+                      );
+                      box-shadow:
+                        inset 1px 1px 0 #fff3bb,
+                        inset -1px -1px 0 #8b6f2e;
+                    }
+
+                    &::-moz-range-track {
+                      width: 6px;
+                      border: 1px solid #0a0a0a;
+                      background: linear-gradient(180deg, #4b4f61 0%, #303446 100%);
+                    }
+
+                    &::-moz-range-thumb {
+                      width: 12px;
+                      height: 10px;
+                      border: 1px solid var(--skin-border-dark);
+                      background: linear-gradient(
+                        180deg,
+                        #f6d76f 0%,
+                        #d7b453 100%
+                      );
+                      box-shadow:
+                        inset 1px 1px 0 #fff3bb,
+                        inset -1px -1px 0 #8b6f2e;
+                    }
+                  `}
+                />
+              </div>
+            ))}
+          </div>
+          <div
+            css={`
+              display: grid;
+              grid-template-columns: repeat(10, minmax(0, 1fr));
+              gap: 4px;
+              color: #4a5067;
+              font-family: var(--pixel-font);
+              font-size: 7px;
+              line-height: 1;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+              text-align: center;
+            `}
+          >
+            {equalizerBands.map((band) => (
+              <span>{band.label}</span>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   )
 }
