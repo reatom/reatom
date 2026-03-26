@@ -93,7 +93,7 @@ export interface FormAtom<
 > extends ValidationlessFieldSetAtom<InitState> {
   /**
    * Atom with validation state of the form, computed from all the fields in
-   * `fieldsList`
+   * `allFieldsList`
    */
   validation: Computed<FieldSetValidation> & {
     /** Action to trigger form validation. */
@@ -118,7 +118,7 @@ export interface FormAtom<
 
   /**
    * Submit async handler. It checks the validation of all the fields in
-   * `fieldsList`, calls the form's `validate` options handler, and then the
+   * `allFieldsList`, calls the form's `validate` options handler, and then the
    * `onSubmit` options handler.
    *
    * @see {@link https://reatom.dev/handbook/async/#basic-async-actions|Async actions documentation}
@@ -602,10 +602,7 @@ export function reatomForm<
         }
       }
 
-      for (const field of [
-        ...fieldSet.fieldsList(),
-        ...fieldSet.fieldArraysList(),
-      ]) {
+      for (const field of fieldSet.allFieldsList()) {
         const placedErrors = touched.get(field)
         if (!placedErrors) {
           if (field.validation.errors().find((e) => e.source == 'schema'))

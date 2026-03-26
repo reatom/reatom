@@ -31,7 +31,7 @@ import { fieldInitFocus, isFieldAtom } from './withBaseField'
 
 /** Field validation error with a reference to the field where it occurred. */
 export interface FieldSetFieldError extends FieldError {
-  field: FieldAtom
+  field: FieldAtom | FieldArrayAtom
 }
 
 /**
@@ -90,9 +90,12 @@ export interface ValidationlessFieldSetAtom<InitState extends FieldSetInitState>
   /** Computed list of all the field arrays from the fields tree */
   fieldArraysList: Computed<FieldArrayAtom[]>
 
+  /** Computed list of all the fields and field arrays from the fields tree */
+  allFieldsList: Computed<(FieldAtom | FieldArrayAtom)[]>
+
   /**
    * Atom with the state of the fieldset, computed from all the fields in
-   * `fieldsList`
+   * `allFieldsList`
    *
    * @deprecated Use target atom instead
    */
@@ -100,7 +103,7 @@ export interface ValidationlessFieldSetAtom<InitState extends FieldSetInitState>
 
   /**
    * Atom with focus state of the fieldset, computed from all the fields in
-   * `fieldsList`
+   * `allFieldsList`
    */
   focus: Computed<FieldFocus>
 
@@ -120,7 +123,7 @@ export interface FieldSetAtom<
 > extends ValidationlessFieldSetAtom<InitState> {
   /**
    * Atom with validation state of the fieldset, computed from all the fields in
-   * `fieldsList`
+   * `allFieldsList`
    */
   validation: Computed<FieldSetValidation> & {
     /** Action to trigger fieldset validation. */
@@ -141,8 +144,9 @@ export interface FieldSetAtom<
  * - **Aggregated state** — track combined `focus`, `validation`, and values of
  *   multiple fields
  *
- * Provides `fieldsList`/`fieldArraysList` for iteration, `init`/`reset` for
- * bulk operations. The fieldset itself is a computed atom of all field values.
+ * Provides `fieldsList`/`fieldArraysList`/`allFieldsList` for iteration,
+ * `init`/`reset` for bulk operations. The fieldset itself is a computed atom of
+ * all field values.
  *
  * @example
  *   // Reusable field group
@@ -210,12 +214,16 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
     () => computeFieldArraysList(fields),
     `${name}._fieldArraysList`,
   )
+  const allFieldsList = computed(
+    () => [...fieldArraysList(), ...fieldsList()],
+    `${name}._allFieldsList`,
+  )
   const fieldsState = computed(() => deatomize(fields), name)
 
   const focus = computed(() => {
     const focus = { ...fieldInitFocus }
 
-    for (const field of fieldsList()) {
+    for (const field of allFieldsList()) {
       if (field.disabled()) continue
 
       const { active, dirty, touched } = field.focus()
@@ -236,7 +244,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
       triggered: true,
     }
 
-    for (const field of fieldsList()) {
+    for (const field of allFieldsList()) {
       if (field.disabled()) continue
 
       const errors = field.validation.errors()
@@ -262,7 +270,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
     return validation
   }, `${name}.validation`).extend(withMemo(), (target) => ({
     trigger: action(() => {
-      for (const field of fieldsList()) {
+      for (const field of allFieldsList()) {
         if (!field.validation().triggered) field.validation.trigger()
       }
 
@@ -296,6 +304,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
   const reset = action((initState?: FieldSetPartialState<InitState>) => {
     if (initState) init(initState)
 
+    // not allFieldsList because we have to reset all field arrays first, this will allow us to get the initial fieldsList to reset
     fieldArraysList().forEach((fieldArray) => fieldArray.reset())
     fieldsList().forEach((fieldAtom) => fieldAtom.reset())
   }, `${name}.reset`)
@@ -305,6 +314,7 @@ export const reatomFieldSet = <InitState extends FieldSetInitState>(
     fieldsState,
     fieldsList,
     fieldArraysList,
+    allFieldsList,
     focus,
     validation,
     init,

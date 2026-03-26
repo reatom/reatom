@@ -376,12 +376,11 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
         // TODO decouple into a function (including a reatomForm one)
         const elements = []
         let head = state.head
-        while (head) {
+        for (let i = 0; head && i < state.size; i++) {
           elements.push(head)
           head = head[state.LL_NEXT]
         }
-        // TODO: reatomLinkedLost does not support the same elements in two or more difference linked lists so we need to limit size of the array there
-        return elements.slice(0, state.size)
+        return elements
       },
       getValue: (): FieldArrayLLNode<Node>[] => fieldArrayAtom.array(),
       isDirty,

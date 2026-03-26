@@ -132,11 +132,23 @@ test(`correct dirty check`, () => {
   expect(fieldArray.focus().dirty).toBeFalsy()
 
   const element = fieldArray.create('b')
-
   expect(fieldArray.focus().dirty).toBeTruthy()
 
   fieldArray.remove(element)
 
+  expect(fieldArray.focus().dirty).toBeFalsy()
+
+  fieldArray.reset()
+
+  expect(fieldArray.focus().dirty).toBeFalsy()
+
+  const first = fieldArray.array()[0]!
+  const last = fieldArray.array().at(-1)!
+
+  fieldArray.swap(first, last)
+  expect(fieldArray.focus().dirty).toBeTruthy()
+
+  fieldArray.swap(last, first)
   expect(fieldArray.focus().dirty).toBeFalsy()
 })
 

@@ -80,6 +80,14 @@ test('focus states', () => {
 
   expect(form.focus()).toEqual({
     active: false,
+    dirty: true,
+    touched: false,
+  })
+
+  form.reset()
+
+  expect(form.focus()).toEqual({
+    active: false,
     dirty: false,
     touched: false,
   })
@@ -197,6 +205,30 @@ describe('validation states', async () => {
     })
 
     expect(onSubmit).not.toBeCalled()
+  })
+
+  test('correct states with field array', async () => {
+    const onSubmit = vi.fn()
+    const validate = vi.fn()
+
+    const form = reatomForm(
+      {
+        contacts: reatomFieldArray(['alice@example.com', 'bob@example.com'], {
+          create: (email: string) => ({ email, verified: false }),
+          validate: ({ state }) => {
+            validate()
+            return !state.length ? 'At least one item required' : undefined
+          },
+        }),
+      },
+      {
+        onSubmit,
+      },
+    )
+
+    await wrap(form.submit().catch(noop))
+    expect(onSubmit).toBeCalled()
+    expect(validate).toBeCalled()
   })
 })
 
