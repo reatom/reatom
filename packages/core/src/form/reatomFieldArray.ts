@@ -1,11 +1,4 @@
-import {
-  action,
-  atom,
-  type AtomState,
-  isAtom,
-  named,
-  withParams,
-} from '../core'
+import { action, atom, type AtomState, named, withParams } from '../core'
 import { withCallHook } from '../extensions'
 import {
   type LinkedList,
@@ -13,8 +6,7 @@ import {
   type LLNode,
   reatomLinkedList,
 } from '../primitives'
-import { isShallowEqual } from '../utils'
-import type { FieldAtom } from './reatomField'
+import { isRec, isShallowEqual } from '../utils'
 import {
   type FieldsAtomize,
   type FieldsAtomizeInitState,
@@ -24,6 +16,7 @@ import {
 import {
   type BaseFieldExt,
   type BaseFieldExtOptions,
+  isFieldAtom,
   withBaseField,
 } from './withBaseField'
 
@@ -162,7 +155,7 @@ export type FieldArrayItem<T> =
  * @returns `true` if the atom is a {@link FieldArrayAtom}, `false` otherwise
  */
 export const isFieldArrayAtom = (atom: any): atom is FieldArrayAtom => {
-  return isAtom(atom) && 'experimental_onFieldCreated' in atom
+  return isFieldAtom(atom) && 'experimental_onFieldCreated' in atom
 }
 
 /**
@@ -339,7 +332,7 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
     named('fieldArray')
 
   const onFieldCreated: OnFieldCreatedAction = action(
-    (field: FieldAtom) => field,
+    (field) => field,
     `${name}.onFieldCreated`,
   )
 
@@ -360,7 +353,17 @@ export function reatomFieldArray<Param, Node extends FieldsAtomizeInitState>(
           create(param, factoryName),
           factoryName,
         )
+
         model.experimental_onFieldCreated?.extend(withCallHook(onFieldCreated))
+
+        const notifyFieldCreated = (element: unknown) => {
+          if (isFieldAtom(element)) {
+            onFieldCreated(element)
+          } else if (isRec(element)) {
+            Object.values(element).forEach(notifyFieldCreated)
+          }
+        }
+        notifyFieldCreated(model.fields)
 
         return model.fields
       },

@@ -114,13 +114,13 @@ export type FieldsAtomize<Element> = [Element] extends [FieldLikeAtom]
             : FieldAtom<Element>
 
 /**
- * Action that is called when a new field is created inside a
+ * Action that is called when a new field or field array is created inside a
  * {@link FieldArrayAtom}. Used to hook into field creation for custom setup
  * (e.g., applying form-level validation options).
  *
  * @see {@link FieldsAtomizeModel.experimental_onFieldCreated}
  */
-export type OnFieldCreatedAction = Action<[field: FieldAtom], FieldAtom>
+export type OnFieldCreatedAction = Action<[field: FieldLikeAtom], FieldLikeAtom>
 
 /**
  * Return type of {@link reatomFieldsAtomize}. Contains the atomized fields tree
@@ -236,7 +236,7 @@ export const reatomFieldsAtomize = <InitState extends FieldsAtomizeInitState>(
       for (const [key, value] of Object.entries(element)) {
         if (isFieldArrayAtom(value) || Array.isArray(value)) {
           onFieldCreated ??= action(
-            (field: FieldAtom) => field,
+            (field: FieldLikeAtom) => field,
             `${name}._onFieldCreated`,
           )
 

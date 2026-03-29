@@ -567,6 +567,12 @@ test('validating through form schema and placing errors to corresponding fields'
   expect(form.fields.items.validation().error).toBeTruthy()
   expect(form.fields.items.array()[0]!.validation().error).toBeTruthy()
   expect(form.fields.items.array()[1]!.validation().error).toBeFalsy()
+
+  const field = form.fields.items.create('')
+  await wrap(sleep())
+  field.validation.trigger()
+  await wrap(form.submit().catch(noop))
+  expect(form.fields.items.array()[2]!.validation().error).toBeTruthy()
 })
 
 test('triggering schema validation only for one field', async () => {
