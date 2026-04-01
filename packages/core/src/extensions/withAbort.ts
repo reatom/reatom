@@ -75,8 +75,11 @@ export let withAbort =
   (target) => {
     let recomputed = new WeakSet<Frame>()
 
-    let getActiveControllers = () =>
-      memoKey('withAbort.activeControllers', () => new Array<AbortController>())
+    let getAbortState = () =>
+      memoKey('withAbort', () => ({
+        activeControllers: new Array<AbortController>(),
+        lastFirstInWin: null as null | ReatomAbortController,
+      }))
 
     let withAbort = (next: Fn, ...params: any[]) => {
       let frame = top()
@@ -85,7 +88,8 @@ export let withAbort =
       let prevState = frame.state
       let state = prevState
 
-      let activeControllers = getActiveControllers()
+      let abortState = getAbortState()
+      let activeControllers = abortState.activeControllers
 
       if (strategy === 'first-in-win' && activeControllers.length > 0) {
         throwAbort('first-in-win processing')
@@ -140,6 +144,10 @@ export let withAbort =
       if (hasError) throw computationError
 
       activeControllers.push(thisController)
+
+      if (strategy === 'first-in-win') {
+        abortState.lastFirstInWin = thisController
+      }
 
       let maybePromise = target.__reatom.reactive
         ? state
@@ -213,9 +221,18 @@ export let withAbort =
 
     return {
       abort: action((reason?: any) => {
-        let activeControllers = top()
-          .root.store.get(target)
-          ?.run(getActiveControllers)
+        let targetFrame = top().root.store.get(target)
+        let abortState = targetFrame?.run(getAbortState)
+        let activeControllers = abortState?.activeControllers
+
+        if (!activeControllers || activeControllers.length === 0) {
+          if (strategy === 'first-in-win') {
+            if (abortState?.lastFirstInWin)
+              activeControllers = [abortState.lastFirstInWin]
+          } else if (targetFrame?.['var#abort']) {
+            activeControllers = [targetFrame['var#abort']]
+          }
+        }
 
         if (activeControllers) {
           abortControllers(activeControllers, reason || 'abort')

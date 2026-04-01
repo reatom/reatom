@@ -1,16 +1,20 @@
 import { expect, type Mock, test, vi } from 'test'
 
 import { _read, action, atom, type AtomLike, computed, notify } from '../core'
+import type { ReatomAbortController } from '../methods'
 import { abortVar, effect, getCalls, memoKey, race, wrap } from '../methods'
 import { type Fn, noop, sleep } from '../utils'
 import { withAbort } from './withAbort'
 
 const getActiveControllers = (target: AtomLike) =>
   _read(target)!.run(() =>
-    memoKey('withAbort.activeControllers', (): Array<AbortController> => {
-      throw new Error('Memo cache not working')
-    }),
-  )
+    memoKey(
+      'withAbort',
+      (): { activeControllers: Array<AbortController> } => {
+        throw new Error('Memo cache not working')
+      },
+    ),
+  ).activeControllers
 
 test('last-in-win: abort propagation', async () => {
   const name = 'abortPropagation'
@@ -386,4 +390,42 @@ test('"finally" strategy and race', async () => {
   expect(await wrap(resolveMockCatch(fetchUsers))).includes('race')
   expect(await wrap(resolveMockCatch(fetchComments))).includes('manual')
   expect(await wrap(resolveMockCatch(fetchInfinity))).includes('finally')
+})
+
+test('fallback to frame controller if no active controllers', async () => {
+  const name = 'fallbackToFrameController'
+
+  let controller: ReatomAbortController
+  const someAction = action(() => {
+    controller = abortVar.require()
+  }, `${name}.someAction`).extend(withAbort('manual'))
+
+  someAction()
+
+  await wrap(sleep())
+
+  someAction.abort()
+  expect(controller!.signal.aborted).toBe(true)
+})
+
+test('first-in-win: fallback to frame controller if no active controllers', async () => {
+  const name = 'FirstInWinFallbackToFrameController'
+
+  let controller: ReatomAbortController
+  const someAction = action(async () => {
+    controller = abortVar.require()
+  }, `${name}.someAction`).extend(withAbort('first-in-win'))
+
+  someAction()
+  try {
+    someAction()
+    someAction()
+  } catch {
+    /* nothing */
+  }
+
+  await wrap(sleep())
+
+  someAction.abort()
+  expect(controller!.signal.aborted).toBe(true)
 })
