@@ -24,6 +24,7 @@
     "@types/node": "latest",
     "@vitejs/plugin-react": "catalog:",
     "@vitest/browser-playwright": "catalog:",
+    "@vitest/spy": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
     "eslint-plugin-unused-imports": "catalog:",

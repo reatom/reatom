@@ -8,6 +8,6 @@
     "jsxFactory": "h",
     "jsxFragmentFactory": "hf",
     "jsxImportSource": "@reatom/jsx",
-    "types": ["@vitest/browser-playwright"]
+    "types": ["vitest", "@vitest/browser-playwright"]
   }
 }

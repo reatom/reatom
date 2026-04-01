@@ -5,7 +5,7 @@
     "paths": {
       "test": ["./src/test.ts"]
     },
-    "types": ["@vitest/browser-playwright"]
+    "types": ["vitest", "@vitest/browser-playwright"]
   },
   "exclude": ["build", "dist"]
 }
