@@ -1,5 +1,5 @@
-import { _enqueue, atom, bind, computed, type Frame, top } from './core'
-import { type AbortSubscription, abortVar, variable, wrap } from './methods'
+import { _enqueue, _read, atom, bind, computed, type Frame, top } from './core'
+import { type AbortSubscription, abortVar, variable } from './methods'
 import { _getPrevFrame } from './methods/context'
 import type { Unsubscribe } from './utils'
 
@@ -72,15 +72,15 @@ export let reatomAbstractRender = <Props, Result>({
   frame,
   render: adapterRender,
   rerender,
-  mount: adapterMount,
   name,
+  abortOnUnmount,
 }: {
   frame: Frame
   render: (props: Props) => Result
   // Exclude for correct type inference
   rerender: (param: { result: Exclude<Result, never> }) => any
-  mount?: () => void
   name: string
+  abortOnUnmount: boolean
 }): AbstractRender<Props, Result> =>
   frame.run(() => {
     let rendering = false
@@ -90,9 +90,8 @@ export let reatomAbstractRender = <Props, Result>({
     let _props = atom({} as Props, `_${name}.props`)
 
     let abortSubscription: AbortSubscription
-    let lastFrame: Frame
 
-    let recheckAbort = () => {
+    let recheckAbort = (targetFrame: Frame) => {
       abortSubscription ??= abortVar.subscribe()
       // Related to react remounts of `StrictMode` and `Activity`.
       if (abortSubscription.controller.signal.aborted) {
@@ -101,13 +100,14 @@ export let reatomAbstractRender = <Props, Result>({
         abortSubscription = abortVar.subscribe()
       }
 
+      // TODO: sure?
       abortSubscription.controller.spawned = true
-      lastFrame!['var#abort'] = abortSubscription.controller
+
+      targetFrame['var#abort'] = abortSubscription.controller
     }
 
     let _render = computed((state?: { result: Result }): { result: Result } => {
       let frame = top()
-      lastFrame = frame
       let pubs = _getPrevFrame(frame)?.pubs ?? [null]
 
       _enqueue(() => (pubs.length = 1), 'cleanup')
@@ -115,7 +115,7 @@ export let reatomAbstractRender = <Props, Result>({
       let props = _props()
 
       if (rendering) {
-        recheckAbort()
+        recheckAbort(frame)
 
         return { result: adapterRender(props) }
       }
@@ -145,10 +145,9 @@ export let reatomAbstractRender = <Props, Result>({
       }
     }, frame) as (props: Props) => { result: Result }
 
-    let mount = wrap(() => {
-      recheckAbort()
+    let mount = bind(() => {
+      recheckAbort(_read(_render)!)
 
-      adapterMount?.()
       let unsubscribe = _render.subscribe((state) => {
         let deps = 0
         if (
@@ -161,9 +160,13 @@ export let reatomAbstractRender = <Props, Result>({
         }
       })
 
-      return wrap(() => {
+      return bind(() => {
         unsubscribe()
-        abortSubscription.controller.abort('unmount')
+        if (abortOnUnmount) {
+          abortSubscription.controller.abort('unmount')
+        } else {
+          abortSubscription?.unsubscribe()
+        }
       })
     }, frame)
 

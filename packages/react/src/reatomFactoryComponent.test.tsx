@@ -1,10 +1,14 @@
+import type { ReatomAbortController } from '@reatom/core'
 import {
+  _read,
+  abortVar,
   action,
   atom,
   clearStack,
   context,
   effect,
   getCalls,
+  isAbort,
   rAF,
   sleep,
   take,
@@ -39,6 +43,53 @@ afterEach(() => {
 })
 
 describe('reatomFactoryComponent', () => {
+  test('aborts on unmount', () =>
+    context.start(async () => {
+      let isLoopAborted = false
+      const startPooling = action(async () => {
+        try {
+          while (true) {
+            // use sleep to test "wrap" before the tick, but not the first one
+            await wrap(sleep())
+          }
+        } catch (error) {
+          isLoopAborted = isAbort(error)
+        }
+      }, 'startPooling')
+
+      let initController: undefined | ReatomAbortController
+      let renderController: undefined | ReatomAbortController
+
+      const TestComponent = reatomFactoryComponent(() => {
+        startPooling()
+
+        initController = abortVar.get()!
+
+        return () => {
+          renderController = abortVar.get()
+          return <div>test</div>
+        }
+      }, 'TestComponent')
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <TestComponent />
+        </reatomContext.Provider>,
+      )
+
+      await wrap(tick())
+
+      root.unmount()
+      await wrap(tick())
+      await wrap(sleep())
+
+      expect(initController!.signal.aborted).toBe(true)
+      expect(renderController?.signal.aborted).toBeFalsy()
+      expect(abortVar.require(_read(startPooling)).signal.aborted).toBe(true)
+      expect(isLoopAborted).toBe(true)
+    }))
+
   test('creates component with factory initialization', () =>
     context.start(async () => {
       // Factory component that creates its own local state

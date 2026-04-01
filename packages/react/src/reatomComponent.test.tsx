@@ -1,4 +1,5 @@
 import {
+  abortVar,
   atom,
   clearStack,
   computed,
@@ -37,6 +38,61 @@ afterEach(() => {
 })
 
 describe('reatomComponent', () => {
+  test('does not abort on unmount', () =>
+    context.start(async () => {
+      let controller: ReturnType<typeof abortVar.get> = undefined
+
+      const TestComponent = reatomComponent(() => {
+        controller = abortVar.get()
+        return <div>test</div>
+      }, 'TestComponent')
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <TestComponent />
+        </reatomContext.Provider>,
+      )
+
+      await wrap(tick())
+      expect(controller).toBeDefined()
+      expect(controller!.signal.aborted).toBe(false)
+
+      root.unmount()
+      await wrap(tick())
+
+      expect(controller!.signal.aborted).toBe(false)
+    }))
+
+  test('aborts on unmount when abortOnUnmount is true', () =>
+    context.start(async () => {
+      let controller: ReturnType<typeof abortVar.get> = undefined
+
+      const TestComponent = reatomComponent(
+        () => {
+          controller = abortVar.get()
+          return <div>test</div>
+        },
+        { name: 'TestComponent', abortOnUnmount: true },
+      )
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <TestComponent />
+        </reatomContext.Provider>,
+      )
+
+      await wrap(tick())
+      expect(controller).toBeDefined()
+      expect(controller!.signal.aborted).toBe(false)
+
+      root.unmount()
+      await wrap(tick())
+
+      expect(controller!.signal.aborted).toBe(true)
+    }))
+
   test('renders component and updates with atom changes', () =>
     context.start(async () => {
       const countAtom = atom(0, 'count')

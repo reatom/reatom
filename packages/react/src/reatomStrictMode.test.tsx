@@ -8,7 +8,7 @@ import {
   top,
   wrap,
 } from '@reatom/core'
-import React, { useEffect } from 'react'
+import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
@@ -119,23 +119,8 @@ describe('StrictMode input sync', () => {
     context.start(async () => {
       const textAtom = atom('factory', 'factoryTextAtom')
 
-      let logs = true
       const TextInput = reatomFactoryComponent(() => {
         return () => {
-          if (logs) {
-            console.log('RERENDER')
-          }
-          useEffect(() => {
-            if (logs) {
-              console.log('MOUNT')
-            }
-            return () => {
-              if (logs) {
-                console.log('UNMOUNT')
-              }
-            }
-          }, [])
-
           return (
             <input
               data-testid="reatom-factory-input"
@@ -158,7 +143,6 @@ describe('StrictMode input sync', () => {
       )
 
       await wrap(tick())
-      logs = false
       expect(getInputElement('reatom-factory-input').value).toBe('factory')
       expect(textAtom()).toBe('factory')
 

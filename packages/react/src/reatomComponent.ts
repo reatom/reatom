@@ -1,6 +1,8 @@
 import {
   action,
   assert,
+  bind,
+  type Fn,
   type Frame,
   named,
   notify,
@@ -8,10 +10,10 @@ import {
   ReatomError,
   type Rec,
   STACK,
-  top,
+  withAbort,
   wrap,
 } from '@reatom/core'
-import React from 'react'
+import React, { useEffect } from 'react'
 
 // https://github.com/webpack/webpack/issues/12960#issuecomment-1086272918
 let {
@@ -85,60 +87,66 @@ export let isSuspense = (thing: unknown) =>
 
 export let reatomComponent = <Props extends Rec = {}>(
   Component: (props: Props) => React.ReactNode,
-  options?: string | { deps?: Array<string>; name?: string },
+  options?:
+    | string
+    | {
+        deps?: Array<string>
+        name?: string
+        abortOnUnmount?: boolean
+      },
 ): ((props: Props) => React.ReactNode) => {
   let deps: Array<string> = []
   let name: string | undefined
+  let abortOnUnmount: boolean = false
   if (typeof options === 'object') {
     deps = options.deps ?? []
     name = options.name
+    abortOnUnmount = options.abortOnUnmount ?? false
   } else {
     name = options
   }
   name ||= named('Component', Component.name)
 
-  return {
-    [name](props: Props): React.ReactNode {
-      let frame = useFrame()
+  function render(props: Props): React.ReactNode {
+    let frame = useFrame()
 
-      let [, rerender] = React.useState({ result: null as React.ReactNode })
+    let [, rerender] = React.useState({ result: null as React.ReactNode })
 
-      let { render, mount } = React.useMemo(
-        () =>
-          reatomAbstractRender({
-            frame,
-            render(props: Props) {
-              try {
-                return Component(props)
-              } catch (error) {
-                if (isSuspense(error)) {
-                  return error as never
-                }
-                throw error
+    let { render, mount } = React.useMemo(
+      () =>
+        reatomAbstractRender({
+          frame,
+          render(props: Props) {
+            try {
+              return Component(props)
+            } catch (error) {
+              if (isSuspense(error)) {
+                return error as never
               }
-            },
-            // TODO: useUid? useInsertionEffect?
-            // mount() {
-            //   // reset abort in case if remount (StrictMode and so on) appears
-            //   abortVar.read()?.(null)
-            // },
-            rerender,
-            name,
-          }),
-        [frame, ...deps.map((name) => props[name])],
-      )
+              throw error
+            }
+          },
+          rerender,
+          name: name!,
+          abortOnUnmount,
+        }),
+      [frame, ...deps.map((dep) => props[dep])],
+    )
 
-      React.useEffect(mount, [mount, ...deps.map((name) => props[name])])
+    React.useEffect(mount, [mount, ...deps.map((dep) => props[dep])])
 
-      let { result } = render(props)
-      if (isSuspense(result)) {
-        // @ts-ignore it's ok
-        if (React.use && result instanceof Promise) React.use(result)
-        throw result
-      }
-      return result
-    },
-  }[name]!
+    let { result } = render(props)
+    if (isSuspense(result)) {
+      // @ts-ignore it's ok
+      if (React.use && result instanceof Promise) React.use(result)
+      throw result
+    }
+    return result
+  }
+
+  Object.defineProperty(render, 'name', { value: name })
+
+  return render
 }
 
 export let reatomFactoryComponent = <Props extends Rec = {}>(
@@ -149,23 +157,30 @@ export let reatomFactoryComponent = <Props extends Rec = {}>(
   options?: string | { deps?: Array<string>; name?: string },
 ): ((props: Props) => React.ReactNode) => {
   const deps = typeof options === 'object' ? (options.deps ?? []) : []
+  const name = typeof options === 'object' ? options.name : options
 
-  return reatomComponent(
-    (props) =>
-      React.useMemo(
+  const Component: Fn = reatomComponent(
+    (props: Props) => {
+      const { abort, render } = React.useMemo(
         () => {
-          const frame = top()
-          try {
-            // @ts-expect-error internals
-            frame.atom.__reatom.linking = false
-            return init(props, { name: frame.atom.name })
-          } finally {
-            // @ts-expect-error internals
-            frame.atom.__reatom.linking = true
+          const initAction = action(init, `${Component.name}._init`).extend(
+            withAbort(),
+          )
+
+          return {
+            abort: bind(initAction.abort),
+            render: initAction(props, { name: Component.name }),
           }
         },
-        deps.map((name) => props[name]),
-      )(props),
-    options,
+        deps.map((dep) => props[dep]),
+      )
+
+      useEffect(() => abort, [])
+
+      return render(props)
+    },
+    { deps, name, abortOnUnmount: false },
   )
+
+  return Component
 }
