@@ -40,7 +40,10 @@
         ]
       }
     },
-    "fixedExtension": false
+    "fixedExtension": false,
+    "deps": {
+      "neverBundle": ["idb-keyval"]
+    }
   },
   "author": "artalar",
   "contributors": [
