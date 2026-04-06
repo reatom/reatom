@@ -177,23 +177,19 @@ Rules of thumb
 - Use **wrap** for promise results and callbacks after await or in then.
 - Do not chain after **wrap**. Wrap each step.
 
-Good
-
-- `const response = await wrap(fetch(url))`
-- `const response = await wrap(fetch(url).catch(() => new Error('Failed to fetch')))`
-- `fetch(url).then(wrap((res) => !res.ok && error.set(res.statusText)))`
-- `const data = await wrap(response.json())`
-- `await wrap(onEvent(button, 'click'))`
-- `button.addEventListener('click', wrap(() => doSome()))`
-- `onEvent(button, 'click', () => doSome())` - no need to wrap callbacks inside reatom methods and hooks
-- `withChangeHook(() => doSome())` - no need to wrap callbacks inside reatom methods and hooks
-
 Bad
 
 - `await wrap(fetch(url)).then((res) => res.json())`
 - `fetch(url).then((res) => !res.ok && error.set(res.statusText))`
 - `addEventListener('click', () => doSome())`
 - `withCallHook(wrap(() => doSome()))` - bad, do not wrap callbacks inside reatom methods and hooks
+
+Good
+
+- `await wrap(fetch(url).then((res) => res.json()))`
+- `fetch(url).then(wrap((res) => !res.ok && error.set(res.statusText)))`
+- `addEventListener('click', wrap(() => doSome()))`, or even better `onEvent(button, 'click', () => doSome())`
+- `withCallHook(() => doSome())`
 
 ## Primitives quick usage
 
@@ -446,7 +442,7 @@ await wrap(fetch('/api/submit', { method: 'POST' }))
 
 ### **onEvent**
 
-Bridges DOM/external events into Reatom's abort-aware context. Listeners auto-clean on abort or disconnect.
+Bridges DOM/external events into Reatom's abort-aware context. Listeners auto-clean on abort or disconnect. A better version of `addEventListener`!
 
 - `onEvent(target, type, cb)` — subscribe, returns unsubscribe
 - `onEvent(target, type)` — returns a promise, resolves on next event
@@ -473,6 +469,8 @@ const result = await wrap(race(a, b))
 - `withAbort('first-in-win')` — ignores new calls while previous is running (throttle-like)
 - `withAbort('manual')` — no auto-abort; call `action.abort()` yourself (polling, long-running)
 - `withAbort('finally')` — aborts all child operations when the action completes, including fire-and-forget ones
+
+> **Debounce without debounce:** Reatom replaces traditional `debounce(fn, ms)` with a procedural pattern — put `await wrap(sleep(ms))` before the work inside an action with `withAbort()`. Each new call aborts the sleeping previous one, giving the same delay-then-execute behavior but with natural control flow: conditional delays, immediate value extraction, and full debuggability. See the [Sampling handbook](/docs/handbook/sampling) for a side-by-side comparison.
 
 > **Note:** Abort errors (e.g. from route loaders on navigation away, or `withAbort` when cancelling) may appear as unhandled rejections in the console. This is not a bug in Reatom — it usually means an async/promise somewhere in the chain is not caught. Sometimes these can be safely ignored (e.g. aborted fetches when navigating away).
 
@@ -604,10 +602,28 @@ const registerForm = reatomForm(
     email: '',
     password: '',
     confirmPassword: reatomField('', {
-      validate: ({ state }) =>
-        state.length > 0 && state === registerForm.fields.password()
-          ? undefined
-          : 'Passwords do not match',
+      validate({ state }) {
+        if (state.length > 0 && state === registerForm.fields.password()) {
+          return undefined
+        }
+        return 'Passwords do not match'
+      },
+    }),
+    handle: reatomField('', {
+      async validate({ state }) {
+        // this function executes in abortable context
+        await wrap(sleep(300)) // debounce
+
+        const response = await wrap(fetch(`/users/${state}`))
+
+        if (response.status === 200) {
+          return 'Handle already taken'
+        }
+        if (response.status === 404) {
+          return undefined
+        }
+        return 'Error checking handle'
+      },
     }),
   },
   {
@@ -1017,6 +1033,7 @@ const saveTodo = action(async (todo: Todo) => {
 - **atom.onChange**(cb) -> **atom.extend**(**withChangeHook**(cb))
 - **onConnect**(atom, cb) -> **atom.extend**(**withConnectHook**(cb))
 - **withConcurrency** -> **withAbort**
+- **onCtxAbort** -> **abortVar.subscribe**
 
 ## Other APIs (not detailed here)
 
