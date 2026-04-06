@@ -6,6 +6,7 @@ import {
   reatomPersist,
   type WithPersist,
 } from '../index'
+import {isBroadcastChannelAvailable} from './isBroadcastChannelAvailable';
 
 /**
  * Web storage persist interface that extends the base persist functionality
@@ -227,7 +228,7 @@ export const reatomPersistIndexedDb = (
 // Note: idb-keyval availability is checked dynamically at runtime
 let isIndexedDbAvailable = /* @__PURE__ */ (() => {
   try {
-    return !!globalThis.indexedDB && !!globalThis.BroadcastChannel
+    return !!globalThis.indexedDB && isBroadcastChannelAvailable
   } catch {
     return false
   }
