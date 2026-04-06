@@ -6,7 +6,7 @@ import {
   reatomPersist,
   type WithPersist,
 } from '../index'
-
+import {isBroadcastChannelAvailable} from './isBroadcastChannelAvailable';
 /**
  * Web storage persist interface that extends the base persist functionality
  * with a storage atom for managing the underlying storage mechanism.
@@ -184,14 +184,6 @@ export const reatomPersistBroadcastChannel = (
     },
   })
 }
-
-let isBroadcastChannelAvailable = /* @__PURE__ */ (() => {
-  try {
-    return !!globalThis.BroadcastChannel
-  } catch {
-    return false
-  }
-})()
 
 /**
  * Default BroadcastChannel persistence adapter with automatic fallback to
