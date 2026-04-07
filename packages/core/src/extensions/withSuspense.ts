@@ -191,6 +191,7 @@ export let withSuspense =
  * @param target - The atom to get the suspended value from
  * @returns The resolved value (Awaited<State>), or throws a promise/error
  */
+// Do not care about params collisions here, as it be used after the target and it extensions creation
 export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
   ('suspended' in target
     ? (target as AtomLike & SuspenseExt<State>)
@@ -275,9 +276,22 @@ export let withSuspenseInit: {
   (target) =>
     target.extend(
       withInit((initState: AtomState<Target>) => {
-        let result = cb ? cb(initState) : initState
+        let result: AtomState<Target> | Promise<AtomState<Target>>
+        try {
+          result = cb ? cb(initState) : initState
+        } catch (thrown: unknown) {
+          if (thrown instanceof Promise) {
+            result = thrown
+          } else {
+            throw thrown
+          }
+        }
+
         if (result instanceof Promise) {
-          throw result.then(bind((value) => _set(target, () => value))).catch(
+          throw result.then(
+            bind((value) => {
+              _set(target, () => value)
+            }),
             bind((err) => {
               _set(target, () => {
                 throw err
