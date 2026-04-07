@@ -264,24 +264,21 @@ export let withMiddleware: {
  *   previous state
  * @returns An extension that can be applied to atoms or actions
  */
-export let withTap: {
-  (cb: (target: AtomLike, state: any, prevState: any) => void): GenericExt
-
-  <Target extends AtomLike>(
-    cb: (
-      target: Target,
-      state: AtomState<Target>,
-      prevState: AtomState<Target>,
-    ) => void,
-  ): Ext<Target, Target>
-} = (cb: (target: AtomLike, state: any, prevState: any) => void) => {
+export let withTap = <Target extends AtomLike>(
+  cb: (
+    target: Target,
+    state: AtomState<Target>,
+    prevState: AtomState<Target>,
+  ) => void,
+): Ext<Target, Target> => {
   if (typeof cb !== 'function') {
     throw new ReatomError('function expected')
   }
   return withMiddleware(
-    (target) =>
+    (target: Target) =>
       function withTap(next, ...params) {
         let { state } = top()
+        // @ts-expect-error
         let nextState = next(...params)
         cb(target, state, nextState)
         return nextState

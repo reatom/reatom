@@ -1,12 +1,13 @@
 import { expect, subscribe, test } from 'test'
 
+import type { GenericExt } from './'
 import { _read, atom, computed, isConnected, notify, withTap } from './'
 
 test('diamonds', () => {
   const name = 'diamonds'
 
   let atomCalls = 0
-  const withTouch = withTap(() => atomCalls++)
+  const withTouch = withTap(() => atomCalls++) as GenericExt
 
   let computedCalls = 0
 
