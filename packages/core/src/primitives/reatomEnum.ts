@@ -1,6 +1,6 @@
 import type { Action, Atom } from '../core'
 import { atom, named, ReatomError, withActions, withMiddleware } from '../core'
-import type { Fn } from '../utils'
+import { assert, type Fn } from '../utils'
 
 export type EnumFormat = 'camelCase' | 'snake_case'
 
@@ -97,46 +97,44 @@ export const reatomEnum = <
     ? { name: options }
     : options
 
-  if (!initState)
-    throw new ReatomError(`enum "${name}" must have an at least one variant`)
+  assert(
+    initState,
+    `enum "${name}" must have an at least one variant`,
+    ReatomError,
+  )
+  return atom(initState, name).extend(
+    withMiddleware((target) => (next: Fn, ...params) => {
+      const value = next(...params)
 
-  // @ts-ignore TODO
-  return atom(initState as string, name)
-    .extend(
-      withMiddleware((target) => (next: Fn, ...params) => {
-        const value = next(...params)
+      if (!variants.includes(value))
+        throw new ReatomError(
+          `invalid enum value "${value}" for "${target.name}" enum`,
+        )
 
-        if (!variants.includes(value))
-          throw new ReatomError(
-            `invalid enum value "${value}" for "${target.name}" enum`,
-          )
+      return value
+    }),
+    withActions((target) => ({ reset: () => target.set(initState) })),
+    withActions((target) =>
+      variants.reduce(
+        (acc, variant) => {
+          const setterName = variant.replace(
+            /^./,
+            (firstLetter) =>
+              'set' +
+              (format === 'camelCase'
+                ? firstLetter.toUpperCase()
+                : `_${firstLetter}`),
+          ) as keyof typeof acc
 
-        return value
-      }),
-    )
-    .extend(withActions((target) => ({ reset: () => target.set(initState!) })))
-    .extend(
-      withActions((target) =>
-        variants.reduce(
-          (acc, variant) => {
-            const setterName = variant.replace(
-              /^./,
-              (firstLetter) =>
-                'set' +
-                (format === 'camelCase'
-                  ? firstLetter.toUpperCase()
-                  : `_${firstLetter}`),
-            ) as keyof typeof acc
-
-            // @ts-expect-error bad types inference for dynamic actions
-            acc[setterName] = () => target.set(variant)
-            return acc
-          },
-          {} as EnumVariantSetters<T, Format>,
-        ),
+          // @ts-expect-error bad types inference for dynamic actions
+          acc[setterName] = () => target.set(variant)
+          return acc
+        },
+        {} as EnumVariantSetters<T, Format>,
       ),
-    )
-    .extend(() => ({
+    ),
+    () => ({
       enum: Object.fromEntries(variants.map((v) => [v, v])),
-    })) as EnumAtom<T, Format>
+    }),
+  )
 }
