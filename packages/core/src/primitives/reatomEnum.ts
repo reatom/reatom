@@ -99,7 +99,7 @@ export const reatomEnum = <
 
   assert(
     variants.length > 0,
-    `enum "${name}" must have an at least one variant`,
+    `enum "${name}" must have at least one variant`,
     ReatomError,
   )
   assert(
