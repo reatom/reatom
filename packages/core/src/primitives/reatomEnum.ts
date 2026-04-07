@@ -98,8 +98,13 @@ export const reatomEnum = <
     : options
 
   assert(
-    initState,
+    variants.length > 0,
     `enum "${name}" must have an at least one variant`,
+    ReatomError,
+  )
+  assert(
+    variants.includes(initState),
+    `invalid initial enum value "${initState}" for "${name}" enum`,
     ReatomError,
   )
   return atom(initState, name).extend(
