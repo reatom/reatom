@@ -111,6 +111,21 @@ The `mount` function returns an `unmount` property callback (similar to React's 
 3. Calls all `ref` unmount callbacks
 4. Removes the element from the DOM
 
+### Hot module replacement (Vite)
+
+During development, the bundler can replace a module without a full reload. The old DOM tree and Reatom subscriptions stay alive unless you tear them down. Call `unmount()` from the previous `mount` inside `import.meta.hot.accept` so the updated module can mount a fresh tree:
+
+```tsx
+const root = document.getElementById('app')!
+const { unmount } = mount(root, <App />)
+
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    unmount()
+  })
+}
+```
+
 ## Reference
 
 This package implements a [JSX factory](https://www.typescriptlang.org/tsconfig#jsxFactory) that creates and binds **native** DOM elements with reactivity.
