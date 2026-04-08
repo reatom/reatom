@@ -1,10 +1,9 @@
+import type { AtomLike, GenericAction } from '@reatom/core'
 import {
   abortVar,
   action,
   atom,
-  type AtomLike,
   bind,
-  type GenericAction,
   isAbort,
   isAction,
   noop,
@@ -17,14 +16,8 @@ import {
   wrap,
 } from '@reatom/core'
 
-import {
-  generateSpanId,
-  generateTraceId,
-  type ResourceAttributes,
-  sendTrace,
-  type SpanInput,
-  type SpanKind,
-} from './client'
+import type { ResourceAttributes, SpanInput, SpanKind } from './client'
+import { generateSpanId, generateTraceId, sendTrace } from './client'
 import { serialize } from './serialize'
 
 export const traceIdVar = variable<string>('tracing.traceId')
@@ -188,7 +181,8 @@ export const createTracingExtension = ({
                     )
                     .catch(
                       bind((error) => {
-                        const specialError = isAbort(error)
+                        const specialError =
+                          isAbort(error) || error instanceof Promise
 
                         queueSpan({
                           traceId: traceId,
@@ -198,10 +192,13 @@ export const createTracingExtension = ({
                           spanId,
                           parentSpanId,
                           kind,
-                          attributes: {
-                            params: serialize(params),
-                            payload: serialize(error),
-                          },
+                          attributes: specialError
+                            ? {
+                                payload: isAbort(error)
+                                  ? serialize(error)
+                                  : '[Suspension]',
+                              }
+                            : undefined,
                           status: specialError
                             ? { code: 'ok' }
                             : { code: 'error', message: serialize(error) },
@@ -226,6 +223,10 @@ export const createTracingExtension = ({
                 }
                 return state
               } catch (actionExecutionError) {
+                const specialError =
+                  isAbort(actionExecutionError) ||
+                  actionExecutionError instanceof Promise
+
                 queueSpan({
                   traceId: traceId,
                   name: target.name,
@@ -234,10 +235,19 @@ export const createTracingExtension = ({
                   spanId,
                   parentSpanId,
                   kind,
-                  status: {
-                    code: 'error',
-                    message: serialize(actionExecutionError),
-                  },
+                  attributes: specialError
+                    ? {
+                        payload: isAbort(actionExecutionError)
+                          ? serialize(actionExecutionError)
+                          : '[Suspension]',
+                      }
+                    : undefined,
+                  status: specialError
+                    ? { code: 'ok' }
+                    : {
+                        code: 'error',
+                        message: serialize(actionExecutionError),
+                      },
                 })
                 throw actionExecutionError
               }
