@@ -557,14 +557,12 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
   if (userCb !== undefined) {
     return computed(() => {
-      if (isActionSubscription) {
-        const parentFrame = top()
-        const targetFrame = _trackAction(this, parentFrame)
-
-        userCb(targetFrame.state)
-      } else {
-        userCb(this())
-      }
+      let subscribeFrame = top()
+      let state = isActionSubscription
+        ? this()
+        : _trackAction(this, subscribeFrame).state
+      top().atom.__reatom.linking = false
+      userCb(state)
     }, `${this.name}._subscribe`).subscribe()
   }
 
