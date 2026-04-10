@@ -1,6 +1,6 @@
 import type { Action, Atom } from '../core'
 import { atom, named, ReatomError, withActions, withMiddleware } from '../core'
-import type { Fn } from '../utils'
+import { type Fn } from '../utils'
 
 export type EnumFormat = 'camelCase' | 'snake_case'
 
@@ -97,11 +97,11 @@ export const reatomEnum = <
     ? { name: options }
     : options
 
-  if (!initState)
-    throw new ReatomError(`enum "${name}" must have an at least one variant`)
+  if (!initState) {
+    throw new ReatomError(`enum "${name}" must have at least one variant`)
+  }
 
-  // @ts-ignore TODO
-  return atom(initState as string, name)
+  return atom(initState, name)
     .extend(
       withMiddleware((target) => (next: Fn, ...params) => {
         const value = next(...params)
@@ -114,8 +114,8 @@ export const reatomEnum = <
         return value
       }),
     )
-    .extend(withActions((target) => ({ reset: () => target.set(initState!) })))
     .extend(
+      withActions((target) => ({ reset: () => target.set(initState!) })),
       withActions((target) =>
         variants.reduce(
           (acc, variant) => {
@@ -135,8 +135,8 @@ export const reatomEnum = <
           {} as EnumVariantSetters<T, Format>,
         ),
       ),
+      () => ({
+        enum: Object.fromEntries(variants.map((v) => [v, v])),
+      }),
     )
-    .extend(() => ({
-      enum: Object.fromEntries(variants.map((v) => [v, v])),
-    })) as EnumAtom<T, Format>
 }
