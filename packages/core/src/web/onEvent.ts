@@ -2,13 +2,20 @@ import { action, context, top } from '../core'
 import { abortVar, wrap } from '../methods'
 import type { Fn, Unsubscribe } from '../utils'
 
+type EventOfCallback<Callback> = NonNullable<Callback> extends (
+  this: unknown,
+  ...params: infer Params
+) => unknown
+  ? Params[0]
+  : NonNullable<Callback> extends (...params: infer Params) => unknown
+    ? Params[0]
+    : never
+
 export type EventOfTarget<Target extends EventTarget, Type extends string> =
-  Target extends Record<`on${Type}`, infer Cb>
-    ? // @ts-expect-error `Cb extends Fn` broke the inference for some reason
-      Parameters<Cb>[0] // correct type
-    : Target extends Record<'onEvent', (type: Type, cb: infer Cb) => any>
-      ? // @ts-expect-error `Cb extends Fn` broke the inference for some reason
-        Parameters<Cb>[0] // general type
+  Target extends Record<`on${Type}`, infer Callback>
+    ? EventOfCallback<Callback>
+    : Target extends Record<'onEvent', (type: Type, cb: infer Callback) => unknown>
+      ? EventOfCallback<Callback>
       : never
 
 /**
