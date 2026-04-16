@@ -36,7 +36,7 @@ async function main() {
     `❓ What is your GitHub username [${authorNameDefault}]? `,
   )
   authorName = authorName.trim() || authorNameDefault
-  console.log(`ℹ️ Author username is "${pkgName}"`)
+  console.log(`ℹ️ Author username is "${authorName}"`)
 
   const pkg = path.join(process.cwd(), 'packages', pkgName)
   await fs.promises.cp(templatePath, pkg, { recursive: true })
