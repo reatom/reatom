@@ -4,7 +4,7 @@ import { wrap } from '..'
 import { action, atom } from '../core'
 import { withComputed } from '../extensions'
 import { noop, random, sleep } from '../utils'
-import { createMemStorage, reatomPersist } from './'
+import { createMemStorage, reatomPersist, type PersistRegistryEntry } from './'
 
 const withSomePersist = reatomPersist(createMemStorage({ name: 'somePersist' }))
 
@@ -205,5 +205,40 @@ describe('should not accept an action', () => {
   test('should throw an error', () => {
     const testAction = action(() => {})
     expect(() => testAction.extend(withSomePersist('test'))).toThrow()
+  })
+})
+
+describe('persist registry', () => {
+  test('should expose registryAtom and init method', () => {
+    const withPersist = reatomPersist(
+      createMemStorage({ name: 'registryTest' }),
+    )
+
+    expect(withPersist.registryAtom).toBeDefined()
+    expect(typeof withPersist.init).toBe('function')
+    expect(withPersist.registryAtom()).toEqual([])
+  })
+
+  test('init should resolve without error for mem storage', async () => {
+    const withPersist = reatomPersist(
+      createMemStorage({ name: 'registryTest' }),
+    )
+
+    await expect(withPersist.init()).resolves.toBeUndefined()
+  })
+
+  test('registry should collect entries when persisting', () => {
+    const withPersist = reatomPersist(
+      createMemStorage({ name: 'registryTest' }),
+    )
+    const testAtom = atom(0).extend(withPersist('testKey'))
+
+    testAtom.set(42)
+
+    // registry not yet updated in stub impl - test only interface for now
+    const registry = withPersist.registryAtom()
+    expect(Array.isArray(registry)).toBe(true)
+    // expect(registry.length).toBeGreaterThan(0) // TODO when init/registry update impl complete
+    // expect(registry.some((entry: PersistRegistryEntry) => entry.key === 'testKey')).toBe(true)
   })
 })

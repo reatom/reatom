@@ -13,6 +13,7 @@ import {
 import { withInit } from '../extensions'
 import { withConnectHook } from '../extensions/withConnectHook'
 import { memoKey } from '../methods/memo'
+import { wrap } from '../methods'
 import {
   type Fn,
   MAX_SAFE_TIMEOUT,
@@ -26,12 +27,21 @@ import {
 export interface PersistRecord<Snapshot = unknown> {
   data: Snapshot
   id: number
-  // TODO remove?
   timestamp: number
   version: number | string
   /** Time stamp after which the record is cleared. */
   to: number
 }
+
+export interface PersistRegistryEntry {
+  key: string
+  to: number
+  version: number | string
+  timestamp: number
+  id: number
+}
+
+export type PersistRegistry = PersistRegistryEntry[]
 
 export let isPersistRecord = (value: unknown): value is PersistRecord => {
   return (
@@ -168,6 +178,20 @@ export interface WithPersist<Snapshot = unknown, Options extends Rec = {}> {
    * like SSR or tests to provide the storage instance to the user.
    */
   storageAtom: Atom<PersistStorage<Snapshot>>
+
+  /**
+   * Registry of all persisted atoms metadata for garbage collection and
+   * preloading. Persisted as a special key to allow collecting obsolete records
+   * independently of individual atom access.
+   */
+  registryAtom: Atom<PersistRegistry>
+
+  /**
+   * Initializes the persistence layer (loads registry, performs GC, preloads
+   * cache). Call this at app startup for async storages like IndexedDB to
+   * ensure persisted atoms are initialized during rendering.
+   */
+  init(): Promise<void>
 }
 
 export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
@@ -176,6 +200,13 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
     'cache'
   >,
 ): WithPersist<Snapshot, Options> => {
+  const REGISTRY_KEY = '__reatom_persist_registry__'
+
+  const registryAtom = atom<PersistRegistry>(
+    () => [],
+    'persistRegistry',
+  ).extend(withInit(() => []))
+
   const storageAtom = atom((): PersistStorage<Snapshot, Options> => {
     let cache: PersistCache = new Map()
 
@@ -414,7 +445,66 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         return target
       }
     },
-    { storageAtom },
+    {
+      storageAtom,
+      registryAtom,
+      async init() {
+        const storage = storageAtom()
+        const now = Date.now()
+
+        // load registry (special key in underlying storage)
+        let registryRec = await wrap(
+          storage.get({ key: REGISTRY_KEY, cache: storage.cache } as any),
+        )
+        let registry: PersistRegistry = []
+
+        if (
+          registryRec &&
+          isPersistRecord(registryRec) &&
+          Array.isArray(registryRec.data)
+        ) {
+          registry = registryRec.data as PersistRegistry
+        }
+
+        // GC expired + collect keys to preload
+        const validRegistry: PersistRegistry = []
+        const toPreload: string[] = []
+
+        for (const entry of registry) {
+          if (entry.to > now) {
+            validRegistry.push(entry)
+            toPreload.push(entry.key)
+          } else if (storage.clear) {
+            storage.clear({ key: entry.key, cache: storage.cache } as any)
+          }
+        }
+
+        // preload non-expired into cache (triggers get which populates cache)
+        for (const key of toPreload) {
+          await wrap(storage.get({ key, cache: storage.cache } as any))
+        }
+
+        // update registry (persist new valid list)
+        if (validRegistry.length !== registry.length) {
+          const newRegistryRec: PersistRecord<PersistRegistry> = {
+            data: validRegistry,
+            id: random(),
+            timestamp: now,
+            to: now + MAX_SAFE_TIMEOUT,
+            version: 0,
+          }
+          storage.set(
+            { key: REGISTRY_KEY, cache: storage.cache } as any,
+            newRegistryRec,
+          )
+          registryAtom.set(validRegistry)
+        } else {
+          registryAtom.set(validRegistry)
+        }
+
+        return
+      },
+    },
   )
 }
 
