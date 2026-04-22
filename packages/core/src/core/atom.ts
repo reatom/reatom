@@ -559,8 +559,8 @@ function subscribe(this: AtomLike, userCb?: Fn) {
     return computed(() => {
       let subscribeFrame = top()
       let state = isActionSubscription
-        ? this()
-        : _trackAction(this, subscribeFrame).state
+        ? _trackAction(this, subscribeFrame).state
+        : this()
       top().atom.__reatom.linking = false
       userCb(state)
     }, `${this.name}._subscribe`).subscribe()
