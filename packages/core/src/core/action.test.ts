@@ -78,12 +78,12 @@ test('subscribe', () => {
   act()
   notify()
   expect(sub).toBeCalledTimes(2)
-  expect(sub).toBeCalledWith([{ params: [], payload: 0 }])
+  expect(sub).toBeCalledWith(0, [])
 
   act(1)
   notify()
   expect(sub).toBeCalledTimes(3)
-  expect(sub).toBeCalledWith([{ params: [1], payload: 1 }])
+  expect(sub).toBeCalledWith(1, [1])
 })
 
 action(() => 123).extend(

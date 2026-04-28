@@ -169,3 +169,27 @@ test('rerun on suspended dependency', async () => {
 
   await testCompleted
 })
+
+test('sync unsubscribe', async () => {
+  const name = `syncUnsubscribe`
+  let updates = 0
+
+  const resource = atom(0, `${name}.resource`)
+
+  const { unsubscribe } = effect(() => {
+    resource()
+    updates++
+  }, `${name}.effect`)
+
+  expect(updates).toBe(1)
+
+  resource.set(1)
+  resource.set(2)
+  expect(updates).toBe(1)
+
+  unsubscribe()
+  expect(updates).toBe(1)
+
+  await wrap(sleep())
+  expect(updates).toBe(1)
+})

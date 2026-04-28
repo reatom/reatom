@@ -1,7 +1,7 @@
 import {
   bind,
   type Frame,
-  type GenericAction,
+  type GAction,
   top,
   withActionMiddleware,
 } from '../core'
@@ -71,7 +71,7 @@ export class AbortVariable extends Variable<
     return result
   }
 
-  declare createAndRun: GenericAction<
+  declare createAndRun: GAction<
     <Params extends any[], Payload>(
       cb: (...params: Params) => Payload,
       ...params: Params

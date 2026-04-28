@@ -97,6 +97,7 @@ export function subscribe<State, T extends (state: State) => any>(
  * These exports provide all standard Vitest testing utilities while ensuring
  * compatibility with Reatom's testing utilities defined in this file.
  */
+export { expectTypeOf } from 'expect-type'
 export {
   afterAll,
   afterEach,
@@ -104,7 +105,6 @@ export {
   beforeEach,
   describe,
   expect,
-  expectTypeOf,
   vi,
 } from 'vitest'
 

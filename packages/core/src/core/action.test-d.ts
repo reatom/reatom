@@ -27,7 +27,7 @@ test('one generic action', () => {
 })
 
 test('optional parameter inference', () => {
-  const a = action((value: number = 1) => value)
+  const a = action((value = 1) => value)
   //    ^?
 
   expectTypeOf(a).toBeFunction()
@@ -35,6 +35,7 @@ test('optional parameter inference', () => {
 
   expectTypeOf(a).parameters.toEqualTypeOf<[number?]>()
   expectTypeOf(a).returns.toEqualTypeOf<number>()
+  expectTypeOf(a).returns.not.toEqualTypeOf<any>()
 
   expectTypeOf(a()).toBeNumber()
   expectTypeOf(a(1)).toBeNumber()

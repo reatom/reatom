@@ -48,12 +48,13 @@ test('many memos should work', () => {
 
   value.set(2)
   notify()
-  expect(target()).toEqual({ length: 1, sum: 2 })
+  const state = target()
+  expect(state).toEqual({ length: 1, sum: 2 })
   expect(track).toBeCalledTimes(3)
 
   list.set([{ value }])
   notify()
-  expect(target()).toEqual({ length: 1, sum: 2 })
+  expect(target()).toBe(state)
   expect(track).toBeCalledTimes(3)
 })
 

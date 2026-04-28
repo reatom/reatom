@@ -1,7 +1,7 @@
 import type { AbortExt } from '../extensions'
 import type { ReatomAbortController } from '../methods'
-import { type Fn, isAbort, noop, type Rec, type Unsubscribe } from '../utils'
-import type { Action, Ext } from './'
+import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
+import type { Action, ActionState, Ext } from './'
 import { _enqueue, type Extend, extend, isAction } from './'
 
 /*
@@ -104,10 +104,13 @@ export interface AtomLike<
    *   changes
    * @returns An unsubscribe function that removes the subscription when called
    */
-  subscribe: (cb?: (state: State) => any) => Unsubscribe
+  subscribe: (cb?: (payload: Payload) => any) => Unsubscribe
 
   /** Reference to the atom's internal metadata. */
   __reatom: AtomMeta
+
+  /** @deprecated Internal flag ONLY for type inference, no runtime use */
+  __state?: State
 }
 
 /**
@@ -122,7 +125,7 @@ export interface AtomLike<
 export interface Atom<
   State = any,
   Params extends any[] = [newState: State],
-> extends AtomLike<State, []> {
+> extends AtomLike<State, [], State> {
   /**
    * Update the atom's state using a function that receives the previous state
    *
@@ -187,7 +190,7 @@ export interface Frame<
   pubs: [actualization: null | Frame, ...dependencies: Array<Frame>]
 
   /** Array of atoms that depend on this atom (subscribers). */
-  readonly subs: Array<AtomLike>
+  readonly subs: Array<AtomLike | Fn>
 
   /**
    * Run the callback in this context. DO NOT USE directly, use `wrap` instead
@@ -409,17 +412,16 @@ export let _mark = (frame: Frame) => {
 
   for (let i = 0; i < frame.subs.length; i++) {
     let sub = frame.subs[i]!
-    if (sub.__reatom.processing) {
-      // LOG('sub.__reatom.processing')
-      _enqueue(() => {
-        _copy(frame.root.store.get(sub)!).pubs.length = 1
-      }, 'compute')
-    }
 
-    if (sub === frame.atom) {
-      // LOG('compute')
-      _enqueue(sub, 'compute')
-    } else {
+    if ('__reatom' in sub) {
+      // TODO which tests fails without it? Add it to the core
+      if (sub.__reatom.processing) {
+        // LOG('sub.__reatom.processing')
+        _enqueue(() => {
+          _copy(frame.root.store.get(sub)!).pubs.length = 1
+        }, 'compute')
+      }
+
       let subFrame = frame.root.store.get(sub)!
 
       if (subFrame.pubs[0] !== null) {
@@ -427,6 +429,9 @@ export let _mark = (frame: Frame) => {
       } else if (sub.__reatom.processing) {
         _mark(subFrame)
       }
+    } else {
+      // LOG('compute')
+      _enqueue(sub, 'compute')
     }
   }
 }
@@ -541,43 +546,59 @@ export let _trackAction = (target: Action, parentFrame: Frame): Frame => {
     parentFrame.root.store.set(target, targetFrame)
   }
 
-  parentFrame.pubs.push(targetFrame)
+  if (parentFrame.atom.__reatom.linking) parentFrame.pubs.push(targetFrame)
 
   return targetFrame
 }
 
 function subscribe(this: AtomLike, userCb?: Fn) {
   // console.log('subscribe', this.name)
-  let isActionSubscription = false
+  let isActionSubscription = isAction(this)
 
-  if (isAction(this)) {
-    isActionSubscription = true
-    userCb ??= noop
-  }
+  let parentFrame = top()
 
-  if (userCb !== undefined) {
-    return computed(() => {
-      let subscribeFrame = top()
-      let state = isActionSubscription
-        ? _trackAction(this, subscribeFrame).state
-        : this()
-      top().atom.__reatom.linking = false
-      userCb(state)
-    }, `${this.name}._subscribe`).subscribe()
-  }
-
-  let rootFrame = top().root.frame
-
+  // initiate the target frame
   try {
-    // prevent reactive tracking
-    rootFrame.run(this)
+    // call root to prevent reactive tracking
+    parentFrame.root.frame.run(() => {
+      if (isActionSubscription) {
+        _trackAction(this as Action, parentFrame)
+      } else {
+        this()
+      }
+    })
   } catch (error) {
     if (!(error instanceof Promise) && !isAbort(error)) throw error
   }
 
-  let frame = rootFrame.state.store.get(this)
+  let frame = parentFrame.root.store.get(this)!
 
-  if (frame!.subs.push(this) === 1) {
+  let listener = () => {
+    if (frame.subs.length === 0) return
+
+    if (isActionSubscription) return
+
+    // `this()` call is required for invalidation,
+    // put it to the condition to reduce codesize
+    if (!Object.is(frame.state, this()) && userCb) {
+      let frameSnapshot = (frame = parentFrame.root.store.get(this)!)
+      let state = frame.state
+
+      _enqueue(() => {
+        if (frameSnapshot === frame) {
+          if (isActionSubscription) {
+            ;(state as ActionState).forEach(({ payload, params }) =>
+              userCb(payload, params),
+            )
+          } else {
+            userCb(state)
+          }
+        }
+      }, 'effect')
+    }
+  }
+
+  if (frame!.subs.push(listener) === 1) {
     if (frame!.atom.__reatom.onConnect !== undefined) {
       // LOG('subscribe onConnect')
       _enqueue(frame!.atom.__reatom.onConnect, 'effect')
@@ -585,24 +606,25 @@ function subscribe(this: AtomLike, userCb?: Fn) {
     relink(frame!, [null])
   }
 
+  if (userCb) userCb(isActionSubscription ? [] : frame.state)
+
   return bind(() => {
     // console.log('unsubscribe', this.name)
 
-    if (!frame) return
+    let idx = frame.subs.lastIndexOf(listener)
 
-    // TODO optimize
-    frame.subs.splice(frame.subs.lastIndexOf(this), 1)
+    if (idx === -1) return
+
+    frame.subs.splice(idx, 1)
 
     if (frame.subs.length === 0) {
       if (frame.atom.__reatom.onConnect !== undefined) {
         // LOG('subscribe onConnect.abort')
         _enqueue(frame.atom.__reatom.onConnect.abort, 'effect')
       }
-      unlink(this, rootFrame.state.store.get(this)!.pubs)
+      unlink(this, parentFrame.root.store.get(this)!.pubs)
     }
-
-    frame = undefined
-  }, rootFrame)
+  }, parentFrame.root.frame)
 }
 
 let i = 0

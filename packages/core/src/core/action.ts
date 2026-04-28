@@ -1,4 +1,4 @@
-import type { Fn } from '../utils'
+import type { Fn, Unsubscribe } from '../utils'
 import type { AtomLike, AtomMeta, Ext } from './'
 import {
   _enqueue,
@@ -27,10 +27,12 @@ export interface ActionState<
 export interface Action<
   Params extends any[] = any[],
   Payload = any,
-> extends AtomLike<ActionState<Params, Payload>, Params, Payload> {}
+> extends AtomLike<ActionState<Params, Payload>, Params, Payload> {
+  subscribe: (cb?: (payload: Payload, params: Params) => any) => Unsubscribe
+}
 
-export type GenericAction<T extends Fn> = T &
-  Action<Parameters<T>, ReturnType<T>>
+/** Action type that supports all overloads of the original function */
+export type GAction<T extends Fn> = T & Action<Parameters<T>, ReturnType<T>>
 
 function actionMiddleware(next: Fn, ...params: any[]) {
   let frame = STACK[STACK.length - 1]!
@@ -148,48 +150,24 @@ export let withActionMiddleware: {
  * @param name - Optional name for debugging purposes
  * @returns An action instance that can be called with the specified parameters
  */
-export let action: {
-  <Params extends any[] = any[], Payload = any>(
-    cb: (...params: Params) => Payload,
-    name?: string,
-  ): Action<Params, Payload>
-
-  // special case for type inference of optional parameters
-  <Param, Payload = any>(
-    cb: (() => Payload) | ((param?: Param) => Payload),
-    name?: string,
-  ): Action<[Param?], Payload>
-  // TODO support the second optional argument (currently falling to unknown in some cases)
-  // <Param1, Param2, Payload>(
-  //   cb:
-  //     | ((param1: Param1) => Payload)
-  //     | ((param1: Param1, param2?: Param2) => Payload),
-  //   name?: string,
-  // ): Action<[Param1, Param2?], Payload>
-
-  <T extends Fn>(cb: T, name?: string): GenericAction<T>
-} = <Params extends any[] = any[], Payload = any>(
-  cb: (...params: Params) => Payload,
-  name: string = named('action', cb.name),
-): Action<Params, Payload> => {
-  if (typeof cb !== 'function') {
-    throw new ReatomError('function expected')
-  }
-
+export let action = <T extends (...a1: never[]) => any>(
+  cb: T,
+  name = named('action', cb.name),
+): GAction<T> => {
   let target = createAtom(
     {
       initState: [],
-      computed: cb,
+      computed: cb as any,
       middlewares: [cb, actionMiddleware, cacheMiddleware],
     },
     name,
-  ) as Action
+  ) as GAction<typeof cb>
 
   Object.assign(target.__reatom, {
     reactive: false,
   } satisfies Partial<AtomMeta>)
 
-  return (
-    EXTENSIONS.length === 0 ? target : target.extend(...EXTENSIONS)
-  ) as Action<Params, Payload>
+  return EXTENSIONS.length === 0
+    ? target
+    : (target.extend(...EXTENSIONS) as unknown as GAction<T>)
 }
