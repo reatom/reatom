@@ -864,7 +864,9 @@ test('params callback with correct search params inherence', () => {
 test('search params transform', () => {
   const userRoute = reatomRoute({
     path: 'user',
-    search: z.object({ u: z.string().optional() }).transform(raw => ({ userId: raw.u })),
+    search: z
+      .object({ u: z.string().optional() })
+      .transform((raw) => ({ userId: raw.u })),
   })
 
   userRoute.go({ u: '123' })

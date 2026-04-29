@@ -1,12 +1,18 @@
-import { describe, expect, subscribe, test } from 'test'
+import { afterEach, describe, expect, subscribe, test } from 'test'
 
 import { wrap } from '..'
-import { action, atom } from '../core'
+import { action, atom, context } from '../core'
 import { withComputed } from '../extensions'
 import { noop, random, sleep } from '../utils'
 import { createMemStorage, reatomPersist } from './'
 
 const withSomePersist = reatomPersist(createMemStorage({ name: 'somePersist' }))
+
+afterEach(() => {
+  context.start(() => {
+    withSomePersist.storageAtom.set(createMemStorage({ name: 'somePersist' }))
+  })
+})
 
 describe('base', () => {
   test('should persist and update state correctly', async () => {
@@ -105,14 +111,11 @@ describe('async', () => {
     const storage = withSomePersist.storageAtom()
     withSomePersist.storageAtom.set({
       ...storage,
-      async set(options, rec) {
+      async rawSet(options, rec) {
         await wrap(new Promise((resolve) => (trigger = resolve)))
-        storage.set(options, rec)
+        return storage.rawSet(options, rec)
       },
     })
-
-    const track = subscribe(number2Atom)
-    track.mockClear()
 
     expect(number1Atom()).toBe(0)
     expect(number2Atom()).toBe(0)
@@ -120,16 +123,108 @@ describe('async', () => {
     number1Atom.set(11)
     expect(number1Atom()).toBe(11)
     expect(number2Atom()).toBe(0)
-    expect(track).toBeCalledTimes(0)
+    expect(
+      await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })),
+    ).toBe(null)
     await wrap(sleep())
     expect(number2Atom()).toBe(0)
-    expect(track).toBeCalledTimes(0)
+    expect(
+      await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })),
+    ).toBe(null)
 
     trigger()
     await wrap(sleep())
 
-    expect(track).toBeCalledTimes(1)
-    expect(track).toBeCalledWith(11)
+    expect(
+      (await wrap(withSomePersist.storageAtom().rawGet({ key: 'test' })))?.data,
+    ).toBe(11)
+  })
+
+  test('should preload async storage on init', async () => {
+    const now = Date.now()
+    const records = new Map([
+      [
+        'async-key',
+        {
+          data: 7,
+          id: 1,
+          timestamp: now,
+          to: now + 10_000,
+          version: 0,
+        },
+      ],
+    ])
+    let getCalls = 0
+    const withAsyncPersist = reatomPersist({
+      name: 'asyncInit',
+      cache: new Map(),
+      registry: {
+        get: async () => [
+          {
+            id: 1,
+            key: 'async-key',
+            timestamp: now,
+            to: now + 10_000,
+            version: 0,
+          },
+        ],
+        set: noop,
+        clear: noop,
+      },
+      async get({ key }) {
+        getCalls++
+        return records.get(key) ?? null
+      },
+      set({ key }, rec) {
+        records.set(key, rec)
+      },
+      clear({ key }) {
+        records.delete(key)
+      },
+    })
+
+    const persistedAtom = atom(0).extend(withAsyncPersist('async-key'))
+
+    await context.start(() => withAsyncPersist.init())
+
+    expect(context.start(() => persistedAtom())).toBe(7)
+    expect(getCalls).toBe(1)
+  })
+})
+
+describe('registry init', () => {
+  test('should garbage collect expired records on init', async () => {
+    const expiredRecord = {
+      data: 1,
+      id: 1,
+      timestamp: Date.now() - 1_000,
+      to: Date.now() - 100,
+      version: 0,
+    }
+
+    const storage = createMemStorage({
+      name: 'registry-gc',
+      snapshot: {
+        expired: expiredRecord.data,
+      },
+    })
+
+    storage.set({ key: 'expired' }, expiredRecord)
+
+    const withRegistryPersist = reatomPersist(storage)
+    const expiredAtom = atom(0).extend(withRegistryPersist('expired'))
+
+    await context.start(() => withRegistryPersist.init())
+
+    expect(context.start(() => expiredAtom())).toBe(0)
+    expect(
+      await context.start(() =>
+        withRegistryPersist.storageAtom().get({ key: 'expired' }),
+      ),
+    ).toBe(null)
+    expect(
+      context.start(() => withRegistryPersist.storageAtom().registry?.get()),
+    ).toEqual([])
   })
 })
 

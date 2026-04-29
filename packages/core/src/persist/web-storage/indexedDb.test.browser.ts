@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { atom } from '../../core'
+import { atom, context } from '../../core'
 import { wrap } from '../../methods'
 import { sleep } from '../../utils'
 import { reatomPersistIndexedDb, withIndexedDb } from './indexedDb'
@@ -187,4 +187,27 @@ test('IndexedDB adapter initialization', async () => {
 
   channel1.close()
   channel2.close()
+})
+
+test('IndexedDB init preloads persisted records', async () => {
+  const channel = new BroadcastChannel('indexeddb-init-channel')
+  const withInitIndexedDb = reatomPersistIndexedDb('init-test-db', channel)
+
+  const initAtom = atom('default', 'indexedDbInitAtom').extend(
+    withInitIndexedDb('init-indexeddb-key'),
+  )
+
+  initAtom.set('persisted-before-init')
+  await wrap(sleep(50))
+
+  const withHydratedIndexedDb = reatomPersistIndexedDb('init-test-db', channel)
+  const hydratedAtom = atom('default', 'indexedDbHydratedAtom').extend(
+    withHydratedIndexedDb('init-indexeddb-key'),
+  )
+
+  await withHydratedIndexedDb.init()
+
+  expect(context.start(() => hydratedAtom())).toBe('persisted-before-init')
+
+  channel.close()
 })
