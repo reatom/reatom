@@ -150,10 +150,15 @@ export let withActionMiddleware: {
  * @param name - Optional name for debugging purposes
  * @returns An action instance that can be called with the specified parameters
  */
-export let action = <T extends (...a1: never[]) => any>(
+export function action<T extends (...a1: never[]) => any>(
   cb: T,
-  name = named('action', cb.name),
-): GAction<T> => {
+  name?: string,
+): GAction<T>
+export function action<Params extends any[] = any[], Payload = any>(
+  cb: (...params: Params) => Payload,
+  name?: string,
+): Action<Params, Payload>
+export function action(cb: Fn, name = named('action', cb.name)): Action {
   let target = createAtom(
     {
       initState: [],
@@ -161,13 +166,13 @@ export let action = <T extends (...a1: never[]) => any>(
       middlewares: [cb, actionMiddleware, cacheMiddleware],
     },
     name,
-  ) as GAction<typeof cb>
+  ) as Action
 
   Object.assign(target.__reatom, {
     reactive: false,
   } satisfies Partial<AtomMeta>)
 
-  return EXTENSIONS.length === 0
-    ? target
-    : (target.extend(...EXTENSIONS) as unknown as GAction<T>)
+  if (EXTENSIONS.length !== 0) target.extend(...EXTENSIONS)
+
+  return target
 }

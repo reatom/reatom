@@ -1,4 +1,4 @@
-import type { AtomLike } from '../core'
+import type { Action, AtomLike } from '../core'
 import { action, bind, computed, isAtom, top } from '../core'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import type { Fn, Unsubscribe } from '../utils'
@@ -101,7 +101,7 @@ export function take(
         if (targetAtom.__reatom.reactive) {
           value = targetAtom()
         } else {
-          let [call] = getCalls(targetAtom)
+          let [call] = getCalls(targetAtom as Action)
           if (call) {
             value = call.payload
           }
