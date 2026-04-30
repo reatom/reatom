@@ -874,6 +874,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const paramsNames = patternParts.filter((part) => part.startsWith(':'))
 
     const hasParams = paramsNames.length > 0
+    const pathParamNames = new Set(paramsNames.map(getPatternName))
 
     const getPath = (params: void | Rec = {}): string => {
       let pathParams: Rec
@@ -888,11 +889,13 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
           else throw new Error(`Invalid params for route ${pattern}`)
         }
       }
-      let searchParams = !searchSchema
-        ? null
-        : searchIsCodec
+      let searchParams: Rec | null = null
+      if (searchSchema) {
+        searchParams = searchIsCodec
           ? searchSchema.serialize(params)
-          : validate(searchSchema, params, 'search')
+          : params
+        if (!searchIsCodec) validate(searchSchema, params, 'search')
+      }
 
       let path = ''
 
@@ -916,12 +919,37 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       if (searchParams) {
         const urlSearchParams = new URLSearchParams()
         for (const [key, value] of Object.entries(searchParams)) {
+          if (pathParamNames.has(key) || value == null) continue
           urlSearchParams.set(key, String(value))
         }
-        path += '?' + urlSearchParams.toString()
+        const search = urlSearchParams.toString()
+        if (search) path += `?${search}`
       }
 
       return path
+    }
+
+    const getUrl = (url: URL, params: void | Rec = {}): URL => {
+      const newUrl = new URL(getPath(params), url)
+      const isPathlessRelativeNavigation = hasNoExplicitPath
+
+      if (
+        isPathlessRelativeNavigation &&
+        url.pathname.startsWith(newUrl.pathname)
+      ) {
+        newUrl.pathname = url.pathname
+      }
+
+      if (
+        isPathlessRelativeNavigation &&
+        !searchSchema &&
+        newUrl.pathname === url.pathname &&
+        newUrl.search === ''
+      ) {
+        newUrl.search = url.search
+      }
+
+      return newUrl
     }
 
     let parentCachedParams = getParentCachedParams(parent)
@@ -984,11 +1012,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         if (cachedParams !== parentCachedParams) {
           setAllParentCachedParams(parent, params, cachedParams)
         }
-        const newUrl = new URL(getPath(params), url)
-        if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
-          newUrl.pathname = url.pathname
-        }
-        return newUrl
+        return getUrl(url, params)
       }, replace)
     }, `${name}.go`) as Action as RouteExt['go']
 
