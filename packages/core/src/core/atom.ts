@@ -395,7 +395,11 @@ export let _mark = (frame: Frame) => {
     let sub = frame.subs[i]!
     if (sub.__reatom.processing) {
       _enqueue(() => {
-        _copy(frame.root.store.get(sub)!).pubs.splice(1)
+        let curFrame = frame.root.store.get(sub)!
+        let oldPubs = curFrame.pubs
+        _copy(curFrame).pubs.splice(1)
+        // unlink stale subs entries so a future relink doesn't duplicate them
+        unlink(sub, oldPubs)
       }, 'compute')
     }
 
