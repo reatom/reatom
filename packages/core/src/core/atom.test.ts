@@ -1,6 +1,7 @@
 import { expect, subscribe, test, vi } from 'test'
 
 import { withComputed } from '../extensions'
+import { reset } from '../methods'
 import {
   _read,
   type Atom,
@@ -396,4 +397,42 @@ test('middlewares order', () => {
 
   expect(a()).toBe(0)
   expect(logs).toEqual([2, 1])
+})
+
+test('_mark on processing sub does not duplicate subs entries', () => {
+  // Reproduces the doubling of `subs` that happens when `_mark` finds a
+  // subscriber in `processing=true`. In real code this happens via
+  // `withAsync`'s `asyncMiddleware` -> `retryComputed(pending)` ->
+  // `reset(pending)` -> `_mark(pending)` while a subscriber that reads both
+  // `pending` and other derived atoms of the same chain is mid-compute.
+  //
+  // We model the same shape with primitives: a subscriber reads `a` and
+  // `b`, and `b`'s middleware calls `reset(a)` after computing — so during
+  // the subscriber's compute, a `_mark(a)` runs and finds the subscriber
+  // currently processing.
+  const name = 'markProcessing'
+  const root = atom(0, `${name}.root`)
+  const a = computed(() => root() + 1, `${name}.a`)
+  const b = computed(() => root() + 100, `${name}.b`).extend(
+    withMiddleware(() => (next, ...args) => {
+      const result = next(...args)
+      reset(a)
+      return result
+    }),
+  )
+
+  const subscriber = computed(() => a() + b(), `${name}.subscriber`)
+
+  subscriber.subscribe()
+
+  // Baseline.
+  expect(_read(a)!.subs.length).toBe(1)
+  expect(_read(b)!.subs.length).toBe(1)
+
+  for (let i = 1; i <= 5; i++) {
+    root.set(i)
+    notify()
+    expect(_read(a)!.subs.length, `a.subs after set #${i}`).toBe(1)
+    expect(_read(b)!.subs.length, `b.subs after set #${i}`).toBe(1)
+  }
 })
