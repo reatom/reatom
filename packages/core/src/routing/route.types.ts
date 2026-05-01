@@ -121,9 +121,9 @@ export interface RouteOptions<
    *   `go()` accepts raw string params, the schema parses them on URL read.
    * - **Function** `(params) => result | null` — custom validator, return `null`
    *   to unmatch the route.
-   * - **{@link Codec}** `{ parse, serialize }` — bidirectional transform. `go()`
-   *   accepts typed (Output) params, `serialize` converts them to URL strings,
-   *   `parse` converts URL strings back. Parse errors cause unmatch.
+   * - **{@link Codec}** `{ decode, encode }` — bidirectional transform. `go()`
+   *   accepts typed (Output) params, `encode` writes URL strings, `decode` reads
+   *   them back. Decode errors cause unmatch.
    *
    * @example
    *   // Standard Schema
@@ -132,10 +132,10 @@ export interface RouteOptions<
    *   })
    *
    * @example
-   *   // Codec — go() accepts numbers, serialize converts to strings
+   *   // Codec — go() accepts numbers, encode converts to strings
    *   params: {
-   *   parse: (input) => ({ id: Number(input.id) }),
-   *   serialize: (output) => ({ id: String(output.id) }),
+   *   decode: (input) => ({ id: Number(input.id) }),
+   *   encode: (output) => ({ id: String(output.id) }),
    *   }
    */
   params?:
@@ -150,9 +150,9 @@ export interface RouteOptions<
    *
    * - **Standard Schema** (Zod, Valibot, etc.) — one-directional validation.
    *   `go()` accepts raw string params, the schema parses them on URL read.
-   * - **{@link Codec}** `{ parse, serialize }` — bidirectional transform. `go()`
-   *   accepts typed (Output) params, `serialize` converts them to URL strings,
-   *   `parse` converts URL strings back. Parse errors cause unmatch.
+   * - **{@link Codec}** `{ decode, encode }` — bidirectional transform. `go()`
+   *   accepts typed (Output) params, `encode` writes URL strings, `decode` reads
+   *   them back. Decode errors cause unmatch.
    *
    * Note: All search parameters should be optional in the schema.
    *
@@ -164,10 +164,10 @@ export interface RouteOptions<
    *   })
    *
    * @example
-   *   // Codec — go() accepts numbers, serialize converts to strings
+   *   // Codec — go() accepts numbers, encode converts to strings
    *   search: {
-   *   parse: (input) => ({ page: Number(input.page) }),
-   *   serialize: (output) => ({ page: String(output.page) }),
+   *   decode: (input) => ({ page: Number(input.page) }),
+   *   encode: (output) => ({ page: String(output.page) }),
    *   }
    */
   search?:
@@ -242,52 +242,37 @@ export interface RouteOptions<
 /**
  * Bidirectional transformer for route parameters.
  *
- * Unlike one-directional Standard Schema transforms, a Codec explicitly defines
- * both directions: parsing raw URL strings into typed values (`parse`) and
- * serializing typed values back into URL strings (`serialize`). This guarantees
- * a lossless round-trip through the URL.
+ * Unlike one-directional Standard Schema transforms, a Codec defines both
+ * directions: raw URL strings to typed values (`decode`) and back (`encode`).
  *
- * When `parse` throws, the route is treated as unmatched (returns `null`)
- * instead of producing an unhandled error. When `serialize` throws, the error
- * propagates from `go()` / `path()` so callers can handle it.
- *
- * To use Zod codecs (`z.codec`, `z.stringbool`, etc.) wrap them with a small
- * adapter that maps `decode`/`encode` to `parse`/`serialize`.
+ * When `decode` throws, the route is treated as unmatched (returns `null`).
+ * Navigation tries `encode` first; if it throws on a Standard Schema (e.g. Zod
+ * one-way `.transform()`), validation is used for path segments and search keeps
+ * the `go()` argument keys. On a plain codec object, `encode` errors propagate.
  *
  * @example
  *   // Inline codec for base64-encoded JSON in a path segment
  *   reatomRoute({
  *     path: 'data/:payload',
  *     params: {
- *       parse: (input) => ({
+ *       decode: (input) => ({
  *         payload: JSON.parse(atob(input.payload)),
  *       }),
- *       serialize: (output) => ({
+ *       encode: (output) => ({
  *         payload: btoa(JSON.stringify(output.payload)),
  *       }),
  *     },
  *   })
  *
  * @example
- *   // Adapter for Zod codecs
- *   const fromZodCodec = <I, O>(zc: {
- *     decode: (i: I) => O
- *     encode: (o: O) => I
- *   }): Codec<I, O> => ({
- *     parse: (i) => zc.decode(i),
- *     serialize: (o) => zc.encode(o),
- *   })
- *
  *   reatomRoute({
  *     path: 'items/:id',
- *     params: fromZodCodec(z.object({ id: z.stringbool() })),
+ *     params: z.object({ id: z.stringbool() }),
  *   })
  */
 export type Codec<Input, Output> = {
-  /** Convert raw URL parameter(s) into typed value(s). */
-  parse: (input: Input) => Output
-  /** Convert typed value(s) back into raw URL parameter(s). */
-  serialize: (output: Output) => Input
+  decode: (input: Input) => Output
+  encode: (output: Output) => Input
 }
 
 export type TrimPath<Path extends string> = Path extends `//${infer Path}`
@@ -324,19 +309,19 @@ export interface RouteMixin<
   /**
    * Create a sub-route with **{@link Codec}** for both params and search.
    *
-   * `go()` and `path()` accept the codec's **Output** types — `serialize`
-   * converts them back to URL-safe strings automatically.
+   * `go()` and `path()` accept the codec's **Output** types — `encode` writes
+   * URL-safe strings automatically.
    *
    * @example
    *   const route = parentRoute.reatomRoute({
    *     path: 'items/:id',
    *     params: {
-   *       parse: (input) => ({ id: Number(input.id) }),
-   *       serialize: (output) => ({ id: String(output.id) }),
+   *       decode: (input) => ({ id: Number(input.id) }),
+   *       encode: (output) => ({ id: String(output.id) }),
    *     },
    *     search: {
-   *       parse: (input) => ({ page: Number(input.page) }),
-   *       serialize: (output) => ({ page: String(output.page) }),
+   *       decode: (input) => ({ page: Number(input.page) }),
+   *       encode: (output) => ({ page: String(output.page) }),
    *     },
    *   })
    *   route.go({ id: 42, page: 3 })

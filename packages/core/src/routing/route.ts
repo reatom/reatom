@@ -37,13 +37,13 @@ function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   }
 }
 
-/**
- * Runtime check for {@link Codec} — returns `true` when the value has both
- * `parse` and `serialize` methods and is NOT a Standard Schema (which also
- * exposes `parse` but lacks `serialize`).
- */
+const isStandardSchema = (
+  v: unknown,
+): v is StandardSchemaV1<unknown, unknown> =>
+  v !== null && typeof v === 'object' && '~standard' in v
+
 const isCodec = (v: unknown): v is Codec<any, any> =>
-  typeof v === 'object' && v !== null && 'parse' in v && 'serialize' in v
+  typeof v === 'object' && v !== null && 'decode' in v && 'encode' in v
 
 const validateParams = <Input, Output>(
   validator:
@@ -174,22 +174,60 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const pathParamNames = new Set(paramsNames.map(getPatternName))
 
     const getPath = (params: void | Rec = {}): string => {
+      const routeParams = (params ?? {}) as Rec
       let pathParams: Rec
       if (!paramsSchema) {
-        pathParams = params || {}
+        pathParams = routeParams
       } else if (paramsIsCodec) {
-        pathParams = paramsSchema.serialize(params)
+        try {
+          pathParams = paramsSchema.encode(routeParams) as Rec
+        } catch (encodeError) {
+          if (isStandardSchema(paramsSchema)) {
+            const validated = validateParams(
+              paramsSchema,
+              routeParams as any,
+              'params',
+            )
+            if (validated === null) {
+              if (cachedParams) pathParams = {}
+              else throw new Error(`Invalid params for route ${pattern}`)
+            } else {
+              pathParams = validated as Rec
+            }
+          } else {
+            throw encodeError
+          }
+        }
       } else {
-        pathParams = validateParams(paramsSchema, params as any, 'params')
-        if (pathParams === null) {
+        const validated = validateParams(
+          paramsSchema,
+          routeParams as any,
+          'params',
+        )
+        if (validated === null) {
           if (cachedParams) pathParams = {}
           else throw new Error(`Invalid params for route ${pattern}`)
+        } else {
+          pathParams = validated as Rec
         }
       }
       let searchParams: Rec | null = null
       if (searchSchema) {
-        searchParams = searchIsCodec ? searchSchema.serialize(params) : params
-        if (!searchIsCodec) validate(searchSchema, params, 'search')
+        if (searchIsCodec) {
+          try {
+            searchParams = searchSchema.encode(routeParams) as Rec
+          } catch (encodeError) {
+            if (isStandardSchema(searchSchema)) {
+              validate(searchSchema, routeParams, 'search')
+              searchParams = routeParams
+            } else {
+              throw encodeError
+            }
+          }
+        } else {
+          searchParams = routeParams
+          validate(searchSchema, routeParams, 'search')
+        }
       }
 
       let path = ''
@@ -356,7 +394,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         } else if (paramsIsCodec) {
           validatedParams = cachedParamsState
             ? params
-            : paramsSchema.parse(params as any)
+            : paramsSchema.decode(params as any)
         } else {
           validatedParams = validateParams(
             paramsSchema,
@@ -369,7 +407,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         if (searchSchema) {
           let searchParams = Object.fromEntries(url.searchParams)
           validatedSearch = searchIsCodec
-            ? searchSchema.parse(searchParams)
+            ? searchSchema.decode(searchParams)
             : validate(searchSchema, searchParams, 'search')
         }
       } catch {

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, expectTypeOf, test } from 'test'
 import z from 'zod'
 
 import { urlAtom } from '../web/url'
-import { type Codec, reatomRoute } from './route'
+import { reatomRoute } from './route'
 
 beforeEach(() => {
   urlAtom.routes = {}
@@ -14,22 +14,14 @@ beforeEach(() => {
 describe('codecs', () => {
   type PayloadData = { userId: number; role: string }
 
-  const fromZodCodec = <I, O>(zc: {
-    decode: (i: I) => O
-    encode: (o: O) => I
-  }): Codec<I, O> => ({
-    parse: (i) => zc.decode(i),
-    serialize: (o) => zc.encode(o),
-  })
-
   test('params: base64-encoded JSON in path', () => {
     const route = reatomRoute({
       path: 'data/:payload',
       params: {
-        parse: (input) => ({
+        decode: (input) => ({
           payload: JSON.parse(atob(input.payload)) as PayloadData,
         }),
-        serialize: (output) => ({
+        encode: (output) => ({
           payload: btoa(JSON.stringify(output.payload)),
         }),
       },
@@ -49,10 +41,10 @@ describe('codecs', () => {
     const route = reatomRoute({
       path: 'page',
       search: {
-        parse: (input: { filter?: string }): { filter: Filter | null } => ({
+        decode: (input: { filter?: string }): { filter: Filter | null } => ({
           filter: input.filter ? JSON.parse(atob(input.filter)) : null,
         }),
-        serialize: (output) => ({
+        encode: (output) => ({
           filter: output.filter
             ? btoa(JSON.stringify(output.filter))
             : undefined,
@@ -77,7 +69,7 @@ describe('codecs', () => {
 
     const route = reatomRoute({
       path: 'items/:id',
-      params: fromZodCodec(z.object({ id: stringToNumber })),
+      params: z.object({ id: stringToNumber }),
     })
 
     route.go({ id: 42 })
@@ -91,7 +83,7 @@ describe('codecs', () => {
   test('params with zod stringbool codec', () => {
     const route = reatomRoute({
       path: 'feature/:enabled',
-      params: fromZodCodec(z.object({ enabled: z.stringbool() })),
+      params: z.object({ enabled: z.stringbool() }),
     })
 
     route.go({ enabled: true })
@@ -111,19 +103,17 @@ describe('codecs', () => {
   test('search with zod codec', () => {
     const route = reatomRoute({
       path: 'list',
-      search: fromZodCodec(
-        z.codec(
-          z.object({ page: z.string().optional() }),
-          z.object({ page: z.number().optional() }),
-          {
-            decode: (input) => ({
-              page: input.page ? Number(input.page) : undefined,
-            }),
-            encode: (output) => ({
-              page: output.page != null ? String(output.page) : undefined,
-            }),
-          },
-        ),
+      search: z.codec(
+        z.object({ page: z.string().optional() }),
+        z.object({ page: z.number().optional() }),
+        {
+          decode: (input) => ({
+            page: input.page ? Number(input.page) : undefined,
+          }),
+          encode: (output) => ({
+            page: output.page != null ? String(output.page) : undefined,
+          }),
+        },
       ),
     })
 
@@ -132,14 +122,14 @@ describe('codecs', () => {
     expect(urlAtom().search).toBe('?page=3')
   })
 
-  test('parse error causes unmatch', () => {
+  test('decode error causes unmatch', () => {
     const route = reatomRoute({
       path: 'data/:payload',
       params: {
-        parse: (input: { payload: string }): { payload: PayloadData } => ({
+        decode: (input: { payload: string }): { payload: PayloadData } => ({
           payload: JSON.parse(atob(input.payload)),
         }),
-        serialize: (output: { payload: PayloadData }): { payload: string } => ({
+        encode: (output: { payload: PayloadData }): { payload: string } => ({
           payload: btoa(JSON.stringify(output.payload)),
         }),
       },
@@ -149,28 +139,28 @@ describe('codecs', () => {
     expect(route()).toBeNull()
   })
 
-  test('serialize error throws in go', () => {
+  test('encode error throws in go', () => {
     const route = reatomRoute({
       path: 'data/:payload',
       params: {
-        parse: (input: { payload: string }): { payload: string } => ({
+        decode: (input: { payload: string }): { payload: string } => ({
           payload: JSON.parse(atob(input.payload)),
         }),
-        serialize: (): { payload: string } => {
-          throw new Error('serialize failed')
+        encode: (): { payload: string } => {
+          throw new Error('encode failed')
         },
       },
     })
 
-    expect(() => route.go({ payload: 'x' })).toThrow('serialize failed')
+    expect(() => route.go({ payload: 'x' })).toThrow('encode failed')
   })
 
   test('go() accepts Output types for params codec', () => {
     const route = reatomRoute({
       path: 'items/:id',
       params: {
-        parse: (input: { id: string }) => ({ id: Number(input.id) }),
-        serialize: (output: { id: number }) => ({ id: String(output.id) }),
+        decode: (input: { id: string }) => ({ id: Number(input.id) }),
+        encode: (output: { id: number }) => ({ id: String(output.id) }),
       },
     })
 
@@ -182,10 +172,10 @@ describe('codecs', () => {
     const route = reatomRoute({
       path: 'list',
       search: {
-        parse: (input: { page?: string }) => ({
+        decode: (input: { page?: string }) => ({
           page: input.page ? Number(input.page) : 1,
         }),
-        serialize: (output: { page: number }) => ({
+        encode: (output: { page: number }) => ({
           page: String(output.page),
         }),
       },
@@ -198,14 +188,14 @@ describe('codecs', () => {
     const route = reatomRoute({
       path: 'items/:id',
       params: {
-        parse: (input: { id: string }) => ({ id: Number(input.id) }),
-        serialize: (output: { id: number }) => ({ id: String(output.id) }),
+        decode: (input: { id: string }) => ({ id: Number(input.id) }),
+        encode: (output: { id: number }) => ({ id: String(output.id) }),
       },
       search: {
-        parse: (input: { page?: string }) => ({
+        decode: (input: { page?: string }) => ({
           page: input.page ? Number(input.page) : 1,
         }),
-        serialize: (output: { page: number }) => ({
+        encode: (output: { page: number }) => ({
           page: String(output.page),
         }),
       },
