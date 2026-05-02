@@ -46,30 +46,6 @@ const isStandardSchema = (
 const isCodec = (v: unknown): v is Codec<any, any> =>
   typeof v === 'object' && v !== null && 'decode' in v && 'encode' in v
 
-const validateParams = <Input, Output>(
-  validator:
-    | StandardSchemaV1<Input, Output>
-    | ((params: Input) => null | Output),
-  params: Input,
-  name: string,
-): Output | null => {
-  if (typeof validator === 'function') {
-    return validator(params)
-  }
-
-  const validation = validator['~standard'].validate(params)
-
-  assertPromise(validation)
-
-  if (validation.issues) {
-    throw new Error(
-      `Invalid ${name}: ${JSON.stringify(validation.issues, null, 2)}`,
-    )
-  }
-
-  return validation.value
-}
-
 const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   const validation = schema['~standard'].validate(params)
 
@@ -82,6 +58,18 @@ const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   }
 
   return validation.value
+}
+
+const validateParams = <Input, Output>(
+  validator:
+    | StandardSchemaV1<Input, Output>
+    | ((params: Input) => null | Output),
+  params: Input,
+  name: string,
+): Output | null => {
+  return typeof validator === 'function'
+    ? validator(params)
+    : validate(validator, params, name)
 }
 
 const getPatternName = (part: string) => {
@@ -124,6 +112,106 @@ const pathnameAtOrBelowBase = (pathname: string, base: string): boolean => {
   if (base === '' || base === '/') return true
   return pathname === base || pathname.startsWith(`${base}/`)
 }
+
+type PathSegment = {
+  name: string
+  param: boolean
+  optional: boolean
+}
+
+type PathMatch = {
+  exact: boolean
+  params: Rec
+}
+
+const memo = <Argument, Result>(compute: (argument: Argument) => Result) => {
+  let lastArgument: Argument | typeof compute = compute
+  let lastResult!: Result
+
+  return (argument: Argument): Result => {
+    if (lastArgument !== compute && lastArgument === argument) {
+      return lastResult
+    }
+    lastArgument = argument
+    lastResult = compute(argument)
+    return lastResult
+  }
+}
+
+const splitPath = memo((path: string) => path.split('/').filter(Boolean))
+
+const createPathSegments = (path: string): Array<PathSegment> =>
+  splitPath(path).map((part, index, parts) => {
+    const param = part.startsWith(':')
+    return {
+      name: getPatternName(part),
+      param,
+      optional: param && part.endsWith('?') && index === parts.length - 1,
+    }
+  })
+
+const getPathParamNames = (segments: Array<PathSegment>): Set<string> =>
+  new Set(
+    segments.filter((segment) => segment.param).map((segment) => segment.name),
+  )
+
+const matchPath = (
+  segments: Array<PathSegment>,
+  pathname: string,
+  hasNoExplicitPath: boolean,
+): PathMatch | null => {
+  const parts = splitPath(pathname)
+  const optionalLastSegment = segments.at(-1)?.optional === true
+  if (parts.length < segments.length - (optionalLastSegment ? 1 : 0)) {
+    return null
+  }
+
+  const params: Rec = {}
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i]!
+    const pathPart = parts[i]
+    if (pathPart === undefined && segment.optional) continue
+    if (pathPart === undefined) return null
+    if (segment.param) params[segment.name] = pathPart
+    else if (segment.name !== pathPart) return null
+  }
+
+  const exact =
+    hasNoExplicitPath && segments.length === 0
+      ? true
+      : parts.length === segments.length ||
+        (optionalLastSegment && parts.length === segments.length - 1)
+
+  return { exact, params }
+}
+
+const buildPath = (
+  segments: Array<PathSegment>,
+  params: Rec,
+  pattern: string,
+) => {
+  let path = ''
+  for (const { name, optional, param } of segments) {
+    if (!param) {
+      path += `/${name}`
+      continue
+    }
+
+    const value = params[name]
+    const present = value !== undefined && value !== null
+    if (present) path += `/${value}`
+    else if (!optional) {
+      throw new Error(`Missing param "${name}" for route ${pattern}`)
+    }
+  }
+
+  return path
+}
+
+const pickParams = (params: Rec, names: Set<string>): Rec =>
+  Object.fromEntries(
+    [...names].filter((key) => key in params).map((key) => [key, params[key]]),
+  )
 
 const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
   return function reatomRoute(
@@ -170,24 +258,10 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     name = named(name || `route.${pattern}`)
 
-    const hasOptionalPart = pattern.endsWith('?')
-
-    const patternParts = pattern.split('/').filter(Boolean)
-
-    const paramsNames = patternParts.filter((part) => part.startsWith(':'))
-
-    const hasParams = paramsNames.length > 0
-    const pathParamNames = new Set(paramsNames.map(getPatternName))
-
-    const ownPatternParts = subPath.split('/').filter(Boolean)
-    const ownPathParamNames = new Set(
-      ownPatternParts
-        .filter((part) => part.startsWith(':'))
-        .map(getPatternName),
-    )
-    const hasOptionalOwnPart =
-      ownPatternParts.length > 0 &&
-      ownPatternParts[ownPatternParts.length - 1]!.endsWith('?')
+    const patternSegments = createPathSegments(pattern)
+    const ownSegments = createPathSegments(subPath)
+    const pathParamNames = getPathParamNames(patternSegments)
+    const ownPathParamNames = getPathParamNames(ownSegments)
 
     let parentCachedParams = getParentCachedParams(parent)
     let cachedParams =
@@ -195,80 +269,46 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         ? atom(null, `${name}._cachedParams`)
         : parentCachedParams
 
-    const pickOwnPathParams = (routeParams: Rec): Rec => {
-      const picked: Rec = {}
-      for (const key of ownPathParamNames) {
-        if (key in routeParams) picked[key] = routeParams[key]
+    const validatePathParams = (routeParams: Rec): Rec => {
+      if (!paramsSchema) return routeParams
+      if (isCodec(paramsSchema) && !isStandardSchema(paramsSchema)) {
+        throw new Error(`Invalid params for route ${pattern}`)
       }
-      return picked
+
+      const validated = validateParams(
+        paramsSchema,
+        routeParams as any,
+        'params',
+      )
+
+      if (validated === null) {
+        if (cachedParams) return {}
+        throw new Error(`Invalid params for route ${pattern}`)
+      }
+
+      return validated as Rec
+    }
+
+    const encodePathParams = (routeParams: Rec): Rec => {
+      if (!paramsSchema) return routeParams
+
+      if (!paramsIsCodec) return validatePathParams(routeParams)
+
+      try {
+        return paramsSchema.encode(
+          pickParams(routeParams, ownPathParamNames),
+        ) as Rec
+      } catch (encodeError) {
+        if (!isStandardSchema(paramsSchema)) throw encodeError
+        return validatePathParams(routeParams)
+      }
     }
 
     const buildLocalPathnameSegments = (routeParams: void | Rec): string => {
-      if (ownPatternParts.length === 0) {
-        return ''
-      }
+      if (ownSegments.length === 0) return ''
+
       const routeParamsObj = (routeParams ?? {}) as Rec
-      let pathParams: Rec
-      if (!paramsSchema) {
-        pathParams = routeParamsObj
-      } else if (paramsIsCodec) {
-        try {
-          pathParams = paramsSchema.encode(
-            pickOwnPathParams(routeParamsObj),
-          ) as Rec
-        } catch (encodeError) {
-          if (isStandardSchema(paramsSchema)) {
-            const validated = validateParams(
-              paramsSchema,
-              routeParamsObj as any,
-              'params',
-            )
-            if (validated === null) {
-              if (cachedParams) pathParams = {}
-              else throw new Error(`Invalid params for route ${pattern}`)
-            } else {
-              pathParams = validated as Rec
-            }
-          } else {
-            throw encodeError
-          }
-        }
-      } else {
-        const validated = validateParams(
-          paramsSchema,
-          routeParamsObj as any,
-          'params',
-        )
-        if (validated === null) {
-          if (cachedParams) pathParams = {}
-          else throw new Error(`Invalid params for route ${pattern}`)
-        } else {
-          pathParams = validated as Rec
-        }
-      }
-
-      let path = ''
-
-      for (let i = 0; i < ownPatternParts.length; i++) {
-        const part = ownPatternParts[i]!
-        if (part.startsWith(':')) {
-          const paramName = getPatternName(part)
-          const isOptional =
-            hasOptionalOwnPart && i === ownPatternParts.length - 1
-          const inObject = paramName in pathParams
-          const value = pathParams[paramName]
-          const present = inObject && value !== undefined && value !== null
-          if (present) {
-            path += `/${pathParams[paramName]}`
-          } else if (!isOptional) {
-            throw new Error(`Missing param "${paramName}" for route ${pattern}`)
-          }
-        } else {
-          path += `/${getPatternName(part)}`
-        }
-      }
-
-      return path
+      return buildPath(ownSegments, encodePathParams(routeParamsObj), pattern)
     }
 
     const pathnameBuilder = (routeParams: Rec): string => {
@@ -287,40 +327,43 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       return `${base.replace(/\/$/, '')}${local}`
     }
 
+    const encodeSearchParams = (routeParams: Rec): Rec | null => {
+      if (!searchSchema) return null
+
+      if (!searchIsCodec) {
+        validate(searchSchema, routeParams, 'search')
+        return routeParams
+      }
+
+      try {
+        return searchSchema.encode(routeParams) as Rec
+      } catch (encodeError) {
+        if (!isStandardSchema(searchSchema)) throw encodeError
+        validate(searchSchema, routeParams, 'search')
+        return routeParams
+      }
+    }
+
+    const appendSearch = (path: string, searchParams: Rec | null): string => {
+      if (!searchParams) return path
+
+      const urlSearchParams = new URLSearchParams()
+
+      for (const [key, value] of Object.entries(searchParams)) {
+        if (pathParamNames.has(key) || value == null) continue
+        urlSearchParams.set(key, String(value))
+      }
+
+      const search = urlSearchParams.toString()
+      return search ? `${path}?${search}` : path
+    }
+
     const getPath = (params: void | Rec = {}): string => {
       const routeParams = (params ?? {}) as Rec
-      let path = pathnameBuilder(routeParams)
-
-      let searchParams: Rec | null = null
-      if (searchSchema) {
-        if (searchIsCodec) {
-          try {
-            searchParams = searchSchema.encode(routeParams) as Rec
-          } catch (encodeError) {
-            if (isStandardSchema(searchSchema)) {
-              validate(searchSchema, routeParams, 'search')
-              searchParams = routeParams
-            } else {
-              throw encodeError
-            }
-          }
-        } else {
-          searchParams = routeParams
-          validate(searchSchema, routeParams, 'search')
-        }
-      }
-
-      if (searchParams) {
-        const urlSearchParams = new URLSearchParams()
-        for (const [key, value] of Object.entries(searchParams)) {
-          if (pathParamNames.has(key) || value == null) continue
-          urlSearchParams.set(key, String(value))
-        }
-        const search = urlSearchParams.toString()
-        if (search) path += `?${search}`
-      }
-
-      return path
+      return appendSearch(
+        pathnameBuilder(routeParams),
+        encodeSearchParams(routeParams),
+      )
     }
 
     const getUrl = (url: URL, params: void | Rec = {}): URL => {
@@ -368,31 +411,93 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       withAsyncData({ status: true }),
     ) as unknown as RouteLoader
 
-    const exact = computed(() => {
-      const params = routeAtom()
+    const routeMatch = computed(
+      (state?: null | PathMatch): null | PathMatch => {
+        if ('match' in parent && !parent.match()) return null
 
-      if (params === null) return false
+        const url = urlAtom()
+        const pathMatch = matchPath(
+          patternSegments,
+          url.pathname,
+          hasNoExplicitPath,
+        )
 
-      if (patternParts.length === 0 && hasNoExplicitPath) return true
+        if (!pathMatch) return null
 
-      const pathname = urlAtom().pathname || '/'
+        let params = pathMatch.params
 
-      if (hasParams && pattern === pathname) return true
+        const parentParams =
+          parent !== urlAtom && 'match' in parent ? parent() : null
+        if (parentParams) {
+          params = { ...parentParams, ...params }
+        }
 
-      const parts = pathname.split('/').filter(Boolean)
+        const cachedParamsState =
+          typeof paramsSchema === 'function' ? (cachedParams?.() ?? null) : null
+        if (cachedParamsState) {
+          params = { ...params, ...cachedParamsState }
+        }
 
-      const isLengthCorrect =
-        parts.length === patternParts.length ||
-        (hasOptionalPart && parts.length === patternParts.length - 1)
+        let resultParams: Rec
+        let searchParams: Rec | undefined
 
-      if (!isLengthCorrect) return false
+        try {
+          if (!paramsSchema) {
+            resultParams = params
+          } else if (paramsIsCodec) {
+            resultParams = paramsSchema.decode(params as any) as Rec
+          } else {
+            const validatedParams = validateParams(
+              paramsSchema,
+              params as any,
+              'params',
+            )
+            if (validatedParams === null) return null
+            resultParams = validatedParams as Rec
+          }
 
-      return patternParts.every((patternPart, i) => {
-        if (patternPart.startsWith(':')) return true
+          if (searchSchema) {
+            const rawSearchParams = Object.fromEntries(url.searchParams)
+            searchParams = searchIsCodec
+              ? (searchSchema.decode(rawSearchParams) as Rec)
+              : validate(searchSchema, rawSearchParams, 'search')
+          }
+        } catch {
+          return null
+        }
 
-        return getPatternName(patternPart) === parts[i]
-      })
-    }, `${name}.exact`)
+        if (searchParams) {
+          const mergedParams = { ...resultParams }
+          for (const key in searchParams) {
+            if (
+              key in mergedParams &&
+              !(cachedParamsState && key in cachedParamsState)
+            ) {
+              throw new ReatomError(
+                `Params collision for "${key}" in route ${pattern}`,
+              )
+            }
+            mergedParams[key] = searchParams[key]
+          }
+          resultParams = mergedParams
+        }
+
+        const stableParams =
+          state?.params && isDeepEqual(state.params, resultParams)
+            ? state.params
+            : resultParams
+
+        return state?.exact === pathMatch.exact && state.params === stableParams
+          ? state
+          : { exact: pathMatch.exact, params: stableParams }
+      },
+      `${name}._match`,
+    )
+
+    const exact = computed(
+      () => routeAtom() !== null && (routeMatch()?.exact ?? false),
+      `${name}.exact`,
+    )
 
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
@@ -425,87 +530,10 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     })) as RouteGo
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {
-      if ('match' in parent && !parent.match!()) return null
+      const match = routeMatch()
+      if (!match) return null
 
-      let url = urlAtom()
-      let pathname = url.pathname
-      let parts = pathname.split('/').filter(Boolean)
-
-      let params: null | Rec = {}
-
-      for (let i = 0; i < patternParts.length; i++) {
-        if (i > parts.length || (i === parts.length && !hasOptionalPart)) {
-          return null
-        }
-
-        let part = patternParts[i]!
-        let partName = getPatternName(part)
-        let pathPart = parts[i]
-
-        if (part.startsWith(':')) {
-          params[partName] = pathPart
-        } else if (partName !== pathPart) {
-          return null
-        }
-      }
-
-      const parentParams =
-        parent !== urlAtom && 'match' in parent ? parent() : null
-      if (parentParams) {
-        params = { ...parentParams, ...params }
-      }
-
-      let cachedParamsState =
-        typeof paramsSchema === 'function' ? (cachedParams?.() ?? null) : null
-      if (cachedParamsState) {
-        params = { ...params, ...cachedParamsState }
-      }
-
-      let validatedParams: Rec
-      let validatedSearch: undefined | Rec
-
-      try {
-        if (!paramsSchema) {
-          validatedParams = params
-        } else if (paramsIsCodec) {
-          validatedParams = paramsSchema.decode(params as any)
-        } else {
-          validatedParams = validateParams(
-            paramsSchema,
-            params as any,
-            'params',
-          )
-          if (validatedParams === null) return null
-        }
-
-        if (searchSchema) {
-          let searchParams = Object.fromEntries(url.searchParams)
-          validatedSearch = searchIsCodec
-            ? searchSchema.decode(searchParams)
-            : validate(searchSchema, searchParams, 'search')
-        }
-      } catch {
-        return null
-      }
-
-      let result = validatedParams
-
-      if (validatedSearch) {
-        result = { ...validatedParams }
-        for (let key in validatedSearch) {
-          if (
-            key in result &&
-            !(cachedParamsState && key in cachedParamsState)
-          ) {
-            throw new ReatomError(
-              `Params collision for "${key}" in route ${pattern}`,
-            )
-          }
-          result[key] = validatedSearch[key]
-        }
-      }
-
-      return isDeepEqual(state, result) ? state! : result
+      return isDeepEqual(state, match.params) ? state! : match.params
     }, name).extend((target) => {
       let reatomRoute = createRouteFactory(target as RouteAtom)
 
