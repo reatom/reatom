@@ -206,4 +206,18 @@ describe('codecs', () => {
       .toMatchObjectType<{ id: number; page: number }>()
     expectTypeOf(route()).toEqualTypeOf<{ id: number; page: number } | null>()
   })
+
+  test('child route uses parent params codec when encoding path', () => {
+    const wrapRoute = reatomRoute({
+      path: 'wrap/:token',
+      params: {
+        decode: (input: { token: string }) => ({ token: (input.token) === 'seven' ? 7 : NaN }),
+        encode: (output: { token: number }) => ({ token: output.token === 7 ? 'seven' : '' }),
+      },
+    })
+    const childRoute = wrapRoute.reatomRoute('item/:itemId')
+
+    childRoute.go({ token: 7, itemId: 'x' })
+    expect(urlAtom().pathname).toBe('/wrap/seven/item/x')
+  })
 })

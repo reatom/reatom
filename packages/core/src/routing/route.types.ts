@@ -303,7 +303,10 @@ export interface RouteMixin<
     Plain<Params & PathParams<SubPath>>,
     {},
     {},
-    Plain<GoParams & PathParams<SubPath>>
+    Plain<GoParams & PathParams<SubPath>>,
+    {},
+    PathParams<SubPath>,
+    {}
   >
 
   /**
@@ -355,6 +358,8 @@ export interface RouteMixin<
     Plain<SubSearchOutput>,
     Payload,
     Plain<GoParams & SubParamsOutput>,
+    Plain<SubSearchOutput>,
+    Plain<SubParamsOutput>,
     Plain<SubSearchOutput>
   >
 
@@ -385,6 +390,8 @@ export interface RouteMixin<
     Plain<SubSearchOutput>,
     Payload,
     Plain<GoParams & SubParamsOutput>,
+    Plain<SubSearchInput>,
+    Plain<SubParamsOutput>,
     Plain<SubSearchInput>
   >
 
@@ -415,6 +422,8 @@ export interface RouteMixin<
     Plain<SubSearchOutput>,
     Payload,
     Plain<GoParams & SubParamsInput>,
+    Plain<SubSearchOutput>,
+    Plain<SubParamsInput>,
     Plain<SubSearchOutput>
   >
 
@@ -459,6 +468,8 @@ export interface RouteMixin<
     Plain<SubSearchOutput>,
     Payload,
     Plain<GoParams & SubParamsInput>,
+    Plain<SubSearchInput>,
+    Plain<SubParamsInput>,
     Plain<SubSearchInput>
   >
 }
@@ -473,6 +484,30 @@ export interface RouteLoader<Params extends Rec = Rec, Payload = any>
     Computed<Promise<Payload>>,
     AsyncDataExt<[Params], Payload, Payload, undefined, Error | undefined> {}
 
+/**
+ * Route navigation: `route.go(params)` and `route.go.relative(...)`.
+ */
+export interface RouteGo<
+  GoParams = {},
+  GoSearch = {},
+  RelativeGoParams = GoParams,
+  RelativeGoSearch = GoSearch,
+> extends Action<[params: MaybeVoid<GoParams & GoSearch>, replace?: boolean], URL> {
+  relative: RouteGoRelative<RelativeGoParams, RelativeGoSearch>
+}
+
+/**
+ * Relative navigation: `route.go.relative(params)` merges current parent params then calls `go`.
+ * Accepts only this route's own path/search args (no parent keys).
+ */
+export interface RouteGoRelative<
+  RelativeGoParams = {},
+  RelativeGoSearch = {},
+> extends Action<
+  [params?: MaybeVoid<RelativeGoParams & RelativeGoSearch>, replace?: boolean],
+  URL
+> {}
+
 /** Route extension interface for route computed atom. */
 export interface RouteExt<
   Path extends string = string,
@@ -481,6 +516,8 @@ export interface RouteExt<
   Payload = Plain<Params & Search>,
   GoParams = Params,
   GoSearch = Search,
+  RelativeGoParams = GoParams,
+  RelativeGoSearch = GoSearch,
 > extends RouteMixin<Path, Params, GoParams> {
   /**
    * Navigate to this route with the given parameters.
@@ -506,7 +543,7 @@ export interface RouteExt<
    *   creating a new one. Defaults to `false`.
    * @returns The new URL object
    */
-  go: Action<[params: MaybeVoid<GoParams & GoSearch>, replace?: boolean], URL>
+  go: RouteGo<GoParams, GoSearch, RelativeGoParams, RelativeGoSearch>
 
   /**
    * Async loader for fetching route data.
@@ -651,6 +688,12 @@ export interface RouteExt<
   parent: RouteAtom | null
 
   cachedParams: Atom<null | GoParams>
+
+  /**
+   * Builds only the pathname for this route branch (no search string).
+   * @internal
+   */
+  pathnameBuilder: (params: Rec) => string
 }
 
 /**
@@ -694,7 +737,18 @@ export interface RouteAtom<
   Payload = Plain<ParamsOutput & SearchOutput>,
   GoParams = ParamsOutput,
   GoSearch = SearchOutput,
+  RelativeGoParams = GoParams,
+  RelativeGoSearch = GoSearch,
 >
   extends
     Computed<null | Plain<ParamsOutput & SearchOutput>>,
-    RouteExt<Path, ParamsOutput, SearchOutput, Payload, GoParams, GoSearch> {}
+    RouteExt<
+      Path,
+      ParamsOutput,
+      SearchOutput,
+      Payload,
+      GoParams,
+      GoSearch,
+      RelativeGoParams,
+      RelativeGoSearch
+    > {}

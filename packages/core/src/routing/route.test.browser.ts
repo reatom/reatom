@@ -189,7 +189,7 @@ test('route chainable functionality', async () => {
 
 test('route typed params', () => {
   {
-    const catalogRoute = reatomRoute({
+    reatomRoute({
       path: 'catalog/:id',
       // @ts-expect-error - test
       params: z.object({ /* mistake -> */ ib: z.number() }),
@@ -380,7 +380,7 @@ test('params types transform', async () => {
   const issueRoute = reatomRoute({
     path: 'issue/:issueId',
     params: z.object({
-      issueId: z.string().regex(/^\d+$/).transform(Number),
+      issueId: z.coerce.number(),
     }),
     async loader(params) {
       return {
@@ -389,7 +389,7 @@ test('params types transform', async () => {
     },
   })
 
-  issueRoute.go({ issueId: '123' })
+  issueRoute.go({ issueId: 123 })
 
   expect(await wrap(issueRoute.loader())).toEqual({ issueId: 123 })
 })
@@ -869,6 +869,115 @@ test('search params transform', () => {
       .transform((raw) => ({ userId: raw.u })),
   })
 
-  userRoute.go({ u: '123' })
+  urlAtom.go('/user?u=123')
   expect(userRoute()).toMatchObject({ userId: '123' })
+})
+
+test('pathful callback child unmatches when sibling is active', async () => {
+  const projectsRoute = reatomRoute('projects/:projectId')
+  const reviewRoute = projectsRoute.reatomRoute({
+    path: 'review',
+    params: (input) => input,
+  })
+  const settingsRoute = projectsRoute.reatomRoute({
+    path: 'settings',
+    params: (input) => input,
+  })
+
+  reviewRoute.go({ projectId: '123' })
+  await wrap(sleep())
+
+  expect(reviewRoute()).not.toBeNull()
+  expect(settingsRoute()).toBeNull()
+
+  settingsRoute.go({ projectId: '123' })
+  await wrap(sleep())
+
+  expect(reviewRoute()).toBeNull()
+  expect(settingsRoute()).not.toBeNull()
+})
+
+test('optional path param undefined omits segment', () => {
+  const postRoute = reatomRoute('posts/:postId?')
+  postRoute.go({ postId: undefined })
+  expect(urlAtom().pathname).toBe('/posts')
+})
+
+test('pathless nested route does not treat prefix path as parent subpath', () => {
+  const authRoute = reatomRoute('auth')
+  const authDialogRoute = authRoute.reatomRoute({
+    search: z.object({ dialog: z.enum(['a', 'b']).optional() }),
+  })
+
+  urlAtom.go('/auth-dialog')
+  authDialogRoute.go({ dialog: 'a' })
+  expect(urlAtom().pathname).toBe('/auth')
+  expect(urlAtom().search).toBe('?dialog=a')
+})
+
+test('go.relative navigates from sibling using parent params', async () => {
+  const projectsRoute = reatomRoute('projects/:projectId', 'rel.projects')
+  const settingsRoute = projectsRoute.reatomRoute('settings', 'rel.settings')
+  const reviewRoute = projectsRoute.reatomRoute('review', 'rel.review')
+
+  settingsRoute.go({ projectId: '123' })
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/projects/123/settings')
+
+  reviewRoute.go.relative()
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/projects/123/review')
+})
+
+test('go.relative merges explicit child params over parent', async () => {
+  const orgRoute = reatomRoute('org/:orgId', 'rel.org')
+  const teamRoute = orgRoute.reatomRoute('team/:teamId', 'rel.team')
+  const memberRoute = orgRoute.reatomRoute('member/:memberId', 'rel.member')
+
+  teamRoute.go({ orgId: 'o1', teamId: 't9' })
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/org/o1/team/t9')
+
+  memberRoute.go.relative({ memberId: 'm3' })
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/org/o1/member/m3')
+})
+
+test('go.relative first parameter omits parent path keys', () => {
+  const orgRoute = reatomRoute('org/:orgId')
+  const memberRoute = orgRoute.reatomRoute('member/:memberId')
+
+  expectTypeOf(memberRoute.go.relative)
+    .parameter(0)
+    .not.toMatchObjectType<{ orgId: string }>()
+})
+
+test('go.relative strips parent keys from runtime argument', async () => {
+  const orgRoute = reatomRoute('org/:orgId')
+  const teamRoute = orgRoute.reatomRoute('team/:teamId')
+  const memberRoute = orgRoute.reatomRoute('member/:memberId')
+
+  teamRoute.go({ orgId: 'o1', teamId: 't9' })
+  await wrap(sleep())
+
+  memberRoute.go.relative({
+    memberId: 'm3',
+    // @ts-expect-error
+    orgId: 'evil',
+  })
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/org/o1/member/m3')
+})
+
+test('go.relative throws when parent is not matched', () => {
+  const projectsRoute = reatomRoute('projects/:projectId')
+  const reviewRoute = projectsRoute.reatomRoute('review')
+
+  urlAtom.go('/')
+  expect(() => reviewRoute.go.relative()).toThrow('not matched')
 })
