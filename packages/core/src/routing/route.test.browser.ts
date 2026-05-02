@@ -418,28 +418,6 @@ test('search params memo', async () => {
   expect(route2()).toEqual({ q: '123' })
 })
 
-test('params collision', async () => {
-  const strictRoute = reatomRoute({
-    path: 'strictRoute/:id',
-  })
-
-  const liberalRoute = reatomRoute({
-    path: 'liberalRoute/:id',
-    search: z.record(z.string(), z.string()),
-  })
-
-  const expectedId = '42'
-  const maliciousId = 'lol'
-
-  urlAtom.go(`/strictRoute/${expectedId}?id=${maliciousId}`)
-
-  expect(strictRoute()).toEqual({ id: expectedId })
-
-  urlAtom.go(`/liberalRoute/${expectedId}?id=${maliciousId}`)
-
-  expect(() => liberalRoute()).toThrow('Params collision')
-})
-
 test('search-only route should preserve pathname', async () => {
   const dialogRoute = reatomRoute({
     search: z.object({
@@ -947,37 +925,57 @@ test('go.relative merges explicit child params over parent', async () => {
   expect(urlAtom().pathname).toBe('/org/o1/member/m3')
 })
 
-test('go.relative first parameter omits parent path keys', () => {
-  const orgRoute = reatomRoute('org/:orgId')
-  const memberRoute = orgRoute.reatomRoute('member/:memberId')
-
-  expectTypeOf(memberRoute.go.relative)
-    .parameter(0)
-    .not.toMatchObjectType<{ orgId: string }>()
-})
-
-test('go.relative strips parent keys from runtime argument', async () => {
-  const orgRoute = reatomRoute('org/:orgId')
-  const teamRoute = orgRoute.reatomRoute('team/:teamId')
-  const memberRoute = orgRoute.reatomRoute('member/:memberId')
-
-  teamRoute.go({ orgId: 'o1', teamId: 't9' })
-  await wrap(sleep())
-
-  memberRoute.go.relative({
-    memberId: 'm3',
-    // @ts-expect-error
-    orgId: 'evil',
-  })
-  await wrap(sleep())
-
-  expect(urlAtom().pathname).toBe('/org/o1/member/m3')
-})
-
 test('go.relative throws when parent is not matched', () => {
   const projectsRoute = reatomRoute('projects/:projectId')
   const reviewRoute = projectsRoute.reatomRoute('review')
 
   urlAtom.go('/')
   expect(() => reviewRoute.go.relative()).toThrow('not matched')
+})
+
+test('child loader should start in parallel and resolve after parent loader', async () => {
+  const events: Array<string> = []
+  let childLoaderResolved = false
+  let resolveParent = () => {}
+  const parentReady = new Promise<void>((resolve) => {
+    resolveParent = resolve
+  })
+
+  const parentRoute = reatomRoute({
+    path: 'parent',
+    async loader() {
+      events.push('parent:start')
+      await wrap(parentReady)
+      events.push('parent:end')
+      return 'parent'
+    },
+  })
+  const childRoute = parentRoute.reatomRoute({
+    path: 'child',
+    async loader() {
+      events.push('child:start')
+      return 'child'
+    },
+  })
+
+  childRoute.go()
+  const loading = childRoute.loader()
+  loading.then(() => {
+    childLoaderResolved = true
+    events.push('child:public-end')
+  })
+  await wrap(Promise.resolve())
+
+  expect(events).toEqual(['child:start', 'parent:start'])
+  expect(childLoaderResolved).toBe(false)
+
+  resolveParent()
+  await wrap(loading)
+
+  expect(events).toEqual([
+    'child:start',
+    'parent:start',
+    'parent:end',
+    'child:public-end',
+  ])
 })

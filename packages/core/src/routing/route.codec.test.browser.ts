@@ -31,7 +31,7 @@ describe('codecs', () => {
     route.go({ payload: data })
     expect(route()).toEqual({ payload: data })
     expect(route.path({ payload: data })).toBe(
-      `/data/${btoa(JSON.stringify(data))}`,
+      `/data/${encodeURIComponent(btoa(JSON.stringify(data)))}`,
     )
   })
 

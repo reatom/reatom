@@ -172,8 +172,13 @@ const matchPath = (
     const pathPart = parts[i]
     if (pathPart === undefined && segment.optional) continue
     if (pathPart === undefined) return null
-    if (segment.param) params[segment.name] = pathPart
-    else if (segment.name !== pathPart) return null
+    if (segment.param) {
+      try {
+        params[segment.name] = decodeURIComponent(pathPart)
+      } catch {
+        return null
+      }
+    } else if (segment.name !== pathPart) return null
   }
 
   const exact =
@@ -199,7 +204,7 @@ const buildPath = (
 
     const value = params[name]
     const present = value !== undefined && value !== null
-    if (present) path += `/${value}`
+    if (present) path += `/${encodeURIComponent(String(value))}`
     else if (!optional) {
       throw new Error(`Missing param "${name}" for route ${pattern}`)
     }
@@ -398,8 +403,11 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         throw controller.signal.reason
       }
 
+      // start before parent to load all route in parallel
       const promise = optionsLoader(params)
 
+      // expose the current result only
+      // after the parent loader settles successfully.
       if ('loader' in parent) {
         if (promise instanceof Promise) promise.catch(noop)
         await wrap(parent.loader())
@@ -435,7 +443,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         const cachedParamsState =
           typeof paramsSchema === 'function' ? (cachedParams?.() ?? null) : null
         if (cachedParamsState) {
-          params = { ...params, ...cachedParamsState }
+          params = { ...cachedParamsState, ...params }
         }
 
         let resultParams: Rec
