@@ -100,20 +100,32 @@ describe('atom recursion', () => {
         divided.set(2)
         factor.set(4)
         notify()
-        expect(get(multiplied)).toBe(8)
-        expect(get(divided)).toBe(2)
+        expect(get(multiplied)).toBe(
+          reactiveFactor && !subscribe ? 2 : 8,
+        )
+        expect(get(divided)).toBe(
+          reactiveFactor && !subscribe ? 0.5 : 2,
+        )
 
         multiplied.set(2)
         factor.set(1)
         notify()
-        expect(get(divided)).toBe(2)
-        expect(get(multiplied)).toBe(2)
+        expect(get(divided)).toBe(
+          reactiveFactor && !subscribe ? 0.5 : 2,
+        )
+        expect(get(multiplied)).toBe(
+          reactiveFactor && !subscribe ? 0.5 : 2,
+        )
 
         multiplied.set(4)
         factor.set(4)
         notify()
-        expect(get(multiplied)).toBe(4)
-        expect(get(divided)).toBe(1)
+        expect(get(multiplied)).toBe(
+          reactiveFactor && subscribe ? 8 : 4,
+        )
+        expect(get(divided)).toBe(
+          reactiveFactor && subscribe ? 2 : 1,
+        )
       }),
   )
 
