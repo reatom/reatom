@@ -1,13 +1,20 @@
-import { describe, expect, test } from 'test'
+import { describe, expect, viTest } from 'test'
 
 import { withComputed } from '../extensions'
 import { peek } from '../methods'
 import { type Atom, atom, context, notify } from '.'
 
-describe.skip('atom recursion', () => {
-  test('bidirectional multiplication', () => {
-    for (const subscribe of [false, true]) {
-      for (const reactiveFactor of [false /*  true */]) {
+describe('atom recursion', () => {
+  viTest.each`
+    subscribe         | reactiveFactor
+    ${false}          | ${false}
+    ${true}           | ${false}
+    ${false}          | ${true}
+    ${true}           | ${true}
+  `(
+    'bidirectional multiplication with subscribe = $subscribe, reactive factor = $reactiveFactor',
+    ({ subscribe, reactiveFactor }) =>
+      context.start(() => {
         let name = 'cycle'
         if (subscribe) name += 'Subscribe'
         if (reactiveFactor) name += 'ReactiveFactor'
@@ -24,7 +31,7 @@ describe.skip('atom recursion', () => {
         )
         const multiplied: Atom<number> = atom(0, `${name}.multiplied`).extend(
           withComputed(() => {
-            return divided() * factor()
+            return divided() * (reactiveFactor ? factor() : peek(factor))
           }),
         )
 
@@ -36,7 +43,7 @@ describe.skip('atom recursion', () => {
         expect(get(divided)).toBe(0)
         expect(get(multiplied)).toBe(0)
 
-        // Single change
+        /* Single change */
 
         divided.set(1)
         notify()
@@ -58,31 +65,31 @@ describe.skip('atom recursion', () => {
         expect(get(multiplied)).toBe(4)
         expect(get(divided)).toBe(4)
 
-        if (reactiveFactor) {
-          // TODO results depends of the order of calculation,
-          // which depends of a subscription
-          factor.set(2)
-          notify()
-          expect(get(multiplied)).toBe(4)
-          expect(get(divided)).toBe(2)
+        // TODO results depends of the order of calculation,
+        // which depends of the subscription order.
+        // if (reactiveFactor) {
+        //   factor.set(2)
+        //   notify()
+        //   expect(get(multiplied)).toBe(4)
+        //   expect(get(divided)).toBe(2)
 
-          factor.set(4)
-          notify()
-          expect(get(divided)).toBe(2)
-          expect(get(multiplied)).toBe(8)
+        //   factor.set(4)
+        //   notify()
+        //   expect(get(divided)).toBe(2)
+        //   expect(get(multiplied)).toBe(8)
 
-          factor.set(2)
-          notify()
-          expect(get(divided)).toBe(2)
-          expect(get(multiplied)).toBe(4)
+        //   factor.set(2)
+        //   notify()
+        //   expect(get(divided)).toBe(2)
+        //   expect(get(multiplied)).toBe(4)
 
-          factor.set(4)
-          notify()
-          expect(get(multiplied)).toBe(8)
-          expect(get(divided)).toBe(2)
-        }
+        //   factor.set(4)
+        //   notify()
+        //   expect(get(multiplied)).toBe(8)
+        //   expect(get(divided)).toBe(2)
+        // }
 
-        // Couple changes
+        /* Couple changes */
 
         divided.set(1)
         factor.set(2)
@@ -93,6 +100,7 @@ describe.skip('atom recursion', () => {
         divided.set(2)
         factor.set(4)
         notify()
+        // fails with subscribe = false, rf = true
         expect(get(multiplied)).toBe(8)
         expect(get(divided)).toBe(2)
 
@@ -104,14 +112,14 @@ describe.skip('atom recursion', () => {
 
         multiplied.set(4)
         factor.set(4)
-        // notify()
+        notify()
+        // fails with subscribe = true, rf = true
         expect(get(multiplied)).toBe(4)
         expect(get(divided)).toBe(1)
-      }
-    }
-  })
+      }),
+  )
 
-  test('bidirectional link mol', async () => {
+  viTest.fails('bidirectional link mol', async () => {
     const {
       default: { $mol_wire_atom: Atom },
     } = await import('mol_wire_lib')
@@ -137,7 +145,7 @@ describe.skip('atom recursion', () => {
     expect(multiplied.sync()).toBe(4)
   })
 
-  test('bidirectional link mobx', async () => {
+  viTest.fails('bidirectional link mobx', async () => {
     const { observable, computed, configure } = await import('mobx')
     configure({ enforceActions: 'never' })
 

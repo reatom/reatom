@@ -377,8 +377,6 @@ export function run<I extends any[], O>(
 
 /** @private */
 export let _copy = (frame: Frame) => {
-  // console.log(COLOR.dimGreen('copy'), frame.atom.name)
-
   let pubs = frame.pubs.slice() as typeof frame.pubs
 
   pubs[0] = null
@@ -408,15 +406,13 @@ export let isWritableAtom = (value: any): value is Atom => {
 }
 
 export let _mark = (frame: Frame) => {
-  // console.log(COLOR.dimGreen('mark'), frame.atom.name)
-
   for (let i = 0; i < frame.subs.length; i++) {
     let sub = frame.subs[i]!
 
     if ('__reatom' in sub) {
       // TODO which tests fails without it? Add it to the core
       if (sub.__reatom.processing) {
-        // LOG('sub.__reatom.processing')
+        // reset for feature invalidate
         _enqueue(() => {
           _copy(frame.root.store.get(sub)!).pubs.length = 1
         }, 'compute')
@@ -430,22 +426,18 @@ export let _mark = (frame: Frame) => {
         _mark(subFrame)
       }
     } else {
-      // LOG('compute')
       _enqueue(sub, 'compute')
     }
   }
 }
 
 let link = (frame: Frame) => {
-  // console.log(COLOR.green('link'), frame.atom.name)
-
   let { pubs, atom } = frame
 
   for (let i = 1; i < pubs.length; i++) {
     let pub = pubs[i]!
     if (pub.subs.push(atom) === 1) {
       if (pub.atom.__reatom.onConnect !== undefined) {
-        // LOG('onConnect')
         _enqueue(pub.atom.__reatom.onConnect, 'effect')
       }
       link(pub)
@@ -458,8 +450,6 @@ let link = (frame: Frame) => {
 // For example, as we run `link` before `unlink` during deps invalidation,
 // for deps duplication we want to find just added dep.
 let unlink = (sub: AtomLike, oldPubs: Frame['pubs']) => {
-  // console.log(COLOR.red('unlink'), sub.name)
-
   // Start from the end to try to revet the link sequence with just "pop" complexity.
   // Do not unlink the zero pub, as it is just an actualization flag.
   for (let i = oldPubs.length - 1; i > 0; i--) {
@@ -473,7 +463,6 @@ let unlink = (sub: AtomLike, oldPubs: Frame['pubs']) => {
     if (pub.subs.length === 1) {
       pub.subs.pop()
       if (pub.atom.__reatom.onConnect !== undefined) {
-        // LOG('onConnect.abort')
         _enqueue(pub.atom.__reatom.onConnect.abort, 'effect')
       }
       unlink(pub.atom, pub.pubs)
@@ -552,7 +541,6 @@ export let _trackAction = (target: Action, parentFrame: Frame): Frame => {
 }
 
 function subscribe(this: AtomLike, userCb?: Fn) {
-  // console.log('subscribe', this.name)
   let isActionSubscription = isAction(this)
 
   let parentFrame = top()
@@ -600,7 +588,6 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
   if (frame!.subs.push(listener) === 1) {
     if (frame!.atom.__reatom.onConnect !== undefined) {
-      // LOG('subscribe onConnect')
       _enqueue(frame!.atom.__reatom.onConnect, 'effect')
     }
     relink(frame!, [null])
@@ -609,8 +596,6 @@ function subscribe(this: AtomLike, userCb?: Fn) {
   if (userCb) userCb(isActionSubscription ? [] : frame.state)
 
   return bind(() => {
-    // console.log('unsubscribe', this.name)
-
     let idx = frame.subs.lastIndexOf(listener)
 
     if (idx === -1) return
@@ -619,7 +604,6 @@ function subscribe(this: AtomLike, userCb?: Fn) {
 
     if (frame.subs.length === 0) {
       if (frame.atom.__reatom.onConnect !== undefined) {
-        // LOG('subscribe onConnect.abort')
         _enqueue(frame.atom.__reatom.onConnect.abort, 'effect')
       }
       unlink(this, parentFrame.root.store.get(this)!.pubs)
@@ -746,8 +730,6 @@ export function computedMiddleware(next: Fn, ...args: any[]) {
   let computed = next !== identity
   let emptyComputed = computed && !dependent
   let newState = state
-
-  // console.log((push ? COLOR.cyan : COLOR.yellow)('enter'), frame.atom.name)
 
   let invalid =
     computed &&
