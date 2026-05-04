@@ -42,7 +42,9 @@
     },
     "fixedExtension": false,
     "deps": {
-      "neverBundle": ["idb-keyval"]
+      "neverBundle": [
+        "idb-keyval"
+      ]
     }
   },
   "author": "artalar",
@@ -82,18 +84,21 @@
     "idb-keyval": "*"
   },
   "devDependencies": {
-    "tsdown": "catalog:",
     "@artalar/act": "latest",
     "@frp-ts/core": "latest",
     "@ngrx/store": "latest",
     "@preact/signals-core": "latest",
     "@types/node": "latest",
     "@types/ws": "catalog:",
+    "@vitest/browser": "catalog:",
     "@vitest/browser-playwright": "catalog:",
+    "@vitest/runner": "catalog:",
     "@webreflection/signal": "latest",
+    "@whatsup/core": "^2.6.0",
     "alien-signals": "^3.1.2",
     "cellx": "latest",
     "dexnode": "catalog:",
+    "expect-type": "^1.3.0",
     "effector": "latest",
     "idb-keyval": "^6.2.2",
     "jotai": "latest",
@@ -108,10 +113,10 @@
     "s-js": "latest",
     "solid-js": "^1.9.11",
     "spred": "latest",
+    "tsdown": "catalog:",
     "typescript": "catalog:",
     "usignal": "latest",
     "vitest": "catalog:",
-    "whatsup": "latest",
     "wonka": "latest",
     "ws": "catalog:",
     "zod": "catalog:"

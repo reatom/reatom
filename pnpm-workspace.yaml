@@ -26,6 +26,7 @@ catalog:
   '@vitejs/plugin-react': ^6.0.1
   '@vitest/browser': ^4.1.2
   '@vitest/browser-playwright': ^4.1.2
+  '@vitest/runner': ^4.1.2
   '@vitest/spy': ^4.1.2
   '@vitest/ui': ^4.1.2
   '@webreflection/signal': latest
@@ -39,7 +40,6 @@ catalog:
   eslint-plugin-unused-imports: ^4.3.0
   globals: ^16.5.0
   husky: ^9.1.7
-  jotai: ^2.16.0
   jsondiffpatch: ^0.7.3
   lit: ^3.0.0
   mobx: latest
@@ -70,7 +70,6 @@ catalog:
   vite-plugin-solid: ^2.11.10
   vitest: ^4.1.2
   vue: ^3.0.0
-  whatsup: latest
   wonka: latest
   ws: ^8.18.3
   zod: ^4.1.13

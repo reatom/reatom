@@ -60,6 +60,9 @@ catalogs:
     '@vitest/browser-playwright':
       specifier: ^4.1.2
       version: 4.1.2
+    '@vitest/runner':
+      specifier: ^4.1.2
+      version: 4.1.2
     '@vitest/spy':
       specifier: ^4.1.2
       version: 4.1.2
@@ -393,12 +396,21 @@ importers:
       '@types/ws':
         specifier: 'catalog:'
         version: 8.18.1
+      '@vitest/browser':
+        specifier: 'catalog:'
+        version: 4.1.2(msw@2.12.13(@types/node@25.5.0)(typescript@5.9.3))(vite@8.0.3(@types/node@25.5.0)(esbuild@0.27.4)(jiti@2.6.1)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.2)
       '@vitest/browser-playwright':
         specifier: 'catalog:'
         version: 4.1.2(msw@2.12.13(@types/node@25.5.0)(typescript@5.9.3))(playwright@1.57.0)(vite@8.0.3(@types/node@25.5.0)(esbuild@0.27.4)(jiti@2.6.1)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))(vitest@4.1.2)
+      '@vitest/runner':
+        specifier: 'catalog:'
+        version: 4.1.2
       '@webreflection/signal':
         specifier: latest
         version: 2.1.2
+      '@whatsup/core':
+        specifier: ^2.6.0
+        version: 2.6.0
       alien-signals:
         specifier: ^3.1.2
         version: 3.1.2
@@ -411,9 +423,12 @@ importers:
       effector:
         specifier: latest
         version: 23.4.4
+      expect-type:
+        specifier: ^1.3.0
+        version: 1.3.0
       jotai:
         specifier: latest
-        version: 2.18.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.10)(react@19.2.4)
+        version: 2.19.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.10)(react@19.2.4)
       mobx:
         specifier: latest
         version: 6.15.0
@@ -459,9 +474,6 @@ importers:
       vitest:
         specifier: 'catalog:'
         version: 4.1.2(@types/node@25.5.0)(@vitest/browser-playwright@4.1.2)(@vitest/ui@4.1.2)(msw@2.12.13(@types/node@25.5.0)(typescript@5.9.3))(vite@8.0.3(@types/node@25.5.0)(esbuild@0.27.4)(jiti@2.6.1)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2))
-      whatsup:
-        specifier: latest
-        version: 2.6.0
       wonka:
         specifier: latest
         version: 6.3.5
@@ -3740,8 +3752,8 @@ packages:
     resolution: {integrity: sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ==}
     hasBin: true
 
-  jotai@2.18.1:
-    resolution: {integrity: sha512-e0NOzK+yRFwHo7DOp0DS0Ycq74KMEAObDWFGmfEL28PD9nLqBTt3/Ug7jf9ca72x0gC9LQZG9zH+0ISICmy3iA==}
+  jotai@2.19.1:
+    resolution: {integrity: sha512-sqm9lVZiqBHZH8aSRk32DSiZDHY3yUIlulXYn9GQj7/LvoUdYXSMti7ZPJGo+6zjzKFt5a25k/I6iBCi43PJcw==}
     engines: {node: '>=12.20.0'}
     peerDependencies:
       '@babel/core': '>=7.0.0'
@@ -9079,7 +9091,7 @@ snapshots:
 
   jiti@2.6.1: {}
 
-  jotai@2.18.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.10)(react@19.2.4):
+  jotai@2.19.1(@babel/core@7.29.0)(@babel/template@7.28.6)(@types/react@19.2.10)(react@19.2.4):
     optionalDependencies:
       '@babel/core': 7.29.0
       '@babel/template': 7.28.6
