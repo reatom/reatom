@@ -100,7 +100,6 @@ describe('atom recursion', () => {
         divided.set(2)
         factor.set(4)
         notify()
-        // fails with subscribe = false, rf = true
         expect(get(multiplied)).toBe(8)
         expect(get(divided)).toBe(2)
 
@@ -113,7 +112,6 @@ describe('atom recursion', () => {
         multiplied.set(4)
         factor.set(4)
         notify()
-        // fails with subscribe = true, rf = true
         expect(get(multiplied)).toBe(4)
         expect(get(divided)).toBe(1)
       }),
