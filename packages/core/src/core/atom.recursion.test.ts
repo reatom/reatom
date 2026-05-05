@@ -65,29 +65,45 @@ describe('atom recursion', () => {
         expect(get(multiplied)).toBe(4)
         expect(get(divided)).toBe(4)
 
-        // TODO results depends of the order of calculation,
-        // which depends of the subscription order.
-        // if (reactiveFactor) {
-        //   factor.set(2)
-        //   notify()
-        //   expect(get(multiplied)).toBe(4)
-        //   expect(get(divided)).toBe(2)
+        if (reactiveFactor) {
+          if (subscribe) {
+            factor.set(2)
+            notify()
+            expect(get(multiplied)).toBe(4)
+            expect(get(divided)).toBe(2)
 
-        //   factor.set(4)
-        //   notify()
-        //   expect(get(divided)).toBe(2)
-        //   expect(get(multiplied)).toBe(8)
+            factor.set(4)
+            notify()
+            expect(get(divided)).toBe(2)
+            expect(get(multiplied)).toBe(8)
 
-        //   factor.set(2)
-        //   notify()
-        //   expect(get(divided)).toBe(2)
-        //   expect(get(multiplied)).toBe(4)
+            factor.set(2)
+            notify()
+            expect(get(divided)).toBe(4)
+            expect(get(multiplied)).toBe(8)
 
-        //   factor.set(4)
-        //   notify()
-        //   expect(get(multiplied)).toBe(8)
-        //   expect(get(divided)).toBe(2)
-        // }
+            factor.set(4)
+            notify()
+            expect(get(multiplied)).toBe(16)
+            expect(get(divided)).toBe(4)
+          } else {
+            factor.set(2)
+            expect(get(multiplied)).toBe(8)
+            expect(get(divided)).toBe(4)
+
+            factor.set(4)
+            expect(get(divided)).toBe(2)
+            expect(get(multiplied)).toBe(8)
+
+            factor.set(2)
+            expect(get(divided)).toBe(4)
+            expect(get(multiplied)).toBe(8)
+
+            factor.set(4)
+            expect(get(multiplied)).toBe(16)
+            expect(get(divided)).toBe(4)
+          }
+        }
 
         /* Couple changes */
 

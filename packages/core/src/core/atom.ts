@@ -670,28 +670,28 @@ export function _isPubsChanged(
 ) {
   let hasCycleDep = false
 
-  for (let i = from; i < pubs.length; i++) {
+  pubLoop: for (let i = from; i < pubs.length; i++) {
     let { error: pubError, state: pubState, atom: pubAtom } = pubs[i]!
     let pubFreshState = pubState
     let pubFreshError = pubError
 
     // try to reduce extra atom calls
-    let pubFrame = frame.root.store.get(pubAtom)!
+    let pubFreshFrame = frame.root.store.get(pubAtom)!
 
     if (
-      pubFrame.atom.__reatom.processing &&
-      Object.is(pubFrame.state, pubState)
+      pubFreshFrame.atom.__reatom.processing &&
+      Object.is(pubFreshFrame.state, pubState)
     ) {
       // Cycle. Cache self last state, do not fall to recompute on pub old state
       hasCycleDep = true
       frame.pubs.push(pubs[i]!)
       continue
     } else if (
-      pubFrame.pubs.length === 1 ||
-      (pubFrame.pubs[0] !== null && pubFrame.subs.length !== 0)
+      pubFreshFrame.pubs.length === 1 ||
+      (pubFreshFrame.pubs[0] !== null && pubFreshFrame.subs.length !== 0)
     ) {
-      pubFreshState = pubFrame.state
-      pubFreshError = pubFrame.error
+      pubFreshState = pubFreshFrame.state
+      pubFreshError = pubFreshFrame.error
     } else {
       try {
         pubFreshState = pubAtom()
@@ -699,7 +699,7 @@ export function _isPubsChanged(
         // we should give an ability to handle errors in computer by a user himself
         pubFreshError = error as Frame['error']
       }
-      pubFrame = frame.root.store.get(pubAtom)!
+      pubFreshFrame = frame.root.store.get(pubAtom)!
     }
 
     if (
@@ -710,8 +710,25 @@ export function _isPubsChanged(
         // Defer recomputation: a cycle dep holds a stale value that would
         // produce a wrong intermediate result. Track the fresh dep and let
         // the outer computation resolve the cycle first.
-        frame.pubs.push(pubFrame)
+        frame.pubs.push(pubFreshFrame)
         continue
+      } else {
+        for (let j = i + 1; j < pubs.length; j++) {
+          let pubFrameJ = pubs[j]!
+
+          // try to reduce extra atom calls
+          let pubFreshFrameJ = frame.root.store.get(pubFrameJ.atom)!
+
+          if (
+            pubFreshFrameJ.atom.__reatom.processing &&
+            Object.is(pubFreshFrameJ.state, pubFrameJ.state)
+          ) {
+            // Cycle. Cache self last state, do not fall to recompute on pub old state
+            hasCycleDep = true
+            frame.pubs.push(pubFreshFrame)
+            continue pubLoop
+          }
+        }
       }
 
       if (from === 1) {
@@ -722,7 +739,7 @@ export function _isPubsChanged(
 
       return true
     } else {
-      frame.pubs.push(pubFrame)
+      frame.pubs.push(pubFreshFrame)
     }
   }
 
