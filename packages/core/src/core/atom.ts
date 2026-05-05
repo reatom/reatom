@@ -668,6 +668,8 @@ export function _isPubsChanged(
   pubs: Frame['pubs'],
   from: number,
 ) {
+  let hasCycleDep = false
+
   for (let i = from; i < pubs.length; i++) {
     let { error: pubError, state: pubState, atom: pubAtom } = pubs[i]!
     let pubFreshState = pubState
@@ -681,6 +683,7 @@ export function _isPubsChanged(
       Object.is(pubFrame.state, pubState)
     ) {
       // Cycle. Cache self last state, do not fall to recompute on pub old state
+      hasCycleDep = true
       frame.pubs.push(pubs[i]!)
       continue
     } else if (
@@ -703,6 +706,14 @@ export function _isPubsChanged(
       !Object.is(pubState, pubFreshState) ||
       !Object.is(pubError, pubFreshError)
     ) {
+      if (hasCycleDep) {
+        // Defer recomputation: a cycle dep holds a stale value that would
+        // produce a wrong intermediate result. Track the fresh dep and let
+        // the outer computation resolve the cycle first.
+        frame.pubs.push(pubFrame)
+        continue
+      }
+
       if (from === 1) {
         frame.pubs = [null]
       } else {
