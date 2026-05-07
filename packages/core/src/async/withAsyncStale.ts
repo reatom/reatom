@@ -5,10 +5,7 @@ import { wrap } from '../methods'
 import { isAbort, MAX_SAFE_TIMEOUT, setTimeout } from '../utils'
 import type { AsyncDataExt } from './withAsyncData'
 
-export type AsyncStaleTime =
-  | number
-  | 'static'
-  | (() => number | 'static')
+export type AsyncStaleTime = number | 'static' | (() => number | 'static')
 
 export interface AsyncStaleOptions {
   staleTime?: AsyncStaleTime
@@ -43,9 +40,7 @@ let getRemainingStaleTime = (
 }
 
 export let withAsyncStale =
-  <
-    Target extends AsyncDataExt<unknown[], unknown, unknown, unknown, unknown>,
-  >(
+  <Target extends AsyncDataExt<unknown[], unknown, unknown, unknown, unknown>>(
     options?: AsyncStaleTime | AsyncStaleOptions,
   ): Ext<Target, AsyncStaleExt> =>
   (target) => {
@@ -86,9 +81,8 @@ export let withAsyncStale =
           )
         })
 
-        let unsubscribeDataUpdatedAt = dataUpdatedAt.subscribe(
-          scheduleStaleTimeout,
-        )
+        let unsubscribeDataUpdatedAt =
+          dataUpdatedAt.subscribe(scheduleStaleTimeout)
         let unsubscribeInvalidated = invalidated.subscribe(scheduleStaleTimeout)
 
         scheduleStaleTimeout()

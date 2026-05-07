@@ -1,10 +1,5 @@
 import type { AtomLike, Ext } from '../core'
-import {
-  isAction,
-  top,
-  withActionMiddleware,
-  withMiddleware,
-} from '../core'
+import { isAction, top, withActionMiddleware, withMiddleware } from '../core'
 import { setTimeout } from '../utils'
 
 export type AsyncRetry =
@@ -37,11 +32,7 @@ let normalizeOptions = (
         retryDelay: exponentialRetryDelay,
       }
 
-let shouldRetry = (
-  retry: AsyncRetry,
-  failureCount: number,
-  error: unknown,
-) =>
+let shouldRetry = (retry: AsyncRetry, failureCount: number, error: unknown) =>
   retry === true ||
   (typeof retry === 'number' && failureCount < retry) ||
   (typeof retry === 'function' && retry(failureCount, error))

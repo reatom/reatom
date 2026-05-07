@@ -15,8 +15,7 @@ export interface AsyncRefetchOptions {
 }
 
 interface AsyncRefetchTarget
-  extends AtomLike,
-    Pick<AsyncExt, 'ready' | 'retry'> {
+  extends AtomLike, Pick<AsyncExt, 'ready' | 'retry'> {
   data?: AtomLike
   isStale?: AtomLike<boolean>
 }

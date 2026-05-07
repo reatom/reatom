@@ -23,6 +23,13 @@ let defaultStatus = computed(() => {
   reset: action(() => target(), `${target.name}.reset`),
 })) as AsyncStatusAtom
 
+let asyncDedupePromises = new WeakSet<Promise<unknown>>()
+
+export let markAsyncDedupe = (promise: Promise<unknown>) => {
+  asyncDedupePromises.add(promise)
+  return promise
+}
+
 /**
  * Extension interface added by {@link withAsync} to atoms or actions that return
  * promises. Provides utilities for tracking async state, handling errors, and
@@ -224,8 +231,9 @@ export let withAsync: {
       }
       return onSettle({ error: err, params }) as any // TODO
     }, `${target.name}.onReject`)
+    let trackedPending = new WeakSet<Promise<unknown>>()
     let onSettle: AsyncExt['onSettle'] = action((call) => {
-      pending.set((state) => state - 1)
+      pending.set((state) => Math.max(0, state - 1))
       return call
     }, `${target.name}._onSettle`)
 
@@ -237,7 +245,19 @@ export let withAsync: {
           if (target.__reatom.reactive) {
             ifChanged(target, () => state++)
           } else {
-            state += getCalls(target as Action).length
+            state += getCalls(target as Action).filter(({ payload }) => {
+              if (
+                !(payload instanceof Promise) ||
+                asyncDedupePromises.has(payload) ||
+                trackedPending.has(payload)
+              ) {
+                return false
+              }
+
+              trackedPending.add(payload)
+
+              return true
+            }).length
           }
           return state
         },

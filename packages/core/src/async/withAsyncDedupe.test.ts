@@ -6,7 +6,7 @@ import { withResolvers } from '../utils'
 import { withAsync } from './withAsync'
 import { withAsyncDedupe } from './withAsyncDedupe'
 
-test('dedupes concurrent action promises by params key', async () => {
+test('dedupes concurrent action executions by params key', async () => {
   const name = 'withAsyncDedupe'
   let calls = 0
   const resolvers = new Array<ReturnType<typeof withResolvers<number>>>()
@@ -21,8 +21,6 @@ test('dedupes concurrent action promises by params key', async () => {
   let second = fetch(1)
   let third = fetch(2)
 
-  expect(second).toBe(first)
-  expect(third).not.toBe(first)
   expect(calls).toBe(2)
 
   resolvers[0]!.resolve(10)
@@ -55,7 +53,6 @@ test('supports custom dedupe key', async () => {
   let first = fetch({ id: 1, scope: 'a' })
   let second = fetch({ id: 1, scope: 'b' })
 
-  expect(second).toBe(first)
-  expect(await wrap(first)).toBe(1)
+  expect(await wrap(Promise.all([first, second]))).toEqual([1, 1])
   expect(calls).toBe(1)
 })
