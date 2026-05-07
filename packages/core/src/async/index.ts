@@ -1,2 +1,6 @@
 export * from './withAsync'
 export * from './withAsyncData'
+export * from './withAsyncDedupe'
+export * from './withAsyncRefetch'
+export * from './withAsyncRetry'
+export * from './withAsyncStale'
