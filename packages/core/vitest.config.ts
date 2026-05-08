@@ -9,6 +9,7 @@ export default defineConfig({
   },
 
   test: {
+    testTimeout: 5000,
     name: '@reatom/core',
     include: ['./src/**/*.test.ts', './src/**/*.test-d.ts'],
     isolate: false,

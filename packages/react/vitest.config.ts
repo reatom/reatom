@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [react()],
   test: {
+    testTimeout: 5000,
     include: ['./src/**/*.test.tsx'],
     browser: {
       enabled: true,

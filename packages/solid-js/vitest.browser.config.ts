@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [solid()],
   test: {
+    testTimeout: 5000,
     name: '@reatom/solid-js-browser',
     include: ['./src/**/*.test.tsx'],
     browser: {
