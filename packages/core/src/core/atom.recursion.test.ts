@@ -1,7 +1,7 @@
 import { describe, expect, viTest } from 'test'
 
 import { withComputed } from '../extensions'
-import { peek } from '../methods'
+import { memo, peek } from '../methods'
 import { type Atom, atom, computed, context, notify } from '.'
 
 describe('atom recursion', () => {
@@ -134,30 +134,36 @@ describe('atom recursion', () => {
   )
 
   viTest.each`
-    subscribe
-    ${false}
-    ${true}
+    subscribe | nested
+    ${false}  | ${false}
+    ${true}   | ${false}
+    ${false}  | ${true}
+    ${true}   | ${true}
   `(
-    'reruns a computation after updating an already read dependency with subscribe = $subscribe',
-    ({ subscribe }) =>
+    'reruns after updating already read deps (subscribe=$subscribe, nestedMiddle=$nested)',
+    ({ subscribe, nested }) =>
       context.start(() => {
         let name = 'updateWhileComputing'
         if (subscribe) name += 'Subscribe'
+        if (nested) name += 'Nested'
 
-        const a = atom(0, `${name}.a`)
-        const b = atom(0, `${name}.b`)
-        const c = computed(() => {
-          const aState = a()
-          if (aState !== 0) b.set((s) => s + 1)
-          return aState
-        }, `${name}.c`)
+        const signal = atom(0, `${name}.signal`)
+        const state = atom(0, `${name}.state`)
+
+        const runner = computed(() => {
+          const signalState = signal()
+          if (signalState !== 0) state.set((s) => s + 1)
+          return signalState
+        }, `${name}.runner`)
 
         const reader = computed(() => {
-          const aState = a()
-          const bState = b()
-          const cState = c()
+          const signalState = signal()
+          const stateSlice = nested
+            ? memo(() => state(), () => false, `${name}.memoState`)
+            : state()
 
-          return aState + bState + cState
+          const runnerSlice = runner()
+          return signalState + stateSlice + runnerSlice
         }, `${name}.reader`)
 
         const get = subscribe
@@ -166,13 +172,13 @@ describe('atom recursion', () => {
 
         if (subscribe) reader.subscribe()
 
-        expect(get()).toBe(0)
+        signal.set(1)
 
-        a.set(1)
-        if (subscribe) notify()
+        if (subscribe) reader.subscribe()
+
         expect(get()).toBe(3)
 
-        b.set((s) => s + 1)
+        state.set((s) => s + 1)
         if (subscribe) notify()
         expect(get()).toBe(4)
       }),

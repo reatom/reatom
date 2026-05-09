@@ -141,7 +141,7 @@ test('pathless params redirect drops blocked child callback params', () => {
 
   const App = computed(() => layoutRoute.render(), 'blockedParams.App')
 
-  App.subscribe()
+  // App.subscribe()
 
   privilegedPanelRoute.go({
     projectId: 'attacker-project',

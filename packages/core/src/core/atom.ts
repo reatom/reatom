@@ -434,18 +434,43 @@ export let _mark = (frame: Frame) => {
   }
 }
 
+let frameDependsOn = (
+  frame: Frame,
+  changedAtom: AtomLike,
+  visited: Set<Frame>,
+): boolean => {
+  if (visited.has(frame)) return false
+  visited.add(frame)
+
+  for (let i = 1; i < frame.pubs.length; i++) {
+    let pub = frame.pubs[i]!
+
+    if (pub.subs.length !== 0) {
+      continue
+    }
+
+    if (pub.atom === changedAtom || frameDependsOn(pub, changedAtom, visited)) {
+      return true
+    }
+  }
+
+  return false
+}
+
 let markComputingReaders = (changedAtom: AtomLike) => {
   for (let i = STACK.length - 2; i >= 0; i--) {
     let activeFrame = STACK[i]!
 
-    if (!activeFrame.atom.__reatom.processing) break
+    if (
+      activeFrame.atom.__reatom.reactive &&
+      !activeFrame.atom.__reatom.processing
+    ) {
+      break
+    }
     if (!activeFrame.atom.__reatom.linking) continue
 
-    for (let j = 1; j < activeFrame.pubs.length; j++) {
-      if (activeFrame.pubs[j]!.atom === changedAtom) {
-        activeFrame.atom.__reatom.processing++
-        break
-      }
+    if (frameDependsOn(activeFrame, changedAtom, new Set())) {
+      activeFrame.atom.__reatom.processing++
     }
   }
 }
@@ -885,16 +910,12 @@ export function cacheMiddleware(next: Fn, ...args: any[]) {
       let changed =
         !Object.is(state, frame.state) || !Object.is(error, frame.error)
 
-      if (push && changed && !subscribed) {
-        markComputingReaders(target)
+      if ((push || !dirty) && subscribed && changed) {
+        _mark(frame)
       }
 
-      if (
-        (push || !dirty) &&
-        subscribed &&
-        changed
-      ) {
-        _mark(frame)
+      if (push && changed) {
+        markComputingReaders(target)
       }
 
       if (reactive) {
