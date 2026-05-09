@@ -1,8 +1,9 @@
 import { describe, expect, viTest } from 'test'
 
+import { withAsyncData } from '../async'
 import { withComputed } from '../extensions'
-import { memo, peek } from '../methods'
-import { type Atom, atom, computed, context, notify } from '.'
+import { memo, peek, reset } from '../methods'
+import { type Atom, atom, computed, context, notify, withMiddleware } from '.'
 
 describe('atom recursion', () => {
   viTest.each`
@@ -180,6 +181,67 @@ describe('atom recursion', () => {
         if (subscribe) notify()
         expect(get()).toBe(4)
       }),
+  )
+
+  viTest('_mark on processing sub does not duplicate subs entries', () =>
+    context.start(() => {
+      const name = 'markProcessingSub'
+      const a = atom(0, `${name}.a`)
+      const b = atom(0, `${name}.b`).extend(
+        withMiddleware(() => (next, ...params) => {
+          const state = next(...params)
+          reset(a)
+          return state
+        }),
+      )
+      const reader = computed(() => {
+        a()
+        b()
+      }, `${name}.reader`)
+
+      reader.subscribe()
+      expect(context().state.store.get(a)!.subs).toEqual([reader])
+      expect(context().state.store.get(b)!.subs).toEqual([reader])
+
+      for (const state of [1, 2, 3]) {
+        a.set(state)
+        notify()
+
+        expect(context().state.store.get(a)!.subs).toEqual([reader])
+        expect(context().state.store.get(b)!.subs).toEqual([reader])
+      }
+    }),
+  )
+
+  viTest('async data and pending reads do not duplicate subs entries', () =>
+    context.start(() => {
+      const name = 'asyncMarkProcessingSub'
+      const selected = atom({ id: 0 }, `${name}.selected`)
+      const selectedItem = computed(() => selected(), `${name}.selectedItem`)
+      const resource = computed(() => {
+        const item = selectedItem()
+        return new Promise<number>((resolve) => {
+          if (item.id < 0) resolve(item.id)
+        })
+      }, `${name}.resource`).extend(withAsyncData({ initState: null }))
+      const reader = computed(() => {
+        selectedItem()
+        resource.data()
+        resource.pending()
+      }, `${name}.reader`)
+
+      reader.subscribe()
+
+      for (const id of [1, 2, 3]) {
+        selected.set({ id })
+        notify()
+
+        expect(context().state.store.get(resource.data)!.subs).toEqual([reader])
+        expect(context().state.store.get(resource.pending)!.subs).toEqual([
+          reader,
+        ])
+      }
+    }),
   )
 
   viTest.fails('bidirectional link mol', async () => {

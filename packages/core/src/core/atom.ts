@@ -410,18 +410,16 @@ export let _mark = (frame: Frame) => {
     let sub = frame.subs[i]!
 
     if ('__reatom' in sub) {
-      // TODO which tests fails without it? Add it to the core
-      if (sub.__reatom.processing > 0) {
-        // reset for feature invalidate
-        _enqueue(() => {
-          // TODO is ` = 1` extra?
-          _copy(frame.root.store.get(sub)!).pubs.length = 1
-        }, 'compute')
-
-        sub.__reatom.processing++
-      }
-
       let subFrame = frame.root.store.get(sub)!
+
+      if (sub.__reatom.processing > 0) {
+        if (subFrame.subs.length > 0) {
+          _enqueue(() => {
+            _copy(frame.root.store.get(sub)!)
+          }, 'compute')
+          sub.__reatom.processing++
+        }
+      }
 
       if (subFrame.pubs[0] !== null) {
         _mark(_copy(subFrame))
