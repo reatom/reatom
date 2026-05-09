@@ -158,9 +158,7 @@ describe('atom recursion', () => {
 
         const reader = computed(() => {
           const signalState = signal()
-          const stateSlice = nested
-            ? memo(() => state(), () => false, `${name}.memoState`)
-            : state()
+          const stateSlice = nested ? memo(() => state()) : state()
 
           const runnerSlice = runner()
           return signalState + stateSlice + runnerSlice

@@ -35,7 +35,12 @@ export let memoKey = <T>(key: string, create: () => T): T => {
  */
 export type FunctionSource = string
 
-const touchedMap = new WeakMap<Frame, Record<FunctionSource, true>>()
+type MemoTouches = {
+  pubs: Frame['pubs']
+  sources: Record<FunctionSource, true>
+}
+
+const touchedMap = new WeakMap<Frame, MemoTouches>()
 
 /**
  * Memoize additional computation inside a different calls of an atom (computed
@@ -129,17 +134,18 @@ export let memo = <State>(
     key = cb.toString()
 
     let touched = touchedMap.get(frame)
-    if (!touched) {
-      touchedMap.set(frame, (touched = {}))
+    if (touched?.pubs !== frame.pubs) {
+      touched = { pubs: frame.pubs, sources: {} }
+      touchedMap.set(frame, touched)
     }
 
-    if (key in touched) {
+    if (key in touched.sources) {
       throw new ReatomError(
         'multiple memo with the same "toString" representation is not possible',
       )
     }
 
-    touched[key] = true
+    touched.sources[key] = true
   }
 
   let memoAtom = memoKey(key, () => {
