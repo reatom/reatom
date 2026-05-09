@@ -1,6 +1,7 @@
 import { beforeEach, expect, expectTypeOf, test } from 'test'
 import z from 'zod'
 
+import { atom, computed } from '../core'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
 import { urlAtom } from '../web/url'
@@ -91,4 +92,66 @@ test('path params should roundtrip URL-reserved characters', async () => {
   expect(urlAtom().pathname).toBe('/files/folder%2Fa%20b')
   expect(fileRoute()).toEqual({ fileId })
   expect(fileRoute.exact()).toBe(true)
+})
+
+test('pathless params redirect drops blocked child callback params', () => {
+  const authenticated = atom(false, 'blockedParams.authenticated')
+
+  const layoutRoute = reatomRoute(
+    {
+      layout: true,
+      render: ({ outlet }) => outlet().join(''),
+    },
+    'blockedParams.layoutRoute',
+  )
+
+  const loginRoute = layoutRoute.reatomRoute(
+    {
+      path: 'login',
+      render: () => '<login />',
+    },
+    'blockedParams.loginRoute',
+  )
+
+  const protectedRoute = layoutRoute.reatomRoute(
+    {
+      layout: true,
+      params() {
+        if (authenticated()) return {}
+        loginRoute.go()
+        return null
+      },
+      render: ({ outlet }) => outlet().join(''),
+    },
+    'blockedParams.protectedRoute',
+  )
+
+  const projectRoute = protectedRoute.reatomRoute(
+    'projects/:projectId',
+    'blockedParams.projectRoute',
+  )
+
+  const privilegedPanelRoute = projectRoute.reatomRoute(
+    {
+      params: ({ panel }: { panel?: string }) => (panel ? { panel } : null),
+      render: () => '<privileged-panel />',
+    },
+    'blockedParams.privilegedPanelRoute',
+  )
+
+  const App = computed(() => layoutRoute.render(), 'blockedParams.App')
+
+  App.subscribe()
+
+  privilegedPanelRoute.go({
+    projectId: 'attacker-project',
+    panel: 'billing',
+  })
+
+  expect(App()).toBe('<login />')
+  expect(urlAtom().pathname).toBe('/login')
+
+  authenticated.set(true)
+
+  expect(privilegedPanelRoute()).toBeNull()
 })

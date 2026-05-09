@@ -2,7 +2,7 @@ import { describe, expect, viTest } from 'test'
 
 import { withComputed } from '../extensions'
 import { peek } from '../methods'
-import { type Atom, atom, context, notify } from '.'
+import { type Atom, atom, computed, context, notify } from '.'
 
 describe('atom recursion', () => {
   viTest.each`
@@ -130,6 +130,51 @@ describe('atom recursion', () => {
         notify()
         expect(get(multiplied)).toBe(4)
         expect(get(divided)).toBe(1)
+      }),
+  )
+
+  viTest.each`
+    subscribe
+    ${false}
+    ${true}
+  `(
+    'reruns a computation after updating an already read dependency with subscribe = $subscribe',
+    ({ subscribe }) =>
+      context.start(() => {
+        let name = 'updateWhileComputing'
+        if (subscribe) name += 'Subscribe'
+
+        const a = atom(0, `${name}.a`)
+        const b = atom(0, `${name}.b`)
+        const c = computed(() => {
+          const aState = a()
+          if (aState !== 0) b.set((s) => s + 1)
+          return aState
+        }, `${name}.c`)
+
+        const reader = computed(() => {
+          const aState = a()
+          const bState = b()
+          const cState = c()
+
+          return aState + bState + cState
+        }, `${name}.reader`)
+
+        const get = subscribe
+          ? () => context().state.store.get(reader)!.state
+          : () => reader()
+
+        if (subscribe) reader.subscribe()
+
+        expect(get()).toBe(0)
+
+        a.set(1)
+        if (subscribe) notify()
+        expect(get()).toBe(3)
+
+        b.set((s) => s + 1)
+        if (subscribe) notify()
+        expect(get()).toBe(4)
       }),
   )
 

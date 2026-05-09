@@ -50,7 +50,7 @@ export interface AtomMeta {
    * Flag used to prevent recursion cycles during atom processing.
    * DO NOT USE outside atom.ts
    */
-  processing: boolean
+  processing: number
 
   /**
    * @internal
@@ -411,22 +411,41 @@ export let _mark = (frame: Frame) => {
 
     if ('__reatom' in sub) {
       // TODO which tests fails without it? Add it to the core
-      if (sub.__reatom.processing) {
+      if (sub.__reatom.processing > 0) {
         // reset for feature invalidate
         _enqueue(() => {
+          // TODO is ` = 1` extra?
           _copy(frame.root.store.get(sub)!).pubs.length = 1
         }, 'compute')
+
+        sub.__reatom.processing++
       }
 
       let subFrame = frame.root.store.get(sub)!
 
       if (subFrame.pubs[0] !== null) {
         _mark(_copy(subFrame))
-      } else if (sub.__reatom.processing) {
+      } else if (sub.__reatom.processing > 0) {
         _mark(subFrame)
       }
     } else {
       _enqueue(sub, 'compute')
+    }
+  }
+}
+
+let markComputingReaders = (changedAtom: AtomLike) => {
+  for (let i = STACK.length - 2; i >= 0; i--) {
+    let activeFrame = STACK[i]!
+
+    if (!activeFrame.atom.__reatom.processing) break
+    if (!activeFrame.atom.__reatom.linking) continue
+
+    for (let j = 1; j < activeFrame.pubs.length; j++) {
+      if (activeFrame.pubs[j]!.atom === changedAtom) {
+        activeFrame.atom.__reatom.processing++
+        break
+      }
     }
   }
 }
@@ -679,7 +698,7 @@ export function _isPubsChanged(
     let pubFreshFrame = frame.root.store.get(pubAtom)!
 
     if (
-      pubFreshFrame.atom.__reatom.processing &&
+      pubFreshFrame.atom.__reatom.processing > 0 &&
       Object.is(pubFreshFrame.state, pubState)
     ) {
       // Cycle. Cache self last state, do not fall to recompute on pub old state
@@ -720,7 +739,7 @@ export function _isPubsChanged(
           let pubFreshFrameJ = frame.root.store.get(pubFrameJ.atom)!
 
           if (
-            pubFreshFrameJ.atom.__reatom.processing &&
+            pubFreshFrameJ.atom.__reatom.processing > 0 &&
             Object.is(pubFreshFrameJ.state, pubFrameJ.state)
           ) {
             // Cycle. Cache self last state, do not fall to recompute on pub old state
@@ -831,42 +850,72 @@ export function cacheMiddleware(next: Fn, ...args: any[]) {
   let isInit = frame.state instanceof AtomInitState
 
   if (
-    !target.__reatom.processing &&
+    target.__reatom.processing === 0 &&
     (push || dirty || (dependent && !subscribed))
   ) {
-    if (!dirty) {
-      STACK[STACK.length - 1] = frame = _copy(frame)
+    let recursionTries = 6
+    if (recursionTries === 5) {
+      console.count('Recursion limit reached')
     }
-
-    if (reactive) target.__reatom.processing = true
-
-    try {
-      if (isInit) {
-        frame.state = frame.state.initState()
+    recursion: while (recursionTries--) {
+      if (!dirty) {
+        STACK[STACK.length - 1] = frame = _copy(frame)
       }
-      isInit = false
-      frame.state = next(...args)
-      frame.error = null
-    } catch (error) {
-      frame.error = error ?? new ReatomError('Unknown error')
-      if (isInit) frame.state = undefined
+
+      if (reactive) target.__reatom.processing++
+
+      try {
+        if (isInit) {
+          frame.state = frame.state.initState()
+        }
+        isInit = false
+        frame.state = next(...args)
+        frame.error = null
+      } catch (error) {
+        frame.error = error ?? new ReatomError('Unknown error')
+        if (isInit) frame.state = undefined
+      }
+
+      frame.pubs[0] ??= topFrame.root.frame
+
+      if (!push && topFrame.atom.__reatom.linking) {
+        topFrame.pubs.push(frame)
+      }
+
+      let changed =
+        !Object.is(state, frame.state) || !Object.is(error, frame.error)
+
+      if (push && changed && !subscribed) {
+        markComputingReaders(target)
+      }
+
+      if (
+        (push || !dirty) &&
+        subscribed &&
+        changed
+      ) {
+        _mark(frame)
+      }
+
+      if (reactive) {
+        target.__reatom.processing--
+        if (target.__reatom.processing > 0) {
+          target.__reatom.processing = 0
+          if (!push) {
+            frame.pubs[0] = null
+            dirty = true
+
+            if (topFrame.atom.__reatom.linking) {
+              topFrame.pubs.pop()
+            }
+
+            continue recursion
+          }
+        }
+      }
+
+      break
     }
-
-    frame.pubs[0] ??= topFrame.root.frame
-
-    if (!push && topFrame.atom.__reatom.linking) {
-      topFrame.pubs.push(frame)
-    }
-
-    if (
-      !dirty &&
-      subscribed &&
-      (!Object.is(state, frame.state) || !Object.is(error, frame.error))
-    ) {
-      _mark(frame)
-    }
-
-    target.__reatom.processing = false
   } else if (topFrame.atom.__reatom.linking) {
     topFrame.pubs.push(frame)
   }
@@ -907,7 +956,7 @@ let castAtom = <T extends AtomLike>(
       reactive: meta.reactive,
       middlewares: meta.middlewares,
       pipeline: meta.pipeline,
-      processing: false,
+      processing: 0,
       linking: false,
       onConnect: undefined,
     } satisfies AtomMeta,
@@ -985,7 +1034,7 @@ export let createAtom: {
       let frame = topFrame.root.store.get(target)
 
       if (frame === undefined) {
-        if (reactive && target.__reatom.processing) {
+        if (reactive && target.__reatom.processing > 0) {
           throw new ReatomError('Cyclic initialization')
         }
         frame = {
