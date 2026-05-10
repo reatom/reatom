@@ -2,9 +2,10 @@ import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
 import type { Atom } from '../core'
 import { action, atom, computed, context } from '../core'
-import { withCallHook, withConnectHook } from '../extensions'
+import { isInit, withCallHook, withConnectHook } from '../extensions'
 import { abortVar, effect, retryComputed, wrap } from '../methods'
-import { noop, sleep } from '../utils'
+import { createMemStorage, reatomPersist } from '../persist'
+import { noop, sleep, throwAbort } from '../utils'
 import { withAsyncData } from './withAsyncData'
 
 test('action', async () => {
@@ -503,6 +504,36 @@ test('reset action does not auto re-fetch', async () => {
 
   expect(callCount).toBe(2)
   expect(resource.data()).toBe(2)
+})
+
+test('persist for data atom', async () => {
+  const name = 'persistForDataAtom'
+
+  const withSomePersist = reatomPersist(
+    createMemStorage({
+      name: 'somePersist',
+      snapshot: {
+        'resource.data': 123,
+      },
+    }),
+  )
+
+  const param = atom(0, `${name}.param`)
+  const resource = computed(async () => {
+    const value = param()
+    if (isInit()) throwAbort()
+    await wrap(sleep())
+    return value
+  }, `${name}.resource`).extend(withAsyncData())
+  resource.data.extend(withSomePersist('resource.data'))
+
+  expect(resource.data()).toBe(123)
+  param.set(200)
+  expect(resource.data()).toBe(123)
+  await wrap(Promise.resolve())
+  expect(resource.data()).toBe(123)
+  await wrap(sleep())
+  expect(resource.data()).toBe(200)
 })
 
 // TODO just predefine actions WITH PERSIST CACHE and you get a nicer version of FSM.
