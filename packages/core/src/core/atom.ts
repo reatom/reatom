@@ -606,11 +606,9 @@ function subscribe(this: AtomLike, userCb?: Fn) {
   let listener = () => {
     if (frame.subs.length === 0) return
 
-    if (isActionSubscription) return
-
     // `this()` call is required for invalidation,
     // put it to the condition to reduce codesize
-    if (!Object.is(frame.state, this()) && userCb) {
+    if ((isActionSubscription || !Object.is(frame.state, this())) && userCb) {
       let frameSnapshot = (frame = parentFrame.root.store.get(this)!)
       let state = frame.state
 
@@ -635,7 +633,7 @@ function subscribe(this: AtomLike, userCb?: Fn) {
     relink(frame!, [null])
   }
 
-  if (userCb) userCb(isActionSubscription ? [] : frame.state)
+  if (userCb && !isActionSubscription) userCb(frame.state)
 
   return bind(() => {
     let idx = frame.subs.lastIndexOf(listener)

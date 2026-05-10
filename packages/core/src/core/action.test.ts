@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'test'
+import { expect, subscribe, test } from 'test'
 
 import { getStackTrace } from '../methods'
 import type { Frame } from './'
@@ -70,20 +70,19 @@ test('no args', () => {
 
 test('subscribe', () => {
   const act = action((n = 0) => n, 'act')
-  const sub = vi.fn()
-  act.subscribe(sub)
-  expect(sub).toBeCalledTimes(1)
-  expect(sub).toBeCalledWith([])
+
+  const sub = subscribe(act)
+  expect(sub).toHaveBeenCalledTimes(0)
 
   act()
   notify()
-  expect(sub).toBeCalledTimes(2)
-  expect(sub).toBeCalledWith(0, [])
+  expect(sub).toHaveBeenCalledTimes(1)
+  expect(sub).toHaveBeenCalledWith(0, [])
 
   act(1)
   notify()
-  expect(sub).toBeCalledTimes(3)
-  expect(sub).toBeCalledWith(1, [1])
+  expect(sub).toHaveBeenCalledTimes(2)
+  expect(sub).toHaveBeenCalledWith(1, [1])
 })
 
 action(() => 123).extend(
