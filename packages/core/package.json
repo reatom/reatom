@@ -92,6 +92,7 @@
     "@types/ws": "catalog:",
     "@vitest/browser": "catalog:",
     "@vitest/browser-playwright": "catalog:",
+    "@vitest/expect": "catalog:",
     "@vitest/runner": "catalog:",
     "@webreflection/signal": "latest",
     "@whatsup/core": "^2.6.0",

@@ -428,28 +428,28 @@ const testComputers = setupComputersTest({
       })
     })
   },
-  // async reatomV3({ listener, startCreation, endCreation }) {
-  //   const { atom, createCtx } = await import('reatomV3')
+  async reatomV3({ listener, startCreation, endCreation }) {
+    const { atom, createCtx } = await import('reatomV3')
 
-  //   startCreation()
+    startCreation()
 
-  //   const entry = atom(0)
-  //   const a = atom((ctx) => ctx.spy(entry))
-  //   const b = atom((ctx) => ctx.spy(a) + 1)
-  //   const c = atom((ctx) => ctx.spy(a) + 1)
-  //   const d = atom((ctx) => ctx.spy(b) + ctx.spy(c))
-  //   const e = atom((ctx) => ctx.spy(d) + 1)
-  //   const f = atom((ctx) => ctx.spy(d) + ctx.spy(e))
-  //   const g = atom((ctx) => ctx.spy(d) + ctx.spy(e))
-  //   const h = atom((ctx) => ctx.spy(f) + ctx.spy(g))
+    const entry = atom(0)
+    const a = atom((ctx) => ctx.spy(entry))
+    const b = atom((ctx) => ctx.spy(a) + 1)
+    const c = atom((ctx) => ctx.spy(a) + 1)
+    const d = atom((ctx) => ctx.spy(b) + ctx.spy(c))
+    const e = atom((ctx) => ctx.spy(d) + 1)
+    const f = atom((ctx) => ctx.spy(d) + ctx.spy(e))
+    const g = atom((ctx) => ctx.spy(d) + ctx.spy(e))
+    const h = atom((ctx) => ctx.spy(f) + ctx.spy(g))
 
-  //   const ctx = createCtx()
-  //   ctx.subscribe(h, listener)
+    const ctx = createCtx()
+    ctx.subscribe(h, listener)
 
-  //   endCreation()
+    endCreation()
 
-  //   return (i) => entry(ctx, i)
-  // },
+    return (i) => entry(ctx, i)
+  },
   async solid({ listener, startCreation, endCreation }) {
     const { createSignal, createMemo, createEffect } = await import(
       // FIXME
@@ -543,7 +543,7 @@ const testComputers = setupComputersTest({
     return (i) => (entry.value = i)
   },
   async whatsup({ listener, startCreation, endCreation }) {
-    const { observable, computed, autorun } = await import('whatsup')
+    const { observable, computed, autorun } = await import('@whatsup/core')
 
     startCreation()
 
