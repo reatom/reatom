@@ -23,9 +23,13 @@ import { onEvent } from './onEvent'
  *       if (state === 'system') return isDarkModeMedia() ? 'dark' : 'light'
  *       return state
  *     }),
- *     withLocalStorage(),
+ *     withLocalStorage('theme'),
  *     withChangeHook((state) => {
- *       document.body.classList.toggle('dark', state)
+ *       if (state === 'system') {
+ *         document.body.classList.remove('light', 'dark')
+ *       } else {
+ *         document.body.classList.toggle('dark', state === 'dark')
+ *       }
  *     }),
  *   )
  *
