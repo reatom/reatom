@@ -85,14 +85,14 @@ test('withSuspense', async () => {
   )
 
   const track = subscribe(data.suspended)
-  expect(track).toBeCalledTimes(0)
-  await wrap(sleep())
   expect(track).toBeCalledTimes(1)
+  await wrap(sleep())
+  expect(track).toBeCalledTimes(2)
   expect(track).toBeCalledWith(0)
 
   param.set(1)
   await wrap(sleep())
-  expect(track).toBeCalledTimes(2)
+  expect(track).toBeCalledTimes(3)
   expect(track).toBeCalledWith(1)
 })
 
