@@ -447,6 +447,19 @@ export const entries: {
 } = Object.entries
 
 /**
+ * Type-safe version of Object.fromEntries that preserves key and value type
+ * information. Creates an object from an iterable of key-value pairs.
+ *
+ * @template K - The key type
+ * @template V - The value type
+ * @param entries - An iterable of [key, value] pairs
+ * @returns An object with the specified keys and values
+ */
+export const fromEntries: {
+  <K extends PropertyKey, V>(entries: Iterable<readonly [K, V]>): Record<K, V>
+} = Object.fromEntries
+
+/**
  * Creates a new object with only the specified keys from the original object.
  *
  * @example
