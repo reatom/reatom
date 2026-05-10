@@ -1,5 +1,5 @@
+import { cdp, page } from '@vitest/browser/context'
 import { expect, test } from 'test'
-import { cdp, page } from 'vitest/browser'
 
 import { take, wrap } from '../methods'
 import { sleep } from '../utils'
