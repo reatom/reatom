@@ -27,21 +27,19 @@ test('calc deps graph', async () => {
 
   let stack = ''
   computed(() => {
-    return `Count: ${counter()}, Doubled: ${doubled()}, Is Even: ${isEven()}`
-  }, 'effect').subscribe(() => {
+    ;`Count: ${counter()}, Doubled: ${doubled()}, Is Even: ${isEven()}`
     stack = normalizeFrameIds(getStackTrace())
-  })
+  }, 'effect').subscribe()
 
   // prettier-ignore
   expect(stack).toBe(
     `
-─effect._subscribe
- └─ effect[#1]
-    ├─ counter[#2]
-    ├─ doubled[#3]
-    │  └─ counter[#2]
-    └─ isEven[#4]
-       └─ counter[#2]`.slice(1),
+─effect[#1]
+ ├─ counter[#2]
+ ├─ doubled[#3]
+ │  └─ counter[#2]
+ └─ isEven[#4]
+    └─ counter[#2]`.slice(1),
   )
 
   counter.inc()
@@ -50,14 +48,13 @@ test('calc deps graph', async () => {
   // prettier-ignore
   expect(stack).toBe(
 `
-─effect._subscribe
- └─ effect[#1]
-    ├─ counter[#2]
-    │  └─ counter.inc[#3]
-    ├─ doubled[#4]
-    │  └─ counter[#2]
-    └─ isEven[#5]
-       └─ counter[#2]`.slice(1),
+─effect[#1]
+ ├─ counter[#2]
+ │  └─ counter.inc[#3]
+ ├─ doubled[#4]
+ │  └─ counter[#2]
+ └─ isEven[#5]
+    └─ counter[#2]`.slice(1),
 )
 })
 
@@ -69,10 +66,9 @@ test('BFS log simplification', () => {
 
   let stack = ''
   computed(() => {
-    return d()
-  }, 'effect').subscribe(() => {
+    d()
     stack = normalizeFrameIds(getStackTrace())
-  })
+  }, 'effect').subscribe()
 
   a.set(1)
   notify()
@@ -81,13 +77,12 @@ test('BFS log simplification', () => {
   expect(stack).toBe(
     // there should be NO ` ─ a` after the second `b`
     `
-─effect._subscribe
- └─ effect[#1]
-    └─ d[#2]
-       ├─ b[#3]
-       │  └─ a[#4]
-       └─ c[#5]
-          └─ b[#3]`.slice(1),
+─effect[#1]
+ └─ d[#2]
+    ├─ b[#3]
+    │  └─ a[#4]
+    └─ c[#5]
+       └─ b[#3]`.slice(1),
   )
 })
 
