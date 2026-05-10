@@ -1,6 +1,6 @@
 import { type Mock, test as viTest, vi } from 'vitest'
 
-import type { AtomLike } from './core'
+import type { Action, AtomLike } from './core'
 import { clearStack, context, top } from './core'
 import { noop, type Unsubscribe } from './utils'
 
@@ -79,6 +79,16 @@ export { viTest }
  * @param cb - Optional callback function to execute on each atom update
  * @returns A Vitest mock function with unsubscribe method attached
  */
+export function subscribe<Params extends any[], Payload, Result = void>(
+  target: Action<Params, Payload>,
+  cb?: (payload: Payload, params: Params) => Result,
+): Mock<(payload: Payload, params: Params) => Result> & {
+  unsubscribe: Unsubscribe
+}
+export function subscribe<State, T extends (state: State) => any>(
+  target: AtomLike<State>,
+  cb?: T,
+): Mock<T> & { unsubscribe: Unsubscribe }
 export function subscribe<State, T extends (state: State) => any>(
   target: AtomLike<State>,
   cb: T = noop as T,
