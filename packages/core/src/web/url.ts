@@ -100,6 +100,10 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
         let newUrl =
           typeof update === 'function' ? update(url ?? urlAtom.init()) : update
 
+        if (newUrl.href === url?.href) {
+          return url
+        }
+
         // TODO check `href`, instead of instance?
         if (url !== newUrl) {
           // invalidate
@@ -107,7 +111,7 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
             for (const [, routeAtom] of Object.entries(urlAtom.routes)) {
               routeAtom.loader()
             }
-          }, 'hook')
+          }, 'compute')
           if (STACK[STACK.length - 2]?.atom !== urlAtom.syncFromSource) {
             urlAtom.sync()(newUrl, replace)
           }
