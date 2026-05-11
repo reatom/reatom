@@ -2,7 +2,7 @@
 title: Async default values
 ---
 
-If the initial form values depend on asynchronous data, the most idiomatic approach is to use the [compound factory pattern](/handbook/routing/#the-computed-factory-pattern), initializing your form inside an async computed atom
+If the initial form values depend on asynchronous data, the most idiomatic approach is to use the [computed factory pattern](/handbook/computed-factory), initializing your form inside an async computed atom
 
 ```ts
 import { computed, reatomForm, withAsyncData, wrap } from '@reatom/core'

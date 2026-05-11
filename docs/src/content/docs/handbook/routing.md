@@ -118,6 +118,44 @@ urlAtom.go('/users/123?tab=posts')
 const { pathname, search, hash } = urlAtom()
 ```
 
+### External router integration (React Router and others)
+
+By default, `urlAtom` treats the browser `location` as the source of truth: it subscribes to `popstate` and can intercept same-origin link clicks (see [`packages/core/src/web/url.ts`](https://github.com/reatom/reatom/blob/main/packages/core/src/web/url.ts)). If another library owns navigation and history (for example [React Router](https://reactrouter.com)), the native `location` API is not a reliable reactive source. You then wire **two** pieces:
+
+1. **`urlAtom.sync`** — when Reatom updates the URL (`route.go()`, `urlAtom.go()`, search-param helpers, and so on), this callback should apply the same URL through your router’s API (for example `navigate` in React Router). Set it once with `urlAtom.sync.set(() => (url, replace) => …)`.
+2. **`urlAtom.syncFromSource`** — when the **router’s** location changes (programmatic navigation, back/forward, or anything that does not go through Reatom first), push that URL into `urlAtom` with `urlAtom.syncFromSource(new URL(…))`. That path updates Reatom state **without** calling the `sync` callback again, which avoids a feedback loop between the two systems. The implementation relies on the call stack: updates from `syncFromSource` skip `urlAtom.sync` (see `syncFromSource` and `withParams` in the same module).
+
+In Reatom v3 this lived in `@reatom/url` under names like `updateFromSource` and `urlAtom.settingsAtom` with `init` / `sync` ([v3 url package — Integrations](https://v3.reatom.dev/package/url/#integrations)). In current `@reatom/core`, use `syncFromSource` and configure synchronization through **`urlAtom.sync`** instead of `settingsAtom`.
+
+**React Router example** — mount a small sync component as a child of both the React Router provider and your Reatom tree (same placement as in v3). `useLocation()` forces a re-render when the router location changes so you can compare and call `syncFromSource` during render (avoid deferring this to `useEffect` if you need to avoid races with other render-time reads of `urlAtom`).
+
+```tsx
+import React from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { urlAtom } from '@reatom/core'
+
+export const RouterSync = () => {
+  const navigate = useNavigate()
+  const setupRef = React.useRef(false)
+
+  useLocation()
+
+  if (!setupRef.current) {
+    setupRef.current = true
+    urlAtom.sync.set(() => (url, replace) => {
+      navigate(url.pathname + url.search + url.hash, { replace })
+    })
+    urlAtom.syncFromSource(new URL(window.location.href))
+  } else if (urlAtom().href !== window.location.href) {
+    urlAtom.syncFromSource(new URL(window.location.href))
+  }
+
+  return null
+}
+```
+
+You may see a React development warning about updating state while rendering a different component; the v3 docs [noted the same tradeoff](https://v3.reatom.dev/package/url/#integrations) for this pattern. If you disable Reatom’s own link handling because the router handles all navigation, set `urlAtom.catchLinks(false)` in your entry module so two systems do not compete.
+
 ### Route Parameters
 
 Define dynamic segments with `:paramName`:
@@ -1123,383 +1161,45 @@ export const GlobalLoader = reatomComponent(() => {
 
 All routes are automatically registered in `urlAtom.routes`, making it easy to create global loading indicators or debug route state.
 
-### The Computed Factory Pattern
+### Scoped State in Loaders (Computed Factory)
 
-One of Reatom's most powerful features is creating state **inside route loaders**. This solves the classic state management problem: automatic memory management in global state.
+A route `loader` is a `computed` under the hood, so state created inside it is **automatically scoped to the route's activation** — every navigation that changes the loader's inputs produces a fresh instance and replaces the previous one. This is a special case of the more general [Computed Factory Pattern](/handbook/computed-factory).
 
-#### The Problem
-
-- **Local state** (`useState`) has automatic cleanup but suffers from prop drilling
-- **Global state** is easy to share but requires manual memory management
-
-#### The Solution
-
-Create atoms inside computeds (like route loaders) for automatic cleanup:
+The most common use is creating a form _per route match_:
 
 ```typescript
-import {
-  reatomRoute,
-  reatomForm,
-  computed,
-  isShallowEqual,
-  deatomize,
-  wrap,
-} from '@reatom/core'
-import { z } from 'zod'
-
-const userRoute = reatomRoute({
-  path: 'users/:userId',
-  params: z.object({
-    userId: z.string().transform(Number),
-  }),
-  async loader(params) {
-    const user = await wrap(
-      fetch(`/api/users/${params.userId}`).then((r) => r.json()),
-    )
-    return user
-  },
-})
+import { reatomRoute, reatomForm, wrap } from '@reatom/core'
 
 export const userEditRoute = userRoute.reatomRoute({
   path: 'edit',
-  async loader(params) {
+  async loader() {
     const user = userRoute.loader.data()
 
-    // Create a form INSIDE the loader
-    // It will be automatically cleaned up when the route changes
     const editForm = reatomForm(
       { name: user.name, bio: user.bio },
       {
-        onSubmit: async (values) => {
-          if (editForm.focus().dirty) {
-            await wrap(
-              fetch(`/api/users/${user.id}`, {
-                method: 'PUT',
-                body: JSON.stringify(values),
-              }),
-            )
-          }
-        },
+        onSubmit: (values) =>
+          wrap(
+            fetch(`/api/users/${user.id}`, {
+              method: 'PUT',
+              body: JSON.stringify(values),
+            }),
+          ),
         name: `userEditForm#${user.id}`,
       },
     )
 
-    return {
-      user,
-      editForm,
-    }
+    return { user, editForm }
   },
 })
 ```
 
-Now access the form globally from any component:
+Any component can read the form through `userEditRoute.loader.data()?.editForm`. Navigate from `/users/123/edit` to `/users/456/edit` and the previous form is replaced by a fresh one; navigate back and another fresh one is created.
 
-```tsx
-export const UserEditPage = reatomComponent(() => {
-  const params = userEditRoute()
-  if (!params) return null
+Two things worth knowing, both covered in the computed factory guide:
 
-  const ready = userEditRoute.loader.ready()
-  const data = userEditRoute.loader.data()
-  const error = userEditRoute.loader.error()
-
-  if (!ready) return <div>Loading editor...</div>
-  if (error) return <div>Error: {error.message}</div>
-
-  const { editForm } = data
-
-  return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        editForm.submit().catch(noop)
-      }}
-    >
-      <input name="name" {...bindField(editForm.fields.name)} />
-      <textarea name="bio" {...bindField(editForm.fields.bio)} />
-
-      {editForm.focus().dirty && <div>⚠️ Unsaved changes</div>}
-
-      <button type="submit" disabled={!editForm.submit.ready()}>
-        Save
-      </button>
-    </form>
-  )
-}, 'UserEditPage')
-```
-
-#### Automatic Memory Management
-
-When navigating from `/users/123/edit` to `/users/456/edit`:
-
-1. Loader executes with `{ userId: 456 }`
-2. New form is created for user 456
-3. **Previous form for user 123 is automatically garbage collected**
-4. No memory leaks, no manual cleanup
-
-This gives you:
-
-- ✅ Global accessibility (no prop drilling)
-- ✅ Automatic memory management (like local state)
-- ✅ Perfect type inference
-- ✅ No manual lifecycle management
-
-#### Complex State Factories
-
-Create sophisticated interconnected systems:
-
-```typescript
-import { reatomRoute, reatomForm, computed, effect, wrap } from '@reatom/core'
-
-export const dashboardRoute = reatomRoute({
-  path: 'dashboard',
-  async loader() {
-    // Load initial data
-    const user = await wrap(fetch('/api/user').then((r) => r.json()))
-
-    // Create multiple forms
-    const profileForm = reatomForm(user.profile, {
-      onSubmit: async (values) => {
-        await wrap(
-          fetch('/api/profile', {
-            method: 'PUT',
-            body: JSON.stringify(values),
-          }),
-        )
-      },
-    })
-
-    const settingsForm = reatomForm(user.settings, {
-      onSubmit: async (values) => {
-        await wrap(
-          fetch('/api/settings', {
-            method: 'PUT',
-            body: JSON.stringify(values),
-          }),
-        )
-      },
-    })
-
-    // Creating an async action to fetch stats
-    const fetchStats = action(async () => {
-      const stats = await wrap(fetch('/api/stats').then((r) => r.json()))
-      return stats
-    }).extend(withAsyncData())
-
-    // Polling effect that runs while route is active
-    effect(async () => {
-      while (true) {
-        await wrap(sleep(30_000))
-        fetchStats()
-      }
-    })
-
-    // Derived state across multiple systems
-    const dashboardState = computed(() => {
-      const stats = fetchStats.data()
-      return {
-        isProfileComplete: !!(
-          profileForm.fields.name() && profileForm.fields.email()
-        ),
-        dirtyFormsCount: [profileForm, settingsForm].filter(
-          (f) => f.focus().dirty,
-        ).length,
-        hasNotifications: stats ? stats.notifications > 0 : null,
-      }
-    })
-
-    return {
-      user,
-      stats: fetchStats.data,
-      profileForm,
-      settingsForm,
-      dashboardState,
-    }
-  },
-})
-```
-
-This pattern provides:
-
-- **No global singletons** - fresh state for each route activation
-- **No manual cleanup** - automatic garbage collection
-- **No state pollution** - clean slate on navigation
-- **Perfect composition** - factories can create any state structure
-- **Type safety** - complete inference through the chain
-
-#### Loader Memoization and Stable Model Creation
-
-When using the factory pattern in route loaders, there's an important consideration: **loaders recompute whenever route parameters change**. This includes both path parameters and search parameters. If you create models (data fetching, computed atoms, etc.) directly in the loader, they will be recreated on every parameter change, causing you to lose their previous state.
-
-**The Problem:**
-
-Consider a todo app with tabs for filtering (`all`, `open`, `closed`). The todos list should only be fetched once, but we need a filtered view based on the active tab:
-
-```typescript
-const todosRoute = reatomRoute({
-  path: 'todos',
-  search: z.object({
-    tab: z.enum(['all', 'open', 'closed']).optional(),
-  }),
-  async loader(params) {
-    // ❌ Problem: This fetch runs every time `tab` changes!
-    // The todos list is refetched unnecessarily
-    const todos = await wrap(fetch('/api/todos').then((r) => r.json()))
-
-    // ❌ This computed is recreated on every tab change
-    const filteredList = computed(() => {
-      const tab = params.tab || 'all'
-      if (tab === 'all') return todos
-      if (tab === 'open') return todos.filter((t) => !t.completed)
-      return todos.filter((t) => t.completed)
-    }, 'filteredList')
-
-    return { todos, filteredList }
-  },
-})
-```
-
-When the user changes the `tab` search parameter (e.g., from `?tab=all` to `?tab=open`), the loader recomputes, refetching the todos list unnecessarily and recreating the filtered list computed.
-
-##### Solution 1: Separate Search Parameters
-
-Extract search parameters into separate atoms using `searchParamsAtom` or `withSearchParams`. This prevents the loader from recomputing when only search params change. Create the filtered list as a separate computed that depends on both the todos data and the tab.
-
-```typescript
-import { atom, computed, withSearchParams } from '@reatom/core'
-import { z } from 'zod'
-
-const todosRoute = reatomRoute({
-  path: 'todos',
-  // No search schema in route - handle separately
-  async loader(params) {
-    // ✅ Fetch only happens when route becomes active, not on tab changes
-    const todos = await wrap(fetch('/api/todos').then((r) => r.json()))
-
-    return { todos }
-  },
-})
-
-// Separate atom for tab search param
-const todosTab = atom<'all' | 'open' | 'closed'>('all', 'todosTab').extend(
-  withSearchParams('tab', (value) => {
-    if (value === 'all' || value === 'open' || value === 'closed') {
-      return value
-    }
-    return 'all'
-  }),
-)
-
-// ✅ Filtered list as separate computed that depends on both todos and tab
-const filteredTodos = computed(() => {
-  const todos = todosRoute.loader.data()?.todos || []
-  const tab = todosTab()
-
-  if (tab === 'all') return todos
-  if (tab === 'open') return todos.filter((t) => !t.completed)
-  return todos.filter((t) => t.completed)
-}, 'filteredTodos')
-```
-
-Now the loader only recomputes when navigating to/from the route, and the `tab` is managed separately. The `filteredTodos` computed reacts to both todos data and tab changes without refetching.
-
-##### Solution 2: Separate Model Atom
-
-Move model creation to separate computed atoms that extend the route. The loader of a route is a simple computed using `withAsyncData`, so you can reimplement it by yourself easily.Create a `todosResource` for data fetching, and a `filteredList` that depends on it.
-
-```typescript
-import { computed, withAsyncData, wrap } from '@reatom/core'
-
-const todosRoute = reatomRoute({
-  path: 'todos',
-  search: z.object({
-    tab: z.enum(['all', 'open', 'closed']).optional(),
-  }),
-}).extend((target) => {
-  // ✅ Todos data is fetched only when route matches, stable across tab changes
-  const todosResource = computed(async () => {
-    if (!target.match()) return []
-    return await wrap(fetch('/api/todos').then((r) => r.json()))
-  }, `${target.name}.todosResource`).extend(withAsyncData({ initState: [] }))
-
-  // ✅ Filtered list reacts to tab changes but uses stable todos data
-  const filteredList = computed(() => {
-    const todos = todosResource.data()
-
-    const tab = params.tab || 'all'
-    if (tab === 'all') return todos
-    if (tab === 'open') return todos.filter((t) => !t.completed)
-    return todos.filter((t) => t.completed)
-  }, `${target.name}.filteredList`)
-
-  return {
-    todosResource,
-    filteredList,
-  }
-})
-```
-
-The `todosResource` only fetches when the route matches and remains stable across tab changes. The `filteredList` computed reacts to tab changes but uses the stable `todosResource.data()` without triggering refetches.
-
-##### Solution 3: Memo Inside Loader
-
-Instead of creating the model statically in `extend`, create it dynamically using `memo` inside the loader. This is the same pattern as Solution 2, but the model is created inside the loader. It may be useful if you have a temporal (for the route) state, which you want to clear when the route becomes inactive (the meaning of the factory pattern).
-
-```typescript
-import { memo, computed, withAsyncData, wrap } from '@reatom/core'
-
-const todosRoute = reatomRoute({
-  path: 'todos',
-  search: z.object({
-    tab: z.enum(['all', 'open', 'closed']).optional(),
-  }),
-  async loader(params) {
-    const model = memo(() => {
-      // ✅ Track the route match to recreate the model on route remount
-      todosRoute.match()
-
-      const todosResource = computed(async () => {
-        if (!todosRoute.match()) return []
-        return await wrap(fetch('/api/todos').then((r) => r.json()))
-      }, `${todosRoute.name}.todosResource`).extend(
-        withAsyncData({ initState: [] }),
-      )
-
-      // ✅ Create local states fro the current route visit lifetime
-      const search = atom('', `${todosRoute.name}.search`)
-
-      const filteredList = computed(() => {
-        let todos = todosResource.data()
-
-        const tab = params.tab || 'all'
-
-        if (tab === 'open') todos = todos.filter((t) => !t.completed)
-        else if (tab === 'closed') todos = todos.filter((t) => t.completed)
-
-        const searchState = search().toLowerCase()
-
-        return todos.filter((t) => t.title.toLowerCase().includes(searchState))
-      }, `${target.name}.filteredList`)
-
-      return {
-        search,
-        todosResource,
-        filteredList,
-      }
-    })
-
-    return model
-  },
-})
-```
-
-The `memo` functions ensure that the whole model is only created once when the loader first runs. The model lifetime controlled only by atoms read inside `memo` (which is only `match` in this case).
-
-**When to Use Each Solution:**
-
-- **Solution 1** (Separate Search Params): Best when search parameters are truly independent UI state that shouldn't affect your models (e.g., UI filters, view modes, sorting)
-- **Solution 2** (Separate Model Atom): Best when you want the model lifecycle tied to route matching rather than parameter changes
-- **Solution 3** (Memo): Best when you need fine-grained control over which parameters trigger model recreation, especially when some parameters should be stable
+- In-flight work from the previous loader (`onSubmit`, polling, etc.) is not cancelled unless the factory or its actions use `withAbort` / `withAsyncData`. See [Concurrency](/handbook/computed-factory#concurrency).
+- A loader recomputes on **every** parameter change, including search parameters. When you want some inputs to rebuild the model while others only drive reads, see [When the factory recomputes too often](/handbook/computed-factory#when-the-factory-recomputes-too-often).
 
 ## Troubleshooting
 
@@ -1527,6 +1227,25 @@ const route = reatomRoute({
     userId: z.coerce.number(), // ✅ Correct: use type coercion or explicit transform from string to number
   }),
 })
+```
+
+### Hot module replacement (Vite)
+
+Child routes are registered on a plain `routes` object on the parent. The parent’s `outlet` computed does not automatically invalidate when that object is mutated, so after a hot update you can end up with a stale outlet until you drop the old child from the registry and force the parent outlet to recompute.
+
+In the route module (where `myRoute` is defined), you can use:
+
+```typescript
+import { reatomRoute, retryComputed } from '@reatom/core'
+
+const myRoute = reatomRoute({})
+
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    delete myRoute.parent!.routes[myRoute.name]
+    retryComputed(myRoute.parent!.outlet)
+  })
+}
 ```
 
 ## Next Steps

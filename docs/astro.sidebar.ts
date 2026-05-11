@@ -26,6 +26,7 @@ export const sidebar = [
       'handbook/suspense',
       'handbook/lifecycle',
       'handbook/routing',
+      'handbook/computed-factory',
       'handbook/persist',
       'handbook/sampling',
       {

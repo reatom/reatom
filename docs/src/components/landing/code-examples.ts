@@ -159,67 +159,63 @@ export const LoginForm = reatomComponent(() => {
   {
     id: 'routing',
     title: 'Routing',
-    description: 'Routing and data fetching example',
-    code: `import { reatomRoute } from "@reatom/core"
-import { reatomComponent } from "@reatom/react"
-import { z } from "zod"
+    description: 'Route render, params, and loaders',
+    code: `import { computed, reatomRoute, wrap } from '@reatom/core'
+import { z } from 'zod/v4'
 
-export const goodsRoute = reatomRoute("goods/:category")
-
-export const goodsBrandRoute = goodsRoute.reatomRoute({
-  path: ":brand",
-  search: z.object({
-    sort: z.enum(["asc", "desc"]).optional(),
-  }),
-  async loader(params) {
-    const url = \`/api/goods/\${params.category}/\${params.brand}?sort=\${params.sort}\`
-    const resp = await fetch(url)
-    return resp.json()
+export const layoutRoute = reatomRoute({
+  layout: true,
+  render({ outlet }) {
+    return <AppShell>{outlet()}</AppShell>
   },
 })
 
-export const BrandGoodsTable = reatomComponent(() => {
-  const { data, error, ready } = goodsBrandRoute.loader
-  if (!ready()) {
-    return <div>Loading...</div>
-  }
+export const goodsRoute = layoutRoute.reatomRoute({
+  path: 'goods/:category/:brand',
+  search: z.object({
+    sort: z.enum(['asc', 'desc']).optional(),
+  }),
+  async loader({ category, brand, sort }) {
+    return await wrap(api.getGoods({ category, brand, sort }))
+  },
+  render(self) {
+    const { isFirstPending, data, error } = self.loader.status()
 
-  if (error()) {
-    return <div>Error: {error().message}</div>
-  }
+    if (isFirstPending) return <div>Loading...</div>
+    if (error) return <div>Error: {error.message}</div>
 
-  return (
-    <Table>
-      {data()?.map((item) => (
-        <Table.Row key={item.id}>
-          <Table.Cell>{item.id}</Table.Cell>
-          <Table.Cell>{item.name}</Table.Cell>
-          <Table.Cell>{item.price}</Table.Cell>
-        </Table.Row>
-      ))}
-    </Table>
-  )
-})`,
+    const title = \`\${self().category} / \${self().brand}\`
+    const items = data ?? []
+
+    return <GoodsTable title={title} items={items} />
+  },
+})
+
+export const app = computed(() => layoutRoute.render(), 'app')`,
     annotations: [
       {
-        pattern: 'reatomRoute("goods/:category")',
-        note: 'Match path, params types will be inferred',
+        pattern: 'layout: true',
+        note: 'Layout routes stay mounted and render active children through outlet()',
       },
       {
         pattern: '.reatomRoute({',
-        note: 'Nest sub-path, with all related parent params',
+        note: 'Nest routes under a parent layout, inheriting the composed path and params',
       },
       {
-        pattern: 'search: z.',
-        note: 'Define search params schema (optional)',
+        pattern: "search: z.object",
+        note: 'Validate and type search params with a schema',
       },
       {
         pattern: 'async loader',
-        note: 'Define a data loader',
+        note: 'Load data automatically when the route matches, with abort on navigation',
       },
       {
-        pattern: '{ data, error, ready }',
-        note: 'Get loader atoms',
+        pattern: 'self.loader.status()',
+        note: 'Read loading, data, and error state directly from the route loader',
+      },
+      {
+        pattern: 'layoutRoute.render()',
+        note: 'Render the whole app from the root route instead of manual route checks in components',
       },
     ],
   },

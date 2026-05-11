@@ -27,7 +27,8 @@ export default defineConfig({
           description:
             'A state management library for JavaScript with atomic approach, powerful primitives, and framework integrations.',
           details: `**Comprehensive guides available in handbook:**
-- [Routing Handbook](/handbook/routing) - Advanced routing patterns, nested routes, computed factory
+- [Routing Handbook](/handbook/routing) - Advanced routing patterns, nested routes
+- [Computed Factory Handbook](/handbook/computed-factory) - Globally accessible state scoped to a selection/session/page with automatic invalidation and abort of stale work
 - [Forms Handbook](/handbook/forms) - Complex form validation, async handling, field dependencies
 - [Persistence Handbook](/handbook/persist) - Advanced data persistence strategies
 - [Async Context Handbook](/handbook/async-context) - Complex async state management
@@ -45,7 +46,8 @@ export default defineConfig({
               description: `Quick start documentation for Reatom - basics, actions, extensions, forms, routing, and tooling
 
 For advanced information, see the handbook:
-- /handbook/routing - Advanced routing patterns, nested routes, computed factory
+- /handbook/routing - Advanced routing patterns, nested routes
+- /handbook/computed-factory - Globally accessible state scoped to a selection/session/page with automatic invalidation and abort of stale work
 - /handbook/forms - Complex form validation, async handling, field dependencies
 - /handbook/persist - Advanced data persistence strategies
 - /handbook/async-context - Complex async state management

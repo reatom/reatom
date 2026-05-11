@@ -415,6 +415,62 @@ const processPayment = action(async (orderId, amount) => {
 
 Without the checkpoint pattern, you would need to initiate the charge first, _then_ start listening — risking a missed event if the payment provider responds before your listener is set up.
 
+### WebSocket example
+
+The same operator also works for long-lived event streams. Here a connected atom subscribes to a WebSocket topic, waits until the socket is open, and aborts automatically on disconnect:
+
+```ts
+import {
+  abortVar,
+  atom,
+  onEvent,
+  withConnectHook,
+  wrap,
+} from '@reatom/core'
+
+const socket = new WebSocket('wss://example.com')
+
+type StockPayload = { ticker: string }
+
+const reatomStock = (ticker: string) => {
+  const stockAtom = atom<StockPayload | null>(null, `${ticker}StockAtom`).extend(
+    withConnectHook(async (target) => {
+      const { controller } = abortVar.subscribe()
+
+      if (socket.readyState !== WebSocket.OPEN) {
+        await wrap(onEvent(socket, 'open'))
+      }
+
+      socket.send(JSON.stringify({ ticker, type: 'sub' }))
+
+      onEvent(socket, 'message', (event) => {
+        const data = JSON.parse(String(event.data))
+        if (data.ticker === ticker) {
+          target.set(data)
+        }
+      })
+
+      onEvent(socket, 'close', () => controller.abort())
+      onEvent(socket, 'error', () => controller.abort())
+
+      return () => {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ ticker, type: 'unsub' }))
+        }
+      }
+    }),
+  )
+
+  return stockAtom
+}
+
+const googStockAtom = reatomStock('GOOG')
+
+googStockAtom.subscribe(updateView)
+```
+
+`withConnectHook` ties the subscription to atom usage, while `onEvent` keeps all socket listeners inside the same abort-aware lifecycle. When the socket closes, errors, or the atom disconnects, the subscription is cleaned up from one place.
+
 ## The `race` Utility: Handling Concurrent Operations
 
 When you need to wait for the first of several concurrent operations to complete, Reatom provides the `race` utility. Combined with `abortVar.createAndRun`, it enables elegant handling of complex concurrent scenarios with automatic cleanup.

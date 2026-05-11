@@ -118,3 +118,4 @@ New rules:
 - `onConnect(anAtom, cb)` -> `anAtom.extend(withConnectHook(cb))`
 - `take(anAtom, (ctx, value, SKIP) => value || SKIP)` -> `take(anAtom, (value) => value || throwAbort())`
 - `withConcurrency` -> `withAbort`
+- `onCtxAbort` -> `abortVar.subscribe`
