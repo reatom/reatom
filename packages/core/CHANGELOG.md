@@ -1,3 +1,9 @@
+## 1001.0.0-rc.1 (2026-05-11)
+
+### Fix
+
+- **core**: restore framestack in subscribe callback
+
 ## 1001.0.0-rc (2026-05-10)
 
 ### Breaking change
@@ -6,12 +12,12 @@
 - **core**: action subscriptions refactored for a more precise subscription interface and fewer subscription race issues
 - **routing**: `exactRender` replaced by a `layout` option
 - **extend**: stricter `withTap` typings
+- **methods**: `framePromise` no longer takes a queue argument (defaults to `'effect'`)
 
 ### Feat
 
 - **core**: add `fromEntries`
 - **routing**: URL codecs, relative navigation
-- **methods**: `framePromise` no longer takes a queue argument (defaults to `'effect'`)
 - **methods**: `shouldRollback` on `filter` to ignore selected errors for rollback
 - **primitives**: enum setter accepts string values
 - **build**: switch core package build to tsdown
