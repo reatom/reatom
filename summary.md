@@ -1001,7 +1001,10 @@ export const UserSearch = reatomFactoryComponent<{ initial?: string }>(
 )
 ```
 
-Compared to `useEffect(() => { fetch(...).then(...); return () => abort() }, [query])`: no manual abort plumbing, no stale-closure risk, debounce is procedural (`await sleep`), and a deeper component can subscribe to `results.status()` without prop-drilling.
+Why `reatomFactoryComponent` over plain hooks:
+
+1. **Automatic resource lifecycle** — anything started in the init phase (`effect`, `onEvent`, in-flight `wrap`, child computeds) is aborted on unmount with zero cleanup code. You can drop `onEvent(window, 'resize', …)` or `onEvent(document, 'keydown', …)` straight into the init phase and forget about teardown.
+2. **Per-instance atoms** — each mount gets its own `query` and `results`, so every component has isolated `pending` / `error` state. Two `UserSearch`es side by side don't trample each other's loading flags, and you don't need to key a shared atom by component id.
 
 ### `abortOnUnmount` semantics
 
