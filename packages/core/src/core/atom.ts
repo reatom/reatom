@@ -616,10 +616,10 @@ function subscribe(this: AtomLike, userCb?: Fn) {
         if (frameSnapshot === frame) {
           if (isActionSubscription) {
             ;(state as ActionState).forEach(({ payload, params }) =>
-              userCb(payload, params),
+              frame.run(userCb, payload, params),
             )
           } else {
-            userCb(state)
+            frame.run(userCb, state)
           }
         }
       }, 'effect')
