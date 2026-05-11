@@ -5,7 +5,7 @@ description: 'A short overview of all Reatom features'
 
 # Reatom full framework documentation summary
 
-This documentation for `@reatom/core@1000` package and some ecosystem around it.
+This documentation for `@reatom/core@1001` package and some ecosystem around it.
 
 ## Goal and fit
 
@@ -16,7 +16,7 @@ This documentation for `@reatom/core@1000` package and some ecosystem around it.
 - Composable primitives, minimal API surface, high leverage extensions.
 
 This summary is intentionally **compact**. The full handbook and reference cover deeper API
-details, recipes, and adapters in [site](https://v1000.reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and `/docs/reference/*`.
+details, recipes, and adapters in [site](https://reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and `/docs/reference/*`.
 
 ## Core primitives and mental model
 
@@ -38,24 +38,17 @@ const list = atom<Item[]>([], 'list')
 
 // define action for imperative side effects or complex mappings
 const fetchList = action(async (filters: { page: number }) => {
-  return await wrap(api.getList(filters))
-}, 'list.fetch')
+  const response = await wrap(api.getList(filters))
+  list.set(response.data)
+}, 'fetchList')
 // note how we chain relative atoms and actions names
 
 // extend atom with actions or just methods
 const page = atom(0, 'list.page').extend(
   (target /* <-- target is the extendable atom */) => ({
-    reset() {
-      // update atom with "set" method
-      target.set(0)
-    },
-    prev() {
-      // update atom with current state mapping with callback in "set"
-      target.set((value) => Math.max(0, value - 1))
-    },
-    next() {
-      target.set((value) => value + 1)
-    },
+    reset: action(() => target.set(0), `${target.name}.reset`)
+    prev: action(() => target.set((value) => Math.max(0, value - 1)), `${target.name}.reset`) // update atom with current state mapping with callback in "set"
+    next: action(() => target.set((value) => value + 1), `${target.name}.reset`)
 
     // assign other relative atoms if needed
     isPrevAvailable: computed(
@@ -68,6 +61,7 @@ const page = atom(0, 'list.page').extend(
     ),
   }),
 )
+// page.reset(), page.prev(), page.next(), page.isPrevAvailable(), page.isNextAvailable() are now available as reatom pritmivites coupled to the page domain
 
 // Run effect to fetch list when page changes
 effect(() => {
@@ -189,7 +183,7 @@ Good
 - `await wrap(fetch(url).then((res) => res.json()))`
 - `fetch(url).then(wrap((res) => !res.ok && error.set(res.statusText)))`
 - `addEventListener('click', wrap(() => doSome()))`, or even better `onEvent(button, 'click', () => doSome())`
-- `withCallHook(() => doSome())`
+- `withCallHook(() => doSome())` (each reatom API automatically wraps delegated callbacks to it)
 
 ## Primitives quick usage
 
@@ -530,7 +524,7 @@ const checkoutFlow = action(async () => {
 }, 'checkout.flow')
 
 effect(() => {
-  ifChanged(lastOrderId, (nextId) => {
+  ifChanged(lastOrderId, (nextId, prevId) => {
     if (nextId) console.log({ lastOrderId: nextId })
   })
 }, 'checkout.lastOrderId')
@@ -699,6 +693,29 @@ Tricky
 ## Routing
 
 **reatomRoute** creates route atoms: reactive state that matches URL patterns, extracts typed params, loads data, and composes into layouts. Everything is auto-cancellable and reactive.
+
+### Integration with an external router
+
+If the project already uses `react-router` / Next.js / TanStack Start / Expo Router, **don't replace it**. Define `reatomRoute` clones with the *same URL pattern* — the external router stays the navigator, the clone becomes a **reactive entry point** for state.
+
+```ts
+// external router moved the user to /users/123/posts/42
+const userPostRoute = reatomRoute({
+  path: 'users/:userId/posts/:postId',
+  params: z.object({ userId: z.string().uuid(), postId: z.coerce.number() }),
+  async loader({ userId, postId }) {
+    return await wrap(api.getPost(userId, postId))
+  },
+})
+// now anywhere in the app:
+userPostRoute()          // { userId, postId } | null — typed + validated
+userPostRoute.loader.data()  // post data atom, auto-fetched & aborted on URL change
+```
+
+Why bother:
+- **Validation** for route params/search — fills the gap in routers that don't validate (`react-router`, Next App Router, Expo). Invalid URL → `route()` is `null`, no half-typed garbage propagating into the app.
+- **Reactive in any layer** — atoms, effects, computeds. Not React-only.
+- **Loaders** — `withAsyncData` semantics tied to URL: auto-abort on navigation, retry, status, no manual `useEffect` plumbing.
 
 ### Routes, nesting, search, validation
 
@@ -926,6 +943,117 @@ const App = computed(() => html`${layoutRoute.render()}`)
 
 Route loaders are async computed with auto-cancel. The **factory pattern** (creating atoms/forms inside loaders) gives global accessibility with automatic cleanup — best of both local and global state.
 
+## React
+
+Bindings live in `@reatom/react`. Two component wrappers, a few hooks. The mental model: every component runs inside a Reatom **frame** (via React context); reads/writes you do inside that frame are tracked.
+
+### reatomComponent — default
+
+Like `observer` from MobX: read any atom/computed inside the render function and the component re-renders on change. Use this for almost every component.
+
+```tsx
+import { reatomComponent } from '@reatom/react'
+import { wrap } from '@reatom/core'
+
+export const Counter = reatomComponent(() => (
+  <button onClick={wrap(() => count.set((n) => n + 1))}>
+    {count()}
+  </button>
+), 'Counter')
+```
+
+Second arg: a string debug name, or `{ name?, deps?, abortOnUnmount? }`. See the `abortOnUnmount` note below.
+
+### reatomFactoryComponent — component-scoped state
+
+The outer function is an **init phase**: runs once on mount, receives initial props, returns the render function. Anything created inside the init phase (atoms, `effect`, `computed`, in-flight async, …) is **always auto-aborted on unmount** — that's the whole point and can't be turned off. Reach for it when a component owns its own atoms/effects/data that must die with it.
+
+```tsx
+import { reatomFactoryComponent } from '@reatom/react'
+import { atom, computed, withAsyncData, wrap, sleep } from '@reatom/core'
+
+export const UserSearch = reatomFactoryComponent<{ initial?: string }>(
+  ({ initial = '' }, { name }) => {
+    // per-component state — created once on mount, not on every render
+    const query = atom(initial, `${name}.query`)
+
+    // declarative async: refetches when `query` changes, previous request
+    // is auto-aborted on each keystroke AND on component unmount
+    const results = computed(async () => {
+      const q = query()
+      if (!q) return []
+      await wrap(sleep(200))                          // debounce
+      const res = await wrap(fetch(`/api/users?q=${q}`))
+      return await wrap(res.json()) as User[]
+    }, `${name}.results`).extend(withAsyncData({ initState: [] }))
+
+    return () => (
+      <>
+        <input value={query()} onChange={wrap((e) => query.set(e.target.value))} />
+        {results.pending() ? <Spinner /> : null} 
+        <ul>
+          {results.data().map((u) => <li key={u.id}>{u.name}</li>)}
+        </ul>
+      </>
+    )
+  },
+  'UserSearch',
+)
+```
+
+Compared to `useEffect(() => { fetch(...).then(...); return () => abort() }, [query])`: no manual abort plumbing, no stale-closure risk, debounce is procedural (`await sleep`), and a deeper component can subscribe to `results.status()` without prop-drilling.
+
+### `abortOnUnmount` semantics
+
+Both components accept `abortOnUnmount` (default `false`). It controls only the **render phase** — atoms/actions/effects created (or triggered) *during render*:
+
+|  | `reatomComponent` | `reatomFactoryComponent` |
+|---|---|---|
+| **default (`false`)** | Nothing the component started is aborted on unmount. | Only the **init phase** is aborted (built-in, can't be turned off). Render-phase work isn't. |
+| **`true`** | Render-phase work is also aborted on unmount. | Init phase + render-phase work both aborted on unmount. |
+
+Flip it on when a render literally kicks off a request that should die with the component — e.g. reading a `computed(async ...)` that you don't want to keep running for an unmounted widget.
+
+### Callbacks: `wrap` and `useWrap`
+
+React calls event handlers outside the reactive frame. Any callback that calls an action, mutates an atom, or reads one **must be wrapped** so the frame is restored:
+
+```tsx
+<button onClick={wrap(() => submit())}>Save</button>
+<input onChange={wrap((e) => query.set(e.target.value))} />
+```
+
+Inline `wrap(...)` is the default — don't optimize prematurely. Use `useWrap(cb, name?)` **only** when you specifically need a stable reference (e.g. `React.memo` child prop, `useEffect` dep, IntersectionObserver, manual `addEventListener`). It's not a `useCallback` replacement for every handler.
+
+```tsx
+const onScroll = useWrap(() => sentinel.intersected.set(true))
+```
+
+### Fallback hooks: `useAtom` / `useAction`
+
+Use when you can't wrap a component in `reatomComponent` (e.g. partial migration, third-party HOC chain).
+
+`useAtom` mirrors `useState` — useful precisely for that migration:
+
+```tsx
+const [count, setCount] = useAtom(0)                     // per-component atom (like useState)
+const [user, setUser, userAtom] = useAtom(externalAtom)  // subscribe to existing atom
+const [doubled] = useAtom(() => count() * 2)             // ad-hoc computed
+```
+
+`useAction(fn, deps?, name?)` returns a memoized action bound to the component's frame — same effect as inline `wrap(fn)` but with a stable reference.
+
+### `bindField` — form inputs
+
+Spread onto an input to wire a `reatomField` to native events:
+
+```tsx
+<input type="text"     {...bindField(form.fields.email)} />
+<input type="checkbox" {...bindField(form.fields.agree)} />
+```
+
+Returns `{ value, checked, onChange, onBlur, onFocus, error }`. Auto-detects checkboxes vs text/number inputs. No options.
+
 ## URL sync and persistence helpers
 
 ### **withSearchParams** for list filters
@@ -1038,7 +1166,7 @@ const saveTodo = action(async (todo: Todo) => {
 ## Other APIs (not detailed here)
 
 This list is intentionally brief. See the full handbook and reference for
-additional features, recipes, adapters, and edge cases in the docs: https://v1000.reatom.dev/reference/TOPIC_NAME.
+additional features, recipes, adapters, and edge cases in the docs: https://reatom.dev/reference/TOPIC_NAME.
 
 Core
 
@@ -1101,5 +1229,3 @@ Web
 Utils
 
 - General helpers for equality, abort errors, timers, and typed helpers
-
-<!-- // TODO react and so on -->
