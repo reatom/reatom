@@ -24,7 +24,10 @@ export const githubStars = {
     await delay()
     return createGithubStarsResponse()
   }),
-  error: http.get(repositoryApiUrl, (): Response => createServiceUnavailableResponse()),
+  error: http.get(
+    repositoryApiUrl,
+    (): Response => createServiceUnavailableResponse(),
+  ),
   loading: http.get(repositoryApiUrl, (): Promise<Response> => neverResolve()),
 }
 

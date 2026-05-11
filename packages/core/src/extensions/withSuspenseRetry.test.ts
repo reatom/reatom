@@ -46,5 +46,4 @@ test('suspense retry with async data aborts while suspended', async () => {
 
   expect(errors).toHaveLength(1)
   expect(isAbort(errors[0])).toBe(true)
-
 })

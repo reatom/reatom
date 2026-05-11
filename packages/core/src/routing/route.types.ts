@@ -122,8 +122,8 @@ export interface RouteOptions<
    * - **Function** `(params) => result | null` — custom validator, return `null`
    *   to unmatch the route.
    * - **{@link Codec}** `{ decode, encode }` — bidirectional transform. `go()`
-   *   accepts typed (Output) params, `encode` writes URL strings, `decode` reads
-   *   them back. Decode errors cause unmatch.
+   *   accepts typed (Output) params, `encode` writes URL strings, `decode`
+   *   reads them back. Decode errors cause unmatch.
    *
    * @example
    *   // Standard Schema
@@ -151,8 +151,8 @@ export interface RouteOptions<
    * - **Standard Schema** (Zod, Valibot, etc.) — one-directional validation.
    *   `go()` accepts raw string params, the schema parses them on URL read.
    * - **{@link Codec}** `{ decode, encode }` — bidirectional transform. `go()`
-   *   accepts typed (Output) params, `encode` writes URL strings, `decode` reads
-   *   them back. Decode errors cause unmatch.
+   *   accepts typed (Output) params, `encode` writes URL strings, `decode`
+   *   reads them back. Decode errors cause unmatch.
    *
    * Note: All search parameters should be optional in the schema.
    *
@@ -247,8 +247,9 @@ export interface RouteOptions<
  *
  * When `decode` throws, the route is treated as unmatched (returns `null`).
  * Navigation tries `encode` first; if it throws on a Standard Schema (e.g. Zod
- * one-way `.transform()`), validation is used for path segments and search keeps
- * the `go()` argument keys. On a plain codec object, `encode` errors propagate.
+ * one-way `.transform()`), validation is used for path segments and search
+ * keeps the `go()` argument keys. On a plain codec object, `encode` errors
+ * propagate.
  *
  * @example
  *   // Inline codec for base64-encoded JSON in a path segment
@@ -484,21 +485,23 @@ export interface RouteLoader<Params extends Rec = Rec, Payload = any>
     Computed<Promise<Payload>>,
     AsyncDataExt<[Params], Payload, Payload, undefined, Error | undefined> {}
 
-/**
- * Route navigation: `route.go(params)` and `route.go.relative(...)`.
- */
+/** Route navigation: `route.go(params)` and `route.go.relative(...)`. */
 export interface RouteGo<
   GoParams = {},
   GoSearch = {},
   RelativeGoParams = GoParams,
   RelativeGoSearch = GoSearch,
-> extends Action<[params: MaybeVoid<GoParams & GoSearch>, replace?: boolean], URL> {
+> extends Action<
+  [params: MaybeVoid<GoParams & GoSearch>, replace?: boolean],
+  URL
+> {
   relative: RouteGoRelative<RelativeGoParams, RelativeGoSearch>
 }
 
 /**
- * Relative navigation: `route.go.relative(params)` merges current parent params then calls `go`.
- * Accepts only this route's own path/search args (no parent keys).
+ * Relative navigation: `route.go.relative(params)` merges current parent params
+ * then calls `go`. Accepts only this route's own path/search args (no parent
+ * keys).
  */
 export interface RouteGoRelative<
   RelativeGoParams = {},
@@ -691,6 +694,7 @@ export interface RouteExt<
 
   /**
    * Builds only the pathname for this route branch (no search string).
+   *
    * @internal
    */
   pathnameBuilder: (params: Rec) => string
