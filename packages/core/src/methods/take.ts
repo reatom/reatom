@@ -120,7 +120,9 @@ export function take(
 
         res(value)
       } catch (error) {
-        if (!isAbort(error)) {
+        if (error instanceof Promise) {
+          error.catch(noop)
+        } else if (!isAbort(error)) {
           if (isFirstCall) {
             syncResult = { kind: 'rejected', value: error }
             log('reject', error)

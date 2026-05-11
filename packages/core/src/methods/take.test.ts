@@ -2,7 +2,7 @@ import { expect, test, vi } from 'test'
 
 import { withAsyncData } from '../async'
 import { action, type Atom, atom, computed, notify } from '../core'
-import { withAbort } from '../extensions'
+import { withAbort, withSuspenseInit } from '../extensions'
 import { identity, noop, sleep, throwAbort } from '../utils'
 import { take } from './take'
 import { wrap } from './wrap'
@@ -116,6 +116,12 @@ test('take filter', async () => {
 
   const paramState = param()
   expect(take(param, (value) => value)).toBe(paramState)
+})
+
+test('take suspense', async () => {
+  const resource = atom(async () => 1, 'takeSuspense.resource').extend(withSuspenseInit())
+
+  expect(await wrap(take(resource))).toBe(1)
 })
 
 test('take with selector', async () => {
