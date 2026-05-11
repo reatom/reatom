@@ -1,3 +1,34 @@
+## 1001.0.0-rc (2026-05-10)
+
+### Breaking change
+
+- **core**: new middleware pipeline and updated `reatomObservable` API
+- **core**: action subscriptions refactored for a more precise subscription interface and fewer subscription race issues
+- **routing**: `exactRender` replaced by a `layout` option
+- **extend**: stricter `withTap` typings
+
+### Feat
+
+- **core**: add `fromEntries`
+- **routing**: URL codecs, relative navigation
+- **methods**: `framePromise` no longer takes a queue argument (defaults to `'effect'`)
+- **methods**: `shouldRollback` on `filter` to ignore selected errors for rollback
+- **primitives**: enum setter accepts string values
+- **build**: switch core package build to tsdown
+- **async, core**: faster queues
+
+### Fix
+
+- **core**: recursion and cyclic dependency handling when dependencies update during reads (including nested reads and memo chains), multiple subscriptions, memo recursion, and action subscription behavior
+- **core**: subscription callback runs outside reactive tracking where appropriate; subscription payload handling
+- **routing**: security-related hardening; path segments use encode/decode instead of parse/serialize; params callback inherits search params correctly
+- **form**: include status in submit handling
+- **extensions**: `withSuspense` init rejects; stale async controller can be aborted explicitly
+- **methods**: `abortVar.find` without a callback
+- **persist**: safer `BroadcastChannel` availability checks
+- **web**: URL handling performance; types
+- **core**: action-related typings
+
 ## 1000.15.2 (2026-02-11)
 
 ### Fix
