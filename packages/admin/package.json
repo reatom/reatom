@@ -76,19 +76,19 @@
   ],
   "devDependencies": {
     "@reatom/jsx": ">=1000.14.1",
-    "@storybook/addon-vitest": "^10.2.19",
-    "@storybook/html": "^10.2.19",
-    "@storybook/html-vite": "^10.2.19",
+    "@storybook/addon-vitest": "^10.3.3",
+    "@storybook/html": "^10.3.3",
+    "@storybook/html-vite": "^10.3.3",
     "@typescript-eslint/eslint-plugin": "^8.28.0",
     "@typescript-eslint/parser": "^8.28.0",
-    "@vitest/browser": "^4.0.18",
-    "@vitest/browser-playwright": "^4.0.18",
-    "@vitest/ui": "4.0.18",
+    "@vitest/browser": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "@vitest/ui": "catalog:",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "msw": "^2.12.13",
     "msw-storybook-addon": "^2.0.6",
-    "storybook": "^10.2.19",
+    "storybook": "^10.3.3",
     "tsdown": "catalog:",
-    "vitest": "^4.0.18"
+    "vitest": "catalog:"
   }
 }

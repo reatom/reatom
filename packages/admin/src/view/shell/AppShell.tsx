@@ -8,7 +8,6 @@ export interface AppShellProps {
 
 export const AppShell = ({ admin }: AppShellProps) => {
   const routes = createAdminRoutes(admin)
-  const content = () => routes.layoutRoute.render()
 
   return (
     <div
@@ -29,7 +28,7 @@ export const AppShell = ({ admin }: AppShellProps) => {
           sans-serif;
       `}
     >
-      {() => content()}
+      {routes.layoutRoute.render}
     </div>
   )
 }

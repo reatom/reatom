@@ -1,7 +1,5 @@
-import type { JSX } from '@reatom/jsx'
-
 declare module '@reatom/core' {
-  interface RouteChild extends JSX.Element {}
+  interface RouteChild extends Element {}
 }
 
 declare global {
@@ -15,3 +13,5 @@ declare global {
     readonly env: ImportMetaEnv
   }
 }
+
+export {}

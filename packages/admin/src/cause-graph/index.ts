@@ -15,7 +15,7 @@ export type FrameIndex = Map<number, AdminFrame>
 export function buildAncestorGraph(
   frameId: number,
   frameIndex: FrameIndex,
-  atomRegistry: AtomRegistry,
+  _atomRegistry: AtomRegistry,
   depthLimit?: number,
 ): CauseGraph {
   const rootFrame = frameIndex.get(frameId)
@@ -27,7 +27,6 @@ export function buildAncestorGraph(
   const edges: CauseGraphEdge[] = []
   const visited = new Set<number>()
   const queue: { frameId: number; depth: number }[] = [{ frameId, depth: 0 }]
-  const rootAtom = atomRegistry.get(rootFrame.atomId)
 
   nodes.push({
     frameId,
@@ -71,7 +70,7 @@ export function buildDescendantGraph(
   frameId: number,
   frames: AdminFrame[],
   frameIndex: FrameIndex,
-  atomRegistry: AtomRegistry,
+  _atomRegistry: AtomRegistry,
   depthLimit?: number,
 ): CauseGraph {
   const nodes: CauseGraphNode[] = []

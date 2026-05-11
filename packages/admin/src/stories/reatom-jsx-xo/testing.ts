@@ -1,10 +1,9 @@
 import { expect, userEvent, waitFor } from 'storybook/test'
 
 import {
-  getLastLogItemMatching,
   getLastLogItemByName,
+  getLastLogItemMatching,
   getLogItems,
-  getLogItemsByName,
   type ParsedFrameDetail,
   type ParsedLogItem,
   parseFrameDetail,

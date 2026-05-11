@@ -5,7 +5,7 @@ import { EmptyStateCard } from '../components/EmptyStateCard'
 import { TimelineBars } from '../components/TimelineBars'
 import { TimelineControls } from '../components/TimelineControls'
 import { TimelineSelectionPanel } from '../components/TimelineSelectionPanel'
-import { card, colors, gap, p, panelTitle } from '../styles'
+import { card, colors, p, panelTitle } from '../styles'
 
 export interface TimelineScreenProps {
   admin: Admin

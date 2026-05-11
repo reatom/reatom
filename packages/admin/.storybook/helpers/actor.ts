@@ -112,8 +112,9 @@ function createBase(ctx: () => ActorContext) {
     },
     waitExit: async (locator: FluentLocator) => {
       await waitFor(
-        async () =>
-          void expect(await resolveLocator(locator.maybe())).toBeNull(),
+        async () => {
+          expect(await resolveLocator(locator.maybe())).toBeNull()
+        },
       )
     },
     seeInField: async (locator: DefiniteLocator, value: string | number) => {

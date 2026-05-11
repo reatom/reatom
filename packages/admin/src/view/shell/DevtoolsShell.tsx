@@ -85,7 +85,6 @@ export function createAdminDevtools(
     const visible = reatomBoolean(initVisibility, '_Admin.devtools.visible')
     const width = atom(clampPanelWidth(initialWidth), '_Admin.devtools.width')
     const height = atom(clampPanelHeight(initialHeight), '_Admin.devtools.height')
-    let folded: { width: string; height: string } | null = null
     let moved = false
 
     const getPointerEvent = (event: Event): PointerEvent | null => {
@@ -123,7 +122,6 @@ export function createAdminDevtools(
 
           if (event.currentTarget.hasPointerCapture(pointerEvent.pointerId)) {
             moved = true
-            folded = null
             width.set(
               clampPanelWidth(
                 `${window.innerWidth - pointerEvent.clientX}px`,
@@ -146,7 +144,6 @@ export function createAdminDevtools(
             width.set(clampPanelWidth('560px'))
             height.set(clampPanelHeight('760px'))
           } else {
-            folded = { width: width(), height: height() }
             width.set('76px')
             height.set('76px')
           }
@@ -197,7 +194,7 @@ export function createAdminDevtools(
     root.append(mountHost)
     const mountPoint = document.createElement('div')
     mountHost.append(mountPoint)
-    const { unmount: unmountPanel } = mount(mountPoint, panel)
+    mount(mountPoint, panel)
 
     let bodyMount: { unmount: () => void } | null = null
     if (visible()) {

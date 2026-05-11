@@ -84,12 +84,10 @@ export const GraphNodes = ({ admin, graph }: GraphNodesProps) => {
             <button
               type="button"
               css={buttonGhost}
+              css:margin-left={`${node.depth * 1.25}rem`}
               on:click={() => {
                 admin.store.selectFrame(node.frameId)
                 admin.causeGraph.selectedRootId.set(node.frameId)
-              }}
-              style={{
-                marginLeft: `${node.depth * 1.25}rem`,
               }}
             >
               <div

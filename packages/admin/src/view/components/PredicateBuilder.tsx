@@ -1,7 +1,12 @@
 import { action, atom } from '@reatom/core'
 
 import type { Admin } from '../../index'
-import type { FilterKind, FilterPredicate, FilterTarget } from '../../types'
+import type {
+  CausePredicate,
+  FilterKind,
+  FilterPredicate,
+  FilterTarget,
+} from '../../types'
 import {
   buttonBase,
   buttonGhost,
@@ -44,7 +49,7 @@ function createPredicateId(): string {
 
 function createDraftPredicate(type: FilterPredicate['type'] = 'text'): FilterPredicate {
   if (type === 'cause') {
-    return {
+    const causePredicate: CausePredicate = {
       id: createPredicateId(),
       type,
       value: '',
@@ -52,6 +57,7 @@ function createDraftPredicate(type: FilterPredicate['type'] = 'text'): FilterPre
       referencePattern: '',
       target: 'name',
     }
+    return causePredicate
   }
 
   if (type === 'timeRange') {
@@ -119,6 +125,12 @@ function isKindValue(value: unknown): value is FilterKind {
     value === 'reject' ||
     value === 'fulfill'
   )
+}
+
+function isCausePredicate(
+  predicate: FilterPredicate,
+): predicate is CausePredicate {
+  return predicate.type === 'cause'
 }
 
 function getTextValue(value: unknown): string {
@@ -262,6 +274,7 @@ export const PredicateBuilder = ({ admin }: PredicateBuilderProps) => {
             const timeRange = getTimeRangeValue(predicate.value)
             const target = isTargetValue(predicate.target) ? predicate.target : 'name'
             const kind = isKindValue(predicate.value) ? predicate.value : 'action'
+            const causePredicate = isCausePredicate(predicate) ? predicate : null
 
             return (
               <div
@@ -465,14 +478,16 @@ export const PredicateBuilder = ({ admin }: PredicateBuilderProps) => {
                       >
                         Direction
                         <select
-                          value={predicate.direction}
+                          value={causePredicate?.direction ?? '>'}
                           on:change={(event: Event) => {
                             const targetElement = event.currentTarget
                             if (!(targetElement instanceof HTMLSelectElement)) return
                             const nextDirection = targetElement.value === '<' ? '<' : '>'
                             updatePredicate(predicate.id, (currentPredicate) => ({
                               ...currentPredicate,
-                              direction: nextDirection,
+                              ...(isCausePredicate(currentPredicate)
+                                ? { direction: nextDirection }
+                                : {}),
                             }))
                           }}
                           css={inputLike}
@@ -492,15 +507,21 @@ export const PredicateBuilder = ({ admin }: PredicateBuilderProps) => {
                         Reference pattern
                         <input
                           type="text"
-                          value={predicate.referencePattern}
+                          value={causePredicate?.referencePattern ?? ''}
                           on:input={(event: Event) => {
                             const targetElement = event.currentTarget
                             if (!(targetElement instanceof HTMLInputElement)) return
-                            updatePredicate(predicate.id, (currentPredicate) => ({
-                              ...currentPredicate,
-                              referencePattern: targetElement.value,
-                              value: targetElement.value,
-                            }))
+                            updatePredicate(predicate.id, (currentPredicate) => {
+                              if (!isCausePredicate(currentPredicate)) {
+                                return currentPredicate
+                              }
+
+                              return {
+                                ...currentPredicate,
+                                referencePattern: targetElement.value,
+                                value: targetElement.value,
+                              }
+                            })
                           }}
                           css={inputLike}
                         />

@@ -42,8 +42,9 @@ function getPatternRegex(pattern: string | RegExp): RegExp | null {
   const delimitedMatch = pattern.match(/^\/(.+)\/([a-z]*)$/i)
   if (delimitedMatch) {
     const [, source, flags] = delimitedMatch
+    if (source === undefined) return null
     try {
-      return new RegExp(source, flags)
+      return new RegExp(source, flags ?? '')
     } catch {
       return null
     }

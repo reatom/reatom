@@ -23,6 +23,10 @@ interface StateTreeGroupNode extends StateTreeNode {
   children: Array<StateTreeNode>
 }
 
+function isStateTreeGroupNode(node: StateTreeNode): node is StateTreeGroupNode {
+  return node.kind === 'group'
+}
+
 function splitAtomPath(name: string): Array<string> {
   return name.split(/[.#]/g).filter((part) => part.length > 0)
 }
@@ -104,7 +108,7 @@ function buildStateTree(
 
       const childGroups = new Map<string, StateTreeGroupNode>()
       for (const child of groupNode.children) {
-        if (child.kind === 'group') {
+        if (isStateTreeGroupNode(child)) {
           childGroups.set(child.path, child)
         }
       }

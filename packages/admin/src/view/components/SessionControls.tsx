@@ -55,7 +55,9 @@ function isImportedSessionPayload(
   return (
     !!session &&
     typeof session === 'object' &&
+    'id' in session &&
     typeof session.id === 'string' &&
+    'startedAt' in session &&
     typeof session.startedAt === 'number' &&
     !!atoms &&
     typeof atoms === 'object' &&

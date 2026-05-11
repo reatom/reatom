@@ -1,11 +1,13 @@
+import type { Computed, RouteChild } from '@reatom/core'
+
 import type { Admin } from '../../index'
 import { HeaderBar } from '../components/HeaderBar'
-import { colors, flex, flexCol, p, scrollable } from '../styles'
+import { colors, p, scrollable } from '../styles'
 import { Nav } from './Nav'
 
 export interface LayoutProps {
   admin: Admin
-  outlet: () => Array<Element>
+  outlet: Computed<RouteChild[]>
 }
 
 export const Layout = ({ admin, outlet }: LayoutProps) => {
@@ -36,7 +38,7 @@ export const Layout = ({ admin, outlet }: LayoutProps) => {
           ${p(2)}
         `}
       >
-        {() => outlet().map((child) => child)}
+        {outlet}
       </main>
       <Nav admin={admin} />
     </div>

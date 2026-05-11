@@ -1,10 +1,11 @@
-import type { ActionState, AtomLike, Frame } from '@reatom/core'
+import type { AtomLike, Frame } from '@reatom/core'
 import {
   _enqueue,
   atom,
   bind,
   EXTENSIONS,
   isAction,
+  isObject,
   reatomBoolean,
   top,
   withMiddleware,
@@ -34,6 +35,38 @@ export interface Reporter {
   paused: ReturnType<typeof reatomBoolean>
   clear: () => void
   dispose: () => void
+}
+
+interface ActionCallSnapshot {
+  params: Array<unknown> | undefined
+  payload: unknown
+}
+
+function getActionCallSnapshot(state: unknown): ActionCallSnapshot | null {
+  if (!Array.isArray(state)) {
+    return null
+  }
+
+  const lastCall = state.at(-1)
+  if (!isObject(lastCall)) {
+    return null
+  }
+
+  return {
+    params:
+      'params' in lastCall && Array.isArray(lastCall.params)
+        ? lastCall.params
+        : undefined,
+    payload: 'payload' in lastCall ? lastCall.payload : undefined,
+  }
+}
+
+function getRejectedActionError(payload: unknown): unknown | null {
+  if (!isObject(payload) || !('error' in payload)) {
+    return null
+  }
+
+  return payload.error
 }
 
 export function createReporter(options: ReporterOptions = {}): Reporter {
@@ -79,9 +112,8 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
 
   const buildPubIds = (frame: Frame): number[] => {
     const ids: number[] = []
-    for (let i = 0; i < frame.pubs.length; i++) {
-      const pub = frame.pubs[i]
-      if (pub !== null && pub.atom !== context) {
+    for (const pub of frame.pubs) {
+      if (pub !== null && pub !== undefined && pub.atom !== context) {
         ids.push(getOrCreateFrameId(pub))
       }
     }
@@ -92,8 +124,6 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     frame: Frame,
     state: unknown,
     error: unknown,
-    params: unknown[] | undefined,
-    payload: unknown,
   ) => {
     if (paused()) return
     const target = frame.atom
@@ -113,8 +143,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
       resolvedParams = undefined
       resolvedPayload = undefined
     } else {
-      const actionState = state as ActionState
-      const lastCall = actionState?.at?.(actionState.length - 1)
+      const lastCall = getActionCallSnapshot(state)
       resolvedParams = lastCall?.params
       resolvedPayload = lastCall?.payload
     }
@@ -176,23 +205,16 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
                     if (params.length === 0) return
                   }
                 } else {
-                  const actionState = state as ActionState
-                  const lastCall = actionState?.at?.(actionState.length - 1)
+                  const lastCall = getActionCallSnapshot(state)
                   if (
                     isAction(target) &&
                     target.name.endsWith('.onReject') &&
                     lastCall
                   ) {
-                    error = (lastCall.payload as { error?: unknown })?.error
+                    error = getRejectedActionError(lastCall.payload) ?? error
                   }
                 }
-                captureFrame(
-                  frame,
-                  state,
-                  error,
-                  params as unknown[] | undefined,
-                  undefined,
-                )
+                captureFrame(frame, state, error)
               }, ADMIN_FRAME),
               'hook',
             )
