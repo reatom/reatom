@@ -755,7 +755,7 @@ export const withBaseField =
                 ...validationArgs,
               })
               return validationTarget.merge(propsToMerge)
-            }, `${validationTarget.name}.trigger.validationEffect`)()
+            }, `${validationTarget.name}.trigger.validationEffect`)()!
           }
         }, `${validationTarget.name}.trigger`).extend(withAbort()),
       }))
