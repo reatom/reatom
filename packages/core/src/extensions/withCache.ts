@@ -42,9 +42,10 @@ export interface CacheRecord<Target extends AtomLike = AtomLike> {
   version: number
 }
 
-export interface CacheAtom<
-  Target extends AtomLike = AtomLike,
-> extends MapAtom<unknown, CacheRecord<Target>> {
+export interface CacheAtom<Target extends AtomLike = AtomLike> extends MapAtom<
+  unknown,
+  CacheRecord<Target>
+> {
   /** Clear all records and call the effect with the last params. */
   invalidate: Action<[], null | ReturnType<Target>>
   setWithParams: Action<
@@ -311,7 +312,7 @@ export let withCache =
       }
       if (cached.version > 0) {
         return {
-          result: (cached.isAsync ?? hasOnFulfill(target)
+          result: ((cached.isAsync ?? hasOnFulfill(target))
             ? Promise.resolve(cached.value)
             : cached.value) as ReturnType<Target>,
         }
@@ -533,37 +534,38 @@ export let withCache =
 
     if (isAction(target)) {
       target.extend(
-        withActionMiddleware(() =>
-          function withCacheAction(next, ...params) {
-            const cacheParams = toCacheParams(params)
-            const shouldSWR = getShouldSWR(cacheParams)
-            const { cached, key } = find(cacheParams)
+        withActionMiddleware(
+          () =>
+            function withCacheAction(next, ...params) {
+              const cacheParams = toCacheParams(params)
+              const shouldSWR = getShouldSWR(cacheParams)
+              const { cached, key } = find(cacheParams)
 
-            const cachedResult = getCachedResult(cached)
-            if (cached?.promise && cachedResult) {
-              cacheVar.set()
-              return cachedResult.result
-            }
+              const cachedResult = getCachedResult(cached)
+              if (cached?.promise && cachedResult) {
+                cacheVar.set()
+                return cachedResult.result
+              }
 
-            if (cachedResult && !shouldSWR) {
-              cacheVar.set(cached)
-              return cachedResult.result
-            }
+              if (cachedResult && !shouldSWR) {
+                cacheVar.set(cached)
+                return cachedResult.result
+              }
 
-            const promise = next(...params)
-            const controller = abortVar.get() ?? getCacheController()
-            setPending(key, cached, cacheParams, promise, controller)
+              const promise = next(...params)
+              const controller = abortVar.get() ?? getCacheController()
+              setPending(key, cached, cacheParams, promise, controller)
 
-            if (cachedResult) {
-              cacheVar.set(
-                cached,
-                true,
-                isPromise(promise) ? promise : undefined,
-              )
-            }
+              if (cachedResult) {
+                cacheVar.set(
+                  cached,
+                  true,
+                  isPromise(promise) ? promise : undefined,
+                )
+              }
 
-            return promise
-          },
+              return promise
+            },
         ),
       )
       return { cacheAtom }

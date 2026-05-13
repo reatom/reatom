@@ -58,20 +58,23 @@ const setStatusSWR = <Status extends { isSWR: boolean }>(
  * Initial state for async status tracking. Represents a state where no async
  * operation has ever been initiated.
  */
-export const asyncStatusInitState: AsyncStatus<any, any> = setStatusSWR({
-  isPending: false,
-  isFulfilled: false,
-  isRejected: false,
-  isSettled: false,
+export const asyncStatusInitState: AsyncStatus<any, any> = setStatusSWR(
+  {
+    isPending: false,
+    isFulfilled: false,
+    isRejected: false,
+    isSettled: false,
 
-  isFirstPending: false,
-  isEverPending: false,
-  isEverSettled: false,
+    isFirstPending: false,
+    isEverPending: false,
+    isEverSettled: false,
 
-  isSWR: false,
+    isSWR: false,
 
-  data: undefined as never,
-}, false)
+    data: undefined as never,
+  },
+  false,
+)
 
 /**
  * Extension that adds detailed status tracking to async atoms or actions.
@@ -202,11 +205,14 @@ export const withAsyncStatus =
               meta.lastSettledStatus = null
               meta.uniqueKey = {}
 
-              return setStatusSWR({
-                ...asyncStatusInitState,
-                isSWR: false,
-                data: getDataValue(),
-              }, false)
+              return setStatusSWR(
+                {
+                  ...asyncStatusInitState,
+                  isSWR: false,
+                  data: getDataValue(),
+                },
+                false,
+              )
             }) as AsyncStatusNeverPending<State, InitState>,
           `${target.name}.reset`,
         ),
@@ -234,20 +240,23 @@ export const withAsyncStatus =
 
         promisesToTrack.forEach((promise) => {
           if (!isSWR) {
-            state = setStatusSWR({
-              isPending: true,
-              isFulfilled: false,
-              isRejected: false,
-              isSettled: false,
+            state = setStatusSWR(
+              {
+                isPending: true,
+                isFulfilled: false,
+                isRejected: false,
+                isSettled: false,
 
-              isFirstPending: !state.isEverPending,
-              isEverPending: true,
-              isEverSettled: state.isEverSettled,
+                isFirstPending: !state.isEverPending,
+                isEverPending: true,
+                isEverSettled: state.isEverSettled,
 
+                isSWR,
+
+                data: getDataValue(),
+              } as AsyncStatus<State, InitState>,
               isSWR,
-
-              data: getDataValue(),
-            } as AsyncStatus<State, InitState>, isSWR)
+            )
           }
 
           promise.then(
@@ -260,20 +269,23 @@ export const withAsyncStatus =
               status.set(() => {
                 const pending = target.pending()
                 const isPending = pending > 0
-                return setStatusSWR({
-                  isPending,
-                  isFulfilled: !isPending,
-                  isRejected: false,
-                  isSettled: !isPending,
+                return setStatusSWR(
+                  {
+                    isPending,
+                    isFulfilled: !isPending,
+                    isRejected: false,
+                    isSettled: !isPending,
 
-                  isFirstPending: false,
-                  isEverPending: true,
-                  isEverSettled: true,
+                    isFirstPending: false,
+                    isEverPending: true,
+                    isEverSettled: true,
 
-                  isSWR: false,
+                    isSWR: false,
 
-                  data: getDataValue(),
-                } as AsyncStatus<State, InitState>, false)
+                    data: getDataValue(),
+                  } as AsyncStatus<State, InitState>,
+                  false,
+                )
               })
             }),
             bind((error) => {
@@ -294,66 +306,72 @@ export const withAsyncStatus =
                 const currentData = getDataValue()
 
                 if (!aborted) {
-                  return setStatusSWR({
-                    isPending,
-                    isFulfilled: false,
-                    isRejected: !isPending,
-                    isSettled: !isPending,
+                  return setStatusSWR(
+                    {
+                      isPending,
+                      isFulfilled: false,
+                      isRejected: !isPending,
+                      isSettled: !isPending,
 
-                    isFirstPending: false,
-                    isEverPending: true,
-                    isEverSettled: true,
+                      isFirstPending: false,
+                      isEverPending: true,
+                      isEverSettled: true,
 
-                    isSWR: false,
+                      isSWR: false,
 
-                    data: currentData,
-                  } as AsyncStatus<State, InitState>, false)
+                      data: currentData,
+                    } as AsyncStatus<State, InitState>,
+                    false,
+                  )
                 }
 
                 if (state.isEverSettled && !isPending) {
-                  return setStatusSWR({
+                  return setStatusSWR(
+                    {
+                      isPending,
+                      isFulfilled: lastSettledStatus === 'fulfilled',
+                      isRejected: lastSettledStatus === 'rejected',
+                      isSettled: true,
+
+                      isFirstPending: false,
+                      isEverPending: true,
+                      isEverSettled: true,
+
+                      isSWR: false,
+
+                      data: currentData,
+                    } as AsyncStatusAbortedSettle<State, InitState>,
+                    false,
+                  )
+                }
+
+                return setStatusSWR(
+                  {
                     isPending,
-                    isFulfilled: lastSettledStatus === 'fulfilled',
-                    isRejected: lastSettledStatus === 'rejected',
-                    isSettled: true,
+                    isFulfilled: false,
+                    isRejected: false,
+                    isSettled: false,
 
                     isFirstPending: false,
                     isEverPending: true,
-                    isEverSettled: true,
+                    isEverSettled: state.isEverSettled,
 
                     isSWR: false,
 
                     data: currentData,
-                  } as AsyncStatusAbortedSettle<State, InitState>, false)
-                }
-
-                return setStatusSWR({
-                  isPending,
-                  isFulfilled: false,
-                  isRejected: false,
-                  isSettled: false,
-
-                  isFirstPending: false,
-                  isEverPending: true,
-                  isEverSettled: state.isEverSettled,
-
-                  isSWR: false,
-
-                  data: currentData,
-                } as
-                  | AsyncStatusAbortedPending<State, InitState>
-                  | AsyncStatusFirstAborted<State, InitState>
-                  | AsyncStatusAbortedPending<State, InitState>, false)
+                  } as
+                    | AsyncStatusAbortedPending<State, InitState>
+                    | AsyncStatusFirstAborted<State, InitState>
+                    | AsyncStatusAbortedPending<State, InitState>,
+                  false,
+                )
               })
             }),
           )
         })
 
         return isSWR
-          ? setStatusSWR(
-              { ...state, isSWR, data: getDataValue() },
-              true,
-            )
+          ? setStatusSWR({ ...state, isSWR, data: getDataValue() }, true)
           : setStatusSWR({ ...state, isSWR: false }, false)
       }),
 
