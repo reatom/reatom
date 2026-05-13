@@ -24,8 +24,6 @@ describe('toPreact', () => {
       const countAtom = atom(42, 'count')
       const signal = toPreact(countAtom)
 
-      console.log(signal)
-
       expect(signal.value).toBe(42)
     }))
 
@@ -273,8 +271,10 @@ test('atom from Preact signal', () =>
   context.start(async () => {
     const signal = preactSignal(0)
     const signalAtom = reatomObservable(
-      signal,
-      () => signal.value,
+      {
+        getState: () => signal.value,
+        subscribe: signal.subscribe.bind(signal),
+      },
       'signalAtom',
     )
 

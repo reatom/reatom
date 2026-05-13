@@ -1,16 +1,47 @@
-import { type ComponentClass, type ComponentType, options } from 'preact'
+import type { Rec } from '@reatom/core'
+import { type ComponentChildren, options } from 'preact'
 
 import { reatomComponent } from './reatomComponent'
+
+type AutoTrackedComponent = (props: Rec) => ComponentChildren
+
+let trackedComponents = new WeakMap<AutoTrackedComponent, AutoTrackedComponent>()
+
+let hasMethod = (value: unknown, methodName: string): boolean =>
+  typeof value === 'object' &&
+  value !== null &&
+  typeof Reflect.get(value, methodName) === 'function'
+
+let isClassLikeComponent = (value: unknown): boolean =>
+  hasMethod(value, 'render') ||
+  hasMethod(value, 'getChildContext') ||
+  hasMethod(value, 'componentDidMount') ||
+  hasMethod(value, 'componentWillUnmount') ||
+  hasMethod(value, 'shouldComponentUpdate')
+
+let isPreactContextProvider = (value: unknown): boolean =>
+  typeof value === 'function' &&
+  Reflect.has(value, '__c') &&
+  Reflect.has(value, 'Consumer') &&
+  Reflect.has(value, 'Provider')
+
+let isPreactRender = (value: unknown): value is AutoTrackedComponent =>
+  typeof value === 'function' &&
+  !isPreactContextProvider(value) &&
+  !isClassLikeComponent(Reflect.get(value, 'prototype'))
 
 export const installAutoTracking = () => {
   const { vnode } = options
 
   options.vnode = (node) => {
-    let type = node.type as (ComponentType<any> | ComponentClass<any>) & {
-      reatomComponent?: ComponentClass<any>
-    }
-    if (typeof type === 'function' && !type.reatomComponent) {
-      node.type = type.reatomComponent = reatomComponent(type)
+    let type = node.type
+    if (isPreactRender(type)) {
+      let trackedComponent = trackedComponents.get(type)
+      if (!trackedComponent) {
+        trackedComponent = reatomComponent(type)
+        trackedComponents.set(type, trackedComponent)
+      }
+      node.type = trackedComponent
     }
     vnode?.(node)
   }

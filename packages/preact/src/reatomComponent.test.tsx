@@ -1,4 +1,5 @@
 import {
+  abortVar,
   atom,
   clearStack,
   computed,
@@ -10,7 +11,7 @@ import {
   wrap,
 } from '@reatom/core'
 import { render } from 'preact'
-import { useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
 import { reatomComponent, reatomContext } from './'
@@ -36,6 +37,63 @@ afterEach(() => {
 })
 
 describe('reatomComponent', () => {
+  test('does not abort on unmount', () =>
+    context.start(async () => {
+      let controller: ReturnType<typeof abortVar.get> = undefined
+
+      const TestComponent = reatomComponent(() => {
+        controller = abortVar.get()
+        return <div>test</div>
+      }, 'TestComponent')
+
+      const root = document.getElementById('root')!
+      render(
+        <reatomContext.Provider value={top()}>
+          <TestComponent />
+        </reatomContext.Provider>,
+        root,
+      )
+
+      await wrap(tick())
+      expect(controller).toBeDefined()
+      expect(controller!.signal.aborted).toBe(false)
+
+      render(null, root)
+      await wrap(tick())
+
+      expect(controller!.signal.aborted).toBe(false)
+    }))
+
+  test('aborts on unmount when abortOnUnmount is true', () =>
+    context.start(async () => {
+      let controller: ReturnType<typeof abortVar.get> = undefined
+
+      const TestComponent = reatomComponent(
+        () => {
+          controller = abortVar.get()
+          return <div>test</div>
+        },
+        { name: 'TestComponent', abortOnUnmount: true },
+      )
+
+      const root = document.getElementById('root')!
+      render(
+        <reatomContext.Provider value={top()}>
+          <TestComponent />
+        </reatomContext.Provider>,
+        root,
+      )
+
+      await wrap(tick())
+      expect(controller).toBeDefined()
+      expect(controller!.signal.aborted).toBe(false)
+
+      render(null, root)
+      await wrap(tick())
+
+      expect(controller!.signal.aborted).toBe(true)
+    }))
+
   test('renders component and updates with atom changes', () =>
     context.start(async () => {
       const countAtom = atom(0, 'count')
@@ -212,6 +270,65 @@ describe('reatomComponent', () => {
       ).toBe('Initial message')
     }))
 
+  test('works with Preact hooks (useState, useEffect)', () =>
+    context.start(async () => {
+      let effectRunCount = 0
+      let cleanupRunCount = 0
+
+      const Counter = reatomComponent(() => {
+        const [count, setCount] = useState(0)
+
+        useEffect(() => {
+          effectRunCount++
+          return () => {
+            cleanupRunCount++
+          }
+        }, [count])
+
+        return (
+          <div>
+            <span data-testid="count">{count}</span>
+            <button
+              data-testid="increment"
+              onClick={() => setCount((currentCount) => currentCount + 1)}
+            >
+              Increment
+            </button>
+          </div>
+        )
+      })
+
+      const root = document.getElementById('root')!
+      render(
+        <reatomContext.Provider value={top()}>
+          <Counter />
+        </reatomContext.Provider>,
+        root,
+      )
+
+      await wrap(tick())
+      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
+        '0',
+      )
+      expect(effectRunCount).toBe(1)
+      expect(cleanupRunCount).toBe(0)
+
+      const button = document.querySelector(
+        '[data-testid="increment"]',
+      ) as HTMLButtonElement
+      button.click()
+      await wrap(tick())
+
+      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
+        '1',
+      )
+      expect(effectRunCount).toBe(2)
+      expect(cleanupRunCount).toBe(1)
+
+      render(null, root)
+      expect(cleanupRunCount).toBe(2)
+    }))
+
   test('automatic reatomComponent with options hook', () =>
     context.start(async () => {
       await wrap(import('./auto'))
@@ -236,7 +353,9 @@ describe('reatomComponent', () => {
       )
 
       await wrap(tick())
-      const counterElement = document.querySelector('[data-testid="counter"]') as HTMLDivElement
+      const counterElement = document.querySelector(
+        '[data-testid="counter"]',
+      ) as HTMLDivElement
       expect(counterElement?.textContent).toBe('Count: 0')
 
       setTimeout(() => counterElement?.click())
