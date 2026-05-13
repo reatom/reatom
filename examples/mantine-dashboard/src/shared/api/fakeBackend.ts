@@ -35,8 +35,10 @@ const storage = () => {
   return window.localStorage
 }
 
-const id = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-const isoInDays = (days: number) => new Date(Date.now() + days * 86_400_000).toISOString()
+const id = (prefix: string) =>
+  `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+const isoInDays = (days: number) =>
+  new Date(Date.now() + days * 86_400_000).toISOString()
 const now = () => new Date().toISOString()
 
 const createSeedDb = (): Db => {
@@ -71,7 +73,8 @@ const createSeedDb = (): Db => {
     {
       id: 'p_1001',
       name: 'Revenue cockpit',
-      description: 'Executive dashboard for recurring revenue, churn, and expansion signals.',
+      description:
+        'Executive dashboard for recurring revenue, churn, and expansion signals.',
       ownerId: 'u_alex',
       status: 'active',
       priority: 'high',
@@ -84,7 +87,8 @@ const createSeedDb = (): Db => {
     {
       id: 'p_1002',
       name: 'Customer health scoring',
-      description: 'Predictive health scores with account-level recommendations.',
+      description:
+        'Predictive health scores with account-level recommendations.',
       ownerId: 'u_sam',
       status: 'blocked',
       priority: 'high',
@@ -97,7 +101,8 @@ const createSeedDb = (): Db => {
     {
       id: 'p_1003',
       name: 'Partner portal refresh',
-      description: 'Self-service project handoff and reporting portal for agency partners.',
+      description:
+        'Self-service project handoff and reporting portal for agency partners.',
       ownerId: 'u_nia',
       status: 'planned',
       priority: 'medium',
@@ -110,7 +115,8 @@ const createSeedDb = (): Db => {
     {
       id: 'p_1004',
       name: 'Billing migration',
-      description: 'Move legacy invoice workflows into the new billing provider.',
+      description:
+        'Move legacy invoice workflows into the new billing provider.',
       ownerId: 'u_alex',
       status: 'done',
       priority: 'medium',
@@ -123,7 +129,8 @@ const createSeedDb = (): Db => {
     {
       id: 'p_1005',
       name: 'Mobile onboarding',
-      description: 'Guided setup checklist and activation nudges for new mobile users.',
+      description:
+        'Guided setup checklist and activation nudges for new mobile users.',
       ownerId: 'u_sam',
       status: 'active',
       priority: 'low',
@@ -136,7 +143,8 @@ const createSeedDb = (): Db => {
     {
       id: 'p_1006',
       name: 'Support quality console',
-      description: 'Queue-level analytics and coaching workflows for support leads.',
+      description:
+        'Queue-level analytics and coaching workflows for support leads.',
       ownerId: 'u_nia',
       status: 'active',
       priority: 'medium',
@@ -256,13 +264,22 @@ export const fakeBackend = {
       email: values.email,
       role: values.role,
       title: values.role === 'viewer' ? 'Stakeholder' : 'Project owner',
-      avatarColor: values.role === 'admin' ? 'indigo' : values.role === 'manager' ? 'teal' : 'gray',
+      avatarColor:
+        values.role === 'admin'
+          ? 'indigo'
+          : values.role === 'manager'
+            ? 'teal'
+            : 'gray',
     }
 
     db.users.push(user)
     const token = id('session')
     db.sessions[token] = user.id
-    addActivity('auth', `${user.name} created a demo workspace account`, user.id)
+    addActivity(
+      'auth',
+      `${user.name} created a demo workspace account`,
+      user.id,
+    )
     persist()
 
     return { token, user: publicUser(user) }
@@ -277,7 +294,8 @@ export const fakeBackend = {
     await delay(200, 450)
     const userId = db.sessions[token]
     delete db.sessions[token]
-    if (userId) addActivity('auth', 'A user signed out of the dashboard', userId)
+    if (userId)
+      addActivity('auth', 'A user signed out of the dashboard', userId)
     persist()
   },
 
@@ -285,14 +303,21 @@ export const fakeBackend = {
     getUserByToken(token)
     await delay()
 
-    const activeProjects = db.projects.filter((item) => item.status === 'active')
-    const completedProjects = db.projects.filter((item) => item.status === 'done')
-    const blockedProjects = db.projects.filter((item) => item.status === 'blocked')
+    const activeProjects = db.projects.filter(
+      (item) => item.status === 'active',
+    )
+    const completedProjects = db.projects.filter(
+      (item) => item.status === 'done',
+    )
+    const blockedProjects = db.projects.filter(
+      (item) => item.status === 'blocked',
+    )
     const budgetInFlight = db.projects
       .filter((item) => item.status !== 'done')
       .reduce((sum, item) => sum + item.budget, 0)
     const averageProgress = Math.round(
-      db.projects.reduce((sum, item) => sum + item.progress, 0) / db.projects.length,
+      db.projects.reduce((sum, item) => sum + item.progress, 0) /
+        db.projects.length,
     )
 
     return {
@@ -313,7 +338,10 @@ export const fakeBackend = {
     }
   },
 
-  async listProjects(token: string, query: ProjectListQuery): Promise<ProjectListResult> {
+  async listProjects(
+    token: string,
+    query: ProjectListQuery,
+  ): Promise<ProjectListResult> {
     getUserByToken(token)
     await delay(450, 950)
 
@@ -324,7 +352,8 @@ export const fakeBackend = {
             .toLowerCase()
             .includes(normalizedQuery)
         : true
-      const matchesStatus = query.status === 'all' || project.status === query.status
+      const matchesStatus =
+        query.status === 'all' || project.status === query.status
       return matchesQuery && matchesStatus
     })
 
@@ -347,7 +376,10 @@ export const fakeBackend = {
     return clone(findProject(projectId))
   },
 
-  async createProject(token: string, input: ProjectCreateInput): Promise<Project> {
+  async createProject(
+    token: string,
+    input: ProjectCreateInput,
+  ): Promise<Project> {
     const user = getUserByToken(token)
     await delay(700, 1_200)
     maybeFail(0.06, 'The fake backend rejected this project. Try again.')
@@ -367,7 +399,12 @@ export const fakeBackend = {
     }
 
     db.projects.unshift(project)
-    addActivity('project', `${user.name} created ${project.name}`, user.id, project.id)
+    addActivity(
+      'project',
+      `${user.name} created ${project.name}`,
+      user.id,
+      project.id,
+    )
     persist()
 
     return clone(project)
@@ -380,19 +417,33 @@ export const fakeBackend = {
   ): Promise<Project> {
     const user = getUserByToken(token)
     await delay(500, 1_000)
-    maybeFail(0.12, 'A simulated network error rolled back the optimistic update')
+    maybeFail(
+      0.12,
+      'A simulated network error rolled back the optimistic update',
+    )
 
     const project = findProject(projectId)
     project.status = status
-    project.progress = status === 'active' ? Math.max(project.progress, 55) : statusProgress[status]
+    project.progress =
+      status === 'active'
+        ? Math.max(project.progress, 55)
+        : statusProgress[status]
     project.updatedAt = now()
-    addActivity('project', `${user.name} moved ${project.name} to ${status}`, user.id, project.id)
+    addActivity(
+      'project',
+      `${user.name} moved ${project.name} to ${status}`,
+      user.id,
+      project.id,
+    )
     persist()
 
     return clone(project)
   },
 
-  async saveSettings(token: string, values: SettingsInput): Promise<SettingsInput> {
+  async saveSettings(
+    token: string,
+    values: SettingsInput,
+  ): Promise<SettingsInput> {
     const user = getUserByToken(token)
     await delay(450, 900)
     addActivity('settings', `${user.name} saved dashboard preferences`, user.id)

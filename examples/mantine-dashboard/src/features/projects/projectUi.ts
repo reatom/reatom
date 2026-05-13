@@ -14,6 +14,8 @@ export const priorityColor: Record<ProjectPriority, string> = {
 }
 
 export const humanize = (value: string) =>
-  value.replace(/(^|_)(\w)/g, (_, prefix: string, letter: string) =>
-    `${prefix ? ' ' : ''}${letter.toUpperCase()}`,
+  value.replace(
+    /(^|_)(\w)/g,
+    (_, prefix: string, letter: string) =>
+      `${prefix ? ' ' : ''}${letter.toUpperCase()}`,
   )

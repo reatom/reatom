@@ -18,7 +18,9 @@ export const relativeTime = (value: string) => {
   const formatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
 
   if (abs < 60_000) return 'just now'
-  if (abs < 3_600_000) return formatter.format(Math.round(diff / 60_000), 'minute')
-  if (abs < 86_400_000) return formatter.format(Math.round(diff / 3_600_000), 'hour')
+  if (abs < 3_600_000)
+    return formatter.format(Math.round(diff / 60_000), 'minute')
+  if (abs < 86_400_000)
+    return formatter.format(Math.round(diff / 3_600_000), 'hour')
   return formatter.format(Math.round(diff / 86_400_000), 'day')
 }

@@ -8,12 +8,9 @@ import { withAbort } from './withAbort'
 
 const getActiveControllers = (target: AtomLike) =>
   _read(target)!.run(() =>
-    memoKey(
-      'withAbort',
-      (): { activeControllers: Array<AbortController> } => {
-        throw new Error('Memo cache not working')
-      },
-    ),
+    memoKey('withAbort', (): { activeControllers: Array<AbortController> } => {
+      throw new Error('Memo cache not working')
+    }),
   ).activeControllers
 
 test('last-in-win: abort propagation', async () => {
