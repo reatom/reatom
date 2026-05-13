@@ -4,6 +4,7 @@ import {
   reatomRoute,
   sleep,
   urlAtom,
+  withAbort,
   withAsync,
   withChangeHook,
   withRollback,
@@ -232,7 +233,7 @@ export const privateRoute = rootRoute.reatomRoute(
               label: 'Projects',
               description: 'Search, forms, optimistic actions',
               active: projectsRoute.match(),
-              go: () => projectsRoute.go(projectSearchParams()),
+              go: () => projectListRoute.go(projectSearchParams()),
             },
             {
               label: 'Settings',
@@ -295,6 +296,21 @@ export const dashboardRoute = privateRoute.reatomRoute(
 export const projectsRoute = privateRoute.reatomRoute(
   {
     path: 'projects',
+    layout: true,
+    render(self) {
+      return <>{self.outlet()}</>
+    },
+  },
+  'routes.projects',
+)
+
+export const projectListRoute = projectsRoute.reatomRoute(
+  {
+    path: '',
+    params(params) {
+      const pathname = urlAtom().pathname.replace(/\/$/, '') || '/'
+      return pathname === projectsRoute.path() ? params : null
+    },
     search: projectSearchSchema,
     async loader(params) {
       const { token } = requireSession()
@@ -306,14 +322,14 @@ export const projectsRoute = privateRoute.reatomRoute(
       const result = await wrap(fakeBackend.listProjects(token, query))
       const filterForm = reatomProjectFilterForm(
         { q: query.q, status: query.status },
-        (values) => projectsRoute.go(projectSearchParams({ ...values, page: 1 })),
+        (values) => projectListRoute.go(projectSearchParams({ ...values, page: 1 })),
       )
 
       return {
         result,
         filterForm,
         setPage: (page: number) =>
-          projectsRoute.go(projectSearchParams({ ...query, page })),
+          projectListRoute.go(projectSearchParams({ ...query, page })),
         openProject: (projectId: string) => projectDetailsRoute.go({ projectId }),
         goNew: () => projectCreateRoute.go(),
       }
@@ -337,7 +353,7 @@ export const projectsRoute = privateRoute.reatomRoute(
       return <PageLoader label="Loading projects..." />
     },
   },
-  'routes.projects',
+  'routes.projects.list',
 )
 
 export const projectCreateRoute = projectsRoute.reatomRoute(
@@ -361,7 +377,7 @@ export const projectCreateRoute = projectsRoute.reatomRoute(
 
       return {
         form,
-        cancel: () => projectsRoute.go(projectSearchParams()),
+        cancel: () => projectListRoute.go(projectSearchParams()),
       }
     },
     render(self) {
@@ -386,23 +402,58 @@ export const projectCreateRoute = projectsRoute.reatomRoute(
   'routes.projects.new',
 )
 
-export const projectDetailsRoute = projectsRoute.reatomRoute(
+export const projectRoute = projectsRoute.reatomRoute(
   {
     path: ':projectId',
     params: z.object({ projectId: z.string().regex(/^p_/) }),
+    layout: true,
     async loader({ projectId }) {
       const { token } = requireSession()
-      const project = await wrap(fakeBackend.getProject(token, projectId))
+      return await wrap(fakeBackend.getProject(token, projectId))
+    },
+    render(self) {
+      const status = self.loader.status()
+
+      if (status.isFirstPending || status.isPending) {
+        return <PageLoader label="Loading project..." />
+      }
+      if (status.isRejected) {
+        return (
+          <PageError
+            error={self.loader.error() ?? new Error('Failed to load project')}
+            onRetry={wrap(() => self.loader.retry())}
+          />
+        )
+      }
+      return <>{self.outlet()}</>
+    },
+  },
+  'routes.projects.project',
+)
+
+export const projectDetailsRoute = projectRoute.reatomRoute(
+  {
+    path: '',
+    async loader({ projectId }) {
+      const { token } = requireSession()
+      const project = await wrap(projectRoute.loader())
       const projectAtom = atom(project, `projects.detail#${projectId}.project`).extend(
         withRollback(),
       )
 
       const updateStatus = action(async (status: ProjectStatus) => {
-        projectAtom.set((current) => ({
+        const current = projectAtom()
+
+        projectAtom.set({
           ...current,
           status,
-          progress: status === 'done' ? 100 : status === 'blocked' ? 38 : Math.max(current.progress, 55),
-        }))
+          progress:
+            status === 'done'
+              ? 100
+              : status === 'blocked'
+                ? 38
+                : Math.max(current.progress, 55),
+        })
 
         const savedProject = await wrap(
           fakeBackend.updateProjectStatus(token, projectId, status),
@@ -416,32 +467,32 @@ export const projectDetailsRoute = projectsRoute.reatomRoute(
         return savedProject
       }, `projects.detail#${projectId}.updateStatus`).extend(
         withAsync({ status: true }),
+        withAbort(),
         withTransaction({ shouldRollback: (error) => error instanceof Error }),
       )
 
       return {
         projectAtom,
         updateStatus,
-        backToProjects: () => projectsRoute.go(projectSearchParams()),
+        backToProjects: () => projectListRoute.go(projectSearchParams()),
       }
     },
     render(self) {
       const status = self.loader.status()
 
-      if (status.isFirstPending) return <PageLoader label="Loading project..." />
-      if (status.isFulfilled) return <ProjectDetailsPage model={status.data} />
-      if (status.isPending && status.isEverSettled && status.data) {
-        return <ProjectDetailsPage model={status.data} refreshing />
+      if (status.isFirstPending || status.isPending) {
+        return <PageLoader label="Preparing project model..." />
       }
+      if (status.isFulfilled) return <ProjectDetailsPage model={status.data} />
       if (status.isRejected) {
         return (
           <PageError
-            error={self.loader.error() ?? new Error('Failed to load project')}
+            error={self.loader.error() ?? new Error('Failed to create project model')}
             onRetry={wrap(() => self.loader.retry())}
           />
         )
       }
-      return <PageLoader label="Loading project..." />
+      return <PageLoader label="Preparing project model..." />
     },
   },
   'routes.projects.detail',
@@ -518,9 +569,6 @@ urlAtom.extend(
     if (isAuthenticatedAtom()) dashboardRoute.go(undefined, true)
     else loginRoute.go(undefined, true)
   }),
-)
-
-urlAtom.extend(
   withChangeHook((url, prevUrl) => {
     if (url.pathname === prevUrl?.pathname && url.search === prevUrl.search) {
       return
