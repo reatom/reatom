@@ -211,8 +211,12 @@ describe('codecs', () => {
     const wrapRoute = reatomRoute({
       path: 'wrap/:token',
       params: {
-        decode: (input: { token: string }) => ({ token: (input.token) === 'seven' ? 7 : NaN }),
-        encode: (output: { token: number }) => ({ token: output.token === 7 ? 'seven' : '' }),
+        decode: (input: { token: string }) => ({
+          token: input.token === 'seven' ? 7 : NaN,
+        }),
+        encode: (output: { token: number }) => ({
+          token: output.token === 7 ? 'seven' : '',
+        }),
       },
     })
     const childRoute = wrapRoute.reatomRoute('item/:itemId')

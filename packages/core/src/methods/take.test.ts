@@ -119,7 +119,9 @@ test('take filter', async () => {
 })
 
 test('take suspense', async () => {
-  const resource = atom(async () => 1, 'takeSuspense.resource').extend(withSuspenseInit())
+  const resource = atom(async () => 1, 'takeSuspense.resource').extend(
+    withSuspenseInit(),
+  )
 
   expect(await wrap(take(resource))).toBe(1)
 })

@@ -125,5 +125,3 @@ export let notify = () => {
   state.cleanup = []
   state.effect = []
 }
-
-

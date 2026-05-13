@@ -6,7 +6,7 @@ import {
   reatomPersist,
   type WithPersist,
 } from '../index'
-import {isBroadcastChannelAvailable} from './isBroadcastChannelAvailable';
+import { isBroadcastChannelAvailable } from './isBroadcastChannelAvailable'
 
 /**
  * Web storage persist interface that extends the base persist functionality
