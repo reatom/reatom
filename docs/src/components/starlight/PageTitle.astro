@@ -5,3 +5,41 @@ import Default from '@astrojs/starlight/components/PageTitle.astro'
 <Default>
   <slot />
 </Default>
+
+<aside class="version-alert" aria-label="New Reatom docs version">
+  <span class="version-alert__badge">v1001</span>
+  <span>
+    New docs are available. It is better to check
+    <a href="https://v1001.reatom.dev">v1001.reatom.dev</a>.
+  </span>
+</aside>
+
+<style>
+  .version-alert {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--sl-color-accent-low);
+    border-radius: 0.75rem;
+    color: var(--sl-color-white);
+    background: linear-gradient(135deg, var(--sl-color-accent-low), transparent);
+    font-size: var(--sl-text-sm);
+  }
+
+  .version-alert__badge {
+    flex-shrink: 0;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    color: var(--sl-color-black);
+    background-color: var(--sl-color-text-accent);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .version-alert a {
+    color: var(--sl-color-text-accent);
+    font-weight: 700;
+  }
+</style>
