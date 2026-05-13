@@ -1,0 +1,29 @@
+{
+  "name": "reatom-mantine-dashboard",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@mantine/core": "9.2.0",
+    "@mantine/hooks": "9.2.0",
+    "@mantine/notifications": "9.2.0",
+    "@reatom/core": "1001.0.0-rc.1",
+    "@reatom/react": "1001.0.0-rc",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.3"
+  }
+}
