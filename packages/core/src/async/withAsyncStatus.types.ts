@@ -8,6 +8,8 @@ export interface AsyncStatusNeverPending<State = never, InitState = State> {
   isEverPending: false
   isEverSettled: false
 
+  isSWR: boolean
+
   data: [State] extends [never] ? never : InitState
 }
 
@@ -20,6 +22,8 @@ export interface AsyncStatusFirstPending<State = never, InitState = State> {
   isFirstPending: true
   isEverPending: true
   isEverSettled: false
+
+  isSWR: boolean
 
   data: [State] extends [never] ? never : InitState
 }
@@ -34,6 +38,8 @@ export interface AsyncStatusFirstAborted<State = never, InitState = State> {
   isEverPending: true
   isEverSettled: false
 
+  isSWR: boolean
+
   data: [State] extends [never] ? never : InitState
 }
 
@@ -46,6 +52,8 @@ export interface AsyncStatusAbortedPending<State = never, InitState = State> {
   isFirstPending: false
   isEverPending: true
   isEverSettled: boolean
+
+  isSWR: boolean
 
   data: [State] extends [never] ? never : InitState | State
 }
@@ -60,6 +68,8 @@ export interface AsyncStatusAbortedFulfill<State = never, _InitState = State> {
   isEverPending: true
   isEverSettled: true
 
+  isSWR: boolean
+
   data: [State] extends [never] ? never : State
 }
 
@@ -72,6 +82,8 @@ export interface AsyncStatusAbortedReject<State = never, _InitState = State> {
   isFirstPending: false
   isEverPending: true
   isEverSettled: true
+
+  isSWR: boolean
 
   data: [State] extends [never] ? never : State
 }
@@ -90,6 +102,8 @@ export interface AsyncStatusFulfilled<State = never, _InitState = State> {
   isEverPending: true
   isEverSettled: true
 
+  isSWR: boolean
+
   data: [State] extends [never] ? never : State
 }
 
@@ -103,6 +117,8 @@ export interface AsyncStatusRejected<State = never, _InitState = State> {
   isEverPending: true
   isEverSettled: true
 
+  isSWR: boolean
+
   data: [State] extends [never] ? never : State
 }
 
@@ -115,6 +131,8 @@ export interface AsyncStatusAnotherPending<State = never, _InitState = State> {
   isFirstPending: false
   isEverPending: true
   isEverSettled: true
+
+  isSWR: boolean
 
   data: [State] extends [never] ? never : State
 }

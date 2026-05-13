@@ -1,0 +1,336 @@
+import { expect, subscribe, test, vi } from 'test'
+
+import { withAsyncData } from '../async/withAsyncData'
+import { action, atom, computed, context } from '../core'
+import { wrap } from '../methods'
+import { createMemStorage, reatomPersist } from '../persist'
+import { noop, sleep } from '../utils'
+import { withCache } from './withCache'
+
+test('withCache', async () => {
+  const name = 'withCache.basic'
+  const fetchData = action(
+    async ({ a, b: _b }: { a: number; b: number }) => a,
+    `${name}.fetch`,
+  ).extend(withAsyncData({ initState: 0 }), withCache())
+
+  await wrap(fetchData({ a: 400, b: 0 }))
+
+  const promise1 = fetchData({ a: 123, b: 0 })
+  expect(fetchData.pending()).toBe(1)
+  expect(fetchData.ready()).toBe(false)
+  expect(fetchData.data()).toBe(400)
+
+  expect(await wrap(promise1)).toBe(123)
+  expect(fetchData.pending()).toBe(0)
+  expect(fetchData.ready()).toBe(true)
+  expect(fetchData.data()).toBe(123)
+
+  fetchData({ a: 400, b: 0 }).catch(noop)
+  expect(fetchData.pending()).toBe(0)
+  expect(fetchData.ready()).toBe(true)
+  expect(fetchData.data()).toBe(400)
+
+  fetchData({ b: 0, a: 123 })
+  expect(fetchData.pending()).toBe(0)
+  expect(fetchData.ready()).toBe(true)
+  expect(fetchData.data()).toBe(123)
+})
+
+test('withCache dataAtom mapper', async () => {
+  const name = 'withCache.dataMapper'
+  const fetchData = action(async (n: number) => n, `${name}.fetch`).extend(
+    withAsyncData({
+      initState: { payload: 0 },
+      mapPayload: (payload) => ({ payload }),
+    }),
+    withCache(),
+  )
+
+  await wrap(fetchData(1))
+  expect(fetchData.data().payload).toBe(1)
+
+  await wrap(fetchData(2))
+  expect(fetchData.data().payload).toBe(2)
+
+  fetchData(1).catch(noop)
+  expect(fetchData.data().payload).toBe(1)
+})
+
+test('withCache sync action', () => {
+  const name = 'withCache.syncAction'
+  const effect = vi.fn((n: number) => n)
+  const getValue = action(effect, `${name}.get`).extend(withCache())
+
+  expect(getValue(0)).toBe(0)
+  expect(getValue(1)).toBe(1)
+  expect(getValue(0)).toBe(0)
+  expect(effect.mock.calls.length).toBe(2)
+})
+
+test('withCache sync action cache equality', () => {
+  const name = 'withCache.syncAction'
+  const getValue = action(<T>(value: T): T => value, `${name}.get`).extend(
+    withCache(),
+  )
+
+  const obj = { lalala: true }
+
+  expect(getValue(obj)).toBe(obj)
+  expect(getValue({ lalala: true })).toBe(obj)
+})
+
+test('withCache sync computed', () => {
+  const name = 'withCache.syncComputed'
+  const param = atom(0, `${name}.param`)
+  let offset = -1
+  const effect = vi.fn((n: number) => {
+    offset += 1
+    return n + offset
+  })
+  const resource = computed(() => effect(param()), `${name}.resource`).extend(
+    withCache(),
+  )
+
+  subscribe(resource)
+
+  expect(resource()).toBe(0)
+
+  param.set(1)
+  expect(resource()).toBe(2)
+
+  param.set(0)
+  expect(resource()).toBe(0)
+})
+
+test('withCache swr false', async () => {
+  const name = 'withCache.swrTrue'
+  const fetchData = action(async (n: number) => n, `${name}.fetch`).extend(
+    withAsyncData({ initState: 0 }),
+    withCache({ swr: false }),
+  )
+
+  await wrap(
+    Promise.all([
+      fetchData(1).catch(noop),
+      fetchData(2).catch(noop),
+      fetchData(3).catch(noop),
+    ]),
+  )
+
+  expect(fetchData.data()).toBe(3)
+
+  const promise = fetchData(1)
+  expect(fetchData.data()).toBe(3)
+  await wrap(promise)
+  expect(fetchData.data()).toBe(1)
+})
+
+test('withCache swr true', async () => {
+  const name = 'withCache.swrTrue'
+  const fetchData = action(async (n: number) => n, `${name}.fetch`).extend(
+    withAsyncData({ initState: 0, status: true }),
+    withCache({ swr: true }),
+  )
+
+  await wrap(
+    Promise.all([
+      fetchData(1).catch(noop),
+      fetchData(2).catch(noop),
+      fetchData(3).catch(noop),
+    ]),
+  )
+
+  expect(fetchData.data()).toBe(3)
+
+  fetchData(1).catch(noop)
+  expect(fetchData.data()).toBe(1)
+  expect(fetchData.status().isPending).toBe(false)
+  expect(fetchData.status().isSWR).toBe(true)
+
+  fetchData(2).catch(noop)
+  expect(fetchData.data()).toBe(2)
+  expect(fetchData.ready()).toBe(true)
+  expect(fetchData.status().isSWR).toBe(true)
+})
+
+test('withCache computed swr false', async () => {
+  const name = 'withCache.computedSWRFalse'
+  const param = atom(1, `${name}.param`)
+  const effect = vi.fn(async (n: number) => n)
+  const resource = computed(
+    async () => effect(param()),
+    `${name}.resource`,
+  ).extend(withAsyncData({ initState: 0 }), withCache({ swr: false }))
+
+  subscribe(resource.data)
+
+  await wrap(sleep())
+  expect(resource.data()).toBe(1)
+
+  param.set(2)
+  await wrap(sleep())
+  expect(resource.data()).toBe(2)
+
+  param.set(1)
+  expect(resource.data()).toBe(1)
+})
+
+test('withCache computed swr false', async () => {
+  const name = 'withCache.computedSWRFalse'
+  const param = atom(1, `${name}.param`)
+  const effect = vi.fn(async (n: number) => n)
+  const resource = computed(
+    async () => effect(param()),
+    `${name}.resource`,
+  ).extend(withAsyncData({ initState: 0 }), withCache({ swr: true }))
+
+  subscribe(resource.data)
+
+  await wrap(sleep())
+  expect(resource.data()).toBe(1)
+
+  param.set(2)
+  param.set(3)
+  param.set(4)
+  await wrap(sleep())
+  expect(resource.data()).toBe(4)
+
+  param.set(1)
+  expect(resource.data()).toBe(1)
+})
+
+test('withPersist', async () => {
+  const name = 'withCache.persist'
+  const mockStorage = createMemStorage({ name: 'test' })
+  const withMock = reatomPersist(mockStorage)
+
+  const effect = vi.fn(async (a: number, b: number) => a + b)
+  const fetchData1 = action(effect, `${name}.fetch1`).extend(
+    withAsyncData({ initState: 0 }),
+    withCache({ withPersist: () => withMock('fetch') }),
+  )
+  const fetchData2 = action(effect, `${name}.fetch2`).extend(
+    withAsyncData({ initState: 0 }),
+    withCache({ withPersist: () => withMock('fetch') }),
+  )
+
+  await wrap(fetchData1(1, 2))
+  expect(fetchData1.data()).toBe(3)
+
+  fetchData2(1, 2).catch(noop)
+  expect(fetchData2.data()).toBe(3)
+})
+
+test('do not cache throwed', async () => {
+  const name = 'withCache.noThrowed'
+
+  let shouldThrow = false
+  const fetchData = action(async (n: number) => {
+    if (shouldThrow) throw 42
+    return n
+  }, `${name}.fetch`).extend(withAsyncData({ initState: 0 }), withCache({}))
+
+  await wrap(fetchData(1))
+  expect(fetchData.data()).toBe(1)
+
+  shouldThrow = true
+  await wrap(fetchData(2).catch(noop))
+  expect(fetchData.data()).toBe(1)
+
+  shouldThrow = false
+  const promise = fetchData(2)
+  expect(fetchData.data()).toBe(1)
+  await wrap(promise)
+  expect(fetchData.data()).toBe(2)
+
+  fetchData(1).catch(noop)
+  expect(fetchData.data()).toBe(1)
+  fetchData(2).catch(noop)
+  expect(fetchData.data()).toBe(2)
+})
+
+test('should be able to manage cache manually', async () => {
+  const name = 'withCache.manual'
+  const effect = vi.fn(async (n: number) => n)
+  const fetchData = action(effect, `${name}.fetch`).extend(
+    withAsyncData({ initState: 0 }),
+    withCache(),
+  )
+
+  fetchData(1)
+  expect(effect.mock.calls.length).toBe(1)
+  expect(fetchData.data()).toBe(0)
+  await wrap(sleep())
+  expect(fetchData.data()).toBe(1)
+
+  fetchData.cacheAtom.setWithParams([2], 2)
+  fetchData(2).catch(noop)
+  expect(effect.mock.calls.length).toBe(1)
+  expect(fetchData.data()).toBe(2)
+  await wrap(sleep())
+  expect(effect.mock.calls.length).toBe(1)
+  expect(fetchData.data()).toBe(2)
+
+  fetchData(1).catch(noop)
+  expect(effect.mock.calls.length).toBe(1)
+
+  fetchData.cacheAtom.deleteWithParams([1])
+  fetchData(1).catch(noop)
+  expect(effect.mock.calls.length).toBe(2)
+})
+
+test('Infinity cache invalidation', async () => {
+  const name = 'withCache.infinityStale'
+  const effect = vi.fn(async (n: number) => n)
+  const fetchData = action(effect, `${name}.fetch`).extend(
+    withAsyncData({ initState: 0 }),
+    withCache({ swr: false, staleTime: Infinity }),
+  )
+
+  await wrap(fetchData(1))
+  await wrap(fetchData(2))
+  expect(effect.mock.calls.length).toBe(2)
+
+  await wrap(fetchData.cacheAtom.invalidate())
+  expect(effect.mock.calls.length).toBe(3)
+})
+
+test('reactive cache', async () => {
+  const name = 'withCache.reactive'
+  const ssrStorage = createMemStorage({ name: 'myModel', subscribe: true })
+  const withMyModelPersist = reatomPersist(ssrStorage)
+
+  const a = atom(0, `${name}.a`).extend(withMyModelPersist('a'))
+  const r = computed(async () => {
+    const value = a()
+    await wrap(sleep())
+    return value
+  }, `${name}.r`).extend(
+    withAsyncData({ initState: 0 }),
+    withCache({
+      ignoreAbort: false,
+      withPersist: (options) => withMyModelPersist(options),
+    }),
+  )
+
+  subscribe(r.data)
+  subscribe(r.cacheAtom)
+
+  await wrap(sleep())
+  expect(r.data()).toBe(0)
+
+  const snapshot = await wrap(
+    context.start(async () => {
+      a.set(3)
+      await wrap(r())
+      await wrap(sleep())
+      expect(r.data()).toBe(3)
+      return ssrStorage.snapshotAtom()
+    }),
+  )
+
+  ssrStorage.snapshotAtom.set(snapshot)
+  expect(a()).toBe(3)
+  expect(r.data()).toBe(3)
+})

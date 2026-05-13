@@ -10,6 +10,7 @@ import {
   top,
   withMiddleware,
 } from '../core'
+import { cacheVar } from '../extensions/withCache'
 import { abortVar, getCalls, ifChanged, reset, retryComputed } from '../methods'
 import type { Fn } from '../utils'
 import { isAbort } from '../utils'
@@ -206,6 +207,12 @@ export let withAsync: {
 } =
   (options) =>
   (target: AtomLike): any => {
+    if ('cacheAtom' in target) {
+      throw new ReatomError(
+        'can not attach withAsync after withCache, you need to reorder them',
+      )
+    }
+
     let {
       parseError = (e: any) => (e instanceof Error ? e : new Error(String(e))),
       emptyError,
@@ -235,9 +242,18 @@ export let withAsync: {
         // which is especially important for an atom target
         computed(state = 0) {
           if (target.__reatom.reactive) {
-            ifChanged(target, () => state++)
+            ifChanged(target, () => {
+              const targetFrame = top().root.store.get(target)
+              const cacheState = targetFrame && cacheVar.first(targetFrame)
+              if (!cacheState) state++
+            })
           } else {
-            state += getCalls(target as Action).length
+            const calls = getCalls(target as Action)
+            const targetFrame = top().root.store.get(target)
+            const cacheState = targetFrame && cacheVar.first(targetFrame)
+            if (calls.length !== 0 && !cacheState) {
+              state += calls.length
+            }
           }
           return state
         },
@@ -310,25 +326,46 @@ export let withAsync: {
         throw new ReatomError('promise expected')
       }
 
-      if (touched.has(promise)) return state
-      touched.add(promise)
+      const cacheState = cacheVar.first()
+      const isCacheHit = cacheState !== undefined
+      const promiseToTrack = cacheState?.isSWR
+        ? cacheState.promise
+        : isCacheHit
+          ? undefined
+          : promise
+      const isPromiseFresh =
+        promiseToTrack !== undefined && !touched.has(promiseToTrack)
 
-      promise.then(
-        bind((payload) => {
-          abortVar.spawn(onFulfill, payload, params)
-        }, frame),
-        bind((error) => {
-          abortVar.spawn(onReject, error, params)
-        }, frame),
-      )
+      if (cacheState?.payload) {
+        pending.set((state) => state + 1)
+        onFulfill(cacheState.payload.value, params)
+      }
 
-      if (!pending.__reatom.processing) retryComputed(pending)
+      if (isPromiseFresh) {
+        touched.add(promiseToTrack)
+        promiseToTrack.then(
+          bind((payload) => {
+            if (cacheState) pending.set((state) => state + 1)
+            abortVar.spawn(onFulfill, payload, params)
+          }, frame),
+          bind((error) => {
+            if (cacheState) pending.set((state) => state + 1)
+            abortVar.spawn(onReject, error, params)
+          }, frame),
+        )
+      }
+
+      if (!isCacheHit && isPromiseFresh && !pending.__reatom.processing) {
+        retryComputed(pending)
+      }
 
       if (!target.__reatom.reactive) {
         state.at(-1)!.payload = promise
       }
 
-      if (resetError === 'onCall') error.set(emptyError)
+      if (!isCacheHit && isPromiseFresh && resetError === 'onCall') {
+        error.set(emptyError)
+      }
 
       return state
     }
