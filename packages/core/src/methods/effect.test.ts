@@ -86,8 +86,8 @@ test('different types of abort', async () => {
     expect(computedLogs).toEqual(['rerun', 'rerun'])
     expect(effectLogs).toEqual([
       'rerun',
-      'rerun',
       expect.stringContaining(`${name}.nativeEffect.withAbort concurrent`),
+      'rerun',
     ])
 
     // need to unsubscribe and do all checks exactly after an update
@@ -98,8 +98,8 @@ test('different types of abort', async () => {
 
     expect(effectLogs).toEqual([
       'rerun',
-      'rerun',
       expect.stringContaining(`${name}.nativeEffect.withAbort concurrent`),
+      'rerun',
       expect.stringContaining(`${name}.nativeEffect._subscribe unsubscribe`),
     ])
   }, `${name}.doWithAbort`)

@@ -82,15 +82,15 @@ test('abort propagation', async () => {
 
   expect(logs).toEqual([
     'a effect started',
-    'b effect started',
     'a effect aborted',
+    'b effect started',
   ])
   await wrap(sleep())
 
   expect(logs).toEqual([
     'a effect started',
-    'b effect started',
     'a effect aborted',
+    'b effect started',
     'b effect finished with ok',
   ])
 
@@ -102,8 +102,8 @@ test('abort propagation', async () => {
     })
   expect(logs).toEqual([
     'a effect started',
-    'b effect started',
     'a effect aborted',
+    'b effect started',
     'b effect finished with ok',
     'componentLikeEffect no abort',
   ])
