@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { action, atom, computed, isConnected } from '../core'
+import { action, atom, computed, isConnected, notify } from '../core'
 import { withSuspenseInit } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import { sleep } from '../utils'
@@ -47,7 +47,7 @@ test("effect didn't connect to reactive parent", async () => {
   await wrap(sleep())
 
   expect(comp()).toBe(compState)
-  expect(effectState).instanceOf(Error)
+  expect(effectState).toBeInstanceOf(Error)
 })
 
 test('different types of abort', async () => {
@@ -192,4 +192,39 @@ test('sync unsubscribe', async () => {
 
   await wrap(sleep())
   expect(updates).toBe(1)
+})
+
+test('effect concurrent disposal', () => {
+  const name = 'computedTriggeredDisposal'
+  const state = atom(0, `${name}.state`)
+  let effectRuns = 0
+
+  const value = computed(() => {
+    if (state() === 1) {
+      unsubscribeEffect()
+    }
+    return state()
+  }, `${name}.value`)
+
+  const unsubscribeEffect = effect(() => {
+    value()
+    effectRuns++
+  }, `${name}.effect`).unsubscribe
+
+  effect(() => {
+    value()
+  }, `${name}.keepAlive`)
+
+  expect(effectRuns).toBe(1)
+
+  state.set(1)
+  notify()
+  expect(effectRuns).toBe(1)
+  // expect(context().state.store.get(value)?.subs).toEqual([keepAlive])
+
+  state.set(2)
+  notify()
+  state.set(3)
+  notify()
+  expect(effectRuns).toBe(1)
 })
