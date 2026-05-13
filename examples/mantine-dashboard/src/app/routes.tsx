@@ -48,7 +48,6 @@ import { fakeBackend } from '../shared/api/fakeBackend'
 import type {
   ProjectListQuery,
   ProjectStatus,
-  StatusFilter,
 } from '../shared/api/types'
 import { statusFilters } from '../shared/api/types'
 import { showToastAction } from '../shared/toasts/toastModel'
@@ -56,33 +55,21 @@ import { NotFoundPage } from '../shared/ui/NotFoundPage'
 import { PageError, PageLoader } from '../shared/ui/PageState'
 import { PrivateAppShell } from './PrivateAppShell'
 
-type ProjectSearchInput = {
-  q?: string
-  status?: string
-  page?: string
-}
+const projectSearchSchema = z.object({
+  q: z.string().default(''),
+  status: z.enum(statusFilters).default('all'),
+  page: z.string().regex(/^[1-9]\d*$/).default('1'),
+})
 
-const projectSearchCodec = {
-  decode(input: ProjectSearchInput): ProjectListQuery {
-    const rawPage = Number(input.page ?? '1')
-    const status = statusFilters.includes(input.status as StatusFilter)
-      ? (input.status as StatusFilter)
-      : 'all'
-
-    return {
-      q: input.q ?? '',
-      status,
-      page: Number.isFinite(rawPage) && rawPage > 0 ? Math.floor(rawPage) : 1,
-    }
-  },
-  encode(output: ProjectListQuery): ProjectSearchInput {
-    return {
-      q: output.q.trim() || undefined,
-      status: output.status === 'all' ? undefined : output.status,
-      page: output.page > 1 ? String(output.page) : undefined,
-    }
-  },
-}
+const projectSearchParams = ({
+  q = '',
+  status = 'all',
+  page = 1,
+}: Partial<ProjectListQuery> = {}) => ({
+  q: q.trim(),
+  status,
+  page: String(page),
+})
 
 export const rootRoute = reatomRoute(
   {
@@ -245,7 +232,7 @@ export const privateRoute = rootRoute.reatomRoute(
               label: 'Projects',
               description: 'Search, forms, optimistic actions',
               active: projectsRoute.match(),
-              go: () => projectsRoute.go({ q: '', status: 'all', page: 1 }),
+              go: () => projectsRoute.go(projectSearchParams()),
             },
             {
               label: 'Settings',
@@ -308,19 +295,25 @@ export const dashboardRoute = privateRoute.reatomRoute(
 export const projectsRoute = privateRoute.reatomRoute(
   {
     path: 'projects',
-    search: projectSearchCodec,
+    search: projectSearchSchema,
     async loader(params) {
       const { token } = requireSession()
-      const result = await wrap(fakeBackend.listProjects(token, params))
+      const query: ProjectListQuery = {
+        q: params.q,
+        status: params.status,
+        page: Number(params.page),
+      }
+      const result = await wrap(fakeBackend.listProjects(token, query))
       const filterForm = reatomProjectFilterForm(
-        { q: params.q, status: params.status },
-        (values) => projectsRoute.go({ ...params, ...values, page: 1 }),
+        { q: query.q, status: query.status },
+        (values) => projectsRoute.go(projectSearchParams({ ...values, page: 1 })),
       )
 
       return {
         result,
         filterForm,
-        setPage: (page: number) => projectsRoute.go({ ...params, page }),
+        setPage: (page: number) =>
+          projectsRoute.go(projectSearchParams({ ...query, page })),
         openProject: (projectId: string) => projectDetailsRoute.go({ projectId }),
         goNew: () => projectCreateRoute.go(),
       }
@@ -368,7 +361,7 @@ export const projectCreateRoute = projectsRoute.reatomRoute(
 
       return {
         form,
-        cancel: () => projectsRoute.go({ q: '', status: 'all', page: 1 }),
+        cancel: () => projectsRoute.go(projectSearchParams()),
       }
     },
     render(self) {
@@ -429,7 +422,7 @@ export const projectDetailsRoute = projectsRoute.reatomRoute(
       return {
         projectAtom,
         updateStatus,
-        backToProjects: () => projectsRoute.go({ q: '', status: 'all', page: 1 }),
+        backToProjects: () => projectsRoute.go(projectSearchParams()),
       }
     },
     render(self) {
