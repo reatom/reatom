@@ -183,6 +183,21 @@ describe('atom recursion', () => {
       }),
   )
 
+  viTest(
+    'computed self-increment: intra-run read-after-write values correct',
+    () =>
+      context.start(() => {
+        const name = 'markProcessingSub'
+        const source = atom(1, `${name}.source`)
+        const comp = computed(() => {
+          source.set(source() + 1)
+          return source()
+        })
+
+        expect(() => comp()).toThrow('Stuck in recursion')
+      }),
+  )
+
   viTest('_mark on processing sub does not duplicate subs entries', () =>
     context.start(() => {
       const name = 'markProcessingSub'

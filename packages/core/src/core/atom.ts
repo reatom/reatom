@@ -874,10 +874,7 @@ export function cacheMiddleware(next: Fn, ...args: any[]) {
     target.__reatom.processing === 0 &&
     (push || dirty || (dependent && !subscribed))
   ) {
-    let recursionTries = 6
-    if (recursionTries === 5) {
-      console.count('Recursion limit reached')
-    }
+    let recursionTries = 10
     recursion: while (recursionTries--) {
       if (!dirty) {
         STACK[STACK.length - 1] = frame = _copy(frame)
@@ -919,6 +916,10 @@ export function cacheMiddleware(next: Fn, ...args: any[]) {
         if (target.__reatom.processing > 0) {
           target.__reatom.processing = 0
           if (!push) {
+            if (recursionTries === 0) {
+              throw new ReatomError('Stuck in recursion')
+            }
+
             frame.pubs[0] = null
             dirty = true
 
