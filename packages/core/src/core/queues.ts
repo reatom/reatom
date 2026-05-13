@@ -44,6 +44,42 @@ export let _enqueue = (fn: Fn, queue: QueueKind): void => {
 let QueueIterator = (queue: Queue, i: number) => () =>
   i < queue.length ? queue[i++] : undefined
 
+let batchNestDepth = 0
+
+/**
+ * Runs a callback as a nested batch and optionally flushes the queue after the
+ * outermost batch completes.
+ *
+ * Use `shouldNotify: true` for user-facing write batches that must notify
+ * synchronously after all nested writes finish. Leave it `false` when wrapping
+ * reads such as computed values or effects.
+ *
+ * @example
+ *   import { atom, batch } from '@reatom/core'
+ *
+ *   const count = atom(0, 'count')
+ *
+ *   batch(() => {
+ *     count.set(1)
+ *     count.set(2)
+ *   }, true)
+ *
+ * @param cb - The callback to run inside the batch
+ * @param shouldNotify - Whether to call `notify` after the outermost batch
+ * @returns The callback result
+ */
+export let batch = <T>(cb: () => T, shouldNotify: boolean = false): T => {
+  try {
+    batchNestDepth++
+    return cb()
+  } finally {
+    batchNestDepth--
+    if (shouldNotify && batchNestDepth === 0) {
+      notify()
+    }
+  }
+}
+
 /**
  * Processes all scheduled tasks in the current context's queues.
  *
@@ -89,3 +125,5 @@ export let notify = () => {
   state.cleanup = []
   state.effect = []
 }
+
+
