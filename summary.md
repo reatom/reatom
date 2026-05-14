@@ -5,7 +5,7 @@ description: 'A short overview of all Reatom features'
 
 # Reatom full framework documentation summary
 
-This documentation for `@reatom/core@1000` package and some ecosystem around it.
+This documentation for `@reatom/core@1001` package and some ecosystem around it.
 
 ## Goal and fit
 
@@ -16,7 +16,7 @@ This documentation for `@reatom/core@1000` package and some ecosystem around it.
 - Composable primitives, minimal API surface, high leverage extensions.
 
 This summary is intentionally **compact**. The full handbook and reference cover deeper API
-details, recipes, and adapters in [site](https://v1000.reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and `/docs/reference/*`.
+details, recipes, and adapters in [site](https://reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and `/docs/reference/*`.
 
 ## Core primitives and mental model
 
@@ -38,24 +38,17 @@ const list = atom<Item[]>([], 'list')
 
 // define action for imperative side effects or complex mappings
 const fetchList = action(async (filters: { page: number }) => {
-  return await wrap(api.getList(filters))
-}, 'list.fetch')
+  const response = await wrap(api.getList(filters))
+  list.set(response.data)
+}, 'fetchList')
 // note how we chain relative atoms and actions names
 
 // extend atom with actions or just methods
 const page = atom(0, 'list.page').extend(
   (target /* <-- target is the extendable atom */) => ({
-    reset() {
-      // update atom with "set" method
-      target.set(0)
-    },
-    prev() {
-      // update atom with current state mapping with callback in "set"
-      target.set((value) => Math.max(0, value - 1))
-    },
-    next() {
-      target.set((value) => value + 1)
-    },
+    reset: action(() => target.set(0), `${target.name}.reset`)
+    prev: action(() => target.set((value) => Math.max(0, value - 1)), `${target.name}.reset`) // update atom with current state mapping with callback in "set"
+    next: action(() => target.set((value) => value + 1), `${target.name}.reset`)
 
     // assign other relative atoms if needed
     isPrevAvailable: computed(
@@ -68,6 +61,7 @@ const page = atom(0, 'list.page').extend(
     ),
   }),
 )
+// page.reset(), page.prev(), page.next(), page.isPrevAvailable(), page.isNextAvailable() are now available as reatom pritmivites coupled to the page domain
 
 // Run effect to fetch list when page changes
 effect(() => {
@@ -189,7 +183,7 @@ Good
 - `await wrap(fetch(url).then((res) => res.json()))`
 - `fetch(url).then(wrap((res) => !res.ok && error.set(res.statusText)))`
 - `addEventListener('click', wrap(() => doSome()))`, or even better `onEvent(button, 'click', () => doSome())`
-- `withCallHook(() => doSome())`
+- `withCallHook(() => doSome())` (each reatom API automatically wraps callbacks delegated to it)
 
 ## Primitives quick usage
 
@@ -530,7 +524,7 @@ const checkoutFlow = action(async () => {
 }, 'checkout.flow')
 
 effect(() => {
-  ifChanged(lastOrderId, (nextId) => {
+  ifChanged(lastOrderId, (nextId, prevId) => {
     if (nextId) console.log({ lastOrderId: nextId })
   })
 }, 'checkout.lastOrderId')
@@ -926,6 +920,10 @@ const App = computed(() => html`${layoutRoute.render()}`)
 
 Route loaders are async computed with auto-cancel. The **factory pattern** (creating atoms/forms inside loaders) gives global accessibility with automatic cleanup — best of both local and global state.
 
+## React
+
+React bindings are documented separately in [summary-react.md](./summary-react.md).
+
 ## URL sync and persistence helpers
 
 ### **withSearchParams** for list filters
@@ -1038,7 +1036,7 @@ const saveTodo = action(async (todo: Todo) => {
 ## Other APIs (not detailed here)
 
 This list is intentionally brief. See the full handbook and reference for
-additional features, recipes, adapters, and edge cases in the docs: https://v1000.reatom.dev/reference/TOPIC_NAME.
+additional features, recipes, adapters, and edge cases in the docs: https://reatom.dev/reference/TOPIC_NAME.
 
 Core
 
@@ -1101,5 +1099,3 @@ Web
 Utils
 
 - General helpers for equality, abort errors, timers, and typed helpers
-
-<!-- // TODO react and so on -->
