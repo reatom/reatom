@@ -13,7 +13,7 @@ If you want to report a bug, create a reproduction using StackBlitz or CodeSandb
 > Update requirements for development
 
 1. fork and clone the repository
-2. create a development branch from `v1000`
+2. create a development branch from `v1001`
 3. install dependencies from the root of the repo (Node 24.2.0 and `pnpm@10.25.0` are recommended):
    ```sh
    pnpm install
@@ -25,7 +25,7 @@ If you want to report a bug, create a reproduction using StackBlitz or CodeSandb
    ```
    Replace `<PACKAGE_NAME>` with the relevant package name like `@reatom/react`
 5. [make changes](#coding-guide) and [commit them](#commit-messages)
-6. upload feature branch and create a [Pull Request](https://github.com/reatom/reatom/compare) to merge changes to `v1000`
+6. upload feature branch and create a [Pull Request](https://github.com/reatom/reatom/compare) to merge changes to `v1001`
 7. link your PR to the issue using a [closing keyword](https://help.github.com/en/articles/closing-issues-using-keywords) or provide changes description with motivation and explanation in the comment (example: `fix #74`)
 8. wait until a team member responds
 

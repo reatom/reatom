@@ -16,7 +16,7 @@ This documentation for `@reatom/core@1000` package and some ecosystem around it.
 - Composable primitives, minimal API surface, high leverage extensions.
 
 This summary is intentionally **compact**. The full handbook and reference cover deeper API
-details, recipes, and adapters in [site](https://v1000.reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and `/docs/reference/*`.
+details, recipes, and adapters in [site](https://v1001.reatom.dev) `/docs/start/*`, `/docs/handbook/*`, and `/docs/reference/*`.
 
 ## Core primitives and mental model
 
@@ -1019,7 +1019,7 @@ const saveTodo = action(async (todo: Todo) => {
 
 ## v3 migration highlights
 
-- Implicit context is default in v1000, **ctx** is not used.
+- Implicit context is default since v1000; **ctx** is not used.
 - **ctx.schedule**(promise) -> **wrap**(promise)
 - **ctx.spy**(atom) -> **atom**()
 - **ctx.get**(atom) -> **peek**(atom)
@@ -1038,7 +1038,7 @@ const saveTodo = action(async (todo: Todo) => {
 ## Other APIs (not detailed here)
 
 This list is intentionally brief. See the full handbook and reference for
-additional features, recipes, adapters, and edge cases in the docs: https://v1000.reatom.dev/reference/TOPIC_NAME.
+additional features, recipes, adapters, and edge cases in the docs: https://v1001.reatom.dev/reference/TOPIC_NAME.
 
 Core
 

@@ -1,6 +1,6 @@
 ## 1001.0.0 (2026-05-14)
 
-[Changes since `v1000](https://github.com/reatom/reatom/compare/v1000...v1001)`.
+[Changes since v1000](https://github.com/reatom/reatom/compare/v1000...v1001).
 
 ### Core
 

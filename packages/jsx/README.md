@@ -8,7 +8,7 @@
 - **🎯 Tiny footprint:** ~3KB runtime (plus a minimal core)
 - **🎨 Built-in styles:** efficient via CSS variables
 
-[![Try it out in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1000/examples/reatom-jsx)
+[![Try it out in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1001/examples/reatom-jsx)
 
 ## Installation
 
@@ -65,7 +65,7 @@ This enables you to gradually migrate or optimize parts of your app without conf
 ## Example
 
 > 💡 See a more advanced version with dynamic entities:
-> https://github.com/reatom/reatom/tree/v1000/examples/reatom-jsx
+> https://github.com/reatom/reatom/tree/v1001/examples/reatom-jsx
 
 Define a component:
 

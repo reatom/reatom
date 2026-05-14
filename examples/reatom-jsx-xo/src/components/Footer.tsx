@@ -3,7 +3,7 @@ import { computed, withAsyncData, wrap } from '@reatom/core'
 const repositoryUrl = 'https://github.com/reatom/reatom'
 const repositoryApiUrl = 'https://api.github.com/repos/reatom/reatom'
 const sourceCodeUrl =
-  'https://github.com/reatom/reatom/blob/v1000/examples/reatom-jsx-xo/src/App.tsx'
+  'https://github.com/reatom/reatom/blob/v1001/examples/reatom-jsx-xo/src/App.tsx'
 
 const repositoryStarCountFormatter = new Intl.NumberFormat(undefined, {
   notation: 'compact',

@@ -2,7 +2,7 @@
 
 This example demonstrates **Extensions as Integration Adapters** - a pattern for integrating third-party UI libraries with Reatom's state management system.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1000/examples/tweakpane)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1001/examples/tweakpane)
 
 ## Why an Example, Not a Package?
 
@@ -152,9 +152,9 @@ Essentials plugin wrappers included in this example:
 
 ## Learning Resources
 
-- [Reatom v1000 Core Docs](https://v1000.reatom.dev)
-- [Extensions Handbook](https://v1000.reatom.dev/start/extensions/)
-- [Lifecycle and Hooks](https://v1000.reatom.dev/handbook/lifecycle/)
+- [Reatom v1001 Core Docs](https://v1001.reatom.dev)
+- [Extensions Handbook](https://v1001.reatom.dev/start/extensions/)
+- [Lifecycle and Hooks](https://v1001.reatom.dev/handbook/lifecycle/)
 - [Tweakpane Documentation](https://tweakpane.github.io/docs/)
 
 ## License

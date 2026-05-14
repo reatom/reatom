@@ -85,7 +85,7 @@ Ensure your **entire** toolchain (TypeScript, bundler, test runner) targets `es2
 - [en discord](https://discord.gg/EPAKK5SNFh)
 - [en github discussion](https://github.com/reatom/reatom/discussions)
 - [ru telegram](https://t.me/reatom_ru)
-- [llms.txt](https://v1000.reatom.dev/_llms-txt/getting-started.txt)
+- [llms.txt](https://v1001.reatom.dev/_llms-txt/getting-started.txt)
 
 ## Migration from v3
 

@@ -7,7 +7,7 @@ on:
       - "**.mdx"
   push:
     branches:
-      - v1000
+      - v1001
 
 jobs:
   remark-lint:

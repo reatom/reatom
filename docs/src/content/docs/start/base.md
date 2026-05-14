@@ -15,7 +15,7 @@ npm install @reatom/core @reatom/react
 
 For a fast start you can use our template with react.dev and mantine.dev and a set of example features:
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1000/examples/react-search)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1001/examples/react-search)
 
 ## Core primitives
 

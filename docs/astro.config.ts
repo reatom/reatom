@@ -88,7 +88,7 @@ For advanced information, see the handbook:
         {
           icon: 'github',
           label: 'GitHub',
-          href: 'https://github.com/reatom/reatom/tree/v1000',
+          href: 'https://github.com/reatom/reatom/tree/v1001',
         },
         {
           icon: 'twitter',
@@ -102,7 +102,7 @@ For advanced information, see the handbook:
         },
       ],
       editLink: {
-        baseUrl: 'https://github.com/reatom/reatom/edit/v1000/docs/',
+        baseUrl: 'https://github.com/reatom/reatom/edit/v1001/docs/',
       },
     }),
     markdownBaseLinks(),

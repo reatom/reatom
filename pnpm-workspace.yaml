@@ -78,6 +78,6 @@ catalog:
 
 executionEnv.nodeVersion: 24.2.0
 
-publishBranch: v1000
+publishBranch: v1001
 
 useNodeVersion: 24.2.0

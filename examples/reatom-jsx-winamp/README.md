@@ -1,6 +1,6 @@
 # Reatom JSX — folder music player
 
-Small demo: pick a folder with the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API), scan it recursively for common audio extensions, and play files in a Winamp-inspired layout. State and playback are driven by [`@reatom/core`](https://github.com/reatom/reatom) and [`@reatom/jsx`](https://github.com/reatom/reatom/tree/v1000/packages/jsx).
+Small demo: pick a folder with the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API), scan it recursively for common audio extensions, and play files in a Winamp-inspired layout. State and playback are driven by [`@reatom/core`](https://github.com/reatom/reatom) and [`@reatom/jsx`](https://github.com/reatom/reatom/tree/v1001/packages/jsx).
 
 ## Run
 
