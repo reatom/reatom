@@ -17,14 +17,16 @@ import type { Fn } from '../utils'
 import { isAbort } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
 
-let defaultStatus = _createGlobal('withAsync_defaultStatus', () =>
-  computed(() => {
-    throw new ReatomError(
-      'status is turned off by default, you need to activate it explicitly in options',
-    )
-  }, 'defaultStatus').extend((target) => ({
-    reset: action(() => target(), `${target.name}.reset`),
-  })) as AsyncStatusAtom,
+let defaultStatus = _createGlobal(
+  'withAsync_defaultStatus',
+  () =>
+    computed(() => {
+      throw new ReatomError(
+        'status is turned off by default, you need to activate it explicitly in options',
+      )
+    }, 'defaultStatus').extend((target) => ({
+      reset: action(() => target(), `${target.name}.reset`),
+    })) as AsyncStatusAtom,
 )
 
 /**

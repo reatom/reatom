@@ -25,7 +25,6 @@ let maybeAtomLog = (thing: any) =>
     ? `[${isAction(thing) ? 'Action' : 'Atom'} ${thing.name}]`
     : thing
 
-
 /**
  * A special logging action for debugging Reatom applications.
  *

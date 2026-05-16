@@ -523,13 +523,10 @@ export const omit = <T, K extends keyof T>(
  */
 export const jsonClone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
-let randomImpl = _createGlobal(
-  'utils_randomImpl',
-  () => ({
-    rand: (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
-      Math.floor(Math.random() * (max - min + 1)) + min,
-  }),
-)
+let randomImpl = _createGlobal('utils_randomImpl', () => ({
+  rand: (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
+    Math.floor(Math.random() * (max - min + 1)) + min,
+}))
 
 /**
  * Generates a random integer between min and max (inclusive).
@@ -540,7 +537,6 @@ let randomImpl = _createGlobal(
  * @returns A random integer between min and max
  */
 export const random = (min?: number, max?: number) => randomImpl.rand(min, max)
-
 
 /**
  * Replaces the default random number generator with a custom implementation.

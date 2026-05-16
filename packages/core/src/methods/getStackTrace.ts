@@ -17,8 +17,7 @@ export let getSerial = (frame = top()) => {
     let next = ++stackTraceGlobals.serialCount
     stackTraceGlobals.serialNumbers.set(
       frame,
-      (serial =
-        next + (next < 1e4 ? '' : (next - 1e4).toString(32))),
+      (serial = next + (next < 1e4 ? '' : (next - 1e4).toString(32))),
     )
   }
 

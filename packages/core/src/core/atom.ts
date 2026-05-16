@@ -2,11 +2,7 @@ import type { AbortExt } from '../extensions'
 import type { ReatomAbortController } from '../methods'
 import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
 import type { Action, ActionState, Ext } from './'
-import {
-  VERSION,
-  _createGlobal,
-  ensureReatomGlobal,
-} from './globalStore'
+import { VERSION, _createGlobal, ensureReatomGlobal } from './globalStore'
 import { _enqueue, type Extend, extend, isAction } from './'
 
 /*
@@ -375,7 +371,6 @@ if (reatomRuntime.version !== VERSION) {
     `can't use different versions of the library. Loaded: ${reatomRuntime.version}, duplicated: ${VERSION}`,
   )
 }
-
 
 export let EXTENSIONS = reatomRuntime.extensions as Array<Ext>
 

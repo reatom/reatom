@@ -48,13 +48,10 @@ export let DOM = atom(globalThis.window, '_jsx.DOM')
 
 export let DEBUG = atom(true, '_jsx.DEBUG')
 
-let jsxInlineStyles = _createGlobal(
-  'jsx_inlineStylesRegistry',
-  () => ({
-    count: 0,
-    ids: {} as Rec<string>,
-  }),
-)
+let jsxInlineStyles = _createGlobal('jsx_inlineStylesRegistry', () => ({
+  count: 0,
+  ids: {} as Rec<string>,
+}))
 /**
  * @note Create style tag for support oldest browser.
  * @see https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/CSSStyleSheet
@@ -102,81 +99,81 @@ let propertiesAsAttributes = _createGlobal(
   'jsx_propertiesAsAttributes',
   () =>
     new Set<string>([
-  /** Numeric attributes with a default value other than 0. */
-  'height',
-  'high',
-  'low',
-  'optimum',
-  'results',
-  'size',
-  'span',
-  'start',
-  'width',
+      /** Numeric attributes with a default value other than 0. */
+      'height',
+      'high',
+      'low',
+      'optimum',
+      'results',
+      'size',
+      'span',
+      'start',
+      'width',
 
-  /** Numeric properties with a default value other than 0. */
-  // 'colspan',
-  // 'rowspan',
-  // 'maxlength',
-  // 'minlength',
-  // 'tabindex',
+      /** Numeric properties with a default value other than 0. */
+      // 'colspan',
+      // 'rowspan',
+      // 'maxlength',
+      // 'minlength',
+      // 'tabindex',
 
-  /** Properties with value HTMLElement. */
-  'form',
-  'list',
+      /** Properties with value HTMLElement. */
+      'form',
+      'list',
 
-  /** Setting the value to an empty string must be explicit. */
-  'download',
-  'href',
-  'role',
-])
+      /** Setting the value to an empty string must be explicit. */
+      'download',
+      'href',
+      'role',
+    ]),
 )
 /** @see https://developer.mozilla.org/en-US/docs/Glossary/Boolean/HTML */
 let booleanAttributes = _createGlobal(
   'jsx_booleanAttributes',
   () =>
     new Set<string>([
-  'allowfullscreen',
-  'allowpaymentrequest',
-  'async',
-  'attributionsrc',
-  'autofocus',
-  'autoplay',
-  'browsingtopics',
-  'capture',
-  'checked',
-  'compact',
-  'controls',
-  'credentialless',
-  'crossorigin',
-  'declare',
-  'default',
-  'defer',
-  'disabled',
-  'disablepictureinpicture',
-  'disableremoteplayback',
-  'formnovalidate',
-  'hidden',
-  'inert',
-  'ismap',
-  'itemscope',
-  'loop',
-  'multiple',
-  'muted',
-  'nomodule',
-  'novalidate',
-  'open',
-  'playsinline',
-  'readonly',
-  'required',
-  'reversed',
-  'scoped',
-  'selected',
-  'shadowrootclonable',
-  'shadowrootdelegatesfocus',
-  'shadowrootserializable',
-  'virtualkeyboardpolicy',
-  'webkitdirectory',
-])
+      'allowfullscreen',
+      'allowpaymentrequest',
+      'async',
+      'attributionsrc',
+      'autofocus',
+      'autoplay',
+      'browsingtopics',
+      'capture',
+      'checked',
+      'compact',
+      'controls',
+      'credentialless',
+      'crossorigin',
+      'declare',
+      'default',
+      'defer',
+      'disabled',
+      'disablepictureinpicture',
+      'disableremoteplayback',
+      'formnovalidate',
+      'hidden',
+      'inert',
+      'ismap',
+      'itemscope',
+      'loop',
+      'multiple',
+      'muted',
+      'nomodule',
+      'novalidate',
+      'open',
+      'playsinline',
+      'readonly',
+      'required',
+      'reversed',
+      'scoped',
+      'selected',
+      'shadowrootclonable',
+      'shadowrootdelegatesfocus',
+      'shadowrootserializable',
+      'virtualkeyboardpolicy',
+      'webkitdirectory',
+    ]),
 )
 
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
@@ -461,8 +458,7 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     /** @todo Should support record? */
     let styleId = jsxInlineStyles.ids[value]
     if (!styleId) {
-      styleId = jsxInlineStyles.ids[value] =
-        '_' + ++jsxInlineStyles.count
+      styleId = jsxInlineStyles.ids[value] = '_' + ++jsxInlineStyles.count
       // TODO improve stylesheet get for perf reason
       // TODO measure the needness of batching
       stylesheet().insertRule(`[data-reatom-style="${styleId}"]{${value}}`)
@@ -572,7 +568,8 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       : dom.document.createElement(tag)
 
     // For debug
-    if (jsxHName.current && peek(DEBUG)) element.setAttribute('data-reatom-name', jsxHName.current)
+    if (jsxHName.current && peek(DEBUG))
+      element.setAttribute('data-reatom-name', jsxHName.current)
   }
 
   if ('children' in props) children = props.children
