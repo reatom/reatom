@@ -14,6 +14,7 @@ import {
   type LLNode,
   peek,
   ReatomError,
+  _createGlobal,
   type Rec,
   type Unsubscribe,
   wrap,
@@ -47,8 +48,13 @@ export let DOM = atom(globalThis.window, '_jsx.DOM')
 
 export let DEBUG = atom(true, '_jsx.DEBUG')
 
-let stylesCount = 0
-let styles: Rec<string> = {}
+let jsxInlineStyles = _createGlobal(
+  'jsx_inlineStylesRegistry',
+  () => ({
+    count: 0,
+    ids: {} as Rec<string>,
+  }),
+)
 /**
  * @note Create style tag for support oldest browser.
  * @see https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/CSSStyleSheet
@@ -61,9 +67,9 @@ export let stylesheet = atom(
       .sheet!,
   'jsx.stylesheet',
 )
-let name = ''
+let jsxHName = _createGlobal('jsx_hCurrentName', () => ({ current: '' }))
 let named = (element: Node, key: string) =>
-  `${name}.${element.nodeName.toLowerCase()}._${key}`
+  `${jsxHName.current}.${element.nodeName.toLowerCase()}._${key}`
 
 interface Meta {
   subscribes: (() => Unsubscribe)[]
@@ -71,7 +77,9 @@ interface Meta {
   mount: ((element: Node) => ((element: Node) => void) | undefined) | undefined
   unmount: ((element: Node) => void) | undefined
 }
-let metaSymbol = atom(() => Symbol())
+let metaSymbol = _createGlobal('jsx_metaSymbolAtomSlot', () =>
+  atom(() => Symbol(), '_jsx.metaSymbol'),
+)
 let ensureMeta = (node: Node): Meta => {
   return ((node as any)[metaSymbol()] ??= {
     subscribes: [],
@@ -90,7 +98,10 @@ let unlink = (node: Node, subscribe: () => () => void) => {
  * @see https://github.com/preactjs/preact/blob/d16a34e275e31afd6738a9f82b5ba2fb9dbf032b/src/diff/props.js#L107
  * @see https://www.measurethat.net/Benchmarks/Show/7818
  */
-let propertiesAsAttributes = new Set([
+let propertiesAsAttributes = _createGlobal(
+  'jsx_propertiesAsAttributes',
+  () =>
+    new Set<string>([
   /** Numeric attributes with a default value other than 0. */
   'height',
   'high',
@@ -118,8 +129,12 @@ let propertiesAsAttributes = new Set([
   'href',
   'role',
 ])
+)
 /** @see https://developer.mozilla.org/en-US/docs/Glossary/Boolean/HTML */
-let booleanAttributes = new Set([
+let booleanAttributes = _createGlobal(
+  'jsx_booleanAttributes',
+  () =>
+    new Set<string>([
   'allowfullscreen',
   'allowpaymentrequest',
   'async',
@@ -162,6 +177,7 @@ let booleanAttributes = new Set([
   'virtualkeyboardpolicy',
   'webkitdirectory',
 ])
+)
 
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
@@ -443,9 +459,10 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     )
   } else if (key === 'css') {
     /** @todo Should support record? */
-    let styleId = styles[value]
+    let styleId = jsxInlineStyles.ids[value]
     if (!styleId) {
-      styleId = styles[value] = '_' + ++stylesCount
+      styleId = jsxInlineStyles.ids[value] =
+        '_' + ++jsxInlineStyles.count
       // TODO improve stylesheet get for perf reason
       // TODO measure the needness of batching
       stylesheet().insertRule(`[data-reatom-style="${styleId}"]{${value}}`)
@@ -541,12 +558,12 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       element = props.element
       props.element = undefined
     } else {
-      let _name = name
+      let prev = jsxHName.current
       try {
-        name = tag.name
+        jsxHName.current = tag.name
         return tag(props)
       } finally {
-        name = _name
+        jsxHName.current = prev
       }
     }
   } else {
@@ -555,7 +572,7 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       : dom.document.createElement(tag)
 
     // For debug
-    if (name && peek(DEBUG)) element.setAttribute('data-reatom-name', name)
+    if (jsxHName.current && peek(DEBUG)) element.setAttribute('data-reatom-name', jsxHName.current)
   }
 
   if ('children' in props) children = props.children

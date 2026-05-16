@@ -2,6 +2,11 @@ import type { AbortExt } from '../extensions'
 import type { ReatomAbortController } from '../methods'
 import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
 import type { Action, ActionState, Ext } from './'
+import {
+  VERSION,
+  _createGlobal,
+  ensureReatomGlobal,
+} from './globalStore'
 import { _enqueue, type Extend, extend, isAction } from './'
 
 /*
@@ -363,6 +368,34 @@ export interface ContextAtom extends AtomLike<RootState, [], RootFrame> {
 
 export class ReatomError extends Error {}
 
+let reatomRuntime = ensureReatomGlobal()
+
+if (reatomRuntime.version !== VERSION) {
+  throw new ReatomError(
+    `can't use different versions of the library. Loaded: ${reatomRuntime.version}, duplicated: ${VERSION}`,
+  )
+}
+
+
+export let EXTENSIONS = reatomRuntime.extensions as Array<Ext>
+
+let namedSeq = _createGlobal('namedCounter', () => ({ n: 0 }))
+
+let setParamsSlot = _createGlobal('setParamsSlot', () => ({
+  current: null as null | unknown[],
+}))
+
+let anonymousAtomNames = _createGlobal('anonymousAtomNames', () => ({
+  enabled: false,
+}))
+
+export let __GLOBAL_ATOMS = _createGlobal<Array<AtomLike>>(
+  'globalAtomsRegistration',
+  () => [],
+)
+
+export let STACK = _createGlobal<Array<Frame>>('stackFrames', () => [])
+
 /* A simple "push‐run‐pop" callstack management */
 export function run<I extends any[], O>(
   this: Frame,
@@ -653,28 +686,13 @@ function subscribe(this: AtomLike, userCb?: Fn) {
   }, parentFrame.root.frame)
 }
 
-let i = 0
 // @ts-expect-error
 export let named: {
   <T extends string>(name: T): `${T}#${number}`
   (name: string, suffix: string): string
   (name: string | TemplateStringsArray, suffix?: string): string
-} = (name: string | TemplateStringsArray, suffix): string => {
-  return `${suffix || name}#${++i}`
-}
-
-// declare global {
-//   var __REATOM: Array<Ext>
-// }
-// TODO put STACK to globalThis
-// @ts-ignore TODO
-if (globalThis.__REATOM) throw new ReatomError('package duplication')
-// @ts-ignore TODO
-export let EXTENSIONS: Array<Ext> = (globalThis.__REATOM = [])
-
-// FIXME: use it in all static in-bundle atoms
-/** @private */
-export let __GLOBAL_ATOMS: Array<AtomLike> = []
+} = (name: string | TemplateStringsArray, suffix): string =>
+  `${suffix || name}#${++namedSeq.n}`
 
 /**
  * Registers a global extension that will be automatically applied to all atoms
@@ -953,8 +971,6 @@ let _defaultPipeline = cacheMiddleware.bind(
   computedMiddleware.bind(null, identity),
 )
 
-let SET_PARAMS: null | any[] = null
-
 let castAtom = <T extends AtomLike>(
   target: Fn,
   meta: Omit<AtomMeta, 'processing' | 'linking' | 'onConnect'>,
@@ -966,7 +982,7 @@ let castAtom = <T extends AtomLike>(
       if (params.length === 0) {
         throw new ReatomError('Missing payload')
       }
-      SET_PARAMS = params
+      setParamsSlot.current = params
       return target()
     },
 
@@ -985,21 +1001,19 @@ let castAtom = <T extends AtomLike>(
     toJSON: () => target(),
   } as Exclude<AtomLike, Fn>) as T
 
-export let ANONYMOUS = false
-
 /**
  * Useful for security reasons, if you need to increase your runtime complexity.
  * It's important to call this function before creating any atoms.
  */
 export let anonymizeNames = () => {
-  ANONYMOUS = true
+  anonymousAtomNames.enabled = true
 }
 
 export let _set = (target: AtomLike, ...params: any[]) => {
   if (params.length === 0) {
     throw new ReatomError('Missing payload')
   }
-  SET_PARAMS = params
+  setParamsSlot.current = params
   return target()
 }
 
@@ -1034,21 +1048,21 @@ export let createAtom: {
   },
   name: string = named('atom', setup?.computed?.name),
 ): Atom<State> => {
-  if (ANONYMOUS) {
+  if (anonymousAtomNames.enabled) {
     name = 'anonymous'
   }
 
   let target = castAtom<Atom<State>>(
     function (): State {
       let { reactive, pipeline } = target.__reatom
-      if (reactive && !SET_PARAMS && arguments.length) {
+      if (reactive && !setParamsSlot.current && arguments.length) {
         throw new ReatomError(
           `Can't call atom "${name}" with arguments, use .set instead`,
         )
       }
-      let args = reactive ? SET_PARAMS : arguments
+      let args = reactive ? setParamsSlot.current : arguments
       let write = args != undefined
-      SET_PARAMS = null
+      setParamsSlot.current = null
 
       let topFrame = top()
       let frame = topFrame.root.store.get(target)
@@ -1307,8 +1321,6 @@ export let top = (): Frame => {
   return STACK[STACK.length - 1]!
 }
 
-export let STACK: Array<Frame> = []
-
 STACK.push(context.start())
 
 /**
@@ -1320,7 +1332,7 @@ STACK.push(context.start())
  * handling.
  */
 export let clearStack = () => {
-  STACK = []
+  STACK.length = 0
 }
 
 /**

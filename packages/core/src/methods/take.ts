@@ -68,7 +68,7 @@ export function take(
   let map =
     typeof mapOrName === 'function' ? mapOrName : ((name = mapOrName), null)
 
-  name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++i}`}`
+  name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++takeOrdinal.n}`}`
 
   const targetAtom = isAtom(target)
     ? target

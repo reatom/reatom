@@ -1,4 +1,4 @@
-import { type Atom } from '../../core'
+import { type Atom, _createGlobal } from '../../core'
 import {
   createMemStorage,
   type PersistRecord,
@@ -40,21 +40,29 @@ export type BroadcastMessage =
     }
 
 // One-time check for optional idb-keyval dependency
-let idb: any = null
-let idbChecked = false
+let idbLazy = _createGlobal(
+  'persistIndexedDbLazy',
+  (): {
+    checked: boolean
+    module: any
+  } => ({
+    checked: false,
+    module: null,
+  }),
+)
 
 const checkIdb = async () => {
-  if (idbChecked) return idb
-  idbChecked = true
+  if (idbLazy.checked) return idbLazy.module
+  idbLazy.checked = true
 
   try {
-    idb = await import('idb-keyval')
+    idbLazy.module = await import('idb-keyval')
   } catch {
     console.warn('idb-keyval not available - using memory storage fallback')
-    idb = null
+    idbLazy.module = null
   }
 
-  return idb
+  return idbLazy.module
 }
 
 /**

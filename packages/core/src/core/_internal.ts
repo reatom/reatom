@@ -1,3 +1,4 @@
+export * from './globalStore'
 export * from './action'
 export * from './actions'
 export * from './atom'

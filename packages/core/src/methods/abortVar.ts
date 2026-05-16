@@ -4,6 +4,7 @@ import {
   type GAction,
   top,
   withActionMiddleware,
+  _createGlobal,
 } from '../core'
 import type { AbortError, Unsubscribe } from '../utils'
 import { isAbort, throwIfAborted, toAbortError } from '../utils'

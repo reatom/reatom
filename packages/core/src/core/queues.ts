@@ -1,6 +1,7 @@
 import type { Fn } from '../utils'
 import type { Queue } from './'
 import { bind, context } from './'
+import { _createGlobal } from './globalStore'
 
 export type QueueKind = 'hook' | 'compute' | 'cleanup' | 'effect'
 
@@ -44,7 +45,7 @@ export let _enqueue = (fn: Fn, queue: QueueKind): void => {
 let QueueIterator = (queue: Queue, i: number) => () =>
   i < queue.length ? queue[i++] : undefined
 
-let batchNestDepth = 0
+let batchNest = _createGlobal('batchNest', () => ({ depth: 0 }))
 
 /**
  * Runs a callback as a nested batch and optionally flushes the queue after the
@@ -70,11 +71,11 @@ let batchNestDepth = 0
  */
 export let batch = <T>(cb: () => T, shouldNotify: boolean = false): T => {
   try {
-    batchNestDepth++
+    batchNest.depth++
     return cb()
   } finally {
-    batchNestDepth--
-    if (shouldNotify && batchNestDepth === 0) {
+    batchNest.depth--
+    if (shouldNotify && batchNest.depth === 0) {
       notify()
     }
   }
