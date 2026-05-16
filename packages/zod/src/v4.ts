@@ -7,6 +7,7 @@ import {
   type Computed as ReatomComputed,
   type EnumAtom as ReatomEnumAtom,
   type Fn,
+  getReatomGlobal,
   isCausedBy,
   type LinkedListAtom as ReatomLinkedListAtom,
   type MapAtom as ReatomMapAtom,
@@ -20,6 +21,7 @@ import {
   reatomNumber,
   reatomRecord,
   reatomSet,
+  type ReatomGlobalPackage,
   type Rec,
   type RecordAtom as ReatomRecordAtom,
   type SetAtom as ReatomSetAtom,
@@ -28,6 +30,8 @@ import {
   withParams,
 } from '@reatom/core'
 import { z } from 'zod/v4'
+
+const REATOM_ZOD_VERSION = '1000.0.0-alpha.60'
 
 export interface ZodAtom<_T> {}
 
@@ -188,9 +192,30 @@ export const silentUpdate = action((cb: Fn) => {
   cb()
 })
 
-export const EXTENSIONS = new Array<
-  (target: AtomLike, ext: z.core.$ZodTypeDef['type']) => AtomLike
->()
+interface ReatomZodV4GlobalState {
+  extensions: Array<
+    (target: AtomLike, ext: z.core.$ZodTypeDef['type']) => AtomLike
+  >
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/zod/v4': ReatomGlobalPackage<ReatomZodV4GlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomZodV4Package = reatomGlobal.packages['@reatom/zod/v4']
+if (reatomZodV4Package === undefined) {
+  reatomZodV4Package = reatomGlobal.packages['@reatom/zod/v4'] = {
+    version: REATOM_ZOD_VERSION,
+    state: { extensions: [] },
+  }
+} else if (reatomZodV4Package.version !== REATOM_ZOD_VERSION) {
+  throw new ReatomError('package duplication')
+}
+
+export const EXTENSIONS = reatomZodV4Package.state.extensions
 
 /** Get default state based on Zod type definition */
 export const getDefaultState = (

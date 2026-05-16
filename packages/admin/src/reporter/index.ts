@@ -4,9 +4,12 @@ import {
   atom,
   bind,
   EXTENSIONS,
+  getReatomGlobal,
   isAction,
   isObject,
   reatomBoolean,
+  type ReatomGlobalPackage,
+  ReatomError,
   top,
   withMiddleware,
 } from '@reatom/core'
@@ -19,8 +22,31 @@ import type { AdminAtom, AdminFrame } from '../types'
 const ATOM_ID_PREFIX = '_Admin.atom#'
 const FRAME_ID_PREFIX = '_Admin.frame#'
 
-let atomIdCounter = 0
-let frameIdCounter = 0
+const REATOM_ADMIN_VERSION = '1000.15.1'
+
+interface ReatomAdminReporterGlobalState {
+  atomIdCounter: number
+  frameIdCounter: number
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/admin/reporter': ReatomGlobalPackage<ReatomAdminReporterGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomAdminReporterPackage = reatomGlobal.packages['@reatom/admin/reporter']
+if (reatomAdminReporterPackage === undefined) {
+  reatomAdminReporterPackage = reatomGlobal.packages['@reatom/admin/reporter'] =
+    {
+      version: REATOM_ADMIN_VERSION,
+      state: { atomIdCounter: 0, frameIdCounter: 0 },
+    }
+} else if (reatomAdminReporterPackage.version !== REATOM_ADMIN_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomAdminReporterGlobal = reatomAdminReporterPackage.state
 
 export interface ReporterOptions {
   maxEntries?: number
@@ -90,7 +116,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
   const registerAtom = (target: AtomLike): string => {
     let id = atomIdMap.get(target)
     if (id) return id
-    id = `${ATOM_ID_PREFIX}${++atomIdCounter}`
+    id = `${ATOM_ID_PREFIX}${++reatomAdminReporterGlobal.atomIdCounter}`
     atomIdMap.set(target, id)
     const adminAtom: AdminAtom = {
       id,
@@ -105,7 +131,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     if (frame.atom === context) return 0
     let id = frameIdMap.get(frame)
     if (id !== undefined) return id
-    id = ++frameIdCounter
+    id = ++reatomAdminReporterGlobal.frameIdCounter
     frameIdMap.set(frame, id)
     return id
   }
@@ -120,11 +146,7 @@ export function createReporter(options: ReporterOptions = {}): Reporter {
     return ids
   }
 
-  const captureFrame = (
-    frame: Frame,
-    state: unknown,
-    error: unknown,
-  ) => {
+  const captureFrame = (frame: Frame, state: unknown, error: unknown) => {
     if (paused()) return
     const target = frame.atom
     if (isSkip(target)) return

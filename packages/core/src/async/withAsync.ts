@@ -6,23 +6,51 @@ import {
   computed,
   context,
   createAtom,
+  REATOM_CORE_VERSION,
   ReatomError,
   top,
   withMiddleware,
 } from '../core'
 import { cacheVar } from '../extensions/withCache'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../global'
 import { abortVar, getCalls, ifChanged, reset, retryComputed } from '../methods'
 import type { Fn } from '../utils'
 import { isAbort } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
 
-let defaultStatus = computed(() => {
-  throw new ReatomError(
-    'status is turned off by default, you need to activate it explicitly in options',
-  )
-}, 'defaultStatus').extend((target) => ({
-  reset: action(() => target(), `${target.name}.reset`),
-})) as AsyncStatusAtom
+interface ReatomWithAsyncGlobalState {
+  defaultStatus: AsyncStatusAtom
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/async/withAsync': ReatomGlobalPackage<ReatomWithAsyncGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomWithAsyncPackage =
+  reatomGlobal.packages['@reatom/core/async/withAsync']
+if (reatomWithAsyncPackage === undefined) {
+  reatomWithAsyncPackage = reatomGlobal.packages[
+    '@reatom/core/async/withAsync'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: {
+      defaultStatus: computed(() => {
+        throw new ReatomError(
+          'status is turned off by default, you need to activate it explicitly in options',
+        )
+      }, 'defaultStatus').extend((target) => ({
+        reset: action(() => target(), `${target.name}.reset`),
+      })) as AsyncStatusAtom,
+    },
+  }
+} else if (reatomWithAsyncPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+
+let defaultStatus = reatomWithAsyncPackage.state.defaultStatus
 
 /**
  * Extension interface added by {@link withAsync} to atoms or actions that return

@@ -1,4 +1,10 @@
 import type { SetTimeout } from './setTimeout'
+import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  REATOM_CORE_VERSION,
+  ReatomError,
+} from './global'
 
 /**
  * Generic function type representing any function that takes any parameters and
@@ -522,8 +528,36 @@ export const omit = <T, K extends keyof T>(
  */
 export const jsonClone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
-let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
+let defaultRandom = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
   Math.floor(Math.random() * (max - min + 1)) + min
+
+interface ReatomUtilsGlobalState {
+  random: typeof defaultRandom
+  toStringVisited: WeakMap<object, string>
+  abortErrorId: number
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/utils': ReatomGlobalPackage<ReatomUtilsGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomUtilsPackage = reatomGlobal.packages['@reatom/core/utils']
+if (reatomUtilsPackage === undefined) {
+  reatomUtilsPackage = reatomGlobal.packages['@reatom/core/utils'] = {
+    version: REATOM_CORE_VERSION,
+    state: {
+      random: defaultRandom,
+      toStringVisited: new WeakMap(),
+      abortErrorId: 0,
+    },
+  }
+} else if (reatomUtilsPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomUtilsGlobal = reatomUtilsPackage.state
 
 /**
  * Generates a random integer between min and max (inclusive).
@@ -533,7 +567,8 @@ let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
  *   1)
  * @returns A random integer between min and max
  */
-export const random: typeof _random = (min, max) => _random(min, max)
+export const random: typeof defaultRandom = (min, max) =>
+  reatomUtilsGlobal.random(min, max)
 
 /**
  * Replaces the default random number generator with a custom implementation.
@@ -550,10 +585,10 @@ export const random: typeof _random = (min, max) => _random(min, max)
  *   implementation when called
  */
 export const mockRandom = (fn: typeof random) => {
-  const origin = _random
-  _random = fn
+  const origin = reatomUtilsGlobal.random
+  reatomUtilsGlobal.random = fn
   return () => {
-    _random = origin
+    reatomUtilsGlobal.random = origin
   }
 }
 
@@ -580,7 +615,7 @@ export const nonNullable = <T>(value: T, message?: string): NonNullable<T> => {
 
 const toString = /* @__PURE__ */ Object.prototype.toString
 const toStringArray = /* @__PURE__ */ [].toString
-const visited = new WeakMap<{}, string>()
+const visited = reatomUtilsGlobal.toStringVisited
 
 /**
  * Converts any JavaScript value to a stable string representation. Handles
@@ -673,7 +708,6 @@ export interface AbortError extends DOMException {
   name: 'AbortError'
 }
 
-let i = 0
 /**
  * Converts any value to an AbortError. If the value is already an AbortError,
  * it will be returned as is. Otherwise, creates a new AbortError with
@@ -695,7 +729,7 @@ export const toAbortError = (reason: any): AbortError => {
       reason = isObject(reason) ? toString.call(reason) : String(reason)
     }
 
-    reason += ` [#${++i}]`
+    reason += ` [#${++reatomUtilsGlobal.abortErrorId}]`
 
     if (typeof DOMException === 'undefined') {
       reason = new Error(reason, options)

@@ -1,4 +1,13 @@
-import { computed, context, type Frame, named, ReatomError, top } from '../core'
+import {
+  computed,
+  context,
+  type Frame,
+  named,
+  REATOM_CORE_VERSION,
+  ReatomError,
+  top,
+} from '../core'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../global'
 
 /**
  * Internal utility for keyed memoization within an atom's execution context.
@@ -40,7 +49,27 @@ type MemoTouches = {
   sources: Record<FunctionSource, true>
 }
 
-const touchedMap = new WeakMap<Frame, MemoTouches>()
+interface ReatomMemoGlobalState {
+  touchedMap: WeakMap<Frame, MemoTouches>
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/methods/memo': ReatomGlobalPackage<ReatomMemoGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomMemoPackage = reatomGlobal.packages['@reatom/core/methods/memo']
+if (reatomMemoPackage === undefined) {
+  reatomMemoPackage = reatomGlobal.packages['@reatom/core/methods/memo'] = {
+    version: REATOM_CORE_VERSION,
+    state: { touchedMap: new WeakMap() },
+  }
+} else if (reatomMemoPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomMemoGlobal = reatomMemoPackage.state
 
 /**
  * Memoize additional computation inside a different calls of an atom (computed
@@ -133,10 +162,10 @@ export let memo = <State>(
   if (!key) {
     key = cb.toString()
 
-    let touched = touchedMap.get(frame)
+    let touched = reatomMemoGlobal.touchedMap.get(frame)
     if (touched?.pubs !== frame.pubs) {
       touched = { pubs: frame.pubs, sources: {} }
-      touchedMap.set(frame, touched)
+      reatomMemoGlobal.touchedMap.set(frame, touched)
     }
 
     if (key in touched.sources) {

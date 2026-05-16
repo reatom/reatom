@@ -1,19 +1,47 @@
 import type { AtomLike, Frame } from '../core'
-import { context, top } from '../core'
+import { context, REATOM_CORE_VERSION, top } from '../core'
+import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  ReatomError,
+} from '../global'
 
 export let isSkip = (target: AtomLike) =>
   target.name.startsWith('_') || /\._/.test(target.name)
 
-let serialCount = 0
-let serialNumbers = new WeakMap<Frame, string>()
+interface ReatomStackTraceGlobalState {
+  serialCount: number
+  serialNumbers: WeakMap<Frame, string>
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/methods/getStackTrace': ReatomGlobalPackage<ReatomStackTraceGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomStackTracePackage =
+  reatomGlobal.packages['@reatom/core/methods/getStackTrace']
+if (reatomStackTracePackage === undefined) {
+  reatomStackTracePackage = reatomGlobal.packages[
+    '@reatom/core/methods/getStackTrace'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: { serialCount: 0, serialNumbers: new WeakMap() },
+  }
+} else if (reatomStackTracePackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomStackTraceGlobal = reatomStackTracePackage.state
 
 export let getSerial = (frame = top()) => {
   if (isSkip(frame.atom)) return ''
 
-  let serial = serialNumbers.get(frame)
+  let serial = reatomStackTraceGlobal.serialNumbers.get(frame)
   if (serial === undefined) {
-    let next = ++serialCount
-    serialNumbers.set(
+    let next = ++reatomStackTraceGlobal.serialCount
+    reatomStackTraceGlobal.serialNumbers.set(
       frame,
       (serial = next + (next < 1e4 ? '' : (next - 1e4).toString(32))),
     )

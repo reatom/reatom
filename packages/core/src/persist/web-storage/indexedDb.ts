@@ -1,4 +1,5 @@
-import { type Atom } from '../../core'
+import { type Atom, REATOM_CORE_VERSION, ReatomError } from '../../core'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../../global'
 import {
   createMemStorage,
   type PersistRecord,
@@ -39,22 +40,57 @@ export type BroadcastMessage =
       key: string
     }
 
-// One-time check for optional idb-keyval dependency
-let idb: any = null
-let idbChecked = false
+type IdbKeyval = typeof import('idb-keyval')
+
+interface ReatomIndexedDbGlobalState {
+  idb: null | IdbKeyval
+  idbChecked: boolean
+  isIndexedDbAvailable: boolean
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/persist/web-storage/indexedDb': ReatomGlobalPackage<ReatomIndexedDbGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomIndexedDbPackage =
+  reatomGlobal.packages['@reatom/core/persist/web-storage/indexedDb']
+if (reatomIndexedDbPackage === undefined) {
+  reatomIndexedDbPackage = reatomGlobal.packages[
+    '@reatom/core/persist/web-storage/indexedDb'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: {
+      idb: null,
+      idbChecked: false,
+      isIndexedDbAvailable: (() => {
+        try {
+          return !!globalThis.indexedDB && isBroadcastChannelAvailable
+        } catch {
+          return false
+        }
+      })(),
+    },
+  }
+} else if (reatomIndexedDbPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomIndexedDbGlobal = reatomIndexedDbPackage.state
 
 const checkIdb = async () => {
-  if (idbChecked) return idb
-  idbChecked = true
+  if (reatomIndexedDbGlobal.idbChecked) return reatomIndexedDbGlobal.idb
+  reatomIndexedDbGlobal.idbChecked = true
 
   try {
-    idb = await import('idb-keyval')
+    reatomIndexedDbGlobal.idb = await import('idb-keyval')
   } catch {
     console.warn('idb-keyval not available - using memory storage fallback')
-    idb = null
+    reatomIndexedDbGlobal.idb = null
   }
 
-  return idb
+  return reatomIndexedDbGlobal.idb
 }
 
 /**
@@ -120,7 +156,7 @@ export const reatomPersistIndexedDb = (
 ): WithPersistWebStorage => {
   const postMessage = (msg: BroadcastMessage) => channel.postMessage(msg)
 
-  let store: any
+  let store: ReturnType<IdbKeyval['createStore']> | undefined
   const getStore = async () => {
     const idbLib = await checkIdb()
     if (!idbLib) return null
@@ -225,15 +261,6 @@ export const reatomPersistIndexedDb = (
   })
 }
 
-// Note: idb-keyval availability is checked dynamically at runtime
-let isIndexedDbAvailable = /* @__PURE__ */ (() => {
-  try {
-    return !!globalThis.indexedDB && isBroadcastChannelAvailable
-  } catch {
-    return false
-  }
-})()
-
 /**
  * Default IndexedDB persistence adapter with automatic fallback to memory
  * storage.
@@ -298,7 +325,7 @@ let isIndexedDbAvailable = /* @__PURE__ */ (() => {
  * @see {@link withBroadcastChannel} for memory-only cross-tab sync
  */
 export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ (() =>
-  isIndexedDbAvailable
+  reatomIndexedDbGlobal.isIndexedDbAvailable
     ? reatomPersistIndexedDb(
         'reatom_default',
         new BroadcastChannel('reatom_withIndexedDb_default'),

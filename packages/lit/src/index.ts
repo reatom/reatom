@@ -4,10 +4,39 @@ import type {
   Frame,
   Unsubscribe,
 } from '@reatom/core'
-import { reatomAbstractRender, top } from '@reatom/core'
+import {
+  getReatomGlobal,
+  reatomAbstractRender,
+  type ReatomGlobalPackage,
+  ReatomError,
+  top,
+} from '@reatom/core'
 import type { LitElement, PropertyValues } from 'lit'
 
-const __inner_update = Symbol('Inner update')
+const REATOM_LIT_VERSION = '1000.0.0-alpha.32'
+
+interface ReatomLitGlobalState {
+  innerUpdate: symbol
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/lit': ReatomGlobalPackage<ReatomLitGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomLitPackage = reatomGlobal.packages['@reatom/lit']
+if (reatomLitPackage === undefined) {
+  reatomLitPackage = reatomGlobal.packages['@reatom/lit'] = {
+    version: REATOM_LIT_VERSION,
+    state: { innerUpdate: Symbol('Inner update') },
+  }
+} else if (reatomLitPackage.version !== REATOM_LIT_VERSION) {
+  throw new ReatomError('package duplication')
+}
+
+const __inner_update = reatomLitPackage.state.innerUpdate
 
 export const withReatomElement = <T extends Constructor<LitElement>>(
   superClass: T,

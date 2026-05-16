@@ -4,7 +4,9 @@ import {
   type AtomState,
   bind,
   type Frame,
+  getReatomGlobal,
   isAction,
+  type ReatomGlobalPackage,
   ReatomError,
   type RootState,
   STACK,
@@ -17,6 +19,8 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js'
+
+const REATOM_SOLID_VERSION = '1000.0.0-alpha.30'
 
 /**
  * Solid.js context for providing the Reatom frame to the component tree.
@@ -96,7 +100,35 @@ type AccessorCache = {
   unsubscribe: null | (() => void)
 }
 
-let solidMap = new WeakMap<RootState, WeakMap<AtomLike, AccessorCache>>()
+interface ReatomSolidGlobalState {
+  solidMaps: WeakMap<
+    typeof createSignal,
+    WeakMap<RootState, WeakMap<AtomLike, AccessorCache>>
+  >
+}
+
+declare module '@reatom/core' {
+  interface ReatomGlobalPackages {
+    '@reatom/solid-js': ReatomGlobalPackage<ReatomSolidGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomSolidPackage = reatomGlobal.packages['@reatom/solid-js']
+if (reatomSolidPackage === undefined) {
+  reatomSolidPackage = reatomGlobal.packages['@reatom/solid-js'] = {
+    version: REATOM_SOLID_VERSION,
+    state: { solidMaps: new WeakMap() },
+  }
+} else if (reatomSolidPackage.version !== REATOM_SOLID_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomSolidGlobal = reatomSolidPackage.state
+let solidMap = reatomSolidGlobal.solidMaps.get(createSignal)
+if (solidMap === undefined) {
+  solidMap = new WeakMap()
+  reatomSolidGlobal.solidMaps.set(createSignal, solidMap)
+}
 
 /**
  * Internal hook that creates and caches a Solid.js accessor for an atom.

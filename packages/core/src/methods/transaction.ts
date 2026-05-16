@@ -1,7 +1,17 @@
 import type { AsyncExt } from '../async'
 import type { Action, ActionState, Atom, AtomState, Ext } from '../core'
-import { action, bind, context, isAction, top, withMiddleware } from '../core'
+import {
+  action,
+  bind,
+  context,
+  isAction,
+  REATOM_CORE_VERSION,
+  ReatomError,
+  top,
+  withMiddleware,
+} from '../core'
 import { withCallHook } from '../extensions'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../global'
 import type { Fn } from '../utils'
 import { isAbort } from '../utils'
 import { isCausedBy } from './isCausedBy'
@@ -469,14 +479,41 @@ export let reatomTransaction = ({
   return transactionVar
 }
 
+interface ReatomTransactionGlobalState {
+  transactionVar: TransactionVariable
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/methods/transaction': ReatomGlobalPackage<ReatomTransactionGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomTransactionPackage =
+  reatomGlobal.packages['@reatom/core/methods/transaction']
+if (reatomTransactionPackage === undefined) {
+  reatomTransactionPackage = reatomGlobal.packages[
+    '@reatom/core/methods/transaction'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: {
+      transactionVar: reatomTransaction({
+        name: 'default',
+      }),
+    },
+  }
+} else if (reatomTransactionPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomTransactionGlobal = reatomTransactionPackage.state
+
 /**
  * Global transaction variable instance.
  *
  * @see {@link reatomTransaction} To create isolated transaction contexts
  */
-export let transactionVar = /* @__PURE__ */ reatomTransaction({
-  name: 'default',
-})
+export let transactionVar = reatomTransactionGlobal.transactionVar
 
 /** @see {@link TransactionVariable.withRollback} */
 export let withRollback = /* @__PURE__ */ (() => transactionVar.withRollback)()

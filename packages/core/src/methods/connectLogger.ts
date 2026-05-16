@@ -3,12 +3,19 @@ import {
   _enqueue,
   action,
   bind,
+  EXTENSIONS,
   isAction,
   isAtom,
   isConnected,
+  REATOM_CORE_VERSION,
   top,
   withMiddleware,
 } from '../core'
+import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  ReatomError,
+} from '../global'
 import type { Fn } from '../utils'
 import { isAbort, isBrowser } from '../utils'
 import { getSerial, getStackTrace, isSkip } from './getStackTrace'
@@ -18,7 +25,31 @@ let maybeAtomLog = (thing: any) =>
     ? `[${isAction(thing) ? 'Action' : 'Atom'} ${thing.name}]`
     : thing
 
-const stateLogMap = new Map<string, any>()
+interface ReatomLoggerGlobalState {
+  stateLogMap: Map<string, unknown>
+  isNewLogStack: boolean
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/methods/connectLogger': ReatomGlobalPackage<ReatomLoggerGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomLoggerPackage =
+  reatomGlobal.packages['@reatom/core/methods/connectLogger']
+if (reatomLoggerPackage === undefined) {
+  reatomLoggerPackage = reatomGlobal.packages[
+    '@reatom/core/methods/connectLogger'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: { stateLogMap: new Map(), isNewLogStack: true },
+  }
+} else if (reatomLoggerPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomLoggerGlobal = reatomLoggerPackage.state
 
 /**
  * A special logging action for debugging Reatom applications.
@@ -89,15 +120,16 @@ const stateLogMap = new Map<string, any>()
 export let log = /* @__PURE__ */ (() =>
   action<any[]>((...args) => args, 'LOG').extend((target) => ({
     state<T>(name: string, data: T): T {
-      if (!stateLogMap.has(name) || !Object.is(stateLogMap.get(name), data)) {
-        stateLogMap.set(name, data)
+      if (
+        !reatomLoggerGlobal.stateLogMap.has(name) ||
+        !Object.is(reatomLoggerGlobal.stateLogMap.get(name), data)
+      ) {
+        reatomLoggerGlobal.stateLogMap.set(name, data)
         target(name, data)
       }
       return data
     },
   })))()
-
-let isNewLogStack = true
 
 /**
  * Sets up and connects a logger to the Reatom system for debugging and tracing.
@@ -171,10 +203,10 @@ export let connectLogger = ({
     let logStack = (payload: any, error: any, cb: Fn, filterColor?: string) => {
       try {
         const isAborted = isAbort(error)
-        if (isNewLogStack) {
-          isNewLogStack = false
+        if (reatomLoggerGlobal.isNewLogStack) {
+          reatomLoggerGlobal.isNewLogStack = false
           setTimeout(() => {
-            isNewLogStack = true
+            reatomLoggerGlobal.isNewLogStack = true
           })
           console.log('--- ' + new Date().toISOString() + ' ----')
         }
@@ -312,8 +344,7 @@ export let connectLogger = ({
     )
   }
 
-  // @ts-ignore TODO
-  globalThis.__REATOM.push(logExt)
+  EXTENSIONS.push(logExt)
 
   log.extend(logExt)
 }

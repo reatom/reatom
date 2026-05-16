@@ -5,7 +5,14 @@ import {
   CtxSpy,
   isShallowEqual,
 } from '@reatom/framework'
+import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  ReatomError,
+} from '@reatom/core'
 import { css } from './jsx'
+
+const REATOM_DEVTOOLS_VERSION = '1000.14.1'
 
 export const getColor = ({ proto }: AtomCache): string =>
   proto.isAction
@@ -26,20 +33,7 @@ export const memo =
     return isShallowEqual(state, newState) ? (state as T) : newState
   }
 
-export const idxMap = new WeakMap<AtomCache, string>()
-let idx = 0
-export const getId = (node: AtomCache) => {
-  let id = idxMap.get(node)
-  if (!id) {
-    idxMap.set(node, (id = `${node.proto.name}-${++idx}`))
-  }
-  return id
-}
-
-export const followingsMap = new (class extends Map<
-  AtomCache,
-  Array<AtomCache>
-> {
+class FollowingsMap extends Map<AtomCache, Array<AtomCache>> {
   add(patch: AtomCache) {
     while (patch.cause?.cause) {
       let followings = this.get(patch.cause)
@@ -50,19 +44,11 @@ export const followingsMap = new (class extends Map<
       patch = patch.cause
     }
   }
-})()
+}
 
-export const highlighted = new Set<AtomCache>()
-
-export const actionsStates = new WeakMap<AtomCache, Array<any>>()
-
-// TODO: parametrize
 export const HISTORY_LENGTH = 10
 
-export const historyStates = new (class extends WeakMap<
-  AtomProto,
-  Array<AtomCache>
-> {
+class HistoryStates extends WeakMap<AtomProto, Array<AtomCache>> {
   add(patch: AtomCache) {
     let list = this.get(patch.proto)
     if (!list) {
@@ -76,7 +62,58 @@ export const historyStates = new (class extends WeakMap<
 
     list.unshift(patch)
   }
-})()
+}
+
+interface ReatomDevtoolsGlobalState {
+  idxMap: WeakMap<AtomCache, string>
+  idx: number
+  followingsMap: FollowingsMap
+  highlighted: Set<AtomCache>
+  actionsStates: WeakMap<AtomCache, Array<any>>
+  historyStates: HistoryStates
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/devtools/utils': ReatomGlobalPackage<ReatomDevtoolsGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomDevtoolsPackage = reatomGlobal.packages['@reatom/devtools/utils']
+if (reatomDevtoolsPackage === undefined) {
+  reatomDevtoolsPackage = reatomGlobal.packages['@reatom/devtools/utils'] = {
+    version: REATOM_DEVTOOLS_VERSION,
+    state: {
+      idxMap: new WeakMap(),
+      idx: 0,
+      followingsMap: new FollowingsMap(),
+      highlighted: new Set(),
+      actionsStates: new WeakMap(),
+      historyStates: new HistoryStates(),
+    },
+  }
+} else if (reatomDevtoolsPackage.version !== REATOM_DEVTOOLS_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomDevtoolsGlobal = reatomDevtoolsPackage.state
+
+export const idxMap = reatomDevtoolsGlobal.idxMap
+export const getId = (node: AtomCache) => {
+  let id = idxMap.get(node)
+  if (!id) {
+    idxMap.set(node, (id = `${node.proto.name}-${++reatomDevtoolsGlobal.idx}`))
+  }
+  return id
+}
+
+export const followingsMap = reatomDevtoolsGlobal.followingsMap
+
+export const highlighted = reatomDevtoolsGlobal.highlighted
+
+export const actionsStates = reatomDevtoolsGlobal.actionsStates
+
+export const historyStates = reatomDevtoolsGlobal.historyStates
 
 export const buttonCss = css`
   display: flex;

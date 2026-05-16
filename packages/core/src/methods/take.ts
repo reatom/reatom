@@ -1,11 +1,40 @@
 import type { Action, AtomLike } from '../core'
-import { action, bind, computed, isAtom, top } from '../core'
+import {
+  action,
+  bind,
+  computed,
+  isAtom,
+  REATOM_CORE_VERSION,
+  ReatomError,
+  top,
+} from '../core'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../global'
 import type { Fn, Unsubscribe } from '../utils'
 import { isAbort, noop } from '../utils'
 import { getCalls } from './ifChanged'
 
-let i = 0
+interface ReatomTakeGlobalState {
+  id: number
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/methods/take': ReatomGlobalPackage<ReatomTakeGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomTakePackage = reatomGlobal.packages['@reatom/core/methods/take']
+if (reatomTakePackage === undefined) {
+  reatomTakePackage = reatomGlobal.packages['@reatom/core/methods/take'] = {
+    version: REATOM_CORE_VERSION,
+    state: { id: 0 },
+  }
+} else if (reatomTakePackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomTakeGlobal = reatomTakePackage.state
 
 /**
  * Awaits the next update of an atom or call of an action.
@@ -68,7 +97,9 @@ export function take(
   let map =
     typeof mapOrName === 'function' ? mapOrName : ((name = mapOrName), null)
 
-  name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++i}`}`
+  name = `${top().atom.name || 'root'}.take${
+    name ? `.${name}` : `#${++reatomTakeGlobal.id}`
+  }`
 
   const targetAtom = isAtom(target)
     ? target

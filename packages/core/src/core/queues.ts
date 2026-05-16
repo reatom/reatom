@@ -1,6 +1,33 @@
 import type { Fn } from '../utils'
+import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  ReatomError,
+} from '../global'
 import type { Queue } from './'
-import { bind, context } from './'
+import { bind, context, REATOM_CORE_VERSION } from './'
+
+interface ReatomQueuesGlobalState {
+  batchNestDepth: number
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/core/queues': ReatomGlobalPackage<ReatomQueuesGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomQueuesPackage = reatomGlobal.packages['@reatom/core/core/queues']
+if (reatomQueuesPackage === undefined) {
+  reatomQueuesPackage = reatomGlobal.packages['@reatom/core/core/queues'] = {
+    version: REATOM_CORE_VERSION,
+    state: { batchNestDepth: 0 },
+  }
+} else if (reatomQueuesPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomQueuesGlobal = reatomQueuesPackage.state
 
 export type QueueKind = 'hook' | 'compute' | 'cleanup' | 'effect'
 
@@ -44,8 +71,6 @@ export let _enqueue = (fn: Fn, queue: QueueKind): void => {
 let QueueIterator = (queue: Queue, i: number) => () =>
   i < queue.length ? queue[i++] : undefined
 
-let batchNestDepth = 0
-
 /**
  * Runs a callback as a nested batch and optionally flushes the queue after the
  * outermost batch completes.
@@ -70,11 +95,11 @@ let batchNestDepth = 0
  */
 export let batch = <T>(cb: () => T, shouldNotify: boolean = false): T => {
   try {
-    batchNestDepth++
+    reatomQueuesGlobal.batchNestDepth++
     return cb()
   } finally {
-    batchNestDepth--
-    if (shouldNotify && batchNestDepth === 0) {
+    reatomQueuesGlobal.batchNestDepth--
+    if (shouldNotify && reatomQueuesGlobal.batchNestDepth === 0) {
       notify()
     }
   }

@@ -2,9 +2,15 @@ import {
   bind,
   type Frame,
   type GAction,
+  REATOM_CORE_VERSION,
   top,
   withActionMiddleware,
 } from '../core'
+import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  ReatomError,
+} from '../global'
 import type { AbortError, Unsubscribe } from '../utils'
 import { isAbort, throwIfAborted, toAbortError } from '../utils'
 import { Variable } from './variable'
@@ -210,6 +216,31 @@ export class AbortVariable extends Variable<
   }
 }
 
+interface ReatomAbortVarGlobalState {
+  abortVar: AbortVariable
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/methods/abortVar': ReatomGlobalPackage<ReatomAbortVarGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomAbortVarPackage =
+  reatomGlobal.packages['@reatom/core/methods/abortVar']
+if (reatomAbortVarPackage === undefined) {
+  reatomAbortVarPackage = reatomGlobal.packages[
+    '@reatom/core/methods/abortVar'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: { abortVar: new AbortVariable() },
+  }
+} else if (reatomAbortVarPackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomAbortVarGlobal = reatomAbortVarPackage.state
+
 /**
  * Global abort variable that precess AbortController's coupled to the current
  * frame stack.
@@ -240,7 +271,7 @@ export class AbortVariable extends Variable<
  *
  * @type {AbortVariable}
  */
-export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
+export let abortVar = reatomAbortVarGlobal.abortVar
 
 /**
  * Races multiple controlled promises and automatically aborts all losers when

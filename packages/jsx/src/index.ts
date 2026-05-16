@@ -1,10 +1,12 @@
 import {
   _read,
   action,
+  type Atom,
   assert,
   atom,
   type AtomLike,
   computed,
+  getReatomGlobal,
   isAction,
   isAtom,
   isLinkedListAtom,
@@ -13,6 +15,7 @@ import {
   type LinkedList,
   type LLNode,
   peek,
+  type ReatomGlobalPackage,
   ReatomError,
   type Rec,
   type Unsubscribe,
@@ -43,27 +46,66 @@ type DomApis = Pick<
   | 'DocumentFragment'
 >
 
-export let DOM = atom(globalThis.window, '_jsx.DOM')
+const REATOM_JSX_VERSION = '1000.1.0'
 
-export let DEBUG = atom(true, '_jsx.DEBUG')
+interface ReatomJsxGlobalState {
+  DOM: Atom<DomApis>
+  DEBUG: Atom<boolean>
+  stylesheet: Atom<CSSStyleSheet>
+  stylesCount: number
+  styles: Rec<string>
+  metaSymbol: Atom<symbol>
+  name: string
+  propertiesAsAttributes?: Set<string>
+  booleanAttributes?: Set<string>
+}
 
-let stylesCount = 0
-let styles: Rec<string> = {}
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/jsx': ReatomGlobalPackage<ReatomJsxGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomJsxPackage = reatomGlobal.packages['@reatom/jsx']
+if (reatomJsxPackage === undefined) {
+  let DOM = atom(globalThis.window, '_jsx.DOM')
+  reatomJsxPackage = reatomGlobal.packages['@reatom/jsx'] = {
+    version: REATOM_JSX_VERSION,
+    state: {
+      DOM,
+      DEBUG: atom(true, '_jsx.DEBUG'),
+      stylesheet: atom(
+        () =>
+          DOM().document.head.appendChild(DOM().document.createElement('style'))
+            .sheet!,
+        'jsx.stylesheet',
+      ),
+      stylesCount: 0,
+      styles: {},
+      metaSymbol: atom(() => Symbol()),
+      name: '',
+    },
+  }
+} else if (reatomJsxPackage.version !== REATOM_JSX_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomJsxGlobal = reatomJsxPackage.state
+
+export let DOM = reatomJsxGlobal.DOM
+
+export let DEBUG = reatomJsxGlobal.DEBUG
+
+let styles = reatomJsxGlobal.styles
 /**
  * @note Create style tag for support oldest browser.
  * @see https://developer.mozilla.org/en-US/docs/Web/API/CSSStyleSheet/CSSStyleSheet
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/adoptedStyleSheets
  * @see https://measurethat.net/Benchmarks/Show/5920
  */
-export let stylesheet = atom(
-  () =>
-    DOM().document.head.appendChild(DOM().document.createElement('style'))
-      .sheet!,
-  'jsx.stylesheet',
-)
-let name = ''
+export let stylesheet = reatomJsxGlobal.stylesheet
 let named = (element: Node, key: string) =>
-  `${name}.${element.nodeName.toLowerCase()}._${key}`
+  `${reatomJsxGlobal.name}.${element.nodeName.toLowerCase()}._${key}`
 
 interface Meta {
   subscribes: (() => Unsubscribe)[]
@@ -71,7 +113,7 @@ interface Meta {
   mount: ((element: Node) => ((element: Node) => void) | undefined) | undefined
   unmount: ((element: Node) => void) | undefined
 }
-let metaSymbol = atom(() => Symbol())
+let metaSymbol = reatomJsxGlobal.metaSymbol
 let ensureMeta = (node: Node): Meta => {
   return ((node as any)[metaSymbol()] ??= {
     subscribes: [],
@@ -90,36 +132,37 @@ let unlink = (node: Node, subscribe: () => () => void) => {
  * @see https://github.com/preactjs/preact/blob/d16a34e275e31afd6738a9f82b5ba2fb9dbf032b/src/diff/props.js#L107
  * @see https://www.measurethat.net/Benchmarks/Show/7818
  */
-let propertiesAsAttributes = new Set([
-  /** Numeric attributes with a default value other than 0. */
-  'height',
-  'high',
-  'low',
-  'optimum',
-  'results',
-  'size',
-  'span',
-  'start',
-  'width',
+let propertiesAsAttributes = (reatomJsxGlobal.propertiesAsAttributes ??=
+  new Set([
+    /** Numeric attributes with a default value other than 0. */
+    'height',
+    'high',
+    'low',
+    'optimum',
+    'results',
+    'size',
+    'span',
+    'start',
+    'width',
 
-  /** Numeric properties with a default value other than 0. */
-  // 'colspan',
-  // 'rowspan',
-  // 'maxlength',
-  // 'minlength',
-  // 'tabindex',
+    /** Numeric properties with a default value other than 0. */
+    // 'colspan',
+    // 'rowspan',
+    // 'maxlength',
+    // 'minlength',
+    // 'tabindex',
 
-  /** Properties with value HTMLElement. */
-  'form',
-  'list',
+    /** Properties with value HTMLElement. */
+    'form',
+    'list',
 
-  /** Setting the value to an empty string must be explicit. */
-  'download',
-  'href',
-  'role',
-])
+    /** Setting the value to an empty string must be explicit. */
+    'download',
+    'href',
+    'role',
+  ]))
 /** @see https://developer.mozilla.org/en-US/docs/Glossary/Boolean/HTML */
-let booleanAttributes = new Set([
+let booleanAttributes = (reatomJsxGlobal.booleanAttributes ??= new Set([
   'allowfullscreen',
   'allowpaymentrequest',
   'async',
@@ -161,7 +204,7 @@ let booleanAttributes = new Set([
   'shadowrootserializable',
   'virtualkeyboardpolicy',
   'webkitdirectory',
-])
+]))
 
 let isSkipped = (value: unknown): value is boolean | '' | null | undefined =>
   typeof value === 'boolean' || value === '' || value == null
@@ -445,7 +488,7 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     /** @todo Should support record? */
     let styleId = styles[value]
     if (!styleId) {
-      styleId = styles[value] = '_' + ++stylesCount
+      styleId = styles[value] = '_' + ++reatomJsxGlobal.stylesCount
       // TODO improve stylesheet get for perf reason
       // TODO measure the needness of batching
       stylesheet().insertRule(`[data-reatom-style="${styleId}"]{${value}}`)
@@ -540,12 +583,12 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       element = props.element
       props.element = undefined
     } else {
-      let _name = name
+      let name = reatomJsxGlobal.name
       try {
-        name = tag.name
+        reatomJsxGlobal.name = tag.name
         return tag(props)
       } finally {
-        name = _name
+        reatomJsxGlobal.name = name
       }
     }
   } else {
@@ -554,7 +597,8 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       : dom.document.createElement(tag)
 
     // For debug
-    if (name && peek(DEBUG)) element.setAttribute('data-reatom-name', name)
+    if (reatomJsxGlobal.name && peek(DEBUG))
+      element.setAttribute('data-reatom-name', reatomJsxGlobal.name)
   }
 
   if ('children' in props) children = props.children

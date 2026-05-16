@@ -8,17 +8,20 @@ import {
   type Ext,
   type Frame,
   isAction,
+  REATOM_CORE_VERSION,
   ReatomError,
   top,
   withActionMiddleware,
   withActions,
   withMiddleware,
 } from '../core'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../global'
 import {
   abortVar,
   peek,
   ReatomAbortController,
   retryComputed,
+  type Variable,
   variable,
 } from '../methods'
 import type { WithPersistOptions } from '../persist'
@@ -165,19 +168,50 @@ export interface CacheVarState {
 
 type CacheVarRecord = Pick<CacheRecord, 'value' | 'version'> | undefined
 
-export const cacheVar = variable(
-  (
-    cached?: CacheVarRecord,
-    isSWR = false,
-    promise?: Promise<unknown>,
-  ): CacheVarState => ({
-    isCached: true,
-    isSWR,
-    payload: cached && cached.version > 0 ? { value: cached.value } : undefined,
-    promise,
-  }),
-  'cache',
-)
+interface ReatomCacheGlobalState {
+  cacheVar: Variable<
+    CacheVarState,
+    [cached?: CacheVarRecord, isSWR?: boolean, promise?: Promise<unknown>]
+  >
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/extensions/withCache': ReatomGlobalPackage<ReatomCacheGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomCachePackage =
+  reatomGlobal.packages['@reatom/core/extensions/withCache']
+if (reatomCachePackage === undefined) {
+  reatomCachePackage = reatomGlobal.packages[
+    '@reatom/core/extensions/withCache'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: {
+      cacheVar: variable(
+        (
+          cached?: CacheVarRecord,
+          isSWR = false,
+          promise?: Promise<unknown>,
+        ): CacheVarState => ({
+          isCached: true,
+          isSWR,
+          payload:
+            cached && cached.version > 0 ? { value: cached.value } : undefined,
+          promise,
+        }),
+        'cache',
+      ),
+    },
+  }
+} else if (reatomCachePackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomCacheGlobal = reatomCachePackage.state
+
+export const cacheVar = reatomCacheGlobal.cacheVar
 
 export let withCache =
   <

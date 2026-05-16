@@ -1,5 +1,13 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
-import { _set, bind, createAtom, top } from '../core'
+import {
+  _set,
+  bind,
+  createAtom,
+  REATOM_CORE_VERSION,
+  ReatomError,
+  top,
+} from '../core'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../global'
 import { wrap } from '../methods'
 import { withInit } from './withInit'
 
@@ -16,7 +24,31 @@ export interface SuspenseRecord {
  * Internal suspense cache mapping promises to their settlement state. Do not
  * use it directly, only for libraries!
  */
-export let SUSPENSE = new WeakMap<Promise<any>, SuspenseRecord>()
+interface ReatomSuspenseGlobalState {
+  suspense: WeakMap<Promise<any>, SuspenseRecord>
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/extensions/withSuspense': ReatomGlobalPackage<ReatomSuspenseGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomSuspensePackage =
+  reatomGlobal.packages['@reatom/core/extensions/withSuspense']
+if (reatomSuspensePackage === undefined) {
+  reatomSuspensePackage = reatomGlobal.packages[
+    '@reatom/core/extensions/withSuspense'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: { suspense: new WeakMap() },
+  }
+} else if (reatomSuspensePackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+
+export let SUSPENSE = reatomSuspensePackage.state.suspense
 
 /**
  * Checks if a promise is settled and returns its value or fallback. If the

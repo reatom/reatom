@@ -1,3 +1,5 @@
+import { REATOM_CORE_VERSION, ReatomError } from '../../core'
+import { getReatomGlobal, type ReatomGlobalPackage } from '../../global'
 import {
   assertPersistRecord,
   createMemStorage,
@@ -5,6 +7,39 @@ import {
   reatomPersist,
   type WithPersist,
 } from '../index'
+
+interface ReatomLocalStorageGlobalState {
+  isWebStorageAvailable: boolean
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/core/persist/web-storage/localStorage': ReatomGlobalPackage<ReatomLocalStorageGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomLocalStoragePackage =
+  reatomGlobal.packages['@reatom/core/persist/web-storage/localStorage']
+if (reatomLocalStoragePackage === undefined) {
+  reatomLocalStoragePackage = reatomGlobal.packages[
+    '@reatom/core/persist/web-storage/localStorage'
+  ] = {
+    version: REATOM_CORE_VERSION,
+    state: {
+      isWebStorageAvailable: (() => {
+        try {
+          return !!globalThis.localStorage
+        } catch {
+          return false
+        }
+      })(),
+    },
+  }
+} else if (reatomLocalStoragePackage.version !== REATOM_CORE_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomLocalStorageGlobal = reatomLocalStoragePackage.state
 
 /**
  * Creates a Web Storage API persistence adapter for Reatom atoms.
@@ -93,14 +128,6 @@ export const reatomPersistWebStorage = (
   })
 }
 
-let isWebStorageAvailable = /* @__PURE__ */ (() => {
-  try {
-    return !!globalThis.localStorage
-  } catch {
-    return false
-  }
-})()
-
 /**
  * Default localStorage persistence adapter with automatic fallback to memory
  * storage.
@@ -146,7 +173,7 @@ let isWebStorageAvailable = /* @__PURE__ */ (() => {
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
 export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
-  isWebStorageAvailable
+  reatomLocalStorageGlobal.isWebStorageAvailable
     ? /* @__PURE__ */ reatomPersistWebStorage(
         'withLocalStorage',
         globalThis.localStorage,
@@ -196,6 +223,6 @@ export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
 export const withSessionStorage: WithPersist = /* @__PURE__ */ (() =>
-  isWebStorageAvailable
+  reatomLocalStorageGlobal.isWebStorageAvailable
     ? reatomPersistWebStorage('withSessionStorage', globalThis.sessionStorage)
     : reatomPersist(createMemStorage({ name: 'withSessionStorage' })))()

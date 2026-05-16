@@ -1,4 +1,9 @@
 import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  ReatomError,
+} from '@reatom/core'
+import {
   __root,
   atom,
   AtomCache,
@@ -26,6 +31,8 @@ import {
 } from '../utils'
 import { reatomFilters, Filter, Filters, FiltersModel } from './reatomFilters'
 import { Lines, reatomLines } from './reatomLines'
+
+const REATOM_DEVTOOLS_VERSION = '1000.14.1'
 
 export type GraphLog = {
   id: string
@@ -58,7 +65,30 @@ export type GraphModel = {
   redrawLines: Action
 }
 
-let stringStates = new WeakMap<AtomCache, string>()
+interface ReatomDevtoolsGraphGlobalState {
+  stringStates: WeakMap<AtomCache, string>
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/devtools/Graph/reatomGraph': ReatomGlobalPackage<ReatomDevtoolsGraphGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomDevtoolsGraphPackage =
+  reatomGlobal.packages['@reatom/devtools/Graph/reatomGraph']
+if (reatomDevtoolsGraphPackage === undefined) {
+  reatomDevtoolsGraphPackage = reatomGlobal.packages[
+    '@reatom/devtools/Graph/reatomGraph'
+  ] = {
+    version: REATOM_DEVTOOLS_VERSION,
+    state: { stringStates: new WeakMap() },
+  }
+} else if (reatomDevtoolsGraphPackage.version !== REATOM_DEVTOOLS_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let stringStates = reatomDevtoolsGraphPackage.state.stringStates
 
 const isMatch = (
   get: <T>(target: Atom<T>) => T,

@@ -1,11 +1,41 @@
-import type { Rec } from '@reatom/core'
+import {
+  getReatomGlobal,
+  type ReatomGlobalPackage,
+  ReatomError,
+  type Rec,
+} from '@reatom/core'
 import { type ComponentChildren, options } from 'preact'
 
 import { reatomComponent } from './reatomComponent'
 
 type AutoTrackedComponent = (props: Rec) => ComponentChildren
 
-let trackedComponents = new WeakMap<AutoTrackedComponent, AutoTrackedComponent>()
+const REATOM_PREACT_VERSION = '1000.0.0'
+
+interface ReatomPreactAutoGlobalState {
+  trackedComponents: WeakMap<AutoTrackedComponent, AutoTrackedComponent>
+}
+
+declare global {
+  interface ReatomGlobalPackages {
+    '@reatom/preact/installAutoTracking': ReatomGlobalPackage<ReatomPreactAutoGlobalState>
+  }
+}
+
+let reatomGlobal = getReatomGlobal()
+let reatomPreactAutoPackage =
+  reatomGlobal.packages['@reatom/preact/installAutoTracking']
+if (reatomPreactAutoPackage === undefined) {
+  reatomPreactAutoPackage = reatomGlobal.packages[
+    '@reatom/preact/installAutoTracking'
+  ] = {
+    version: REATOM_PREACT_VERSION,
+    state: { trackedComponents: new WeakMap() },
+  }
+} else if (reatomPreactAutoPackage.version !== REATOM_PREACT_VERSION) {
+  throw new ReatomError('package duplication')
+}
+let reatomPreactAutoGlobal = reatomPreactAutoPackage.state
 
 let hasMethod = (value: unknown, methodName: string): boolean =>
   typeof value === 'object' &&
@@ -36,10 +66,10 @@ export const installAutoTracking = () => {
   options.vnode = (node) => {
     let type = node.type
     if (isPreactRender(type)) {
-      let trackedComponent = trackedComponents.get(type)
+      let trackedComponent = reatomPreactAutoGlobal.trackedComponents.get(type)
       if (!trackedComponent) {
         trackedComponent = reatomComponent(type)
-        trackedComponents.set(type, trackedComponent)
+        reatomPreactAutoGlobal.trackedComponents.set(type, trackedComponent)
       }
       node.type = trackedComponent
     }
