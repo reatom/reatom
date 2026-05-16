@@ -420,20 +420,17 @@ Without the checkpoint pattern, you would need to initiate the charge first, _th
 The same operator also works for long-lived event streams. Here a connected atom subscribes to a WebSocket topic, waits until the socket is open, and aborts automatically on disconnect:
 
 ```ts
-import {
-  abortVar,
-  atom,
-  onEvent,
-  withConnectHook,
-  wrap,
-} from '@reatom/core'
+import { abortVar, atom, onEvent, withConnectHook, wrap } from '@reatom/core'
 
 const socket = new WebSocket('wss://example.com')
 
 type StockPayload = { ticker: string }
 
 const reatomStock = (ticker: string) => {
-  const stockAtom = atom<StockPayload | null>(null, `${ticker}StockAtom`).extend(
+  const stockAtom = atom<StockPayload | null>(
+    null,
+    `${ticker}StockAtom`,
+  ).extend(
     withConnectHook(async (target) => {
       const { controller } = abortVar.subscribe()
 
