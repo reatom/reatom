@@ -120,6 +120,17 @@ test('withSuspenseInit unwrap', async () => {
   expect(data()).toBe(1)
 })
 
+const suspenseRetry = async (cb: () => unknown) => {
+  while (true) {
+    try {
+      return cb()
+    } catch (error) {
+      if (error instanceof Promise) await wrap(error)
+      else throw error
+    }
+  }
+}
+
 test('correct handling of conditional suspense computeds', async () => {
   const suspenseAtom = atom(async () => {
     await wrap(sleep())
@@ -142,17 +153,6 @@ test('correct handling of conditional suspense computeds', async () => {
     return suspenseProxy()
   })
 
-  const suspenseRetry = async (cb: () => unknown) => {
-    while (true) {
-      try {
-        return cb()
-      } catch (error) {
-        if (error instanceof Promise) await wrap(error)
-        else throw error
-      }
-    }
-  }
-
   await wrap(expect(suspenseRetry(component)).resolves.toBe(true))
   suspenseProxyDep.set(1)
   await wrap(expect(suspenseRetry(component)).resolves.toBe(false))
@@ -164,4 +164,18 @@ test('correct handling of conditional suspense computeds', async () => {
   suspenseProxyDep.set(1)
   await wrap(sleep())
   expect(component()).toBe(false)
+})
+
+test('correct handling of immediate sync throw of promise', async () => {
+  const suspenseDepAtom = atom(async () => {
+    await wrap(sleep())
+    return true
+  }).extend(withSuspenseInit())
+
+  const otherSuspenseAtom = atom(() => {
+    if (suspenseDepAtom()) return true
+    return wrap(sleep()).then(() => false)
+  }).extend(withSuspenseInit())
+
+  await wrap(expect(suspenseRetry(otherSuspenseAtom)).resolves.toBe(true))
 })
