@@ -78,7 +78,7 @@ const initFetchRequest = () =>
       } as FetchRequestInit<Res, P>)
     }
 
-    fetch(...params: Params): Promise<Response> {
+    fetch(...params: Params): Promise<Result> {
       const { transport, getInit, getResult, ...init } = this.init
 
       const url = new URL(init.url)
@@ -97,7 +97,7 @@ const initFetchRequest = () =>
           ? (body as BodyInit)
           : JSON.stringify(body)
 
-      return transport(url, init).then(getResult) as Promise<Response>
+      return transport(url, init).then(getResult)
     }
   }
 
