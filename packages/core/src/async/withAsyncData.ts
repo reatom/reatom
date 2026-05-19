@@ -35,7 +35,7 @@ export interface AsyncDataExt<
   }
 
   /** Status atom that includes the data property */
-  status: AsyncStatusAtom<State, InitState>
+  status: AsyncStatusAtom<State, InitState, Error>
 
   /**
    * Action that resets the async data atom by clearing its dependencies and

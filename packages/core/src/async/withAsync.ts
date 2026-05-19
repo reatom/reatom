@@ -101,7 +101,7 @@ export interface AsyncExt<
    *
    * @throws {ReatomError} When accessed without being enabled in options
    */
-  status: AsyncStatusAtom<any, any>
+  status: AsyncStatusAtom<any, any, Error>
 
   /**
    * Atom that caches the last called parameters for retry functionality. Must
@@ -208,7 +208,9 @@ export let withAsync: {
     ? T & AsyncExt<Params, Payload, Err | EmptyErr>
     : never
 } =
-  (options) =>
+  <Err = Error, EmptyErr = undefined>(
+    options?: null | AsyncOptions<Err, EmptyErr>,
+  ) =>
   (target: AtomLike): any => {
     if ('cacheAtom' in target) {
       throw new ReatomError(

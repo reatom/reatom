@@ -29,7 +29,10 @@ const neverPending: AsyncStatusNeverPending = {
   isEverSettled: false,
   // isNeverSettled: true,
 
+  isSWR: false,
+
   data: undefined as never,
+  error: undefined,
 }
 
 const firstPending: AsyncStatusFirstPending = {
@@ -45,7 +48,10 @@ const firstPending: AsyncStatusFirstPending = {
   isEverSettled: false,
   // isNeverSettled: true,
 
+  isSWR: false,
+
   data: undefined as never,
+  error: undefined,
 }
 
 const fulfilled: AsyncStatusFulfilled = {
@@ -61,8 +67,13 @@ const fulfilled: AsyncStatusFulfilled = {
   isEverSettled: true,
   // isNeverSettled: false,
 
+  isSWR: false,
+
   data: undefined as never,
+  error: undefined,
 }
+
+const testError = new Error('withAsyncStatus test error')
 
 const rejected: AsyncStatusRejected = {
   isPending: false,
@@ -77,7 +88,10 @@ const rejected: AsyncStatusRejected = {
   isEverSettled: true,
   // isNeverSettled: false,
 
+  isSWR: false,
+
   data: undefined as never,
+  error: testError,
 }
 
 const firstAborted: AsyncStatusFirstAborted = {
@@ -90,7 +104,10 @@ const firstAborted: AsyncStatusFirstAborted = {
   isEverPending: true,
   isEverSettled: false,
 
+  isSWR: false,
+
   data: undefined as never,
+  error: undefined,
 }
 
 const anotherPending: AsyncStatusAnotherPending = {
@@ -106,12 +123,15 @@ const anotherPending: AsyncStatusAnotherPending = {
   isEverSettled: true,
   // isNeverSettled: false,
 
+  isSWR: false,
+
   data: undefined as never,
+  error: undefined,
 }
 
 test('withAsyncStatus', async () => {
   const fetchData = action(async (shouldTrow = false) => {
-    if (shouldTrow) throw new Error('withAsyncStatus test error')
+    if (shouldTrow) throw testError
   }, 'fetchData').extend(withAsync({ status: true }))
 
   expect(fetchData.status()).toEqual(neverPending)
@@ -220,7 +240,10 @@ test('isEverSettled after abort', async () => {
     isEverPending: true,
     isEverSettled: true,
 
+    isSWR: false,
+
     data: undefined as never,
+    error: undefined,
   } satisfies AsyncStatusFulfilled)
 
   shouldAbort = true
@@ -237,7 +260,10 @@ test('isEverSettled after abort', async () => {
     isEverPending: true,
     isEverSettled: true,
 
+    isSWR: false,
+
     data: undefined as never,
+    error: undefined,
   } satisfies AsyncStatusAbortedPending)
 })
 
@@ -262,7 +288,10 @@ test('restore isFulfilled after abort', async () => {
     isEverPending: true,
     isEverSettled: true,
 
+    isSWR: false,
+
     data: undefined as never,
+    error: undefined,
   } satisfies AsyncStatusFulfilled)
 
   shouldAbort = true
@@ -282,6 +311,9 @@ test('restore isFulfilled after abort', async () => {
     isEverPending: true,
     isEverSettled: true,
 
+    isSWR: false,
+
     data: undefined as never,
+    error: undefined,
   } satisfies AsyncStatusAbortedFulfill)
 })
