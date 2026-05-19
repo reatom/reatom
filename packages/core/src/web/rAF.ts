@@ -34,7 +34,7 @@ import { _enqueue, atom, context } from '../core'
  *     }))
  *   })
  */
-export let rAF = /* @__PURE__ */ (() =>
+const initRAF = () =>
   atom<{ timestamp: number; delta: number }>(() => {
     let contextFrame = context()
     _enqueue(async () => {
@@ -56,4 +56,6 @@ export let rAF = /* @__PURE__ */ (() =>
     let timestamp = performance.now()
 
     return { timestamp, delta: timestamp }
-  }, '_rAF'))()
+  }, '_rAF')
+
+export let rAF = /* @__PURE__ */ initRAF()

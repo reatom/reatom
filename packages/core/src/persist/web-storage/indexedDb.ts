@@ -226,13 +226,15 @@ export const reatomPersistIndexedDb = (
 }
 
 // Note: idb-keyval availability is checked dynamically at runtime
-let isIndexedDbAvailable = /* @__PURE__ */ (() => {
+const initIsIndexedDbAvailable = () => {
   try {
     return !!globalThis.indexedDB && isBroadcastChannelAvailable
   } catch {
     return false
   }
-})()
+}
+
+let isIndexedDbAvailable = /* @__PURE__ */ initIsIndexedDbAvailable()
 
 /**
  * Default IndexedDB persistence adapter with automatic fallback to memory
@@ -297,7 +299,7 @@ let isIndexedDbAvailable = /* @__PURE__ */ (() => {
  * @see {@link withLocalStorage} for simpler persistent storage
  * @see {@link withBroadcastChannel} for memory-only cross-tab sync
  */
-export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ (() =>
+const initWithIndexedDb = () =>
   isIndexedDbAvailable
     ? reatomPersistIndexedDb(
         'reatom_default',
@@ -305,4 +307,6 @@ export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ (() =>
       )
     : (reatomPersist(
         createMemStorage({ name: 'withIndexedDb' }),
-      ) as unknown as WithPersistWebStorage))()
+      ) as unknown as WithPersistWebStorage)
+
+export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ initWithIndexedDb()

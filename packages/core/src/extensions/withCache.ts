@@ -165,19 +165,23 @@ export interface CacheVarState {
 
 type CacheVarRecord = Pick<CacheRecord, 'value' | 'version'> | undefined
 
-export const cacheVar = variable(
-  (
-    cached?: CacheVarRecord,
-    isSWR = false,
-    promise?: Promise<unknown>,
-  ): CacheVarState => ({
-    isCached: true,
-    isSWR,
-    payload: cached && cached.version > 0 ? { value: cached.value } : undefined,
-    promise,
-  }),
-  'cache',
-)
+const initCacheVar = () =>
+  variable(
+    (
+      cached?: CacheVarRecord,
+      isSWR = false,
+      promise?: Promise<unknown>,
+    ): CacheVarState => ({
+      isCached: true,
+      isSWR,
+      payload:
+        cached && cached.version > 0 ? { value: cached.value } : undefined,
+      promise,
+    }),
+    'cache',
+  )
+
+export const cacheVar = /* @__PURE__ */ initCacheVar()
 
 export let withCache =
   <

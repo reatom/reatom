@@ -16,7 +16,7 @@ export interface FetchRequestInit<
   getResult?: (response: Response) => Result | Promise<Result>
 }
 
-export let FetchRequest = /* @__PURE__ */ (() =>
+const initFetchRequest = () =>
   class FetchRequest<
     Result = unknown,
     Params extends any[] = any[],
@@ -99,4 +99,6 @@ export let FetchRequest = /* @__PURE__ */ (() =>
 
       return transport(url, init).then(getResult) as Promise<Response>
     }
-  })()
+  }
+
+export let FetchRequest = /* @__PURE__ */ initFetchRequest()

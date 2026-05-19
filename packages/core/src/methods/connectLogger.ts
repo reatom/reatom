@@ -86,7 +86,7 @@ const stateLogMap = new Map<string, any>()
  *
  * @see {@link connectLogger} - Must be called to enable logging output
  */
-export let log = /* @__PURE__ */ (() =>
+const initLog = () =>
   action<any[]>((...args) => args, 'LOG').extend((target) => ({
     state<T>(name: string, data: T): T {
       if (!stateLogMap.has(name) || !Object.is(stateLogMap.get(name), data)) {
@@ -95,7 +95,9 @@ export let log = /* @__PURE__ */ (() =>
       }
       return data
     },
-  })))()
+  }))
+
+export let log = /* @__PURE__ */ initLog()
 
 let isNewLogStack = true
 

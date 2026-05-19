@@ -76,9 +76,11 @@ export interface UrlAtom extends Atom<URL> {
   pattern: '/'
 }
 
+const nodeDefaultUrl = 'http://localhost/'
+
 /** Create the URL atom with the new Reatom API. */
 // @ts-ignore TODO weird  pattern issue
-export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
+const initUrlAtom = (): UrlAtom =>
   atom(null as any as URL, 'urlAtom')
     .extend(
       withMiddleware(
@@ -123,12 +125,12 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
       () => ({
         catchLinks: atom(true, 'urlAtom.catchLinks'),
 
-        init: action(() => {
+        init: action((): URL => {
           if (typeof window === 'undefined') {
             console.warn(
               'window is undefined, you should setup urlAtom manually.',
             )
-            return
+            return new URL(nodeDefaultUrl)
           }
           onEvent(window, 'popstate', () =>
             urlAtom.syncFromSource(new URL(window.location.href), true),
@@ -186,7 +188,7 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
           'urlAtom.sync',
         ),
 
-        pattern: '/',
+        pattern: '/' as const,
 
         routes: {},
       }),
@@ -202,4 +204,6 @@ export let urlAtom: UrlAtom = /* @__PURE__ */ (() =>
           return urlAtom.set(url, replace)
         },
       })),
-    ))()
+    )
+
+export let urlAtom: UrlAtom = /* @__PURE__ */ initUrlAtom()

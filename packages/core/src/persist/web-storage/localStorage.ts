@@ -93,13 +93,15 @@ export const reatomPersistWebStorage = (
   })
 }
 
-let isWebStorageAvailable = /* @__PURE__ */ (() => {
+const initIsWebStorageAvailable = () => {
   try {
     return !!globalThis.localStorage
   } catch {
     return false
   }
-})()
+}
+
+let isWebStorageAvailable = /* @__PURE__ */ initIsWebStorageAvailable()
 
 /**
  * Default localStorage persistence adapter with automatic fallback to memory
@@ -145,7 +147,7 @@ let isWebStorageAvailable = /* @__PURE__ */ (() => {
  * @see {@link withSessionStorage} for session-only storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
+const initWithLocalStorage = () =>
   isWebStorageAvailable
     ? /* @__PURE__ */ reatomPersistWebStorage(
         'withLocalStorage',
@@ -153,7 +155,9 @@ export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
       )
     : /* @__PURE__ */ reatomPersist(
         createMemStorage({ name: 'withLocalStorage' }),
-      ))()
+      )
+
+export const withLocalStorage: WithPersist = /* @__PURE__ */ initWithLocalStorage()
 
 /**
  * Default sessionStorage persistence adapter with automatic fallback to memory
@@ -195,7 +199,9 @@ export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
  * @see {@link withLocalStorage} for persistent cross-session storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withSessionStorage: WithPersist = /* @__PURE__ */ (() =>
+const initWithSessionStorage = () =>
   isWebStorageAvailable
     ? reatomPersistWebStorage('withSessionStorage', globalThis.sessionStorage)
-    : reatomPersist(createMemStorage({ name: 'withSessionStorage' })))()
+    : reatomPersist(createMemStorage({ name: 'withSessionStorage' }))
+
+export const withSessionStorage: WithPersist = /* @__PURE__ */ initWithSessionStorage()

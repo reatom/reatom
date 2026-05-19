@@ -758,7 +758,7 @@ export const throwAbort = (
  * @param args - Optional arguments to pass to the handler function
  * @returns A timeout ID that can be used with clearTimeout
  */
-export const setTimeout: SetTimeout = /* @__PURE__ */ (() =>
+const initSetTimeout = () =>
   Object.assign((...params: Parameters<SetTimeout>) => {
     const intervalId = globalThis.setTimeout(...params)
     return typeof intervalId === 'number'
@@ -768,7 +768,9 @@ export const setTimeout: SetTimeout = /* @__PURE__ */ (() =>
             return -1
           },
         })
-  }, globalThis.setTimeout))()
+  }, globalThis.setTimeout)
+
+export const setTimeout: SetTimeout = /* @__PURE__ */ initSetTimeout()
 
 /**
  * Maximum safe integer value for setTimeout delay. Any timeout value larger

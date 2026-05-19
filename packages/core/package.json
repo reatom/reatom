@@ -11,7 +11,7 @@
   "main": "dist/index.cjs",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "sideEffects": false,
+  "sideEffects": true,
   "browserslist": [
     "last 1 year"
   ],
@@ -41,9 +41,6 @@
       }
     },
     "fixedExtension": false,
-    "treeshake": {
-      "annotations": false
-    },
     "deps": {
       "neverBundle": [
         "idb-keyval"

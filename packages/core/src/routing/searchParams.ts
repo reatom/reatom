@@ -74,7 +74,7 @@ const isSubpath = (currentPath: string, targetPath: string) =>
     : `${currentPath}/` === targetPath
 
 /** Create an atom that represents search parameters from the URL. */
-export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
+const initSearchParamsAtom = () =>
   computed(() => Object.fromEntries(urlAtom().searchParams), 'searchParamsAtom')
     .extend((target) =>
       Object.assign(target, {
@@ -111,7 +111,9 @@ export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
             )
           },
         }) satisfies Pick<SearchParamsAtom, 'lens'>,
-    ))()
+    )
+
+export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ initSearchParamsAtom()
 
 /**
  * Create an atom that synchronizes with a URL search parameter.

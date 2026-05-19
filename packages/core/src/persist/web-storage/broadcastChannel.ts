@@ -238,12 +238,13 @@ export const reatomPersistBroadcastChannel = (
  * @see {@link withLocalStorage} for persistent cross-session storage
  * @see {@link BroadcastMessage} for message format details
  */
-export const withBroadcastChannel: WithPersistWebStorage =
-  /* @__PURE__ */ (() =>
-    isBroadcastChannelAvailable
-      ? reatomPersistBroadcastChannel(
-          new BroadcastChannel('reatom_withBroadcastChannel_default'),
-        )
-      : (reatomPersist(
-          createMemStorage({ name: 'withBroadcastChannel' }),
-        ) as unknown as WithPersistWebStorage))()
+const initWithBroadcastChannel = () =>
+  isBroadcastChannelAvailable
+    ? reatomPersistBroadcastChannel(
+        new BroadcastChannel('reatom_withBroadcastChannel_default'),
+      )
+    : (reatomPersist(
+        createMemStorage({ name: 'withBroadcastChannel' }),
+      ) as unknown as WithPersistWebStorage)
+
+export const withBroadcastChannel: WithPersistWebStorage = /* @__PURE__ */ initWithBroadcastChannel()

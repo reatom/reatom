@@ -685,8 +685,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
  * @param name - Optional name for the route atom (for debugging)
  * @returns A new RouteAtom instance
  */
-export let reatomRoute = /* @__PURE__ */ (() =>
-  createRouteFactory(urlAtom) as RouteMixin<''>['reatomRoute'])()
+export let reatomRoute = /* @__PURE__ */ createRouteFactory(
+  urlAtom,
+) as RouteMixin<''>['reatomRoute']
 
 /**
  * A computed atom that indicates whether the current URL matches any defined
@@ -701,15 +702,19 @@ export let reatomRoute = /* @__PURE__ */ (() =>
  * @returns A boolean indicating whether the current URL is not matched by any
  *   route
  */
-export const is404 = /* @__PURE__ */ (() =>
+const initIs404 = () =>
   computed(
     () => Object.values(urlAtom.routes).every((route) => !route()),
     'is404',
-  ))()
+  )
 
-export const isSomeLoaderPending = /* @__PURE__ */ (() =>
+export const is404 = /* @__PURE__ */ initIs404()
+
+const initIsSomeLoaderPending = () =>
   computed(
     () =>
       Object.values(urlAtom.routes).some((route) => route.loader.pending() > 0),
     'isSomeLoaderPending',
-  ))()
+  )
+
+export const isSomeLoaderPending = /* @__PURE__ */ initIsSomeLoaderPending()

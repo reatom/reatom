@@ -240,7 +240,9 @@ export class AbortVariable extends Variable<
  *
  * @type {AbortVariable}
  */
-export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
+const initAbortVar = () => new AbortVariable()
+
+export let abortVar = /* @__PURE__ */ initAbortVar()
 
 /**
  * Races multiple controlled promises and automatically aborts all losers when

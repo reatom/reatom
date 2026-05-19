@@ -478,12 +478,15 @@ export let transactionVar = /* @__PURE__ */ reatomTransaction({
   name: 'default',
 })
 
+const initWithRollback = () => transactionVar.withRollback
+const initWithTransaction = () => transactionVar.withTransaction
+const initRollback = () => transactionVar.rollback
+
 /** @see {@link TransactionVariable.withRollback} */
-export let withRollback = /* @__PURE__ */ (() => transactionVar.withRollback)()
+export let withRollback = /* @__PURE__ */ initWithRollback()
 
 /** @see {@link TransactionVariable.withTransaction} */
-export let withTransaction = /* @__PURE__ */ (() =>
-  transactionVar.withTransaction)()
+export let withTransaction = /* @__PURE__ */ initWithTransaction()
 
 /** @see {@link TransactionVariable.rollback} */
-export let rollback = /* @__PURE__ */ (() => transactionVar.rollback)()
+export let rollback = /* @__PURE__ */ initRollback()

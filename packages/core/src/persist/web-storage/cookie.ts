@@ -138,13 +138,15 @@ export const reatomPersistCookie = (
   })
 }
 
-export let isCookieAvailable = /* @__PURE__ */ (() => {
+const initIsCookieAvailable = () => {
   try {
     return 'cookie' in globalThis.document
   } catch {
     return false
   }
-})()
+}
+
+export let isCookieAvailable = /* @__PURE__ */ initIsCookieAvailable()
 
 /**
  * Default cookie persistence adapter that automatically uses browser cookies or
@@ -192,9 +194,11 @@ export let isCookieAvailable = /* @__PURE__ */ (() => {
  * @see {@link CookieAttributes} for all available options
  * @see {@link reatomPersistCookie} for creating custom cookie adapters
  */
-export const withCookie: WithPersistCookie = /* @__PURE__ */ (() =>
+const initWithCookie = () =>
   isCookieAvailable
     ? reatomPersistCookie('withCookie', globalThis.document)
     : (reatomPersist(
         createMemStorage({ name: 'withCookie' }),
-      ) as unknown as WithPersistCookie))()
+      ) as unknown as WithPersistCookie)
+
+export const withCookie: WithPersistCookie = /* @__PURE__ */ initWithCookie()
