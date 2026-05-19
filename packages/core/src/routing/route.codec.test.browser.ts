@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, expectTypeOf, test } from 'test'
-import z from 'zod'
+import { z } from 'zod'
 
 import { urlAtom } from '../web/url'
 import { reatomRoute } from './route'

@@ -5,7 +5,7 @@ description: 'A short overview of all Reatom features'
 
 # Reatom full framework documentation summary
 
-This documentation for `@reatom/core@1000` package and some ecosystem around it.
+This documentation for `@reatom/core@1001` package and some ecosystem around it.
 
 ## Goal and fit
 
@@ -593,7 +593,7 @@ Key primitives
 
 ```ts
 import { reatomField, reatomForm, wrap } from '@reatom/core'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 type AuthResult = { token: string }
 
@@ -704,7 +704,7 @@ Tricky
 
 ```ts
 import { reatomRoute, urlAtom, wrap } from '@reatom/core'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 // simple path — returns {} when matched, null when not
 const homeRoute = reatomRoute('')
@@ -803,7 +803,7 @@ Routes:
 ```ts
 // routes.ts
 import { computed, reatomRoute, withAsyncData, wrap } from '@reatom/core'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 type User = { id: string; name: string; role: string }
 

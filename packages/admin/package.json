@@ -75,19 +75,18 @@
     "/dist"
   ],
   "devDependencies": {
-    "@reatom/jsx": ">=1000.14.1",
-    "@storybook/addon-vitest": "^10.3.3",
-    "@storybook/html": "^10.3.3",
-    "@storybook/html-vite": "^10.3.3",
-    "@typescript-eslint/eslint-plugin": "^8.28.0",
-    "@typescript-eslint/parser": "^8.28.0",
+    "@storybook/addon-vitest": "^10.4.0",
+    "@storybook/html": "^10.4.0",
+    "@storybook/html-vite": "^10.4.0",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
     "@vitest/browser": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@vitest/ui": "catalog:",
-    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-simple-import-sort": "catalog:",
     "msw": "^2.12.13",
     "msw-storybook-addon": "^2.0.6",
-    "storybook": "^10.3.3",
+    "storybook": "^10.4.0",
     "tsdown": "catalog:",
     "vitest": "catalog:"
   }

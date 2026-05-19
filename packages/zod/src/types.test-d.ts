@@ -57,7 +57,9 @@ test('right types for effects', async () => {
   const model = reatomZod(schema)
   type InferedSchema = z.infer<typeof schema>
 
-  expectTypeOf(model.refine).toEqualTypeOf<Atom<InferedSchema['refine']>>()
+  expectTypeOf(model.refine).toEqualTypeOf<
+    Atom<InferedSchema['refine'], [string | null]>
+  >()
   expectTypeOf(model.transform).toEqualTypeOf<
     Atom<InferedSchema['transform']>
   >()
@@ -93,7 +95,7 @@ test('right types for brands', async () => {
   expectTypeOf(objectModel).toEqualTypeOf<{
     brand: {
       kek: Atom<InferedObjectSchema['brand']['kek'] | null>
-    } & z.BRAND<'foo'>
+    } & z.core.$brand<'foo'>
     brand2: InferedObjectSchema['brand2']
   }>()
 })
@@ -129,5 +131,50 @@ test('union types', async () => {
   const schema = z.union([z.number(), z.string()])
   const model = reatomZod(schema)
 
-  expectTypeOf(model).toExtend<Atom<number | string>>()
+  expectTypeOf(model).toEqualTypeOf<Atom<number | string>>()
+})
+
+test('file types', () => {
+  const schema = z.file()
+  const model = reatomZod(schema)
+
+  expectTypeOf(model).toEqualTypeOf<Atom<File>>()
+})
+
+test('custom type', () => {
+  class Custom {}
+
+  const schema = z.object({
+    cls: z.instanceof(Custom),
+    even: z.custom<number>((val) => typeof val === 'number' && val % 2 === 0),
+  })
+  const model = reatomZod(schema)
+
+  expectTypeOf(model).toEqualTypeOf<{ cls: Atom<Custom>; even: Atom<number> }>()
+})
+
+test('string template literal type', () => {
+  const schema = z.object({
+    em: z.templateLiteral([z.number(), 'em']),
+    complex: z.templateLiteral([
+      z.string(),
+      '_1_',
+      z.boolean(),
+      '_2_',
+      z.number(),
+      '_3_',
+      z.null(),
+    ]),
+    test: z.bigint(),
+  })
+  const model = reatomZod(schema)
+
+  expectTypeOf(model).toEqualTypeOf<{
+    em: Atom<`${number}em`>
+    complex: Atom<
+      | `${string}_1_false_2_${number}_3_null`
+      | `${string}_1_true_2_${number}_3_null`
+    >
+    test: Atom<bigint>
+  }>()
 })

@@ -12,6 +12,7 @@ export default defineConfig({
     },
   },
   test: {
+    sequence: { groupOrder: 13 },
     testTimeout: 5000,
     name: '@reatom/jsx',
     include: ['./src/**/*.test.tsx'],

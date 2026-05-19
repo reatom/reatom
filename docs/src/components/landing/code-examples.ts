@@ -161,7 +161,7 @@ export const LoginForm = reatomComponent(() => {
     title: 'Routing',
     description: 'Route render, params, and loaders',
     code: `import { computed, reatomRoute, wrap } from '@reatom/core'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export const layoutRoute = reatomRoute({
   layout: true,

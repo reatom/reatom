@@ -623,7 +623,7 @@ You can define, validate and transform parameters using Zod schemas or other [St
 
 ```typescript
 import { reatomRoute } from '@reatom/core'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export const userRoute = reatomRoute({
   path: 'users/:userId',

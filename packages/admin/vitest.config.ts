@@ -25,6 +25,7 @@ export default defineConfig({
   },
 
   test: {
+    sequence: { groupOrder: 12 },
     testTimeout: 5000,
     projects: [
       {

@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, viTest } from 'test'
-import z from 'zod'
+import { z } from 'zod'
 
 import {
   addCallHook,

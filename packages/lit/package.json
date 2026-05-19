@@ -21,8 +21,8 @@
   "scripts": {
     "prepublishOnly": "pnpm run build && pnpm run test",
     "build": "tsdown",
-    "test": "vitest run src/*",
-    "test:watch": "vitest src/*",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "demo": "vite demo"
   },
   "tsdown": {

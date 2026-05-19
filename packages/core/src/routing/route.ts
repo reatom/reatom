@@ -534,7 +534,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
           }
         }
         return target({ ...parentSnapshot, ...rel }, replace)
-      }, `${name}.go.relative`),
+      }, `${target.name}.relative`),
     })) as RouteGo
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {

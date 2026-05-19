@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   plugins: [preact()],
   test: {
+    sequence: { groupOrder: 18 },
     testTimeout: 5000,
     name: '@reatom/preact-browser',
     include: ['./src/**/*.test.tsx'],

@@ -68,7 +68,7 @@
 		"@vitest/browser-playwright": "catalog:",
 		"eslint-plugin-simple-import-sort": "catalog:",
 		"tsdown": "catalog:",
-		"vite-plugin-solid": "^2.11.6",
+		"vite-plugin-solid": "catalog:",
 		"vitest": "catalog:"
 	}
 }

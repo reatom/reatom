@@ -1,5 +1,5 @@
 import { beforeEach, expect, expectTypeOf, test } from 'test'
-import z from 'zod'
+import { z } from 'zod'
 
 import { atom, computed } from '../core'
 import { wrap } from '../methods'

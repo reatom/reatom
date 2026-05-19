@@ -28,7 +28,7 @@ Let's assume we have the following form that is validated through Zod:
 ```ts
 import { reatomForm } from '@reatom/core'
 import { bindField, reatomComponent } from '@reatom/react'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 const form = reatomForm(
   {

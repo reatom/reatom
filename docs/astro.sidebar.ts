@@ -69,9 +69,13 @@ export const sidebar = [
 
   group('Guides', {
     badge: icon('puzzle'),
-    autogenerate: {
-      directory: 'guides',
-    },
+    items: [
+      {
+        autogenerate: {
+          directory: 'guides',
+        },
+      },
+    ],
   }),
 
   group('Reference', {

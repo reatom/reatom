@@ -29,8 +29,6 @@ import {
 } from '@reatom/core'
 import { z } from 'zod'
 
-export * as v4 from './v4'
-
 export interface ZodAtom<_T> {}
 
 export interface Atom<T = any, Params extends any[] = [newState: T]>
@@ -62,102 +60,99 @@ export interface LinkedListAtom<
   extends ZodAtom<Array<Model>>, ReatomLinkedListAtom<Params, Model> {}
 
 type DistributeIntersection<U, T> = U extends any ? U & T : never
+type OnlyStringKeys<T> = Exclude<T, number | symbol>
 
 // prettier-ignore
-export type ZodAtomization<T extends z.ZodFirstPartySchemaTypes, Union = never, Intersection = unknown> = T extends z.ZodAny
-  ? Atom<(any & Intersection) | Union>
-  : T extends z.ZodUnknown
-    ? Atom<(unknown & Intersection) | Union>
-    : T extends z.ZodNever
-      ? never
-      : T extends z.ZodReadonly<infer Type>
-        ? (z.infer<Type> & Intersection) | Union
-        : T extends z.ZodUndefined
-          ? Atom<(undefined & Intersection) | Union>
-          : T extends z.ZodVoid
-            ? (undefined & Intersection) | Union
-            : T extends z.ZodNaN
-              ? (number & Intersection) | Union
-              : T extends z.ZodNull
-                ? Atom<(null & Intersection) | Union>
-                : T extends z.ZodLiteral<infer T>
-                  ? (T & Intersection) | Union
-                  : T extends z.ZodBoolean
-                    ? [Union] extends [never]
-                      ? BooleanAtom
-                      : Atom<(boolean & Intersection) | Union>
-                    : T extends z.ZodNumber
+export type ZodAtomization<T extends z.core.$ZodType, Union = never, Intersection = unknown> = T extends z.ZodAny
+  ? Atom<any>
+  : T extends z.core.$ZodBranded<infer T, infer Brand>
+    ? ZodAtomization<T, Union, z.core.$brand<Brand> & Intersection>
+    : T extends z.core.$ZodUnknown
+      ? Atom<(unknown & Intersection) | Union>
+      : T extends z.core.$ZodNever
+        ? never
+        : T extends z.core.$ZodReadonly<infer Type>
+          ? (z.infer<Type> & Intersection) | Union
+          : T extends z.core.$ZodUndefined
+            ? Atom<(undefined & Intersection) | Union>
+            : T extends z.core.$ZodVoid
+              ? (undefined & Intersection) | Union
+              : T extends z.core.$ZodNaN
+                ? (number & Intersection) | Union
+                : T extends z.core.$ZodNull
+                  ? Atom<(null & Intersection) | Union>
+                  : T extends z.core.$ZodLiteral<infer T>
+                    ? (T & Intersection) | Union
+                    : T extends z.core.$ZodBoolean
                       ? [Union] extends [never]
-                        ? NumberAtom
-                        : Atom<(number & Intersection) | Union>
-                      : T extends z.ZodBigInt
-                        ? Atom<(bigint & Intersection) | Union>
-                        : T extends z.ZodString
-                          ? Atom<(string & Intersection) | Union>
-                          : T extends z.ZodSymbol
-                            ? Atom<(symbol & Intersection) | Union>
-                            : T extends z.ZodDate
-                              ? Atom<(Date & Intersection) | Union, [Date | string | number | Union]>
-                              : T extends z.ZodArray<infer T>
-                                ? LinkedListAtom<
-                                    [void | Partial<z.infer<T>>],
-                                    T extends z.ZodObject<any>
-                                      ? ZodAtomization<T>
-                                      : { value: ZodAtomization<T> }
-                                  > // TODO Union and Intersection for LL
-                                : T extends z.ZodTuple<infer Tuple>
-                                  ? Atom<(z.infer<Tuple[number]> & Intersection) | Union>
-                                  : T extends z.ZodObject<infer Shape>
-                                    ? [Union] extends [never]
-                                      ? {
-                                          [K in keyof Shape]: ZodAtomization<Shape[K]>;
-                                        } & Intersection
-                                      : Atom<({ 
-                                          [K in keyof Shape]: ZodAtomization<Shape[K]> 
-                                        } & Intersection) | Union>
-                                    : T extends z.ZodRecord<infer KeyType, infer ValueType>
-                                      ? [Union] extends [never]
-                                        ? RecordAtom<Record<z.infer<KeyType>, ZodAtomization<ValueType>>>
-                                        : Atom<(Record<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
-                                      : T extends z.ZodMap<infer KeyType, infer ValueType>
+                        ? BooleanAtom
+                        : Atom<(boolean & Intersection) | Union>
+                      : T extends z.core.$ZodNumber
+                        ? [Union] extends [never]
+                          ? NumberAtom
+                          : Atom<(number & Intersection) | Union>
+                        : T extends z.core.$ZodBigInt
+                          ? Atom<(bigint & Intersection) | Union>
+                          : T extends z.core.$ZodString
+                            ? Atom<(string & Intersection) | Union>
+                            : T extends z.core.$ZodTemplateLiteral<infer Template>
+                              ? Atom<(Template & Intersection) | Union>
+                              : T extends z.core.$ZodSymbol
+                                ? Atom<(symbol & Intersection) | Union>
+                                : T extends z.core.$ZodDate
+                                  ? Atom<(Date & Intersection) | Union, [newState: Date | string | number]>
+                                  : T extends z.core.$ZodArray<infer T>
+                                    ? LinkedListAtom<
+                                        [param: z.infer<T>],
+                                        T extends z.core.$ZodObject<any>
+                                          ? ZodAtomization<T>
+                                          : { value: ZodAtomization<T> }
+                                      > // TODO Union and Intersection for LL
+                                    : T extends z.core.$ZodTuple<infer Tuple>
+                                      ? Atom<(z.infer<Tuple[number]> & Intersection) | Union>
+                                      : T extends z.core.$ZodObject<infer Shape>
                                         ? [Union] extends [never]
-                                          ? MapAtom<z.infer<KeyType>, ZodAtomization<ValueType>>
-                                          : Atom<(Map<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
-                                        : T extends z.ZodSet<infer ValueType>
+                                          ? (Record<string, never> extends Shape ? Record<string, never> : {
+                                              [K in keyof Shape]: ZodAtomization<Shape[K]>;
+                                            }) & Intersection
+                                          : Atom<((Record<string, never> extends Shape ? Record<string, never> : { 
+                                              [K in keyof Shape]: ZodAtomization<Shape[K]> 
+                                            }) & Intersection) | Union>
+                                        : T extends z.core.$ZodRecord<infer KeyType, infer ValueType>
                                           ? [Union] extends [never]
-                                            ? SetAtom<z.infer<ValueType>>
-                                            : Atom<(Set<z.infer<ValueType>> & Intersection) | Union>
-                                          : T extends z.ZodEnum<infer Enum>
+                                            ? RecordAtom<Record<z.infer<KeyType>, ZodAtomization<ValueType>>>
+                                            : Atom<(Record<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
+                                          : T extends z.core.$ZodMap<infer KeyType, infer ValueType>
                                             ? [Union] extends [never]
-                                              ? EnumAtom<Enum[number]>
-                                              : Atom<(Enum[number] & Intersection) | Union>
-                                            : T extends z.ZodNativeEnum<infer Enum>
+                                              ? MapAtom<z.infer<KeyType>, ZodAtomization<ValueType>>
+                                              : Atom<(Map<z.infer<KeyType>, ZodAtomization<ValueType>> & Intersection) | Union>
+                                            : T extends z.core.$ZodSet<infer ValueType>
                                               ? [Union] extends [never]
-                                                ? // @ts-expect-error шо?
-                                                  EnumAtom<Enum[keyof Enum]>
-                                                : Atom<(Enum[keyof Enum] & Intersection) | Union>
-                                              : T extends z.ZodDefault<infer T>
-                                                ? ZodAtomization<T, Union extends undefined ? never : Union, Intersection>
-                                                : T extends z.ZodOptional<infer T>
-                                                  ? ZodAtomization<T, undefined | Union, Intersection>
-                                                  : T extends z.ZodCatch<infer T>
-                                                    ? ZodAtomization<T, Union, Intersection>
-                                                    : T extends z.ZodBranded<infer T, infer Brand>
-                                                      ? ZodAtomization<T, Union, z.BRAND<Brand> & Intersection>
-                                                      : T extends z.ZodEffects<infer T, infer Output>
-                                                        ? ZodAtomization<T, Union | Output, Intersection>
-                                                        : T extends z.ZodPipeline<infer _T, infer Output>
-                                                          ? ZodAtomization<Output>
-                                                          : T extends z.ZodLazy<infer T>
-                                                            ? ZodAtomization<T>
-                                                            : T extends z.ZodNullable<infer T>
-                                                              ? ZodAtomization<T, null | Union, Intersection>
-                                                              : T extends z.ZodUnion<infer T>
-                                                                ? Atom<DistributeIntersection<z.infer<T[number]>, Intersection> | Union>
-                                                                // ? Atom<z.infer<T[number]> | Union>
-                                                                : T extends z.ZodDiscriminatedUnion<infer _K, infer T>
+                                                ? SetAtom<z.infer<ValueType>>
+                                                : Atom<(Set<z.infer<ValueType>> & Intersection) | Union>
+                                              : T extends z.core.$ZodEnum<infer Enum>
+                                                ? [Union] extends [never]
+                                                  ? EnumAtom<OnlyStringKeys<keyof Enum>>
+                                                  : Atom<(OnlyStringKeys<keyof Enum> & Intersection) | Union>
+                                                : T extends z.core.$ZodDefault<infer T>
+                                                  ? ZodAtomization<T, Union extends undefined ? never : Union, Intersection>
+                                                  : T extends z.core.$ZodPrefault<infer T>
+                                                    ? ZodAtomization<T, Union extends undefined ? never : Union, Intersection>
+                                                    : T extends z.core.$ZodTransform<infer Output, infer _Input>
+                                                      ? Atom<(Output & Intersection) | Union>
+                                                      : T extends z.core.$ZodOptional<infer T>
+                                                        ? ZodAtomization<T, undefined | Union, Intersection>
+                                                        : T extends z.core.$ZodCatch<infer T>
+                                                          ? ZodAtomization<T, Union, Intersection>
+                                                          : T extends z.core.$ZodPipe<infer _T, infer Output>
+                                                            ? ZodAtomization<Output>
+                                                            : T extends z.core.$ZodLazy<infer T>
+                                                              ? ZodAtomization<T>
+                                                              : T extends z.core.$ZodNullable<infer T>
+                                                                ? ZodAtomization<T, null | Union, Intersection>
+                                                                  : T extends z.core.$ZodDiscriminatedUnion<infer T>
                                                                   ? [Union] extends [never]
-                                                                    ? T extends Array<z.ZodObject<infer Shape>>
+                                                                    ? T extends Array<z.core.$ZodObject<infer Shape>>
                                                                       ? Computed<{
                                                                           [K in keyof Shape]: ZodAtomization<Shape[K]>;
                                                                         }> &
@@ -168,7 +163,14 @@ export type ZodAtomization<T extends z.ZodFirstPartySchemaTypes, Union = never, 
                                                                           })
                                                                       : unknown
                                                                     : unknown
-                                                                  : T;
+                                                                  : T extends z.core.$ZodFile
+                                                                    ? Atom<(File & Intersection) | Union>
+                                                                    : T extends z.core.$ZodCustom<infer Output>
+                                                                      ? Atom<(Output & Intersection) | Union>
+                                                                      : T extends z.ZodUnion<infer T>
+                                                                        ? Atom<DistributeIntersection<z.infer<T[number]>, Intersection> | Union>
+                                                                        // ? Atom<z.infer<T[number]> | Union>;
+                                                                        : T
 
 type Primitive = null | undefined | string | number | boolean | symbol | bigint
 type BuiltIns = Primitive | Date | RegExp
@@ -187,24 +189,24 @@ export const silentUpdate = action((cb: Fn) => {
 })
 
 export const EXTENSIONS = new Array<
-  (target: AtomLike, ext: z.ZodFirstPartyTypeKind) => AtomLike
+  (target: AtomLike, ext: z.core.$ZodTypeDef['type']) => AtomLike
 >()
 
 /** Get default state based on Zod type definition */
 export const getDefaultState = (
-  def: any, // Use any for Zod internal definition object
+  def: z.ZodFirstPartySchemaTypes['_zod']['def'], // Use any for Zod internal definition object
   initState?: any,
 ): any => {
   if (initState !== undefined) {
     if (
-      def.typeName === z.ZodFirstPartyTypeKind.ZodDate &&
+      def.type === 'date' &&
       (typeof initState === 'number' || typeof initState === 'string')
     ) {
       return new Date(initState)
     }
 
     if (
-      def.typeName === z.ZodFirstPartyTypeKind.ZodMap &&
+      def.type === 'map' &&
       !(initState instanceof Map) &&
       typeof initState[Symbol.iterator] === 'function'
     ) {
@@ -212,7 +214,7 @@ export const getDefaultState = (
     }
 
     if (
-      def.typeName === z.ZodFirstPartyTypeKind.ZodSet &&
+      def.type === 'set' &&
       !(initState instanceof Set) &&
       typeof initState[Symbol.iterator] === 'function'
     ) {
@@ -228,52 +230,61 @@ export const getDefaultState = (
   }
 
   // Create state based on type
-  switch (def.typeName) {
-    case z.ZodFirstPartyTypeKind.ZodString:
+  switch (def.type) {
+    case 'string':
       return ''
-    case z.ZodFirstPartyTypeKind.ZodNumber:
+    case 'template_literal':
+      return def.parts
+        .map((part) =>
+          part && typeof part === 'object' && '_zod' in part
+            ? String(getDefaultState(part._zod.def as typeof def))
+            : part,
+        )
+        .join('')
+    case 'number':
       return 0
-    case z.ZodFirstPartyTypeKind.ZodBoolean:
+    case 'boolean':
       return false
-    case z.ZodFirstPartyTypeKind.ZodNull:
+    case 'null':
       return null
-    case z.ZodFirstPartyTypeKind.ZodDate:
+    case 'date':
       return new Date()
-    case z.ZodFirstPartyTypeKind.ZodArray:
+    case 'array':
       return []
-    case z.ZodFirstPartyTypeKind.ZodObject:
+    case 'object':
       return {}
-    case z.ZodFirstPartyTypeKind.ZodRecord:
+    case 'record':
       return {}
-    case z.ZodFirstPartyTypeKind.ZodMap:
+    case 'map':
       return new Map()
-    case z.ZodFirstPartyTypeKind.ZodSet:
+    case 'set':
       return new Set()
-    case z.ZodFirstPartyTypeKind.ZodLiteral:
-      return def.value
-    case z.ZodFirstPartyTypeKind.ZodEnum:
+    case 'literal':
       return def.values[0]
-    case z.ZodFirstPartyTypeKind.ZodNativeEnum:
-      return Object.values(def.values)[0]
-    case z.ZodFirstPartyTypeKind.ZodOptional:
-    case z.ZodFirstPartyTypeKind.ZodNullable:
-      return def.innerType ? getDefaultState(def.innerType._def) : undefined
-    case z.ZodFirstPartyTypeKind.ZodDefault:
-      return def.defaultValue()
-    case z.ZodFirstPartyTypeKind.ZodEffects:
-    case z.ZodFirstPartyTypeKind.ZodBranded:
-      return def.schema ? getDefaultState(def.schema._def) : undefined
-    case z.ZodFirstPartyTypeKind.ZodPipeline:
-      return def.out ? getDefaultState(def.out._def) : undefined
-    case z.ZodFirstPartyTypeKind.ZodUnion: {
+    case 'enum':
+      return Object.keys(def.entries)[0]
+    case 'optional':
+    case 'nonoptional':
+    case 'nullable':
+      return def.innerType
+        ? getDefaultState(def.innerType._zod.def as typeof def)
+        : undefined
+    case 'prefault':
+    case 'default':
+      return def.defaultValue
+    case 'pipe':
+      return def.out
+        ? getDefaultState(def.out._zod.def as typeof def)
+        : undefined
+    case 'union': {
       const defaultOption = def.options.find(
         (type: any) =>
           type._def.defaultValue &&
           typeof type._def.defaultValue === 'function',
       )
       return defaultOption
-        ? getDefaultState(defaultOption._def)
-        : getDefaultState(def.options[0]._def)
+        ? getDefaultState(defaultOption._zod.def as typeof def)
+        : getDefaultState(def.options[0]!._zod.def as typeof def)
     }
     default:
       return undefined
@@ -291,45 +302,55 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
   }: {
     sync?: () => void
     initState?: PartialDeep<z.infer<Schema>>
-    parse?: Schema['parse']
+    parse?: (input: unknown) => z.output<Schema>
     name?: string
     extend?: typeof EXTENSIONS
   } = {},
 ): ZodAtomization<Schema> => {
-  const def = schema._def
+  const def = schema._zod.def
 
-  parse ??= schema.parse
+  // const ensureNotPromise = <T>(value: T): asserts value is Exclude<typeof value, number> => {
+  //   if (value instanceof Promise)
+  //     throw new ReatomError('Async schemas not supported yet');
+  // }
 
-  name ??= named(`reatomZod.${def.typeName}`)
+  parse ??= (input: unknown) => z.parse(schema, input)
+
+  name ??= named(`reatomZod.${def.type}`)
 
   let state: any = getDefaultState(def, initState)
   let theAtom: Computed
 
-  switch (def.typeName) {
-    case z.ZodFirstPartyTypeKind.ZodNever: {
+  switch (def.type) {
+    case 'never': {
       throw new Error('Never type')
     }
-    case z.ZodFirstPartyTypeKind.ZodNaN: {
+    case 'nan': {
       return NaN as ZodAtomization<Schema>
     }
-    case z.ZodFirstPartyTypeKind.ZodReadonly:
-    case z.ZodFirstPartyTypeKind.ZodVoid: {
+    case 'readonly':
+    case 'void': {
       return initState as ZodAtomization<Schema>
     }
-    case z.ZodFirstPartyTypeKind.ZodUnknown:
-    case z.ZodFirstPartyTypeKind.ZodUndefined:
-    case z.ZodFirstPartyTypeKind.ZodNull:
-    case z.ZodFirstPartyTypeKind.ZodString: {
+    case 'unknown':
+    case 'undefined':
+    case 'null':
+    case 'any':
+    case 'string':
+    case 'bigint':
+    case 'file':
+    case 'custom':
+    case 'template_literal': {
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodLiteral: {
+    case 'literal': {
       return state as ZodAtomization<Schema>
     }
-    case z.ZodFirstPartyTypeKind.ZodNumber: {
+    case 'number': {
       theAtom = reatomNumber(state, name)
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodDate: {
+    case 'date': {
       let schemaParse = parse
       parse = (payload) => {
         if (payload instanceof Date) {
@@ -342,16 +363,16 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       }
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodBoolean: {
+    case 'boolean': {
       theAtom = reatomBoolean(state, name)
       break
     }
-    // case z.ZodFirstPartyTypeKind.ZodSymbol: {
+    // case 'symbol': {
     //   break;
     // }
-    case z.ZodFirstPartyTypeKind.ZodObject: {
+    case 'object': {
       const obj = {} as Rec
-      for (const [key, child] of Object.entries(def.shape())) {
+      for (const [key, child] of Object.entries(def.shape)) {
         obj[key] = reatomZod(child as z.ZodFirstPartySchemaTypes, {
           sync,
           initState: (initState as any)?.[key],
@@ -361,91 +382,90 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       }
       return obj as ZodAtomization<Schema>
     }
-    case z.ZodFirstPartyTypeKind.ZodTuple: {
+    case 'tuple': {
       if (state === undefined) {
-        state = def.items.map((item: z.ZodFirstPartySchemaTypes, i: number) =>
-          reatomZod(item, { sync, name: `${name}#${i}`, extend }),
+        state = def.items.map((item, i: number) =>
+          reatomZod(item as z.ZodFirstPartySchemaTypes, {
+            sync,
+            name: `${name}#${i}`,
+            extend,
+          }),
         )
       }
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodArray: {
+    case 'array': {
       // TODO @artalar generate a better name, instead of using `named`
-      const isObject =
-        def.type._def.typeName === z.ZodFirstPartyTypeKind.ZodObject
+      const isObject = def.element._zod.def.type === 'object'
       theAtom = reatomLinkedList(
         {
           create: (itemInitState) => {
-            const value = reatomZod(def.type, {
+            const value = reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
               sync,
               initState: itemInitState,
               name: named(name),
               extend,
             })
-            return isObject ? value : { value }
+            return isObject ? (value as Rec) : { value }
           },
           initState: (state as any[] | undefined)?.map((itemInitState: any) => {
-            const value = reatomZod(def.type, {
+            const value = reatomZod(def.element as z.ZodFirstPartySchemaTypes, {
               sync,
               initState: itemInitState,
               name: named(name),
               extend,
             })
-            return isObject ? value : { value }
+            return isObject ? (value as Rec) : { value }
           }),
         },
         name,
       )
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodRecord: {
+    case 'record': {
       theAtom = reatomRecord(state, name)
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodMap: {
+    case 'map': {
       theAtom = reatomMap(state, name)
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodSet: {
+    case 'set': {
       theAtom = reatomSet(state, name)
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodEnum: {
-      theAtom = reatomEnum(def.values, { initState: state, name })
+    case 'enum': {
+      theAtom = reatomEnum(Object.keys(def.entries), { initState: state, name })
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodNativeEnum: {
-      theAtom = reatomEnum(Object.values(def.values), {
-        initState: state,
-        name,
-      })
-      break
-    }
-    case z.ZodFirstPartyTypeKind.ZodUnion: {
-      break
-    }
-    case z.ZodFirstPartyTypeKind.ZodDiscriminatedUnion: {
+    case 'union': {
+      const isDiscriminatedUnionDef = (
+        d: typeof def,
+      ): d is z.core.$ZodDiscriminatedUnionDef => {
+        return 'discriminator' in d
+      }
+
+      if (!isDiscriminatedUnionDef(def)) break
+
       const getState = (stateValue: any) => {
         if (!stateValue) {
           throw new ReatomError('Missed init state for discriminated union')
         }
 
-        const stateType = def.options.find(
-          (type: z.ZodDiscriminatedUnionOption<string>) => {
-            try {
-              type.parse(stateValue)
-              return true
-            } catch {
-              return false
-            }
-          },
-        )
+        const stateType = def.options.find((type) => {
+          try {
+            z.parse(type, stateValue)
+            return true
+          } catch {
+            return false
+          }
+        })
 
         if (!stateType) {
           throw new ReatomError('Missed state for discriminated union')
         }
 
-        return reatomZod(stateType, {
+        return reatomZod(stateType as z.ZodFirstPartySchemaTypes, {
           sync,
           initState: stateValue,
           name,
@@ -454,7 +474,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       }
 
       theAtom = atom(getState(state), name).extend(
-        withParams<Atom<{}>, [{}]>((payload) =>
+        withParams<Atom<any>, [any]>((payload) =>
           getState(
             typeof payload === 'function' ? payload(top().state) : payload,
           ),
@@ -462,8 +482,10 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
       )
       break
     }
-    case z.ZodFirstPartyTypeKind.ZodOptional: {
-      return reatomZod(def.innerType, {
+    case 'nonoptional':
+    case 'optional': {
+      // @ts-ignore TODO
+      return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
         parse(payload: any) {
@@ -474,8 +496,9 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
         extend,
       })
     }
-    case z.ZodFirstPartyTypeKind.ZodNullable: {
-      return reatomZod(def.innerType, {
+    case 'nullable': {
+      // @ts-ignore TODO
+      return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
         parse(payload: any) {
@@ -486,42 +509,65 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
         extend,
       })
     }
-    case z.ZodFirstPartyTypeKind.ZodDefault: {
-      return reatomZod(def.innerType, {
+    case 'prefault':
+    case 'default': {
+      // @ts-ignore TODO
+      return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
         sync,
         initState: state,
         name,
         extend,
       })
     }
-    case z.ZodFirstPartyTypeKind.ZodCatch: {
+    case 'catch': {
       try {
-        def.innerType.parse(state)
+        z.parse(def.innerType, state)
       } catch (error) {
         if (error instanceof z.ZodError)
-          state = def.catchValue({ error, input: state })
+          state = def.catchValue({
+            issues: error.issues,
+            value: state,
+            error,
+            input: state,
+          })
       }
 
-      return reatomZod(def.innerType, { sync, initState: state, name, extend })
+      // @ts-ignore TODO
+      return reatomZod(def.innerType as z.ZodFirstPartySchemaTypes, {
+        sync,
+        initState: state,
+        name,
+        extend,
+      })
     }
-    case z.ZodFirstPartyTypeKind.ZodEffects: {
-      return reatomZod(def.schema, { sync, initState: state, name, extend })
+    case 'transform': {
+      parse = (input: unknown) =>
+        def.transform(input, { value: undefined, issues: [] })
+      break
     }
-    case z.ZodFirstPartyTypeKind.ZodBranded: {
-      return reatomZod(def.type, { sync, initState: state, name, extend })
+    case 'pipe': {
+      // @ts-ignore TODO
+      return reatomZod(def.out as z.ZodFirstPartySchemaTypes, {
+        sync,
+        initState: state,
+        name,
+        extend,
+      })
     }
-    case z.ZodFirstPartyTypeKind.ZodPipeline: {
-      return reatomZod(def.out, { sync, initState: state, name, extend })
+    case 'lazy': {
+      // @ts-ignore TODO
+      return reatomZod(def.getter() as z.ZodFirstPartySchemaTypes, {
+        sync,
+        initState: state,
+        name,
+        extend,
+      })
     }
-    case z.ZodFirstPartyTypeKind.ZodLazy: {
-      return reatomZod(def.getter(), { sync, initState: state, name, extend })
-    }
-    case z.ZodFirstPartyTypeKind.ZodIntersection: {
+    case 'intersection': {
       throw new TypeError(
-        `Unsupported Zod type: ${def.typeName}. Please use .merge instead`,
+        `Unsupported Zod type: ${def.type}. Please use .merge instead`,
       )
     }
-
     default: {
       // @ts-expect-error // TODO
       const typeName: never = def.typeName
@@ -535,8 +581,9 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
   theAtom ??= atom(state, name)
 
   // TODO: with withParams for reatomLinkedList
-  if (def.typeName !== z.ZodFirstPartyTypeKind.ZodArray) {
+  if (def.type !== 'array') {
     theAtom.extend(
+      // @ts-ignore TODO
       withParams((payload) => {
         return typeof payload === 'function'
           ? (state: any) => parse(payload(state))
@@ -555,7 +602,7 @@ export const reatomZod = <Schema extends z.ZodFirstPartySchemaTypes>(
   const allExtensions = [...EXTENSIONS, ...(extend || [])]
 
   return allExtensions.reduce(
-    (target, ext) => ext(target, def.typeName),
+    (target, ext) => ext(target, def.type),
     theAtom,
   ) as ZodAtomization<Schema>
 }

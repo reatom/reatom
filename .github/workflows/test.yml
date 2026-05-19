@@ -24,10 +24,7 @@ jobs:
           pnpx playwright install --with-deps chromium
 
       - name: Run tests
-        run: pnpm run --filter @reatom/core test
-
-      - name: Run admin tests
-        run: pnpm run --filter @reatom/admin test
+        run: pnpm test
 
       - name: Upload admin ui artifacts
         if: failure()

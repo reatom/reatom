@@ -1,23 +1,13 @@
 {
   "name": "@reatom/zod",
   "type": "module",
-  "version": "1000.0.0-alpha.60",
-  "publishConfig": {
-    "tag": "alpha"
-  },
+  "version": "1001.0.0",
   "sideEffects": false,
-  "description": "Reatom for zod",
+  "description": "Reatom for Zod 4",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "default": "./dist/index.js"
-    },
-    "./v4": {
-      "types": "./dist/v4.d.ts",
-      "require": "./dist/v4.cjs",
-      "default": "./dist/v4.js"
-    }
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "default": "./dist/index.js"
   },
   "main": "dist/index.cjs",
   "module": "dist/index.js",
@@ -28,17 +18,20 @@
   "scripts": {
     "prepublishOnly": "eslint src --fix && prettier src -w && pnpm run test && pnpm run build",
     "build": "tsdown",
-    "test": "vitest run src/*",
-    "test:watch": "vitest src/*"
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "tsdown": {
-    "entry": ["src/index.ts", "src/v4.ts"],
+    "entry": ["src/index.ts"],
     "format": ["esm", "cjs"],
     "fixedExtension": false
   },
   "dependencies": {
     "@reatom/core": "workspace:^",
-    "zod": "^3.25.0"
+    "zod": "catalog:"
+  },
+  "peerDependencies": {
+    "zod": "^4.1.0"
   },
   "devDependencies": {
     "tsdown": "catalog:",
@@ -58,7 +51,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/reatom/reatom.git"
+    "url": "git+ssh://git@github.com/reatom/reatom.git",
+    "directory": "packages/zod"
   },
   "bugs": {
     "url": "https://github.com/reatom/reatom/issues"

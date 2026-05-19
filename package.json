@@ -1,10 +1,12 @@
 {
   "name": "reatom-workspace",
+  "private": true,
   "type": "module",
   "scripts": {
     "postinstall": "pnpm --filter @reatom/core run build",
     "prepare": "git config blame.ignoreRevsFile .git-blame-ignore-revs && husky",
     "test": "vitest run",
+    "size": "pnpm run -r --if-present build && size-limit",
     "release": "tsx ./tools/publish.ts",
     "reset": "sh ./tools/reset.sh",
     "package-generator": "tsx tools/new-package.ts",
@@ -14,26 +16,31 @@
     "prettify:check": "prettier --check \"**/*.{js,ts,md}\"",
     "lint:md": "remark --rc-path .remark-lint.json --ext md,mdx --quiet --frail packages/*/README.md docs/src/content/"
   },
-  "dependencies": {
+  "devDependencies": {
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
     "@eslint/js": "catalog:",
     "@observablehq/inspector": "catalog:",
     "@preact/signals-core": "catalog:",
+    "@size-limit/preset-small-lib": "catalog:",
     "@standard-schema/spec": "catalog:",
-    "@types/node": "latest",
+    "@types/node": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "@vitest/browser-playwright": "catalog:",
     "@vitest/spy": "catalog:",
     "eslint": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
     "eslint-plugin-unused-imports": "catalog:",
+    "globals": "catalog:",
     "husky": "catalog:",
     "jsondiffpatch": "catalog:",
     "prettier": "catalog:",
+    "prettier-plugin-astro": "catalog:",
+    "prettier-plugin-jsdoc": "catalog:",
     "remark-cli": "catalog:",
     "remark-lint": "catalog:",
     "remark-lint-expressive-code-label": "catalog:",
+    "size-limit": "catalog:",
     "tsx": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
@@ -52,10 +59,5 @@
     "url": "https://github.com/reatom/reatom/issues"
   },
   "homepage": "https://www.reatom.dev",
-  "devDependencies": {
-    "globals": "catalog:",
-    "prettier-plugin-astro": "catalog:",
-    "prettier-plugin-jsdoc": "catalog:"
-  },
   "packageManager": "pnpm@10.32.1"
 }

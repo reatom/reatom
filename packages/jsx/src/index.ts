@@ -479,6 +479,7 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     )
       key = 'value'
 
+    // TODO this is the most slow part
     /** @note element.valueAsDate = '' // Uncaught TypeError: Failed to convert value to 'object'. */
     // @ts-ignore
     element[key] = value == null && key !== 'valueAsDate' ? '' : value

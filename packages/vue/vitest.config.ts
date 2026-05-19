@@ -1,12 +1,10 @@
-import preact from '@preact/preset-vite'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  plugins: [preact()],
   test: {
-    sequence: { groupOrder: 17 },
+    sequence: { groupOrder: 20 },
     testTimeout: 5000,
-    name: '@reatom/preact',
+    name: '@reatom/vue',
     include: ['./src/**/*.test.ts'],
   },
 })

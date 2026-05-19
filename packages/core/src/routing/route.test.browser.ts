@@ -1,5 +1,5 @@
 import { beforeEach, expect, expectTypeOf, test, vi } from 'test'
-import z from 'zod'
+import { z } from 'zod'
 
 import { computed } from '../core'
 import { withChangeHook } from '../extensions'
