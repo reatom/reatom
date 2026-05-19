@@ -359,6 +359,7 @@ Tricky
 
 - Do not use for atoms synchronization, use "computed" / "withComputed" instead
 - Use **effect** with **ifChanged** for dynamic contexts.
+- Fires only on successful updates. If **set** throws (validation, parse, etc.), the hook is not called — use **withErrorHook** instead.
 
 ### **withCallHook**
 
@@ -1052,10 +1053,11 @@ Core
 Extensions
 
 - **withAbort** for abortable actions and computeds
+- **withErrorHook** for reacting to failed updates and action calls
 - **withMemo** to stabilize computed outputs
 - **withDynamicSubscription** to avoid unnecessary connections
 - **withSuspense** and **withSuspenseRetry** for Suspense integration
-- **addChangeHook** and **addCallHook** for dynamic hook wiring
+- **addChangeHook**, **addCallHook**, and **addErrorHook** for dynamic hook wiring
 - **withDisconnectHook** for explicit disconnect actions
 
 Methods

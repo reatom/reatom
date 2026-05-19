@@ -65,6 +65,7 @@ import type { OverloadParameters, Unsubscribe } from '../utils'
  * @throws {ReatomError} If callback is not a function
  * @see {@link addChangeHook} For dynamically adding/removing change hooks
  * @see {@link withCallHook} For reacting to action calls instead of state changes
+ * @see {@link withErrorHook} For reacting to failed updates and action calls
  * @see {@link withConnectHook} For reacting to connection lifecycle events
  */
 export let withChangeHook = <Target extends AtomLike>(
