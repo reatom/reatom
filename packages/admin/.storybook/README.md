@@ -374,7 +374,45 @@ Scope is **always restored** after the callback, even if it throws.
 
 ---
 
-## 7. Responsive / Mobile Testing
+## 7. Conditional Logic
+
+When one region shows **one of several states** (placeholder vs detail, empty vs list), assert mutual exclusion with `I.see` / `I.dontSee` — not long `if/else` chains. Capture the container once, then reuse `.within(panel)` so toggling content stays scoped.
+
+Use `I.resolveLocator(...maybe())` only when you must **act** on optional UI (cookie banner, one-time modal). Major variants (error, loading, empty list) belong in **separate stories** with MSW overrides, not in one branching test.
+
+```typescript
+Default.test('detail panel switches between empty and loaded states', async () => {
+  const panel = await I.see(role('main'))
+
+  await I.see(text('No article selected').within(panel))
+  await I.dontSee(heading(/Quarterly report/i).within(panel))
+
+  await I.click(link(/Quarterly report/i))
+  await I.waitExit(role('status', 'Loading article detail').within(panel))
+
+  await I.dontSee(text('No article selected').within(panel))
+  await I.see(heading('Quarterly report').within(panel))
+})
+
+Default.test('dismisses optional banner before main flow', async () => {
+  if (await I.resolveLocator(button('Accept cookies').maybe())) {
+    await I.click(button('Accept cookies'))
+  }
+
+  await I.see(heading('Articles'))
+})
+```
+
+| Pattern | Use when |
+| --- | --- |
+| `I.see` + `I.dontSee` | Mutually exclusive visible states in the same region |
+| `loc.within(capturedPanel)` | Container swaps content; avoid repeating `role('main')` |
+| `I.resolveLocator(loc.maybe())` | Optional overlay you may need to click once |
+| Separate stories + MSW | Error, loading, persistent empty — not `if` in one test |
+
+---
+
+## 8. Responsive / Mobile Testing
 
 Mobile stories set viewport globals and typically share parameters with their desktop counterpart:
 
@@ -399,7 +437,7 @@ export const ErrorMobile = meta.story({
 
 ---
 
-## 8. Shared Locator Objects
+## 9. Shared Locator Objects
 
 For reusable locators, define a `loc` object alongside the actor:
 
@@ -423,7 +461,7 @@ await I.see(loc.heading)
 
 ---
 
-## 9. Checklist: Adding a New Page Test
+## 10. Checklist: Adding a New Page Test
 
 1. Create typed mock data in `entities/<entity>/mocks/data.ts`.
 2. Add `default` / `error` / `loading` handlers in `entities/<entity>/mocks/handlers.ts`.
@@ -434,7 +472,7 @@ await I.see(loc.heading)
 
 ---
 
-## 10. Quick Reference Card
+## 11. Quick Reference Card
 
 ```typescript
 // Locators
@@ -464,4 +502,9 @@ play: () => I.waitExit(role('status')) // story-level wait
 await I.click(link(/Item/i)) // trigger navigation
 await I.waitExit(role('status')) // wait for load
 await I.see(heading('Item')) // assert result
+
+// Conditional logic
+const panel = await I.see(role('main')) // capture container once
+await I.dontSee(text('Empty').within(panel)) // mutual exclusion
+if (await I.resolveLocator(button('Dismiss').maybe())) await I.click(button('Dismiss')) // optional act
 ```
