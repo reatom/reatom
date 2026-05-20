@@ -261,7 +261,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const pattern = `${parentPattern}/${subPath}`
 
-    name = named(name || `route.${pattern}`)
+    name = name
+      ? named(name)
+      : named(layout ? 'route.layout' : 'route') + pattern
 
     const patternSegments = createPathSegments(pattern)
     const ownSegments = createPathSegments(subPath)
