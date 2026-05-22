@@ -334,7 +334,7 @@ const basicTask = action(async (data: any) => {
 
 // Add withAbort for manual cancellation control
 const abortableTask = action(async (data: any) => {
-  const controller = abortVar.getController()
+  const controller = abortVar.require()
   const response = await wrap(
     fetch('/api/process', {
       method: 'POST',
@@ -477,7 +477,7 @@ Aborted operations are treated specially - they don't set `isRejected` to true. 
 
 ```ts
 const fetchData = action(async () => {
-  const controller = abortVar.getController()
+  const controller = abortVar.require()
   const response = await wrap(
     fetch('/api/data', { signal: controller?.signal }),
   )
