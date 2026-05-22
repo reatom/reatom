@@ -679,10 +679,7 @@ export const withBaseField =
           0,
           `${validationTarget.name}._triggerVersion`,
         )
-        const validationActive = atom(
-          false,
-          `${validationTarget.name}._active`,
-        )
+        const validationActive = atom(false, `${validationTarget.name}._active`)
         const validationAbortVersion = atom(
           0,
           `${validationTarget.name}._abortVersion`,
