@@ -12,8 +12,8 @@ import {
   type AtomLike,
   type AtomState,
   type BooleanAtom,
+  type Computed,
   computed,
-  effect,
   isAbort,
   isCausedBy,
   isDeepEqual,
@@ -23,6 +23,7 @@ import {
   reatomRecord,
   type Rec,
   type RecordAtom,
+  retryComputed,
   top,
   withAbort,
   withActions,
@@ -395,24 +396,26 @@ export const fieldInitValidationLess: FieldValidation = {
   validating: undefined,
 }
 
-const runValidation = <State, Value = State>({
+interface FieldValidationState extends FieldValidation {
+  errors: FieldError[]
+  abortVersion: number
+  triggerVersion: number
+}
+
+const getValidationErrors = <State, Value = State>({
   validationState: validation,
   state,
   value,
   focus,
-  keepErrorDuringValidating,
   validateFn,
-  validationAtom,
 }: {
-  validationAtom: RecordAtom<FieldValidation> & Pick<ValidationAtom, 'errors'>
   validationState: FieldValidation
   state: State
   value: Value
   focus: FieldFocus
-  keepErrorDuringValidating: boolean
   validateFn: BaseFieldExtOptions<State, Value>['validate']
 }) => {
-  let promise
+  let validationErrors: FieldError[] | Promise<FieldError[]>
 
   const transformStandardSchemaResult = (
     result: StandardSchemaV1.Result<State> | undefined,
@@ -432,10 +435,10 @@ const runValidation = <State, Value = State>({
         if (!result) return []
 
         if (typeof result === 'object' && '~standard' in result) {
-          let validatonResult = result['~standard'].validate(state)
-          return validatonResult instanceof Promise
-            ? validatonResult.then(wrap(transformStandardSchemaResult))
-            : transformStandardSchemaResult(validatonResult)
+          let validationResult = result['~standard'].validate(state)
+          return validationResult instanceof Promise
+            ? validationResult.then(wrap(transformStandardSchemaResult))
+            : transformStandardSchemaResult(validationResult)
         }
 
         const toFieldError = (error: string | FieldErrorBody): FieldError => {
@@ -456,14 +459,14 @@ const runValidation = <State, Value = State>({
         validation,
       })
 
-      promise =
+      validationErrors =
         task instanceof Promise
           ? task.then(wrap(transformResult))
           : transformResult(task)
     } else {
       const task = validateFn?.['~standard'].validate(state)
 
-      promise =
+      validationErrors =
         task instanceof Promise
           ? task.then(wrap(transformStandardSchemaResult))
           : transformStandardSchemaResult(task)
@@ -472,55 +475,10 @@ const runValidation = <State, Value = State>({
     // TODO: abort error might get here, should to handle it properly
     if (isAbort(error)) throw error
 
-    promise = [{ source: 'validation', message: toError(error) }]
+    validationErrors = [{ source: 'validation', message: toError(error) }]
   }
 
-  if (promise instanceof Promise) {
-    const validationPromise = (async () => {
-      try {
-        const errors = await wrap(promise)
-
-        validationAtom.errors.set(errors)
-        validationAtom.merge({
-          triggered: true,
-          validating: undefined,
-        })
-
-        return { errors }
-      } catch (error) {
-        if (isAbort(error)) {
-          validationAtom.merge({ validating: undefined })
-          return { errors: validationAtom.errors() }
-        }
-
-        const validationErrors = [
-          { source: 'validaton', message: toError(error) },
-        ]
-
-        validationAtom.errors.set(validationErrors)
-        validationAtom.merge({
-          triggered: true,
-          validating: undefined,
-        })
-
-        return { errors: validationErrors }
-      }
-    })()
-
-    if (!keepErrorDuringValidating) validationAtom.errors.set([])
-
-    return {
-      triggered: true,
-      validating: validationPromise,
-    }
-  }
-
-  validationAtom.errors.set(promise)
-
-  return {
-    validating: undefined,
-    triggered: true,
-  }
+  return validationErrors
 }
 
 /**
@@ -682,6 +640,10 @@ export const withBaseField =
       }),
     )
 
+    let validationResult:
+      | (Computed<FieldValidationState> & AbortExt)
+      | undefined
+
     const validation = reatomRecord(
       fieldInitValidationLess,
       `${name}._validation`,
@@ -698,67 +660,218 @@ export const withBaseField =
 
           if (disabled()) return fieldInitValidation
 
-          getValue(target())
-          const firstError = peek(validation.errors)[0]?.message
-          return state.triggered
-            ? { ...state, error: firstError, triggered: false }
-            : { ...state, error: firstError }
+          const validationState = validationResult?.()
+          if (!validationState) return state
+
+          const firstError = validation.errors()[0]?.message
+          return {
+            error: firstError,
+            triggered: validationState.triggered,
+            validating: validationState.validating,
+          }
         }),
         () => ({
-          errors: reatomArray<FieldError>([], `${name}.errors`).extend(
-            withChangeHook((errors) =>
-              validation.merge({ error: errors[0]?.message }),
-            ),
-          ),
+          errors: reatomArray<FieldError>([], `${name}.errors`),
         }),
       )
-      .extend((validationTarget) => ({
-        trigger: action(() => {
-          const validationState = validationTarget()
+      .extend((validationTarget) => {
+        const validationTriggerVersion = atom(
+          0,
+          `${validationTarget.name}._triggerVersion`,
+        )
+        const validationAbortVersion = atom(
+          0,
+          `${validationTarget.name}._abortVersion`,
+        )
+        const validationPreserveOnIdle = atom(
+          false,
+          `${validationTarget.name}._preserveOnIdle`,
+        )
+        const validationSettled = atom<
+          | {
+              validating: Promise<{ errors: FieldError[] }>
+              errors: FieldError[]
+              triggerVersion: number
+              abortVersion: number
+            }
+          | undefined
+        >(undefined, `${validationTarget.name}._settled`)
 
-          if (validationState.triggered) return validationState
+        const validationComputed = computed((prev?: FieldValidationState) => {
+          const triggerVersion = validationTriggerVersion()
+          const abortVersion = validationAbortVersion()
+          const preserveOnIdle = validationPreserveOnIdle()
 
-          const { shouldValidate, keepErrorDuringValidating } =
-            fieldOptions.value()
-          if (!shouldValidate)
-            return validationTarget.merge({ triggered: true })
+          if (!fieldOptions.value().shouldValidate)
+            return {
+              ...fieldInitValidationLess,
+              errors: [],
+              triggerVersion,
+              abortVersion,
+            }
 
-          if (typeof validateFn !== 'function') {
-            const state = target()
-            const propsToMerge = runValidation({
-              validateFn,
-              validationAtom: validationTarget,
-              validationState,
-              focus: focus(),
-              state: getNormalizedState(state),
-              value: getValue(state),
-              keepErrorDuringValidating,
-            })
-            return validationTarget.merge(propsToMerge)
-          } else {
-            return effect(() => {
-              const validationArgs = peek(() => {
-                const state = target()
-                return {
-                  focus: focus(),
-                  state: getNormalizedState(state),
-                  value: getValue(state),
-                  keepErrorDuringValidating:
-                    fieldOptions.value().keepErrorDuringValidating,
-                }
-              })
+          if (disabled())
+            return {
+              ...fieldInitValidation,
+              errors: [],
+              triggerVersion,
+              abortVersion,
+            }
 
-              const propsToMerge = runValidation({
-                validateFn,
-                validationAtom: validationTarget,
-                validationState,
-                ...validationArgs,
-              })
-              return validationTarget.merge(propsToMerge)
-            }, `${validationTarget.name}.trigger.validationEffect`)()!
+          if (triggerVersion === 0) {
+            const errors = preserveOnIdle ? (prev?.errors ?? []) : []
+
+            return {
+              ...fieldInitValidation,
+              error: errors[0]?.message,
+              errors,
+              triggerVersion,
+              abortVersion,
+            }
           }
-        }, `${validationTarget.name}.trigger`).extend(withAbort()),
-      }))
+
+          const settled = validationSettled()
+          if (
+            prev?.validating &&
+            settled?.validating === prev.validating &&
+            settled.triggerVersion === triggerVersion &&
+            settled.abortVersion === abortVersion
+          ) {
+            return {
+              error: settled.errors[0]?.message,
+              triggered: true,
+              validating: undefined,
+              errors: settled.errors,
+              triggerVersion,
+              abortVersion,
+            }
+          }
+
+          if (
+            prev &&
+            prev.triggerVersion === triggerVersion &&
+            prev.abortVersion !== abortVersion
+          ) {
+            return { ...prev, validating: undefined, abortVersion }
+          }
+
+          const { keepErrorDuringValidating, validateOnChange } =
+            fieldOptions.value()
+          const state = validateOnChange ? target() : peek(target)
+          const validationState = prev
+            ? {
+                error: prev.error,
+                triggered: prev.triggered,
+                validating: prev.validating,
+              }
+            : fieldInitValidation
+          const validationErrors = getValidationErrors({
+            validateFn,
+            validationState,
+            focus: focus(),
+            state: getNormalizedState(state),
+            value: getValue(state),
+          })
+
+          if (validationErrors instanceof Promise) {
+            const previousErrors = keepErrorDuringValidating
+              ? (prev?.errors ?? [])
+              : []
+            let validating: Promise<{ errors: FieldError[] }>
+
+            validating = (async () => {
+              try {
+                const errors = await wrap(validationErrors)
+                validationSettled.set({
+                  validating,
+                  errors,
+                  triggerVersion,
+                  abortVersion,
+                })
+                return { errors }
+              } catch (error) {
+                if (isAbort(error)) return { errors: previousErrors }
+
+                const errors = [
+                  { source: 'validation', message: toError(error) },
+                ]
+                validationSettled.set({
+                  validating,
+                  errors,
+                  triggerVersion,
+                  abortVersion,
+                })
+                return { errors }
+              }
+            })()
+
+            return {
+              error: previousErrors[0]?.message,
+              triggered: true,
+              validating,
+              errors: previousErrors,
+              triggerVersion,
+              abortVersion,
+            }
+          }
+
+          return {
+            error: validationErrors[0]?.message,
+            triggered: true,
+            validating: undefined,
+            errors: validationErrors,
+            triggerVersion,
+            abortVersion,
+          }
+        }, `${validationTarget.name}._computed`).extend(withAbort())
+
+        validationResult = validationComputed
+
+        validationTarget.errors.extend(
+          withComputed((errors) => {
+            const validationErrors = validationComputed().errors
+            const sideErrors = errors.filter(
+              (error) => error.source !== 'validation',
+            )
+
+            return sideErrors.length || validationErrors.length
+              ? [...sideErrors, ...validationErrors]
+              : []
+          }),
+        )
+
+        const trigger = action(() => {
+          validationTriggerVersion.set((state) => state + 1)
+          validationPreserveOnIdle.set(false)
+          validationSettled.set(undefined)
+          validationTarget.errors.set([])
+          const nextValidation = retryComputed(validationComputed)
+
+          validationTarget.merge({
+            error: nextValidation.error,
+            triggered: nextValidation.triggered,
+            validating: nextValidation.validating,
+          })
+          validationTarget.errors()
+          return validationTarget()
+        }, `${validationTarget.name}.trigger`)
+
+        const abort = action((reason?: unknown) => {
+          validationComputed.abort(reason)
+          validationSettled.set(undefined)
+          validationAbortVersion.set((state) => state + 1)
+          validationPreserveOnIdle.set(
+            reason === 'change' && fieldOptions.value().keepErrorOnChange,
+          )
+          validationTriggerVersion.set(0)
+
+          return validationTarget.merge({ validating: undefined })
+        }, `${trigger.name}._abort`)
+
+        return {
+          trigger: Object.assign(trigger, { abort }),
+        }
+      })
       .extend(
         withActions((validationTarget) => ({
           clearErrors: (...sources: FieldErrorSource[]) => {
