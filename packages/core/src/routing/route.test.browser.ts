@@ -865,14 +865,14 @@ test('pathful callback child unmatches when sibling is active', async () => {
   reviewRoute.go({ projectId: '123' })
   await wrap(sleep())
 
-  expect(reviewRoute()).not.toBeNull()
+  expect(reviewRoute()).toEqual({ projectId: '123' })
   expect(settingsRoute()).toBeNull()
 
   settingsRoute.go({ projectId: '123' })
   await wrap(sleep())
 
   expect(reviewRoute()).toBeNull()
-  expect(settingsRoute()).not.toBeNull()
+  expect(settingsRoute()).toEqual({ projectId: '123' })
 })
 
 test('optional path param undefined omits segment', () => {
@@ -978,4 +978,47 @@ test('child loader should start in parallel and resolve after parent loader', as
     'parent:end',
     'child:public-end',
   ])
+})
+
+test('nested route schema preserves parent params after validation', async () => {
+  const integrationId = '550e8400-e29b-41d4-a716-446655440000'
+
+  const integrationsListRoute = reatomRoute('integrations')
+  const integrationsDetailsRoute = integrationsListRoute.reatomRoute({
+    path: ':id',
+    params: z.object({ id: z.uuid() }),
+  })
+  const integrationsDetailsTypeRoute = integrationsDetailsRoute.reatomRoute({
+    path: ':type',
+    params: z.object({
+      type: z.enum(['foo', 'bar']),
+    }),
+    async loader({ id, type }) {
+      expect(id).toBe(integrationId)
+      expect(type).toBe('foo')
+    },
+  })
+
+  integrationsDetailsTypeRoute.go({ id: integrationId, type: 'foo' })
+  await wrap(sleep())
+
+  expect(integrationsDetailsRoute()).toEqual({ id: integrationId })
+  expect(integrationsDetailsTypeRoute()).toEqual({
+    id: integrationId,
+    type: 'foo',
+  })
+
+  urlAtom.go(`/integrations/${integrationId}/bar`)
+  await wrap(sleep())
+
+  expect(integrationsDetailsTypeRoute()).toEqual({
+    id: integrationId,
+    type: 'bar',
+  })
+
+  urlAtom.go(`/integrations/not-a-uuid/foo`)
+  await wrap(sleep())
+
+  expect(integrationsDetailsRoute()).toBe(null)
+  expect(integrationsDetailsTypeRoute()).toBe(null)
 })

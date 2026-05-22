@@ -279,6 +279,12 @@ export type Codec<Input, Output> = {
 export type TrimPath<Path extends string> = Path extends `//${infer Path}`
   ? TrimPath<`/${Path}`>
   : Path
+
+type NestedParamsOutput<
+  ParentParams extends Rec,
+  ChildParamsOutput extends Rec,
+> = Plain<ParentParams & ChildParamsOutput>
+
 export interface RouteMixin<
   Path extends string,
   Params extends PathKeys<Path> = PathParams<Path>,
@@ -336,26 +342,28 @@ export interface RouteMixin<
     SubSearchInput extends Partial<Rec<string>> = {},
     SubParamsOutput extends Rec = SubParamsInput,
     SubSearchOutput extends Rec = SubSearchInput,
-    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    LoaderParams = Plain<
+      NestedParamsOutput<Params, SubParamsOutput> & SubSearchOutput
+    >,
     Payload = LoaderParams,
   >(
     options: RouteOptions<
       SubPath,
-      Params & SubParamsInput,
+      SubParamsInput,
       SubSearchInput,
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
       Payload
     > & {
-      params: Codec<Params & SubParamsInput, SubParamsOutput>
+      params: Codec<SubParamsInput, SubParamsOutput>
       search: Codec<SubSearchInput, SubSearchOutput>
     },
     name?: string,
   ): RouteAtom<
     TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
     // @ts-expect-error TODO
-    Plain<SubParamsOutput>,
+    Plain<NestedParamsOutput<Params, SubParamsOutput>>,
     Plain<SubSearchOutput>,
     Payload,
     Plain<GoParams & SubParamsOutput>,
@@ -371,23 +379,25 @@ export interface RouteMixin<
     SubSearchInput extends Partial<Rec<string>> = {},
     SubParamsOutput extends Rec = SubParamsInput,
     SubSearchOutput extends Rec = SubSearchInput,
-    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    LoaderParams = Plain<
+      NestedParamsOutput<Params, SubParamsOutput> & SubSearchOutput
+    >,
     Payload = LoaderParams,
   >(
     options: RouteOptions<
       SubPath,
-      Params & SubParamsInput,
+      SubParamsInput,
       SubSearchInput,
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
       Payload
-    > & { params: Codec<Params & SubParamsInput, SubParamsOutput> },
+    > & { params: Codec<SubParamsInput, SubParamsOutput> },
     name?: string,
   ): RouteAtom<
     TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
     // @ts-expect-error TODO
-    Plain<SubParamsOutput>,
+    Plain<NestedParamsOutput<Params, SubParamsOutput>>,
     Plain<SubSearchOutput>,
     Payload,
     Plain<GoParams & SubParamsOutput>,
@@ -443,6 +453,74 @@ export interface RouteMixin<
    *
    *   userRoute.go({ id: 123, tab: 'profile' })
    */
+  reatomRoute<
+    SubPath extends string = '',
+    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
+    SubSearchInput extends Partial<Rec<string>> = {},
+    SubParamsOutput extends Rec = SubParamsInput,
+    SubSearchOutput extends Rec = SubSearchInput,
+    LoaderParams = Plain<
+      NestedParamsOutput<Params, SubParamsOutput> & SubSearchOutput
+    >,
+    Payload = LoaderParams,
+  >(
+    options: RouteOptions<
+      SubPath,
+      SubParamsInput,
+      SubSearchInput,
+      SubParamsOutput,
+      SubSearchOutput,
+      LoaderParams,
+      Payload
+    > & {
+      params: StandardSchemaV1<SubParamsInput, SubParamsOutput>
+    },
+    name?: string,
+  ): RouteAtom<
+    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+    // @ts-expect-error TODO
+    Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+    Plain<SubSearchOutput>,
+    Payload,
+    Plain<GoParams & SubParamsOutput>,
+    Plain<SubSearchInput>,
+    Plain<SubParamsOutput>,
+    Plain<SubSearchInput>
+  >
+
+  reatomRoute<
+    SubPath extends string = '',
+    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
+    SubSearchInput extends Partial<Rec<string>> = {},
+    SubParamsOutput extends Rec = SubParamsInput,
+    SubSearchOutput extends Rec = SubSearchInput,
+    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    Payload = LoaderParams,
+  >(
+    options: RouteOptions<
+      SubPath,
+      Params & SubParamsInput,
+      SubSearchInput,
+      SubParamsOutput,
+      SubSearchOutput,
+      LoaderParams,
+      Payload
+    > & {
+      params: (params: Params & SubParamsInput) => null | SubParamsOutput
+    },
+    name?: string,
+  ): RouteAtom<
+    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+    // @ts-expect-error TODO
+    Plain<SubParamsOutput>,
+    Plain<SubSearchOutput>,
+    Payload,
+    Plain<GoParams & SubParamsInput>,
+    Plain<SubSearchInput>,
+    Plain<SubParamsInput>,
+    Plain<SubSearchInput>
+  >
+
   reatomRoute<
     SubPath extends string = '',
     SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,

@@ -454,9 +454,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         try {
           if (!paramsSchema) {
             resultParams = params
-          } else if (paramsIsCodec) {
-            resultParams = paramsSchema.decode(params as any) as Rec
-          } else {
+          } else if (typeof paramsSchema === 'function') {
             const validatedParams = validateParams(
               paramsSchema,
               params as any,
@@ -464,6 +462,13 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
             )
             if (validatedParams === null) return null
             resultParams = validatedParams as Rec
+          } else {
+            const ownParams = pickParams(params, ownPathParamNames)
+            const validatedOwn = paramsIsCodec
+              ? paramsSchema.decode(ownParams as any)
+              : validateParams(paramsSchema, ownParams as any, 'params')
+            if (validatedOwn === null) return null
+            resultParams = { ...params, ...validatedOwn }
           }
 
           if (searchSchema) {
