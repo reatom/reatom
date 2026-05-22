@@ -210,9 +210,8 @@ export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
  * init, then work with it synchronously. Combine with `withChangeHook` to sync
  * changes back to a server or database.
  *
- * **Without callback**: Transforms `Atom<Promise<State>>` into `Atom<State>`.
- * The atom's async initializer is unwrapped, and consumers receive the resolved
- * value.
+ * **Without callback**: Transforms `Atom<Promise<State>>` or sync atoms that
+ * may return or throw a suspense promise into `Atom<State>`.
  *
  * @example
  *   const userSettings = atom(async () => {
@@ -260,7 +259,7 @@ export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
  * @returns Extension that initializes the atom with the callback result
  */
 export let withSuspenseInit: {
-  <State>(): Ext<Atom<Promise<State>>, Atom<State>>
+  <State>(): Ext<Atom<State>, Atom<Awaited<State>>>
 
   <Target extends AtomLike>(
     cb: (
