@@ -679,6 +679,10 @@ export const withBaseField =
           0,
           `${validationTarget.name}._triggerVersion`,
         )
+        const validationActive = atom(
+          false,
+          `${validationTarget.name}._active`,
+        )
         const validationAbortVersion = atom(
           0,
           `${validationTarget.name}._abortVersion`,
@@ -686,6 +690,10 @@ export const withBaseField =
         const validationPreserveOnIdle = atom(
           false,
           `${validationTarget.name}._preserveOnIdle`,
+        )
+        const validationPreviousErrors = atom<FieldError[]>(
+          [],
+          `${validationTarget.name}._previousErrors`,
         )
         const validationSettled = atom<
           | {
@@ -697,8 +705,9 @@ export const withBaseField =
           | undefined
         >(undefined, `${validationTarget.name}._settled`)
 
-        const validationComputed = computed((prev?: FieldValidationState) => {
+        const validationRun = computed((prev?: FieldValidationState) => {
           const triggerVersion = validationTriggerVersion()
+          const isActive = validationActive()
           const abortVersion = validationAbortVersion()
           const preserveOnIdle = validationPreserveOnIdle()
 
@@ -718,30 +727,13 @@ export const withBaseField =
               abortVersion,
             }
 
-          if (triggerVersion === 0) {
+          if (!isActive) {
             const errors = preserveOnIdle ? (prev?.errors ?? []) : []
 
             return {
               ...fieldInitValidation,
               error: errors[0]?.message,
               errors,
-              triggerVersion,
-              abortVersion,
-            }
-          }
-
-          const settled = validationSettled()
-          if (
-            prev?.validating &&
-            settled?.validating === prev.validating &&
-            settled.triggerVersion === triggerVersion &&
-            settled.abortVersion === abortVersion
-          ) {
-            return {
-              error: settled.errors[0]?.message,
-              triggered: true,
-              validating: undefined,
-              errors: settled.errors,
               triggerVersion,
               abortVersion,
             }
@@ -775,7 +767,7 @@ export const withBaseField =
 
           if (validationErrors instanceof Promise) {
             const previousErrors = keepErrorDuringValidating
-              ? (prev?.errors ?? [])
+              ? validationPreviousErrors()
               : []
             let validating: Promise<{ errors: FieldError[] }>
 
@@ -788,6 +780,7 @@ export const withBaseField =
                   triggerVersion,
                   abortVersion,
                 })
+                validationPreviousErrors.set(errors)
                 return { errors }
               } catch (error) {
                 if (isAbort(error)) return { errors: previousErrors }
@@ -801,6 +794,7 @@ export const withBaseField =
                   triggerVersion,
                   abortVersion,
                 })
+                validationPreviousErrors.set(errors)
                 return { errors }
               }
             })()
@@ -815,6 +809,8 @@ export const withBaseField =
             }
           }
 
+          validationPreviousErrors.set(validationErrors)
+
           return {
             error: validationErrors[0]?.message,
             triggered: true,
@@ -823,7 +819,30 @@ export const withBaseField =
             triggerVersion,
             abortVersion,
           }
-        }, `${validationTarget.name}._computed`).extend(withAbort())
+        }, `${validationTarget.name}._run`).extend(withAbort())
+
+        const validationComputed = computed(() => {
+          const validationState = validationRun()
+          const settled = validationSettled()
+
+          if (
+            validationState.validating &&
+            settled?.validating === validationState.validating &&
+            settled.triggerVersion === validationState.triggerVersion &&
+            settled.abortVersion === validationState.abortVersion
+          ) {
+            return {
+              error: settled.errors[0]?.message,
+              triggered: true,
+              validating: undefined,
+              errors: settled.errors,
+              triggerVersion: validationState.triggerVersion,
+              abortVersion: validationState.abortVersion,
+            }
+          }
+
+          return validationState
+        }, `${validationTarget.name}._computed`)
 
         validationResult = validationComputed
 
@@ -841,11 +860,13 @@ export const withBaseField =
         )
 
         const trigger = action(() => {
+          validationActive.set(true)
           validationTriggerVersion.set((state) => state + 1)
           validationPreserveOnIdle.set(false)
           validationSettled.set(undefined)
-          validationTarget.errors.set([])
-          const nextValidation = retryComputed(validationComputed)
+          retryComputed(validationRun)
+          const nextValidation = validationComputed()
+          if (!validateFn) validationTarget.errors.set([])
 
           validationTarget.merge({
             error: nextValidation.error,
@@ -857,13 +878,13 @@ export const withBaseField =
         }, `${validationTarget.name}.trigger`)
 
         const abort = action((reason?: unknown) => {
-          validationComputed.abort(reason)
+          validationRun.abort(reason)
           validationSettled.set(undefined)
           validationAbortVersion.set((state) => state + 1)
           validationPreserveOnIdle.set(
             reason === 'change' && fieldOptions.value().keepErrorOnChange,
           )
-          validationTriggerVersion.set(0)
+          validationActive.set(false)
 
           return validationTarget.merge({ validating: undefined })
         }, `${trigger.name}._abort`)

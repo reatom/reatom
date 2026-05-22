@@ -1,14 +1,14 @@
-import { describe, expect, test, vi, viTest } from 'test'
+import { describe, expect, test, vi } from 'test'
 import { z } from 'zod'
 
 import {
   addCallHook,
   atom,
-  getCalls,
   notify,
   reatomEnum,
   sleep,
   throwAbort,
+  withCallHook,
   wrap,
 } from '../'
 import { fieldInitValidation, reatomField, withField } from '.'
@@ -295,15 +295,14 @@ test(`validation concurrency`, async () => {
   expect(field.value()).toBe(3)
 })
 
-// FIXME see #1235
-viTest.skip(`validation concurrency with conditional debounce`, async () => {
+test(`validation concurrency with conditional debounce`, async () => {
   const TAKEN_NAME = 'taken_name'
+  const blurred = atom(false, 'nameField.blurred')
 
   const nameField = reatomField('', {
     name: 'nameField',
     validate: async ({ state }): Promise<string | undefined> => {
-      if (state.length < 4)
-        return getCalls(nameField.focus.out).length ? 'short' : undefined
+      if (state.length < 4) return blurred() ? 'short' : undefined
 
       await wrap(sleep(1))
       return state === TAKEN_NAME ? 'taken' : undefined
@@ -311,6 +310,7 @@ viTest.skip(`validation concurrency with conditional debounce`, async () => {
     validateOnBlur: true,
     validateOnChange: true,
   })
+  nameField.focus.out.extend(withCallHook(() => blurred.set(true)))
 
   nameField.change('e')
   await wrap(sleep())
@@ -643,7 +643,7 @@ describe(`reactivity of validate function`, () => {
     expect(confirmField.validation.errors()).toHaveLength(0)
   })
 
-  viTest.skip('concurrency', async () => {
+  test('concurrency', async () => {
     const burgerField = reatomField('Hamburger', 'burgerField')
 
     const fetchBurgerCookingTime = async (burger: string) => {
