@@ -247,4 +247,5 @@ const initWithBroadcastChannel = () =>
         createMemStorage({ name: 'withBroadcastChannel' }),
       ) as unknown as WithPersistWebStorage)
 
-export const withBroadcastChannel: WithPersistWebStorage = /* @__PURE__ */ initWithBroadcastChannel()
+export const withBroadcastChannel: WithPersistWebStorage =
+  /* @__PURE__ */ initWithBroadcastChannel()

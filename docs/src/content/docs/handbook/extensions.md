@@ -67,7 +67,14 @@ counter.reset() // Works! State is 0.
 Another example with additional state:
 
 ```ts
-import { atom, AtomLike, Computed, Ext, AtomState, computed } from '@reatom/core'
+import {
+  atom,
+  AtomLike,
+  Computed,
+  Ext,
+  AtomState,
+  computed,
+} from '@reatom/core'
 
 export interface HistoryExt<State> {
   history: Computed<[current: State, ...past: Array<State>]>

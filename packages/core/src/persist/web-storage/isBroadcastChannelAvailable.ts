@@ -13,4 +13,5 @@ const initIsBroadcastChannelAvailable = () => {
   }
 }
 
-export const isBroadcastChannelAvailable = /* @__PURE__ */ initIsBroadcastChannelAvailable()
+export const isBroadcastChannelAvailable =
+  /* @__PURE__ */ initIsBroadcastChannelAvailable()

@@ -113,7 +113,8 @@ const initSearchParamsAtom = () =>
         }) satisfies Pick<SearchParamsAtom, 'lens'>,
     )
 
-export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ initSearchParamsAtom()
+export const searchParamsAtom: SearchParamsAtom =
+  /* @__PURE__ */ initSearchParamsAtom()
 
 /**
  * Create an atom that synchronizes with a URL search parameter.

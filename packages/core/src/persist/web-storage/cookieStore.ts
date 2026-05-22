@@ -185,4 +185,5 @@ const initWithCookieStore = () =>
         createMemStorage({ name: 'withCookieStore' }),
       ) as unknown as WithPersistCookieStore)
 
-export const withCookieStore: WithPersistCookieStore = /* @__PURE__ */ initWithCookieStore()
+export const withCookieStore: WithPersistCookieStore =
+  /* @__PURE__ */ initWithCookieStore()

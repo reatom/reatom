@@ -381,18 +381,21 @@ When one region shows **one of several states** (placeholder vs detail, empty vs
 Use `I.resolveLocator(...maybe())` only when you must **act** on optional UI (cookie banner, one-time modal). Major variants (error, loading, empty list) belong in **separate stories** with MSW overrides, not in one branching test.
 
 ```typescript
-Default.test('detail panel switches between empty and loaded states', async () => {
-  const panel = await I.see(role('main'))
+Default.test(
+  'detail panel switches between empty and loaded states',
+  async () => {
+    const panel = await I.see(role('main'))
 
-  await I.see(text('No article selected').within(panel))
-  await I.dontSee(heading(/Quarterly report/i).within(panel))
+    await I.see(text('No article selected').within(panel))
+    await I.dontSee(heading(/Quarterly report/i).within(panel))
 
-  await I.click(link(/Quarterly report/i))
-  await I.waitExit(role('status', 'Loading article detail').within(panel))
+    await I.click(link(/Quarterly report/i))
+    await I.waitExit(role('status', 'Loading article detail').within(panel))
 
-  await I.dontSee(text('No article selected').within(panel))
-  await I.see(heading('Quarterly report').within(panel))
-})
+    await I.dontSee(text('No article selected').within(panel))
+    await I.see(heading('Quarterly report').within(panel))
+  },
+)
 
 Default.test('dismisses optional banner before main flow', async () => {
   if (await I.resolveLocator(button('Accept cookies').maybe())) {
@@ -403,12 +406,12 @@ Default.test('dismisses optional banner before main flow', async () => {
 })
 ```
 
-| Pattern | Use when |
-| --- | --- |
-| `I.see` + `I.dontSee` | Mutually exclusive visible states in the same region |
-| `loc.within(capturedPanel)` | Container swaps content; avoid repeating `role('main')` |
-| `I.resolveLocator(loc.maybe())` | Optional overlay you may need to click once |
-| Separate stories + MSW | Error, loading, persistent empty — not `if` in one test |
+| Pattern                         | Use when                                                |
+| ------------------------------- | ------------------------------------------------------- |
+| `I.see` + `I.dontSee`           | Mutually exclusive visible states in the same region    |
+| `loc.within(capturedPanel)`     | Container swaps content; avoid repeating `role('main')` |
+| `I.resolveLocator(loc.maybe())` | Optional overlay you may need to click once             |
+| Separate stories + MSW          | Error, loading, persistent empty — not `if` in one test |
 
 ---
 
@@ -506,5 +509,6 @@ await I.see(heading('Item')) // assert result
 // Conditional logic
 const panel = await I.see(role('main')) // capture container once
 await I.dontSee(text('Empty').within(panel)) // mutual exclusion
-if (await I.resolveLocator(button('Dismiss').maybe())) await I.click(button('Dismiss')) // optional act
+if (await I.resolveLocator(button('Dismiss').maybe()))
+  await I.click(button('Dismiss')) // optional act
 ```
