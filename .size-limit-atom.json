@@ -1,8 +1,0 @@
-[
-  {
-    "name": "@reatom/core (atom import)",
-    "path": "packages/core/dist/index.js",
-    "import": "{ atom }",
-    "limit": "3 KB"
-  }
-]

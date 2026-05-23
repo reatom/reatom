@@ -1,0 +1,14 @@
+[
+  {
+    "name": "raw atom",
+    "path": "dist/index.js",
+    "import": "{ atom }",
+    "limit": "3 KB"
+  },
+  {
+    "name": "main framework",
+    "path": "dist/index.js",
+    "import": "{ reatomRoute, reatomForm, withLocalStorage }",
+    "limit": "20 KB"
+  }
+]

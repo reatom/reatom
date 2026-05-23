@@ -16,12 +16,13 @@
     "last 1 year"
   ],
   "scripts": {
-    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run build",
+    "prepublishOnly": "tsc -b tsconfig.build.json && eslint src --fix && prettier src -w && pnpm run test && pnpm run build && pnpm run size",
     "build": "tsdown",
     "test": "pnpm run test:unit && pnpm run test:browser",
     "test:unit": "vitest run",
     "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
     "test:watch": "vitest",
+    "size": "size-limit --config .size-limit.json",
     "deopt": "dexnode deopt.js",
     "bench_dynamic": "tsx bench_dynamic.ts",
     "bench_computed": "tsx bench_computed.ts",
@@ -112,6 +113,7 @@
     "redux": "^5.0.1",
     "reselect": "^5.1.1",
     "s-js": "^0.4.9",
+    "size-limit": "catalog:",
     "solid-js": "^1.9.11",
     "spred": "^0.34.0",
     "tsdown": "catalog:",
