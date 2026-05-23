@@ -112,4 +112,11 @@ describe('reatomSet', () => {
     })
     expect(b.size()).toBe(3)
   })
+
+  test('should serialize to JSON as array', () => {
+    const set = reatomSet(new Set([1, 2, 3]))
+    set.add(4)
+
+    expect(JSON.parse(JSON.stringify(set))).toEqual([1, 2, 3, 4])
+  })
 })

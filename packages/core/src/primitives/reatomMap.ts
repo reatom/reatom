@@ -64,7 +64,7 @@ export const reatomMap = <Key, Value>(
 ): MapAtom<Key, Value> => {
   const atomInitState = createMap(initState)
 
-  return atom(atomInitState, name)
+  const mapAtom = atom(atomInitState, name)
     .extend((target) => ({
       setState(
         update:
@@ -116,4 +116,8 @@ export const reatomMap = <Key, Value>(
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))
+
+  return Object.assign(mapAtom, {
+    toJSON: () => [...mapAtom()],
+  })
 }

@@ -36,7 +36,7 @@ export const reatomSet = <T>(
 ): SetAtom<T> => {
   const atomInitState = createSet(initState)
 
-  return atom(atomInitState, name)
+  const setAtom = atom(atomInitState, name)
     .extend(
       withParams((init: StateInit<T> | ((current: Set<T>) => Set<T>)) =>
         typeof init === 'function' ? init : createSet(init),
@@ -71,4 +71,8 @@ export const reatomSet = <T>(
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))
+
+  return Object.assign(setAtom, {
+    toJSON: () => [...setAtom()],
+  })
 }
