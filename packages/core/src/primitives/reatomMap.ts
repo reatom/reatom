@@ -1,6 +1,7 @@
 import type { Action, AtomLike } from '../core'
 import type { Computed } from '../core'
 import { _set, action, atom, computed, named, withActions } from '../core'
+import { withToJson } from '../extensions'
 
 type StateInit<Key, Value> =
   | Map<Key, Value>
@@ -64,7 +65,7 @@ export const reatomMap = <Key, Value>(
 ): MapAtom<Key, Value> => {
   const atomInitState = createMap(initState)
 
-  const mapAtom = atom(atomInitState, name)
+  return atom(atomInitState, name)
     .extend((target) => ({
       setState(
         update:
@@ -116,8 +117,5 @@ export const reatomMap = <Key, Value>(
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))
-
-  return Object.assign(mapAtom, {
-    toJSON: () => [...mapAtom()],
-  })
+    .extend(withToJson((state) => [...state]))
 }

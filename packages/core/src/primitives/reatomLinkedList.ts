@@ -1,5 +1,6 @@
 import type { Action, Atom, Computed } from '../core'
 import { action, atom, computed, isAtom, named, ReatomError } from '../core'
+import { withToJson } from '../extensions'
 import { peek } from '../methods'
 import type { Fn, Rec } from '../utils'
 import { isObject } from '../utils'
@@ -908,33 +909,34 @@ export function reatomLinkedList<
   //   }, name)
   // }
 
-  return Object.assign(linkedList, {
-    LL_PREV,
-    LL_NEXT,
-    batch,
-    create,
-    createMany,
-    remove,
-    removeMany,
-    swap,
-    move,
-    clear,
+  return linkedList.extend(
+    () => ({
+      LL_PREV,
+      LL_NEXT,
+      batch,
+      create,
+      createMany,
+      remove,
+      removeMany,
+      swap,
+      move,
+      clear,
 
-    find,
+      find,
 
-    array,
-    map,
-    initiateFromState: createLinkedListFromState,
-    initiateFromSnapshot: createLinkedListFromSnapshot,
+      array,
+      map,
+      initiateFromState: createLinkedListFromState,
+      initiateFromSnapshot: createLinkedListFromSnapshot,
 
-    reatomMap,
-    // reatomFilter,
-    // reatomReduce,
+      reatomMap,
+      // reatomFilter,
+      // reatomReduce,
 
-    toJSON: () => array(),
-
-    __reatomLinkedList: true as const,
-  }) as LinkedListAtom<Params, Node, Key>
+      __reatomLinkedList: true as const,
+    }),
+    withToJson(() => array()),
+  ) as LinkedListAtom<Params, Node, Key>
 }
 
 /**

@@ -1,5 +1,6 @@
 import type { Action, Atom, Computed } from '../core'
 import { atom, computed, named, withActions, withParams } from '../core'
+import { withToJson } from '../extensions'
 
 type StateInit<Value> = Set<Value> | ConstructorParameters<typeof Set<Value>>[0]
 const createSet = <Value>(init: StateInit<Value>) =>
@@ -36,7 +37,7 @@ export const reatomSet = <T>(
 ): SetAtom<T> => {
   const atomInitState = createSet(initState)
 
-  const setAtom = atom(atomInitState, name)
+  return atom(atomInitState, name)
     .extend(
       withParams((init: StateInit<T> | ((current: Set<T>) => Set<T>)) =>
         typeof init === 'function' ? init : createSet(init),
@@ -71,8 +72,5 @@ export const reatomSet = <T>(
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))
-
-  return Object.assign(setAtom, {
-    toJSON: () => [...setAtom()],
-  })
+    .extend(withToJson((state) => [...state]))
 }
