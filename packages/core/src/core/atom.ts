@@ -980,7 +980,7 @@ let castAtom = <T extends AtomLike>(
     } satisfies AtomMeta,
 
     toString: () => `[Atom ${target.name}]`,
-    toJSON: target,
+    toJSON: () => target(),
   } as Exclude<AtomLike, Fn>) as T
 
 export let ANONYMOUS = false

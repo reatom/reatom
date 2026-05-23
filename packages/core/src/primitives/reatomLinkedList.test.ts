@@ -425,3 +425,14 @@ test('should allow using element from one list in another list via list-specific
 
   expect(nodeInA).not.toBe(nodeInB)
 })
+
+test('should serialize to JSON as array', () => {
+  const list = reatomLinkedList({
+    create: (n: number) => atom(n),
+    initState: [atom(1), atom(2)],
+  })
+  const node = list.create(3)
+
+  expect(JSON.stringify(node)).toBe('3')
+  expect(JSON.parse(JSON.stringify(list))).toEqual([1, 2, 3])
+})

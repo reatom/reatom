@@ -931,6 +931,8 @@ export function reatomLinkedList<
     // reatomFilter,
     // reatomReduce,
 
+    toJSON: () => array(),
+
     __reatomLinkedList: true as const,
   }) as LinkedListAtom<Params, Node, Key>
 }
