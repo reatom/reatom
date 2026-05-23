@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, test } from 'test'
 
-import { atom, computed, notify } from '../core'
+import { _read, atom, computed, notify } from '../core'
+import { isCausedBy } from './isCausedBy'
 import { reatomLens } from './reatomLens'
 
 describe('runtime', () => {
@@ -164,12 +165,12 @@ describe('runtime', () => {
 
   test('should handle array out of bounds', () => {
     const listAtom = atom(['a', 'b'])
-    const thirdAtom = reatomLens(listAtom, 2)
+    const thirdAtom = reatomLens(listAtom, 3)
 
     expect(thirdAtom()).toBeUndefined()
 
     thirdAtom.set('c')
-    expect(listAtom()).toEqual(['a', 'b', 'c'])
+    expect(listAtom()).toEqual(['a', 'b', undefined, 'c'])
     expect(thirdAtom()).toBe('c')
   })
 
@@ -286,6 +287,15 @@ describe('runtime', () => {
     const nameAtom = reatomLens(userAtom, 'name')
 
     expect(nameAtom.name).toBe('userAtom.name')
+  })
+
+  test('should track change cause for the parent atom', () => {
+    const userAtom = atom({ name: 'John' })
+    const nameAtom = reatomLens(userAtom, 'name')
+
+    nameAtom.set('Jane')
+
+    expect(_read(userAtom)!.run(isCausedBy, nameAtom)).toBeTruthy()
   })
 })
 
