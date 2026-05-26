@@ -5,13 +5,23 @@ on:
     branches:
       - v1001
   workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 permissions: {}
 
 jobs:
+  pr-note:
+    timeout-minutes: 1
+    runs-on: ubuntu-slim
+    if: github.event_name == 'pull_request'
+    steps:
+      - run: echo "Preview publishing is available from the manual workflow_dispatch run."
+
   packages-changed:
     timeout-minutes: 1
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
     permissions:
       pull-requests: read
       contents: read
