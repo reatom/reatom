@@ -11,8 +11,23 @@ on:
 
 jobs:
   test:
+    name: ${{ matrix.name }}
     timeout-minutes: 2
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: core unit
+            command: pnpm --filter @reatom/core run test:unit
+          - name: core browser
+            command: pnpm --filter @reatom/core run test:browser
+          - name: react
+            command: pnpm --filter @reatom/react run test
+          - name: jsx
+            command: pnpm --filter @reatom/jsx run test
+          - name: zod
+            command: pnpm --filter @reatom/zod run test
     container:
       image: mcr.microsoft.com/playwright:v1.60.0-noble
     steps:
@@ -31,27 +46,4 @@ jobs:
         run: pnpm --filter @reatom/core run build
 
       - name: Run tests
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          pids=()
-
-          pnpm --filter @reatom/core run test:unit &
-          pids+=("$!")
-
-          pnpm --filter @reatom/core run test:browser &
-          pids+=("$!")
-
-          pnpm --parallel --filter @reatom/react --filter @reatom/jsx --filter @reatom/zod run test &
-          pids+=("$!")
-
-          failed=0
-
-          for pid in "${pids[@]}"; do
-            if ! wait "$pid"; then
-              failed=1
-            fi
-          done
-
-          exit "$failed"
+        run: ${{ matrix.command }}
