@@ -31,4 +31,27 @@ jobs:
         run: pnpm --filter @reatom/core run build
 
       - name: Run tests
-        run: pnpm test
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pids=()
+
+          pnpm --filter @reatom/core run test:unit &
+          pids+=("$!")
+
+          pnpm --filter @reatom/core run test:browser &
+          pids+=("$!")
+
+          pnpm --parallel --filter @reatom/react --filter @reatom/jsx --filter @reatom/zod run test &
+          pids+=("$!")
+
+          failed=0
+
+          for pid in "${pids[@]}"; do
+            if ! wait "$pid"; then
+              failed=1
+            fi
+          done
+
+          exit "$failed"

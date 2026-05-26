@@ -20,7 +20,7 @@
     "build": "tsdown",
     "test": "pnpm run test:unit && pnpm run test:browser",
     "test:unit": "vitest run",
-    "test:browser": "[ -z \"$CI\" ] && [ -z \"$VERCEL\" ] && vitest run --config=vitest.browser.config.ts || echo 'Skipping browser tests in CI environment'",
+    "test:browser": "vitest run --config=vitest.browser.config.ts",
     "test:watch": "vitest",
     "size": "size-limit --config .size-limit.json",
     "deopt": "dexnode deopt.js",
