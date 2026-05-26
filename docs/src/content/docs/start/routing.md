@@ -24,7 +24,7 @@ When the user navigates to `/login`, `loginRoute()` will return an empty object 
 
 ## Route Loaders for State Management
 
-A powerful feature is the `loader` option in a route definition. This function executes when the route becomes active and can be used to load data, it uses async data extension, which we was introduced in the [Extensions guide](/start/extensions). The more more cool feature is that you can create state that should only exist while the route is active. We call it a "computed factory" pattern.
+A powerful feature is the `loader` option in a route definition. This function executes when the route becomes active and can be used to load data, it uses the async data extension introduced in the [Extensions guide](/start/extensions). An even cooler feature is that you can create state that should only exist while the route is active. We call it a "computed factory" pattern.
 
 This is perfect for managing forms, for example. By creating a form inside a route's loader, you ensure it's fresh every time the user visits the route and is automatically cleaned up when they navigate away, preventing issues like old data appearing after logout. But still, the state is global, so you can access them from any component.
 
