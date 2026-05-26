@@ -2,12 +2,10 @@ name: Lint markdown
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened,  ready_for_review]
     paths:
       - "**.md"
       - "**.mdx"
-  push:
-    branches:
-      - v1001
 
 jobs:
   remark-lint:
