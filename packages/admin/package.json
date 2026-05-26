@@ -75,9 +75,9 @@
     "/dist"
   ],
   "devDependencies": {
-    "@storybook/addon-vitest": "^10.4.0",
-    "@storybook/html": "^10.4.0",
-    "@storybook/html-vite": "^10.4.0",
+    "@storybook/addon-vitest": "^10.4.1",
+    "@storybook/html": "^10.4.1",
+    "@storybook/html-vite": "^10.4.1",
     "@typescript-eslint/eslint-plugin": "catalog:",
     "@typescript-eslint/parser": "catalog:",
     "@vitest/browser": "catalog:",
@@ -85,8 +85,8 @@
     "@vitest/ui": "catalog:",
     "eslint-plugin-simple-import-sort": "catalog:",
     "msw": "^2.12.13",
-    "msw-storybook-addon": "^2.0.6",
-    "storybook": "^10.4.0",
+    "msw-storybook-addon": "^2.0.7",
+    "storybook": "^10.4.1",
     "tsdown": "catalog:",
     "vitest": "catalog:"
   }

@@ -346,7 +346,9 @@ const testComputers = setupComputersTest({
     const g = computed(() => d() + e())
     const h = computed(() => f() + g())
 
-    effect(() => listener(h()))
+    effect(() => {
+      listener(h())
+    })
 
     endCreation()
 
