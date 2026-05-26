@@ -1,0 +1,35 @@
+name: Size
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches:
+      - v1001
+
+jobs:
+  size:
+    timeout-minutes: 2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.2'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@1e1c8eafbd745f64b1ef30a7d7ed7965034c486c
+        with:
+          cache: true
+
+      - name: Install dependencies
+        run: pnpm install --ignore-scripts
+
+      - name: Build core package
+        run: pnpm --filter @reatom/core run build
+
+      - name: Check bundle size
+        run: pnpm --filter @reatom/core run size
