@@ -8,7 +8,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: read
+      contents: read
     steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'push'
+        with:
+          fetch-depth: 0
+
       - uses: actions/setup-node@v6
         with:
           node-version: '24.2'
@@ -30,16 +36,36 @@ jobs:
             const isMatch = picomatch(process.env.GLOB)
             const mask = new RegExp(process.env.ROOT_MASK_REGEX)
 
-            const changedFiles = await github.paginate(github.rest.pulls.listFiles, {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              per_page: 100
-            })
+            let filenames = []
 
-            const matchedPaths = changedFiles
-              .map(f => f.filename)
-              .filter(path => isMatch(path))
+            if (context.eventName === 'pull_request') {
+              const changedFiles = await github.paginate(github.rest.pulls.listFiles, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                per_page: 100
+              })
+              filenames = changedFiles.map(f => f.filename)
+            } else if (context.eventName === 'push') {
+              const { execSync } = require('child_process')
+              const before = context.payload.before
+              const after = context.sha
+              const emptySha = '0000000000000000000000000000000000000000'
+
+              if (before && before !== emptySha) {
+                filenames = execSync(`git diff --name-only ${before} ${after}`, { encoding: 'utf8' })
+                  .trim()
+                  .split('\n')
+                  .filter(Boolean)
+              } else {
+                filenames = execSync('git ls-files packages/', { encoding: 'utf8' })
+                  .trim()
+                  .split('\n')
+                  .filter(Boolean)
+              }
+            }
+
+            const matchedPaths = filenames.filter(path => isMatch(path))
 
             const packageRoots = new Set(
               matchedPaths.map(path => path.match(mask)?.[0] ?? null)

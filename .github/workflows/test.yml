@@ -1,10 +1,16 @@
 name: Test
 
-on: workflow_call
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened,  ready_for_review]
+  push:
+    branches:
+      - v1001
 
 jobs:
   test:
-    timeout-minutes: 30
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,14 +31,3 @@ jobs:
 
       - name: Run tests
         run: pnpm test
-
-      - name: Upload admin ui artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: admin-ui-artifacts
-          if-no-files-found: ignore
-          path: |
-            packages/admin/**/__screenshots__/**
-            packages/admin/**/.vitest/**
-            packages/admin/**/test-results/**

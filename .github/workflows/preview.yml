@@ -1,7 +1,9 @@
 name: Preview
 
 on:
-  pull_request:
+  push:
+    branches:
+      - v1001
   workflow_dispatch:
 
 jobs:
@@ -10,7 +12,7 @@ jobs:
 
   test:
     uses: ./.github/workflows/test.yml
-    
+
   publish-preview:
     needs: test
     uses: ./.github/workflows/publish-preview.yml
