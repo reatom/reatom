@@ -15,16 +15,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24.2'
-
-      - run: npm install picomatch@4.0.3
-
       - uses: actions/github-script@v8
         id: script
         env:
-          GLOB: packages/**/*.{ts,js,tsx,json}
+          PACKAGE_FILE_REGEX: ^packages\/.*\.(?:ts|js|tsx|json)$
           # this regex is used to extract package root from the changed path
           # so it should match the root
           ROOT_MASK_REGEX: packages\/[^\/]+
@@ -32,8 +26,7 @@ jobs:
         with:
           retries: 3
           script: |
-            const picomatch = require('picomatch')
-            const isMatch = picomatch(process.env.GLOB)
+            const packageFileMask = new RegExp(process.env.PACKAGE_FILE_REGEX)
             const mask = new RegExp(process.env.ROOT_MASK_REGEX)
 
             let filenames = []
@@ -65,7 +58,7 @@ jobs:
               }
             }
 
-            const matchedPaths = filenames.filter(path => isMatch(path))
+            const matchedPaths = filenames.filter(path => packageFileMask.test(path))
 
             const packageRoots = new Set(
               matchedPaths.map(path => path.match(mask)?.[0] ?? null)
@@ -102,4 +95,4 @@ jobs:
       - name: Publish packages
         env:
           PKGS: ${{ join(fromJSON(needs.packages-changed.outputs.package-roots), ' ') }}
-        run: pnpm dlx pkg-pr-new publish $PKGS --packageManager=npm,pnpm --pnpm
+        run: pnpm dlx pkg-pr-new publish $PKGS --packageManager=pnpm --pnpm
