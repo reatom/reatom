@@ -9,7 +9,8 @@ declare global {
   var __REATOM: ReatomGlobal | undefined
 }
 
-export let ensureReatomGlobal = (): ReatomGlobal => {
+/* @__NO_SIDE_EFFECTS__ */
+export function ensureReatomGlobal(): ReatomGlobal {
   let rt = globalThis.__REATOM as undefined | unknown[] | ReatomGlobal
 
   if (rt === undefined) {
@@ -28,7 +29,8 @@ export let ensureReatomGlobal = (): ReatomGlobal => {
   return rt as ReatomGlobal
 }
 
-export let _createGlobal = <T>(name: string, init: () => T): T => {
+/* @__NO_SIDE_EFFECTS__ */
+export function _createGlobal<T>(name: string, init: () => T): T {
   let g = ensureReatomGlobal()
   return (g[name] ??= init()) as T
 }
