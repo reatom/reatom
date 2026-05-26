@@ -30,5 +30,8 @@ jobs:
           pnpm install --ignore-scripts
           pnpx playwright install --with-deps chromium
 
+      - name: Build core package
+        run: pnpm --filter @reatom/core run build
+
       - name: Run tests
         run: pnpm test
