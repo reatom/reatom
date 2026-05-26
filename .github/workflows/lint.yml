@@ -6,11 +6,19 @@ jobs:
   prettier:
     timeout-minutes: 30
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        if: ${{ !github.head_ref }}
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 0
+
+      - uses: actions/checkout@v4
+        if: ${{ github.head_ref }}
+        with:
+          ref: ${{ github.head_ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
           fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
@@ -44,12 +52,12 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git commit -am "chore: run prettier"
-          git push origin HEAD:$HEAD_REF
+          git push origin HEAD:${HEAD_REF}
         env:
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
 
       - name: Upload artifact to trigger app for forks
-        if: ${{ failure() }}
+        if: ${{ failure() && github.head_ref }}
         run: |
           cat <<EOF > flow-comment.json
             {
@@ -61,7 +69,7 @@ jobs:
             }
           EOF
       - uses: actions/upload-artifact@v4
-        if: ${{ failure() }}
+        if: ${{ failure() && github.head_ref }}
         with:
           name: flow
           path: 'flow-comment.json'
