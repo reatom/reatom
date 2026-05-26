@@ -106,6 +106,8 @@ export interface AtomLike<
    */
   subscribe: (cb?: (payload: Payload) => any) => Unsubscribe
 
+  toJSON: () => unknown
+
   /** Reference to the atom's internal metadata. */
   __reatom: AtomMeta
 
