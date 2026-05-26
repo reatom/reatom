@@ -1,10 +1,17 @@
 name: Lint
 
-on: workflow_call
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches:
+      - v1001
 
 jobs:
   prettier:
-    timeout-minutes: 30
+    timeout-minutes: 1
     runs-on: ubuntu-latest
     permissions:
       contents: write

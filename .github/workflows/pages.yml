@@ -31,6 +31,7 @@ env:
 
 jobs:
   build:
+    timeout-minutes: 2
     name: Build
     runs-on: ubuntu-latest
     steps:

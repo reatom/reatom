@@ -5,10 +5,13 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened,  ready_for_review]
+  push:
+    branches:
+      - v1001
 
 jobs:
   test:
-    timeout-minutes: 5
+    timeout-minutes: 2
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
