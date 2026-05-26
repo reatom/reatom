@@ -11,7 +11,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         with:
           fetch-depth: 0
 
@@ -56,6 +56,13 @@ jobs:
                   .split('\n')
                   .filter(Boolean)
               }
+            } else if (context.eventName === 'workflow_dispatch') {
+              const { execSync } = require('child_process')
+
+              filenames = execSync('git ls-files packages/', { encoding: 'utf8' })
+                .trim()
+                .split('\n')
+                .filter(Boolean)
             }
 
             const matchedPaths = filenames.filter(path => packageFileMask.test(path))
