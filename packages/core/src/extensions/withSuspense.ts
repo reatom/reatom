@@ -1,5 +1,6 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
 import {
+  _createGlobal,
   _set,
   AtomInitState,
   bind,

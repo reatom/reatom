@@ -1,11 +1,11 @@
 import type { Action, AtomLike } from '../core'
-import { action, bind, computed, isAtom, top } from '../core'
+import { action, bind, computed, isAtom, top, _createGlobal } from '../core'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import type { Fn, Unsubscribe } from '../utils'
 import { isAbort, noop } from '../utils'
 import { getCalls } from './ifChanged'
 
-let i = 0
+let takeOrdinal = _createGlobal('takeOrdinal', () => ({ n: 0 }))
 
 /**
  * Awaits the next update of an atom or call of an action.
