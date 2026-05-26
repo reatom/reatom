@@ -298,7 +298,7 @@ focused on exactly the changed part. This data and actions modelling helps to ar
 
 Some naming tips:
 
-- use "reatomSome" / "reatomOther" as a shortcut to "createSomeAtom" / "createOtherAction"
+- use "reatomSome" / "reatomOther" as a shortcut to "createSomeAtom" / "createOtherAction", "reatomMyForm" instead of "createMyForm"
 - duplicate the depth of the structure in the name, like "users.paging.current", use `#${ID}` pattern for dynamically created atoms and actions, like `goods.list#${id}.addToCart`.
 - Put the parent name to the factory to support proper name nesting, like `reatomUser(userDto, 'users' + userDto.id)`
 
