@@ -1,5 +1,12 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
-import { _set, bind, createAtom, top } from '../core'
+import {
+  _set,
+  AtomInitState,
+  bind,
+  createAtom,
+  top,
+  withMiddleware,
+} from '../core'
 import { wrap } from '../methods'
 import { withInit } from './withInit'
 
@@ -274,6 +281,31 @@ export let withSuspenseInit: {
   ): Ext<Target> =>
   (target) =>
     target.extend(
+      withMiddleware(
+        () =>
+          // Special case for suspense in native init callback
+          function withSuspenseInit(next, ...params) {
+            let frame = top()
+            let initState = frame.state
+
+            try {
+              return next(...params)
+            } catch (error) {
+              if (
+                error instanceof Promise &&
+                initState instanceof AtomInitState &&
+                frame.state === undefined
+              ) {
+                frame.state = initState
+                frame.error = null
+                frame.pubs = [null]
+              }
+
+              throw error
+            }
+          },
+        'read',
+      ),
       withInit((initState: AtomState<Target>) => {
         let result: AtomState<Target> | Promise<AtomState<Target>>
         try {
