@@ -309,4 +309,5 @@ const initWithIndexedDb = () =>
         createMemStorage({ name: 'withIndexedDb' }),
       ) as unknown as WithPersistWebStorage)
 
-export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ initWithIndexedDb()
+export const withIndexedDb: WithPersistWebStorage =
+  /* @__PURE__ */ initWithIndexedDb()

@@ -397,20 +397,16 @@ describe('types', () => {
       'nested',
       'nested',
       number | undefined
-    >(
-      dataAtom,
-      'nested',
-      {
-        get: (parent) => parent.nested?.deep?.value,
-        set: (parent, _, value) => ({
-          ...parent,
-          nested: {
-            ...parent.nested,
-            deep: { ...parent.nested.deep, value: value ?? 0 },
-          },
-        }),
-      },
-    )
+    >(dataAtom, 'nested', {
+      get: (parent) => parent.nested?.deep?.value,
+      set: (parent, _, value) => ({
+        ...parent,
+        nested: {
+          ...parent.nested,
+          deep: { ...parent.nested.deep, value: value ?? 0 },
+        },
+      }),
+    })
 
     expectTypeOf(deepAtom()).toEqualTypeOf<number | undefined>()
   })

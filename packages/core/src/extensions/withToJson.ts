@@ -3,8 +3,8 @@ import type { AtomLike, AtomState, Ext } from '../core'
 /**
  * Overrides default JSON serialization for an atom.
  *
- * By default, atoms serialize to their current state via `JSON.stringify`.
- * Use this extension when you need a custom JSON shape, for example a unix
+ * By default, atoms serialize to their current state via `JSON.stringify`. Use
+ * this extension when you need a custom JSON shape, for example a unix
  * timestamp instead of an ISO string for dates.
  *
  * @example

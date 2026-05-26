@@ -157,7 +157,8 @@ const initWithLocalStorage = () =>
         createMemStorage({ name: 'withLocalStorage' }),
       )
 
-export const withLocalStorage: WithPersist = /* @__PURE__ */ initWithLocalStorage()
+export const withLocalStorage: WithPersist =
+  /* @__PURE__ */ initWithLocalStorage()
 
 /**
  * Default sessionStorage persistence adapter with automatic fallback to memory
@@ -204,4 +205,5 @@ const initWithSessionStorage = () =>
     ? reatomPersistWebStorage('withSessionStorage', globalThis.sessionStorage)
     : reatomPersist(createMemStorage({ name: 'withSessionStorage' }))
 
-export const withSessionStorage: WithPersist = /* @__PURE__ */ initWithSessionStorage()
+export const withSessionStorage: WithPersist =
+  /* @__PURE__ */ initWithSessionStorage()
