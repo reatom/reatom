@@ -218,6 +218,11 @@ export function withSearchParams<T = string>(
                 return
               }
 
+              if (key in prev && currentPath === prevUrl.pathname) {
+                state = parse(undefined) as AtomState<Target>
+                return
+              }
+
               const prevState = serialize(state)
               if (prevState !== undefined) {
                 _enqueue(() => {
