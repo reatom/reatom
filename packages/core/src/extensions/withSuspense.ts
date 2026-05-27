@@ -1,5 +1,6 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
 import {
+  _createGlobal,
   _set,
   AtomInitState,
   bind,
@@ -23,7 +24,10 @@ export interface SuspenseRecord {
  * Internal suspense cache mapping promises to their settlement state. Do not
  * use it directly, only for libraries!
  */
-export let SUSPENSE = new WeakMap<Promise<any>, SuspenseRecord>()
+export let SUSPENSE = _createGlobal(
+  'withSuspense_suspenseMap',
+  () => new WeakMap<Promise<any>, SuspenseRecord>(),
+)
 
 /**
  * Checks if a promise is settled and returns its value or fallback. If the

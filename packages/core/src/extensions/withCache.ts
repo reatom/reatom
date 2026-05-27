@@ -9,6 +9,7 @@ import {
   type Frame,
   isAction,
   ReatomError,
+  _createGlobal,
   top,
   withActionMiddleware,
   withActions,
@@ -165,7 +166,7 @@ export interface CacheVarState {
 
 type CacheVarRecord = Pick<CacheRecord, 'value' | 'version'> | undefined
 
-const initCacheVar = () =>
+export const cacheVar = _createGlobal('cacheVar', () =>
   variable(
     (
       cached?: CacheVarRecord,
@@ -179,9 +180,8 @@ const initCacheVar = () =>
       promise,
     }),
     'cache',
-  )
-
-export const cacheVar = /* @__PURE__ */ initCacheVar()
+  ),
+)
 
 export let withCache =
   <

@@ -1,4 +1,12 @@
-import { computed, context, type Frame, named, ReatomError, top } from '../core'
+import {
+  computed,
+  context,
+  type Frame,
+  named,
+  ReatomError,
+  top,
+  _createGlobal,
+} from '../core'
 
 /**
  * Internal utility for keyed memoization within an atom's execution context.

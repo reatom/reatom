@@ -1,5 +1,7 @@
 import type { ActionState, AtomLike, Frame } from '../core'
 import {
+  EXTENSIONS,
+  _createGlobal,
   _enqueue,
   action,
   bind,
@@ -13,12 +15,15 @@ import type { Fn } from '../utils'
 import { isAbort, isBrowser } from '../utils'
 import { getSerial, getStackTrace, isSkip } from './getStackTrace'
 
+const stateLogMap = _createGlobal(
+  'connectLogger_stateLogMap',
+  () => new Map<string, any>(),
+)
+
 let maybeAtomLog = (thing: any) =>
   isAtom(thing)
     ? `[${isAction(thing) ? 'Action' : 'Atom'} ${thing.name}]`
     : thing
-
-const stateLogMap = new Map<string, any>()
 
 /**
  * A special logging action for debugging Reatom applications.
@@ -99,7 +104,9 @@ const initLog = () =>
 
 export let log = /* @__PURE__ */ initLog()
 
-let isNewLogStack = true
+let connectLoggerScratch = _createGlobal('connectLoggerScratch', () => ({
+  isNewLogStack: true,
+}))
 
 /**
  * Sets up and connects a logger to the Reatom system for debugging and tracing.
@@ -173,10 +180,10 @@ export let connectLogger = ({
     let logStack = (payload: any, error: any, cb: Fn, filterColor?: string) => {
       try {
         const isAborted = isAbort(error)
-        if (isNewLogStack) {
-          isNewLogStack = false
+        if (connectLoggerScratch.isNewLogStack) {
+          connectLoggerScratch.isNewLogStack = false
           setTimeout(() => {
-            isNewLogStack = true
+            connectLoggerScratch.isNewLogStack = true
           })
           console.log('--- ' + new Date().toISOString() + ' ----')
         }
@@ -315,7 +322,7 @@ export let connectLogger = ({
   }
 
   // @ts-ignore TODO
-  globalThis.__REATOM.push(logExt)
+  EXTENSIONS.push(logExt)
 
   log.extend(logExt)
 }

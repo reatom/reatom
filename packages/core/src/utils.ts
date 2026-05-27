@@ -1,4 +1,5 @@
 import type { SetTimeout } from './setTimeout'
+import { _createGlobal } from './core/globalStore'
 
 /**
  * Generic function type representing any function that takes any parameters and
@@ -522,8 +523,10 @@ export const omit = <T, K extends keyof T>(
  */
 export const jsonClone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
-let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
-  Math.floor(Math.random() * (max - min + 1)) + min
+let randomImpl = _createGlobal('utils_randomImpl', () => ({
+  rand: (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
+    Math.floor(Math.random() * (max - min + 1)) + min,
+}))
 
 /**
  * Generates a random integer between min and max (inclusive).
@@ -533,7 +536,7 @@ let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
  *   1)
  * @returns A random integer between min and max
  */
-export const random: typeof _random = (min, max) => _random(min, max)
+export const random = (min?: number, max?: number) => randomImpl.rand(min, max)
 
 /**
  * Replaces the default random number generator with a custom implementation.
@@ -550,13 +553,12 @@ export const random: typeof _random = (min, max) => _random(min, max)
  *   implementation when called
  */
 export const mockRandom = (fn: typeof random) => {
-  const origin = _random
-  _random = fn
+  const origin = randomImpl.rand
+  randomImpl.rand = fn as typeof randomImpl.rand
   return () => {
-    _random = origin
+    randomImpl.rand = origin
   }
 }
-
 /**
  * Asserts that a value is not null or undefined. Throws a TypeError if the
  * value is null or undefined. Also serves as a type guard to narrow the type to
@@ -580,7 +582,10 @@ export const nonNullable = <T>(value: T, message?: string): NonNullable<T> => {
 
 const toString = /* @__PURE__ */ Object.prototype.toString
 const toStringArray = /* @__PURE__ */ [].toString
-const visited = new WeakMap<{}, string>()
+const visited = _createGlobal(
+  'utils_toStringKeyVisited',
+  () => new WeakMap<{}, string>(),
+)
 
 /**
  * Converts any JavaScript value to a stable string representation. Handles
@@ -673,7 +678,10 @@ export interface AbortError extends DOMException {
   name: 'AbortError'
 }
 
-let i = 0
+let abortErrorOrdinal = _createGlobal('utils_abortErrorOrdinal', () => ({
+  n: 0,
+}))
+
 /**
  * Converts any value to an AbortError. If the value is already an AbortError,
  * it will be returned as is. Otherwise, creates a new AbortError with
@@ -695,7 +703,7 @@ export const toAbortError = (reason: any): AbortError => {
       reason = isObject(reason) ? toString.call(reason) : String(reason)
     }
 
-    reason += ` [#${++i}]`
+    reason += ` [#${++abortErrorOrdinal.n}]`
 
     if (typeof DOMException === 'undefined') {
       reason = new Error(reason, options)

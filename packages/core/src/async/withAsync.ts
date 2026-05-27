@@ -8,6 +8,7 @@ import {
   createAtom,
   ReatomError,
   top,
+  _createGlobal,
   withMiddleware,
 } from '../core'
 import { cacheVar } from '../extensions/withCache'
@@ -16,16 +17,17 @@ import type { Fn } from '../utils'
 import { isAbort } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
 
-let initDefaultStatus = () =>
-  computed(() => {
-    throw new ReatomError(
-      'status is turned off by default, you need to activate it explicitly in options',
-    )
-  }, 'defaultStatus').extend((target) => ({
-    reset: action(() => target(), `${target.name}.reset`),
-  })) as AsyncStatusAtom
-
-let defaultStatus = /* @__PURE__ */ initDefaultStatus()
+let defaultStatus = _createGlobal(
+  'withAsync_defaultStatus',
+  () =>
+    computed(() => {
+      throw new ReatomError(
+        'status is turned off by default, you need to activate it explicitly in options',
+      )
+    }, 'defaultStatus').extend((target) => ({
+      reset: action(() => target(), `${target.name}.reset`),
+    })) as AsyncStatusAtom,
+)
 
 /**
  * Extension interface added by {@link withAsync} to atoms or actions that return
