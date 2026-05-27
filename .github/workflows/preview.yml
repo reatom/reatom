@@ -33,16 +33,12 @@ jobs:
       - uses: actions/github-script@v8
         id: script
         env:
-          PACKAGE_FILE_REGEX: ^packages\/(?:core|react)\/.*\.(?:ts|js|tsx|json)$
-          ROOT_MASK_REGEX: packages\/(?:core|react)
-          ALLOWED_PACKAGES: packages/core,packages/react
+          PACKAGE_FILE_REGEX: ^packages\/(?:core|react)\/
 
         with:
           retries: 3
           script: |
             const packageFileMask = new RegExp(process.env.PACKAGE_FILE_REGEX)
-            const mask = new RegExp(process.env.ROOT_MASK_REGEX)
-            const allowedPackages = new Set(process.env.ALLOWED_PACKAGES.split(','))
 
             let filenames = []
 
@@ -72,19 +68,11 @@ jobs:
                 .filter(Boolean)
             }
 
-            const matchedPaths = filenames.filter(path => packageFileMask.test(path))
+            const hasPackagesChanged = filenames.some(path => packageFileMask.test(path))
 
-            const packageRoots = new Set(
-              matchedPaths
-                .map(path => path.match(mask)?.[0] ?? null)
-                .filter(root => root && allowedPackages.has(root))
-            )
-
-            core.setOutput('packages', Array.from(packageRoots))
-            core.setOutput('has-packages-changed', packageRoots.size > 0)
+            core.setOutput('has-packages-changed', hasPackagesChanged)
 
     outputs:
-      package-roots: ${{ steps.script.outputs.packages }}
       has-packages-changed: ${{ steps.script.outputs.has-packages-changed }}
 
   publish:
@@ -113,6 +101,4 @@ jobs:
         run: pnpm --filter @reatom/react run build
 
       - name: Publish packages
-        env:
-          PKGS: ${{ join(fromJSON(needs.packages-changed.outputs.package-roots), ' ') }}
-        run: pnpm dlx pkg-pr-new publish $PKGS --packageManager=pnpm --pnpm
+        run: pnpm dlx pkg-pr-new publish packages/core packages/react --packageManager=pnpm --pnpm
