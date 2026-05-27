@@ -3,7 +3,7 @@ import type { ReatomAbortController } from '../methods'
 import { type Fn, isAbort, type Rec, type Unsubscribe } from '../utils'
 import type { Action, ActionState, Ext } from './'
 import { _enqueue, type Extend, extend, isAction } from './'
-import { _createGlobal, ensureReatomGlobal,VERSION } from './globalStore'
+import { _createGlobal, ensureReatomGlobal, VERSION } from './globalStore'
 
 /*
 Atom call flow:
