@@ -755,6 +755,7 @@ export function _isPubsChanged(
         pubFreshError = error as Frame['error']
       }
       pubFreshFrame = frame.root.store.get(pubAtom)!
+      pubFreshError = pubFreshFrame.error
     }
 
     if (
