@@ -5,7 +5,6 @@ import {
   named,
   ReatomError,
   top,
-  _createGlobal,
 } from '../core'
 
 /**

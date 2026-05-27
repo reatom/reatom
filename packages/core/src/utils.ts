@@ -1,5 +1,5 @@
-import type { SetTimeout } from './setTimeout'
 import { _createGlobal } from './core/globalStore'
+import type { SetTimeout } from './setTimeout'
 
 /**
  * Generic function type representing any function that takes any parameters and

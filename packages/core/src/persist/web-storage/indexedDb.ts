@@ -1,4 +1,4 @@
-import { type Atom, _createGlobal } from '../../core'
+import { _createGlobal,type Atom } from '../../core'
 import {
   createMemStorage,
   type PersistRecord,

@@ -1,4 +1,5 @@
 import {
+  _createGlobal,
   type Action,
   type AtomLike,
   type AtomParams,
@@ -9,7 +10,6 @@ import {
   type Frame,
   isAction,
   ReatomError,
-  _createGlobal,
   top,
   withActionMiddleware,
   withActions,

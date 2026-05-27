@@ -1,6 +1,6 @@
-export * from './globalStore'
 export * from './action'
 export * from './actions'
 export * from './atom'
 export * from './extend'
+export * from './globalStore'
 export * from './queues'

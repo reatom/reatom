@@ -1,10 +1,10 @@
 import type { ActionState, AtomLike, Frame } from '../core'
 import {
-  EXTENSIONS,
   _createGlobal,
   _enqueue,
   action,
   bind,
+  EXTENSIONS,
   isAction,
   isAtom,
   isConnected,

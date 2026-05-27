@@ -1,5 +1,6 @@
 import type { Action, Atom, AtomLike, Computed } from '../core'
 import {
+  _createGlobal,
   action,
   atom,
   bind,
@@ -8,7 +9,6 @@ import {
   createAtom,
   ReatomError,
   top,
-  _createGlobal,
   withMiddleware,
 } from '../core'
 import { cacheVar } from '../extensions/withCache'

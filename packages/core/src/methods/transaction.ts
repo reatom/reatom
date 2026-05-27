@@ -7,7 +7,6 @@ import {
   isAction,
   top,
   withMiddleware,
-  _createGlobal,
 } from '../core'
 import { withCallHook } from '../extensions'
 import type { Fn } from '../utils'
