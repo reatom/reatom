@@ -11,17 +11,9 @@ on:
 permissions: {}
 
 jobs:
-  pr-note:
-    timeout-minutes: 1
-    runs-on: ubuntu-slim
-    if: github.event_name == 'pull_request'
-    steps:
-      - run: echo "Preview publishing is available from the manual workflow_dispatch run."
-
   packages-changed:
     timeout-minutes: 1
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
     permissions:
       pull-requests: read
       contents: read
@@ -66,6 +58,15 @@ jobs:
                 .trim()
                 .split('\n')
                 .filter(Boolean)
+            } else if (context.eventName === 'pull_request') {
+              const files = await github.paginate(github.rest.pulls.listFiles, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.payload.pull_request.number,
+                per_page: 100,
+              })
+
+              filenames = files.map(file => file.filename)
             }
 
             const hasPackagesChanged = filenames.some(path => packageFileMask.test(path))
@@ -79,7 +80,37 @@ jobs:
     timeout-minutes: 1
     runs-on: ubuntu-latest
     needs: packages-changed
-    if: needs.packages-changed.outputs.has-packages-changed == 'true'
+    if: github.event_name != 'pull_request' && needs.packages-changed.outputs.has-packages-changed == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.2'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@1e1c8eafbd745f64b1ef30a7d7ed7965034c486c
+        with:
+          cache: true
+          cache_dependency_path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: pnpm --filter @reatom/react run build
+
+      - name: Publish packages
+        run: pnpm dlx pkg-pr-new publish packages/core packages/react --packageManager=pnpm --pnpm
+
+  publish-pr:
+    timeout-minutes: 1
+    runs-on: ubuntu-latest
+    needs: packages-changed
+    if: github.event_name == 'pull_request' && needs.packages-changed.outputs.has-packages-changed == 'true'
+    environment:
+      name: preview
 
     steps:
       - uses: actions/checkout@v4
