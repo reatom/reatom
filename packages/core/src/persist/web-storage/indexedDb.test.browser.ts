@@ -191,7 +191,7 @@ test('IndexedDB adapter initialization', async () => {
 })
 
 describe('cold-start rehydration with multiple atoms', () => {
-  const seedRecord = async <T,>(key: string, data: T) => {
+  const seedRecord = async <T>(key: string, data: T) => {
     const idb = await import('idb-keyval')
     const store = idb.createStore('reatom_default', 'atoms')
     const rec: PersistRecord<T> = {
