@@ -39,30 +39,32 @@ export type BroadcastMessage =
       key: string
     }
 
-// One-time check for optional idb-keyval dependency
+// Lazy `idb-keyval` import. Memoizes the in-flight promise so concurrent
+// callers share one resolution instead of racing on a checked-but-not-loaded
+// state.
 let idbLazy = _createGlobal(
   'persistIndexedDbLazy',
   (): {
-    checked: boolean
+    promise: Promise<any> | null
     module: any
   } => ({
-    checked: false,
+    promise: null,
     module: null,
   }),
 )
 
-const checkIdb = async () => {
-  if (idbLazy.checked) return idbLazy.module
-  idbLazy.checked = true
+const checkIdb = (): Promise<any> => {
+  if (idbLazy.promise) return idbLazy.promise
 
-  try {
-    idbLazy.module = await import('idb-keyval')
-  } catch {
-    console.warn('idb-keyval not available - using memory storage fallback')
-    idbLazy.module = null
-  }
+  idbLazy.promise = import('idb-keyval').then(
+    (module) => (idbLazy.module = module),
+    () => {
+      console.warn('idb-keyval not available - using memory storage fallback')
+      return (idbLazy.module = null)
+    },
+  )
 
-  return idbLazy.module
+  return idbLazy.promise
 }
 
 /**

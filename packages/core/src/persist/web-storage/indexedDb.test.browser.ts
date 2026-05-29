@@ -1,8 +1,9 @@
-import { expect, test } from 'test'
+import { beforeEach, describe, expect, test } from 'test'
 
 import { atom } from '../../core'
 import { wrap } from '../../methods'
 import { sleep } from '../../utils'
+import type { PersistRecord } from '../index'
 import { reatomPersistIndexedDb, withIndexedDb } from './indexedDb'
 
 // Completely suppress console.warn to avoid spam during IndexedDB tests
@@ -187,4 +188,103 @@ test('IndexedDB adapter initialization', async () => {
 
   channel1.close()
   channel2.close()
+})
+
+describe('cold-start rehydration with multiple atoms', () => {
+  const seedRecord = async <T,>(key: string, data: T) => {
+    const idb = await import('idb-keyval')
+    const store = idb.createStore('reatom_default', 'atoms')
+    const rec: PersistRecord<T> = {
+      data,
+      id: 0,
+      timestamp: Date.now(),
+      to: Date.now() + 1_000_000,
+      version: 0,
+    }
+    await idb.set(key, rec, store)
+  }
+
+  const clearRecord = async (key: string) => {
+    const idb = await import('idb-keyval')
+    const store = idb.createStore('reatom_default', 'atoms')
+    await idb.del(key, store)
+  }
+
+  // Reset the lazy `idb-keyval` import so each test exercises the cold-start path.
+  beforeEach(() => {
+    const rt = (globalThis as any).__REATOM as { persistIndexedDbLazy?: any }
+    if (rt?.persistIndexedDbLazy) {
+      rt.persistIndexedDbLazy.promise = null
+      rt.persistIndexedDbLazy.module = null
+    }
+  })
+
+  test('rehydrates BOTH atoms from a cold start', async () => {
+    const keyA = 'regression.cold.a'
+    const keyB = 'regression.cold.b'
+
+    await wrap(seedRecord(keyA, 'A-COLD'))
+    await wrap(seedRecord(keyB, 'B-COLD'))
+
+    try {
+      const a = atom<string | null>(null, 'regressionColdA').extend(
+        withIndexedDb(keyA),
+      )
+      const b = atom<string | null>(null, 'regressionColdB').extend(
+        withIndexedDb(keyB),
+      )
+
+      const unsubA = a.subscribe(() => {})
+      const unsubB = b.subscribe(() => {})
+
+      await wrap(sleep(200))
+
+      expect(a()).toBe('A-COLD')
+      expect(b()).toBe('B-COLD')
+
+      unsubA()
+      unsubB()
+    } finally {
+      await wrap(clearRecord(keyA))
+      await wrap(clearRecord(keyB))
+    }
+  })
+
+  test('rehydrates BOTH atoms after disconnect-reconnect cycle', async () => {
+    // Mimics React StrictMode / quick effect re-runs during the rehydrate window.
+    const keyA = 'regression.churn.a'
+    const keyB = 'regression.churn.b'
+
+    await wrap(seedRecord(keyA, 'A-CHURN'))
+    await wrap(seedRecord(keyB, 'B-CHURN'))
+
+    try {
+      const a = atom<string | null>(null, 'regressionChurnA').extend(
+        withIndexedDb(keyA),
+      )
+      const b = atom<string | null>(null, 'regressionChurnB').extend(
+        withIndexedDb(keyB),
+      )
+
+      const unsubA1 = a.subscribe(() => {})
+      const unsubB1 = b.subscribe(() => {})
+
+      // Drop & resubscribe before the IDB IIFEs resolve.
+      unsubA1()
+      unsubB1()
+      const unsubA2 = a.subscribe(() => {})
+      const unsubB2 = b.subscribe(() => {})
+
+      await wrap(sleep(200))
+
+      expect(a()).toBe('A-CHURN')
+      expect(b()).toBe('B-CHURN')
+
+      unsubA2()
+      unsubB2()
+    } finally {
+      await wrap(clearRecord(keyA))
+      await wrap(clearRecord(keyB))
+    }
+  })
 })
