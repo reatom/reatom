@@ -25,7 +25,7 @@ import { wrap } from '../methods'
  * @returns The same passed action
  */
 export let withSuspenseRetry = <
-  T extends Action<unknown[], Promise<unknown>>,
+  T extends Action<any[], Promise<unknown>>,
 >(): Ext<T> =>
   withActionMiddleware(() => async (next, ...params) => {
     while (true) {
