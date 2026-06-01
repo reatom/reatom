@@ -164,7 +164,7 @@ export interface FieldSetAtom<
  *   const billingFieldSet = reatomAddressFieldSet('order.billing')
  *
  *   const form = reatomForm(
- *     { shipping: shippingFieldSet, billing: billingFieldSet },
+ *     { shipping: shippingFieldSet.fields, billing: billingFieldSet.fields },
  *     'order',
  *   )
  *
