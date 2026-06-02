@@ -1,5 +1,5 @@
 import type { Atom, LLNode } from '@reatom/core'
-import { action, atom, LL_NEXT, LL_PREV, reatomLinkedList } from '@reatom/core'
+import { action, atom, reatomLinkedList } from '@reatom/core'
 
 export type ListElement = LLNode<Atom<string>>
 
@@ -9,10 +9,15 @@ export const list = reatomLinkedList(
 )
 
 export const moveDown = action((input: ListElement) => {
-  list.move(input, input[LL_NEXT])
+  const next = (input as unknown as Record<symbol, ListElement | null>)[
+    list.LL_NEXT
+  ]
+  list.move(input, next)
 }, 'moveDown')
 export const moveUp = action((input: ListElement) => {
-  let prev = input[LL_PREV]
+  const prev = (input as unknown as Record<symbol, ListElement | null>)[
+    list.LL_PREV
+  ]
   if (prev) list.move(prev, input)
 }, 'moveUp')
 
