@@ -45,9 +45,9 @@ type DomApis = Pick<
   | 'DocumentFragment'
 >
 
-export let DOM = atom(globalThis.window, '_jsx.DOM')
+export let DOM = atom(globalThis.window, 'jsx.DOM')
 
-export let DEBUG = atom(true, '_jsx.DEBUG')
+export let DEBUG = atom(true, 'jsx.DEBUG')
 
 let jsxInlineStyles = _createGlobal('jsx_inlineStylesRegistry', () => ({
   count: 0,
@@ -59,12 +59,14 @@ let jsxInlineStyles = _createGlobal('jsx_inlineStylesRegistry', () => ({
  * @see https://developer.mozilla.org/en-US/docs/Web/API/Document/adoptedStyleSheets
  * @see https://measurethat.net/Benchmarks/Show/5920
  */
-export let stylesheet = atom(
-  () =>
-    DOM().document.head.appendChild(DOM().document.createElement('style'))
-      .sheet!,
-  'jsx.stylesheet',
-)
+export let stylesheet = _createGlobal('jsx_stylesheet', () => {
+  let target = atom(
+    () =>
+      DOM().document.head.appendChild(DOM().document.createElement('style'))
+        .sheet!,
+  )
+  return Object.assign(() => peek(target), { set: target.set })
+})
 let jsxHName = _createGlobal('jsx_hCurrentName', () => ({ current: '' }))
 let jsxElementKey = (element: Node, key: string) =>
   `${jsxHName.current}.${element.nodeName.toLowerCase()}._${key}`
@@ -103,9 +105,10 @@ interface Meta {
   mount: ((element: Node) => ((element: Node) => void) | undefined) | undefined
   unmount: ((element: Node) => void) | undefined
 }
-let metaSymbol = _createGlobal('jsx_metaSymbolAtomSlot', () =>
-  atom(() => Symbol(), '_jsx.metaSymbol'),
-)
+let metaSymbol = _createGlobal('jsx_metaSymbolAtomSlot', () => {
+  let target = atom(() => Symbol(), 'jsx.metaSymbol')
+  return () => peek(target)
+})
 let ensureMeta = (node: Node): Meta => {
   return ((node as any)[metaSymbol()] ??= {
     subscribes: [],
