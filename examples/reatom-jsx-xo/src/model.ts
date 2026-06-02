@@ -70,7 +70,7 @@ export const oThinking = atom(0, 'oThinking')
 
 export const draws = atom(0, 'draws')
 
-const winningCombinations = [
+const winningCombinations: Array<[number, number, number]> = [
   [0, 1, 2], // top row
   [3, 4, 5], // middle row
   [6, 7, 8], // bottom row
@@ -84,8 +84,13 @@ const winningCombinations = [
 const checkWinner = (board: Array<Cell>): Winner => {
   for (const combo of winningCombinations) {
     const [a, b, c] = combo
-    if (board[a] && board[a] === board[b] && board[a] === board[c]) {
-      return board[a] as Player
+    const winnerCandidate = board[a]
+    if (
+      (winnerCandidate === 'X' || winnerCandidate === 'O') &&
+      winnerCandidate === board[b] &&
+      winnerCandidate === board[c]
+    ) {
+      return winnerCandidate
     }
   }
 
