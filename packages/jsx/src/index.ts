@@ -228,7 +228,11 @@ let walk = (
   } else if (isAtom(children)) {
     element.append(walkAtom(dom, children as AtomLike<JSX.ElementChildren>))
   } else if (typeof children === 'function') {
-    walk(dom, element, computed(children as () => any))
+    walk(
+      dom,
+      element,
+      computed(children as () => any, jsxElementKey(element, 'children')),
+    )
   } else if (!isSkipped(children)) {
     element.append(children as Node | string)
   }

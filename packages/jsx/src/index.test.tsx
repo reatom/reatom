@@ -187,6 +187,31 @@ test('on: handler action name uses function name', () =>
     expect(frequentActionName).toBe('Button.button._handlePanMove')
   }))
 
+test('function child computed name uses component and element', () =>
+  context.start(async () => {
+    let computedName = ''
+
+    const InfoRow = ({ value }: { value: () => string }) => (
+      <div>
+        <span>{value}</span>
+      </div>
+    )
+
+    const element = (
+      <InfoRow
+        value={() => {
+          computedName = top().atom.name
+          return 'ok'
+        }}
+      />
+    )
+
+    mount(parent(), element)
+    await wrap(sleep())
+
+    expect(computedName).toBe('InfoRow.span._children')
+  }))
+
 test('spreads', () =>
   context.start(async () => {
     const clickTrack = vi.fn()
