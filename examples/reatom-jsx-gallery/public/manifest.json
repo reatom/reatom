@@ -1,0 +1,9 @@
+{
+  "name": "Reatom Gallery",
+  "short_name": "Gallery",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#e94560",
+  "icons": []
+}
