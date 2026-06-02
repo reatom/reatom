@@ -1,0 +1,32 @@
+{
+  "name": "reatom-jsx-gallery",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test-storybook": "vitest --project=storybook",
+    "test:unit": "vitest --project=unit",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "build-storybook": "storybook build"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "^10.2.0",
+    "@storybook/addon-vitest": "^10.2.0",
+    "@storybook/html-vite": "^10.2.0",
+    "@testing-library/dom": "^10.4.0",
+    "@vitest/browser-playwright": "^4.0.0",
+    "playwright": "^1.58.0",
+    "storybook": "^10.2.0",
+    "typescript": "^5.4.3",
+    "vite": "^5.2.7",
+    "vitest": "^4.0.0"
+  },
+  "dependencies": {
+    "@reatom/core": "1001.*.*",
+    "@reatom/jsx": "1001.*.*"
+  }
+}

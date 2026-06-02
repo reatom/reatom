@@ -1,6 +1,9 @@
 packages:
   - docs
+  - examples/*
   - packages/*
+
+linkWorkspacePackages: true
 
 catalog:
   '@commitlint/cli': ^20.5.3
