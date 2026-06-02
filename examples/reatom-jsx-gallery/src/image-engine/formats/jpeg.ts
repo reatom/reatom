@@ -1,3 +1,4 @@
+import { findApp1ExifTiffBase } from './exif'
 import { EXIF_READ_BYTES } from '../types'
 
 type JpegMeta = {
@@ -108,25 +109,6 @@ export function checkExifThumbnailPresence(view: DataView): boolean {
   return getExifThumbnailRange(view) !== null
 }
 
-function findApp1ExifOffset(view: DataView): number | null {
-  for (const { marker, offset } of walkJpegMarkers(view)) {
-    if (marker === 0xe1) {
-      const dataStart = offset + 4
-      if (dataStart + 6 > view.byteLength) return null
-      const isExif =
-        view.getUint8(dataStart) === 0x45 &&
-        view.getUint8(dataStart + 1) === 0x78 &&
-        view.getUint8(dataStart + 2) === 0x69 &&
-        view.getUint8(dataStart + 3) === 0x66 &&
-        view.getUint8(dataStart + 4) === 0x00 &&
-        view.getUint8(dataStart + 5) === 0x00
-
-      if (isExif) return dataStart + 6
-    }
-  }
-  return null
-}
-
 function readTiffUint16(
   view: DataView,
   offset: number,
@@ -149,7 +131,7 @@ const THUMBNAIL_LENGTH_TAG = 0x0202
 function getExifThumbnailRange(
   view: DataView,
 ): { start: number; length: number } | null {
-  const tiffBase = findApp1ExifOffset(view)
+  const tiffBase = findApp1ExifTiffBase(view)
   if (tiffBase === null) return null
 
   if (tiffBase + 8 > view.byteLength) return null

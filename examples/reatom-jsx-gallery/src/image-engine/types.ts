@@ -7,12 +7,15 @@ export type ImageFormat =
   | 'svg'
   | 'unknown'
 
+export type ExifData = Record<string, string>
+
 export type ImageMeta = {
   width: number
   height: number
   format: ImageFormat
   isProgressive: boolean
   hasExifThumbnail: boolean
+  exif?: ExifData
 }
 
 export type ThumbnailOptions = {

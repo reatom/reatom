@@ -3,6 +3,7 @@ import { settingsPanelOpen } from '../components/SettingsPanel'
 import {
   clearSelection,
   currentFolder,
+  flatImages,
   folderTree,
   lightboxImage,
   lightboxOpen,
@@ -12,7 +13,7 @@ import {
 import type { FolderNode, ImageFile } from '../types'
 
 function cloneImage(img: ImageFile): ImageFile {
-  return Object.fromEntries(Object.entries(img)) as ImageFile
+  return { ...img }
 }
 
 function cloneFolder(folder: FolderNode): FolderNode {
@@ -21,6 +22,13 @@ function cloneFolder(folder: FolderNode): FolderNode {
     images: folder.images.map(cloneImage),
     children: folder.children.map(cloneFolder),
   }
+}
+
+function collectImages(folder: FolderNode): ImageFile[] {
+  return [
+    ...folder.images,
+    ...folder.children.flatMap((child) => collectImages(child)),
+  ]
 }
 
 export type LoadGalleryStateOptions = {
@@ -33,6 +41,7 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
   const currentFolderNode = options.currentFolderNode
     ? cloneFolder(options.currentFolderNode)
     : undefined
+  flatImages.set(collectImages(tree))
   folderTree.set(tree)
   currentFolder.set(currentFolderNode ?? tree)
   parsingProgress.set({
@@ -48,6 +57,7 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
 }
 
 export function loadEmptyState(): void {
+  flatImages.set([])
   folderTree.set(null)
   currentFolder.set(null)
   parsingProgress.set({

@@ -1,4 +1,4 @@
-import { atom, computed, effect, wrap } from '@reatom/core'
+import { atom, computed, effect, sleep, wrap } from '@reatom/core'
 
 import { navigateLightbox, slideshowInterval, slideshowPlaying } from '../model'
 
@@ -23,58 +23,36 @@ const pillBtnCss = `
 `
 
 export const Slideshow = () => {
-  const progressPercent = atom(0, 'slideshow.progress')
+  const progressPercent = atom(0, 'slideshow._progress')
 
   const playPauseIcon = computed(
     () => (slideshowPlaying() ? '⏸' : '▶'),
     'slideshow.playPauseIcon',
   )
 
-  let advanceTimer: ReturnType<typeof setInterval> | undefined
-  let progressTimer: ReturnType<typeof setInterval> | undefined
-  let advanceStartTime = 0
+  const autoAdvance = effect(async () => {
+    while (slideshowPlaying()) {
+      const ms = slideshowInterval()
+      const startedAt = Date.now()
 
-  const stopTimers = () => {
-    if (advanceTimer !== undefined) clearInterval(advanceTimer)
-    if (progressTimer !== undefined) clearInterval(progressTimer)
-    advanceTimer = undefined
-    progressTimer = undefined
-    try {
       progressPercent.set(0)
-    } catch {
-      // Context may be torn down during unmount
-    }
-  }
 
-  effect(() => {
-    stopTimers()
-    const playing = slideshowPlaying()
-    const ms = slideshowInterval()
-    if (!playing) return
+      while (Date.now() - startedAt < ms) {
+        await wrap(sleep(50))
 
-    advanceStartTime = Date.now()
-
-    advanceTimer = window.setInterval(
-      wrap(() => {
-        navigateLightbox(1)
-        advanceStartTime = Date.now()
-        progressPercent.set(0)
-      }),
-      ms,
-    )
-
-    progressTimer = window.setInterval(
-      wrap(() => {
-        const elapsed = Date.now() - advanceStartTime
+        const elapsed = Date.now() - startedAt
         progressPercent.set(Math.min((elapsed / ms) * 100, 100))
-      }),
-      50,
-    )
+      }
+
+      navigateLightbox(1)
+    }
+
+    progressPercent.set(0)
   }, 'slideshow.autoAdvance')
 
   return (
     <div
-      ref={() => stopTimers}
+      ref={() => autoAdvance.unsubscribe}
       css={`
         position: absolute;
         bottom: 52px;

@@ -1,4 +1,4 @@
-import { atom, computed, peek, wrap } from '@reatom/core'
+import { abortVar, atom, computed, effect, peek, wrap } from '@reatom/core'
 
 import {
   closeLightbox,
@@ -53,10 +53,74 @@ const navBtnCss = `
   &:hover { background: rgba(255, 255, 255, 0.25); opacity: 1; }
 `
 
+const lightboxImageFrameCss = `
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  pointer-events: none;
+`
+
+const lightboxImageCss = `
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+`
+
 const LightboxContent = () => {
   const isPanning = atom(false, 'lightbox.isPanning')
   const panStartX = atom(0, 'lightbox.panStartX')
   const panStartY = atom(0, 'lightbox.panStartY')
+  const loadedFullImage = atom<{ id: string; src: string } | null>(
+    null,
+    'lightbox.loadedFullImage',
+  )
+
+  effect(() => {
+    const selectedImage = lightboxImage()
+    loadedFullImage.set(null)
+    if (!selectedImage) return
+  }, 'lightbox.resetLoadedFullImage')
+
+  effect(() => {
+    const model = lightboxImage()
+    if (!model) return
+
+    const imageId = model.id
+    const fullUrl = model.fullImageUrl.data()
+    if (!fullUrl) return
+
+    const loaded = loadedFullImage()
+    if (loaded?.id === imageId && loaded.src === fullUrl) return
+
+    let stale = false
+    const loader = new Image()
+    loader.decoding = 'async'
+    const promoteLoadedFullImage = () => {
+      if (stale) return
+      if (lightboxImage()?.id !== imageId) return
+      if (peek(model.fullImageUrl.data) !== fullUrl) return
+      loadedFullImage.set({ id: imageId, src: fullUrl })
+    }
+
+    loader.onload = wrap(promoteLoadedFullImage)
+    loader.src = fullUrl
+    if (loader.complete && loader.naturalWidth > 0) promoteLoadedFullImage()
+
+    abortVar.subscribe(() => {
+      stale = true
+      loader.onload = null
+    })
+  }, 'lightbox.preloadFullImage')
+
+  const displaySrc = computed(() => {
+    const model = lightboxImage()
+    if (!model) return ''
+    const loaded = loadedFullImage()
+    if (loaded?.id === model.id) return loaded.src
+    return model.thumbnail.data()?.url ?? ''
+  }, 'lightbox.displaySrc')
 
   const imageTransform = computed(() => {
     const zoom = lightboxZoom()
@@ -79,12 +143,6 @@ const LightboxContent = () => {
     resetLightboxPan()
   }
 
-  const handleWheel = (e: WheelEvent) => {
-    e.preventDefault()
-    const factor = e.deltaY < 0 ? 1.1 : 1 / 1.1
-    lightboxZoom.set((z: number) => Math.max(0.1, Math.min(10, z * factor)))
-  }
-
   const handlePanStart = (e: MouseEvent) => {
     if (peek(lightboxZoom) <= 1) return
     isPanning.set(true)
@@ -104,8 +162,9 @@ const LightboxContent = () => {
     const img = lightboxImage()
     if (!img) return
     const anchor = document.createElement('a')
-    anchor.href = peek(img.fullImageUrl.data) ?? peek(img.thumbnail.data)?.url ?? ''
-    anchor.download = img.name
+    anchor.href =
+      peek(img.fullImageUrl.data) ?? peek(img.thumbnail.data)?.url ?? ''
+    anchor.download = img.source.name
     document.body.appendChild(anchor)
     anchor.click()
     document.body.removeChild(anchor)
@@ -128,40 +187,43 @@ const LightboxContent = () => {
     resetLightboxPan()
   }
 
+  const handleKeyDown = (e: KeyboardEvent) => {
+    switch (e.key) {
+      case 'Escape':
+        closeLightbox()
+        break
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        navigateLightbox(-1)
+        resetLightboxPan()
+        break
+      case 'ArrowRight':
+      case 'ArrowDown':
+        navigateLightbox(1)
+        resetLightboxPan()
+        break
+      case '-':
+      case '_':
+        e.preventDefault()
+        zoomOut()
+        break
+      case '=':
+      case '+':
+        e.preventDefault()
+        zoomIn()
+        break
+      case ' ':
+        e.preventDefault()
+        slideshowPlaying.toggle()
+        break
+    }
+  }
+
   return (
     <div
       tabindex={-1}
-      ref={(el) => {
-        el.focus()
-
-        const onKeyDown = wrap((e: KeyboardEvent) => {
-          switch (e.key) {
-            case 'Escape':
-              closeLightbox()
-              break
-            case 'ArrowLeft':
-              navigateLightbox(-1)
-              resetLightboxPan()
-              break
-            case 'ArrowRight':
-              navigateLightbox(1)
-              resetLightboxPan()
-              break
-            case ' ':
-              e.preventDefault()
-              slideshowPlaying.toggle()
-              break
-          }
-        })
-
-        document.addEventListener('keydown', onKeyDown)
-        el.addEventListener('wheel', handleWheel, { passive: false })
-
-        return () => {
-          document.removeEventListener('keydown', onKeyDown)
-          el.removeEventListener('wheel', handleWheel)
-        }
-      }}
+      ref={(el) => el.focus()}
+      on:keydown={handleKeyDown}
       on:mousedown={handlePanStart}
       on:mousemove={handlePanMove}
       on:mouseup={handlePanEnd}
@@ -251,20 +313,23 @@ const LightboxContent = () => {
             return (
               <div css="color: #eee; font-size: 18px;">No image selected</div>
             )
+
           return (
-            <img
-              src={() => img.fullImageUrl.data() ?? img.thumbnail.data()?.url ?? ''}
-              alt={img.name}
-              style:transform={imageTransform}
-              css={`
-                max-width: 100%;
-                max-height: 100%;
-                object-fit: contain;
-                transition: transform 0.15s ease-out;
-                pointer-events: none;
-              `}
-              draggable={false}
-            />
+            <div style:transform={imageTransform} css={lightboxImageFrameCss}>
+              {() => {
+                const src = displaySrc()
+                if (!src) return null
+
+                return (
+                  <img
+                    src={src}
+                    alt={img.source.name}
+                    css={lightboxImageCss}
+                    draggable={false}
+                  />
+                )
+              }}
+            </div>
           )
         }}
       </div>

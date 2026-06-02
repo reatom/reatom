@@ -1,11 +1,12 @@
 import { parseBmpMeta } from './formats/bmp'
+import { parseExifTags } from './formats/exif'
 import { parseGifMeta } from './formats/gif'
 import { checkExifThumbnailPresence, parseJpegMeta } from './formats/jpeg'
 import { parsePngMeta } from './formats/png'
 import { parseSvgMeta } from './formats/svg'
 import { parseWebpMeta } from './formats/webp'
 import type { ImageFormat, ImageMeta } from './types'
-import { HEADER_READ_BYTES } from './types'
+import { EXIF_READ_BYTES, HEADER_READ_BYTES } from './types'
 
 function detectFormatFromMagic(view: DataView): ImageFormat {
   if (view.byteLength < 4) return 'unknown'
@@ -50,14 +51,22 @@ export async function parseImageMeta(source: Blob): Promise<ImageMeta | null> {
   const format = detectFormatFromMagic(view)
 
   if (format === 'jpeg') {
-    const meta = parseJpegMeta(view)
+    const exifSlice = source.slice(0, EXIF_READ_BYTES)
+    const exifBuffer = await exifSlice.arrayBuffer()
+    const exifView = new DataView(exifBuffer)
+
+    const meta = parseJpegMeta(exifView)
     if (!meta) return null
+
+    const exif = parseExifTags(exifView) ?? undefined
+
     return {
       width: meta.width,
       height: meta.height,
       format: 'jpeg',
       isProgressive: meta.isProgressive,
-      hasExifThumbnail: checkExifThumbnailPresence(view),
+      hasExifThumbnail: checkExifThumbnailPresence(exifView),
+      exif,
     }
   }
 

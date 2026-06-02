@@ -1,13 +1,16 @@
-import type { BooleanAtom, Computed } from '@reatom/core'
+import type { BooleanAtom, Computed, LL_NEXT, LL_PREV, LLNode } from '@reatom/core'
 import {
   action,
   atom,
   computed,
+  effect,
+  peek,
   reatomBoolean,
   reatomEnum,
   reatomLinkedList,
   withAbort,
   withAsync,
+  withConnectHook,
   withLocalStorage,
   wrap,
 } from '@reatom/core'
@@ -31,15 +34,7 @@ export type ImageModel = ReatomImage & {
   height: Computed<number>
 }
 
-type LLNodeModel = ImageModel & Record<symbol, ImageModel | null>
-
-function getLLPrev(node: LLNodeModel, llPrev: symbol): ImageModel | null {
-  return (node as Record<symbol, ImageModel | null>)[llPrev] ?? null
-}
-
-function getLLNext(node: LLNodeModel, llNext: symbol): ImageModel | null {
-  return (node as Record<symbol, ImageModel | null>)[llNext] ?? null
-}
+type LLNodeModel = LLNode<ImageModel>
 
 // Folder state
 
@@ -233,64 +228,65 @@ export const imagesList = reatomLinkedList<
     key: 'id',
   },
   'imagesList',
+).extend(
+  withConnectHook(() => {
+    effect(() => {
+      const tree = folderTree()
+      if (!tree) {
+        imagesList.batch(() => imagesList.clear())
+        return
+      }
+
+      const images = flatImages()
+      const field = sortField()
+      const order = sortOrder()
+      const currentMap = peek(imagesList.map)
+
+      const models = images.map(
+        (img) => currentMap.get(img.id) ?? createImageModel(img),
+      )
+
+      const sorted = [...models].sort((a, b) => {
+        let comparison = 0
+        switch (field) {
+          case 'name':
+            comparison = a.source.name.localeCompare(b.source.name)
+            break
+          case 'size':
+            comparison = a.source.size - b.source.size
+            break
+          case 'date':
+            comparison = a.source.lastModified - b.source.lastModified
+            break
+          case 'type':
+            comparison = a.source.type.localeCompare(b.source.type)
+            break
+          case 'dimensions':
+            comparison = a.width() * a.height() - b.width() * b.height()
+            break
+        }
+        return order === 'asc' ? comparison : -comparison
+      })
+
+      const currentArray = peek(imagesList.array)
+      const currentIds = currentArray.map((m) => m.id)
+
+      const orderMatch =
+        currentIds.length === sorted.length &&
+        currentIds.every((id, i) => id === sorted[i]!.id)
+
+      if (orderMatch) return
+
+      imagesList.batch(() => {
+        imagesList.clear()
+        imagesList.createMany(sorted.map((model) => [model]))
+      })
+    }, 'syncImagesList')
+  }),
 )
-// .extend(
-//   withConnectHook(() => {
-//     effect(() => {
-//       const tree = folderTree()
-//       if (!tree) {
-//         imagesList.batch(() => imagesList.clear())
-//         return
-//       }
 
-//       const images = flatImages()
-//       const field = sortField()
-//       const order = sortOrder()
-//       const currentMap = peek(imagesList.map)
-
-//       const models = images.map((img) => {
-//         const existing = currentMap.get(img.id)
-//         return existing ?? createImageModel(img)
-//       })
-
-//       const sorted = [...models].sort((a, b) => {
-//         let comparison = 0
-//         switch (field) {
-//           case 'name':
-//             comparison = a.name.localeCompare(b.name)
-//             break
-//           case 'size':
-//             comparison = a.source.size - b.source.size
-//             break
-//           case 'date':
-//             comparison = a.source.lastModified - b.source.lastModified
-//             break
-//           case 'type':
-//             comparison = a.source.type.localeCompare(b.source.type)
-//             break
-//           case 'dimensions':
-//             comparison = a.width() * a.height() - b.width() * b.height()
-//             break
-//         }
-//         return order === 'asc' ? comparison : -comparison
-//       })
-
-//       const currentArray = peek(imagesList.array)
-//       const currentIds = currentArray.map((m) => m.id)
-
-//       const orderMatch =
-//         currentIds.length === sorted.length &&
-//         currentIds.every((id, i) => id === sorted[i]!.id)
-
-//       if (orderMatch) return
-
-//       imagesList.batch(() => {
-//         imagesList.clear()
-//         imagesList.createMany(models.map((m) => [m]))
-//       })
-//     }, 'syncImagesList')
-//   }),
-// )
+const listLLPrev: LL_PREV = imagesList.LL_PREV
+const listLLNext: LL_NEXT = imagesList.LL_NEXT
 
 export const visibleIndexMap = computed(() => {
   const map = new Map<ImageModel, number>()
@@ -318,22 +314,21 @@ export const lightboxCounter = computed(() => {
 }, 'lightboxCounter')
 
 export const thumbnailWindow = computed(() => {
-  const current = lightboxImage()
+  const current = lightboxImage() as LLNodeModel
   if (!current || !current.visible()) return []
 
-  const { LL_PREV, LL_NEXT } = imagesList
   const before: ImageModel[] = []
-  let node = getLLPrev(current as LLNodeModel, LL_PREV)
+  let node = current[listLLPrev] ?? null
   while (node && before.length < 5) {
     if (node.visible()) before.unshift(node)
-    node = getLLPrev(node as LLNodeModel, LL_PREV)
+    node = node[listLLPrev] ?? null
   }
 
   const after: ImageModel[] = []
-  node = getLLNext(current as LLNodeModel, LL_NEXT)
+  node = current[listLLNext] ?? null
   while (node && after.length < 5) {
     if (node.visible()) after.push(node)
-    node = getLLNext(node as LLNodeModel, LL_NEXT)
+    node = node[listLLNext] ?? null
   }
 
   return [...before, current, ...after]
@@ -389,7 +384,7 @@ export const clearSelection = action(() => {
 }, 'clearSelection')
 
 export const openLightbox = action((model: ImageModel) => {
-  lightboxImage.set(model)
+  lightboxImage.set(() => model)
   lightboxZoom.set(1)
   resetLightboxPan()
   lightboxOpen.setTrue()
@@ -406,35 +401,32 @@ export const navigateLightbox = action((direction: 1 | -1) => {
   const current = lightboxImage()
   if (!current) return
 
-  const { LL_PREV, LL_NEXT } = imagesList
   const getNeighbor =
     direction === 1
-      ? (n: LLNodeModel) => getLLNext(n, LL_NEXT)
-      : (n: LLNodeModel) => getLLPrev(n, LL_PREV)
+      ? (n: LLNodeModel) => n[listLLNext] ?? null
+      : (n: LLNodeModel) => n[listLLPrev] ?? null
 
   let node = getNeighbor(current as LLNodeModel)
   while (node && !node.visible()) {
-    node = getNeighbor(node as LLNodeModel)
+    node = getNeighbor(node)
   }
 
   if (!node) {
     const listState = imagesList()
-    const start = (
-      direction === 1 ? listState.head : listState.tail
-    ) as ImageModel | null
+    const start = direction === 1 ? listState.head : listState.tail
     let cursor = start
     while (cursor && cursor !== current) {
       if (cursor.visible()) {
         node = cursor
         break
       }
-      cursor = getNeighbor(cursor as LLNodeModel)
+      cursor = getNeighbor(cursor)
     }
     if (node === current) node = null
   }
 
   if (node) {
-    lightboxImage.set(node)
+    lightboxImage.set(() => node)
     lightboxZoom.set(1)
   }
 }, 'navigateLightbox')

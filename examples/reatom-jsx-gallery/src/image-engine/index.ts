@@ -5,6 +5,7 @@ export {
   revokeThumbnail,
 } from './thumbnail'
 export type {
+  ExifData,
   ImageFormat,
   ImageMeta,
   ThumbnailOptions,

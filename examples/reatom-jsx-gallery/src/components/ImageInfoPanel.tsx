@@ -1,5 +1,6 @@
-import { computed, reatomBoolean } from '@reatom/core'
+import { reatomBoolean } from '@reatom/core'
 
+import { EXIF_TAGS_WITH_CUSTOM_FORMAT } from '../image-engine/formats/exif'
 import type { ImageModel } from '../model'
 import { imagesList, lightboxImage, lightboxOpen } from '../model'
 
@@ -47,11 +48,20 @@ const valueCss = `
 export const ImageInfoPanel = () => {
   const panelOpen = reatomBoolean(false, 'imageInfoPanel.open')
 
-  const displayImage = computed((): ImageModel | undefined => {
+  const displayImage = (): ImageModel | null => {
     if (lightboxOpen()) return lightboxImage()
     const firstSelected = imagesList.array().find((m) => m.selected())
-    return firstSelected
-  }, 'imageInfoPanel.displayImage')
+    return firstSelected ?? null
+  }
+
+  const exifRowsWithoutCustomFormat = (): [string, string][] => {
+    const exif = displayImage()?.meta.data()?.exif
+    if (!exif) return []
+
+    return Object.entries(exif)
+      .filter(([name]) => !EXIF_TAGS_WITH_CUSTOM_FORMAT.has(name))
+      .sort(([a], [b]) => a.localeCompare(b))
+  }
 
   const InfoRow = ({
     label,
@@ -121,42 +131,95 @@ export const ImageInfoPanel = () => {
           Image Info
         </div>
 
-        {() => {
-          const img = displayImage()
-          if (!img)
-            return (
-              <div css="color: #666; font-size: 13px;">No image selected</div>
-            )
+        <div
+          style:display={() => (displayImage() ? 'none' : 'block')}
+          css="color: #666; font-size: 13px;"
+        >
+          No image selected
+        </div>
+        <div style:display={() => (displayImage() ? 'block' : 'none')}>
+          <InfoRow
+            label="Filename"
+            value={() => displayImage()?.source.name ?? ''}
+          />
+          <InfoRow
+            label="Path"
+            value={() => {
+              const source = displayImage()?.source
+              return source ? source.relativePath || source.path : ''
+            }}
+          />
+          <InfoRow
+            label="Size"
+            value={() => {
+              const source = displayImage()?.source
+              return source ? formatBytes(source.size) : ''
+            }}
+          />
+          <InfoRow
+            label="Dimensions"
+            value={() => {
+              const image = displayImage()
+              if (!image) return ''
 
-          return (
-            <div>
-              <InfoRow
-                label="Filename"
-                value={() => displayImage()?.name ?? ''}
-              />
-              <InfoRow label="Path" value={() => displayImage()?.path ?? ''} />
-              <InfoRow
-                label="Size"
-                value={() => formatBytes(displayImage()?.size ?? 0)}
-              />
-              <InfoRow
-                label="Dimensions"
-                value={() => {
-                  const i = displayImage()
-                  if (!i) return ''
-                  const w = i.width()
-                  const h = i.height()
-                  return w && h ? `${w} × ${h}` : ''
-                }}
-              />
-              <InfoRow label="Type" value={() => displayImage()?.type ?? ''} />
-              <InfoRow
-                label="Modified"
-                value={() => formatDate(displayImage()?.lastModified ?? 0)}
-              />
+              const width = image.width()
+              const height = image.height()
+              if (width && height) return `${width} × ${height}`
+
+              return image.meta.pending() ? 'Loading…' : 'Unavailable'
+            }}
+          />
+          <InfoRow
+            label="Type"
+            value={() => displayImage()?.source.type || ''}
+          />
+          <InfoRow
+            label="Modified"
+            value={() => {
+              const source = displayImage()?.source
+              return source ? formatDate(source.lastModified) : ''
+            }}
+          />
+          <InfoRow
+            label="Format"
+            value={() => {
+              const image = displayImage()
+              if (!image) return ''
+
+              const imageFormat = image.meta.data()?.format
+              if (imageFormat) return imageFormat.toUpperCase()
+
+              return image.meta.pending() ? 'Loading…' : 'Unavailable'
+            }}
+          />
+          <InfoRow
+            label="EXIF thumb"
+            value={() => {
+              const image = displayImage()
+              if (!image) return ''
+
+              const meta = image.meta.data()
+              if (!meta)
+                return image.meta.pending() ? 'Loading…' : 'Unavailable'
+
+              return meta.hasExifThumbnail ? 'Yes' : 'No'
+            }}
+          />
+          <div
+            style:display={() =>
+              exifRowsWithoutCustomFormat().length > 0 ? 'block' : 'none'
+            }
+          >
+            <div css="font-size: 12px; font-weight: 600; color: #aaa; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.04em;">
+              EXIF
             </div>
-          )
-        }}
+            {() =>
+              exifRowsWithoutCustomFormat().map(([label, value]) => (
+                <InfoRow label={label} value={() => value} />
+              ))
+            }
+          </div>
+        </div>
       </div>
     </div>
   )
