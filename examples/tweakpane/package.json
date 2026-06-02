@@ -12,18 +12,18 @@
     "@reatom/core": "1001.*.*",
     "@reatom/react": "1001.*.*",
     "@tweakpane/plugin-essentials": "^0.2.1",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "three": "^0.164.0",
     "tweakpane": "^4.0.5"
   },
   "devDependencies": {
     "@tweakpane/core": "^2.0.5",
-    "@types/react": "^19.2.0",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.0",
     "@types/three": "^0.182.0",
     "@vitejs/plugin-react": "^6.0.2",
     "typescript": "^5.9.3",
-    "vite": "^8.0.13"
+    "vite": "^8.0.14"
   }
 }
