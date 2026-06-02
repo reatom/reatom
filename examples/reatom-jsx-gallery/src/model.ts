@@ -398,7 +398,9 @@ export const closeLightbox = action(() => {
 }, 'closeLightbox')
 
 export const navigateLightbox = action((direction: 1 | -1) => {
-  const current = lightboxImage()
+  const currentImage = lightboxImage()
+  if (!currentImage) return
+  const current = imagesList.find((node) => node.id === currentImage.id)
   if (!current) return
 
   const getNeighbor =
@@ -406,27 +408,33 @@ export const navigateLightbox = action((direction: 1 | -1) => {
       ? (n: LLNodeModel) => n[listLLNext] ?? null
       : (n: LLNodeModel) => n[listLLPrev] ?? null
 
-  let node = getNeighbor(current as LLNodeModel)
-  while (node && !node.visible()) {
-    node = getNeighbor(node)
-  }
-
-  if (!node) {
-    const listState = imagesList()
-    const start = direction === 1 ? listState.head : listState.tail
-    let cursor = start
-    while (cursor && cursor !== current) {
-      if (cursor.visible()) {
-        node = cursor
-        break
-      }
-      cursor = getNeighbor(cursor)
+  const findVisibleNeighbor = (source: LLNodeModel) => {
+    let node = getNeighbor(source)
+    while (node && !node.visible()) {
+      node = getNeighbor(node)
     }
-    if (node === current) node = null
+
+    if (!node) {
+      const listState = imagesList()
+      const start = direction === 1 ? listState.head : listState.tail
+      let cursor = start
+      while (cursor && cursor !== source) {
+        if (cursor.visible()) {
+          node = cursor
+          break
+        }
+        cursor = getNeighbor(cursor)
+      }
+      if (node === source) node = null
+    }
+
+    return node
   }
 
+  const node = findVisibleNeighbor(current)
   if (node) {
     lightboxImage.set(() => node)
     lightboxZoom.set(1)
+    findVisibleNeighbor(node)?.fullImage.data()
   }
 }, 'navigateLightbox')

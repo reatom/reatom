@@ -1,4 +1,4 @@
-import { abortVar, atom, computed, effect, peek, wrap } from '@reatom/core'
+import { atom, computed, peek } from '@reatom/core'
 
 import {
   closeLightbox,
@@ -59,68 +59,32 @@ const lightboxImageFrameCss = `
   max-width: 100%;
   max-height: 100%;
   pointer-events: none;
-`
-
-const lightboxImageCss = `
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  > img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 `
 
 const LightboxContent = () => {
   const isPanning = atom(false, 'lightbox.isPanning')
   const panStartX = atom(0, 'lightbox.panStartX')
   const panStartY = atom(0, 'lightbox.panStartY')
-  const loadedFullImage = atom<{ id: string; src: string } | null>(
-    null,
-    'lightbox.loadedFullImage',
-  )
 
-  effect(() => {
-    const selectedImage = lightboxImage()
-    loadedFullImage.set(null)
-    if (!selectedImage) return
-  }, 'lightbox.resetLoadedFullImage')
-
-  effect(() => {
+  const displayImage = computed(() => {
     const model = lightboxImage()
-    if (!model) return
-
-    const imageId = model.id
-    const fullUrl = model.fullImageUrl.data()
-    if (!fullUrl) return
-
-    const loaded = loadedFullImage()
-    if (loaded?.id === imageId && loaded.src === fullUrl) return
-
-    let stale = false
-    const loader = new Image()
-    loader.decoding = 'async'
-    const promoteLoadedFullImage = () => {
-      if (stale) return
-      if (lightboxImage()?.id !== imageId) return
-      if (peek(model.fullImageUrl.data) !== fullUrl) return
-      loadedFullImage.set({ id: imageId, src: fullUrl })
+    if (!model) return null
+    const fullImage = model.fullImage.data()
+    if (fullImage) {
+      fullImage.alt = model.source.name
+      fullImage.draggable = false
+      return fullImage
     }
-
-    loader.onload = wrap(promoteLoadedFullImage)
-    loader.src = fullUrl
-    if (loader.complete && loader.naturalWidth > 0) promoteLoadedFullImage()
-
-    abortVar.subscribe(() => {
-      stale = true
-      loader.onload = null
-    })
-  }, 'lightbox.preloadFullImage')
-
-  const displaySrc = computed(() => {
-    const model = lightboxImage()
-    if (!model) return ''
-    const loaded = loadedFullImage()
-    if (loaded?.id === model.id) return loaded.src
-    return model.thumbnail.data()?.url ?? ''
-  }, 'lightbox.displaySrc')
+    const thumbnailUrl = model.thumbnail.data()?.url
+    if (!thumbnailUrl) return null
+    return <img src={thumbnailUrl} alt={model.source.name} draggable={false} />
+  }, 'lightbox.displayImage')
 
   const imageTransform = computed(() => {
     const zoom = lightboxZoom()
@@ -316,19 +280,7 @@ const LightboxContent = () => {
 
           return (
             <div style:transform={imageTransform} css={lightboxImageFrameCss}>
-              {() => {
-                const src = displaySrc()
-                if (!src) return null
-
-                return (
-                  <img
-                    src={src}
-                    alt={img.source.name}
-                    css={lightboxImageCss}
-                    draggable={false}
-                  />
-                )
-              }}
+              {() => displayImage()}
             </div>
           )
         }}

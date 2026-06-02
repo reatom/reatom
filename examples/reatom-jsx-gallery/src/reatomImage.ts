@@ -1,4 +1,13 @@
-import { _read, computed, peek, withAsyncData, wrap } from '@reatom/core'
+import {
+  _read,
+  atom,
+  computed,
+  memo,
+  peek,
+  throwAbort,
+  withAsyncData,
+  wrap,
+} from '@reatom/core'
 
 import type { ThumbnailOptions } from './image-engine'
 import {
@@ -6,6 +15,12 @@ import {
   parseImageMeta,
   revokeThumbnail,
 } from './image-engine'
+
+const MAX_PARALLEL_THUMBNAILS = Math.max(
+  2,
+  (globalThis.navigator?.hardwareConcurrency ?? 4) - 2,
+)
+const activeThumbnailRequests = atom(0, 'thumbnail.activeRequests')
 
 export type ReatomImageOptions = {
   thumbnailOptions?: ThumbnailOptions
@@ -27,16 +42,39 @@ export function reatomImage(
   }, `${name}.meta`).extend(withAsyncData())
 
   const thumbnail = computed(async () => {
-    const [fileState, metaState] = await wrap(Promise.all([file(), meta()]))
-    return await wrap(
-      loadThumbnailWithMeta(fileState, metaState, options?.thumbnailOptions),
-    )
+    if (
+      memo(
+        (state) =>
+          !state && activeThumbnailRequests() >= MAX_PARALLEL_THUMBNAILS,
+      )
+    ) {
+      throwAbort()
+    }
+
+    activeThumbnailRequests.set((count) => count + 1)
+    try {
+      const [fileState, metaState] = await wrap(Promise.all([file(), meta()]))
+      return await wrap(
+        loadThumbnailWithMeta(fileState, metaState, options?.thumbnailOptions),
+      )
+    } finally {
+      activeThumbnailRequests.set((count) => count - 1)
+    }
   }, `${name}.thumbnail`).extend(withAsyncData())
 
   const fullImageUrl = computed(async () => {
     const blob = await wrap(file())
     return URL.createObjectURL(blob)
   }, `${name}.fullUrl`).extend(withAsyncData())
+
+  const fullImage = computed(async () => {
+    const url = await wrap(fullImageUrl())
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = url
+    await wrap(image.decode())
+    return image
+  }, `${name}.fullImage`).extend(withAsyncData())
 
   function dispose() {
     const thumbResult = peek(thumbnail.data)
@@ -45,7 +83,13 @@ export function reatomImage(
     if (url) URL.revokeObjectURL(url)
   }
 
-  return file.extend(() => ({ meta, thumbnail, fullImageUrl, dispose }))
+  return file.extend(() => ({
+    meta,
+    thumbnail,
+    fullImageUrl,
+    fullImage,
+    dispose,
+  }))
 }
 
 export type ReatomImage = ReturnType<typeof reatomImage>
