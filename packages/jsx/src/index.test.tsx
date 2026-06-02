@@ -6,6 +6,7 @@ import {
   type Fn,
   isConnected,
   sleep,
+  top,
   withInit,
   wrap,
 } from '@reatom/core'
@@ -147,6 +148,45 @@ test('dynamic children', () =>
     expect((element as HTMLDivElement).innerText).toBe('before...innerafter')
   }))
 
+test('on: handler action name uses function name', () =>
+  context.start(async () => {
+    let namedActionName = ''
+    let anonymousActionName = ''
+    let frequentActionName = ''
+
+    function handleClick() {
+      namedActionName = top().atom.name
+    }
+
+    function handlePanMove() {
+      frequentActionName = top().atom.name
+    }
+
+    const Button = () => (
+      <button
+        on:click={handleClick}
+        on:dblclick={() => (anonymousActionName = top().atom.name)}
+        on:mousemove={handlePanMove}
+      >
+        click
+      </button>
+    )
+
+    const element = (<Button />) as HTMLButtonElement
+
+    mount(parent(), element)
+    await wrap(sleep())
+
+    element.click()
+    expect(namedActionName).toBe('Button.button.handleClick')
+
+    element.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }))
+    expect(anonymousActionName).toBe('Button.button.dblclick')
+
+    element.dispatchEvent(new MouseEvent('mousemove', { bubbles: true }))
+    expect(frequentActionName).toBe('Button.button._handlePanMove')
+  }))
+
 test('spreads', () =>
   context.start(async () => {
     const clickTrack = vi.fn()
@@ -226,7 +266,9 @@ test('multiple render shared element', () =>
 
     childAtom.set(undefined)
     await wrap(sleep())
-    expect(stripJsxCompilerProps(app.innerHTML)).toBe('<!--child--><!--child-->')
+    expect(stripJsxCompilerProps(app.innerHTML)).toBe(
+      '<!--child--><!--child-->',
+    )
 
     childAtom.set(<Component></Component>)
     valueAtom.set('ghi')
@@ -278,7 +320,6 @@ test('array children', () =>
     expect(element.textContent).toBe('12')
   }))
 
-
 test('boolean as child', () =>
   context.start(async () => {
     const trueAtom = atom(true, 'true')
@@ -317,7 +358,9 @@ test('null as child', () =>
 
     await wrap(sleep())
     expect(element.childNodes.length).toBe(2)
-    expect(stripJsxCompilerProps(element.innerHTML)).toBe('<!--null--><!--null-->')
+    expect(stripJsxCompilerProps(element.innerHTML)).toBe(
+      '<!--null--><!--null-->',
+    )
     expect(element.textContent).toBe('')
   }))
 
@@ -867,10 +910,6 @@ test('dynamic atom fragment', () =>
       '<div><!--test--><!--test.child-->child atom<!--test.child--><!--test--></div>',
     )
   }))
-
-
-
-
 
 const expectHtmlElementProperty = <
   Tag extends keyof JSX.HTMLElementTags,

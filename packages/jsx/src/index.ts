@@ -1,10 +1,12 @@
 import {
+  _createGlobal,
   _read,
   action,
   assert,
   atom,
   type AtomLike,
   computed,
+  type Fn,
   isAction,
   isAtom,
   isLinkedListAtom,
@@ -14,7 +16,6 @@ import {
   type LLNode,
   peek,
   ReatomError,
-  _createGlobal,
   type Rec,
   type Unsubscribe,
   wrap,
@@ -65,8 +66,36 @@ export let stylesheet = atom(
   'jsx.stylesheet',
 )
 let jsxHName = _createGlobal('jsx_hCurrentName', () => ({ current: '' }))
-let named = (element: Node, key: string) =>
+let jsxElementKey = (element: Node, key: string) =>
   `${jsxHName.current}.${element.nodeName.toLowerCase()}._${key}`
+
+/** Matches {@link isSkip} — actions with `._` in the name are omitted from logs. */
+let noisyDomEvents = new Set([
+  'dragover',
+  'gesturechange',
+  'mousemove',
+  'mouseout',
+  'mouseover',
+  'pointermove',
+  'pointerout',
+  'pointerover',
+  'pointerrawupdate',
+  'scroll',
+  'scrollsnapchanging',
+  'touchmove',
+  'wheel',
+])
+
+let eventActionName = (element: Node, eventKey: string, handler: Fn) => {
+  let elementPart = element.nodeName.toLowerCase()
+  let base = jsxHName.current
+    ? `${jsxHName.current}.${elementPart}`
+    : elementPart
+  let segment =
+    handler.name && handler.name !== `on:${eventKey}` ? handler.name : eventKey
+  let hideFromLogs = noisyDomEvents.has(eventKey)
+  return `${base}${hideFromLogs ? '._' : '.'}${segment}`
+}
 
 interface Meta {
   subscribes: (() => Unsubscribe)[]
@@ -385,7 +414,7 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
         key,
         wrap(
           // only for logging purposes
-          action(value as () => void, named(element, key)),
+          action(value as () => void, eventActionName(element, key, value)),
         ),
       )
     }
@@ -403,7 +432,7 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
       unlink(element, () => value.subscribe(spread))
     } else if (typeof value === 'function') {
       unlink(element, () =>
-        computed(value, named(element, key)).subscribe(spread),
+        computed(value, jsxElementKey(element, key)).subscribe(spread),
       )
     } else {
       spread(value)
@@ -440,7 +469,7 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     unlink(element, () => value.subscribe(setter))
   } else if (typeof value === 'function') {
     unlink(element, () =>
-      computed(value, named(element, key)).subscribe(setter),
+      computed(value, jsxElementKey(element, key)).subscribe(setter),
     )
   } else {
     setter(value)
