@@ -2,7 +2,10 @@ import { action, atom, computed } from '@reatom/core'
 
 import { imagesList } from '../model'
 
-const hiddenExifColumns = atom(new Set<string>(), 'imageTable.hiddenExifColumns')
+const hiddenExifColumns = atom(
+  new Set<string>(),
+  'imageTable.hiddenExifColumns',
+)
 
 export const exifColumnNames = computed(() => {
   const columnNames = new Set<string>()
@@ -23,7 +26,9 @@ export const exifColumnNames = computed(() => {
 
 export const visibleExifColumnNames = computed(() => {
   const hiddenColumns = hiddenExifColumns()
-  return exifColumnNames().filter((columnName) => !hiddenColumns.has(columnName))
+  return exifColumnNames().filter(
+    (columnName) => !hiddenColumns.has(columnName),
+  )
 }, 'imageTable.visibleExifColumnNames')
 
 const showAllExifColumns = action(() => {
@@ -78,7 +83,9 @@ export const ImageTableFilters = () => (
         Hide all
       </button>
       <span css="font-size: 12px; color: var(--text-muted);">
-        {() => `${visibleExifColumnNames().length} of ${exifColumnNames().length} shown`}
+        {() =>
+          `${visibleExifColumnNames().length} of ${exifColumnNames().length} shown`
+        }
       </span>
     </div>
 
@@ -95,7 +102,11 @@ export const ImageTableFilters = () => (
       {() => {
         const columnNames = exifColumnNames()
         if (columnNames.length === 0) {
-          return <span css="font-size: 12px; color: var(--text-muted);">No EXIF columns found yet</span>
+          return (
+            <span css="font-size: 12px; color: var(--text-muted);">
+              No EXIF columns found yet
+            </span>
+          )
         }
 
         const hiddenColumns = hiddenExifColumns()
@@ -106,7 +117,8 @@ export const ImageTableFilters = () => (
               align-items: center;
               gap: 6px;
               padding: 5px 8px;
-              border: var(--border-width) var(--control-border-style) var(--input-border);
+              border: var(--border-width) var(--control-border-style)
+                var(--input-border);
               border-radius: var(--radius-round);
               background: var(--input-bg);
               color: var(--text-secondary);

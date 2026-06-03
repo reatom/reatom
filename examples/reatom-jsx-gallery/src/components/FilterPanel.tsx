@@ -112,7 +112,12 @@ export const FilterPanel = () => {
   }, 'filterPanel.maxSizeKb')
 
   return (
-    <div
+    <aside
+      role="dialog"
+      aria-modal="true"
+      aria-label="Filters"
+      aria-hidden={() => !filterPanelOpen()}
+      prop:inert={() => !filterPanelOpen()}
       attr:data-open={filterPanelOpen}
       css={`
         position: fixed;
@@ -157,7 +162,9 @@ export const FilterPanel = () => {
           Filters
         </h2>
         <button
+          type="button"
           on:click={() => filterPanelOpen.set(false)}
+          aria-label="Close filters"
           css={`
             width: 28px;
             height: 28px;
@@ -187,13 +194,15 @@ export const FilterPanel = () => {
         `}
       >
         <input
-          type="text"
+          type="search"
           placeholder="Search by filename..."
+          aria-label="Search by filename"
           model:value={searchQuery}
           css={`
             width: 100%;
             padding: 8px 12px;
-            border: var(--border-width) var(--control-border-style) var(--border);
+            border: var(--border-width) var(--control-border-style)
+              var(--border);
             border-radius: var(--radius-sm);
             background: var(--input-bg);
             color: var(--text-primary);
@@ -262,7 +271,8 @@ export const FilterPanel = () => {
           css={`
             width: 50%;
             padding: 6px 10px;
-            border: var(--border-width) var(--control-border-style) var(--border);
+            border: var(--border-width) var(--control-border-style)
+              var(--border);
             border-radius: var(--radius-sm);
             background: var(--input-bg);
             color: var(--text-primary);
@@ -287,7 +297,8 @@ export const FilterPanel = () => {
           css={`
             width: 50%;
             padding: 6px 10px;
-            border: var(--border-width) var(--control-border-style) var(--border);
+            border: var(--border-width) var(--control-border-style)
+              var(--border);
             border-radius: var(--radius-sm);
             background: var(--input-bg);
             color: var(--text-primary);
@@ -327,7 +338,8 @@ export const FilterPanel = () => {
             height: 22px;
             border-radius: var(--radius-round);
             background: var(--bg-tertiary);
-            border: var(--border-width) var(--control-border-style) var(--border);
+            border: var(--border-width) var(--control-border-style)
+              var(--border);
             position: relative;
             transition: background 0.2s;
             cursor: pointer;
@@ -376,6 +388,6 @@ export const FilterPanel = () => {
       >
         Clear All Filters
       </button>
-    </div>
+    </aside>
   )
 }

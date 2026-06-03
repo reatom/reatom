@@ -1,3 +1,4 @@
+import { srOnlyCss } from '../a11y'
 import { resolvedThemeMode, themePack } from '../model'
 import { activeThemeVariables, GlobalStyles } from '../theme'
 
@@ -28,8 +29,8 @@ export const AppShell = ({ children }: { children: unknown }) => (
       &[data-theme-pack='blueprint'][data-theme-mode='light'] main {
         background-color: #eaf8ff;
         background-image:
-          linear-gradient(rgba(2,132,168,.12) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(2,132,168,.12) 1px, transparent 1px);
+          linear-gradient(rgba(2, 132, 168, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(2, 132, 168, 0.12) 1px, transparent 1px);
         background-size: 28px 28px;
       }
 
@@ -41,9 +42,17 @@ export const AppShell = ({ children }: { children: unknown }) => (
       &[data-theme-pack='neon'][data-theme-mode='light'] main {
         background-color: #f7f5ff;
         background-image:
-          radial-gradient(circle at 15% 20%, rgba(192,38,211,.16), transparent 31%),
-          radial-gradient(circle at 90% 8%, rgba(8,145,178,.16), transparent 29%),
-          linear-gradient(135deg, rgba(124,58,237,.08), transparent 48%);
+          radial-gradient(
+            circle at 15% 20%,
+            rgba(192, 38, 211, 0.16),
+            transparent 31%
+          ),
+          radial-gradient(
+            circle at 90% 8%,
+            rgba(8, 145, 178, 0.16),
+            transparent 29%
+          ),
+          linear-gradient(135deg, rgba(124, 58, 237, 0.08), transparent 48%);
       }
 
       &[data-theme-pack='terminal'] {
@@ -53,9 +62,11 @@ export const AppShell = ({ children }: { children: unknown }) => (
       &[data-theme-pack='terminal'][data-theme-mode='light'] main {
         background-color: #f4f6ef;
         background-image:
-          linear-gradient(rgba(15,107,58,.055) 50%, transparent 50%),
-          linear-gradient(90deg, rgba(15,107,58,.03) 1px, transparent 1px);
-        background-size: 100% 4px, 22px 22px;
+          linear-gradient(rgba(15, 107, 58, 0.055) 50%, transparent 50%),
+          linear-gradient(90deg, rgba(15, 107, 58, 0.03) 1px, transparent 1px);
+        background-size:
+          100% 4px,
+          22px 22px;
       }
 
       &[data-theme-pack='terminal'] button,
@@ -75,12 +86,14 @@ export const AppShell = ({ children }: { children: unknown }) => (
         gap: 0.25em;
       }
 
-      &[data-theme-pack='terminal'] button[data-terminal-bracket='true']::before {
+      &[data-theme-pack='terminal']
+        button[data-terminal-bracket='true']::before {
         content: '[';
         color: var(--text-muted);
       }
 
-      &[data-theme-pack='terminal'] button[data-terminal-bracket='true']::after {
+      &[data-theme-pack='terminal']
+        button[data-terminal-bracket='true']::after {
         content: ']';
         color: var(--text-muted);
       }
@@ -113,35 +126,58 @@ export const AppShell = ({ children }: { children: unknown }) => (
       &[data-theme-pack='obsidian'][data-theme-mode='light'] main {
         background-color: #e7e9ee;
         background-image:
-          linear-gradient(135deg, rgba(15,23,42,.12), transparent 26%),
-          linear-gradient(315deg, rgba(71,85,105,.12), transparent 24%);
+          linear-gradient(135deg, rgba(15, 23, 42, 0.12), transparent 26%),
+          linear-gradient(315deg, rgba(71, 85, 105, 0.12), transparent 24%);
       }
 
       &[data-theme-pack='paper'][data-theme-mode='light'] main {
         background-color: #f5ecd9;
         background-image:
-          radial-gradient(circle at 20% 30%, rgba(42,33,23,.055) 0 1px, transparent 1px),
-          linear-gradient(90deg, rgba(42,33,23,.025), transparent 40%, rgba(42,33,23,.025));
-        background-size: 22px 22px, auto;
+          radial-gradient(
+            circle at 20% 30%,
+            rgba(42, 33, 23, 0.055) 0 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            90deg,
+            rgba(42, 33, 23, 0.025),
+            transparent 40%,
+            rgba(42, 33, 23, 0.025)
+          );
+        background-size:
+          22px 22px,
+          auto;
       }
 
       &[data-theme-pack='aurora'][data-theme-mode='light'] main {
         background-color: #effefa;
         background-image:
-          radial-gradient(circle at 18% 20%, rgba(15,159,142,.18), transparent 34%),
-          radial-gradient(circle at 82% 8%, rgba(124,58,237,.14), transparent 30%);
+          radial-gradient(
+            circle at 18% 20%,
+            rgba(15, 159, 142, 0.18),
+            transparent 34%
+          ),
+          radial-gradient(
+            circle at 82% 8%,
+            rgba(124, 58, 237, 0.14),
+            transparent 30%
+          );
       }
 
       &[data-theme-pack='polaroid'][data-theme-mode='light'] main {
         background-color: #eadfcf;
-        background-image: radial-gradient(circle at 50% 10%, rgba(255,255,255,.44), transparent 34%);
+        background-image: radial-gradient(
+          circle at 50% 10%,
+          rgba(255, 255, 255, 0.44),
+          transparent 34%
+        );
       }
 
       &[data-theme-pack='blueprint'][data-theme-mode='light'] {
         background-color: #eaf8ff;
         background-image:
-          linear-gradient(rgba(2,132,168,.12) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(2,132,168,.12) 1px, transparent 1px);
+          linear-gradient(rgba(2, 132, 168, 0.12) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(2, 132, 168, 0.12) 1px, transparent 1px);
         background-size: 28px 28px;
         font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
       }
@@ -149,18 +185,37 @@ export const AppShell = ({ children }: { children: unknown }) => (
       &[data-theme-pack='neon'][data-theme-mode='light'] {
         background-color: #f7f5ff;
         background-image:
-          radial-gradient(circle at 15% 20%, rgba(192,38,211,.16), transparent 31%),
-          radial-gradient(circle at 90% 8%, rgba(8,145,178,.16), transparent 29%),
-          linear-gradient(135deg, rgba(124,58,237,.08), transparent 48%);
+          radial-gradient(
+            circle at 15% 20%,
+            rgba(192, 38, 211, 0.16),
+            transparent 31%
+          ),
+          radial-gradient(
+            circle at 90% 8%,
+            rgba(8, 145, 178, 0.16),
+            transparent 29%
+          ),
+          linear-gradient(135deg, rgba(124, 58, 237, 0.08), transparent 48%);
         font-family: 'Inter', system-ui, sans-serif;
       }
 
       &[data-theme-pack='paper'][data-theme-mode='light'] {
         background-color: #f5ecd9;
         background-image:
-          radial-gradient(circle at 20% 30%, rgba(42,33,23,.055) 0 1px, transparent 1px),
-          linear-gradient(90deg, rgba(42,33,23,.025), transparent 40%, rgba(42,33,23,.025));
-        background-size: 22px 22px, auto;
+          radial-gradient(
+            circle at 20% 30%,
+            rgba(42, 33, 23, 0.055) 0 1px,
+            transparent 1px
+          ),
+          linear-gradient(
+            90deg,
+            rgba(42, 33, 23, 0.025),
+            transparent 40%,
+            rgba(42, 33, 23, 0.025)
+          );
+        background-size:
+          22px 22px,
+          auto;
         font-family: Georgia, 'Times New Roman', serif;
       }
 
@@ -173,16 +228,56 @@ export const AppShell = ({ children }: { children: unknown }) => (
       &[data-theme-pack='aurora'][data-theme-mode='light'] {
         background-color: #effefa;
         background-image:
-          radial-gradient(circle at 18% 20%, rgba(15,159,142,.18), transparent 34%),
-          radial-gradient(circle at 82% 8%, rgba(124,58,237,.14), transparent 30%);
+          radial-gradient(
+            circle at 18% 20%,
+            rgba(15, 159, 142, 0.18),
+            transparent 34%
+          ),
+          radial-gradient(
+            circle at 82% 8%,
+            rgba(124, 58, 237, 0.14),
+            transparent 30%
+          );
       }
 
       &[data-theme-pack='polaroid'][data-theme-mode='light'] {
         background-color: #eadfcf;
-        background-image: radial-gradient(circle at 50% 10%, rgba(255,255,255,.44), transparent 34%);
+        background-image: radial-gradient(
+          circle at 50% 10%,
+          rgba(255, 255, 255, 0.44),
+          transparent 34%
+        );
       }
     `}
   >
+    <a
+      href="#gallery-main"
+      css={`
+        ${srOnlyCss}
+        &:focus {
+          position: fixed;
+          top: 12px;
+          left: 12px;
+          z-index: 2000;
+          width: auto;
+          height: auto;
+          margin: 0;
+          padding: 10px 14px;
+          clip: auto;
+          overflow: visible;
+          white-space: nowrap;
+          background: var(--accent);
+          color: var(--accent-contrast);
+          border-radius: var(--radius-sm);
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+          box-shadow: var(--glow);
+        }
+      `}
+    >
+      Skip to gallery
+    </a>
     <GlobalStyles />
     <style>
       {`

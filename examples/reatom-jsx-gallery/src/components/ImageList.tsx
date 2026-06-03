@@ -1,3 +1,4 @@
+import { focusableCardAttrs } from '../a11y'
 import type { ImageModel } from '../model'
 import {
   imagesList,
@@ -14,19 +15,28 @@ const ListImage = ({ image }: { image: ImageModel }) => {
   const isFavorite = () => image.favorite()
   const displayThumbnail = () => {
     const thumbnail = image.thumbnail.data()
-    return thumbnail ? <img src={thumbnail.url} alt={image.name} loading="lazy" /> : null
+    return thumbnail ? (
+      <img src={thumbnail.url} alt={image.name} loading="lazy" />
+    ) : null
   }
 
   const dimensions = () =>
     formatDimensions(image.width(), image.height(), 'Dimensions pending')
 
+  const openLabel = `Open ${image.name}`
+
   return (
     <div
+      {...focusableCardAttrs(openLabel, () => openLightbox(image))}
       attr:data-selected={isSelected}
       css:preview-width={() => `${listPreviewWidth()}px`}
       css:preview-height={() => `${listPreviewHeight()}px`}
       on:click={() => openLightbox(image)}
       css={`
+        &:focus-visible {
+          outline: 3px solid var(--focus-ring);
+          outline-offset: 2px;
+        }
         display: grid;
         grid-template-columns: 34px var(--preview-width) minmax(0, 1fr) auto;
         align-items: center;
@@ -57,13 +67,18 @@ const ListImage = ({ image }: { image: ImageModel }) => {
           e.stopPropagation()
           selectImage(image)
         }}
+        role="checkbox"
         aria-checked={isSelected}
+        aria-label={() =>
+          isSelected() ? `Deselect ${image.name}` : `Select ${image.name}`
+        }
         type="button"
         css={`
           width: 26px;
           height: 26px;
           border-radius: var(--radius-sm);
-          border: var(--border-width) var(--control-border-style) var(--input-border);
+          border: var(--border-width) var(--control-border-style)
+            var(--input-border);
           background: var(--input-bg);
           color: var(--accent-contrast);
           cursor: pointer;
@@ -139,6 +154,11 @@ const ListImage = ({ image }: { image: ImageModel }) => {
           image.favorite.toggle()
         }}
         aria-pressed={isFavorite}
+        aria-label={() =>
+          isFavorite()
+            ? `Remove ${image.name} from favorites`
+            : `Add ${image.name} to favorites`
+        }
         type="button"
         css={`
           width: 34px;
@@ -170,11 +190,14 @@ const ListImage = ({ image }: { image: ImageModel }) => {
 }
 
 const listImagesView = imagesList.reatomMap(
-  (imageNode) =>
+  (imageNode) => (
     <div css="display: contents;">
       {() => imageNode.visible() && <ListImage image={imageNode} />}
-    </div>,
+    </div>
+  ),
   'imagesList.listView',
 )
 
-export const ImageList = () => <div css="display: contents;">{listImagesView}</div>
+export const ImageList = () => (
+  <div css="display: contents;">{listImagesView}</div>
+)

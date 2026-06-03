@@ -1,8 +1,5 @@
 import { imagesList, tablePreviewWidth } from '../model'
-import {
-  ImageTableFilters,
-  visibleExifColumnNames,
-} from './ImageTableFilters'
+import { ImageTableFilters, visibleExifColumnNames } from './ImageTableFilters'
 import { ImageTableRow } from './ImageTableRow'
 
 const selectColumnWidth = 68
@@ -95,20 +92,56 @@ export const ImageTable = () => (
         `}
       >
         <colgroup>
-          <col css={`width: ${selectColumnWidth}px;`} />
+          <col
+            css={`
+              width: ${selectColumnWidth}px;
+            `}
+          />
           <col css="width: var(--preview-column-width);" />
-          <col css={`width: ${fileColumnWidth}px;`} />
-          <col css={`width: ${sizeColumnWidth}px;`} />
-          <col css={`width: ${dimensionsColumnWidth}px;`} />
-          <col css={`width: ${modifiedColumnWidth}px;`} />
-          <col css={`width: ${formatColumnWidth}px;`} />
-          <col css={`width: ${exifThumbColumnWidth}px;`} />
+          <col
+            css={`
+              width: ${fileColumnWidth}px;
+            `}
+          />
+          <col
+            css={`
+              width: ${sizeColumnWidth}px;
+            `}
+          />
+          <col
+            css={`
+              width: ${dimensionsColumnWidth}px;
+            `}
+          />
+          <col
+            css={`
+              width: ${modifiedColumnWidth}px;
+            `}
+          />
+          <col
+            css={`
+              width: ${formatColumnWidth}px;
+            `}
+          />
+          <col
+            css={`
+              width: ${exifThumbColumnWidth}px;
+            `}
+          />
           {() =>
             visibleExifColumnNames().map(() => (
-              <col css={`width: ${exifColumnWidth}px;`} />
+              <col
+                css={`
+                  width: ${exifColumnWidth}px;
+                `}
+              />
             ))
           }
-          <col css={`width: ${favoriteColumnWidth}px;`} />
+          <col
+            css={`
+              width: ${favoriteColumnWidth}px;
+            `}
+          />
         </colgroup>
         <thead>
           <tr>

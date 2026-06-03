@@ -83,7 +83,12 @@ function buildTiffBuffer(
 
     const totalBytes = tagInput.count * typeSize
     if (totalBytes <= 4) {
-      return { ...tagInput, valueOffset: 0, inline: true, inlineValue: tagInput.value }
+      return {
+        ...tagInput,
+        valueOffset: 0,
+        inline: true,
+        inlineValue: tagInput.value,
+      }
     }
 
     const bytes = new Uint8Array(totalBytes)
@@ -247,25 +252,23 @@ describe('raw format parser', () => {
     const tagCount = 5
     const headerSize = 8 + 2 + tagCount * 12 + 4
     const previewOffset = headerSize + 64
-    const headerBuffer = buildTiffBuffer(
-      [
-        { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 160 },
-        { tag: IMAGE_LENGTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 120 },
-        { tag: DNG_VERSION_TAG, type: TIFF_TYPE_BYTE, count: 4, value: 0 },
-        {
-          tag: JPEG_INTERCHANGE_FORMAT_TAG,
-          type: TIFF_TYPE_LONG,
-          count: 1,
-          value: previewOffset,
-        },
-        {
-          tag: JPEG_INTERCHANGE_FORMAT_LENGTH_TAG,
-          type: TIFF_TYPE_LONG,
-          count: 1,
-          value: minimalJpegPreview.length,
-        },
-      ],
-    )
+    const headerBuffer = buildTiffBuffer([
+      { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 160 },
+      { tag: IMAGE_LENGTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 120 },
+      { tag: DNG_VERSION_TAG, type: TIFF_TYPE_BYTE, count: 4, value: 0 },
+      {
+        tag: JPEG_INTERCHANGE_FORMAT_TAG,
+        type: TIFF_TYPE_LONG,
+        count: 1,
+        value: previewOffset,
+      },
+      {
+        tag: JPEG_INTERCHANGE_FORMAT_LENGTH_TAG,
+        type: TIFF_TYPE_LONG,
+        count: 1,
+        value: minimalJpegPreview.length,
+      },
+    ])
 
     const padding = new Uint8Array(previewOffset - headerBuffer.byteLength)
     const fileBytes = new Uint8Array(

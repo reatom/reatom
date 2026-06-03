@@ -1,10 +1,6 @@
 import { computed } from '@reatom/core'
 
-import {
-  folderTree,
-  openFolder,
-  restoreSelectedFolder,
-} from '../model'
+import { folderTree, openFolder, restoreSelectedFolder } from '../model'
 import { BreadcrumbNav } from './BreadcrumbNav'
 import { EmptyState } from './EmptyState'
 import { FolderTree, folderTreeSidebarVisible } from './FolderTree'
@@ -38,7 +34,8 @@ export const GalleryWorkspace = () => {
                   display: flex;
                   align-items: center;
                   gap: 12px;
-                  border-bottom: var(--border-width) var(--border-style) var(--card-border);
+                  border-bottom: var(--border-width) var(--border-style)
+                    var(--card-border);
                   background-color: var(--surface-glass);
                   background-image: var(--surface-bg-image);
                   background-size: var(--surface-bg-size);
@@ -49,7 +46,8 @@ export const GalleryWorkspace = () => {
                 <div
                   css="transition: margin-left 0.3s ease;"
                   style:margin-left={() =>
-                    folderTreeSidebarVisible() ? '0px' : '22px'}
+                    folderTreeSidebarVisible() ? '0px' : '22px'
+                  }
                 >
                   <BreadcrumbNav />
                 </div>
@@ -62,6 +60,8 @@ export const GalleryWorkspace = () => {
         }}
 
         <main
+          id="gallery-main"
+          tabindex={-1}
           css={`
             flex: 1;
             overflow-y: auto;
@@ -70,7 +70,11 @@ export const GalleryWorkspace = () => {
             padding: 20px 24px;
             background-color: var(--bg-primary);
             background-image:
-              radial-gradient(circle at top right, var(--hero-glow-2), transparent 34%),
+              radial-gradient(
+                circle at top right,
+                var(--hero-glow-2),
+                transparent 34%
+              ),
               var(--app-bg-image);
             background-size: auto, var(--bg-size);
           `}

@@ -1,3 +1,4 @@
+import { focusableRowAttrs } from '../a11y'
 import type { ImageModel } from '../model'
 import {
   openLightbox,
@@ -30,13 +31,19 @@ export const ImageTableRow = ({
   const isFavorite = () => image.favorite()
   const displayThumbnail = () => {
     const thumbnail = image.thumbnail.data()
-    return thumbnail ? <img src={thumbnail.url} alt={image.name} loading="lazy" /> : null
+    return thumbnail ? (
+      <img src={thumbnail.url} alt={image.name} loading="lazy" />
+    ) : null
   }
 
-  const dimensions = () => formatDimensions(image.width(), image.height(), 'Pending')
+  const dimensions = () =>
+    formatDimensions(image.width(), image.height(), 'Pending')
+
+  const openLabel = `Open ${image.name}`
 
   return (
     <tr
+      {...focusableRowAttrs(openLabel, () => openLightbox(image))}
       attr:data-selected={isSelected}
       css:preview-width={() => `${tablePreviewWidth()}px`}
       css:preview-height={() => `${tablePreviewHeight()}px`}
@@ -47,6 +54,10 @@ export const ImageTableRow = ({
 
         &:hover {
           background: var(--hover-bg);
+        }
+        &:focus-visible {
+          outline: 3px solid var(--focus-ring);
+          outline-offset: -2px;
         }
         &[data-selected='true'] {
           background: var(--accent-soft);
@@ -64,13 +75,18 @@ export const ImageTableRow = ({
             e.stopPropagation()
             selectImage(image)
           }}
+          role="checkbox"
           aria-checked={isSelected}
+          aria-label={() =>
+            isSelected() ? `Deselect ${image.name}` : `Select ${image.name}`
+          }
           type="button"
           css={`
             width: 24px;
             height: 24px;
             border-radius: var(--radius-sm);
-            border: var(--border-width) var(--control-border-style) var(--input-border);
+            border: var(--border-width) var(--control-border-style)
+              var(--input-border);
             background: var(--input-bg);
             color: var(--accent-contrast);
             cursor: pointer;
@@ -152,6 +168,11 @@ export const ImageTableRow = ({
             image.favorite.toggle()
           }}
           aria-pressed={isFavorite}
+          aria-label={() =>
+            isFavorite()
+              ? `Remove ${image.name} from favorites`
+              : `Add ${image.name} to favorites`
+          }
           type="button"
           css={`
             width: 30px;

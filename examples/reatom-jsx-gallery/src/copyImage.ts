@@ -8,8 +8,7 @@ const JPEG_QUALITY = 0.95
 
 function clipboardSupportsMime(type: string): boolean {
   return (
-    typeof ClipboardItem.supports === 'function' &&
-    ClipboardItem.supports(type)
+    typeof ClipboardItem.supports === 'function' && ClipboardItem.supports(type)
   )
 }
 
@@ -56,8 +55,7 @@ async function rasterizeBlob(
   }
 }
 
-const blobToJpeg = (blob: Blob) =>
-  rasterizeBlob(blob, JPEG_MIME, JPEG_QUALITY)
+const blobToJpeg = (blob: Blob) => rasterizeBlob(blob, JPEG_MIME, JPEG_QUALITY)
 
 const blobToPng = (blob: Blob) => rasterizeBlob(blob, PNG_MIME)
 

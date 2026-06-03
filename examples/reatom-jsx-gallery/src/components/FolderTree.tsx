@@ -1,5 +1,6 @@
 import { computed, reatomBoolean } from '@reatom/core'
 
+import { keyboardActivate } from '../a11y'
 import { currentFolder, folderTree } from '../model'
 import type { FolderNode } from '../types'
 import {
@@ -82,10 +83,19 @@ const FolderTreeNode = ({
       `}
     >
       <div
+        role="treeitem"
+        aria-selected={isSelected}
+        aria-expanded={hasChildren ? expanded : undefined}
+        tabindex={0}
         on:click={handleSelect}
+        {...keyboardActivate(handleSelect)}
         data-selected={isSelected}
         css={`
           ${treeNodeCss}
+          &:focus-visible {
+            outline: 3px solid var(--focus-ring);
+            outline-offset: 2px;
+          }
           &[data-selected='true'] {
             background: var(--active-bg);
             color: var(--accent);
@@ -95,7 +105,11 @@ const FolderTreeNode = ({
       >
         {hasChildren ? (
           <button
+            type="button"
             on:click={handleToggleExpand}
+            aria-label={() =>
+              expanded() ? `Collapse ${node.name}` : `Expand ${node.name}`
+            }
             data-expanded={expanded}
             css={`
               ${expandBtnCss}
@@ -177,47 +191,59 @@ export const FolderTree = () => {
           }
         `}
       >
-        <div
-          on:click={handleSelectAll}
-          data-selected={isAllSelected}
-          css={`
-            ${treeNodeCss}
-            font-weight: 600;
-            margin-bottom: 4px;
-            &[data-selected='true'] {
-              background: var(--active-bg);
-              color: var(--accent);
-              box-shadow: inset 0 0 0 var(--border-width) var(--card-border);
-            }
-          `}
-        >
-          <span css="font-size: 15px;">
-            <FolderRootIcon />
-          </span>
-          <span>All folders</span>
+        <div role="tree" aria-label="Folders">
+          <div
+            role="treeitem"
+            aria-selected={isAllSelected}
+            tabindex={0}
+            on:click={handleSelectAll}
+            {...keyboardActivate(handleSelectAll)}
+            data-selected={isAllSelected}
+            css={`
+              ${treeNodeCss}
+              font-weight: 600;
+              margin-bottom: 4px;
+              &:focus-visible {
+                outline: 3px solid var(--focus-ring);
+                outline-offset: 2px;
+              }
+              &[data-selected='true'] {
+                background: var(--active-bg);
+                color: var(--accent);
+                box-shadow: inset 0 0 0 var(--border-width) var(--card-border);
+              }
+            `}
+          >
+            <span css="font-size: 15px;">
+              <FolderRootIcon />
+            </span>
+            <span>All folders</span>
+          </div>
+
+          <div css="height: 1px; background: var(--border); margin: 6px 0 10px;" />
+
+          {() => {
+            const tree = folderTree()
+            if (!tree)
+              return (
+                <div css="color: var(--text-muted); font-size: 13px; padding: 8px;">
+                  No folder opened
+                </div>
+              )
+            return <FolderTreeNode node={tree} depth={0} />
+          }}
         </div>
-
-        <div css="height: 1px; background: var(--border); margin: 6px 0 10px;" />
-
-        {() => {
-          const tree = folderTree()
-          if (!tree)
-            return (
-              <div css="color: var(--text-muted); font-size: 13px; padding: 8px;">
-                No folder opened
-              </div>
-            )
-          return <FolderTreeNode node={tree} depth={0} />
-        }}
       </div>
 
       <button
         type="button"
         aria-expanded={folderTreeSidebarVisible}
         aria-label={() =>
-          folderTreeSidebarVisible() ? 'Hide folder tree' : 'Show folder tree'}
+          folderTreeSidebarVisible() ? 'Hide folder tree' : 'Show folder tree'
+        }
         title={() =>
-          folderTreeSidebarVisible() ? 'Hide folder tree' : 'Show folder tree'}
+          folderTreeSidebarVisible() ? 'Hide folder tree' : 'Show folder tree'
+        }
         on:click={folderTreeSidebarVisible.toggle}
         css={`
           position: absolute;
@@ -232,13 +258,16 @@ export const FolderTree = () => {
             linear-gradient(135deg, var(--surface-strong), var(--panel-bg)),
             var(--surface-bg-image);
           background-size: auto, var(--surface-bg-size);
-          border: var(--border-width) var(--control-border-style) var(--card-border);
+          border: var(--border-width) var(--control-border-style)
+            var(--card-border);
           color: var(--accent);
           border-radius: var(--radius-round);
           cursor: pointer;
           font-size: 15px;
           line-height: 1;
-          box-shadow: var(--glow), 0 10px 24px var(--shadow);
+          box-shadow:
+            var(--glow),
+            0 10px 24px var(--shadow);
           backdrop-filter: var(--panel-backdrop-filter);
           transform: translateX(-50%);
           transition:
@@ -266,10 +295,16 @@ export const FolderTree = () => {
         style:left={() =>
           folderTreeSidebarVisible()
             ? `${folderSidebarWidth}px`
-            : `${folderToggleSize / 2}px`}
+            : `${folderToggleSize / 2}px`
+        }
       >
         {() =>
-          folderTreeSidebarVisible() ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+          folderTreeSidebarVisible() ? (
+            <ChevronLeftIcon />
+          ) : (
+            <ChevronRightIcon />
+          )
+        }
       </button>
     </div>
   )

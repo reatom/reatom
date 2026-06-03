@@ -381,7 +381,8 @@ const THEMES = {
       '--image-overlay': 'rgba(0, 0, 0, 0.72)',
       '--app-bg-image':
         'linear-gradient(rgba(124,255,107,.05) 50%, rgba(0,0,0,.05) 50%)',
-      '--surface-bg-image': 'linear-gradient(rgba(124,255,107,.035) 50%, transparent 50%)',
+      '--surface-bg-image':
+        'linear-gradient(rgba(124,255,107,.035) 50%, transparent 50%)',
       '--card-bg-image': transparentLayer,
       '--bg-size': '100% 4px',
       '--surface-bg-size': '100% 4px',
@@ -508,7 +509,8 @@ const THEMES = {
         'radial-gradient(circle at 20% 30%, rgba(247,240,228,.045) 0 1px, transparent 1px), linear-gradient(90deg, rgba(247,240,228,.025), transparent 40%, rgba(247,240,228,.025))',
       '--surface-bg-image':
         'radial-gradient(circle at 20% 20%, rgba(247,240,228,.06) 0 1px, transparent 1px)',
-      '--card-bg-image': 'linear-gradient(100deg, rgba(247,240,228,.08), transparent 48%)',
+      '--card-bg-image':
+        'linear-gradient(100deg, rgba(247,240,228,.08), transparent 48%)',
       '--bg-size': '22px 22px, auto',
       '--surface-bg-size': '18px 18px',
       '--border-width': '1px',
@@ -570,7 +572,8 @@ const THEMES = {
         'radial-gradient(circle at 20% 30%, rgba(42,33,23,.055) 0 1px, transparent 1px), linear-gradient(90deg, rgba(42,33,23,.025), transparent 40%, rgba(42,33,23,.025))',
       '--surface-bg-image':
         'radial-gradient(circle at 20% 20%, rgba(42,33,23,.055) 0 1px, transparent 1px)',
-      '--card-bg-image': 'linear-gradient(100deg, rgba(255,255,255,.36), transparent 48%)',
+      '--card-bg-image':
+        'linear-gradient(100deg, rgba(255,255,255,.36), transparent 48%)',
       '--bg-size': '22px 22px, auto',
       '--surface-bg-size': '18px 18px',
       '--border-width': '1px',
@@ -630,8 +633,10 @@ const THEMES = {
       '--overlay-control': 'rgba(255, 247, 237, 0.13)',
       '--overlay-control-hover': 'rgba(255, 247, 237, 0.24)',
       '--image-overlay': 'rgba(9, 6, 5, 0.55)',
-      '--app-bg-image': 'radial-gradient(circle at 50% 12%, rgba(248,241,227,.08), transparent 34%)',
-      '--surface-bg-image': 'linear-gradient(135deg, rgba(248,241,227,.06), transparent)',
+      '--app-bg-image':
+        'radial-gradient(circle at 50% 12%, rgba(248,241,227,.08), transparent 34%)',
+      '--surface-bg-image':
+        'linear-gradient(135deg, rgba(248,241,227,.06), transparent)',
       '--card-bg-image': 'linear-gradient(#f8f1e3, #f8f1e3)',
       '--bg-size': 'auto',
       '--surface-bg-size': 'auto',
@@ -642,7 +647,8 @@ const THEMES = {
       '--card-padding': '9px 9px 24px',
       '--card-hover-transform': 'translateY(-3px) rotate(-0.6deg)',
       '--card-hover-shadow': '0 22px 40px var(--shadow-strong)',
-      '--selected-shadow': '0 0 0 2px var(--accent), 0 22px 40px var(--shadow-strong)',
+      '--selected-shadow':
+        '0 0 0 2px var(--accent), 0 22px 40px var(--shadow-strong)',
       '--glow': '0 0 0 transparent',
       '--toolbar-backdrop-filter': 'blur(12px)',
       '--panel-backdrop-filter': 'blur(12px)',
@@ -690,8 +696,10 @@ const THEMES = {
       '--overlay-control': 'rgba(255, 250, 242, 0.14)',
       '--overlay-control-hover': 'rgba(255, 250, 242, 0.28)',
       '--image-overlay': 'rgba(9, 6, 5, 0.46)',
-      '--app-bg-image': 'radial-gradient(circle at 50% 10%, rgba(255,255,255,.44), transparent 34%)',
-      '--surface-bg-image': 'linear-gradient(135deg, rgba(255,255,255,.4), transparent)',
+      '--app-bg-image':
+        'radial-gradient(circle at 50% 10%, rgba(255,255,255,.44), transparent 34%)',
+      '--surface-bg-image':
+        'linear-gradient(135deg, rgba(255,255,255,.4), transparent)',
       '--card-bg-image': 'linear-gradient(#fffaf2, #fffaf2)',
       '--bg-size': 'auto',
       '--surface-bg-size': 'auto',
@@ -702,7 +710,8 @@ const THEMES = {
       '--card-padding': '9px 9px 24px',
       '--card-hover-transform': 'translateY(-3px) rotate(-0.6deg)',
       '--card-hover-shadow': '0 22px 40px var(--shadow-strong)',
-      '--selected-shadow': '0 0 0 2px var(--accent), 0 22px 40px var(--shadow-strong)',
+      '--selected-shadow':
+        '0 0 0 2px var(--accent), 0 22px 40px var(--shadow-strong)',
       '--glow': '0 0 0 transparent',
       '--toolbar-backdrop-filter': 'blur(12px)',
       '--panel-backdrop-filter': 'blur(12px)',
@@ -754,8 +763,10 @@ const THEMES = {
       '--image-overlay': 'rgba(0, 0, 0, 0.6)',
       '--app-bg-image':
         'linear-gradient(135deg, rgba(96,165,250,.12), transparent 26%), linear-gradient(315deg, rgba(148,163,184,.1), transparent 24%)',
-      '--surface-bg-image': 'linear-gradient(135deg, rgba(255,255,255,.07), transparent 40%)',
-      '--card-bg-image': 'linear-gradient(135deg, rgba(255,255,255,.06), transparent 46%)',
+      '--surface-bg-image':
+        'linear-gradient(135deg, rgba(255,255,255,.07), transparent 40%)',
+      '--card-bg-image':
+        'linear-gradient(135deg, rgba(255,255,255,.06), transparent 46%)',
       '--bg-size': 'auto',
       '--surface-bg-size': 'auto',
       '--border-width': '1px',
@@ -765,11 +776,13 @@ const THEMES = {
       '--card-padding': '0px',
       '--card-hover-transform': 'translateY(-2px)',
       '--card-hover-shadow': '10px 10px 0 rgba(96,165,250,.18)',
-      '--selected-shadow': '0 0 0 2px var(--accent), 10px 10px 0 rgba(96,165,250,.18)',
+      '--selected-shadow':
+        '0 0 0 2px var(--accent), 10px 10px 0 rgba(96,165,250,.18)',
       '--glow': '0 0 0 transparent',
       '--toolbar-backdrop-filter': 'blur(10px)',
       '--panel-backdrop-filter': 'blur(10px)',
-      '--surface-clip-path': 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
+      '--surface-clip-path':
+        'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
       '--control-transform': 'uppercase',
     },
     light: {
@@ -815,8 +828,10 @@ const THEMES = {
       '--image-overlay': 'rgba(0, 0, 0, 0.46)',
       '--app-bg-image':
         'linear-gradient(135deg, rgba(15,23,42,.12), transparent 26%), linear-gradient(315deg, rgba(71,85,105,.12), transparent 24%)',
-      '--surface-bg-image': 'linear-gradient(135deg, rgba(15,23,42,.06), transparent 40%)',
-      '--card-bg-image': 'linear-gradient(135deg, rgba(15,23,42,.055), transparent 46%)',
+      '--surface-bg-image':
+        'linear-gradient(135deg, rgba(15,23,42,.06), transparent 40%)',
+      '--card-bg-image':
+        'linear-gradient(135deg, rgba(15,23,42,.055), transparent 46%)',
       '--bg-size': 'auto',
       '--surface-bg-size': 'auto',
       '--border-width': '1px',
@@ -826,11 +841,13 @@ const THEMES = {
       '--card-padding': '0px',
       '--card-hover-transform': 'translateY(-2px)',
       '--card-hover-shadow': '9px 9px 0 rgba(15,23,42,.16)',
-      '--selected-shadow': '0 0 0 2px var(--accent), 9px 9px 0 rgba(15,23,42,.16)',
+      '--selected-shadow':
+        '0 0 0 2px var(--accent), 9px 9px 0 rgba(15,23,42,.16)',
       '--glow': '0 0 0 transparent',
       '--toolbar-backdrop-filter': 'blur(10px)',
       '--panel-backdrop-filter': 'blur(10px)',
-      '--surface-clip-path': 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
+      '--surface-clip-path':
+        'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
       '--control-transform': 'uppercase',
     },
   },
@@ -1002,7 +1019,8 @@ const THEMES = {
       '--image-overlay': 'rgba(3, 10, 18, 0.5)',
       '--app-bg-image':
         'radial-gradient(circle at 18% 20%, rgba(45,212,191,.24), transparent 34%), radial-gradient(circle at 82% 8%, rgba(139,92,246,.24), transparent 30%)',
-      '--surface-bg-image': 'linear-gradient(135deg, rgba(45,212,191,.08), rgba(139,92,246,.08))',
+      '--surface-bg-image':
+        'linear-gradient(135deg, rgba(45,212,191,.08), rgba(139,92,246,.08))',
       '--card-bg-image': transparentLayer,
       '--bg-size': 'auto',
       '--surface-bg-size': 'auto',
@@ -1063,7 +1081,8 @@ const THEMES = {
       '--image-overlay': 'rgba(3, 10, 18, 0.46)',
       '--app-bg-image':
         'radial-gradient(circle at 18% 20%, rgba(15,159,142,.18), transparent 34%), radial-gradient(circle at 82% 8%, rgba(124,58,237,.14), transparent 30%)',
-      '--surface-bg-image': 'linear-gradient(135deg, rgba(15,159,142,.06), rgba(124,58,237,.05))',
+      '--surface-bg-image':
+        'linear-gradient(135deg, rgba(15,159,142,.06), rgba(124,58,237,.05))',
       '--card-bg-image': transparentLayer,
       '--bg-size': 'auto',
       '--surface-bg-size': 'auto',
@@ -1248,7 +1267,8 @@ const THEMES = {
       '--image-overlay': 'rgba(0, 0, 0, 0.56)',
       '--app-bg-image':
         'linear-gradient(45deg, rgba(255,255,255,.025) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,.025) 25%, transparent 25%)',
-      '--surface-bg-image': 'linear-gradient(rgba(255,255,255,.08), transparent 1px)',
+      '--surface-bg-image':
+        'linear-gradient(rgba(255,255,255,.08), transparent 1px)',
       '--card-bg-image': transparentLayer,
       '--bg-size': '18px 18px',
       '--surface-bg-size': '100% 3px',
@@ -1259,7 +1279,8 @@ const THEMES = {
       '--card-padding': '0px',
       '--card-hover-transform': 'none',
       '--card-hover-shadow': '3px 3px 0 var(--shadow)',
-      '--selected-shadow': '0 0 0 2px var(--accent), inset 2px 2px 0 rgba(255,255,255,.18)',
+      '--selected-shadow':
+        '0 0 0 2px var(--accent), inset 2px 2px 0 rgba(255,255,255,.18)',
       '--glow': '3px 3px 0 var(--shadow)',
       '--toolbar-backdrop-filter': 'none',
       '--panel-backdrop-filter': 'none',
@@ -1309,7 +1330,8 @@ const THEMES = {
       '--image-overlay': 'rgba(0, 0, 0, 0.48)',
       '--app-bg-image':
         'linear-gradient(45deg, rgba(255,255,255,.18) 25%, transparent 25%), linear-gradient(-45deg, rgba(0,0,0,.035) 25%, transparent 25%)',
-      '--surface-bg-image': 'linear-gradient(rgba(255,255,255,.24), transparent 1px)',
+      '--surface-bg-image':
+        'linear-gradient(rgba(255,255,255,.24), transparent 1px)',
       '--card-bg-image': transparentLayer,
       '--bg-size': '18px 18px',
       '--surface-bg-size': '100% 3px',
@@ -1320,7 +1342,8 @@ const THEMES = {
       '--card-padding': '0px',
       '--card-hover-transform': 'none',
       '--card-hover-shadow': '3px 3px 0 var(--shadow)',
-      '--selected-shadow': '0 0 0 2px var(--accent), inset 2px 2px 0 rgba(255,255,255,.44)',
+      '--selected-shadow':
+        '0 0 0 2px var(--accent), inset 2px 2px 0 rgba(255,255,255,.44)',
       '--glow': '3px 3px 0 var(--shadow)',
       '--toolbar-backdrop-filter': 'none',
       '--panel-backdrop-filter': 'none',

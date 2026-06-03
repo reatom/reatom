@@ -70,9 +70,7 @@ async function tryEmbeddedJpegPreviewPath(
     const { width, height } = bitmap
 
     const enoughSize =
-      acceptSmallPreview ||
-      width >= maxSize / 2 ||
-      height >= maxSize / 2
+      acceptSmallPreview || width >= maxSize / 2 || height >= maxSize / 2
 
     if (!enoughSize) {
       bitmap.close()
@@ -132,7 +130,12 @@ export async function loadThumbnailWithMeta(
   }
 
   if (isRawFormat(meta)) {
-    const rawPreviewResult = await tryRawPreviewPath(source, maxSize, quality, meta)
+    const rawPreviewResult = await tryRawPreviewPath(
+      source,
+      maxSize,
+      quality,
+      meta,
+    )
     if (rawPreviewResult) return rawPreviewResult
     throw new Error('No embedded preview found in RAW file')
   }

@@ -26,6 +26,7 @@ export const BreadcrumbNav = () => {
 
   return (
     <nav
+      aria-label="Folder path"
       css={`
         display: flex;
         align-items: center;
@@ -61,6 +62,7 @@ export const BreadcrumbNav = () => {
               </span>
             ) : (
               <button
+                type="button"
                 on:click={() => currentFolder.set(folder)}
                 css={`
                   background: none;

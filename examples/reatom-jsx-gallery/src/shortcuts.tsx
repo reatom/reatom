@@ -1,11 +1,12 @@
-
+import { filterPanelOpen } from './components/FilterPanel'
+import { settingsPanelOpen } from './components/SettingsPanel'
 import {
   clearSelection,
   closeLightbox,
   decreaseImagePreviewSize,
   gridColumns,
-  increaseImagePreviewSize,
   imagesList,
+  increaseImagePreviewSize,
   lightboxOpen,
   navigateLightbox,
   resolvedThemeMode,
@@ -29,6 +30,15 @@ function handleKeyDown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     if (lightboxOpen()) {
       closeLightbox()
+      return
+    }
+    if (filterPanelOpen()) {
+      filterPanelOpen.set(false)
+      return
+    }
+    if (settingsPanelOpen()) {
+      settingsPanelOpen.set(false)
+      return
     }
     return
   }

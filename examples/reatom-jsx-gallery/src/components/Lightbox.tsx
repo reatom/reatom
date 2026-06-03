@@ -192,12 +192,20 @@ const LightboxContent = () => {
     resetLightboxPan()
   }
 
-  const showControls = () => controlsActivity.set((activity) => activity + 1)
-  const pressLightboxControl = (action: () => void) =>
-    pressEvents(() => {
-      showControls()
-      action()
-    })
+  const showControlsFromPointer = () =>
+    controlsActivity.set((activity) => activity + 1)
+
+  const pressLightboxControl = (action: () => void) => {
+    const press = pressEvents(action)
+    return {
+      'on:mousedown': (event: MouseEvent) => {
+        showControlsFromPointer()
+        press['on:mousedown'](event)
+      },
+      'on:click': press['on:click'],
+      'on:keydown': press['on:keydown'],
+    }
+  }
 
   const fullscreenButtonLabel = computed(
     () => (isFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'),
@@ -211,8 +219,21 @@ const LightboxContent = () => {
       : 'Image details'
   }, 'lightbox.detailsButtonLabel')
 
+  const lightboxDialogLabel = computed(() => {
+    const image = lightboxImage()
+    return image ? `Image preview: ${image.source.name}` : 'Image preview'
+  }, 'lightbox.dialogLabel')
+
+  const favoriteButtonLabel = computed(() => {
+    const image = lightboxImage()
+    if (!image) return 'Favorite'
+    return image.favorite()
+      ? `Remove ${image.source.name} from favorites`
+      : `Add ${image.source.name} to favorites`
+  }, 'lightbox.favoriteButtonLabel')
+
   const handlePanStart = (e: MouseEvent) => {
-    showControls()
+    showControlsFromPointer()
     if (peek(lightboxZoom) <= 1) return
     isPanning.set(true)
     panStartX.set(e.clientX - peek(lightboxPanX))
@@ -226,13 +247,13 @@ const LightboxContent = () => {
   }
 
   const handleMouseMove = (e: MouseEvent) => {
-    showControls()
+    showControlsFromPointer()
     handlePanMove(e)
   }
 
   const handlePanEnd = () => {
     isPanning.set(false)
-    showControls()
+    showControlsFromPointer()
   }
 
   const handleDownload = () => {
@@ -307,14 +328,12 @@ const LightboxContent = () => {
     switch (e.key) {
       case 'Escape':
         e.stopPropagation()
-        showControls()
         closeLightbox()
         break
       case 'ArrowLeft':
       case 'ArrowUp':
         e.preventDefault()
         e.stopPropagation()
-        showControls()
         navigateLightbox(-1)
         resetLightboxPan()
         break
@@ -322,7 +341,6 @@ const LightboxContent = () => {
       case 'ArrowDown':
         e.preventDefault()
         e.stopPropagation()
-        showControls()
         navigateLightbox(1)
         resetLightboxPan()
         break
@@ -330,20 +348,17 @@ const LightboxContent = () => {
       case '_':
         e.preventDefault()
         e.stopPropagation()
-        showControls()
         zoomOut()
         break
       case '=':
       case '+':
         e.preventDefault()
         e.stopPropagation()
-        showControls()
         zoomIn()
         break
       case ' ':
         e.preventDefault()
         e.stopPropagation()
-        showControls()
         slideshowPlaying.toggle()
         break
     }
@@ -351,6 +366,9 @@ const LightboxContent = () => {
 
   return (
     <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={lightboxDialogLabel}
       tabindex={-1}
       ref={(el) => {
         lightboxElement = el
@@ -364,6 +382,7 @@ const LightboxContent = () => {
           }
         }
 
+        el.focus({ preventScroll: true })
         focusLightboxImage()
         updateFullscreenState()
         document.addEventListener('fullscreenchange', updateFullscreenState)
@@ -411,6 +430,13 @@ const LightboxContent = () => {
           opacity: 1;
           pointer-events: auto;
         }
+        @media (prefers-reduced-motion: reduce) {
+          .lightbox-control-layer {
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            transition: none !important;
+          }
+        }
       `}
     >
       <div
@@ -432,7 +458,11 @@ const LightboxContent = () => {
           );
         `}
       >
-        <span css="color: #fff; font-size: 14px; font-family: monospace;">
+        <span
+          aria-live="polite"
+          aria-atomic="true"
+          css="color: #fff; font-size: 14px; font-family: monospace;"
+        >
           {() => lightboxCounter()}
         </span>
         <div
@@ -443,7 +473,9 @@ const LightboxContent = () => {
             {...pressLightboxControl(handleFavoriteToggle)}
             type="button"
             css={controlBtnCss}
-            title="Favorite"
+            title={favoriteButtonLabel}
+            aria-label={favoriteButtonLabel}
+            aria-pressed={() => lightboxImage()?.favorite() ?? false}
           >
             {() => {
               const img = lightboxImage()
@@ -454,7 +486,8 @@ const LightboxContent = () => {
             {...pressLightboxControl(handleDownload)}
             type="button"
             css={controlBtnCss}
-            title="Download"
+            title="Download image"
+            aria-label="Download image"
           >
             <DownloadIcon />
           </button>
@@ -472,6 +505,7 @@ const LightboxContent = () => {
             type="button"
             css={controlBtnCss}
             title="Zoom out"
+            aria-label="Zoom out"
           >
             <MinusIcon />
           </button>
@@ -479,7 +513,8 @@ const LightboxContent = () => {
             {...pressLightboxControl(zoomReset)}
             type="button"
             css={controlBtnCss}
-            title="Fit"
+            title="Reset zoom"
+            aria-label="Reset zoom"
           >
             <FitIcon />
           </button>
@@ -488,6 +523,7 @@ const LightboxContent = () => {
             type="button"
             css={controlBtnCss}
             title={fullscreenButtonLabel}
+            aria-label={fullscreenButtonLabel}
             aria-pressed={isFullscreen}
           >
             <FullscreenIcon />
@@ -497,6 +533,7 @@ const LightboxContent = () => {
             type="button"
             css={controlBtnCss}
             title="Zoom in"
+            aria-label="Zoom in"
           >
             <PlusIcon />
           </button>
@@ -505,6 +542,7 @@ const LightboxContent = () => {
             type="button"
             css={controlBtnCss}
             title={detailsButtonLabel}
+            aria-label={detailsButtonLabel}
             aria-expanded={imageInfoPanelOpen}
           >
             <InfoIcon />
@@ -513,7 +551,8 @@ const LightboxContent = () => {
             {...pressLightboxControl(closeLightbox)}
             type="button"
             css={controlBtnCss}
-            title="Close"
+            title="Close preview"
+            aria-label="Close preview"
           >
             <CloseIcon />
           </button>
@@ -574,6 +613,8 @@ const LightboxContent = () => {
         class="lightbox-control-layer"
         {...pressLightboxControl(handlePrev)}
         type="button"
+        title="Previous image"
+        aria-label="Previous image"
         css={`
           ${navBtnCss} left: 16px;
         `}
@@ -584,6 +625,8 @@ const LightboxContent = () => {
         class="lightbox-control-layer"
         {...pressLightboxControl(handleNext)}
         type="button"
+        title="Next image"
+        aria-label="Next image"
         css={`
           ${navBtnCss} right: 16px;
         `}
@@ -591,7 +634,10 @@ const LightboxContent = () => {
         <ChevronRightIcon />
       </button>
 
-      <Slideshow class="lightbox-control-layer" onControlPress={showControls} />
+      <Slideshow
+        class="lightbox-control-layer"
+        onControlPress={showControlsFromPointer}
+      />
 
       <div
         class="lightbox-control-layer"
@@ -618,6 +664,11 @@ const LightboxContent = () => {
             <button
               {...pressLightboxControl(() => openLightbox(imageNode))}
               type="button"
+              title={() => `View ${imageNode.source.name}`}
+              aria-label={() => `View ${imageNode.source.name}`}
+              aria-current={() =>
+                lightboxImage()?.id === imageNode.id ? 'true' : undefined
+              }
               data-active={() => lightboxImage()?.id === imageNode.id}
               css={`
                 flex-shrink: 0;
@@ -643,6 +694,7 @@ const LightboxContent = () => {
             >
               <img
                 src={() => imageNode.thumbnail.data()?.url ?? ''}
+                alt=""
                 css={`
                   width: 60px;
                   height: 40px;

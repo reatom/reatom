@@ -17,7 +17,8 @@ const loc = {
   openButtonAppears: (canvas) => canvas.findByRole('button', { name: /Open/i }),
   searchInputAppears: (canvas) =>
     canvas.findByPlaceholderText('Search images...'),
-  listViewButtonAppears: (canvas) => canvas.findByTitle('list'),
+  listViewButtonAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'list view' }),
 } satisfies Record<string, Locator>
 
 const I = createMyself((I) => ({
@@ -34,7 +35,7 @@ const I = createMyself((I) => ({
     const listBtn = await I.resolveLocator(
       loc.listViewButtonAppears as DefiniteLocator,
     )
-    await expect(listBtn).toHaveAttribute('aria-selected', 'true')
+    await expect(listBtn).toHaveAttribute('aria-pressed', 'true')
   },
 }))
 

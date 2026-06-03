@@ -27,12 +27,18 @@ export const ProgressBar = () => {
           width: 64px;
           height: 64px;
           border-radius: var(--radius-lg);
-          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          background: linear-gradient(
+            135deg,
+            var(--accent),
+            var(--accent-hover)
+          );
           color: var(--accent-contrast);
           display: grid;
           place-items: center;
           font-size: 28px;
-          box-shadow: var(--glow), 0 16px 40px var(--shadow);
+          box-shadow:
+            var(--glow),
+            0 16px 40px var(--shadow);
           user-select: none;
         `}
       >
@@ -58,7 +64,8 @@ export const ProgressBar = () => {
             background: var(--input-bg);
             border-radius: var(--radius-round);
             overflow: hidden;
-            border: var(--border-width) var(--control-border-style) var(--card-border);
+            border: var(--border-width) var(--control-border-style)
+              var(--card-border);
           `}
         >
           <div
@@ -110,7 +117,8 @@ export const ProgressBar = () => {
           font-weight: 500;
           color: var(--text-secondary);
           background: var(--input-bg);
-          border: var(--border-width) var(--control-border-style) var(--input-border);
+          border: var(--border-width) var(--control-border-style)
+            var(--input-border);
           border-radius: var(--radius-round);
           cursor: pointer;
           transition: all 0.15s ease;

@@ -41,6 +41,7 @@ const ToolbarButton = ({
   title?: string
 }) => (
   <button
+    type="button"
     on:click={onClick}
     data-terminal-bracket="true"
     prop:disabled={disabled}
@@ -49,7 +50,8 @@ const ToolbarButton = ({
       padding: 7px 13px;
       font-size: 13px;
       font-weight: 650;
-      border: var(--border-width) var(--control-border-style) var(--input-border);
+      border: var(--border-width) var(--control-border-style)
+        var(--input-border);
       border-radius: var(--radius-sm);
       cursor: pointer;
       transition: all 0.15s ease;
@@ -71,7 +73,9 @@ const ToolbarButton = ({
           ? 'var(--accent-hover)'
           : 'var(--text-muted)'};
         transform: var(--card-hover-transform);
-        box-shadow: ${variant === 'accent' ? 'var(--card-hover-shadow)' : 'none'};
+        box-shadow: ${variant === 'accent'
+          ? 'var(--card-hover-shadow)'
+          : 'none'};
       }
       &:disabled {
         cursor: not-allowed;
@@ -79,8 +83,12 @@ const ToolbarButton = ({
         filter: grayscale(0.18);
       }
       &:disabled:hover {
-        background: ${variant === 'accent' ? 'var(--accent)' : 'var(--input-bg)'};
-        border-color: ${variant === 'accent' ? 'var(--accent)' : 'var(--input-border)'};
+        background: ${variant === 'accent'
+          ? 'var(--accent)'
+          : 'var(--input-bg)'};
+        border-color: ${variant === 'accent'
+          ? 'var(--accent)'
+          : 'var(--input-border)'};
         transform: none;
         box-shadow: ${variant === 'accent' ? 'var(--glow)' : 'none'};
       }
@@ -100,38 +108,40 @@ const ViewModeButton = ({
   onClick: () => void
 }) => (
   <button
-    aria-selected={() => viewMode() === mode}
+    type="button"
+    aria-pressed={() => viewMode() === mode}
     on:click={onClick}
-    title={mode}
+    title={`${mode} view`}
+    aria-label={`${mode} view`}
     css={`
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        border: var(--border-width) var(--control-border-style) transparent;
-        border-radius: var(--radius-sm);
-        cursor: pointer;
-        transition: all 0.15s ease;
-        background: transparent;
-        color: var(--text-secondary);
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      border: var(--border-width) var(--control-border-style) transparent;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: transparent;
+      color: var(--text-secondary);
 
-        &[aria-selected='true'] {
-          background: var(--accent);
-          color: var(--accent-contrast);
-          border-color: var(--accent);
-          box-shadow: var(--glow);
-        }
-        &:not([aria-selected='true']):hover {
-          background: var(--hover-bg);
-          color: var(--text-primary);
-        }
-      `}
-    >
-      {icon()}
-    </button>
-  )
+      &[aria-pressed='true'] {
+        background: var(--accent);
+        color: var(--accent-contrast);
+        border-color: var(--accent);
+        box-shadow: var(--glow);
+      }
+      &:not([aria-pressed='true']):hover {
+        background: var(--hover-bg);
+        color: var(--text-primary);
+      }
+    `}
+  >
+    {icon()}
+  </button>
+)
 
 export const Toolbar = () => (
   <header
@@ -146,7 +156,9 @@ export const Toolbar = () => (
       background-size: var(--surface-bg-size);
       border-bottom: var(--border-width) var(--border-style) var(--card-border);
       backdrop-filter: var(--toolbar-backdrop-filter);
-      box-shadow: var(--glow), 0 12px 32px var(--shadow);
+      box-shadow:
+        var(--glow),
+        0 12px 32px var(--shadow);
       clip-path: var(--surface-clip-path);
       flex-shrink: 0;
       min-height: 56px;
@@ -180,13 +192,19 @@ export const Toolbar = () => (
             height: 28px;
             border-radius: var(--radius-md);
             background:
-              radial-gradient(circle at 30% 20%, var(--hero-glow-1), transparent 52%),
+              radial-gradient(
+                circle at 30% 20%,
+                var(--hero-glow-1),
+                transparent 52%
+              ),
               linear-gradient(135deg, var(--accent), var(--accent-hover));
             color: var(--accent-contrast);
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            box-shadow: var(--glow), 0 10px 24px var(--shadow);
+            box-shadow:
+              var(--glow),
+              0 10px 24px var(--shadow);
           `}
         >
           <GalleryMarkIcon />
@@ -236,14 +254,24 @@ export const Toolbar = () => (
     />
 
     <div
+      role="group"
+      aria-label="View mode"
       css={`
         display: flex;
         gap: calc(4px + var(--shadow-clearance, 0px));
         flex-shrink: 0;
       `}
     >
-      <ViewModeButton mode="grid" icon={GridIcon} onClick={() => setViewMode('grid')} />
-      <ViewModeButton mode="list" icon={ListIcon} onClick={() => setViewMode('list')} />
+      <ViewModeButton
+        mode="grid"
+        icon={GridIcon}
+        onClick={() => setViewMode('grid')}
+      />
+      <ViewModeButton
+        mode="list"
+        icon={ListIcon}
+        onClick={() => setViewMode('list')}
+      />
       <ViewModeButton
         mode="table"
         icon={TableIcon}
@@ -275,13 +303,14 @@ export const Toolbar = () => (
           <span
             css={`
               font-size: 13px;
-            color: var(--accent);
+              color: var(--accent);
               font-weight: 500;
               white-space: nowrap;
-            background: var(--accent-soft);
-            border: var(--border-width) var(--control-border-style) var(--card-border);
-            border-radius: var(--radius-round);
-            padding: 4px 9px;
+              background: var(--accent-soft);
+              border: var(--border-width) var(--control-border-style)
+                var(--card-border);
+              border-radius: var(--radius-round);
+              padding: 4px 9px;
             `}
           >
             {count} selected
@@ -315,15 +344,17 @@ export const Toolbar = () => (
           <SearchIcon />
         </span>
         <input
-          type="text"
+          type="search"
           placeholder="Search images..."
+          aria-label="Search images"
           model:value={searchQuery}
           css={`
             width: 190px;
             padding: 7px 11px 7px 32px;
             font-size: 13px;
             background: var(--input-bg);
-            border: var(--border-width) var(--control-border-style) var(--input-border);
+            border: var(--border-width) var(--control-border-style)
+              var(--input-border);
             border-radius: var(--radius-round);
             color: var(--text-primary);
             outline: none;
@@ -334,7 +365,9 @@ export const Toolbar = () => (
             }
             &:focus {
               border-color: var(--accent);
-              box-shadow: 0 0 0 3px var(--focus-ring), var(--glow);
+              box-shadow:
+                0 0 0 3px var(--focus-ring),
+                var(--glow);
             }
           `}
         />
@@ -365,8 +398,14 @@ export const Toolbar = () => (
 
     <div css="display: flex; gap: calc(4px + var(--shadow-clearance, 0px)); flex-shrink: 0;">
       <button
+        type="button"
         on:click={() => filterPanelOpen.set((s) => !s)}
         title="Filters"
+        aria-label={() => {
+          const count = activeFilterCount()
+          return count > 0 ? `Filters, ${count} active` : 'Filters'
+        }}
+        aria-expanded={filterPanelOpen}
         css={`
           width: 32px;
           height: 32px;
@@ -394,6 +433,7 @@ export const Toolbar = () => (
           if (count === 0) return null
           return (
             <span
+              aria-hidden="true"
               css={`
                 position: absolute;
                 top: 2px;
@@ -416,8 +456,11 @@ export const Toolbar = () => (
       </button>
 
       <button
+        type="button"
         on:click={() => settingsPanelOpen.set((s) => !s)}
         title="Settings"
+        aria-label="Settings"
+        aria-expanded={settingsPanelOpen}
         css={`
           width: 32px;
           height: 32px;
@@ -442,12 +485,18 @@ export const Toolbar = () => (
       </button>
 
       <button
+        type="button"
         on:click={() =>
           resolvedThemeMode() === 'dark'
             ? themeMode.setLight()
             : themeMode.setDark()
         }
-        title="Toggle light/dark"
+        title="Toggle light/dark theme"
+        aria-label={() =>
+          resolvedThemeMode() === 'dark'
+            ? 'Switch to light theme'
+            : 'Switch to dark theme'
+        }
         css={`
           width: 32px;
           height: 32px;

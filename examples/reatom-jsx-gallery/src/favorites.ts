@@ -9,7 +9,10 @@ export function isFavorite(id: string): boolean {
 }
 
 export const favoriteImages = computed((): ImageFile[] => {
-  return imagesList.array().filter((m) => m.favorite()).map((m) => m.source)
+  return imagesList
+    .array()
+    .filter((m) => m.favorite())
+    .map((m) => m.source)
 }, 'favoriteImages')
 
 export const favoritesCount = computed(() => {

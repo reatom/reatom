@@ -8,9 +8,7 @@ export { EXIF_TAG_NAME_COUNT } from './exifTagNames'
 
 type IfdContext = 'ifd0' | 'exif' | 'gps' | 'interop'
 
-export const EXIF_POINTER_TAGS = new Set([
-  0x8769, 0x8825, 0xa005,
-])
+export const EXIF_POINTER_TAGS = new Set([0x8769, 0x8825, 0xa005])
 
 export const EXIF_THUMBNAIL_TAGS = new Set([0x0201, 0x0202])
 
@@ -63,19 +61,35 @@ function tagName(tag: number, ifd: IfdContext): string {
   return EXIF_TAG_NAMES[tag] ?? `Tag 0x${tag.toString(16).padStart(4, '0')}`
 }
 
-function readUint16(view: DataView, offset: number, littleEndian: boolean): number {
+function readUint16(
+  view: DataView,
+  offset: number,
+  littleEndian: boolean,
+): number {
   return view.getUint16(offset, littleEndian)
 }
 
-function readUint32(view: DataView, offset: number, littleEndian: boolean): number {
+function readUint32(
+  view: DataView,
+  offset: number,
+  littleEndian: boolean,
+): number {
   return view.getUint32(offset, littleEndian)
 }
 
-function readInt32(view: DataView, offset: number, littleEndian: boolean): number {
+function readInt32(
+  view: DataView,
+  offset: number,
+  littleEndian: boolean,
+): number {
   return view.getInt32(offset, littleEndian)
 }
 
-function readInt16(view: DataView, offset: number, littleEndian: boolean): number {
+function readInt16(
+  view: DataView,
+  offset: number,
+  littleEndian: boolean,
+): number {
   return view.getInt16(offset, littleEndian)
 }
 
@@ -112,7 +126,9 @@ function readEntryValue(
 
   const totalBytes = count * typeSize
   const valueOffset =
-    totalBytes <= 4 ? valueField : tiffBase + readUint32(view, valueField, littleEndian)
+    totalBytes <= 4
+      ? valueField
+      : tiffBase + readUint32(view, valueField, littleEndian)
 
   if (valueOffset + totalBytes > view.byteLength) return ''
 
@@ -142,7 +158,12 @@ function readEntryValue(
     if (count <= 8) {
       const hex: string[] = []
       for (let i = 0; i < count; i++) {
-        hex.push(view.getUint8(valueOffset + i).toString(16).padStart(2, '0'))
+        hex.push(
+          view
+            .getUint8(valueOffset + i)
+            .toString(16)
+            .padStart(2, '0'),
+        )
       }
       return hex.join(' ')
     }
@@ -194,9 +215,7 @@ function readEntryValue(
   if (type === TIFF_TYPE_SRATIONAL) {
     const values: string[] = []
     for (let i = 0; i < count; i++) {
-      values.push(
-        formatRational(view, valueOffset + i * 8, littleEndian, true),
-      )
+      values.push(formatRational(view, valueOffset + i * 8, littleEndian, true))
     }
     return values.join(', ')
   }

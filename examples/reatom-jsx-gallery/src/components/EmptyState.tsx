@@ -32,13 +32,21 @@ export const EmptyState = () => {
         &::before {
           right: 14%;
           top: 14%;
-          background: radial-gradient(circle, var(--hero-glow-1), transparent 68%);
+          background: radial-gradient(
+            circle,
+            var(--hero-glow-1),
+            transparent 68%
+          );
         }
 
         &::after {
           left: 14%;
           bottom: 12%;
-          background: radial-gradient(circle, var(--hero-glow-2), transparent 68%);
+          background: radial-gradient(
+            circle,
+            var(--hero-glow-2),
+            transparent 68%
+          );
         }
       `}
     >
@@ -53,7 +61,9 @@ export const EmptyState = () => {
             var(--surface-bg-image),
             linear-gradient(135deg, var(--surface-glass), var(--card-bg));
           background-size: var(--surface-bg-size), auto;
-          box-shadow: var(--glow), 0 26px 80px var(--shadow);
+          box-shadow:
+            var(--glow),
+            0 26px 80px var(--shadow);
           backdrop-filter: var(--toolbar-backdrop-filter);
           clip-path: var(--surface-clip-path);
           display: grid;
@@ -82,13 +92,19 @@ export const EmptyState = () => {
             height: 86px;
             border-radius: var(--radius-lg);
             background:
-              radial-gradient(circle at 28% 20%, var(--hero-glow-1), transparent 45%),
+              radial-gradient(
+                circle at 28% 20%,
+                var(--hero-glow-1),
+                transparent 45%
+              ),
               linear-gradient(135deg, var(--accent), var(--accent-hover));
             color: var(--accent-contrast);
             display: grid;
             place-items: center;
             font-size: 38px;
-            box-shadow: var(--glow), 0 18px 42px var(--shadow);
+            box-shadow:
+              var(--glow),
+              0 18px 42px var(--shadow);
             user-select: none;
           `}
         >
@@ -117,8 +133,8 @@ export const EmptyState = () => {
             color: var(--text-secondary);
           `}
         >
-          Open a folder to browse, filter, favorite, and inspect local images in a
-          focused Reatom-powered gallery.
+          Open a folder to browse, filter, favorite, and inspect local images in
+          a focused Reatom-powered gallery.
         </p>
         {fileSystemAccessSupported ? null : (
           <div
@@ -126,7 +142,8 @@ export const EmptyState = () => {
             css={`
               max-width: 390px;
               padding: 12px 14px;
-              border: var(--border-width) var(--control-border-style) var(--accent);
+              border: var(--border-width) var(--control-border-style)
+                var(--accent);
               border-radius: var(--radius-md);
               background: var(--accent-soft);
               color: var(--text-primary);
@@ -135,11 +152,13 @@ export const EmptyState = () => {
               text-align: center;
             `}
           >
-            File System Access is unavailable in this browser. Open the gallery in
-            Chrome, Edge, or another Chromium-based browser to choose local folders.
+            File System Access is unavailable in this browser. Open the gallery
+            in Chrome, Edge, or another Chromium-based browser to choose local
+            folders.
           </div>
         )}
         <button
+          type="button"
           on:click={() => openFolder()}
           prop:disabled={!fileSystemAccessSupported}
           title={
@@ -152,8 +171,13 @@ export const EmptyState = () => {
             font-size: 15px;
             font-weight: 750;
             color: var(--accent-contrast);
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-            border: var(--border-width) var(--control-border-style) var(--accent);
+            background: linear-gradient(
+              135deg,
+              var(--accent),
+              var(--accent-hover)
+            );
+            border: var(--border-width) var(--control-border-style)
+              var(--accent);
             border-radius: var(--radius-round);
             cursor: pointer;
             transition: all 0.2s ease;

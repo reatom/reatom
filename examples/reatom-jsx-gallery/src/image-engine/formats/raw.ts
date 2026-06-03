@@ -1,6 +1,6 @@
-import { parseExifTagsAtTiffBase } from './exif'
 import type { ExifData } from '../types'
 import { EXIF_READ_BYTES } from '../types'
+import { parseExifTagsAtTiffBase } from './exif'
 
 const TIFF_TYPE_SHORT = 3
 const TIFF_TYPE_LONG = 4
@@ -220,10 +220,7 @@ function readEntryNumberArray(
   return values
 }
 
-function readEntryAscii(
-  view: DataView,
-  entry: RawIfdEntry,
-): string | null {
+function readEntryAscii(view: DataView, entry: RawIfdEntry): string | null {
   if (entry.type !== TIFF_TYPE_ASCII || entry.count === 0) return null
   if (entry.valueOffset + entry.count > view.byteLength) return null
 
@@ -278,7 +275,12 @@ function readDimensionsFromIfd(
   )
   if (!exifIfdOffset) return null
 
-  const exifEntries = readIfdEntries(view, tiffBase, exifIfdOffset, littleEndian)
+  const exifEntries = readIfdEntries(
+    view,
+    tiffBase,
+    exifIfdOffset,
+    littleEndian,
+  )
   width = getTagNumber(view, exifEntries, EXIF_IMAGE_WIDTH_TAG, littleEndian)
   height = getTagNumber(view, exifEntries, EXIF_IMAGE_HEIGHT_TAG, littleEndian)
 
@@ -404,7 +406,12 @@ function ifdPreviewPriority(
 
   if (hasJpegTags) return 0
 
-  const subfileType = getTagNumber(view, entries, NEW_SUBFILE_TYPE_TAG, littleEndian)
+  const subfileType = getTagNumber(
+    view,
+    entries,
+    NEW_SUBFILE_TYPE_TAG,
+    littleEndian,
+  )
   if (subfileType === 1) return 1
   if (subfileType !== null && (subfileType & 1) !== 0) return 2
 
@@ -574,10 +581,7 @@ function collectSubIfdOffsets(
   )
 }
 
-function collectIfdOffsetsToScan(
-  view: DataView,
-  header: TiffHeader,
-): number[] {
+function collectIfdOffsetsToScan(view: DataView, header: TiffHeader): number[] {
   const offsets: number[] = []
   const queue: number[] = [header.ifd0Offset]
   const visited = new Set<number>()
@@ -655,7 +659,10 @@ async function readDecodableJpegCandidate(
 function findJpegEndOffset(bytes: Uint8Array, start: number): number {
   let end = bytes.length
   for (let offset = start + 2; offset < bytes.length - 1; offset++) {
-    if (bytes[offset] === JPEG_SOI_BYTE_0 && bytes[offset + 1] === JPEG_SOI_BYTE_1) {
+    if (
+      bytes[offset] === JPEG_SOI_BYTE_0 &&
+      bytes[offset + 1] === JPEG_SOI_BYTE_1
+    ) {
       end = offset
       break
     }
@@ -675,7 +682,10 @@ async function scanLargestJpegPreview(
 
   const segments: PreviewRange[] = []
   for (let offset = 0; offset < bytes.length - 1; offset++) {
-    if (bytes[offset] !== JPEG_SOI_BYTE_0 || bytes[offset + 1] !== JPEG_SOI_BYTE_1) {
+    if (
+      bytes[offset] !== JPEG_SOI_BYTE_0 ||
+      bytes[offset + 1] !== JPEG_SOI_BYTE_1
+    ) {
       continue
     }
 

@@ -35,11 +35,17 @@ export const Slideshow = ({
   onControlPress,
 }: SlideshowProps = {}) => {
   const progressPercent = atom(0, 'slideshow._progress')
-  const pressSlideshowControl = (action: () => void) =>
-    pressEvents(() => {
-      onControlPress?.()
-      action()
-    })
+  const pressSlideshowControl = (action: () => void) => {
+    const press = pressEvents(action)
+    return {
+      'on:mousedown': (event: MouseEvent) => {
+        onControlPress?.()
+        press['on:mousedown'](event)
+      },
+      'on:click': press['on:click'],
+      'on:keydown': press['on:keydown'],
+    }
+  }
 
   const autoAdvance = effect(async () => {
     while (slideshowPlaying()) {
@@ -86,6 +92,13 @@ export const Slideshow = ({
       <button
         {...pressSlideshowControl(slideshowPlaying.toggle)}
         type="button"
+        title={() =>
+          slideshowPlaying() ? 'Pause slideshow' : 'Play slideshow'
+        }
+        aria-label={() =>
+          slideshowPlaying() ? 'Pause slideshow' : 'Play slideshow'
+        }
+        aria-pressed={slideshowPlaying}
         css={`
           ${pillBtnCss}
           width: 32px;
@@ -105,6 +118,9 @@ export const Slideshow = ({
         <button
           {...pressSlideshowControl(() => slideshowInterval.set(ms))}
           type="button"
+          title={() => `Slideshow speed ${label}`}
+          aria-label={() => `Slideshow speed ${label}`}
+          aria-pressed={() => slideshowInterval() === ms}
           data-active={() => slideshowInterval() === ms}
           css={`
             ${pillBtnCss}
@@ -122,6 +138,11 @@ export const Slideshow = ({
       ))}
 
       <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progressPercent}
+        aria-label="Slideshow progress"
         css={`
           width: 80px;
           height: 4px;

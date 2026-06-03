@@ -1,3 +1,4 @@
+import { focusableCardAttrs } from '../a11y'
 import type { ImageModel } from '../model'
 import {
   gridGap,
@@ -40,7 +41,11 @@ export const GridImage = ({
     const thumbnail = image.thumbnail.data()
     if (!thumbnail) return null
 
-    const previewSize = getPreviewSize(thumbnail.width, thumbnail.height, imageFit())
+    const previewSize = getPreviewSize(
+      thumbnail.width,
+      thumbnail.height,
+      imageFit(),
+    )
     const fullImage =
       renderedSize() > previewSize ? image.fullImage.data() : undefined
 
@@ -53,8 +58,11 @@ export const GridImage = ({
     return <img src={thumbnail.url} alt={image.name} loading="lazy" />
   }
 
+  const openLabel = () => `Open ${image.name}`
+
   return (
     <div
+      {...focusableCardAttrs(openLabel(), handleOpen)}
       attr:data-selected={isSelected}
       attr:data-gap={gridGap}
       css={`
@@ -71,6 +79,10 @@ export const GridImage = ({
         cursor: pointer;
         transition: all 0.2s ease;
 
+        &:focus-visible {
+          outline: 3px solid var(--focus-ring);
+          outline-offset: 2px;
+        }
         &:hover {
           border-color: var(--accent);
           transform: var(--card-hover-transform);
@@ -120,11 +132,16 @@ export const GridImage = ({
         `}
       >
         <button
+          type="button"
           on:click={(e: Event) => {
             e.stopPropagation()
             selectImage(image)
           }}
+          role="checkbox"
           aria-checked={isSelected}
+          aria-label={() =>
+            isSelected() ? `Deselect ${image.name}` : `Select ${image.name}`
+          }
           css={`
             position: absolute;
             top: 8px;
@@ -163,6 +180,11 @@ export const GridImage = ({
             image.favorite.toggle()
           }}
           aria-pressed={isFavorite}
+          aria-label={() =>
+            isFavorite()
+              ? `Remove ${image.name} from favorites`
+              : `Add ${image.name} to favorites`
+          }
           type="button"
           css={`
             position: absolute;

@@ -2,7 +2,12 @@ import { computed, effect, reatomBoolean } from '@reatom/core'
 
 import { EXIF_TAGS_WITH_CUSTOM_FORMAT } from '../image-engine/formats/exif'
 import type { ImageModel } from '../model'
-import { imagesList, lightboxImage, lightboxOpen, selectedCount } from '../model'
+import {
+  imagesList,
+  lightboxImage,
+  lightboxOpen,
+  selectedCount,
+} from '../model'
 import { CloseIcon } from './Icons'
 import { settingsPanelOpen } from './SettingsPanel'
 
@@ -130,8 +135,12 @@ export const ImageInfoPanel = () => {
       css="position: fixed; right: 0; top: 0; bottom: 0; z-index: 1050; pointer-events: none;"
     >
       <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Image details"
         data-open={panelExpanded}
         aria-hidden={() => !panelExpanded()}
+        prop:inert={() => !panelExpanded()}
         css={`
           position: absolute;
           right: 0;
@@ -161,6 +170,7 @@ export const ImageInfoPanel = () => {
         `}
       >
         <button
+          type="button"
           on:click={() => imageInfoPanelOpen.set(false)}
           css={panelCloseButtonCss}
           title="Close details"

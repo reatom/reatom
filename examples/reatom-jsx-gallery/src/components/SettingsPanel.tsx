@@ -45,8 +45,10 @@ const OptionButton = ({
   onClick: () => void
 }) => (
   <button
+    type="button"
     on:click={onClick}
     attr:data-active={isActive}
+    aria-pressed={isActive}
     data-terminal-bracket="true"
     css={`
       padding: 6px 12px;
@@ -107,7 +109,10 @@ const ToggleSwitch = ({
         --toggle-knob-size: 18px;
         --toggle-inset: max(
           1px,
-          calc((var(--toggle-height) - var(--toggle-knob-size)) / 2 - var(--border-width))
+          calc(
+            (var(--toggle-height) - var(--toggle-knob-size)) /
+              2 - var(--border-width)
+          )
         );
         width: var(--toggle-width);
         height: var(--toggle-height);
@@ -139,8 +144,11 @@ const ToggleSwitch = ({
         &[data-on='true']::after {
           transform: translate(
             calc(
-              var(--toggle-width) - var(--toggle-knob-size) - var(--toggle-inset) -
-                var(--toggle-inset) - var(--border-width) - var(--border-width)
+              var(--toggle-width) - var(--toggle-knob-size) - var(
+                  --toggle-inset
+                ) - var(--toggle-inset) - var(--border-width) - var(
+                  --border-width
+                )
             ),
             -50%
           );
@@ -162,8 +170,10 @@ const ThemePackButton = ({
   swatches: readonly [string, string, string]
 }) => (
   <button
+    type="button"
     on:click={() => themePack.set(value)}
     attr:data-active={() => themePack() === value}
+    aria-pressed={() => themePack() === value}
     css={`
       width: 100%;
       display: grid;
@@ -188,7 +198,9 @@ const ThemePackButton = ({
       &[data-active='true'] {
         border-color: var(--accent);
         background: var(--active-bg);
-        box-shadow: 0 0 0 3px var(--focus-ring), var(--glow);
+        box-shadow:
+          0 0 0 3px var(--focus-ring),
+          var(--glow);
       }
     `}
   >
@@ -222,6 +234,7 @@ const ThemeModeButton = ({
   label: string
 }) => (
   <button
+    type="button"
     on:click={() => themeMode.set(mode)}
     attr:aria-pressed={() => themeMode() === mode}
     css={`
@@ -257,7 +270,9 @@ const ThemeModeButton = ({
         border-color: var(--accent);
         background: var(--accent);
         color: var(--accent-contrast);
-        box-shadow: var(--glow), 0 8px 20px var(--shadow);
+        box-shadow:
+          var(--glow),
+          0 8px 20px var(--shadow);
       }
 
       &[aria-pressed='true']::before {
@@ -276,7 +291,12 @@ export const SettingsPanel = () => {
   )
 
   return (
-    <div
+    <aside
+      role="dialog"
+      aria-modal="true"
+      aria-label="Settings"
+      aria-hidden={() => !settingsPanelOpen()}
+      prop:inert={() => !settingsPanelOpen()}
       attr:data-open={settingsPanelOpen}
       css={`
         position: fixed;
@@ -322,7 +342,9 @@ export const SettingsPanel = () => {
           Settings
         </h2>
         <button
+          type="button"
           on:click={() => settingsPanelOpen.set(false)}
+          aria-label="Close settings"
           css={`
             width: 28px;
             height: 28px;
@@ -359,6 +381,7 @@ export const SettingsPanel = () => {
           min="0"
           max="12"
           step="1"
+          aria-label="Grid columns"
           model:valueAsNumber={gridColumns}
           css={`
             flex: 1;
@@ -446,6 +469,6 @@ export const SettingsPanel = () => {
         <ThemeModeButton mode="dark" label="Dark" />
         <ThemeModeButton mode="system" label="System" />
       </div>
-    </div>
+    </aside>
   )
 }

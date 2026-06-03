@@ -1,5 +1,5 @@
-import { findApp1ExifTiffBase } from './exif'
 import { EXIF_READ_BYTES } from '../types'
+import { findApp1ExifTiffBase } from './exif'
 
 type JpegMeta = {
   width: number
