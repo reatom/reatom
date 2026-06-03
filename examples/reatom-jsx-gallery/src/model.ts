@@ -1,4 +1,10 @@
-import type { BooleanAtom, Computed, LL_NEXT, LL_PREV, LLNode } from '@reatom/core'
+import type {
+  BooleanAtom,
+  Computed,
+  LL_NEXT,
+  LL_PREV,
+  LLNode,
+} from '@reatom/core'
 import {
   action,
   atom,
@@ -10,6 +16,7 @@ import {
   reatomLinkedList,
   withAbort,
   withAsync,
+  withChangeHook,
   withConnectHook,
   withLocalStorage,
   wrap,
@@ -65,25 +72,20 @@ export const gridColumns = atom(4, 'gridColumns').extend(
   withLocalStorage('gallery.gridColumns'),
 )
 
-export const gridGap = reatomEnum(['none', 'small', 'medium', 'large', 'xl'], {
-  name: 'gridGap',
-  initState: 'medium',
-}).extend(withLocalStorage('gallery.gridGap'))
-
-export const thumbnailSize = reatomEnum(['small', 'medium', 'large', 'xl'], {
-  name: 'thumbnailSize',
-  initState: 'medium',
-}).extend(withLocalStorage('gallery.thumbnailSize'))
-
 export const imageFit = reatomEnum(['contain', 'cover', 'fill', 'none'], {
   name: 'imageFit',
   initState: 'cover',
 }).extend(withLocalStorage('gallery.imageFit'))
 
-export const aspectRatio = reatomEnum(['fit', 'fill', 'original', 'square'], {
-  name: 'aspectRatio',
-  initState: 'fill',
-}).extend(withLocalStorage('gallery.aspectRatio'))
+export const gridGap = reatomEnum(['none', 'small', 'medium', 'large', 'xl'], {
+  name: 'gridGap',
+  initState: 'medium',
+}).extend(
+  withLocalStorage('gallery.gridGap'),
+  withChangeHook((state) => {
+    if (state === 'none') imageFit.setCover()
+  }),
+)
 
 // Sort
 

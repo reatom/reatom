@@ -4,7 +4,9 @@ import { GridImage } from './GridImage'
 
 const gridImagesView = imagesList.reatomMap(
   (imageNode) =>
-    <div>{() => imageNode.visible() && <GridImage image={imageNode} />}</div>,
+    <div css="display: contents;">
+      {() => imageNode.visible() && <GridImage image={imageNode} />}
+    </div>,
   'imagesList.gridView',
 )
 
@@ -33,13 +35,17 @@ export const ImageGrid = () => (
   <div
     css:columns={() => {
       const cols = gridColumns()
-      return cols === 0 ? 'auto-fill, minmax(200px, 1fr)' : `${cols}, 1fr`
+      return cols === 0
+        ? 'auto-fill, minmax(min(200px, 100%), 1fr)'
+        : `${cols}, minmax(0, 1fr)`
     }}
     css:gap={() => `${GRID_GAP_VALUES[gridGap()]}px`}
     css={`
       display: grid;
       grid-template-columns: repeat(var(--columns));
       gap: var(--gap);
+      width: 100%;
+      min-width: 0;
     `}
   >
     {() => (visibleIndexMap().size === 0 ? <NoImagesMessage /> : null)}

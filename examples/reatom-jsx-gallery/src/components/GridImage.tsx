@@ -1,14 +1,12 @@
 import type { ImageModel } from '../model'
 import {
-  aspectRatio,
+  gridGap,
   imageFit,
   openLightbox,
   selectImage,
   showFileSizes,
   showImageNames,
-  thumbnailSize,
 } from '../model'
-import { THUMBNAIL_SIZE_VALUES } from '../types'
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`
@@ -25,8 +23,11 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
   return (
     <div
       attr:data-selected={isSelected}
+      attr:data-gap={gridGap}
       css={`
         position: relative;
+        min-width: 0;
+        aspect-ratio: 1;
         background: var(--card-bg);
         border: 1px solid var(--card-border);
         border-radius: 8px;
@@ -46,17 +47,20 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
           border-color: var(--accent);
           box-shadow: 0 0 0 2px var(--accent);
         }
+        &[data-gap='none'] {
+          border-width: 0;
+          border-radius: 0;
+        }
       `}
       on:click={handleOpen}
     >
       <div
-        style:height={() =>
-          aspectRatio() === 'square'
-            ? 'auto'
-            : `${THUMBNAIL_SIZE_VALUES[thumbnailSize()]}px`
-        }
-        style:aspect-ratio={() => (aspectRatio() === 'square' ? '1' : 'auto')}
-        css="width: 100%; overflow: hidden; background: rgba(0,0,0,0.1);"
+        css={`
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: rgba(0, 0, 0, 0.1);
+        `}
       >
         <img
           src={() => image.thumbnail.data()?.url ?? ''}
@@ -151,8 +155,16 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
         return (
           <div
             css={`
+              position: absolute;
+              right: 0;
+              bottom: 0;
+              left: 0;
               padding: 8px 10px;
-              border-top: 1px solid var(--card-border);
+              background: linear-gradient(
+                to top,
+                rgba(0, 0, 0, 0.72),
+                rgba(0, 0, 0, 0)
+              );
             `}
           >
             {showName && (
@@ -160,7 +172,7 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
                 css={`
                   font-size: 12px;
                   font-weight: 500;
-                  color: var(--text-primary);
+                  color: #fff;
                   white-space: nowrap;
                   overflow: hidden;
                   text-overflow: ellipsis;
@@ -173,7 +185,7 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
               <div
                 css={`
                   font-size: 11px;
-                  color: var(--text-muted);
+                  color: rgba(255, 255, 255, 0.72);
                   margin-top: 2px;
                 `}
               >

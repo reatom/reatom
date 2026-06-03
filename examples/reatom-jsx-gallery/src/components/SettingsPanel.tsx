@@ -1,23 +1,19 @@
 import { atom } from '@reatom/core'
 
 import {
-  aspectRatio,
   gridColumns,
   gridGap,
   imageFit,
   showFileSizes,
   showImageNames,
-  thumbnailSize,
 } from '../model'
-import type { AspectRatio, GridGap, ImageFit, ThumbnailSize } from '../types'
+import type { GridGap, ImageFit } from '../types'
 
 const settingsPanelOpen = atom(false, 'settingsPanelOpen')
 export { settingsPanelOpen }
 
 const GAP_OPTIONS: GridGap[] = ['none', 'small', 'medium', 'large', 'xl']
-const SIZE_OPTIONS: ThumbnailSize[] = ['small', 'medium', 'large', 'xl']
 const FIT_OPTIONS: ImageFit[] = ['contain', 'cover', 'fill', 'none']
-const RATIO_OPTIONS: AspectRatio[] = ['fit', 'fill', 'original', 'square']
 
 const SectionTitle = ({ text }: { text: string }) => (
   <h3
@@ -71,16 +67,6 @@ const OptionButton = ({
   >
     {label}
   </button>
-)
-
-const OptionGroup = () => (
-  <div
-    css={`
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    `}
-  />
 )
 
 const ToggleSwitch = ({
@@ -145,13 +131,6 @@ export const SettingsPanel = () => {
     () => (gridColumns() === 0 ? 'auto' : String(gridColumns())),
     'settingsPanel.columnsDisplay',
   )
-
-  const handleColumnsInput = (
-    e: Event & { currentTarget: HTMLInputElement },
-  ) => {
-    const val = e.currentTarget.value
-    gridColumns.set(val === 'auto' ? 0 : Number(val))
-  }
 
   return (
     <div
@@ -266,23 +245,6 @@ export const SettingsPanel = () => {
         ))}
       </div>
 
-      <SectionTitle text="Thumbnail Size" />
-      <div
-        css={`
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        `}
-      >
-        {SIZE_OPTIONS.map((size) => (
-          <OptionButton
-            label={size}
-            isActive={() => thumbnailSize() === size}
-            onClick={() => thumbnailSize.set(size)}
-          />
-        ))}
-      </div>
-
       <SectionTitle text="Image Fit" />
       <div
         css={`
@@ -296,23 +258,6 @@ export const SettingsPanel = () => {
             label={fit}
             isActive={() => imageFit() === fit}
             onClick={() => imageFit.set(fit)}
-          />
-        ))}
-      </div>
-
-      <SectionTitle text="Aspect Ratio" />
-      <div
-        css={`
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-        `}
-      >
-        {RATIO_OPTIONS.map((ratio) => (
-          <OptionButton
-            label={ratio}
-            isActive={() => aspectRatio() === ratio}
-            onClick={() => aspectRatio.set(ratio)}
           />
         ))}
       </div>

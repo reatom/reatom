@@ -22,9 +22,7 @@ export type ViewMode = 'grid' | 'list' | 'lightbox' | 'slideshow'
 export type SortField = 'name' | 'size' | 'date' | 'type' | 'dimensions'
 export type SortOrder = 'asc' | 'desc'
 export type ImageFit = 'contain' | 'cover' | 'fill' | 'none'
-export type AspectRatio = 'fit' | 'fill' | 'original' | 'square'
 export type GridGap = 'none' | 'small' | 'medium' | 'large' | 'xl'
-export type ThumbnailSize = 'small' | 'medium' | 'large' | 'xl'
 export type Theme = 'light' | 'dark'
 
 export const IMAGE_EXTENSIONS = [
@@ -43,10 +41,4 @@ export const GRID_GAP_VALUES: Record<GridGap, number> = {
   medium: 8,
   large: 16,
   xl: 24,
-}
-export const THUMBNAIL_SIZE_VALUES: Record<ThumbnailSize, number> = {
-  small: 100,
-  medium: 200,
-  large: 300,
-  xl: 400,
 }

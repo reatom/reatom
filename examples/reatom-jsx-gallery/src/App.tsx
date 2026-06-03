@@ -174,7 +174,7 @@ export const App = () => {
       <div css="flex: 1; overflow: hidden; display: flex;">
         {() => (contentMode() !== 'empty' ? <FolderTree /> : null)}
 
-        <div css="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+        <div css="flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden;">
           {() => {
             const mode = contentMode()
             if (mode !== 'empty') {
@@ -203,6 +203,8 @@ export const App = () => {
             css={`
               flex: 1;
               overflow-y: auto;
+              overflow-x: hidden;
+              min-width: 0;
               padding: 20px 24px;
             `}
           >
