@@ -1,10 +1,10 @@
-import { themeMode, themePack } from '../model'
+import { resolvedThemeMode, themePack } from '../model'
 import { activeThemeVariables, GlobalStyles } from '../theme'
 
 export const StoryWrapper = ({ children }: { children: unknown }) => (
   <div
     attr:data-theme-pack={themePack}
-    attr:data-theme-mode={themeMode}
+    attr:data-theme-mode={resolvedThemeMode}
     style={() => activeThemeVariables()}
     css={`
       display: flex;

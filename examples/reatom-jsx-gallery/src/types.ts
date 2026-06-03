@@ -18,12 +18,15 @@ export type FolderNode = {
   imageCount: number
 }
 
-export type ViewMode = 'grid' | 'list' | 'lightbox' | 'slideshow'
+export const VIEW_MODES = ['grid', 'list', 'table'] as const
+
+export type ViewMode = (typeof VIEW_MODES)[number]
 export type SortField = 'name' | 'size' | 'date' | 'type' | 'dimensions'
 export type SortOrder = 'asc' | 'desc'
 export type ImageFit = 'contain' | 'cover' | 'fill' | 'none'
 export type GridGap = 'none' | 'small' | 'medium' | 'large' | 'xl'
-export type ThemeMode = 'light' | 'dark'
+export type ResolvedThemeMode = 'light' | 'dark'
+export type ThemeMode = ResolvedThemeMode | 'system'
 export type ThemePack =
   | 'blueprint'
   | 'neon'

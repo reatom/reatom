@@ -2,7 +2,7 @@ import { computed, isAbort } from '@reatom/core'
 
 import { BreadcrumbNav } from './components/BreadcrumbNav'
 import { FilterPanel } from './components/FilterPanel'
-import { FolderTree } from './components/FolderTree'
+import { FolderTree, folderTreeSidebarVisible } from './components/FolderTree'
 import { GalleryMarkIcon } from './components/Icons'
 import { ImageGrid } from './components/ImageGrid'
 import { ImageInfoPanel } from './components/ImageInfoPanel'
@@ -14,9 +14,9 @@ import { Toolbar } from './components/Toolbar'
 import {
   folderTree,
   openFolder,
+  resolvedThemeMode,
   restoreSelectedFolder,
   selectedFolderHandle,
-  themeMode,
   themePack,
 } from './model'
 import { KeyboardShortcuts } from './shortcuts'
@@ -203,7 +203,7 @@ export const App = () => {
   return (
     <div
       attr:data-theme-pack={themePack}
-      attr:data-theme-mode={themeMode}
+      attr:data-theme-mode={resolvedThemeMode}
       style={() => activeThemeVariables()}
       css={`
         display: flex;
@@ -433,7 +433,13 @@ export const App = () => {
                     flex-shrink: 0;
                   `}
                 >
-                  <BreadcrumbNav />
+                  <div
+                    css="transition: margin-left 0.3s ease;"
+                    style:margin-left={() =>
+                      folderTreeSidebarVisible() ? '0px' : '22px'}
+                  >
+                    <BreadcrumbNav />
+                  </div>
                   <div css="flex: 1;" />
                   <SortPanel />
                 </div>

@@ -56,6 +56,26 @@ export const ListIcon = () => (
   </svg:svg>
 )
 
+export const TableIcon = () => (
+  <svg:svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="none"
+    stroke="currentColor"
+    attr:stroke-width="1.8"
+    attr:stroke-linecap="round"
+    attr:stroke-linejoin="round"
+    attr:aria-hidden="true"
+  >
+    <svg:rect x="4" y="5" width="16" height="14" rx="1.5" />
+    <svg:line x1="4" y1="10" x2="20" y2="10" />
+    <svg:line x1="4" y1="15" x2="20" y2="15" />
+    <svg:line x1="10" y1="5" x2="10" y2="19" />
+    <svg:line x1="15" y1="5" x2="15" y2="19" />
+  </svg:svg>
+)
+
 export const ImageFrameIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"

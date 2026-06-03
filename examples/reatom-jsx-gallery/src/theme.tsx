@@ -1,11 +1,11 @@
 import { computed } from '@reatom/core'
 
-import { themeMode, themePack } from './model'
-import type { ThemeMode, ThemePack } from './types'
+import { resolvedThemeMode, themePack } from './model'
+import type { ResolvedThemeMode, ThemePack } from './types'
 
 export type ThemeVariables = Record<`--${string}`, string>
 
-type ThemeDefinition = Record<ThemeMode, ThemeVariables>
+type ThemeDefinition = Record<ResolvedThemeMode, ThemeVariables>
 type ThemeMeta = {
   value: ThemePack
   label: string
@@ -866,10 +866,10 @@ const THEMES = {
       '--focus-ring': 'rgba(250, 204, 21, 0.32)',
       '--radius-xs': '0px',
       '--radius-sm': '0px',
-      '--radius-md': '999px',
+      '--radius-md': '0px',
       '--radius-lg': '0px',
-      '--radius-xl': '999px',
-      '--radius-round': '999px',
+      '--radius-xl': '0px',
+      '--radius-round': '0px',
       '--hero-glow-1': 'rgba(225, 29, 72, 0)',
       '--hero-glow-2': 'rgba(250, 204, 21, 0)',
       '--overlay-bg': 'rgba(0, 0, 0, 0.9)',
@@ -927,10 +927,10 @@ const THEMES = {
       '--focus-ring': 'rgba(37, 99, 235, 0.22)',
       '--radius-xs': '0px',
       '--radius-sm': '0px',
-      '--radius-md': '999px',
+      '--radius-md': '0px',
       '--radius-lg': '0px',
-      '--radius-xl': '999px',
-      '--radius-round': '999px',
+      '--radius-xl': '0px',
+      '--radius-round': '0px',
       '--hero-glow-1': 'rgba(220, 38, 38, 0)',
       '--hero-glow-2': 'rgba(250, 204, 21, 0)',
       '--overlay-bg': 'rgba(0, 0, 0, 0.88)',
@@ -1358,7 +1358,7 @@ const getThemeDefinition = (pack: ThemePack): ThemeDefinition => {
 }
 
 export const activeThemeVariables = computed(
-  () => getThemeDefinition(themePack())[themeMode()],
+  () => getThemeDefinition(themePack())[resolvedThemeMode()],
   'theme.activeVariables',
 )
 

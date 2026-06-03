@@ -1,9 +1,9 @@
-import { themeMode } from '../model'
+import { resolvedThemeMode, themeMode } from '../model'
 import { MoonIcon, SunIcon } from './Icons'
 
 export const ThemeToggle = () => {
   const handleClick = () => {
-    const next = themeMode() === 'light' ? 'dark' : 'light'
+    const next = resolvedThemeMode() === 'light' ? 'dark' : 'light'
     themeMode.set(next)
   }
 
@@ -38,7 +38,7 @@ export const ThemeToggle = () => {
         }
       `}
     >
-      {() => (themeMode() === 'light' ? <SunIcon /> : <MoonIcon />)}
+      {() => (resolvedThemeMode() === 'light' ? <SunIcon /> : <MoonIcon />)}
     </button>
   )
 }

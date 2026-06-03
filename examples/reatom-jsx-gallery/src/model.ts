@@ -14,6 +14,7 @@ import {
   reatomBoolean,
   reatomEnum,
   reatomLinkedList,
+  reatomMediaQuery,
   withAbort,
   withAsync,
   withChangeHook,
@@ -30,7 +31,13 @@ import {
 } from './filesystem'
 import type { ReatomImage } from './reatomImage'
 import { reatomImage } from './reatomImage'
-import type { FolderNode, ImageFile } from './types'
+import {
+  VIEW_MODES,
+  type FolderNode,
+  type ImageFile,
+  type ResolvedThemeMode,
+  type ViewMode,
+} from './types'
 
 export type ImageModel = ReatomImage & {
   id: ImageFile['id']
@@ -87,15 +94,68 @@ export const parsingProgress = atom(
 
 // View mode
 
-export const viewMode = reatomEnum(
-  ['grid', 'list', 'lightbox', 'slideshow'],
-  'viewMode',
+const normalizeViewMode = (snapshot: unknown): ViewMode => {
+  switch (snapshot) {
+    case 'grid':
+    case 'list':
+    case 'table':
+      return snapshot
+    default:
+      return 'grid'
+  }
+}
+
+export const viewMode = reatomEnum(VIEW_MODES, 'viewMode').extend(
+  withLocalStorage({
+    key: 'gallery.viewMode',
+    fromSnapshot: normalizeViewMode,
+  }),
 )
 
 // Grid settings
 
 export const gridColumns = atom(4, 'gridColumns').extend(
   withLocalStorage('gallery.gridColumns'),
+)
+
+const LIST_PREVIEW_WIDTH = {
+  default: 82,
+  min: 58,
+  max: 154,
+  step: 12,
+}
+
+const TABLE_PREVIEW_WIDTH = {
+  default: 64,
+  min: 48,
+  max: 112,
+  step: 8,
+}
+
+const LIST_PREVIEW_ASPECT_RATIO = 58 / 82
+const TABLE_PREVIEW_ASPECT_RATIO = 44 / 64
+
+const clampPreviewWidth = (
+  width: number,
+  range: { min: number; max: number },
+): number => Math.min(Math.max(width, range.min), range.max)
+
+export const listPreviewWidth = atom(
+  LIST_PREVIEW_WIDTH.default,
+  'listPreviewWidth',
+)
+export const listPreviewHeight = computed(
+  () => Math.round(listPreviewWidth() * LIST_PREVIEW_ASPECT_RATIO),
+  'listPreviewHeight',
+)
+
+export const tablePreviewWidth = atom(
+  TABLE_PREVIEW_WIDTH.default,
+  'tablePreviewWidth',
+)
+export const tablePreviewHeight = computed(
+  () => Math.round(tablePreviewWidth() * TABLE_PREVIEW_ASPECT_RATIO),
+  'tablePreviewHeight',
 )
 
 export const imageFit = reatomEnum(['contain', 'cover', 'fill', 'none'], {
@@ -166,14 +226,22 @@ export const themePack = reatomEnum(
   ],
   {
     name: 'themePack',
-    initState: 'aurora',
+    initState: 'polaroid',
   },
 ).extend(withLocalStorage('gallery.themePack'))
 
-export const themeMode = reatomEnum(['light', 'dark'], {
+const prefersDarkTheme = reatomMediaQuery('(prefers-color-scheme: dark)')
+
+export const themeMode = reatomEnum(['light', 'dark', 'system'], {
   name: 'themeMode',
-  initState: 'dark',
+  initState: 'system',
 }).extend(withLocalStorage('gallery.themeMode'))
+
+export const resolvedThemeMode = computed<ResolvedThemeMode>(() => {
+  const mode = themeMode()
+  if (mode === 'system') return prefersDarkTheme() ? 'dark' : 'light'
+  return mode
+}, 'resolvedThemeMode')
 
 // UI preferences
 
@@ -478,18 +546,57 @@ export const clearSelection = action(() => {
   }
 }, 'clearSelection')
 
+export const decreaseImagePreviewSize = action(() => {
+  const mode = viewMode()
+
+  if (mode === 'list') {
+    listPreviewWidth.set((width) =>
+      clampPreviewWidth(width - LIST_PREVIEW_WIDTH.step, LIST_PREVIEW_WIDTH),
+    )
+    return
+  }
+
+  if (mode === 'table') {
+    tablePreviewWidth.set((width) =>
+      clampPreviewWidth(width - TABLE_PREVIEW_WIDTH.step, TABLE_PREVIEW_WIDTH),
+    )
+  }
+}, 'decreaseImagePreviewSize')
+
+export const increaseImagePreviewSize = action(() => {
+  const mode = viewMode()
+
+  if (mode === 'list') {
+    listPreviewWidth.set((width) =>
+      clampPreviewWidth(width + LIST_PREVIEW_WIDTH.step, LIST_PREVIEW_WIDTH),
+    )
+    return
+  }
+
+  if (mode === 'table') {
+    tablePreviewWidth.set((width) =>
+      clampPreviewWidth(width + TABLE_PREVIEW_WIDTH.step, TABLE_PREVIEW_WIDTH),
+    )
+  }
+}, 'increaseImagePreviewSize')
+
+export const setViewMode = action((mode: ViewMode) => {
+  viewMode.set(mode)
+  lightboxOpen.setFalse()
+  slideshowPlaying.setFalse()
+}, 'setViewMode')
+
 export const openLightbox = action((model: ImageModel) => {
   lightboxImage.set(() => model)
   lightboxZoom.set(1)
   resetLightboxPan()
   lightboxOpen.setTrue()
-  viewMode.setLightbox()
 }, 'openLightbox')
 
 export const closeLightbox = action(() => {
   lightboxOpen.setFalse()
+  slideshowPlaying.setFalse()
   lightboxZoom.set(1)
-  viewMode.setGrid()
 }, 'closeLightbox')
 
 export const navigateLightbox = action((direction: 1 | -1) => {

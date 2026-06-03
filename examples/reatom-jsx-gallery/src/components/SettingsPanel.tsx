@@ -125,7 +125,7 @@ const ToggleSwitch = ({
           left: var(--toggle-inset);
           width: var(--toggle-knob-size);
           height: var(--toggle-knob-size);
-          border-radius: 50%;
+          border-radius: var(--radius-round);
           background: var(--accent-contrast);
           box-shadow: 0 2px 6px var(--shadow);
           transform: translateY(-50%);
@@ -346,29 +346,6 @@ export const SettingsPanel = () => {
         </button>
       </div>
 
-      <SectionTitle text="Theme" />
-      <div css="display: grid; gap: calc(8px + var(--shadow-clearance, 0px));">
-        {THEME_PACKS.map((pack) => (
-          <ThemePackButton
-            value={pack.value}
-            label={pack.label}
-            description={pack.description}
-            swatches={pack.swatches}
-          />
-        ))}
-      </div>
-
-      <div
-        css={`
-          display: flex;
-          gap: calc(6px + var(--shadow-clearance, 0px));
-          margin-top: calc(10px + var(--shadow-clearance, 0px));
-        `}
-      >
-        <ThemeModeButton mode="light" label="Light" />
-        <ThemeModeButton mode="dark" label="Dark" />
-      </div>
-
       <SectionTitle text="Grid Columns" />
       <div
         css={`
@@ -445,6 +422,30 @@ export const SettingsPanel = () => {
         checked={() => showFileSizes()}
         onToggle={showFileSizes.toggle}
       />
+
+      <SectionTitle text="Theme" />
+      <div css="display: grid; gap: calc(8px + var(--shadow-clearance, 0px));">
+        {THEME_PACKS.map((pack) => (
+          <ThemePackButton
+            value={pack.value}
+            label={pack.label}
+            description={pack.description}
+            swatches={pack.swatches}
+          />
+        ))}
+      </div>
+
+      <div
+        css={`
+          display: flex;
+          gap: calc(6px + var(--shadow-clearance, 0px));
+          margin-top: calc(10px + var(--shadow-clearance, 0px));
+        `}
+      >
+        <ThemeModeButton mode="light" label="Light" />
+        <ThemeModeButton mode="dark" label="Dark" />
+        <ThemeModeButton mode="system" label="System" />
+      </div>
     </div>
   )
 }

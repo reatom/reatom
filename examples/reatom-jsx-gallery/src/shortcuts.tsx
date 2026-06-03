@@ -2,13 +2,17 @@
 import {
   clearSelection,
   closeLightbox,
+  decreaseImagePreviewSize,
   gridColumns,
+  increaseImagePreviewSize,
   imagesList,
   lightboxOpen,
   navigateLightbox,
+  resolvedThemeMode,
   selectAllImages,
   slideshowPlaying,
   themeMode,
+  viewMode,
 } from './model'
 
 const decreaseGridColumns = () =>
@@ -17,7 +21,8 @@ const increaseGridColumns = () =>
   gridColumns.set((columns: number) => Math.min(columns + 1, 100))
 
 function handleKeyDown(event: KeyboardEvent) {
-  const tagName = (event.target as HTMLElement)?.tagName
+  const tagName =
+    event.target instanceof HTMLElement ? event.target.tagName : undefined
   const isInputFocused =
     tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT'
 
@@ -61,13 +66,21 @@ function handleKeyDown(event: KeyboardEvent) {
 
   if (!lightboxOpen() && (event.key === '-' || event.key === '_')) {
     event.preventDefault()
-    decreaseGridColumns()
+    if (viewMode() === 'grid') {
+      decreaseGridColumns()
+    } else {
+      decreaseImagePreviewSize()
+    }
     return
   }
 
   if (!lightboxOpen() && (event.key === '=' || event.key === '+')) {
     event.preventDefault()
-    increaseGridColumns()
+    if (viewMode() === 'grid') {
+      increaseGridColumns()
+    } else {
+      increaseImagePreviewSize()
+    }
     return
   }
 
@@ -85,13 +98,13 @@ function handleKeyDown(event: KeyboardEvent) {
 
     const currentIdx = COLUMN_OPTIONS.indexOf(gridColumns())
     const nextIdx = (currentIdx + 1) % COLUMN_OPTIONS.length
-    gridColumns.set(COLUMN_OPTIONS[nextIdx]!)
+    gridColumns.set(COLUMN_OPTIONS[nextIdx] ?? COLUMN_OPTIONS[0])
 
     return
   }
 
   if (event.key === 't' || event.key === 'T') {
-    if (themeMode() === 'light') {
+    if (resolvedThemeMode() === 'light') {
       themeMode.setDark()
     } else {
       themeMode.setLight()

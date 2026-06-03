@@ -74,7 +74,7 @@ export const Slideshow = () => {
           ${pillBtnCss}
           width: 32px;
           height: 32px;
-          border-radius: 50%;
+          border-radius: var(--radius-round);
           font-size: 14px;
           padding: 0;
           display: flex;

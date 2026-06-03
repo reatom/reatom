@@ -2,9 +2,11 @@ import {
   clearSelection,
   folderTree,
   openFolder,
+  resolvedThemeMode,
   searchQuery,
   selectAllImages,
   selectedCount,
+  setViewMode,
   themeMode,
   viewMode,
   visibleIndexMap,
@@ -14,15 +16,15 @@ import {
   FilterIcon,
   GalleryMarkIcon,
   GridIcon,
-  ImageFrameIcon,
   ListIcon,
   MoonIcon,
-  PlayIcon,
   SearchIcon,
   SettingsIcon,
   SunIcon,
+  TableIcon,
 } from './Icons'
 import { settingsPanelOpen } from './SettingsPanel'
+import type { ViewMode } from '../types'
 
 const ToolbarButton = ({
   label,
@@ -75,7 +77,7 @@ const ViewModeButton = ({
   icon,
   onClick,
 }: {
-  mode: 'grid' | 'list' | 'lightbox' | 'slideshow'
+  mode: ViewMode
   icon: () => Element
   onClick: () => void
 }) => (
@@ -216,17 +218,12 @@ export const Toolbar = () => (
         flex-shrink: 0;
       `}
     >
-      <ViewModeButton mode="grid" icon={GridIcon} onClick={() => viewMode.setGrid()} />
-      <ViewModeButton mode="list" icon={ListIcon} onClick={() => viewMode.setList()} />
+      <ViewModeButton mode="grid" icon={GridIcon} onClick={() => setViewMode('grid')} />
+      <ViewModeButton mode="list" icon={ListIcon} onClick={() => setViewMode('list')} />
       <ViewModeButton
-        mode="lightbox"
-        icon={ImageFrameIcon}
-        onClick={() => viewMode.setLightbox()}
-      />
-      <ViewModeButton
-        mode="slideshow"
-        icon={PlayIcon}
-        onClick={() => viewMode.setSlideshow()}
+        mode="table"
+        icon={TableIcon}
+        onClick={() => setViewMode('table')}
       />
     </div>
 
@@ -382,7 +379,7 @@ export const Toolbar = () => (
                 font-size: 9px;
                 background: var(--accent);
                 color: var(--accent-contrast);
-                border-radius: 50%;
+                border-radius: var(--radius-round);
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -422,7 +419,9 @@ export const Toolbar = () => (
 
       <button
         on:click={() =>
-          themeMode() === 'dark' ? themeMode.setLight() : themeMode.setDark()
+          resolvedThemeMode() === 'dark'
+            ? themeMode.setLight()
+            : themeMode.setDark()
         }
         title="Toggle light/dark"
         css={`
@@ -445,7 +444,7 @@ export const Toolbar = () => (
           }
         `}
       >
-        {() => (themeMode() === 'dark' ? <MoonIcon /> : <SunIcon />)}
+        {() => (resolvedThemeMode() === 'dark' ? <MoonIcon /> : <SunIcon />)}
       </button>
     </div>
   </header>

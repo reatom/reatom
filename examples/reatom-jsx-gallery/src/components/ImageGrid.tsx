@@ -1,9 +1,17 @@
 import { atom, computed, reatomObservable } from '@reatom/core'
 
-import { gridColumns, gridGap, imagesList, visibleIndexMap } from '../model'
+import {
+  gridColumns,
+  gridGap,
+  imagesList,
+  viewMode,
+  visibleIndexMap,
+} from '../model'
 import { GRID_GAP_VALUES } from '../types'
 import { GridImage } from './GridImage'
 import { SearchIcon } from './Icons'
+import { ImageList } from './ImageList'
+import { ImageTable } from './ImageTable'
 
 const AUTO_COLUMN_MIN_SIZE = 200
 
@@ -107,7 +115,11 @@ const NoImagesMessage = () => (
 export const ImageGrid = () => (
   <div
     ref={imageGrid.ref}
+    attr:data-view-mode={viewMode}
     css:columns={() => {
+      const mode = viewMode()
+      if (mode === 'list' || mode === 'table') return '1, minmax(0, 1fr)'
+
       const cols = gridColumns()
       return cols === 0
         ? 'auto-fill, minmax(min(200px, 100%), 1fr)'
@@ -120,9 +132,30 @@ export const ImageGrid = () => (
       gap: calc(var(--gap) + var(--shadow-clearance, 0px));
       width: 100%;
       min-width: 0;
+
+      &[data-view-mode='list'] {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      &[data-view-mode='table'] {
+        display: flex;
+        grid-template-columns: minmax(0, 1fr);
+        height: 100%;
+        min-height: 0;
+      }
     `}
   >
     {() => (visibleIndexMap().size === 0 ? <NoImagesMessage /> : null)}
-    <div css="display: contents;">{gridImagesView}</div>
+    {() => {
+      if (visibleIndexMap().size === 0) return null
+
+      const mode = viewMode()
+      if (mode === 'table') return <ImageTable />
+
+      return (
+        <div css="display: contents;">
+          {mode === 'list' ? <ImageList /> : gridImagesView}
+        </div>
+      )
+    }}
   </div>
 )

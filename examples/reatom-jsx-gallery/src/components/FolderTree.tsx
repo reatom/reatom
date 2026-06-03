@@ -9,6 +9,15 @@ import {
   FolderRootIcon,
 } from './Icons'
 
+const folderSidebarWidth = 240
+const folderToggleSize = 34
+const folderHeaderRailHeight = 40
+
+export const folderTreeSidebarVisible = reatomBoolean(
+  true,
+  'folderTree.sidebarVisible',
+)
+
 const treeNodeCss = `
   display: flex;
   align-items: center;
@@ -133,8 +142,6 @@ const FolderTreeNode = ({
 }
 
 export const FolderTree = () => {
-  const sidebarVisible = reatomBoolean(true, 'folderTree.sidebarVisible')
-
   const isAllSelected = computed(
     () => currentFolder() === null,
     'folderTree.isAllSelected',
@@ -145,10 +152,10 @@ export const FolderTree = () => {
   return (
     <div css="display: flex; height: 100%; position: relative;">
       <div
-        data-open={sidebarVisible}
+        data-open={folderTreeSidebarVisible}
         css={`
-          width: 240px;
-          min-width: 240px;
+          width: ${folderSidebarWidth}px;
+          min-width: ${folderSidebarWidth}px;
           background-color: var(--panel-bg);
           background-image: var(--surface-bg-image);
           background-size: var(--surface-bg-size);
@@ -159,7 +166,7 @@ export const FolderTree = () => {
           transition:
             margin-left 0.3s ease,
             opacity 0.3s ease;
-          margin-left: -240px;
+          margin-left: -${folderSidebarWidth}px;
           opacity: 0;
           box-shadow: 12px 0 32px var(--shadow);
           backdrop-filter: var(--panel-backdrop-filter);
@@ -205,31 +212,64 @@ export const FolderTree = () => {
       </div>
 
       <button
-        on:click={sidebarVisible.toggle}
+        type="button"
+        aria-expanded={folderTreeSidebarVisible}
+        aria-label={() =>
+          folderTreeSidebarVisible() ? 'Hide folder tree' : 'Show folder tree'}
+        title={() =>
+          folderTreeSidebarVisible() ? 'Hide folder tree' : 'Show folder tree'}
+        on:click={folderTreeSidebarVisible.toggle}
         css={`
           position: absolute;
-          left: 0;
-          top: 8px;
+          top: ${(folderHeaderRailHeight - folderToggleSize) / 2}px;
           z-index: 10;
-          background: var(--surface-strong);
-          border: var(--border-width) var(--control-border-style) var(--border);
-          border-left: none;
-          color: var(--text-secondary);
-          padding: 8px 6px;
-          border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+          width: ${folderToggleSize}px;
+          height: ${folderToggleSize}px;
+          display: grid;
+          place-items: center;
+          padding: 0;
+          background:
+            linear-gradient(135deg, var(--surface-strong), var(--panel-bg)),
+            var(--surface-bg-image);
+          background-size: auto, var(--surface-bg-size);
+          border: var(--border-width) var(--control-border-style) var(--card-border);
+          color: var(--accent);
+          border-radius: var(--radius-round);
           cursor: pointer;
-          font-size: 12px;
+          font-size: 15px;
+          line-height: 1;
+          box-shadow: var(--glow), 0 10px 24px var(--shadow);
+          backdrop-filter: var(--panel-backdrop-filter);
+          transform: translateX(-50%);
           transition:
             left 0.3s ease,
-            background 0.2s;
+            background 0.2s,
+            border-color 0.2s,
+            color 0.2s,
+            box-shadow 0.2s,
+            transform 0.2s;
           &:hover {
             background: var(--bg-elevated);
-            color: var(--text-primary);
+            border-color: var(--accent);
+            color: var(--accent-hover);
+            transform: translateX(-50%) var(--card-hover-transform);
+            box-shadow: var(--card-hover-shadow);
+          }
+          &:focus-visible {
+            outline: 3px solid var(--focus-ring);
+            outline-offset: 2px;
+          }
+          svg {
+            display: block;
           }
         `}
-        style:left={() => (sidebarVisible() ? '240px' : '0px')}
+        style:left={() =>
+          folderTreeSidebarVisible()
+            ? `${folderSidebarWidth}px`
+            : `${folderToggleSize / 2}px`}
       >
-        {() => (sidebarVisible() ? <ChevronLeftIcon /> : <ChevronRightIcon />)}
+        {() =>
+          folderTreeSidebarVisible() ? <ChevronLeftIcon /> : <ChevronRightIcon />}
       </button>
     </div>
   )

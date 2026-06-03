@@ -45,7 +45,7 @@ const toggleTypeFilter = (ext: string) => {
 }
 
 const clearAllFilters = () => {
-  filterTypes.set(new Set())
+  filterTypes.set(new Set<string>())
   filterSizeMin.set(0)
   filterSizeMax.set(Infinity)
   searchQuery.set('')
@@ -337,7 +337,7 @@ export const FilterPanel = () => {
               position: absolute;
               width: 18px;
               height: 18px;
-              border-radius: 50%;
+              border-radius: var(--radius-round);
               background: var(--accent-contrast);
               box-shadow: 0 2px 6px var(--shadow);
               top: 2px;
