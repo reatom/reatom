@@ -1,3 +1,4 @@
+import { isFileSystemAccessSupported } from '../filesystem'
 import {
   clearSelection,
   folderTree,
@@ -11,6 +12,7 @@ import {
   viewMode,
   visibleIndexMap,
 } from '../model'
+import type { ViewMode } from '../types'
 import { activeFilterCount, filterPanelOpen } from './FilterPanel'
 import {
   FilterIcon,
@@ -24,20 +26,25 @@ import {
   TableIcon,
 } from './Icons'
 import { settingsPanelOpen } from './SettingsPanel'
-import type { ViewMode } from '../types'
 
 const ToolbarButton = ({
   label,
   onClick,
   variant = 'default',
+  disabled = false,
+  title,
 }: {
   label: string
   onClick: () => void
   variant?: 'default' | 'accent'
+  disabled?: boolean
+  title?: string
 }) => (
   <button
     on:click={onClick}
     data-terminal-bracket="true"
+    prop:disabled={disabled}
+    title={title}
     css={`
       padding: 7px 13px;
       font-size: 13px;
@@ -65,6 +72,17 @@ const ToolbarButton = ({
           : 'var(--text-muted)'};
         transform: var(--card-hover-transform);
         box-shadow: ${variant === 'accent' ? 'var(--card-hover-shadow)' : 'none'};
+      }
+      &:disabled {
+        cursor: not-allowed;
+        opacity: 0.62;
+        filter: grayscale(0.18);
+      }
+      &:disabled:hover {
+        background: ${variant === 'accent' ? 'var(--accent)' : 'var(--input-bg)'};
+        border-color: ${variant === 'accent' ? 'var(--accent)' : 'var(--input-border)'};
+        transform: none;
+        box-shadow: ${variant === 'accent' ? 'var(--glow)' : 'none'};
       }
     `}
   >
@@ -180,6 +198,12 @@ export const Toolbar = () => (
         label="Open"
         onClick={() => openFolder()}
         variant="accent"
+        disabled={!isFileSystemAccessSupported()}
+        title={
+          isFileSystemAccessSupported()
+            ? 'Open a local image folder'
+            : 'File System Access is unavailable in this browser'
+        }
       />
 
       {() => {

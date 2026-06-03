@@ -193,6 +193,10 @@ export const filterSizeMax = atom(Infinity, 'filterSizeMax')
 
 export const lightboxOpen = reatomBoolean(false, 'lightboxOpen')
 export const lightboxImage = atom<ImageModel | null>(null, 'lightboxImage')
+export const lightboxNavigationDirection = atom<1 | -1>(
+  1,
+  'lightbox.navigationDirection',
+)
 export const lightboxZoom = atom(1, 'lightboxZoom')
 export const lightboxPanX = atom(0, 'lightbox.panX')
 export const lightboxPanY = atom(0, 'lightbox.panY')
@@ -403,6 +407,37 @@ export const imagesList = reatomLinkedList<
 const listLLPrev: LL_PREV = imagesList.LL_PREV
 const listLLNext: LL_NEXT = imagesList.LL_NEXT
 
+const findVisibleLightboxNeighbor = (
+  source: LLNodeModel,
+  direction: 1 | -1,
+) => {
+  const getNeighbor =
+    direction === 1
+      ? (node: LLNodeModel) => node[listLLNext] ?? null
+      : (node: LLNodeModel) => node[listLLPrev] ?? null
+
+  let node = getNeighbor(source)
+  while (node && !node.visible()) {
+    node = getNeighbor(node)
+  }
+
+  if (!node) {
+    const listState = imagesList()
+    const start = direction === 1 ? listState.head : listState.tail
+    let cursor = start
+    while (cursor && cursor !== source) {
+      if (cursor.visible()) {
+        node = cursor
+        break
+      }
+      cursor = getNeighbor(cursor)
+    }
+    if (node === source) node = null
+  }
+
+  return node
+}
+
 export const visibleIndexMap = computed(() => {
   const map = new Map<ImageModel, number>()
   let idx = 0
@@ -427,6 +462,21 @@ export const lightboxCounter = computed(() => {
   const pos = map.get(img) ?? -1
   return pos >= 0 ? `${pos + 1} / ${map.size}` : ''
 }, 'lightboxCounter')
+
+export const lightboxPreloadImageUrl = computed(() => {
+  const currentImage = lightboxImage()
+  if (!currentImage) return ''
+
+  const current = imagesList.find((node) => node.id === currentImage.id)
+  if (!current) return ''
+
+  const preloadTarget = findVisibleLightboxNeighbor(
+    current,
+    lightboxNavigationDirection(),
+  )
+
+  return preloadTarget?.fullImageUrl.data() ?? ''
+}, 'lightbox.preloadImageUrl')
 
 export const thumbnailWindow = computed(() => {
   const current = lightboxImage() as LLNodeModel
@@ -588,6 +638,7 @@ export const setViewMode = action((mode: ViewMode) => {
 
 export const openLightbox = action((model: ImageModel) => {
   lightboxImage.set(() => model)
+  lightboxNavigationDirection.set(1)
   lightboxZoom.set(1)
   resetLightboxPan()
   lightboxOpen.setTrue()
@@ -605,38 +656,11 @@ export const navigateLightbox = action((direction: 1 | -1) => {
   const current = imagesList.find((node) => node.id === currentImage.id)
   if (!current) return
 
-  const getNeighbor =
-    direction === 1
-      ? (n: LLNodeModel) => n[listLLNext] ?? null
-      : (n: LLNodeModel) => n[listLLPrev] ?? null
+  lightboxNavigationDirection.set(direction)
 
-  const findVisibleNeighbor = (source: LLNodeModel) => {
-    let node = getNeighbor(source)
-    while (node && !node.visible()) {
-      node = getNeighbor(node)
-    }
-
-    if (!node) {
-      const listState = imagesList()
-      const start = direction === 1 ? listState.head : listState.tail
-      let cursor = start
-      while (cursor && cursor !== source) {
-        if (cursor.visible()) {
-          node = cursor
-          break
-        }
-        cursor = getNeighbor(cursor)
-      }
-      if (node === source) node = null
-    }
-
-    return node
-  }
-
-  const node = findVisibleNeighbor(current)
+  const node = findVisibleLightboxNeighbor(current, direction)
   if (node) {
     lightboxImage.set(() => node)
     lightboxZoom.set(1)
-    findVisibleNeighbor(node)?.fullImage.data()
   }
 }, 'navigateLightbox')

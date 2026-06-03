@@ -1,5 +1,6 @@
 import { atom, computed, effect, peek, sleep, wrap } from '@reatom/core'
 
+import { copyImageAsJpegToClipboard } from '../copyImage'
 import {
   closeLightbox,
   lightboxCounter,
@@ -7,6 +8,7 @@ import {
   lightboxOpen,
   lightboxPanX,
   lightboxPanY,
+  lightboxPreloadImageUrl,
   lightboxZoom,
   navigateLightbox,
   openLightbox,
@@ -18,6 +20,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
+  CopyJpegIcon,
   DownloadIcon,
   FitIcon,
   FullscreenIcon,
@@ -90,10 +93,10 @@ const lightboxImageFrameCss = `
 const LightboxContent = () => {
   const isPanning = atom(false, 'lightbox.isPanning')
   const isFullscreen = atom(false, 'lightbox.isFullscreen')
-  const controlsVisible = atom(true, 'lightbox.controlsVisible')
-  const controlsActivity = atom(0, 'lightbox.controlsActivity')
-  const panStartX = atom(0, 'lightbox.panStartX')
-  const panStartY = atom(0, 'lightbox.panStartY')
+  const controlsVisible = atom(true, 'lightbox._controlsVisible')
+  const controlsActivity = atom(0, 'lightbox._controlsActivity')
+  const panStartX = atom(0, 'lightbox._panStartX')
+  const panStartY = atom(0, 'lightbox._panStartY')
   let lightboxElement: HTMLDivElement | null = null
   let lightboxImageElement: HTMLImageElement | null = null
   let focusFrame: number | null = null
@@ -121,7 +124,7 @@ const LightboxContent = () => {
     await wrap(sleep(controlsFadeDelay))
 
     if (!peek(isPanning)) controlsVisible.set(false)
-  }, 'lightbox.hideControlsAfterInactivity')
+  }, 'lightbox._hideControlsAfterInactivity')
 
   const displayImage = computed(() => {
     const model = lightboxImage()
@@ -203,7 +206,9 @@ const LightboxContent = () => {
   const detailsButtonLabel = computed(() => {
     const image = lightboxImage()
     const action = imageInfoPanelOpen() ? 'Hide' : 'Show'
-    return image ? `${action} details for ${image.source.name}` : 'Image details'
+    return image
+      ? `${action} details for ${image.source.name}`
+      : 'Image details'
   }, 'lightbox.detailsButtonLabel')
 
   const handlePanStart = (e: MouseEvent) => {
@@ -240,6 +245,14 @@ const LightboxContent = () => {
     document.body.appendChild(anchor)
     anchor.click()
     document.body.removeChild(anchor)
+  }
+
+  const handleCopyJpeg = () => {
+    const img = lightboxImage()
+    if (!img) return
+    void copyImageAsJpegToClipboard(img).catch((error: unknown) => {
+      console.error('Failed to copy image as JPEG:', error)
+    })
   }
 
   const handleFullscreenToggle = () => {
@@ -293,33 +306,43 @@ const LightboxContent = () => {
   const handleKeyDown = (e: KeyboardEvent) => {
     switch (e.key) {
       case 'Escape':
+        e.stopPropagation()
         showControls()
         closeLightbox()
         break
       case 'ArrowLeft':
       case 'ArrowUp':
+        e.preventDefault()
+        e.stopPropagation()
+        showControls()
         navigateLightbox(-1)
         resetLightboxPan()
         break
       case 'ArrowRight':
       case 'ArrowDown':
+        e.preventDefault()
+        e.stopPropagation()
+        showControls()
         navigateLightbox(1)
         resetLightboxPan()
         break
       case '-':
       case '_':
         e.preventDefault()
+        e.stopPropagation()
         showControls()
         zoomOut()
         break
       case '=':
       case '+':
         e.preventDefault()
+        e.stopPropagation()
         showControls()
         zoomIn()
         break
       case ' ':
         e.preventDefault()
+        e.stopPropagation()
         showControls()
         slideshowPlaying.toggle()
         break
@@ -347,7 +370,10 @@ const LightboxContent = () => {
 
         return () => {
           unsubscribeAutoFade()
-          document.removeEventListener('fullscreenchange', updateFullscreenState)
+          document.removeEventListener(
+            'fullscreenchange',
+            updateFullscreenState,
+          )
           if (focusFrame !== null) cancelAnimationFrame(focusFrame)
           isFullscreen.set(false)
           lightboxElement = null
@@ -431,6 +457,15 @@ const LightboxContent = () => {
             title="Download"
           >
             <DownloadIcon />
+          </button>
+          <button
+            {...pressLightboxControl(handleCopyJpeg)}
+            type="button"
+            css={controlBtnCss}
+            title="Copy as JPEG"
+            aria-label="Copy as JPEG"
+          >
+            <CopyJpegIcon />
           </button>
           <button
             {...pressLightboxControl(zoomOut)}
@@ -518,6 +553,23 @@ const LightboxContent = () => {
         }}
       </div>
 
+      {() => {
+        const preloadUrl = lightboxPreloadImageUrl()
+        if (!preloadUrl) return null
+
+        return (
+          <img
+            src={preloadUrl}
+            alt=""
+            aria-hidden="true"
+            loading="eager"
+            decoding="async"
+            draggable={false}
+            css="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none;"
+          />
+        )
+      }}
+
       <button
         class="lightbox-control-layer"
         {...pressLightboxControl(handlePrev)}
@@ -552,7 +604,11 @@ const LightboxContent = () => {
           justify-content: center;
           gap: 4px;
           padding: 8px 16px 12px;
-          background: linear-gradient(to top, var(--image-overlay), transparent);
+          background: linear-gradient(
+            to top,
+            var(--image-overlay),
+            transparent
+          );
           z-index: 1010;
           overflow-x: auto;
         `}
@@ -566,7 +622,8 @@ const LightboxContent = () => {
               css={`
                 flex-shrink: 0;
                 padding: 2px;
-                border: var(--border-width) var(--control-border-style) transparent;
+                border: var(--border-width) var(--control-border-style)
+                  transparent;
                 background: none;
                 cursor: pointer;
                 border-radius: var(--radius-sm);
