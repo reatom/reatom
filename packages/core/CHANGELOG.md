@@ -1,6 +1,46 @@
+## 1001.1.0 (2026-06-03)
+
+[Changes since `v1001`](https://github.com/reatom/reatom/compare/v1001...v1001.1).
+
+### Core
+
+- feat: shared Reatom globals on `globalThis.__REATOM` (#1283) ([a9cacdf](https://github.com/reatom/reatom/commit/a9cacdf409465b08ea0936e247e009ef86dcad63))
+- fix(core): atom error restoration ([874d0a2](https://github.com/reatom/reatom/commit/874d0a29534ac89757f05ebae319fc5ceddde6c4))
+- fix(core): `toJSON` types ([5dac68e](https://github.com/reatom/reatom/commit/5dac68e28da86e7d3b51474ace8639f4400a7800))
+- fix(core,primitives): proper `toJSON` serialization ([8a4a135](https://github.com/reatom/reatom/commit/8a4a135c60d34b46a8172b61f2686f789d79e939))
+- fix(core): sync atom from URL on back navigation when `false` param is omitted (#1285) ([be51ec3](https://github.com/reatom/reatom/commit/be51ec3d987baf0f9a3bf5172226297b8cbb70a2))
+
+### Routing
+
+- fix(routing): route validation and nested route handling (#1209) ([337f604](https://github.com/reatom/reatom/commit/337f60443f5ec2a7d8591101c41ca37fbdc8a104))
+- fix(routing): routes naming ([6f65d8f](https://github.com/reatom/reatom/commit/6f65d8f4ec7b60758d6f15ddcb8d6593c4c97e3a))
+
+### Methods
+
+- feat(methods): dynamic (atom) keys in `reatomLens` ([330e856](https://github.com/reatom/reatom/commit/330e856cac88c1a6fc25f5d6364f322bcd5f84e5))
+- fix(methods): `reatomLens` correctness ([7e053c9](https://github.com/reatom/reatom/commit/7e053c95ed94acc80b96a87aa2c2cbcc715e80eb))
+
+### Primitives
+
+- feat(primitives): JSON serialization for `reatomMap` and `reatomSet` ([5ef3b69](https://github.com/reatom/reatom/commit/5ef3b69120fd9442780c6a1b8e9fa45de80b6e85))
+
+### Extensions, async, persist, web
+
+- feat(extensions): `withErrorHook` ([aba3693](https://github.com/reatom/reatom/commit/aba36938ba04fa1111b617cfe689550aebc6593f))
+- fix(extensions): hook error handling ([c551158](https://github.com/reatom/reatom/commit/c551158c0ecac0ffb259025511880175389bc04e))
+- feat(extensions,primitives): `withToJson` ([7270c36](https://github.com/reatom/reatom/commit/7270c3642bdde99776faf5c7fbf83774b2b5100c))
+- feat(async): `AsyncStatusAtom` error handling ([14ccb48](https://github.com/reatom/reatom/commit/14ccb48efb53bad1f5897ac645c4e6ef03dbd043))
+- fix(extensions): `withSuspenseInit` OOM ([325ac4f](https://github.com/reatom/reatom/commit/325ac4f75903079640fc0e35223645e6c4bd575e))
+- fix(extensions): `withSuspenseInit` types ([b9bb850](https://github.com/reatom/reatom/commit/b9bb850eff6b0fa94d7b20772224ecdc2fdda0cd))
+- fix(extensions): `withSuspenseRetry` types for actions with params ([4cc46b3](https://github.com/reatom/reatom/commit/4cc46b3819edf7b7a924b28a2fdfa171359ac2d0))
+- fix(async,extensions,methods,persist,routing,web): reduce default bundle size ([5f2d938](https://github.com/reatom/reatom/commit/5f2d938f9154b94558f3051e84e114f0d593f4bd))
+- fix(persist): rehydrate all IndexedDB atoms from cold start (#1287) ([c1e8eaa](https://github.com/reatom/reatom/commit/c1e8eaa4c2d0fe3c6712b616226f7d286d8083b1))
+- fix(fetch): fetch return type ([788778f](https://github.com/reatom/reatom/commit/788778ffa67b68df32dcb0a2172d569575705759))
+- feat(web): expose `mediaQueryList` on `reatomMediaQuery` ([4fc88b5](https://github.com/reatom/reatom/commit/4fc88b50992ca4f8094447dce3d3547ffbdc7445))
+
 ## 1001.0.0 (2026-05-14)
 
-[Changes since v1000](https://github.com/reatom/reatom/compare/v1000...v1001).
+[Changes since `v1000`](https://github.com/reatom/reatom/compare/v1000...v1001).
 
 ### Core
 
