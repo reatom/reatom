@@ -7,6 +7,7 @@ import {
   showFileSizes,
   showImageNames,
 } from '../model'
+import { CheckIcon, HeartIcon } from './Icons'
 
 const formatBytes = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`
@@ -153,11 +154,14 @@ export const GridImage = ({
             }
           `}
         >
-          {() => (isSelected() ? '✓' : '')}
+          {() => (isSelected() ? <CheckIcon /> : null)}
         </button>
 
         <button
-          on:click={image.favorite.toggle}
+          on:click={(e: Event) => {
+            e.stopPropagation()
+            image.favorite.toggle()
+          }}
           aria-pressed={isFavorite}
           type="button"
           css={`
@@ -173,9 +177,15 @@ export const GridImage = ({
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 15px;
+            color: #fff;
             pointer-events: auto;
             transition: all 0.15s ease;
+
+            &[aria-pressed='true'] {
+              color: var(--accent);
+              background: var(--overlay-control-hover);
+            }
 
             &:hover {
               transform: scale(1.15);
@@ -184,7 +194,7 @@ export const GridImage = ({
             }
           `}
         >
-          {() => (isFavorite() ? '❤️' : '🤍')}
+          {() => <HeartIcon filled={isFavorite()} />}
         </button>
       </div>
 

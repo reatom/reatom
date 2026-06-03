@@ -3,6 +3,7 @@ import { computed, isAbort } from '@reatom/core'
 import { BreadcrumbNav } from './components/BreadcrumbNav'
 import { FilterPanel } from './components/FilterPanel'
 import { FolderTree } from './components/FolderTree'
+import { GalleryMarkIcon } from './components/Icons'
 import { ImageGrid } from './components/ImageGrid'
 import { ImageInfoPanel } from './components/ImageInfoPanel'
 import { Lightbox } from './components/Lightbox'
@@ -108,7 +109,7 @@ const EmptyState = () => (
           user-select: none;
         `}
       >
-        ◈
+        <GalleryMarkIcon />
       </div>
       <h2
         css={`
@@ -237,10 +238,11 @@ export const App = () => {
         }
 
         &[data-theme-pack='neon'][data-theme-mode='light'] main {
-          background-color: #ffe8fb;
+          background-color: #f7f5ff;
           background-image:
-            radial-gradient(circle at 15% 20%, rgba(230,0,215,.26), transparent 32%),
-            radial-gradient(circle at 90% 8%, rgba(0,166,200,.22), transparent 30%);
+            radial-gradient(circle at 15% 20%, rgba(192,38,211,.16), transparent 31%),
+            radial-gradient(circle at 90% 8%, rgba(8,145,178,.16), transparent 29%),
+            linear-gradient(135deg, rgba(124,58,237,.08), transparent 48%);
         }
 
         &[data-theme-pack='terminal'] {
@@ -248,10 +250,10 @@ export const App = () => {
         }
 
         &[data-theme-pack='terminal'][data-theme-mode='light'] main {
-          background-color: #efe4bd;
+          background-color: #f4f6ef;
           background-image:
-            linear-gradient(rgba(6,78,59,.08) 50%, transparent 50%),
-            linear-gradient(90deg, rgba(6,78,59,.035) 1px, transparent 1px);
+            linear-gradient(rgba(15,107,58,.055) 50%, transparent 50%),
+            linear-gradient(90deg, rgba(15,107,58,.03) 1px, transparent 1px);
           background-size: 100% 4px, 22px 22px;
         }
 
@@ -260,26 +262,46 @@ export const App = () => {
           border-radius: 0;
         }
 
-        &[data-theme-pack='terminal'] button::before {
-          content: '[';
-          margin-right: 2px;
+        &[data-theme-pack='terminal'] button {
+          letter-spacing: 0.04em;
+          box-shadow: inset 0 0 0 1px var(--input-bg);
         }
 
-        &[data-theme-pack='terminal'] button::after {
+        &[data-theme-pack='terminal'] button[data-terminal-bracket='true'] {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.25em;
+        }
+
+        &[data-theme-pack='terminal'] button[data-terminal-bracket='true']::before {
+          content: '[';
+          color: var(--text-muted);
+        }
+
+        &[data-theme-pack='terminal'] button[data-terminal-bracket='true']::after {
           content: ']';
-          margin-left: 2px;
+          color: var(--text-muted);
         }
 
         &[data-theme-pack='bauhaus'] button {
           box-shadow: var(--glow);
         }
 
+        &[data-theme-pack='bauhaus'] button:hover {
+          box-shadow: var(--card-hover-shadow);
+        }
+
+        &[data-theme-pack='bauhaus'] main {
+          background-image: var(--app-bg-image);
+          background-size: var(--bg-size);
+          padding: calc(20px + var(--shadow-clearance, 0px))
+            calc(24px + var(--shadow-clearance, 0px));
+        }
+
         &[data-theme-pack='bauhaus'][data-theme-mode='light'] main {
           background-color: #fff1b8;
-          background-image:
-            radial-gradient(circle at 12% 18%, rgba(220,38,38,.28) 0 74px, transparent 76px),
-            radial-gradient(circle at 88% 12%, rgba(37,99,235,.24) 0 60px, transparent 62px),
-            linear-gradient(135deg, transparent 64%, rgba(250,204,21,.34) 64%);
+          background-image: var(--app-bg-image);
         }
 
         &[data-theme-pack='obsidian'] button,
@@ -324,10 +346,11 @@ export const App = () => {
         }
 
         &[data-theme-pack='neon'][data-theme-mode='light'] {
-          background-color: #ffe8fb;
+          background-color: #f7f5ff;
           background-image:
-            radial-gradient(circle at 15% 20%, rgba(230,0,215,.26), transparent 32%),
-            radial-gradient(circle at 90% 8%, rgba(0,166,200,.22), transparent 30%);
+            radial-gradient(circle at 15% 20%, rgba(192,38,211,.16), transparent 31%),
+            radial-gradient(circle at 90% 8%, rgba(8,145,178,.16), transparent 29%),
+            linear-gradient(135deg, rgba(124,58,237,.08), transparent 48%);
           font-family: 'Inter', system-ui, sans-serif;
         }
 
@@ -342,10 +365,7 @@ export const App = () => {
 
         &[data-theme-pack='bauhaus'][data-theme-mode='light'] {
           background-color: #fff1b8;
-          background-image:
-            radial-gradient(circle at 12% 18%, rgba(220,38,38,.28) 0 74px, transparent 76px),
-            radial-gradient(circle at 88% 12%, rgba(37,99,235,.24) 0 60px, transparent 62px),
-            linear-gradient(135deg, transparent 64%, rgba(250,204,21,.34) 64%);
+          background-image: var(--app-bg-image);
           font-family: Arial, Helvetica, sans-serif;
         }
 

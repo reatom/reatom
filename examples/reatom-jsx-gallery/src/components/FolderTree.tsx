@@ -1,7 +1,13 @@
 import { computed, reatomBoolean } from '@reatom/core'
 
-import { currentFolder, folderTree, themePack } from '../model'
+import { currentFolder, folderTree } from '../model'
 import type { FolderNode } from '../types'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  FolderIcon,
+  FolderRootIcon,
+} from './Icons'
 
 const treeNodeCss = `
   display: flex;
@@ -37,22 +43,6 @@ const expandBtnCss = `
   flex-shrink: 0;
   transition: transform 0.2s;
 `
-
-const folderIcon = () => {
-  const pack = themePack()
-  if (pack === 'terminal') return '[dir]'
-  if (pack === 'blueprint') return '□'
-  if (pack === 'monochrome') return '□'
-  return '📁'
-}
-
-const rootFolderIcon = () => {
-  const pack = themePack()
-  if (pack === 'terminal') return '[root]'
-  if (pack === 'blueprint') return '▣'
-  if (pack === 'monochrome') return '▣'
-  return '📂'
-}
 
 const FolderTreeNode = ({
   node,
@@ -105,12 +95,14 @@ const FolderTreeNode = ({
               }
             `}
           >
-            ▶
+            <ChevronRightIcon />
           </button>
         ) : (
           <span css="width: 16px; flex-shrink: 0;" />
         )}
-        <span css="flex-shrink: 0;">{folderIcon}</span>
+        <span css="flex-shrink: 0; font-size: 15px;">
+          <FolderIcon />
+        </span>
         <span
           css={`
             overflow: hidden;
@@ -192,7 +184,9 @@ export const FolderTree = () => {
             }
           `}
         >
-          <span>{rootFolderIcon}</span>
+          <span css="font-size: 15px;">
+            <FolderRootIcon />
+          </span>
           <span>All folders</span>
         </div>
 
@@ -235,7 +229,7 @@ export const FolderTree = () => {
         `}
         style:left={() => (sidebarVisible() ? '240px' : '0px')}
       >
-        {() => (sidebarVisible() ? '◀' : '▶')}
+        {() => (sidebarVisible() ? <ChevronLeftIcon /> : <ChevronRightIcon />)}
       </button>
     </div>
   )

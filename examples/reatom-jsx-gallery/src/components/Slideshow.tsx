@@ -1,6 +1,7 @@
-import { atom, computed, effect, sleep, wrap } from '@reatom/core'
+import { atom, effect, sleep, wrap } from '@reatom/core'
 
 import { navigateLightbox, slideshowInterval, slideshowPlaying } from '../model'
+import { PauseIcon, PlayIcon } from './Icons'
 
 const speedOptions = [
   { ms: 1000, label: '1s' },
@@ -25,11 +26,6 @@ const pillBtnCss = `
 
 export const Slideshow = () => {
   const progressPercent = atom(0, 'slideshow._progress')
-
-  const playPauseIcon = computed(
-    () => (slideshowPlaying() ? '⏸' : '▶'),
-    'slideshow.playPauseIcon',
-  )
 
   const autoAdvance = effect(async () => {
     while (slideshowPlaying()) {
@@ -86,7 +82,7 @@ export const Slideshow = () => {
           justify-content: center;
         `}
       >
-        {playPauseIcon}
+        {() => (slideshowPlaying() ? <PauseIcon /> : <PlayIcon />)}
       </button>
 
       {speedOptions.map(({ ms, label }) => (

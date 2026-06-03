@@ -7,6 +7,7 @@ import {
   includeSubfolders,
   searchQuery,
 } from '../model'
+import { CloseIcon } from './Icons'
 
 const filterPanelOpen = atom(false, 'filterPanelOpen')
 export { filterPanelOpen }
@@ -176,7 +177,7 @@ export const FilterPanel = () => {
             }
           `}
         >
-          ✕
+          <CloseIcon />
         </button>
       </div>
 

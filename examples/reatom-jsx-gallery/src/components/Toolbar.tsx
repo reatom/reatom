@@ -10,6 +10,18 @@ import {
   visibleIndexMap,
 } from '../model'
 import { activeFilterCount, filterPanelOpen } from './FilterPanel'
+import {
+  FilterIcon,
+  GalleryMarkIcon,
+  GridIcon,
+  ImageFrameIcon,
+  ListIcon,
+  MoonIcon,
+  PlayIcon,
+  SearchIcon,
+  SettingsIcon,
+  SunIcon,
+} from './Icons'
 import { settingsPanelOpen } from './SettingsPanel'
 
 const ToolbarButton = ({
@@ -23,6 +35,7 @@ const ToolbarButton = ({
 }) => (
   <button
     on:click={onClick}
+    data-terminal-bracket="true"
     css={`
       padding: 7px 13px;
       font-size: 13px;
@@ -63,7 +76,7 @@ const ViewModeButton = ({
   onClick,
 }: {
   mode: 'grid' | 'list' | 'lightbox' | 'slideshow'
-  icon: string
+  icon: () => Element
   onClick: () => void
 }) => (
   <button
@@ -96,7 +109,7 @@ const ViewModeButton = ({
         }
       `}
     >
-      {icon}
+      {icon()}
     </button>
   )
 
@@ -105,8 +118,9 @@ export const Toolbar = () => (
     css={`
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 10px 18px;
+      gap: calc(12px + var(--shadow-clearance, 0px));
+      padding: 10px calc(18px + var(--shadow-clearance, 0px))
+        calc(10px + var(--shadow-clearance, 0px)) 18px;
       background: var(--toolbar-bg);
       background-image: var(--surface-bg-image);
       background-size: var(--surface-bg-size);
@@ -155,7 +169,7 @@ export const Toolbar = () => (
             box-shadow: var(--glow), 0 10px 24px var(--shadow);
           `}
         >
-          ◈
+          <GalleryMarkIcon />
         </span>
         Gallery
       </span>
@@ -198,20 +212,22 @@ export const Toolbar = () => (
     <div
       css={`
         display: flex;
-        gap: 3px;
+        gap: calc(4px + var(--shadow-clearance, 0px));
         flex-shrink: 0;
-        padding: 3px;
-        border: var(--border-width) var(--control-border-style) var(--border);
-        border-radius: var(--radius-md);
-        background: var(--input-bg);
-        background-image: var(--surface-bg-image);
-        background-size: var(--surface-bg-size);
       `}
     >
-      <ViewModeButton mode="grid" icon="⊞" onClick={() => viewMode.setGrid()} />
-      <ViewModeButton mode="list" icon="☰" onClick={() => viewMode.setList()} />
-      <ViewModeButton mode="lightbox" icon="⊡" onClick={() => viewMode.setLightbox()} />
-      <ViewModeButton mode="slideshow" icon="▶" onClick={() => viewMode.setSlideshow()} />
+      <ViewModeButton mode="grid" icon={GridIcon} onClick={() => viewMode.setGrid()} />
+      <ViewModeButton mode="list" icon={ListIcon} onClick={() => viewMode.setList()} />
+      <ViewModeButton
+        mode="lightbox"
+        icon={ImageFrameIcon}
+        onClick={() => viewMode.setLightbox()}
+      />
+      <ViewModeButton
+        mode="slideshow"
+        icon={PlayIcon}
+        onClick={() => viewMode.setSlideshow()}
+      />
     </div>
 
     <div
@@ -227,7 +243,7 @@ export const Toolbar = () => (
       css={`
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: calc(8px + var(--shadow-clearance, 0px));
         flex-shrink: 0;
       `}
     >
@@ -261,7 +277,7 @@ export const Toolbar = () => (
       css={`
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: calc(8px + var(--shadow-clearance, 0px));
         flex-shrink: 0;
       `}
     >
@@ -275,7 +291,7 @@ export const Toolbar = () => (
             pointer-events: none;
           `}
         >
-          🔍
+          <SearchIcon />
         </span>
         <input
           type="text"
@@ -326,7 +342,7 @@ export const Toolbar = () => (
       `}
     />
 
-    <div css="display: flex; gap: 4px; flex-shrink: 0;">
+    <div css="display: flex; gap: calc(4px + var(--shadow-clearance, 0px)); flex-shrink: 0;">
       <button
         on:click={() => filterPanelOpen.set((s) => !s)}
         title="Filters"
@@ -351,7 +367,7 @@ export const Toolbar = () => (
           }
         `}
       >
-        🔻
+        <FilterIcon />
         {() => {
           const count = activeFilterCount()
           if (count === 0) return null
@@ -401,7 +417,7 @@ export const Toolbar = () => (
           }
         `}
       >
-        ⚙
+        <SettingsIcon />
       </button>
 
       <button
@@ -429,7 +445,7 @@ export const Toolbar = () => (
           }
         `}
       >
-        {() => (themeMode() === 'dark' ? '🌙' : '☀️')}
+        {() => (themeMode() === 'dark' ? <MoonIcon /> : <SunIcon />)}
       </button>
     </div>
   </header>

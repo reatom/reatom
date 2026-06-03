@@ -3,6 +3,7 @@ import { atom, computed, reatomObservable } from '@reatom/core'
 import { gridColumns, gridGap, imagesList, visibleIndexMap } from '../model'
 import { GRID_GAP_VALUES } from '../types'
 import { GridImage } from './GridImage'
+import { SearchIcon } from './Icons'
 
 const AUTO_COLUMN_MIN_SIZE = 200
 
@@ -93,7 +94,9 @@ const NoImagesMessage = () => (
       gap: 12px;
     `}
   >
-    <div css="font-size: 48px; user-select: none;">🔍</div>
+    <div css="font-size: 48px; user-select: none;">
+      <SearchIcon />
+    </div>
     <p css="font-size: 16px; margin: 0; font-weight: 500;">No images found</p>
     <p css="font-size: 14px; margin: 0; color: var(--text-muted);">
       Try adjusting your search or filter settings.
@@ -114,7 +117,7 @@ export const ImageGrid = () => (
     css={`
       display: grid;
       grid-template-columns: repeat(var(--columns));
-      gap: var(--gap);
+      gap: calc(var(--gap) + var(--shadow-clearance, 0px));
       width: 100%;
       min-width: 0;
     `}

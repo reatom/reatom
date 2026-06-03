@@ -1,4 +1,5 @@
 import { openFolder, parsingProgress } from '../model'
+import { GalleryMarkIcon } from './Icons'
 
 export const ProgressBar = () => {
   const percentage = () => {
@@ -35,7 +36,7 @@ export const ProgressBar = () => {
           user-select: none;
         `}
       >
-        ◈
+        <GalleryMarkIcon />
       </div>
 
       <h3

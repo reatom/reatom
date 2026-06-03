@@ -14,6 +14,16 @@ import {
   slideshowPlaying,
   thumbnailWindow,
 } from '../model'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CloseIcon,
+  DownloadIcon,
+  FitIcon,
+  HeartIcon,
+  MinusIcon,
+  PlusIcon,
+} from './Icons'
 import { Slideshow } from './Slideshow'
 
 const controlBtnCss = `
@@ -238,7 +248,7 @@ const LightboxContent = () => {
           >
             {() => {
               const img = lightboxImage()
-              return img?.favorite() ? '❤' : '♡'
+              return <HeartIcon filled={img?.favorite() ?? false} />
             }}
           </button>
           <button
@@ -246,19 +256,19 @@ const LightboxContent = () => {
             css={controlBtnCss}
             title="Download"
           >
-            ↓
+            <DownloadIcon />
           </button>
           <button on:click={zoomOut} css={controlBtnCss} title="Zoom out">
-            −
+            <MinusIcon />
           </button>
           <button on:click={zoomReset} css={controlBtnCss} title="Fit">
-            1:1
+            <FitIcon />
           </button>
           <button on:click={zoomIn} css={controlBtnCss} title="Zoom in">
-            +
+            <PlusIcon />
           </button>
           <button on:click={closeLightbox} css={controlBtnCss} title="Close">
-            ✕
+            <CloseIcon />
           </button>
         </div>
       </div>
@@ -296,7 +306,7 @@ const LightboxContent = () => {
           ${navBtnCss} left: 16px;
         `}
       >
-        ‹
+        <ChevronLeftIcon />
       </button>
       <button
         on:click={handleNext}
@@ -304,7 +314,7 @@ const LightboxContent = () => {
           ${navBtnCss} right: 16px;
         `}
       >
-        ›
+        <ChevronRightIcon />
       </button>
 
       <Slideshow />

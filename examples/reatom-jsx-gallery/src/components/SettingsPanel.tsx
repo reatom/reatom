@@ -11,6 +11,7 @@ import {
 } from '../model'
 import { THEME_PACKS } from '../theme'
 import type { GridGap, ImageFit, ThemeMode, ThemePack } from '../types'
+import { CloseIcon } from './Icons'
 
 const settingsPanelOpen = atom(false, 'settingsPanelOpen')
 export { settingsPanelOpen }
@@ -46,6 +47,7 @@ const OptionButton = ({
   <button
     on:click={onClick}
     attr:data-active={isActive}
+    data-terminal-bracket="true"
     css={`
       padding: 6px 12px;
       border: var(--border-width) var(--control-border-style) var(--border);
@@ -100,8 +102,15 @@ const ToggleSwitch = ({
       on:click={onToggle}
       attr:data-on={checked}
       css={`
-        width: 40px;
-        height: 22px;
+        --toggle-width: 40px;
+        --toggle-height: 22px;
+        --toggle-knob-size: 18px;
+        --toggle-inset: max(
+          1px,
+          calc((var(--toggle-height) - var(--toggle-knob-size)) / 2 - var(--border-width))
+        );
+        width: var(--toggle-width);
+        height: var(--toggle-height);
         border-radius: var(--radius-round);
         background: var(--bg-tertiary);
         border: var(--border-width) var(--control-border-style) var(--border);
@@ -112,13 +121,14 @@ const ToggleSwitch = ({
         &::after {
           content: '';
           position: absolute;
-          width: 18px;
-          height: 18px;
+          top: 50%;
+          left: var(--toggle-inset);
+          width: var(--toggle-knob-size);
+          height: var(--toggle-knob-size);
           border-radius: 50%;
           background: var(--accent-contrast);
           box-shadow: 0 2px 6px var(--shadow);
-          top: 2px;
-          left: 2px;
+          transform: translateY(-50%);
           transition: transform 0.2s;
         }
 
@@ -127,7 +137,13 @@ const ToggleSwitch = ({
         }
 
         &[data-on='true']::after {
-          transform: translateX(18px);
+          transform: translate(
+            calc(
+              var(--toggle-width) - var(--toggle-knob-size) - var(--toggle-inset) -
+                var(--toggle-inset) - var(--border-width) - var(--border-width)
+            ),
+            -50%
+          );
         }
       `}
     />
@@ -274,7 +290,8 @@ export const SettingsPanel = () => {
         transform: translateX(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-y: auto;
-        padding: 20px;
+        padding: 20px calc(20px + var(--shadow-clearance, 0px))
+          calc(20px + var(--shadow-clearance, 0px)) 20px;
         box-shadow: -18px 0 48px var(--shadow-strong);
         background-color: var(--panel-bg);
         background-image: var(--surface-bg-image);
@@ -325,12 +342,12 @@ export const SettingsPanel = () => {
             }
           `}
         >
-          ✕
+          <CloseIcon />
         </button>
       </div>
 
       <SectionTitle text="Theme" />
-      <div css="display: grid; gap: 8px;">
+      <div css="display: grid; gap: calc(8px + var(--shadow-clearance, 0px));">
         {THEME_PACKS.map((pack) => (
           <ThemePackButton
             value={pack.value}
@@ -341,7 +358,13 @@ export const SettingsPanel = () => {
         ))}
       </div>
 
-      <div css="display: flex; gap: 6px; margin-top: 10px;">
+      <div
+        css={`
+          display: flex;
+          gap: calc(6px + var(--shadow-clearance, 0px));
+          margin-top: calc(10px + var(--shadow-clearance, 0px));
+        `}
+      >
         <ThemeModeButton mode="light" label="Light" />
         <ThemeModeButton mode="dark" label="Dark" />
       </div>
@@ -382,7 +405,7 @@ export const SettingsPanel = () => {
         css={`
           display: flex;
           flex-wrap: wrap;
-          gap: 6px;
+          gap: calc(6px + var(--shadow-clearance, 0px));
         `}
       >
         {GAP_OPTIONS.map((gap) => (
@@ -399,7 +422,7 @@ export const SettingsPanel = () => {
         css={`
           display: flex;
           flex-wrap: wrap;
-          gap: 6px;
+          gap: calc(6px + var(--shadow-clearance, 0px));
         `}
       >
         {FIT_OPTIONS.map((fit) => (

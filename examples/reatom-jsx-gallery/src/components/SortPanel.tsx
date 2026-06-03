@@ -1,5 +1,6 @@
 import { sortField, sortOrder } from '../model'
 import type { SortField, SortOrder } from '../types'
+import { SortAscIcon, SortDescIcon } from './Icons'
 
 const SORT_FIELD_OPTIONS: { value: SortField; label: string }[] = [
   { value: 'name', label: 'Name' },
@@ -47,7 +48,7 @@ const SortFieldButton = ({
 )
 
 export const SortPanel = () => {
-  const orderLabel = () => (sortOrder() === 'asc' ? '↑ Asc' : '↓ Desc')
+  const orderLabel = () => (sortOrder() === 'asc' ? 'Asc' : 'Desc')
 
   const toggleOrder = () => {
     const next: SortOrder = sortOrder() === 'asc' ? 'desc' : 'asc'
@@ -77,8 +78,12 @@ export const SortPanel = () => {
           font-size: 12px;
           font-weight: 600;
           transition: all 0.15s;
-          min-width: 60px;
+          min-width: 76px;
           text-transform: var(--control-transform);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 5px;
 
           &:hover {
             background: var(--accent);
@@ -86,7 +91,8 @@ export const SortPanel = () => {
           }
         `}
       >
-        {orderLabel}
+        {() => (sortOrder() === 'asc' ? <SortAscIcon /> : <SortDescIcon />)}
+        <span>{orderLabel}</span>
       </button>
     </div>
   )
