@@ -18,6 +18,7 @@ import {
   withAsync,
   withChangeHook,
   withConnectHook,
+  withIndexedDb,
   withLocalStorage,
   wrap,
 } from '@reatom/core'
@@ -42,12 +43,37 @@ export type ImageModel = ReatomImage & {
 }
 
 type LLNodeModel = LLNode<ImageModel>
+type DirectoryPermissionMode = 'read' | 'readwrite'
+type DirectoryPermissionDescriptor = { mode: DirectoryPermissionMode }
+type PermissionedDirectoryHandle = FileSystemDirectoryHandle & {
+  queryPermission: (
+    descriptor: DirectoryPermissionDescriptor,
+  ) => Promise<PermissionState>
+  requestPermission: (
+    descriptor: DirectoryPermissionDescriptor,
+  ) => Promise<PermissionState>
+}
+
+function hasDirectoryPermissionsApi(
+  handle: FileSystemDirectoryHandle,
+): handle is PermissionedDirectoryHandle {
+  return (
+    'queryPermission' in handle &&
+    typeof handle.queryPermission === 'function' &&
+    'requestPermission' in handle &&
+    typeof handle.requestPermission === 'function'
+  )
+}
 
 // Folder state
 
 export const folderTree = atom<FolderNode | null>(null, 'folderTree')
 export const currentFolder = atom<FolderNode | null>(null, 'currentFolder')
 export const flatImages = atom<ImageFile[]>([], 'flatImages')
+export const selectedFolderHandle = atom<FileSystemDirectoryHandle | null>(
+  null,
+  'selectedFolderHandle',
+).extend(withIndexedDb('gallery.selectedFolderHandle'))
 
 // Parsing state
 
@@ -336,18 +362,7 @@ export const thumbnailWindow = computed(() => {
   return [...before, current, ...after]
 }, 'thumbnailWindow')
 
-// Actions
-
-export const openFolder = action(async () => {
-  if (!isFileSystemAccessSupported()) return
-
-  let handle: FileSystemDirectoryHandle
-  try {
-    handle = await wrap(pickDirectory())
-  } catch {
-    return
-  }
-
+const resetGallery = () => {
   for (const model of imagesList.array()) {
     model.dispose()
   }
@@ -356,17 +371,76 @@ export const openFolder = action(async () => {
   currentFolder.set(null)
   flatImages.set([])
   lightboxImage.set(null)
+}
 
-  try {
-    const { tree, images } = await wrap(parseDirectoryRecursive(handle))
-    folderTree.set(tree)
-    flatImages.set(images)
-    currentFolder.set(tree)
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') return
-    throw error
-  }
-}, 'openFolder').extend(withAsync(), withAbort())
+const parseFolder = async (handle: FileSystemDirectoryHandle) => {
+  resetGallery()
+
+  const { tree, images } = await wrap(parseDirectoryRecursive(handle))
+  folderTree.set(tree)
+  flatImages.set(images)
+  currentFolder.set(tree)
+}
+
+const ensureDirectoryPermission = async (
+  handle: FileSystemDirectoryHandle,
+  mode: DirectoryPermissionMode = 'read',
+): Promise<boolean> => {
+  if (!hasDirectoryPermissionsApi(handle)) return true
+
+  const permissionDescriptor = { mode }
+
+  const currentPermission = await wrap(
+    handle.queryPermission(permissionDescriptor),
+  )
+  if (currentPermission === 'granted') return true
+
+  const requestedPermission = await wrap(
+    handle.requestPermission(permissionDescriptor),
+  )
+  return requestedPermission === 'granted'
+}
+
+// Actions
+
+export const openFolder = action(
+  async (sourceHandle?: FileSystemDirectoryHandle) => {
+    if (!isFileSystemAccessSupported()) return
+
+    let handle: FileSystemDirectoryHandle
+    if (sourceHandle) {
+      handle = sourceHandle
+    } else {
+      try {
+        handle = await wrap(pickDirectory())
+      } catch {
+        return
+      }
+    }
+
+    selectedFolderHandle.set(handle)
+
+    try {
+      await parseFolder(handle)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return
+      throw error
+    }
+  },
+  'openFolder',
+).extend(withAsync(), withAbort())
+
+export const restoreSelectedFolder = action(async () => {
+  if (!isFileSystemAccessSupported()) return
+
+  const handle = selectedFolderHandle()
+  if (handle === null) return
+
+  const hasPermission = await ensureDirectoryPermission(handle)
+  if (!hasPermission) return
+
+  await wrap(openFolder(handle))
+}, 'restoreSelectedFolder').extend(withAsync(), withAbort())
 
 export const selectImage = action((model: ImageModel) => {
   model.selected.set(!model.selected())

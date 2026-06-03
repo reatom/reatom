@@ -1,4 +1,4 @@
-import { computed } from '@reatom/core'
+import { computed, isAbort } from '@reatom/core'
 
 import { BreadcrumbNav } from './components/BreadcrumbNav'
 import { FilterPanel } from './components/FilterPanel'
@@ -10,7 +10,13 @@ import { ProgressBar } from './components/ProgressBar'
 import { SettingsPanel } from './components/SettingsPanel'
 import { SortPanel } from './components/SortPanel'
 import { Toolbar } from './components/Toolbar'
-import { folderTree, openFolder, theme } from './model'
+import {
+  folderTree,
+  openFolder,
+  restoreSelectedFolder,
+  selectedFolderHandle,
+  theme,
+} from './model'
 import { KeyboardShortcuts } from './shortcuts'
 import { GlobalStyles } from './theme'
 
@@ -79,10 +85,35 @@ const EmptyState = () => (
   </div>
 )
 
+const RestoreSelectedFolder = () => (
+  <div
+    style={{ display: 'none' }}
+    ref={() => {
+      let restoreStarted = false
+
+      return selectedFolderHandle.subscribe((handle) => {
+        if (restoreStarted) return
+        if (handle === null) return
+        if (folderTree() !== null) return
+
+        restoreStarted = true
+        restoreSelectedFolder().catch((error: unknown) => {
+          if (isAbort(error)) return
+          queueMicrotask(() => {
+            throw error
+          })
+        })
+      })
+    }}
+  />
+)
+
 export const App = () => {
   const contentMode = computed(() => {
     if (folderTree() === null) {
-      if (!openFolder.ready()) return 'parsing' as const
+      if (!openFolder.ready() || !restoreSelectedFolder.ready()) {
+        return 'parsing' as const
+      }
       return 'empty' as const
     }
     return 'gallery' as const
@@ -150,6 +181,7 @@ export const App = () => {
       `}
     >
       <GlobalStyles />
+      <RestoreSelectedFolder />
       <KeyboardShortcuts />
 
       <style>
