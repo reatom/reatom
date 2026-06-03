@@ -4,6 +4,9 @@ import { GalleryMarkIcon } from './Icons'
 
 export const EmptyState = () => {
   const fileSystemAccessSupported = isFileSystemAccessSupported()
+  const emptyStateDescriptionIds = fileSystemAccessSupported
+    ? 'empty-gallery-description'
+    : 'empty-gallery-description empty-gallery-browser-support'
 
   return (
     <div
@@ -13,9 +16,10 @@ export const EmptyState = () => {
         align-items: center;
         justify-content: center;
         height: 100%;
-        padding: 32px;
+        padding: clamp(20px, 5vw, 48px);
         color: var(--text-secondary);
         position: relative;
+        isolation: isolate;
 
         &::before,
         &::after {
@@ -51,24 +55,28 @@ export const EmptyState = () => {
       `}
     >
       <div
+        role="region"
+        attr:aria-labelledby="empty-gallery-title"
+        attr:aria-describedby={emptyStateDescriptionIds}
         css={`
-          width: min(480px, 100%);
-          padding: 34px;
-          border: var(--border-width) var(--border-style) var(--card-border);
+          width: min(560px, 100%);
+          padding: clamp(28px, 6vw, 48px);
+          border: max(var(--border-width), 1px) var(--border-style)
+            var(--border-strong);
           border-radius: var(--radius-xl);
-          background-color: var(--bg-secondary);
+          background-color: var(--surface-strong);
           background-image:
             var(--surface-bg-image),
-            linear-gradient(135deg, var(--surface-glass), var(--card-bg));
+            linear-gradient(135deg, var(--surface-strong), var(--bg-elevated));
           background-size: var(--surface-bg-size), auto;
           box-shadow:
             var(--glow),
-            0 26px 80px var(--shadow);
-          backdrop-filter: var(--toolbar-backdrop-filter);
+            0 28px 90px var(--shadow-strong);
+          backdrop-filter: var(--panel-backdrop-filter);
           clip-path: var(--surface-clip-path);
           display: grid;
           justify-items: center;
-          gap: 18px;
+          gap: 20px;
           position: relative;
           overflow: hidden;
 
@@ -79,17 +87,23 @@ export const EmptyState = () => {
             border-radius: inherit;
             background: linear-gradient(
               135deg,
-              rgba(255, 255, 255, 0.14),
-              transparent 38%
+              rgba(255, 255, 255, 0.1),
+              transparent 44%
             );
             pointer-events: none;
+          }
+
+          > * {
+            position: relative;
+            z-index: 1;
           }
         `}
       >
         <div
+          attr:aria-hidden="true"
           css={`
-            width: 86px;
-            height: 86px;
+            width: 88px;
+            height: 88px;
             border-radius: var(--radius-lg);
             background:
               radial-gradient(
@@ -101,7 +115,7 @@ export const EmptyState = () => {
             color: var(--accent-contrast);
             display: grid;
             place-items: center;
-            font-size: 38px;
+            font-size: 40px;
             box-shadow:
               var(--glow),
               0 18px 42px var(--shadow);
@@ -111,26 +125,30 @@ export const EmptyState = () => {
           <GalleryMarkIcon />
         </div>
         <h2
+          id="empty-gallery-title"
           css={`
-            font-size: 28px;
+            font-size: clamp(30px, 6vw, 42px);
             line-height: 1.1;
             font-weight: 800;
-            letter-spacing: -0.04em;
+            letter-spacing: -0.045em;
             color: var(--text-primary);
             margin: 0;
             text-align: center;
+            text-wrap: balance;
           `}
         >
           Your images, polished fast
         </h2>
         <p
+          id="empty-gallery-description"
           css={`
-            font-size: 15px;
+            font-size: clamp(16px, 2.4vw, 18px);
             margin: 0;
             text-align: center;
-            max-width: 390px;
-            line-height: 1.65;
+            max-width: 440px;
+            line-height: 1.6;
             color: var(--text-secondary);
+            text-wrap: pretty;
           `}
         >
           Open a folder to browse, filter, favorite, and inspect local images in
@@ -138,9 +156,10 @@ export const EmptyState = () => {
         </p>
         {fileSystemAccessSupported ? null : (
           <div
+            id="empty-gallery-browser-support"
             role="alert"
             css={`
-              max-width: 390px;
+              max-width: 440px;
               padding: 12px 14px;
               border: var(--border-width) var(--control-border-style)
                 var(--accent);
@@ -161,14 +180,17 @@ export const EmptyState = () => {
           type="button"
           on:click={() => openFolder()}
           prop:disabled={!fileSystemAccessSupported}
+          attr:aria-describedby={emptyStateDescriptionIds}
           title={
             fileSystemAccessSupported
               ? 'Open a local image folder'
               : 'File System Access is unavailable in this browser'
           }
           css={`
-            padding: 13px 24px;
-            font-size: 15px;
+            min-width: 152px;
+            min-height: 48px;
+            padding: 13px 26px;
+            font-size: 16px;
             font-weight: 750;
             color: var(--accent-contrast);
             background: linear-gradient(
@@ -180,12 +202,23 @@ export const EmptyState = () => {
               var(--accent);
             border-radius: var(--radius-round);
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition:
+              transform 0.2s ease,
+              box-shadow 0.2s ease,
+              filter 0.2s ease;
             box-shadow: 0 14px 34px var(--shadow);
 
             &:hover {
               transform: translateY(-2px);
               box-shadow: 0 18px 42px var(--shadow-strong);
+            }
+            &:focus-visible {
+              outline: 3px solid var(--focus-ring);
+              outline-offset: 4px;
+              box-shadow:
+                0 0 0 1px var(--bg-elevated),
+                0 0 0 6px var(--focus-ring),
+                0 18px 42px var(--shadow-strong);
             }
             &:active {
               transform: translateY(0);
@@ -198,6 +231,13 @@ export const EmptyState = () => {
             &:disabled:hover {
               transform: none;
               box-shadow: 0 14px 34px var(--shadow);
+            }
+            @media (prefers-reduced-motion: reduce) {
+              transition: none;
+              &:hover,
+              &:active {
+                transform: none;
+              }
             }
           `}
         >
