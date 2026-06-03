@@ -14,11 +14,43 @@ const formatBytes = (bytes: number): string => {
   return `${(bytes / 1048576).toFixed(1)} MB`
 }
 
-export const GridImage = ({ image }: { image: ImageModel }) => {
+const getPreviewSize = (
+  thumbnailWidth: number,
+  thumbnailHeight: number,
+  fit: ReturnType<typeof imageFit>,
+) => {
+  return fit === 'cover' || fit === 'fill'
+    ? Math.min(thumbnailWidth, thumbnailHeight)
+    : Math.max(thumbnailWidth, thumbnailHeight)
+}
+
+export const GridImage = ({
+  image,
+  renderedSize,
+}: {
+  image: ImageModel
+  renderedSize: () => number
+}) => {
   const isSelected = () => image.selected()
   const isFavorite = () => image.favorite()
 
   const handleOpen = () => openLightbox(image)
+  const displayImage = () => {
+    const thumbnail = image.thumbnail.data()
+    if (!thumbnail) return null
+
+    const previewSize = getPreviewSize(thumbnail.width, thumbnail.height, imageFit())
+    const fullImage =
+      renderedSize() > previewSize ? image.fullImage.data() : undefined
+
+    if (fullImage) {
+      fullImage.alt = image.name
+      fullImage.loading = 'lazy'
+      return fullImage
+    }
+
+    return <img src={thumbnail.url} alt={image.name} loading="lazy" />
+  }
 
   return (
     <div
@@ -55,20 +87,21 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
       on:click={handleOpen}
     >
       <div
+        css:image-fit={imageFit}
         css={`
           position: absolute;
           inset: 0;
           overflow: hidden;
           background: rgba(0, 0, 0, 0.1);
+          > img {
+            width: 100%;
+            height: 100%;
+            object-fit: var(--image-fit);
+            display: block;
+          }
         `}
       >
-        <img
-          src={() => image.thumbnail.data()?.url ?? ''}
-          alt={image.name}
-          loading="lazy"
-          style:object-fit={imageFit}
-          css="width: 100%; height: 100%; display: block;"
-        />
+        {displayImage}
       </div>
 
       <div
