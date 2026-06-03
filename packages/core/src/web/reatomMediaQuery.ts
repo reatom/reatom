@@ -1,3 +1,4 @@
+import { atom } from '../core'
 import { reatomObservable } from '../methods'
 import { onEvent } from './onEvent'
 
@@ -38,11 +39,18 @@ import { onEvent } from './onEvent'
  * @returns An atom that holds the current match state as a boolean
  */
 export let reatomMediaQuery = (query: string) => {
+  const name = `mediaQuery#${query}`
+  let mediaQueryList = atom<
+    Pick<MediaQueryList, 'matches' | 'addEventListener'>
+  >(() => globalThis.matchMedia?.(query), `${name}._mediaQueryList`)
+
   return reatomObservable(() => {
-    let media = globalThis.matchMedia?.(query)
     return {
-      getState: () => media.matches,
-      subscribe: (fn) => onEvent(media, 'change', () => fn(media.matches)),
+      getState: () => mediaQueryList().matches,
+      subscribe: (fn) =>
+        onEvent(mediaQueryList() as MediaQueryList, 'change', () =>
+          fn(mediaQueryList().matches),
+        ),
     }
-  }, `mediaQuery#${query}`)
+  }, name).extend(() => ({ mediaQueryList }))
 }
