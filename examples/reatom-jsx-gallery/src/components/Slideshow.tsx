@@ -2,6 +2,7 @@ import { atom, effect, sleep, wrap } from '@reatom/core'
 
 import { navigateLightbox, slideshowInterval, slideshowPlaying } from '../model'
 import { PauseIcon, PlayIcon } from './Icons'
+import { pressEvents } from './pressEvents'
 
 const speedOptions = [
   { ms: 1000, label: '1s' },
@@ -26,10 +27,19 @@ const pillBtnCss = `
 
 type SlideshowProps = {
   class?: string
+  onControlPress?: () => void
 }
 
-export const Slideshow = ({ class: className }: SlideshowProps = {}) => {
+export const Slideshow = ({
+  class: className,
+  onControlPress,
+}: SlideshowProps = {}) => {
   const progressPercent = atom(0, 'slideshow._progress')
+  const pressSlideshowControl = (action: () => void) =>
+    pressEvents(() => {
+      onControlPress?.()
+      action()
+    })
 
   const autoAdvance = effect(async () => {
     while (slideshowPlaying()) {
@@ -74,7 +84,8 @@ export const Slideshow = ({ class: className }: SlideshowProps = {}) => {
       `}
     >
       <button
-        on:click={slideshowPlaying.toggle}
+        {...pressSlideshowControl(slideshowPlaying.toggle)}
+        type="button"
         css={`
           ${pillBtnCss}
           width: 32px;
@@ -92,7 +103,8 @@ export const Slideshow = ({ class: className }: SlideshowProps = {}) => {
 
       {speedOptions.map(({ ms, label }) => (
         <button
-          on:click={() => slideshowInterval.set(ms)}
+          {...pressSlideshowControl(() => slideshowInterval.set(ms))}
+          type="button"
           data-active={() => slideshowInterval() === ms}
           css={`
             ${pillBtnCss}

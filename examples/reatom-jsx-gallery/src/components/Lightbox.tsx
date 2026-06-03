@@ -27,6 +27,7 @@ import {
   PlusIcon,
 } from './Icons'
 import { imageInfoPanelOpen } from './ImageInfoPanel'
+import { pressEvents } from './pressEvents'
 import { Slideshow } from './Slideshow'
 
 const controlBtnCss = `
@@ -71,6 +72,7 @@ const navBtnCss = `
 `
 
 const controlsFadeDelay = 2500
+const fullscreenExitGuardMs = 500
 
 const lightboxImageFrameCss = `
   display: flex;
@@ -80,6 +82,7 @@ const lightboxImageFrameCss = `
     width: 100%;
     height: 100%;
     object-fit: contain;
+    outline: none;
     pointer-events: auto;
   }
 `
@@ -92,6 +95,24 @@ const LightboxContent = () => {
   const panStartX = atom(0, 'lightbox.panStartX')
   const panStartY = atom(0, 'lightbox.panStartY')
   let lightboxElement: HTMLDivElement | null = null
+  let lightboxImageElement: HTMLImageElement | null = null
+  let focusFrame: number | null = null
+  let fullscreenTransition: Promise<void> | null = null
+  let fullscreenEnteredAt = 0
+
+  const focusLightboxImage = () => {
+    if (focusFrame !== null) cancelAnimationFrame(focusFrame)
+    focusFrame = requestAnimationFrame(() => {
+      focusFrame = null
+      lightboxImageElement?.focus({ preventScroll: true })
+    })
+  }
+
+  const setLightboxImageElement = (element: HTMLImageElement) => {
+    lightboxImageElement = element
+    element.tabIndex = -1
+    focusLightboxImage()
+  }
 
   const hideControlsAfterInactivity = effect(async () => {
     controlsActivity()
@@ -109,11 +130,20 @@ const LightboxContent = () => {
     if (fullImage) {
       fullImage.alt = model.source.name
       fullImage.draggable = false
+      setLightboxImageElement(fullImage)
       return fullImage
     }
     const thumbnailUrl = model.thumbnail.data()?.url
     if (!thumbnailUrl) return null
-    return <img src={thumbnailUrl} alt={model.source.name} draggable={false} />
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={model.source.name}
+        draggable={false}
+        tabindex={-1}
+        ref={setLightboxImageElement}
+      />
+    )
   }, 'lightbox.displayImage')
 
   const imageFrameSize = computed(() => {
@@ -160,6 +190,11 @@ const LightboxContent = () => {
   }
 
   const showControls = () => controlsActivity.set((activity) => activity + 1)
+  const pressLightboxControl = (action: () => void) =>
+    pressEvents(() => {
+      showControls()
+      action()
+    })
 
   const fullscreenButtonLabel = computed(
     () => (isFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'),
@@ -208,14 +243,30 @@ const LightboxContent = () => {
   }
 
   const handleFullscreenToggle = () => {
-    const fullscreenPromise =
-      document.fullscreenElement === lightboxElement
-        ? document.exitFullscreen()
-        : lightboxElement?.requestFullscreen()
+    if (fullscreenTransition) return
 
-    fullscreenPromise?.catch(() => {
-      isFullscreen.set(document.fullscreenElement === lightboxElement)
-    })
+    const fullscreenOpened = document.fullscreenElement === lightboxElement
+    if (
+      fullscreenOpened &&
+      performance.now() - fullscreenEnteredAt < fullscreenExitGuardMs
+    ) {
+      return
+    }
+
+    const fullscreenPromise = fullscreenOpened
+      ? document.exitFullscreen()
+      : lightboxElement?.requestFullscreen()
+
+    if (!fullscreenPromise) return
+
+    fullscreenTransition = fullscreenPromise
+    fullscreenPromise
+      .catch(() => {
+        isFullscreen.set(document.fullscreenElement === lightboxElement)
+      })
+      .finally(() => {
+        fullscreenTransition = null
+      })
   }
 
   const handleFavoriteToggle = () => {
@@ -282,18 +333,25 @@ const LightboxContent = () => {
         lightboxElement = el
         const unsubscribeAutoFade = hideControlsAfterInactivity.unsubscribe
         const updateFullscreenState = () => {
-          isFullscreen.set(document.fullscreenElement === el)
+          const fullscreenOpened = document.fullscreenElement === el
+          isFullscreen.set(fullscreenOpened)
+          if (fullscreenOpened) {
+            fullscreenEnteredAt = performance.now()
+            focusLightboxImage()
+          }
         }
 
-        el.focus()
+        focusLightboxImage()
         updateFullscreenState()
         document.addEventListener('fullscreenchange', updateFullscreenState)
 
         return () => {
           unsubscribeAutoFade()
           document.removeEventListener('fullscreenchange', updateFullscreenState)
+          if (focusFrame !== null) cancelAnimationFrame(focusFrame)
           isFullscreen.set(false)
           lightboxElement = null
+          lightboxImageElement = null
         }
       }}
       attr:data-controls-visible={controlsVisible}
@@ -356,7 +414,8 @@ const LightboxContent = () => {
           css="display: flex; gap: 8px; align-items: center; transition: margin-right 0.3s ease;"
         >
           <button
-            on:click={handleFavoriteToggle}
+            {...pressLightboxControl(handleFavoriteToggle)}
+            type="button"
             css={controlBtnCss}
             title="Favorite"
           >
@@ -366,38 +425,61 @@ const LightboxContent = () => {
             }}
           </button>
           <button
-            on:click={handleDownload}
+            {...pressLightboxControl(handleDownload)}
+            type="button"
             css={controlBtnCss}
             title="Download"
           >
             <DownloadIcon />
           </button>
-          <button on:click={zoomOut} css={controlBtnCss} title="Zoom out">
+          <button
+            {...pressLightboxControl(zoomOut)}
+            type="button"
+            css={controlBtnCss}
+            title="Zoom out"
+          >
             <MinusIcon />
           </button>
-          <button on:click={zoomReset} css={controlBtnCss} title="Fit">
+          <button
+            {...pressLightboxControl(zoomReset)}
+            type="button"
+            css={controlBtnCss}
+            title="Fit"
+          >
             <FitIcon />
           </button>
           <button
-            on:click={handleFullscreenToggle}
+            {...pressLightboxControl(handleFullscreenToggle)}
+            type="button"
             css={controlBtnCss}
             title={fullscreenButtonLabel}
             aria-pressed={isFullscreen}
           >
             <FullscreenIcon />
           </button>
-          <button on:click={zoomIn} css={controlBtnCss} title="Zoom in">
+          <button
+            {...pressLightboxControl(zoomIn)}
+            type="button"
+            css={controlBtnCss}
+            title="Zoom in"
+          >
             <PlusIcon />
           </button>
           <button
-            on:click={imageInfoPanelOpen.toggle}
+            {...pressLightboxControl(imageInfoPanelOpen.toggle)}
+            type="button"
             css={controlBtnCss}
             title={detailsButtonLabel}
             aria-expanded={imageInfoPanelOpen}
           >
             <InfoIcon />
           </button>
-          <button on:click={closeLightbox} css={controlBtnCss} title="Close">
+          <button
+            {...pressLightboxControl(closeLightbox)}
+            type="button"
+            css={controlBtnCss}
+            title="Close"
+          >
             <CloseIcon />
           </button>
         </div>
@@ -438,7 +520,8 @@ const LightboxContent = () => {
 
       <button
         class="lightbox-control-layer"
-        on:click={handlePrev}
+        {...pressLightboxControl(handlePrev)}
+        type="button"
         css={`
           ${navBtnCss} left: 16px;
         `}
@@ -447,7 +530,8 @@ const LightboxContent = () => {
       </button>
       <button
         class="lightbox-control-layer"
-        on:click={handleNext}
+        {...pressLightboxControl(handleNext)}
+        type="button"
         css={`
           ${navBtnCss} right: 16px;
         `}
@@ -455,7 +539,7 @@ const LightboxContent = () => {
         <ChevronRightIcon />
       </button>
 
-      <Slideshow class="lightbox-control-layer" />
+      <Slideshow class="lightbox-control-layer" onControlPress={showControls} />
 
       <div
         class="lightbox-control-layer"
@@ -476,7 +560,8 @@ const LightboxContent = () => {
         {() =>
           thumbnailWindow().map((imageNode) => (
             <button
-              on:click={() => openLightbox(imageNode)}
+              {...pressLightboxControl(() => openLightbox(imageNode))}
+              type="button"
               data-active={() => lightboxImage()?.id === imageNode.id}
               css={`
                 flex-shrink: 0;
