@@ -1,4 +1,4 @@
-import { computed, reatomBoolean } from '@reatom/core'
+import { computed, effect, reatomBoolean } from '@reatom/core'
 
 import { EXIF_TAGS_WITH_CUSTOM_FORMAT } from '../image-engine/formats/exif'
 import type { ImageModel } from '../model'
@@ -48,25 +48,17 @@ const valueCss = `
 `
 
 const panelHeaderCss = `
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  margin: -20px -16px 16px;
-  padding: 20px 16px 12px;
-  background-color: var(--panel-bg);
-  background-image: var(--surface-bg-image);
-  background-size: var(--surface-bg-size);
-  backdrop-filter: var(--panel-backdrop-filter);
+  margin-bottom: 16px;
+  padding-right: 40px;
 `
 
 const panelCloseButtonCss = `
+  position: sticky;
+  top: 12px;
+  z-index: 1;
+  margin: 0 0 -28px auto;
   width: 28px;
   height: 28px;
-  flex-shrink: 0;
   border: var(--border-width) var(--control-border-style) transparent;
   border-radius: var(--radius-sm);
   background: var(--bg-tertiary);
@@ -87,6 +79,10 @@ const panelCloseButtonCss = `
 export const imageInfoPanelOpen = reatomBoolean(false, 'imageInfoPanel.open')
 
 export const ImageInfoPanel = () => {
+  const resetOpenOnPreviewClose = effect(() => {
+    if (!lightboxOpen()) imageInfoPanelOpen.setFalse()
+  }, 'imageInfoPanel.resetOpenOnPreviewClose')
+
   const inspectedImage = computed((): ImageModel | null => {
     if (lightboxOpen()) return lightboxImage()
     const firstSelected = imagesList.array().find((m) => m.selected())
@@ -129,7 +125,10 @@ export const ImageInfoPanel = () => {
   )
 
   return (
-    <div css="position: fixed; right: 0; top: 0; bottom: 0; z-index: 1050; pointer-events: none;">
+    <div
+      ref={() => resetOpenOnPreviewClose.unsubscribe}
+      css="position: fixed; right: 0; top: 0; bottom: 0; z-index: 1050; pointer-events: none;"
+    >
       <aside
         data-open={panelExpanded}
         aria-hidden={() => !panelExpanded()}
@@ -161,6 +160,15 @@ export const ImageInfoPanel = () => {
           }
         `}
       >
+        <button
+          on:click={() => imageInfoPanelOpen.set(false)}
+          css={panelCloseButtonCss}
+          title="Close details"
+          aria-label="Close details"
+        >
+          <CloseIcon />
+        </button>
+
         <div css={panelHeaderCss}>
           <div>
             <div css="font-size: 15px; font-weight: 750; color: var(--text-primary);">
@@ -170,14 +178,6 @@ export const ImageInfoPanel = () => {
               {panelContext}
             </div>
           </div>
-          <button
-            on:click={() => imageInfoPanelOpen.set(false)}
-            css={panelCloseButtonCss}
-            title="Close details"
-            aria-label="Close details"
-          >
-            <CloseIcon />
-          </button>
         </div>
 
         <div style:display={() => (inspectedImage() ? 'block' : 'none')}>
