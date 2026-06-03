@@ -24,7 +24,11 @@ const pillBtnCss = `
   &:hover { background: var(--overlay-control-hover); }
 `
 
-export const Slideshow = () => {
+type SlideshowProps = {
+  class?: string
+}
+
+export const Slideshow = ({ class: className }: SlideshowProps = {}) => {
   const progressPercent = atom(0, 'slideshow._progress')
 
   const autoAdvance = effect(async () => {
@@ -49,6 +53,7 @@ export const Slideshow = () => {
 
   return (
     <div
+      class={className}
       ref={() => autoAdvance.unsubscribe}
       css={`
         position: absolute;

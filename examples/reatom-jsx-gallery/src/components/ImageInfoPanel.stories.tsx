@@ -1,20 +1,23 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
 import { mockFolderTree, mockImages } from '../__fixtures__/mockData'
-import { selectImage, visibleIndexMap } from '../model'
+import { lightboxImage, lightboxOpen, selectImage, visibleIndexMap } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import {
   createMyself,
   type DefiniteLocator,
   type Locator,
 } from '../shared/test'
-import { loadGalleryState } from '../shared/testSetup'
+import { loadEmptyState, loadGalleryState } from '../shared/testSetup'
 import { ImageInfoPanel } from './ImageInfoPanel'
 
 const waitForUpdate = () => new Promise<void>((r) => setTimeout(r, 50))
 
 const loc = {
-  toggleButtonAppears: (canvas) => canvas.findByRole('button'),
+  toggleButtonAppears: (canvas) =>
+    canvas.findByRole('button', { name: /details/i }),
+  toggleButtonDoesNotAppear: (canvas) =>
+    canvas.queryByRole('button', { name: /details/i }),
   imageNameAppears:
     (name: string): Locator =>
     (canvas) =>
@@ -31,6 +34,9 @@ const I = createMyself((I) => ({
   },
   seeToggleButton: async () => {
     await I.see(loc.toggleButtonAppears as Locator)
+  },
+  dontSeeToggleButton: async () => {
+    await I.dontSee(loc.toggleButtonDoesNotAppear)
   },
 }))
 
@@ -70,6 +76,40 @@ export const NoImageSelected: Story = {
     )
   },
   play: async () => {
-    await I.seeToggleButton()
+    await I.dontSeeToggleButton()
+  },
+}
+
+export const WithLightboxImage: Story = {
+  render: () => {
+    loadGalleryState({ tree: mockFolderTree })
+    const model = [...visibleIndexMap().keys()][0]
+    if (model) {
+      lightboxImage.set(() => model)
+      lightboxOpen.setTrue()
+    }
+    return (
+      <StoryWrapper>
+        <ImageInfoPanel />
+      </StoryWrapper>
+    )
+  },
+  play: async () => {
+    await I.openInfoPanel()
+    await I.seeImageName(mockImages[0].name)
+  },
+}
+
+export const EmptyGallery: Story = {
+  render: () => {
+    loadEmptyState()
+    return (
+      <StoryWrapper>
+        <ImageInfoPanel />
+      </StoryWrapper>
+    )
+  },
+  play: async () => {
+    await I.dontSeeToggleButton()
   },
 }

@@ -1,4 +1,4 @@
-import { atom, computed, peek } from '@reatom/core'
+import { atom, computed, effect, peek, sleep, wrap } from '@reatom/core'
 
 import {
   closeLightbox,
@@ -20,10 +20,13 @@ import {
   CloseIcon,
   DownloadIcon,
   FitIcon,
+  FullscreenIcon,
   HeartIcon,
+  InfoIcon,
   MinusIcon,
   PlusIcon,
 } from './Icons'
+import { imageInfoPanelOpen } from './ImageInfoPanel'
 import { Slideshow } from './Slideshow'
 
 const controlBtnCss = `
@@ -67,24 +70,37 @@ const navBtnCss = `
   &:hover { background: var(--overlay-control-hover); opacity: 1; }
 `
 
+const controlsFadeDelay = 2500
+
 const lightboxImageFrameCss = `
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  pointer-events: none;
+  display: flex;
+  pointer-events: auto;
   > img {
     display: block;
     width: 100%;
     height: 100%;
     object-fit: contain;
+    pointer-events: auto;
   }
 `
 
 const LightboxContent = () => {
   const isPanning = atom(false, 'lightbox.isPanning')
+  const isFullscreen = atom(false, 'lightbox.isFullscreen')
+  const controlsVisible = atom(true, 'lightbox.controlsVisible')
+  const controlsActivity = atom(0, 'lightbox.controlsActivity')
   const panStartX = atom(0, 'lightbox.panStartX')
   const panStartY = atom(0, 'lightbox.panStartY')
+  let lightboxElement: HTMLDivElement | null = null
+
+  const hideControlsAfterInactivity = effect(async () => {
+    controlsActivity()
+    controlsVisible.set(true)
+
+    await wrap(sleep(controlsFadeDelay))
+
+    if (!peek(isPanning)) controlsVisible.set(false)
+  }, 'lightbox.hideControlsAfterInactivity')
 
   const displayImage = computed(() => {
     const model = lightboxImage()
@@ -99,6 +115,28 @@ const LightboxContent = () => {
     if (!thumbnailUrl) return null
     return <img src={thumbnailUrl} alt={model.source.name} draggable={false} />
   }, 'lightbox.displayImage')
+
+  const imageFrameSize = computed(() => {
+    const model = lightboxImage()
+    const width = model?.width() ?? 0
+    const height = model?.height() ?? 0
+
+    if (width <= 0 || height <= 0) {
+      return {
+        width: 'max(1px, calc(100vw - 160px))',
+        height: 'max(1px, calc(100vh - 180px))',
+      }
+    }
+
+    const ratio = width / height
+    const viewportWidth = 'max(1px, calc(100vw - 160px))'
+    const viewportHeight = 'max(1px, calc(100vh - 180px))'
+
+    return {
+      width: `min(${width}px, ${viewportWidth}, calc(${viewportHeight} * ${ratio}))`,
+      height: `min(${height}px, ${viewportHeight}, calc(${viewportWidth} / ${ratio}))`,
+    }
+  }, 'lightbox.imageFrameSize')
 
   const imageTransform = computed(() => {
     const zoom = lightboxZoom()
@@ -121,7 +159,20 @@ const LightboxContent = () => {
     resetLightboxPan()
   }
 
+  const showControls = () => controlsActivity.set((activity) => activity + 1)
+
+  const fullscreenButtonLabel = computed(
+    () => (isFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'),
+    'lightbox.fullscreenButtonLabel',
+  )
+  const detailsButtonLabel = computed(() => {
+    const image = lightboxImage()
+    const action = imageInfoPanelOpen() ? 'Hide' : 'Show'
+    return image ? `${action} details for ${image.source.name}` : 'Image details'
+  }, 'lightbox.detailsButtonLabel')
+
   const handlePanStart = (e: MouseEvent) => {
+    showControls()
     if (peek(lightboxZoom) <= 1) return
     isPanning.set(true)
     panStartX.set(e.clientX - peek(lightboxPanX))
@@ -134,7 +185,15 @@ const LightboxContent = () => {
     lightboxPanY.set(e.clientY - peek(panStartY))
   }
 
-  const handlePanEnd = () => isPanning.set(false)
+  const handleMouseMove = (e: MouseEvent) => {
+    showControls()
+    handlePanMove(e)
+  }
+
+  const handlePanEnd = () => {
+    isPanning.set(false)
+    showControls()
+  }
 
   const handleDownload = () => {
     const img = lightboxImage()
@@ -148,26 +207,42 @@ const LightboxContent = () => {
     document.body.removeChild(anchor)
   }
 
+  const handleFullscreenToggle = () => {
+    const fullscreenPromise =
+      document.fullscreenElement === lightboxElement
+        ? document.exitFullscreen()
+        : lightboxElement?.requestFullscreen()
+
+    fullscreenPromise?.catch(() => {
+      isFullscreen.set(document.fullscreenElement === lightboxElement)
+    })
+  }
+
   const handleFavoriteToggle = () => {
     const img = lightboxImage()
     if (img) img.favorite.toggle()
   }
 
-  const handlePrev = (e: MouseEvent) => {
-    e.stopPropagation()
+  const handlePrev = () => {
     navigateLightbox(-1)
     resetLightboxPan()
   }
 
-  const handleNext = (e: MouseEvent) => {
-    e.stopPropagation()
+  const handleNext = () => {
     navigateLightbox(1)
     resetLightboxPan()
+  }
+
+  const handleBackdropClick = (
+    event: MouseEvent & { currentTarget: HTMLDivElement },
+  ) => {
+    if (event.target === event.currentTarget) closeLightbox()
   }
 
   const handleKeyDown = (e: KeyboardEvent) => {
     switch (e.key) {
       case 'Escape':
+        showControls()
         closeLightbox()
         break
       case 'ArrowLeft':
@@ -183,15 +258,18 @@ const LightboxContent = () => {
       case '-':
       case '_':
         e.preventDefault()
+        showControls()
         zoomOut()
         break
       case '=':
       case '+':
         e.preventDefault()
+        showControls()
         zoomIn()
         break
       case ' ':
         e.preventDefault()
+        showControls()
         slideshowPlaying.toggle()
         break
     }
@@ -200,10 +278,29 @@ const LightboxContent = () => {
   return (
     <div
       tabindex={-1}
-      ref={(el) => el.focus()}
+      ref={(el) => {
+        lightboxElement = el
+        const unsubscribeAutoFade = hideControlsAfterInactivity.unsubscribe
+        const updateFullscreenState = () => {
+          isFullscreen.set(document.fullscreenElement === el)
+        }
+
+        el.focus()
+        updateFullscreenState()
+        document.addEventListener('fullscreenchange', updateFullscreenState)
+
+        return () => {
+          unsubscribeAutoFade()
+          document.removeEventListener('fullscreenchange', updateFullscreenState)
+          isFullscreen.set(false)
+          lightboxElement = null
+        }
+      }}
+      attr:data-controls-visible={controlsVisible}
       on:keydown={handleKeyDown}
+      on:click={handleBackdropClick}
       on:mousedown={handlePanStart}
-      on:mousemove={handlePanMove}
+      on:mousemove={handleMouseMove}
       on:mouseup={handlePanEnd}
       on:mouseleave={handlePanEnd}
       css={`
@@ -217,9 +314,23 @@ const LightboxContent = () => {
         justify-content: center;
         outline: none;
         user-select: none;
+        .lightbox-control-layer {
+          opacity: 1;
+          pointer-events: auto;
+          transition: opacity 0.35s ease;
+        }
+        &[data-controls-visible='false'] .lightbox-control-layer {
+          opacity: 0;
+          pointer-events: none;
+        }
+        &[data-controls-visible='false'] .lightbox-control-layer:focus-within {
+          opacity: 1;
+          pointer-events: auto;
+        }
       `}
     >
       <div
+        class="lightbox-control-layer"
         css={`
           position: absolute;
           top: 0;
@@ -240,7 +351,10 @@ const LightboxContent = () => {
         <span css="color: #fff; font-size: 14px; font-family: monospace;">
           {() => lightboxCounter()}
         </span>
-        <div css="display: flex; gap: 8px; align-items: center;">
+        <div
+          style:margin-right={() => (imageInfoPanelOpen() ? '300px' : '0px')}
+          css="display: flex; gap: 8px; align-items: center; transition: margin-right 0.3s ease;"
+        >
           <button
             on:click={handleFavoriteToggle}
             css={controlBtnCss}
@@ -264,8 +378,24 @@ const LightboxContent = () => {
           <button on:click={zoomReset} css={controlBtnCss} title="Fit">
             <FitIcon />
           </button>
+          <button
+            on:click={handleFullscreenToggle}
+            css={controlBtnCss}
+            title={fullscreenButtonLabel}
+            aria-pressed={isFullscreen}
+          >
+            <FullscreenIcon />
+          </button>
           <button on:click={zoomIn} css={controlBtnCss} title="Zoom in">
             <PlusIcon />
+          </button>
+          <button
+            on:click={imageInfoPanelOpen.toggle}
+            css={controlBtnCss}
+            title={detailsButtonLabel}
+            aria-expanded={imageInfoPanelOpen}
+          >
+            <InfoIcon />
           </button>
           <button on:click={closeLightbox} css={controlBtnCss} title="Close">
             <CloseIcon />
@@ -283,6 +413,7 @@ const LightboxContent = () => {
           width: 100%;
           overflow: hidden;
           padding: 60px 80px 120px;
+          pointer-events: none;
         `}
       >
         {() => {
@@ -293,7 +424,12 @@ const LightboxContent = () => {
             )
 
           return (
-            <div style:transform={imageTransform} css={lightboxImageFrameCss}>
+            <div
+              style:width={() => imageFrameSize().width}
+              style:height={() => imageFrameSize().height}
+              style:transform={imageTransform}
+              css={lightboxImageFrameCss}
+            >
               {() => displayImage()}
             </div>
           )
@@ -301,6 +437,7 @@ const LightboxContent = () => {
       </div>
 
       <button
+        class="lightbox-control-layer"
         on:click={handlePrev}
         css={`
           ${navBtnCss} left: 16px;
@@ -309,6 +446,7 @@ const LightboxContent = () => {
         <ChevronLeftIcon />
       </button>
       <button
+        class="lightbox-control-layer"
         on:click={handleNext}
         css={`
           ${navBtnCss} right: 16px;
@@ -317,9 +455,10 @@ const LightboxContent = () => {
         <ChevronRightIcon />
       </button>
 
-      <Slideshow />
+      <Slideshow class="lightbox-control-layer" />
 
       <div
+        class="lightbox-control-layer"
         css={`
           position: absolute;
           bottom: 0;

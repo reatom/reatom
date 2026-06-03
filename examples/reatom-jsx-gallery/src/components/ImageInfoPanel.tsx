@@ -1,8 +1,10 @@
-import { reatomBoolean } from '@reatom/core'
+import { computed, reatomBoolean } from '@reatom/core'
 
 import { EXIF_TAGS_WITH_CUSTOM_FORMAT } from '../image-engine/formats/exif'
 import type { ImageModel } from '../model'
-import { imagesList, lightboxImage, lightboxOpen } from '../model'
+import { imagesList, lightboxImage, lightboxOpen, selectedCount } from '../model'
+import { CloseIcon } from './Icons'
+import { settingsPanelOpen } from './SettingsPanel'
 
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B'
@@ -45,17 +47,67 @@ const valueCss = `
   min-width: 0;
 `
 
-export const ImageInfoPanel = () => {
-  const panelOpen = reatomBoolean(false, 'imageInfoPanel.open')
+const panelHeaderCss = `
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -20px -16px 16px;
+  padding: 20px 16px 12px;
+  background-color: var(--panel-bg);
+  background-image: var(--surface-bg-image);
+  background-size: var(--surface-bg-size);
+  backdrop-filter: var(--panel-backdrop-filter);
+`
 
-  const displayImage = (): ImageModel | null => {
+const panelCloseButtonCss = `
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border: var(--border-width) var(--control-border-style) transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--accent);
+    color: var(--accent-contrast);
+  }
+`
+
+export const imageInfoPanelOpen = reatomBoolean(false, 'imageInfoPanel.open')
+
+export const ImageInfoPanel = () => {
+  const inspectedImage = computed((): ImageModel | null => {
     if (lightboxOpen()) return lightboxImage()
     const firstSelected = imagesList.array().find((m) => m.selected())
     return firstSelected ?? null
+  }, 'imageInfoPanel.inspectedImage')
+
+  const panelExpanded = () =>
+    imageInfoPanelOpen() &&
+    lightboxOpen() &&
+    inspectedImage() !== null &&
+    !settingsPanelOpen()
+
+  const panelContext = () => {
+    if (lightboxOpen()) return 'Lightbox image'
+    const count = selectedCount()
+    if (count > 1) return `Showing first of ${count} selected`
+    return 'Selected image'
   }
 
   const exifRowsWithoutCustomFormat = (): [string, string][] => {
-    const exif = displayImage()?.meta.data()?.exif
+    const exif = inspectedImage()?.meta.data()?.exif
     if (!exif) return []
 
     return Object.entries(exif)
@@ -78,37 +130,9 @@ export const ImageInfoPanel = () => {
 
   return (
     <div css="position: fixed; right: 0; top: 0; bottom: 0; z-index: 1050; pointer-events: none;">
-      <button
-        on:click={panelOpen.toggle}
-        css={`
-          position: absolute;
-          right: 16px;
-          top: 64px;
-          z-index: 1;
-          pointer-events: auto;
-          background: var(--overlay-control);
-          border: var(--border-width) var(--control-border-style)
-            rgba(255, 255, 255, 0.12);
-          color: #fff;
-          width: 36px;
-          height: 36px;
-          border-radius: var(--radius-round);
-          cursor: pointer;
-          font-size: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition:
-            background 0.2s,
-            right 0.3s ease;
-        `}
-        style:right={() => (panelOpen() ? '316px' : '16px')}
-      >
-        ℹ
-      </button>
-
-      <div
-        data-open={panelOpen}
+      <aside
+        data-open={panelExpanded}
+        aria-hidden={() => !panelExpanded()}
         css={`
           position: absolute;
           right: 0;
@@ -124,47 +148,61 @@ export const ImageInfoPanel = () => {
           overflow-y: auto;
           pointer-events: auto;
           transform: translateX(100%);
-          transition: transform 0.3s ease;
+          visibility: hidden;
+          transition:
+            transform 0.3s ease,
+            visibility 0s linear 0.3s;
           box-shadow: -18px 0 48px var(--shadow-strong);
           clip-path: var(--surface-clip-path);
           &[data-open='true'] {
             transform: translateX(0);
+            visibility: visible;
+            transition: transform 0.3s ease;
           }
         `}
       >
-        <div css="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">
-          Image Info
+        <div css={panelHeaderCss}>
+          <div>
+            <div css="font-size: 15px; font-weight: 750; color: var(--text-primary);">
+              Image Details
+            </div>
+            <div css="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+              {panelContext}
+            </div>
+          </div>
+          <button
+            on:click={() => imageInfoPanelOpen.set(false)}
+            css={panelCloseButtonCss}
+            title="Close details"
+            aria-label="Close details"
+          >
+            <CloseIcon />
+          </button>
         </div>
 
-        <div
-          style:display={() => (displayImage() ? 'none' : 'block')}
-          css="color: var(--text-muted); font-size: 13px;"
-        >
-          No image selected
-        </div>
-        <div style:display={() => (displayImage() ? 'block' : 'none')}>
+        <div style:display={() => (inspectedImage() ? 'block' : 'none')}>
           <InfoRow
             label="Filename"
-            value={() => displayImage()?.source.name ?? ''}
+            value={() => inspectedImage()?.source.name ?? ''}
           />
           <InfoRow
             label="Path"
             value={() => {
-              const source = displayImage()?.source
+              const source = inspectedImage()?.source
               return source ? source.relativePath || source.path : ''
             }}
           />
           <InfoRow
             label="Size"
             value={() => {
-              const source = displayImage()?.source
+              const source = inspectedImage()?.source
               return source ? formatBytes(source.size) : ''
             }}
           />
           <InfoRow
             label="Dimensions"
             value={() => {
-              const image = displayImage()
+              const image = inspectedImage()
               if (!image) return ''
 
               const width = image.width()
@@ -176,19 +214,19 @@ export const ImageInfoPanel = () => {
           />
           <InfoRow
             label="Type"
-            value={() => displayImage()?.source.type || ''}
+            value={() => inspectedImage()?.source.type || ''}
           />
           <InfoRow
             label="Modified"
             value={() => {
-              const source = displayImage()?.source
+              const source = inspectedImage()?.source
               return source ? formatDate(source.lastModified) : ''
             }}
           />
           <InfoRow
             label="Format"
             value={() => {
-              const image = displayImage()
+              const image = inspectedImage()
               if (!image) return ''
 
               const imageFormat = image.meta.data()?.format
@@ -200,7 +238,7 @@ export const ImageInfoPanel = () => {
           <InfoRow
             label="EXIF thumb"
             value={() => {
-              const image = displayImage()
+              const image = inspectedImage()
               if (!image) return ''
 
               const meta = image.meta.data()
@@ -225,7 +263,7 @@ export const ImageInfoPanel = () => {
             }
           </div>
         </div>
-      </div>
+      </aside>
     </div>
   )
 }

@@ -93,6 +93,24 @@ export const ImageFrameIcon = () => (
   </svg:svg>
 )
 
+export const InfoIcon = () => (
+  <svg:svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="none"
+    stroke="currentColor"
+    attr:stroke-width="1.9"
+    attr:stroke-linecap="round"
+    attr:stroke-linejoin="round"
+    attr:aria-hidden="true"
+  >
+    <svg:circle cx="12" cy="12" r="8.5" />
+    <svg:line x1="12" y1="11" x2="12" y2="16" />
+    <svg:circle cx="12" cy="8" r="0.6" fill="currentColor" stroke="none" />
+  </svg:svg>
+)
+
 export const PlayIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
@@ -390,6 +408,25 @@ export const FitIcon = () => (
     <svg:path d="M20 16v4h-4" />
     <svg:path d="M4 16v4h4" />
     <svg:rect x="8" y="8" width="8" height="8" rx="1" />
+  </svg:svg>
+)
+
+export const FullscreenIcon = () => (
+  <svg:svg
+    viewBox="0 0 24 24"
+    width="1em"
+    height="1em"
+    fill="none"
+    stroke="currentColor"
+    attr:stroke-width="1.9"
+    attr:stroke-linecap="round"
+    attr:stroke-linejoin="round"
+    attr:aria-hidden="true"
+  >
+    <svg:path d="M8 4H4v4" />
+    <svg:path d="M16 4h4v4" />
+    <svg:path d="M20 16v4h-4" />
+    <svg:path d="M4 16v4h4" />
   </svg:svg>
 )
 
