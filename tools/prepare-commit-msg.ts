@@ -25,6 +25,8 @@ const SCOPE_MAP: Record<string, string> = {
   tools: 'tools/*',
 }
 
+const EXAMPLES_DIRECTORY = 'examples'
+
 const CONVENTIONAL_COMMIT_REGEX =
   /^(?<type>\w+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?\s*:\s*(?<description>.+)$/
 
@@ -84,6 +86,24 @@ function getScopesFromFiles(files: string[]): string[] {
   }
 
   return Array.from(matchedScopes).sort()
+}
+
+function getExampleScopesFromFiles(files: string[]): string[] {
+  if (files.some((file) => !file.startsWith(`${EXAMPLES_DIRECTORY}/`))) {
+    return []
+  }
+
+  const scopes = new Set<string>()
+
+  for (const file of files) {
+    const fileParts = file.split('/')
+    const exampleName = fileParts.length > 2 ? fileParts[1] : EXAMPLES_DIRECTORY
+    if (exampleName) {
+      scopes.add(exampleName)
+    }
+  }
+
+  return Array.from(scopes).sort()
 }
 
 function getStagedFiles(): string[] {
@@ -153,16 +173,36 @@ function main() {
     const restOfMessage = originalMessage.split('\n').slice(1).join('\n')
 
     const parsed = parseCommitMessage(trimmedFirstLine)
-    if (!parsed) {
-      return
-    }
-
-    if (parsed.scope) {
-      return
-    }
-
     const stagedFiles = getStagedFiles()
     if (stagedFiles.length === 0) {
+      return
+    }
+
+    const exampleScopes = getExampleScopesFromFiles(stagedFiles)
+    if (exampleScopes.length > 0) {
+      if (parsed?.scope) {
+        return
+      }
+
+      const newFirstLine = parsed
+        ? buildCommitMessage(
+            parsed.type,
+            exampleScopes,
+            parsed.breaking,
+            parsed.description,
+          )
+        : buildCommitMessage('docs', exampleScopes, false, trimmedFirstLine)
+      const newMessage = restOfMessage
+        ? `${newFirstLine}\n${restOfMessage}`
+        : newFirstLine
+      fs.writeFileSync(commitMsgFile, newMessage)
+      console.log(
+        `Commit message updated for example(s): ${exampleScopes.join(', ')}`,
+      )
+      return
+    }
+
+    if (!parsed || parsed.scope) {
       return
     }
 
