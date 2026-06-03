@@ -15,15 +15,12 @@ import {
   withActions,
   withMiddleware,
 } from '../core'
-import {
-  abortVar,
-  peek,
-  ReatomAbortController,
-  retryComputed,
-  variable,
-} from '../methods'
+import { abortVar, ReatomAbortController } from '../methods/abortVar'
+import { peek } from '../methods/peek'
+import { retryComputed } from '../methods/retry'
+import { variable } from '../methods/variable'
 import type { WithPersistOptions } from '../persist'
-import { type MapAtom, reatomMap } from '../primitives'
+import { type MapAtom, reatomMap } from '../primitives/reatomMap'
 import { isDeepEqual, MAX_SAFE_TIMEOUT, noop, setTimeout } from '../utils'
 
 export type AsyncAtom = AtomLike<any, any[], Promise<any>>

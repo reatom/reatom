@@ -1,4 +1,5 @@
 export * from './withAbort'
+export * from './withCache'
 export * from './withChangeHook'
 export * from './withComputed'
 export * from './withConnectHook'

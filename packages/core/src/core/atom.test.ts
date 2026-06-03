@@ -421,3 +421,33 @@ test('read middleware', () => {
 
   expect(a()).toBe(1)
 })
+
+test('reactivity restored after error', () => {
+  const name = 'reactivityRestoredAfterError'
+  const source = atom(0, `${name}.source`)
+  let shouldThrow = false
+  const dep = computed(() => {
+    source()
+    if (shouldThrow) throw new Error('error')
+    return 'state'
+  }, `${name}.dep`)
+  const consumer = computed(() => {
+    return dep()
+  }, `${name}.consumer`)
+  const states = new Array<string>()
+
+  consumer.subscribe((state) => states.push(state))
+  expect(states).toEqual(['state'])
+
+  shouldThrow = true
+  source.set(1)
+  notify()
+  expect(states).toEqual(['state'])
+  expect(() => consumer()).toThrow('error')
+
+  shouldThrow = false
+  source.set(2)
+  notify()
+  expect(consumer()).toBe('state')
+  expect(states).toEqual(['state'])
+})

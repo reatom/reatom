@@ -1,6 +1,6 @@
 import type { Action, Atom, Computed } from '../core'
 import { atom, computed, named, withActions, withParams } from '../core'
-import { withToJson } from '../extensions'
+import { withToJson } from '../extensions/withToJson'
 
 type StateInit<Value> = Set<Value> | ConstructorParameters<typeof Set<Value>>[0]
 const createSet = <Value>(init: StateInit<Value>) =>

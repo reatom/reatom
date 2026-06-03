@@ -89,3 +89,29 @@ test('withConnectHook abort', async () => {
   expect(connect).toBeCalledTimes(1)
   expect(disconnect).toBeCalledTimes(1)
 })
+
+// TODO
+// test('withConnectHook async', async () => {
+//   const name = 'withConnectHookAsync'
+//   const afterSleep = vi.fn()
+//   const a = atom(0, `${name}.a`).extend(
+//     withConnectHook(async () => {
+//       await wrap(sleep())
+//       afterSleep()
+//     }),
+//   )
+
+//   for (let i = 0; i < 5; i++) {
+//     const un = a.subscribe()
+//     un()
+//   }
+
+//   await wrap(sleep())
+
+//   const un = a.subscribe()
+//   await wrap(sleep())
+
+//   expect(afterSleep).toBeCalledTimes(1)
+
+//   un()
+// })

@@ -1,7 +1,7 @@
 import type { Action, AtomLike } from '../core'
 import type { Computed } from '../core'
 import { _set, action, atom, computed, named, withActions } from '../core'
-import { withToJson } from '../extensions'
+import { withToJson } from '../extensions/withToJson'
 
 type StateInit<Key, Value> =
   | Map<Key, Value>
