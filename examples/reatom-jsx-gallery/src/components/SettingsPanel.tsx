@@ -6,8 +6,11 @@ import {
   imageFit,
   showFileSizes,
   showImageNames,
+  themeMode,
+  themePack,
 } from '../model'
-import type { GridGap, ImageFit } from '../types'
+import { THEME_PACKS } from '../theme'
+import type { GridGap, ImageFit, ThemeMode, ThemePack } from '../types'
 
 const settingsPanelOpen = atom(false, 'settingsPanelOpen')
 export { settingsPanelOpen }
@@ -45,13 +48,16 @@ const OptionButton = ({
     attr:data-active={isActive}
     css={`
       padding: 6px 12px;
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      border: var(--border-width) var(--control-border-style) var(--border);
+      border-radius: var(--radius-sm);
       background: var(--bg-secondary);
+      background-image: var(--surface-bg-image);
+      background-size: var(--surface-bg-size);
       color: var(--text-primary);
       font-size: 12px;
       transition: all 0.15s;
       white-space: nowrap;
+      text-transform: var(--control-transform);
 
       &:hover {
         border-color: var(--accent);
@@ -61,7 +67,7 @@ const OptionButton = ({
       &[data-active='true'] {
         background: var(--accent);
         border-color: var(--accent);
-        color: #fff;
+        color: var(--accent-contrast);
       }
     `}
   >
@@ -96,8 +102,9 @@ const ToggleSwitch = ({
       css={`
         width: 40px;
         height: 22px;
-        border-radius: 11px;
+        border-radius: var(--radius-round);
         background: var(--bg-tertiary);
+        border: var(--border-width) var(--control-border-style) var(--border);
         position: relative;
         transition: background 0.2s;
         cursor: pointer;
@@ -108,7 +115,8 @@ const ToggleSwitch = ({
           width: 18px;
           height: 18px;
           border-radius: 50%;
-          background: #fff;
+          background: var(--accent-contrast);
+          box-shadow: 0 2px 6px var(--shadow);
           top: 2px;
           left: 2px;
           transition: transform 0.2s;
@@ -124,6 +132,125 @@ const ToggleSwitch = ({
       `}
     />
   </label>
+)
+
+const ThemePackButton = ({
+  value,
+  label,
+  description,
+  swatches,
+}: {
+  value: ThemePack
+  label: string
+  description: string
+  swatches: readonly [string, string, string]
+}) => (
+  <button
+    on:click={() => themePack.set(value)}
+    attr:data-active={() => themePack() === value}
+    css={`
+      width: 100%;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: center;
+      text-align: left;
+      padding: 10px;
+      border: var(--border-width) var(--control-border-style) var(--border);
+      border-radius: var(--radius-md);
+      background: var(--input-bg);
+      background-image: var(--surface-bg-image);
+      background-size: var(--surface-bg-size);
+      color: var(--text-primary);
+      transition: all 0.15s ease;
+
+      &:hover {
+        border-color: var(--accent);
+        background: var(--hover-bg);
+      }
+
+      &[data-active='true'] {
+        border-color: var(--accent);
+        background: var(--active-bg);
+        box-shadow: 0 0 0 3px var(--focus-ring), var(--glow);
+      }
+    `}
+  >
+    <span css="display: flex; gap: 3px;">
+      {swatches.map((color) => (
+        <span
+          style={{ background: color }}
+          css={`
+            width: 14px;
+            height: 32px;
+            border-radius: var(--radius-sm);
+            border: var(--border-width) var(--border-style) var(--card-border);
+          `}
+        />
+      ))}
+    </span>
+    <span css="display: grid; gap: 2px;">
+      <span css="font-size: 13px; font-weight: 700;">{label}</span>
+      <span css="font-size: 11px; color: var(--text-muted);">
+        {description}
+      </span>
+    </span>
+  </button>
+)
+
+const ThemeModeButton = ({
+  mode,
+  label,
+}: {
+  mode: ThemeMode
+  label: string
+}) => (
+  <button
+    on:click={() => themeMode.set(mode)}
+    attr:aria-pressed={() => themeMode() === mode}
+    css={`
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border: var(--border-width) var(--control-border-style) var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
+      color: var(--text-primary);
+      font-size: 12px;
+      font-weight: 700;
+      transition: all 0.15s ease;
+      text-transform: var(--control-transform);
+
+      &::before {
+        content: '';
+        width: 7px;
+        height: 7px;
+        border-radius: var(--radius-round);
+        background: var(--text-muted);
+      }
+
+      &:hover {
+        border-color: var(--accent);
+        background: var(--hover-bg);
+      }
+
+      &[aria-pressed='true'] {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: var(--accent-contrast);
+        box-shadow: var(--glow), 0 8px 20px var(--shadow);
+      }
+
+      &[aria-pressed='true']::before {
+        background: currentColor;
+      }
+    `}
+  >
+    {label}
+  </button>
 )
 
 export const SettingsPanel = () => {
@@ -142,13 +269,18 @@ export const SettingsPanel = () => {
         width: 320px;
         height: 100vh;
         background: var(--bg-secondary);
-        border-left: 1px solid var(--border);
+        border-left: var(--border-width) var(--border-style) var(--border);
         z-index: 1000;
         transform: translateX(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-y: auto;
         padding: 20px;
-        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+        box-shadow: -18px 0 48px var(--shadow-strong);
+        background-color: var(--panel-bg);
+        background-image: var(--surface-bg-image);
+        background-size: var(--surface-bg-size);
+        backdrop-filter: var(--panel-backdrop-filter);
+        clip-path: var(--surface-clip-path);
 
         &[data-open='true'] {
           transform: translateX(0);
@@ -177,8 +309,8 @@ export const SettingsPanel = () => {
           css={`
             width: 28px;
             height: 28px;
-            border: none;
-            border-radius: 6px;
+            border: var(--border-width) var(--control-border-style) transparent;
+            border-radius: var(--radius-sm);
             background: var(--bg-tertiary);
             color: var(--text-primary);
             font-size: 16px;
@@ -189,12 +321,29 @@ export const SettingsPanel = () => {
 
             &:hover {
               background: var(--accent);
-              color: #fff;
+              color: var(--accent-contrast);
             }
           `}
         >
           ✕
         </button>
+      </div>
+
+      <SectionTitle text="Theme" />
+      <div css="display: grid; gap: 8px;">
+        {THEME_PACKS.map((pack) => (
+          <ThemePackButton
+            value={pack.value}
+            label={pack.label}
+            description={pack.description}
+            swatches={pack.swatches}
+          />
+        ))}
+      </div>
+
+      <div css="display: flex; gap: 6px; margin-top: 10px;">
+        <ThemeModeButton mode="light" label="Light" />
+        <ThemeModeButton mode="dark" label="Dark" />
       </div>
 
       <SectionTitle text="Grid Columns" />

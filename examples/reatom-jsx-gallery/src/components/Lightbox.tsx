@@ -17,31 +17,33 @@ import {
 import { Slideshow } from './Slideshow'
 
 const controlBtnCss = `
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: #eee;
+  background: var(--overlay-control);
+  border: var(--border-width) var(--control-border-style) rgba(255, 255, 255, 0.12);
+  color: #fff;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 16px;
   transition: background 0.2s;
-  &:hover { background: rgba(255, 255, 255, 0.25); }
+  backdrop-filter: blur(12px);
+  box-shadow: var(--glow);
+  &:hover { background: var(--overlay-control-hover); }
 `
 
 const navBtnCss = `
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: #eee;
+  background: var(--overlay-control);
+  border: var(--border-width) var(--control-border-style) rgba(255, 255, 255, 0.12);
+  color: #fff;
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   cursor: pointer;
   font-size: 28px;
   display: flex;
@@ -50,7 +52,9 @@ const navBtnCss = `
   transition: background 0.2s, opacity 0.2s;
   z-index: 1010;
   opacity: 0.7;
-  &:hover { background: rgba(255, 255, 255, 0.25); opacity: 1; }
+  backdrop-filter: blur(12px);
+  box-shadow: var(--glow);
+  &:hover { background: var(--overlay-control-hover); opacity: 1; }
 `
 
 const lightboxImageFrameCss = `
@@ -196,7 +200,7 @@ const LightboxContent = () => {
         position: fixed;
         inset: 0;
         z-index: 1000;
-        background: rgba(0, 0, 0, 0.92);
+        background: var(--overlay-bg);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -218,12 +222,12 @@ const LightboxContent = () => {
           z-index: 1010;
           background: linear-gradient(
             to bottom,
-            rgba(0, 0, 0, 0.6),
+            var(--image-overlay),
             transparent
           );
         `}
       >
-        <span css="color: #eee; font-size: 14px; font-family: monospace;">
+        <span css="color: #fff; font-size: 14px; font-family: monospace;">
           {() => lightboxCounter()}
         </span>
         <div css="display: flex; gap: 8px; align-items: center;">
@@ -275,7 +279,7 @@ const LightboxContent = () => {
           const img = lightboxImage()
           if (!img)
             return (
-              <div css="color: #eee; font-size: 18px;">No image selected</div>
+              <div css="color: #fff; font-size: 18px;">No image selected</div>
             )
 
           return (
@@ -315,7 +319,7 @@ const LightboxContent = () => {
           justify-content: center;
           gap: 4px;
           padding: 8px 16px 12px;
-          background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+          background: linear-gradient(to top, var(--image-overlay), transparent);
           z-index: 1010;
           overflow-x: auto;
         `}
@@ -328,17 +332,18 @@ const LightboxContent = () => {
               css={`
                 flex-shrink: 0;
                 padding: 2px;
-                border: 2px solid transparent;
+                border: var(--border-width) var(--control-border-style) transparent;
                 background: none;
                 cursor: pointer;
-                border-radius: 4px;
+                border-radius: var(--radius-sm);
                 transition:
                   border-color 0.2s,
                   opacity 0.2s;
                 opacity: 0.6;
                 &[data-active='true'] {
-                  border-color: #e94560;
+                  border-color: var(--accent);
                   opacity: 1;
+                  box-shadow: var(--glow);
                 }
                 &:hover {
                   opacity: 1;
@@ -351,7 +356,7 @@ const LightboxContent = () => {
                   width: 60px;
                   height: 40px;
                   object-fit: cover;
-                  border-radius: 2px;
+                  border-radius: var(--radius-xs);
                   display: block;
                 `}
                 draggable={false}

@@ -26,19 +26,19 @@ const infoRowCss = `
   justify-content: space-between;
   align-items: flex-start;
   padding: 8px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--border);
   gap: 12px;
 `
 
 const labelCss = `
-  color: #888;
+  color: var(--text-muted);
   font-size: 12px;
   flex-shrink: 0;
   min-width: 70px;
 `
 
 const valueCss = `
-  color: #ddd;
+  color: var(--text-primary);
   font-size: 13px;
   text-align: right;
   word-break: break-all;
@@ -86,12 +86,13 @@ export const ImageInfoPanel = () => {
           top: 64px;
           z-index: 1;
           pointer-events: auto;
-          background: rgba(255, 255, 255, 0.1);
-          border: none;
-          color: #eee;
+          background: var(--overlay-control);
+          border: var(--border-width) var(--control-border-style)
+            rgba(255, 255, 255, 0.12);
+          color: #fff;
           width: 36px;
           height: 36px;
-          border-radius: 50%;
+          border-radius: var(--radius-round);
           cursor: pointer;
           font-size: 16px;
           display: flex;
@@ -114,26 +115,30 @@ export const ImageInfoPanel = () => {
           top: 0;
           bottom: 0;
           width: 300px;
-          background: rgba(18, 18, 24, 0.95);
-          border-left: 1px solid rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(12px);
+          background-color: var(--panel-bg);
+          background-image: var(--surface-bg-image);
+          background-size: var(--surface-bg-size);
+          border-left: var(--border-width) var(--border-style) var(--border);
+          backdrop-filter: var(--panel-backdrop-filter);
           padding: 20px 16px;
           overflow-y: auto;
           pointer-events: auto;
           transform: translateX(100%);
           transition: transform 0.3s ease;
+          box-shadow: -18px 0 48px var(--shadow-strong);
+          clip-path: var(--surface-clip-path);
           &[data-open='true'] {
             transform: translateX(0);
           }
         `}
       >
-        <div css="font-size: 15px; font-weight: 600; color: #eee; margin-bottom: 16px;">
+        <div css="font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">
           Image Info
         </div>
 
         <div
           style:display={() => (displayImage() ? 'none' : 'block')}
-          css="color: #666; font-size: 13px;"
+          css="color: var(--text-muted); font-size: 13px;"
         >
           No image selected
         </div>
@@ -210,7 +215,7 @@ export const ImageInfoPanel = () => {
               exifRowsWithoutCustomFormat().length > 0 ? 'block' : 'none'
             }
           >
-            <div css="font-size: 12px; font-weight: 600; color: #aaa; margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.04em;">
+            <div css="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.04em;">
               EXIF
             </div>
             {() =>

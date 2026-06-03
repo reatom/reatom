@@ -120,13 +120,18 @@ export const FilterPanel = () => {
         width: 300px;
         height: 100vh;
         background: var(--bg-secondary);
-        border-left: 1px solid var(--border);
+        border-left: var(--border-width) var(--border-style) var(--border);
         z-index: 1000;
         transform: translateX(100%);
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         overflow-y: auto;
         padding: 20px;
-        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+        box-shadow: -18px 0 48px var(--shadow-strong);
+        background-color: var(--panel-bg);
+        background-image: var(--surface-bg-image);
+        background-size: var(--surface-bg-size);
+        backdrop-filter: var(--panel-backdrop-filter);
+        clip-path: var(--surface-clip-path);
 
         &[data-open='true'] {
           transform: translateX(0);
@@ -155,8 +160,8 @@ export const FilterPanel = () => {
           css={`
             width: 28px;
             height: 28px;
-            border: none;
-            border-radius: 6px;
+            border: var(--border-width) var(--control-border-style) transparent;
+            border-radius: var(--radius-sm);
             background: var(--bg-tertiary);
             color: var(--text-primary);
             font-size: 16px;
@@ -167,7 +172,7 @@ export const FilterPanel = () => {
 
             &:hover {
               background: var(--accent);
-              color: #fff;
+              color: var(--accent-contrast);
             }
           `}
         >
@@ -187,9 +192,9 @@ export const FilterPanel = () => {
           css={`
             width: 100%;
             padding: 8px 12px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--bg-primary);
+            border: var(--border-width) var(--control-border-style) var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--input-bg);
             color: var(--text-primary);
             font-size: 13px;
             outline: none;
@@ -197,6 +202,7 @@ export const FilterPanel = () => {
 
             &:focus {
               border-color: var(--accent);
+              box-shadow: 0 0 0 3px var(--focus-ring);
             }
 
             &::placeholder {
@@ -255,15 +261,16 @@ export const FilterPanel = () => {
           css={`
             width: 50%;
             padding: 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--bg-primary);
+            border: var(--border-width) var(--control-border-style) var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--input-bg);
             color: var(--text-primary);
             font-size: 13px;
             outline: none;
 
             &:focus {
               border-color: var(--accent);
+              box-shadow: 0 0 0 3px var(--focus-ring);
             }
 
             &::placeholder {
@@ -279,15 +286,16 @@ export const FilterPanel = () => {
           css={`
             width: 50%;
             padding: 6px 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            background: var(--bg-primary);
+            border: var(--border-width) var(--control-border-style) var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--input-bg);
             color: var(--text-primary);
             font-size: 13px;
             outline: none;
 
             &:focus {
               border-color: var(--accent);
+              box-shadow: 0 0 0 3px var(--focus-ring);
             }
 
             &::placeholder {
@@ -316,8 +324,9 @@ export const FilterPanel = () => {
           css={`
             width: 40px;
             height: 22px;
-            border-radius: 11px;
+            border-radius: var(--radius-round);
             background: var(--bg-tertiary);
+            border: var(--border-width) var(--control-border-style) var(--border);
             position: relative;
             transition: background 0.2s;
             cursor: pointer;
@@ -328,7 +337,8 @@ export const FilterPanel = () => {
               width: 18px;
               height: 18px;
               border-radius: 50%;
-              background: #fff;
+              background: var(--accent-contrast);
+              box-shadow: 0 2px 6px var(--shadow);
               top: 2px;
               left: 2px;
               transition: transform 0.2s;
@@ -350,8 +360,8 @@ export const FilterPanel = () => {
         css={`
           width: 100%;
           padding: 10px;
-          border: 1px solid var(--border);
-          border-radius: 8px;
+          border: var(--border-width) var(--control-border-style) var(--border);
+          border-radius: var(--radius-sm);
           background: transparent;
           color: var(--text-secondary);
           font-size: 13px;

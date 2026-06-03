@@ -60,24 +60,27 @@ export const GridImage = ({
         position: relative;
         min-width: 0;
         aspect-ratio: 1;
-        background: var(--card-bg);
-        border: 1px solid var(--card-border);
-        border-radius: 8px;
+        padding: var(--card-padding);
+        background-color: var(--card-bg);
+        background-image: var(--card-bg-image);
+        background-size: var(--surface-bg-size);
+        border: var(--border-width) var(--border-style) var(--card-border);
+        border-radius: var(--radius-md);
         overflow: hidden;
         cursor: pointer;
         transition: all 0.2s ease;
 
         &:hover {
           border-color: var(--accent);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px var(--shadow);
+          transform: var(--card-hover-transform);
+          box-shadow: var(--card-hover-shadow);
         }
         &:hover .grid-image-overlay {
           opacity: 1;
         }
         &[data-selected='true'] {
           border-color: var(--accent);
-          box-shadow: 0 0 0 2px var(--accent);
+          box-shadow: var(--selected-shadow);
         }
         &[data-gap='none'] {
           border-width: 0;
@@ -90,9 +93,10 @@ export const GridImage = ({
         css:image-fit={imageFit}
         css={`
           position: absolute;
-          inset: 0;
+          inset: var(--card-padding);
           overflow: hidden;
-          background: rgba(0, 0, 0, 0.1);
+          background: var(--input-bg);
+          border-radius: var(--radius-sm);
           > img {
             width: 100%;
             height: 100%;
@@ -126,9 +130,10 @@ export const GridImage = ({
             left: 8px;
             width: 24px;
             height: 24px;
-            border-radius: 6px;
-            border: 2px solid rgba(255, 255, 255, 0.8);
-            background: rgba(0, 0, 0, 0.4);
+            border-radius: var(--radius-sm);
+            border: var(--border-width) var(--control-border-style)
+              rgba(255, 255, 255, 0.82);
+            background: var(--overlay-control);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -141,6 +146,7 @@ export const GridImage = ({
             &[aria-checked='true'] {
               background: var(--accent);
               border-color: var(--accent);
+              color: var(--accent-contrast);
             }
             &:hover {
               transform: scale(1.1);
@@ -160,9 +166,9 @@ export const GridImage = ({
             right: 8px;
             width: 28px;
             height: 28px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(0, 0, 0, 0.4);
+            border-radius: var(--radius-round);
+            border: var(--border-width) var(--control-border-style) transparent;
+            background: var(--overlay-control);
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -173,7 +179,8 @@ export const GridImage = ({
 
             &:hover {
               transform: scale(1.15);
-              background: rgba(0, 0, 0, 0.6);
+              box-shadow: var(--glow);
+              background: var(--overlay-control-hover);
             }
           `}
         >
@@ -192,10 +199,12 @@ export const GridImage = ({
               right: 0;
               bottom: 0;
               left: 0;
+              margin: var(--card-padding);
+              border-radius: 0 0 var(--radius-sm) var(--radius-sm);
               padding: 8px 10px;
               background: linear-gradient(
                 to top,
-                rgba(0, 0, 0, 0.72),
+                var(--image-overlay),
                 rgba(0, 0, 0, 0)
               );
             `}

@@ -9,7 +9,7 @@ const waitForUpdate = () => new Promise<void>((r) => setTimeout(r, 50))
 
 const loc = {
   galleryHeadingAppears: (canvas) =>
-    canvas.findByRole('heading', { name: 'Gallery Viewer' }),
+    canvas.findByRole('heading', { name: 'Your images, polished fast' }),
   openFolderButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: /Open Folder/i }),
   imageCountAppears: (canvas) => canvas.findByText(/\d+ images/),

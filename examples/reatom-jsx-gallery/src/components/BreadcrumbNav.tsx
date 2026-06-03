@@ -40,7 +40,7 @@ export const BreadcrumbNav = () => {
       {() => {
         const segments = breadcrumbSegments()
         if (segments.length === 0)
-          return <span css="color: #666;">No folder</span>
+          return <span css="color: var(--text-muted);">No folder</span>
 
         const elements: (Element | string)[] = []
         segments.forEach((folder, idx) => {
@@ -48,7 +48,7 @@ export const BreadcrumbNav = () => {
 
           if (idx > 0) {
             elements.push(
-              <span css="color: #555; margin: 0 4px; user-select: none;">
+              <span css="color: var(--text-muted); margin: 0 4px; user-select: none;">
                 /
               </span>,
             )
@@ -56,24 +56,27 @@ export const BreadcrumbNav = () => {
 
           elements.push(
             isLast ? (
-              <span css="color: #e94560; font-weight: 500;">{folder.name}</span>
+              <span css="color: var(--accent); font-weight: 650;">
+                {folder.name}
+              </span>
             ) : (
               <button
                 on:click={() => currentFolder.set(folder)}
                 css={`
                   background: none;
                   border: none;
-                  color: #aaa;
+                  color: var(--text-secondary);
                   cursor: pointer;
                   padding: 2px 4px;
-                  border-radius: 4px;
+                  border-radius: var(--radius-xs);
                   font-size: 13px;
+                  text-transform: var(--control-transform);
                   transition:
                     color 0.15s,
                     background 0.15s;
                   &:hover {
-                    color: #eee;
-                    background: rgba(255, 255, 255, 0.08);
+                    color: var(--text-primary);
+                    background: var(--hover-bg);
                   }
                 `}
               >

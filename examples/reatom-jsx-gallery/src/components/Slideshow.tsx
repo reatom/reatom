@@ -11,15 +11,16 @@ const speedOptions = [
 ] as const
 
 const pillBtnCss = `
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: #eee;
+  background: var(--overlay-control);
+  border: var(--border-width) var(--control-border-style) rgba(255, 255, 255, 0.12);
+  color: #fff;
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-round);
   cursor: pointer;
   font-size: 12px;
   transition: background 0.2s;
-  &:hover { background: rgba(255, 255, 255, 0.25); }
+  text-transform: var(--control-transform);
+  &:hover { background: var(--overlay-control-hover); }
 `
 
 export const Slideshow = () => {
@@ -62,10 +63,13 @@ export const Slideshow = () => {
         align-items: center;
         gap: 6px;
         padding: 6px 14px;
-        background: rgba(0, 0, 0, 0.75);
-        border-radius: 20px;
+        background: var(--image-overlay);
+        border: var(--border-width) var(--control-border-style)
+          rgba(255, 255, 255, 0.12);
+        border-radius: var(--radius-round);
         z-index: 1020;
-        backdrop-filter: blur(8px);
+        backdrop-filter: var(--panel-backdrop-filter);
+        box-shadow: var(--glow);
       `}
     >
       <button
@@ -92,9 +96,10 @@ export const Slideshow = () => {
           css={`
             ${pillBtnCss}
             &[data-active='true'] {
-              background: #e94560;
+              background: var(--accent);
+              color: var(--accent-contrast);
               &:hover {
-                background: #d63851;
+                background: var(--accent-hover);
               }
             }
           `}
@@ -107,8 +112,8 @@ export const Slideshow = () => {
         css={`
           width: 80px;
           height: 4px;
-          background: rgba(255, 255, 255, 0.15);
-          border-radius: 2px;
+          background: var(--overlay-control);
+          border-radius: var(--radius-round);
           overflow: hidden;
           margin-left: 4px;
         `}
@@ -117,8 +122,8 @@ export const Slideshow = () => {
           style:width={() => `${progressPercent()}%`}
           css={`
             height: 100%;
-            background: #e94560;
-            border-radius: 2px;
+            background: var(--accent);
+            border-radius: var(--radius-round);
             transition: width 0.05s linear;
           `}
         />

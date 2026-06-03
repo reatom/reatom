@@ -21,13 +21,14 @@ const SortFieldButton = ({
     attr:data-active={() => sortField() === value}
     css={`
       padding: 5px 10px;
-      border: 1px solid var(--border);
-      border-radius: 5px;
-      background: var(--bg-secondary);
+      border: var(--border-width) var(--control-border-style) var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--input-bg);
       color: var(--text-primary);
       font-size: 12px;
       transition: all 0.15s;
       white-space: nowrap;
+      text-transform: var(--control-transform);
 
       &:hover {
         border-color: var(--accent);
@@ -37,7 +38,7 @@ const SortFieldButton = ({
       &[data-active='true'] {
         background: var(--accent);
         border-color: var(--accent);
-        color: #fff;
+        color: var(--accent-contrast);
       }
     `}
   >
@@ -69,18 +70,19 @@ export const SortPanel = () => {
         on:click={toggleOrder}
         css={`
           padding: 5px 10px;
-          border: 1px solid var(--accent);
-          border-radius: 5px;
+          border: var(--border-width) var(--control-border-style) var(--accent);
+          border-radius: var(--radius-sm);
           background: transparent;
           color: var(--accent);
           font-size: 12px;
           font-weight: 600;
           transition: all 0.15s;
           min-width: 60px;
+          text-transform: var(--control-transform);
 
           &:hover {
             background: var(--accent);
-            color: #fff;
+            color: var(--accent-contrast);
           }
         `}
       >

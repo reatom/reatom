@@ -8,7 +8,7 @@ import {
   navigateLightbox,
   selectAllImages,
   slideshowPlaying,
-  theme,
+  themeMode,
 } from './model'
 
 const decreaseGridColumns = () =>
@@ -91,10 +91,10 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 
   if (event.key === 't' || event.key === 'T') {
-    if (theme() === 'light') {
-      theme.setDark()
+    if (themeMode() === 'light') {
+      themeMode.setDark()
     } else {
-      theme.setLight()
+      themeMode.setLight()
     }
 
     return

@@ -15,10 +15,11 @@ import {
   openFolder,
   restoreSelectedFolder,
   selectedFolderHandle,
-  theme,
+  themeMode,
+  themePack,
 } from './model'
 import { KeyboardShortcuts } from './shortcuts'
-import { GlobalStyles } from './theme'
+import { activeThemeVariables, GlobalStyles } from './theme'
 
 const EmptyState = () => (
   <div
@@ -28,60 +29,139 @@ const EmptyState = () => (
       align-items: center;
       justify-content: center;
       height: 100%;
-      gap: 24px;
+      padding: 32px;
       color: var(--text-secondary);
+      position: relative;
+
+      &::before,
+      &::after {
+        content: '';
+        position: absolute;
+        width: 280px;
+        height: 280px;
+        border-radius: var(--radius-round);
+        filter: blur(18px);
+        opacity: 0.8;
+        pointer-events: none;
+      }
+
+      &::before {
+        right: 14%;
+        top: 14%;
+        background: radial-gradient(circle, var(--hero-glow-1), transparent 68%);
+      }
+
+      &::after {
+        left: 14%;
+        bottom: 12%;
+        background: radial-gradient(circle, var(--hero-glow-2), transparent 68%);
+      }
     `}
   >
-    <div css="font-size: 72px; filter: grayscale(0.3); user-select: none;">
-      🖼️
-    </div>
-    <h2
+    <div
       css={`
-        font-size: 24px;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0;
-      `}
-    >
-      Gallery Viewer
-    </h2>
-    <p
-      css={`
-        font-size: 15px;
-        margin: 0;
-        text-align: center;
-        max-width: 420px;
-        line-height: 1.6;
-      `}
-    >
-      Open a folder to browse your images. Supports JPEG, PNG, GIF, WebP, SVG,
-      and more.
-    </p>
-    <button
-      on:click={() => openFolder()}
-      css={`
-        padding: 14px 32px;
-        font-size: 16px;
-        font-weight: 600;
-        color: white;
-        background: var(--accent);
-        border: none;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        width: min(480px, 100%);
+        padding: 34px;
+        border: var(--border-width) var(--border-style) var(--card-border);
+        border-radius: var(--radius-xl);
+        background-color: var(--bg-secondary);
+        background-image:
+          var(--surface-bg-image),
+          linear-gradient(135deg, var(--surface-glass), var(--card-bg));
+        background-size: var(--surface-bg-size), auto;
+        box-shadow: var(--glow), 0 26px 80px var(--shadow);
+        backdrop-filter: var(--toolbar-backdrop-filter);
+        clip-path: var(--surface-clip-path);
+        display: grid;
+        justify-items: center;
+        gap: 18px;
+        position: relative;
+        overflow: hidden;
 
-        &:hover {
-          background: var(--accent-hover);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(233, 69, 96, 0.3);
-        }
-        &:active {
-          transform: translateY(0);
+        &::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.14),
+            transparent 38%
+          );
+          pointer-events: none;
         }
       `}
     >
-      📂 Open Folder
-    </button>
+      <div
+        css={`
+          width: 86px;
+          height: 86px;
+          border-radius: var(--radius-lg);
+          background:
+            radial-gradient(circle at 28% 20%, var(--hero-glow-1), transparent 45%),
+            linear-gradient(135deg, var(--accent), var(--accent-hover));
+          color: var(--accent-contrast);
+          display: grid;
+          place-items: center;
+          font-size: 38px;
+          box-shadow: var(--glow), 0 18px 42px var(--shadow);
+          user-select: none;
+        `}
+      >
+        ◈
+      </div>
+      <h2
+        css={`
+          font-size: 28px;
+          line-height: 1.1;
+          font-weight: 800;
+          letter-spacing: -0.04em;
+          color: var(--text-primary);
+          margin: 0;
+          text-align: center;
+        `}
+      >
+        Your images, polished fast
+      </h2>
+      <p
+        css={`
+          font-size: 15px;
+          margin: 0;
+          text-align: center;
+          max-width: 390px;
+          line-height: 1.65;
+          color: var(--text-secondary);
+        `}
+      >
+        Open a folder to browse, filter, favorite, and inspect local images in a
+        focused Reatom-powered gallery.
+      </p>
+      <button
+        on:click={() => openFolder()}
+        css={`
+          padding: 13px 24px;
+          font-size: 15px;
+          font-weight: 750;
+          color: var(--accent-contrast);
+          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          border: var(--border-width) var(--control-border-style) var(--accent);
+          border-radius: var(--radius-round);
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 14px 34px var(--shadow);
+
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 18px 42px var(--shadow-strong);
+          }
+          &:active {
+            transform: translateY(0);
+          }
+        `}
+      >
+        Open Folder
+      </button>
+    </div>
   </div>
 )
 
@@ -121,62 +201,164 @@ export const App = () => {
 
   return (
     <div
-      attr:data-theme={theme}
+      attr:data-theme-pack={themePack}
+      attr:data-theme-mode={themeMode}
+      style={() => activeThemeVariables()}
       css={`
         display: flex;
         flex-direction: column;
         height: 100vh;
         background: var(--bg-primary);
+        background-image: var(--app-bg-image);
+        background-size: var(--bg-size);
         color: var(--text-primary);
-        font-family:
-          'Inter',
-          -apple-system,
-          BlinkMacSystemFont,
-          'Segoe UI',
-          sans-serif;
+        font-family: var(--font-ui);
         overflow: hidden;
         transition:
           background 0.3s,
           color 0.3s;
 
-        &[data-theme='dark'] {
-          --bg-primary: #1a1a2e;
-          --bg-secondary: #16213e;
-          --bg-tertiary: #0f3460;
-          --accent: #e94560;
-          --accent-hover: #ff6b81;
-          --text-primary: #eeeeee;
-          --text-secondary: #a0a0b0;
-          --text-muted: #666680;
-          --card-bg: rgba(255, 255, 255, 0.05);
-          --card-border: rgba(255, 255, 255, 0.08);
-          --border: rgba(255, 255, 255, 0.1);
-          --toolbar-bg: rgba(22, 33, 62, 0.95);
-          --input-bg: rgba(255, 255, 255, 0.08);
-          --input-border: rgba(255, 255, 255, 0.12);
-          --hover-bg: rgba(255, 255, 255, 0.1);
-          --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-          --shadow: rgba(0, 0, 0, 0.3);
+        &[data-theme-pack='blueprint'] button,
+        &[data-theme-pack='blueprint'] input {
+          border-style: dashed;
         }
 
-        &[data-theme='light'] {
-          --bg-primary: #f0f2f5;
-          --bg-secondary: #ffffff;
-          --bg-tertiary: #e4e6eb;
-          --accent: #e94560;
-          --accent-hover: #d63851;
-          --text-primary: #1a1a2e;
-          --text-secondary: #555570;
-          --text-muted: #888898;
-          --card-bg: #ffffff;
-          --card-border: rgba(0, 0, 0, 0.08);
-          --border: rgba(0, 0, 0, 0.1);
-          --toolbar-bg: rgba(255, 255, 255, 0.95);
-          --input-bg: rgba(0, 0, 0, 0.04);
-          --input-border: rgba(0, 0, 0, 0.1);
-          --hover-bg: rgba(0, 0, 0, 0.05);
-          --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-          --shadow: rgba(0, 0, 0, 0.08);
+        &[data-theme-pack='blueprint'][data-theme-mode='light'] main {
+          background-color: #eaf8ff;
+          background-image:
+            linear-gradient(rgba(2,132,168,.12) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(2,132,168,.12) 1px, transparent 1px);
+          background-size: 28px 28px;
+        }
+
+        &[data-theme-pack='neon'] button,
+        &[data-theme-pack='neon'] input {
+          box-shadow: var(--glow);
+        }
+
+        &[data-theme-pack='neon'][data-theme-mode='light'] main {
+          background-color: #ffe8fb;
+          background-image:
+            radial-gradient(circle at 15% 20%, rgba(230,0,215,.26), transparent 32%),
+            radial-gradient(circle at 90% 8%, rgba(0,166,200,.22), transparent 30%);
+        }
+
+        &[data-theme-pack='terminal'] {
+          letter-spacing: 0.01em;
+        }
+
+        &[data-theme-pack='terminal'][data-theme-mode='light'] main {
+          background-color: #efe4bd;
+          background-image:
+            linear-gradient(rgba(6,78,59,.08) 50%, transparent 50%),
+            linear-gradient(90deg, rgba(6,78,59,.035) 1px, transparent 1px);
+          background-size: 100% 4px, 22px 22px;
+        }
+
+        &[data-theme-pack='terminal'] button,
+        &[data-theme-pack='terminal'] input {
+          border-radius: 0;
+        }
+
+        &[data-theme-pack='terminal'] button::before {
+          content: '[';
+          margin-right: 2px;
+        }
+
+        &[data-theme-pack='terminal'] button::after {
+          content: ']';
+          margin-left: 2px;
+        }
+
+        &[data-theme-pack='bauhaus'] button {
+          box-shadow: var(--glow);
+        }
+
+        &[data-theme-pack='bauhaus'][data-theme-mode='light'] main {
+          background-color: #fff1b8;
+          background-image:
+            radial-gradient(circle at 12% 18%, rgba(220,38,38,.28) 0 74px, transparent 76px),
+            radial-gradient(circle at 88% 12%, rgba(37,99,235,.24) 0 60px, transparent 62px),
+            linear-gradient(135deg, transparent 64%, rgba(250,204,21,.34) 64%);
+        }
+
+        &[data-theme-pack='obsidian'] button,
+        &[data-theme-pack='obsidian'] input {
+          clip-path: var(--surface-clip-path);
+        }
+
+        &[data-theme-pack='obsidian'][data-theme-mode='light'] main {
+          background-color: #e7e9ee;
+          background-image:
+            linear-gradient(135deg, rgba(15,23,42,.12), transparent 26%),
+            linear-gradient(315deg, rgba(71,85,105,.12), transparent 24%);
+        }
+
+        &[data-theme-pack='paper'][data-theme-mode='light'] main {
+          background-color: #f5ecd9;
+          background-image:
+            radial-gradient(circle at 20% 30%, rgba(42,33,23,.055) 0 1px, transparent 1px),
+            linear-gradient(90deg, rgba(42,33,23,.025), transparent 40%, rgba(42,33,23,.025));
+          background-size: 22px 22px, auto;
+        }
+
+        &[data-theme-pack='aurora'][data-theme-mode='light'] main {
+          background-color: #effefa;
+          background-image:
+            radial-gradient(circle at 18% 20%, rgba(15,159,142,.18), transparent 34%),
+            radial-gradient(circle at 82% 8%, rgba(124,58,237,.14), transparent 30%);
+        }
+
+        &[data-theme-pack='polaroid'][data-theme-mode='light'] main {
+          background-color: #eadfcf;
+          background-image: radial-gradient(circle at 50% 10%, rgba(255,255,255,.44), transparent 34%);
+        }
+
+        &[data-theme-pack='blueprint'][data-theme-mode='light'] {
+          background-color: #eaf8ff;
+          background-image:
+            linear-gradient(rgba(2,132,168,.12) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(2,132,168,.12) 1px, transparent 1px);
+          background-size: 28px 28px;
+          font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+        }
+
+        &[data-theme-pack='neon'][data-theme-mode='light'] {
+          background-color: #ffe8fb;
+          background-image:
+            radial-gradient(circle at 15% 20%, rgba(230,0,215,.26), transparent 32%),
+            radial-gradient(circle at 90% 8%, rgba(0,166,200,.22), transparent 30%);
+          font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        &[data-theme-pack='paper'][data-theme-mode='light'] {
+          background-color: #f5ecd9;
+          background-image:
+            radial-gradient(circle at 20% 30%, rgba(42,33,23,.055) 0 1px, transparent 1px),
+            linear-gradient(90deg, rgba(42,33,23,.025), transparent 40%, rgba(42,33,23,.025));
+          background-size: 22px 22px, auto;
+          font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        &[data-theme-pack='bauhaus'][data-theme-mode='light'] {
+          background-color: #fff1b8;
+          background-image:
+            radial-gradient(circle at 12% 18%, rgba(220,38,38,.28) 0 74px, transparent 76px),
+            radial-gradient(circle at 88% 12%, rgba(37,99,235,.24) 0 60px, transparent 62px),
+            linear-gradient(135deg, transparent 64%, rgba(250,204,21,.34) 64%);
+          font-family: Arial, Helvetica, sans-serif;
+        }
+
+        &[data-theme-pack='aurora'][data-theme-mode='light'] {
+          background-color: #effefa;
+          background-image:
+            radial-gradient(circle at 18% 20%, rgba(15,159,142,.18), transparent 34%),
+            radial-gradient(circle at 82% 8%, rgba(124,58,237,.14), transparent 30%);
+        }
+
+        &[data-theme-pack='polaroid'][data-theme-mode='light'] {
+          background-color: #eadfcf;
+          background-image: radial-gradient(circle at 50% 10%, rgba(255,255,255,.44), transparent 34%);
         }
       `}
     >
@@ -186,13 +368,19 @@ export const App = () => {
 
       <style>
         {`
-          body { margin: 0; background: #1a1a2e; }
+          body {
+            margin: 0;
+            background-color: var(--bg-primary);
+            background-image: var(--app-bg-image);
+            background-size: var(--bg-size);
+            font-family: var(--font-ui);
+          }
           *, *::before, *::after { box-sizing: border-box; }
           ::-webkit-scrollbar { width: 8px; height: 8px; }
           ::-webkit-scrollbar-track { background: transparent; }
           ::-webkit-scrollbar-thumb {
-            background: var(--scrollbar-thumb, rgba(255,255,255,0.15));
-            border-radius: 4px;
+            background: var(--scrollbar-thumb);
+            border-radius: var(--radius-round);
           }
           @keyframes lightbox-enter {
             from { opacity: 0; }
@@ -217,8 +405,11 @@ export const App = () => {
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    border-bottom: 1px solid var(--card-border);
-                    background: var(--bg-secondary);
+                    border-bottom: var(--border-width) var(--border-style) var(--card-border);
+                    background-color: var(--surface-glass);
+                    background-image: var(--surface-bg-image);
+                    background-size: var(--surface-bg-size);
+                    backdrop-filter: var(--toolbar-backdrop-filter);
                     flex-shrink: 0;
                   `}
                 >
@@ -238,6 +429,11 @@ export const App = () => {
               overflow-x: hidden;
               min-width: 0;
               padding: 20px 24px;
+              background-color: var(--bg-primary);
+              background-image:
+                radial-gradient(circle at top right, var(--hero-glow-2), transparent 34%),
+                var(--app-bg-image);
+              background-size: auto, var(--bg-size);
             `}
           >
             {() => {

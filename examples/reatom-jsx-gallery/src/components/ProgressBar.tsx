@@ -21,7 +21,22 @@ export const ProgressBar = () => {
         padding: 40px 20px;
       `}
     >
-      <div css="font-size: 48px; user-select: none;">📂</div>
+      <div
+        css={`
+          width: 64px;
+          height: 64px;
+          border-radius: var(--radius-lg);
+          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          color: var(--accent-contrast);
+          display: grid;
+          place-items: center;
+          font-size: 28px;
+          box-shadow: var(--glow), 0 16px 40px var(--shadow);
+          user-select: none;
+        `}
+      >
+        ◈
+      </div>
 
       <h3
         css={`
@@ -40,8 +55,9 @@ export const ProgressBar = () => {
             width: 100%;
             height: 8px;
             background: var(--input-bg);
-            border-radius: 4px;
+            border-radius: var(--radius-round);
             overflow: hidden;
+            border: var(--border-width) var(--control-border-style) var(--card-border);
           `}
         >
           <div
@@ -53,7 +69,7 @@ export const ProgressBar = () => {
                 var(--accent),
                 var(--accent-hover)
               );
-              border-radius: 4px;
+              border-radius: var(--radius-round);
               transition: width 0.3s ease;
             `}
           />
@@ -93,15 +109,16 @@ export const ProgressBar = () => {
           font-weight: 500;
           color: var(--text-secondary);
           background: var(--input-bg);
-          border: 1px solid var(--input-border);
-          border-radius: 8px;
+          border: var(--border-width) var(--control-border-style) var(--input-border);
+          border-radius: var(--radius-round);
           cursor: pointer;
           transition: all 0.15s ease;
+          text-transform: var(--control-transform);
 
           &:hover {
             color: var(--accent);
             border-color: var(--accent);
-            background: rgba(233, 69, 96, 0.1);
+            background: var(--accent-soft);
           }
         `}
       >

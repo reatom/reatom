@@ -1,4 +1,4 @@
-import { theme } from '../model'
+import { themeMode } from '../model'
 
 const SunIcon = () => (
   <svg:svg
@@ -40,8 +40,8 @@ const MoonIcon = () => (
 
 export const ThemeToggle = () => {
   const handleClick = () => {
-    const next = theme() === 'light' ? 'dark' : 'light'
-    theme.set(next)
+    const next = themeMode() === 'light' ? 'dark' : 'light'
+    themeMode.set(next)
   }
 
   return (
@@ -51,9 +51,9 @@ export const ThemeToggle = () => {
       css={`
         width: 36px;
         height: 36px;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: var(--bg-secondary);
+        border: var(--border-width) var(--control-border-style) var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--input-bg);
         color: var(--text-primary);
         display: flex;
         align-items: center;
@@ -66,6 +66,8 @@ export const ThemeToggle = () => {
           border-color: var(--accent);
           color: var(--accent);
           transform: scale(1.05);
+          background: var(--hover-bg);
+          box-shadow: var(--glow);
         }
 
         &:active {
@@ -73,7 +75,7 @@ export const ThemeToggle = () => {
         }
       `}
     >
-      {() => (theme() === 'light' ? <MoonIcon /> : <SunIcon />)}
+      {() => (themeMode() === 'light' ? <SunIcon /> : <MoonIcon />)}
     </button>
   )
 }

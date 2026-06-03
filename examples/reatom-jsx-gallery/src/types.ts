@@ -23,7 +23,18 @@ export type SortField = 'name' | 'size' | 'date' | 'type' | 'dimensions'
 export type SortOrder = 'asc' | 'desc'
 export type ImageFit = 'contain' | 'cover' | 'fill' | 'none'
 export type GridGap = 'none' | 'small' | 'medium' | 'large' | 'xl'
-export type Theme = 'light' | 'dark'
+export type ThemeMode = 'light' | 'dark'
+export type ThemePack =
+  | 'blueprint'
+  | 'neon'
+  | 'terminal'
+  | 'paper'
+  | 'polaroid'
+  | 'obsidian'
+  | 'bauhaus'
+  | 'aurora'
+  | 'monochrome'
+  | 'retroOs'
 
 export const IMAGE_EXTENSIONS = [
   '.jpg',

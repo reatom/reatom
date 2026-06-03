@@ -151,10 +151,29 @@ export const slideshowInterval = atom(3000, 'slideshowInterval').extend(
 
 // Theme
 
-export const theme = reatomEnum(['light', 'dark'], {
-  name: 'theme',
+export const themePack = reatomEnum(
+  [
+    'blueprint',
+    'neon',
+    'terminal',
+    'paper',
+    'polaroid',
+    'obsidian',
+    'bauhaus',
+    'aurora',
+    'monochrome',
+    'retroOs',
+  ],
+  {
+    name: 'themePack',
+    initState: 'aurora',
+  },
+).extend(withLocalStorage('gallery.themePack'))
+
+export const themeMode = reatomEnum(['light', 'dark'], {
+  name: 'themeMode',
   initState: 'dark',
-}).extend(withLocalStorage('gallery.theme'))
+}).extend(withLocalStorage('gallery.themeMode'))
 
 // UI preferences
 

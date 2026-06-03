@@ -5,7 +5,7 @@ import {
   searchQuery,
   selectAllImages,
   selectedCount,
-  theme,
+  themeMode,
   viewMode,
   visibleIndexMap,
 } from '../model'
@@ -24,16 +24,22 @@ const ToolbarButton = ({
   <button
     on:click={onClick}
     css={`
-      padding: 6px 12px;
+      padding: 7px 13px;
       font-size: 13px;
-      font-weight: 500;
-      border: 1px solid var(--input-border);
-      border-radius: 8px;
+      font-weight: 650;
+      border: var(--border-width) var(--control-border-style) var(--input-border);
+      border-radius: var(--radius-sm);
       cursor: pointer;
       transition: all 0.15s ease;
       white-space: nowrap;
       background: ${variant === 'accent' ? 'var(--accent)' : 'var(--input-bg)'};
-      color: ${variant === 'accent' ? 'white' : 'var(--text-primary)'};
+      background-image: var(--surface-bg-image);
+      background-size: var(--surface-bg-size);
+      color: ${variant === 'accent'
+        ? 'var(--accent-contrast)'
+        : 'var(--text-primary)'};
+      box-shadow: ${variant === 'accent' ? 'var(--glow)' : 'none'};
+      text-transform: var(--control-transform);
 
       &:hover {
         background: ${variant === 'accent'
@@ -42,6 +48,8 @@ const ToolbarButton = ({
         border-color: ${variant === 'accent'
           ? 'var(--accent-hover)'
           : 'var(--text-muted)'};
+        transform: var(--card-hover-transform);
+        box-shadow: ${variant === 'accent' ? 'var(--card-hover-shadow)' : 'none'};
       }
     `}
   >
@@ -69,8 +77,8 @@ const ViewModeButton = ({
         align-items: center;
         justify-content: center;
         font-size: 16px;
-        border: 1px solid transparent;
-        border-radius: 6px;
+        border: var(--border-width) var(--control-border-style) transparent;
+        border-radius: var(--radius-sm);
         cursor: pointer;
         transition: all 0.15s ease;
         background: transparent;
@@ -78,8 +86,9 @@ const ViewModeButton = ({
 
         &[aria-selected='true'] {
           background: var(--accent);
-          color: white;
+          color: var(--accent-contrast);
           border-color: var(--accent);
+          box-shadow: var(--glow);
         }
         &:not([aria-selected='true']):hover {
           background: var(--hover-bg);
@@ -97,12 +106,16 @@ export const Toolbar = () => (
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 16px;
+      padding: 10px 18px;
       background: var(--toolbar-bg);
-      border-bottom: 1px solid var(--card-border);
-      backdrop-filter: blur(12px);
+      background-image: var(--surface-bg-image);
+      background-size: var(--surface-bg-size);
+      border-bottom: var(--border-width) var(--border-style) var(--card-border);
+      backdrop-filter: var(--toolbar-backdrop-filter);
+      box-shadow: var(--glow), 0 12px 32px var(--shadow);
+      clip-path: var(--surface-clip-path);
       flex-shrink: 0;
-      min-height: 52px;
+      min-height: 56px;
       z-index: 100;
       overflow-x: auto;
     `}
@@ -119,16 +132,36 @@ export const Toolbar = () => (
         css={`
           font-size: 18px;
           font-weight: 700;
-          color: var(--accent);
+          color: var(--text-primary);
           letter-spacing: -0.3px;
           user-select: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
         `}
       >
-        🖼️ Gallery
+        <span
+          css={`
+            width: 28px;
+            height: 28px;
+            border-radius: var(--radius-md);
+            background:
+              radial-gradient(circle at 30% 20%, var(--hero-glow-1), transparent 52%),
+              linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: var(--accent-contrast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--glow), 0 10px 24px var(--shadow);
+          `}
+        >
+          ◈
+        </span>
+        Gallery
       </span>
 
       <ToolbarButton
-        label="📂 Open"
+        label="Open"
         onClick={() => openFolder()}
         variant="accent"
       />
@@ -147,7 +180,7 @@ export const Toolbar = () => (
               white-space: nowrap;
             `}
           >
-            📁 {tree.name}
+            {tree.name}
           </span>
         )
       }}
@@ -157,12 +190,24 @@ export const Toolbar = () => (
       css={`
         width: 1px;
         height: 24px;
-        background: var(--card-border);
+        background: var(--border);
         flex-shrink: 0;
       `}
     />
 
-    <div css="display: flex; gap: 2px; flex-shrink: 0;">
+    <div
+      css={`
+        display: flex;
+        gap: 3px;
+        flex-shrink: 0;
+        padding: 3px;
+        border: var(--border-width) var(--control-border-style) var(--border);
+        border-radius: var(--radius-md);
+        background: var(--input-bg);
+        background-image: var(--surface-bg-image);
+        background-size: var(--surface-bg-size);
+      `}
+    >
       <ViewModeButton mode="grid" icon="⊞" onClick={() => viewMode.setGrid()} />
       <ViewModeButton mode="list" icon="☰" onClick={() => viewMode.setList()} />
       <ViewModeButton mode="lightbox" icon="⊡" onClick={() => viewMode.setLightbox()} />
@@ -173,7 +218,7 @@ export const Toolbar = () => (
       css={`
         width: 1px;
         height: 24px;
-        background: var(--card-border);
+        background: var(--border);
         flex-shrink: 0;
       `}
     />
@@ -193,9 +238,13 @@ export const Toolbar = () => (
           <span
             css={`
               font-size: 13px;
-              color: var(--accent);
+            color: var(--accent);
               font-weight: 500;
               white-space: nowrap;
+            background: var(--accent-soft);
+            border: var(--border-width) var(--control-border-style) var(--card-border);
+            border-radius: var(--radius-round);
+            padding: 4px 9px;
             `}
           >
             {count} selected
@@ -233,12 +282,12 @@ export const Toolbar = () => (
           placeholder="Search images..."
           model:value={searchQuery}
           css={`
-            width: 180px;
-            padding: 6px 10px 6px 32px;
+            width: 190px;
+            padding: 7px 11px 7px 32px;
             font-size: 13px;
             background: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 8px;
+            border: var(--border-width) var(--control-border-style) var(--input-border);
+            border-radius: var(--radius-round);
             color: var(--text-primary);
             outline: none;
             transition: all 0.15s ease;
@@ -248,7 +297,7 @@ export const Toolbar = () => (
             }
             &:focus {
               border-color: var(--accent);
-              box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.15);
+              box-shadow: 0 0 0 3px var(--focus-ring), var(--glow);
             }
           `}
         />
@@ -272,7 +321,7 @@ export const Toolbar = () => (
       css={`
         width: 1px;
         height: 24px;
-        background: var(--card-border);
+        background: var(--border);
         flex-shrink: 0;
       `}
     />
@@ -289,8 +338,8 @@ export const Toolbar = () => (
           justify-content: center;
           font-size: 16px;
           background: transparent;
-          border: 1px solid transparent;
-          border-radius: 6px;
+          border: var(--border-width) var(--control-border-style) transparent;
+          border-radius: var(--radius-sm);
           cursor: pointer;
           color: var(--text-secondary);
           transition: all 0.15s ease;
@@ -316,7 +365,7 @@ export const Toolbar = () => (
                 height: 14px;
                 font-size: 9px;
                 background: var(--accent);
-                color: white;
+                color: var(--accent-contrast);
                 border-radius: 50%;
                 display: flex;
                 align-items: center;
@@ -340,8 +389,8 @@ export const Toolbar = () => (
           justify-content: center;
           font-size: 16px;
           background: transparent;
-          border: 1px solid transparent;
-          border-radius: 6px;
+          border: var(--border-width) var(--control-border-style) transparent;
+          border-radius: var(--radius-sm);
           cursor: pointer;
           color: var(--text-secondary);
           transition: all 0.15s ease;
@@ -357,9 +406,9 @@ export const Toolbar = () => (
 
       <button
         on:click={() =>
-          theme() === 'dark' ? theme.setLight() : theme.setDark()
+          themeMode() === 'dark' ? themeMode.setLight() : themeMode.setDark()
         }
-        title="Toggle theme"
+        title="Toggle light/dark"
         css={`
           width: 32px;
           height: 32px;
@@ -368,8 +417,8 @@ export const Toolbar = () => (
           justify-content: center;
           font-size: 16px;
           background: transparent;
-          border: 1px solid transparent;
-          border-radius: 6px;
+          border: var(--border-width) var(--control-border-style) transparent;
+          border-radius: var(--radius-sm);
           cursor: pointer;
           color: var(--text-secondary);
           transition: all 0.15s ease;
@@ -380,7 +429,7 @@ export const Toolbar = () => (
           }
         `}
       >
-        {() => (theme() === 'dark' ? '☀️' : '🌙')}
+        {() => (themeMode() === 'dark' ? '🌙' : '☀️')}
       </button>
     </div>
   </header>
