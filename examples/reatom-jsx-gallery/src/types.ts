@@ -48,6 +48,8 @@ export const IMAGE_EXTENSIONS = [
   '.svg',
   '.avif',
   '.bmp',
+  '.dng',
+  '.arw',
 ]
 export const GRID_GAP_VALUES: Record<GridGap, number> = {
   none: 0,

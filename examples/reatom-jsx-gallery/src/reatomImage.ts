@@ -15,6 +15,8 @@ import {
   parseImageMeta,
   revokeThumbnail,
 } from './image-engine'
+import { extractRawPreview } from './image-engine/formats/raw'
+import type { ImageMeta } from './image-engine/types'
 
 const MAX_PARALLEL_THUMBNAILS = Math.max(
   2,
@@ -24,6 +26,13 @@ const activeThumbnailRequests = atom(0, 'thumbnail.activeRequests')
 
 export type ReatomImageOptions = {
   thumbnailOptions?: ThumbnailOptions
+  filename?: string
+}
+
+function isRawImageMeta(meta: ImageMeta | null): meta is ImageMeta & {
+  format: 'dng' | 'arw'
+} {
+  return meta?.format === 'dng' || meta?.format === 'arw'
 }
 
 export function reatomImage(
@@ -38,7 +47,7 @@ export function reatomImage(
 
   const meta = computed(async () => {
     const blob = await wrap(file())
-    return await wrap(parseImageMeta(blob))
+    return await wrap(parseImageMeta(blob, { filename: options?.filename }))
   }, `${name}.meta`).extend(withAsyncData())
 
   const thumbnail = computed(async () => {
@@ -64,6 +73,11 @@ export function reatomImage(
 
   const fullImageUrl = computed(async () => {
     const blob = await wrap(file())
+    const metaState = await wrap(meta())
+    if (isRawImageMeta(metaState)) {
+      const previewBlob = await wrap(extractRawPreview(blob, metaState.format))
+      if (previewBlob) return URL.createObjectURL(previewBlob)
+    }
     return URL.createObjectURL(blob)
   }, `${name}.fullUrl`).extend(withAsyncData())
 

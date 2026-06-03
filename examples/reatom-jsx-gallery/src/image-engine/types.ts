@@ -5,6 +5,8 @@ export type ImageFormat =
   | 'webp'
   | 'bmp'
   | 'svg'
+  | 'dng'
+  | 'arw'
   | 'unknown'
 
 export type ExifData = Record<string, string>

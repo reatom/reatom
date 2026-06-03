@@ -253,10 +253,9 @@ export const showFileSizes = reatomBoolean(false, 'showFileSizes').extend(
 )
 
 function createImageModel(imageSource: ImageFile): ImageModel {
-  const imageModel = reatomImage(
-    imageSource.fileHandle,
-    `image#${imageSource.id}`,
-  )
+  const imageModel = reatomImage(imageSource.fileHandle, `image#${imageSource.id}`, {
+    filename: imageSource.name,
+  })
   const selected = reatomBoolean(false, `image#${imageSource.id}.selected`)
   const favorite = reatomBoolean(
     false,
@@ -301,11 +300,12 @@ function createImageModel(imageSource: ImageFile): ImageModel {
     return true
   }, `image#${imageSource.id}.visible`)
   const width = computed(
-    () => imageModel.meta.data()?.width ?? 0,
+    () => imageModel.fullImage.data()?.naturalWidth ?? imageModel.meta.data()?.width ?? 0,
     `image#${imageSource.id}.width`,
   )
   const height = computed(
-    () => imageModel.meta.data()?.height ?? 0,
+    () =>
+      imageModel.fullImage.data()?.naturalHeight ?? imageModel.meta.data()?.height ?? 0,
     `image#${imageSource.id}.height`,
   )
 

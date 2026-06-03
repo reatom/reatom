@@ -312,19 +312,19 @@ export function findApp1ExifTiffBase(view: DataView): number | null {
   return null
 }
 
-export function parseExifTags(view: DataView): Record<string, string> | null {
-  const tiffBase = findApp1ExifTiffBase(view)
-  if (tiffBase === null) return null
-
+export function parseExifTagsAtTiffBase(
+  view: DataView,
+  tiffBase: number,
+): Record<string, string> | null {
   if (tiffBase + 8 > view.byteLength) return null
 
   const byteOrderMark = view.getUint16(tiffBase)
   if (byteOrderMark !== 0x4949 && byteOrderMark !== 0x4d4d) return null
 
-  const magic = readUint16(view, tiffBase + 2, byteOrderMark === 0x4949)
+  const littleEndian = byteOrderMark === 0x4949
+  const magic = readUint16(view, tiffBase + 2, littleEndian)
   if (magic !== 42) return null
 
-  const littleEndian = byteOrderMark === 0x4949
   const ifd0Offset = readUint32(view, tiffBase + 4, littleEndian)
   if (ifd0Offset === 0) return null
 
@@ -342,4 +342,10 @@ export function parseExifTags(view: DataView): Record<string, string> | null {
   if (interopIfd !== 0) readIfd(view, tiffBase, interopIfd, tags, 'interop')
 
   return Object.keys(tags).length > 0 ? tags : null
+}
+
+export function parseExifTags(view: DataView): Record<string, string> | null {
+  const tiffBase = findApp1ExifTiffBase(view)
+  if (tiffBase === null) return null
+  return parseExifTagsAtTiffBase(view, tiffBase)
 }

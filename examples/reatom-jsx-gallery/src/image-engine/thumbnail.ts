@@ -1,4 +1,5 @@
 import { extractExifThumbnail } from './formats/jpeg'
+import { extractRawPreview } from './formats/raw'
 import { parseImageMeta } from './header'
 import type { ImageMeta, ThumbnailOptions, ThumbnailResult } from './types'
 import { DEFAULT_MAX_SIZE, DEFAULT_QUALITY } from './types'
@@ -56,19 +57,22 @@ async function generateThumbnailFromBlob(
   return bitmapToThumbnailResult(bitmap, maxSize, quality, 'generated')
 }
 
-async function tryExifPath(
-  source: Blob,
+async function tryEmbeddedJpegPreviewPath(
+  previewBlob: Blob | null,
   maxSize: number,
   quality: number,
+  acceptSmallPreview = false,
 ): Promise<ThumbnailResult | null> {
-  try {
-    const exifBlob = await extractExifThumbnail(source)
-    if (!exifBlob) return null
+  if (!previewBlob) return null
 
-    const bitmap = await createImageBitmap(exifBlob)
+  try {
+    const bitmap = await createImageBitmap(previewBlob)
     const { width, height } = bitmap
 
-    const enoughSize = width >= maxSize / 2 || height >= maxSize / 2
+    const enoughSize =
+      acceptSmallPreview ||
+      width >= maxSize / 2 ||
+      height >= maxSize / 2
 
     if (!enoughSize) {
       bitmap.close()
@@ -79,6 +83,31 @@ async function tryExifPath(
   } catch {
     return null
   }
+}
+
+async function tryExifPath(
+  source: Blob,
+  maxSize: number,
+  quality: number,
+): Promise<ThumbnailResult | null> {
+  const exifBlob = await extractExifThumbnail(source)
+  return tryEmbeddedJpegPreviewPath(exifBlob, maxSize, quality)
+}
+
+async function tryRawPreviewPath(
+  source: Blob,
+  maxSize: number,
+  quality: number,
+  meta: ImageMeta | null,
+): Promise<ThumbnailResult | null> {
+  const rawFormat =
+    meta?.format === 'dng' || meta?.format === 'arw' ? meta.format : undefined
+  const rawPreviewBlob = await extractRawPreview(source, rawFormat)
+  return tryEmbeddedJpegPreviewPath(rawPreviewBlob, maxSize, quality, true)
+}
+
+function isRawFormat(meta: ImageMeta | null): boolean {
+  return meta?.format === 'dng' || meta?.format === 'arw'
 }
 
 export async function loadThumbnail(
@@ -100,6 +129,12 @@ export async function loadThumbnailWithMeta(
   if (meta?.format === 'jpeg') {
     const exifResult = await tryExifPath(source, maxSize, quality)
     if (exifResult) return exifResult
+  }
+
+  if (isRawFormat(meta)) {
+    const rawPreviewResult = await tryRawPreviewPath(source, maxSize, quality, meta)
+    if (rawPreviewResult) return rawPreviewResult
+    throw new Error('No embedded preview found in RAW file')
   }
 
   return generateThumbnailFromBlob(source, maxSize, quality, meta)

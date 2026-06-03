@@ -3,10 +3,30 @@ import { parseExifTags } from './formats/exif'
 import { parseGifMeta } from './formats/gif'
 import { checkExifThumbnailPresence, parseJpegMeta } from './formats/jpeg'
 import { parsePngMeta } from './formats/png'
+import {
+  extractRawPreview,
+  isTiffLike,
+  parseRawMeta,
+  type RawFormat,
+} from './formats/raw'
 import { parseSvgMeta } from './formats/svg'
 import { parseWebpMeta } from './formats/webp'
 import type { ImageFormat, ImageMeta } from './types'
 import { EXIF_READ_BYTES, HEADER_READ_BYTES } from './types'
+
+export type ParseImageMetaOptions = {
+  filename?: string
+}
+
+function preferredRawFormatFromFilename(
+  filename: string | undefined,
+): RawFormat | undefined {
+  if (!filename) return undefined
+  const lowerName = filename.toLowerCase()
+  if (lowerName.endsWith('.dng')) return 'dng'
+  if (lowerName.endsWith('.arw')) return 'arw'
+  return undefined
+}
 
 function detectFormatFromMagic(view: DataView): ImageFormat {
   if (view.byteLength < 4) return 'unknown'
@@ -43,7 +63,23 @@ function isSvgBlob(blob: Blob): boolean {
   return blob.type.toLowerCase() === 'image/svg+xml'
 }
 
-export async function parseImageMeta(source: Blob): Promise<ImageMeta | null> {
+async function readDecodedImageSize(
+  source: Blob,
+): Promise<{ width: number; height: number } | null> {
+  try {
+    const bitmap = await createImageBitmap(source)
+    const size = { width: bitmap.width, height: bitmap.height }
+    bitmap.close()
+    return size
+  } catch {
+    return null
+  }
+}
+
+export async function parseImageMeta(
+  source: Blob,
+  options?: ParseImageMetaOptions,
+): Promise<ImageMeta | null> {
   const headerSlice = source.slice(0, HEADER_READ_BYTES)
   const buffer = await headerSlice.arrayBuffer()
   const view = new DataView(buffer)
@@ -111,6 +147,27 @@ export async function parseImageMeta(source: Blob): Promise<ImageMeta | null> {
       format: 'bmp',
       isProgressive: false,
       hasExifThumbnail: false,
+    }
+  }
+
+  if (isTiffLike(view)) {
+    const rawMeta = parseRawMeta(
+      view,
+      preferredRawFormatFromFilename(options?.filename),
+      source.size,
+    )
+    if (rawMeta) {
+      const preview = await extractRawPreview(source, rawMeta.format)
+      const previewSize = preview ? await readDecodedImageSize(preview) : null
+
+      return {
+        width: previewSize?.width ?? rawMeta.width,
+        height: previewSize?.height ?? rawMeta.height,
+        format: rawMeta.format,
+        isProgressive: false,
+        hasExifThumbnail: rawMeta.hasPreview,
+        exif: rawMeta.exif,
+      }
     }
   }
 
