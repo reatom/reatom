@@ -382,59 +382,63 @@ export const imagesList = reatomLinkedList<
 ).extend(
   withConnectHook(() => {
     effect(() => {
-      const tree = folderTree()
-      if (!tree) {
-        imagesList.batch(() => imagesList.clear())
-        return
-      }
-
-      const images = flatImages()
-      const field = sortField()
-      const order = sortOrder()
-      const currentMap = peek(imagesList.map)
-
-      const models = images.map(
-        (img) => currentMap.get(img.id) ?? createImageModel(img),
-      )
-
-      const sorted = [...models].sort((a, b) => {
-        let comparison = 0
-        switch (field) {
-          case 'name':
-            comparison = a.source.name.localeCompare(b.source.name)
-            break
-          case 'size':
-            comparison = a.source.size - b.source.size
-            break
-          case 'date':
-            comparison = a.source.lastModified - b.source.lastModified
-            break
-          case 'type':
-            comparison = a.source.type.localeCompare(b.source.type)
-            break
-          case 'dimensions':
-            comparison = a.width() * a.height() - b.width() * b.height()
-            break
-        }
-        return order === 'asc' ? comparison : -comparison
-      })
-
-      const currentArray = peek(imagesList.array)
-      const currentIds = currentArray.map((m) => m.id)
-
-      const orderMatch =
-        currentIds.length === sorted.length &&
-        currentIds.every((id, i) => id === sorted[i]!.id)
-
-      if (orderMatch) return
-
-      imagesList.batch(() => {
-        imagesList.clear()
-        imagesList.createMany(sorted.map((model) => [model]))
-      })
+      syncImagesList()
     }, 'syncImagesList')
   }),
 )
+
+export const syncImagesList = action(() => {
+  const tree = folderTree()
+  if (!tree) {
+    imagesList.batch(() => imagesList.clear())
+    return
+  }
+
+  const images = flatImages()
+  const field = sortField()
+  const order = sortOrder()
+  const currentMap = peek(imagesList.map)
+
+  const models = images.map(
+    (img) => currentMap.get(img.id) ?? createImageModel(img),
+  )
+
+  const sorted = [...models].sort((a, b) => {
+    let comparison = 0
+    switch (field) {
+      case 'name':
+        comparison = a.source.name.localeCompare(b.source.name)
+        break
+      case 'size':
+        comparison = a.source.size - b.source.size
+        break
+      case 'date':
+        comparison = a.source.lastModified - b.source.lastModified
+        break
+      case 'type':
+        comparison = a.source.type.localeCompare(b.source.type)
+        break
+      case 'dimensions':
+        comparison = a.width() * a.height() - b.width() * b.height()
+        break
+    }
+    return order === 'asc' ? comparison : -comparison
+  })
+
+  const currentArray = peek(imagesList.array)
+  const currentIds = currentArray.map((m) => m.id)
+
+  const orderMatch =
+    currentIds.length === sorted.length &&
+    currentIds.every((id, i) => id === sorted[i]!.id)
+
+  if (orderMatch) return
+
+  imagesList.batch(() => {
+    imagesList.clear()
+    imagesList.createMany(sorted.map((model) => [model]))
+  })
+}, 'syncImagesList')
 
 const listLLPrev: LL_PREV = imagesList.LL_PREV
 const listLLNext: LL_NEXT = imagesList.LL_NEXT
