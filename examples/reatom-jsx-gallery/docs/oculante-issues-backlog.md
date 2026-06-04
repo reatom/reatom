@@ -1,0 +1,144 @@
+## Oculante Issues & Community Signals
+
+**Sources:** GitHub REST API via `curl` (540 non-PR issues, pages 1–8, June 2026), targeted issue-body fetches, [Oculante issues](https://github.com/woelper/oculante/issues) web listing, and cross-reference with `examples/reatom-jsx-gallery`, `nomacs-exif-reference.md`, and `nomacs-issues-backlog.md` structure. `gh` was unavailable in this environment; API access succeeded without auth for bulk fetch.
+
+**Community meta:** [#746](https://github.com/woelper/oculante/issues/746) (open, 27+ comments) tracks **Migration from Notan** — large UI/render churn, keybind regressions ([#784](https://github.com/woelper/oculante/issues/784) closed), and ongoing breakage in zen/borderless/compare flows. [#431](https://github.com/woelper/oculante/issues/431) (open) centralizes **UI Redesign** debt; [#515](https://github.com/woelper/oculante/issues/515) tracks file-manager UX. Users praise Oculante as a fast, keyboard-driven **viewer + light editor** (filters, crop, compare, flipbook) but report desktop fragility: RAM blowups ([#508](https://github.com/woelper/oculante/issues/508)), decode panics on exotic RAW ([#560](https://github.com/woelper/oculante/issues/560)), Wayland/i3 fullscreen quirks ([#689](https://github.com/woelper/oculante/issues/689), [#781](https://github.com/woelper/oculante/issues/781)), and packaging friction ([#664](https://github.com/woelper/oculante/issues/664), [#93](https://github.com/woelper/oculante/issues/93)).
+
+**reatom-jsx-gallery today (baseline):** File System Access API folder ingest; grid / list / table views; debounced filters (type, size, substring search, subfolders); sort; lightbox with zoom/pan, preload neighbor, **filter-aware** navigation and windowed filmstrip; slideshow; EXIF panel (`exifDisplay.ts`, nomacs-aligned labels); TS parsers for JPEG/PNG/WebP/BMP/SVG/GIF + **DNG/ARW embedded preview** (`rawPreviewScanPool.ts`); orientation via CSS `image-orientation` + manual bitmap path; favorites/selection/download/copy-JPEG; multi-theme PWA shell. **Not present:** pixel editor, filter stack, slide-compare, flipbook mode, metadata write, CLI, Zen chrome, color management, depth-map display, most exotic RAW demosaic, HEIC sequence playback.
+
+---
+
+### Feature demand taxonomy (grouped themes)
+
+| Theme | What users want | Representative signals | Gallery implication |
+|--------|-----------------|------------------------|---------------------|
+| **Flipbook & folder browse** | Fast sequential folder view; regex subset; index slider; GIF/WebP animation in grid | [#730](https://github.com/woelper/oculante/issues/730), [#714](https://github.com/woelper/oculante/issues/714), [#756](https://github.com/woelper/oculante/issues/756), [#275](https://github.com/woelper/oculante/issues/275), [#193](https://github.com/woelper/oculante/issues/193) | Optional “cull mode” = lightbox-only + `Ctrl+F` regex on `visible`; virtualized filmstrip already partial |
+| **Compare & slide** | A/B slider, persistent zoom per pane, scrubber vs list position isolation | [#466](https://github.com/woelper/oculante/issues/466), [#795](https://github.com/woelper/oculante/issues/795), [#589](https://github.com/woelper/oculante/issues/589), [#676](https://github.com/woelper/oculante/issues/676) (fixed [#586](https://github.com/woelper/oculante/issues/586)) | CSS `clip-path` or dual `<img>` + range input; separate transform atoms per pane |
+| **RAW & embedded preview** | More camera RAW; honest HDR HEIF; no decoder panic | [#558](https://github.com/woelper/oculante/issues/558), [#559](https://github.com/woelper/oculante/issues/559), [#560](https://github.com/woelper/oculante/issues/560), [#710](https://github.com/woelper/oculante/issues/710), [#528](https://github.com/woelper/oculante/issues/528) (closed DNG) | Stay embed-first; badge “camera JPEG”; sandbox worker errors → `previewOnly` |
+| **HEIC / JXL / AVIF** | Save-as modern codecs; sequences; associated alpha; tiled HEIF limits | [#444](https://github.com/woelper/oculante/issues/444), [#777](https://github.com/woelper/oculante/issues/777), [#315](https://github.com/woelper/oculante/issues/315), [#683](https://github.com/woelper/oculante/issues/683), [#181](https://github.com/woelper/oculante/issues/181) (closed jxl-oxide) | Browser `ImageDecoder` where supported; BMFF EXIF path per `nomacs-exif-reference.md`; chip when OS decode missing |
+| **EXIF & metadata** | Rotation on all formats; CLI probe; depth/auxiliary maps; preserve on edit | [#601](https://github.com/woelper/oculante/issues/601), [#395](https://github.com/woelper/oculante/issues/395) (closed), [#669](https://github.com/woelper/oculante/issues/669), [#688](https://github.com/woelper/oculante/issues/688), [#127](https://github.com/woelper/oculante/issues/127) (closed) | Read-only panel + `orientation.ts` for non-JPEG; never strip sidecars; optional XMP write later |
+| **Performance & memory** | Preload; sane RAM on huge images; NAS animation stutter; WebP speed | [#20](https://github.com/woelper/oculante/issues/20), [#508](https://github.com/woelper/oculante/issues/508), [#782](https://github.com/woelper/oculante/issues/782), [#715](https://github.com/woelper/oculante/issues/715), [#275](https://github.com/woelper/oculante/issues/275) | `createImageBitmap` downscale cap; worker pool for RAW scan (done); avoid full-file decode in main thread |
+| **UI / Zen / input** | Borderless filename, touch pan vs zoom, minimap, contain/center, i3 fullscreen | [#713](https://github.com/woelper/oculante/issues/713), [#125](https://github.com/woelper/oculante/issues/125), [#139](https://github.com/woelper/oculante/issues/139), [#352](https://github.com/woelper/oculante/issues/352), [#689](https://github.com/woelper/oculante/issues/689), [#746](https://github.com/woelper/oculante/issues/746) | PWA: `visualViewport`, persisted chrome; no zen toast spam; document shortcuts |
+| **Editing & filters** | Non-destructive stack, histogram, channels, crop, paint, color management | [#606](https://github.com/woelper/oculante/issues/606), [#679](https://github.com/woelper/oculante/issues/679), [#258](https://github.com/woelper/oculante/issues/258), [#91](https://github.com/woelper/oculante/issues/91), [#455](https://github.com/woelper/oculante/issues/455) | Out of scope v1; export pipeline only if asked |
+| **Crashes & platform** | Borderless drag panic, unicode paths, Wayland DnD, directory load hang | [#733](https://github.com/woelper/oculante/issues/733), [#721](https://github.com/woelper/oculante/issues/721), [#781](https://github.com/woelper/oculante/issues/781), [#507](https://github.com/woelper/oculante/issues/507), [#800](https://github.com/woelper/oculante/issues/800) (closed CVE) | Web: bounded concurrent parses; sanitize display names; FSA permission re-prompt |
+| **Packaging & CLI** | Homebrew, signed releases, stdin file list, remote URL open | [#664](https://github.com/woelper/oculante/issues/664), [#681](https://github.com/woelper/oculante/issues/681) (closed), [#669](https://github.com/woelper/oculante/issues/669), [#697](https://github.com/woelper/oculante/issues/697) (closed) | Static deploy + deep-link `?files=` only if product needs it |
+
+---
+
+### Bugs that imply design requirements (web gallery)
+
+| Bug pattern | Issue(s) | Design requirement for web |
+|-------------|----------|----------------------------|
+| **Navigation desync / skip** | [#776](https://github.com/woelper/oculante/issues/776) — next/prev sometimes shows same image | After filter/sort/nav, always derive index from `visible` list; force image `key` remount on id change |
+| **Compare state clobber** | [#586](https://github.com/woelper/oculante/issues/586) → [#676](https://github.com/woelper/oculante/issues/676) | Separate scrubber index vs compare-set ids; no shared mutable “current position” |
+| **Compare UI artifacts** | [#589](https://github.com/woelper/oculante/issues/589), [#503](https://github.com/woelper/oculante/issues/503) | Tear down filter/canvas layer when switching compare slot; don’t reuse GPU buffer across images |
+| **Fullscreen chrome trap** | [#502](https://github.com/woelper/oculante/issues/502), [#690](https://github.com/woelper/oculante/issues/690) | Fullscreen API: persist filmstrip/toolbar toggles in `localStorage`; always one visible exit |
+| **EXIF rotation format gap** | [#601](https://github.com/woelper/oculante/issues/601), [#395](https://github.com/woelper/oculante/issues/395) | Apply `image-orientation: from-image` for PNG/WebP/HEIC when decoder respects tag; test non-JPEG IFD |
+| **RAM / dimension limits** | [#508](https://github.com/woelper/oculante/issues/508), [#782](https://github.com/woelper/oculante/issues/782) | Refuse or downscale >40MP in UI; stream decode via `createImageBitmap` resize options |
+| **RAW decoder panic** | [#560](https://github.com/woelper/oculante/issues/560) | Worker try/catch; fall back to “no preview” chip, never take down gallery |
+| **GIF / animation fidelity** | [#654](https://github.com/woelper/oculante/issues/654), [#504](https://github.com/woelper/oculante/issues/504), [#323](https://github.com/woelper/oculante/issues/323) | Copy/download uses full blob; grid uses `ImageDecoder` loop with sane repeat cap |
+| **Config churn** | [#448](https://github.com/woelper/oculante/issues/448) | Debounce `localStorage` / IndexedDB writes (Reatom `withLocalStorage` batch) |
+| **Unicode / special paths** | [#721](https://github.com/woelper/oculante/issues/721) | Use `file.name` for display only; stable `id` from handle + relative path |
+| **Touch vs wheel semantics** | [#125](https://github.com/woelper/oculante/issues/125), [#768](https://github.com/woelper/oculante/issues/768) (closed trackpad) | Pinch = zoom, two-finger pan = pan when zoomed; setting to swap |
+| **Destructive ops without confirm** | [#348](https://github.com/woelper/oculante/issues/348) | Any future delete/overwrite: modal + sidecar awareness |
+
+**Closed-issue patterns worth copying:** [#676](https://github.com/woelper/oculante/issues/676) isolated compare-list vs scrubber positions — implies **regression tests when adding multi-pane navigation**. [#395](https://github.com/woelper/oculante/issues/395) addressed EXIF rotation globally — mirror in `orientation.ts` tests for all parsers, not only JPEG.
+
+---
+
+### Enhancement requests we can leapfrog in web
+
+| Area | Oculante gap | Web advantage |
+|------|--------------|---------------|
+| **Gallery-first UX** | Flipbook is sequential overlay; file manager tracker [#515](https://github.com/woelper/oculante/issues/515) | jsx-gallery is grid/table-first with folder tree + filters baked in |
+| **Flipbook regex subset** | [#730](https://github.com/woelper/oculante/issues/730) — keyboard regex bar for flipbook only | Reuse `searchQuery` + `searchIsRegex` on `visible`; lightbox = flipbook with filters |
+| **Filter-aware navigation** | [#776](https://github.com/woelper/oculante/issues/776) skip bugs | `findVisibleLightboxNeighbor` already skips hidden items |
+| **Memory safety on huge rasters** | [#508](https://github.com/woelper/oculante/issues/508), [#782](https://github.com/woelper/oculante/issues/782) | Browser can downscale at decode; no 115GB host RAM path |
+| **Zero-install + share** | Brew/signing [#664](https://github.com/woelper/oculante/issues/664), [#665](https://github.com/woelper/oculante/issues/665) | Static PWA; demo URL with sample folder |
+| **Honest RAW preview** | [#710](https://github.com/woelper/oculante/issues/710) HDR HEIF inconsistency | Label embedded preview; no false “developed RAW” |
+| **Slide compare** | [#466](https://github.com/woelper/oculante/issues/466) open | Dual-pane lightbox + slider is pure DOM/CSS — no Notan migration |
+| **Preload neighbors** | [#20](https://github.com/woelper/oculante/issues/20) | `lightboxPreloadImageUrl` exists — extend to ±2 visible ids |
+| **EXIF panel live bind** | Desktop ImageInfo desync reports | Reatom `lightboxImage` → `parseImageMeta` effect (same lesson as nomacs [#1549](https://github.com/nomacs/nomacs/issues/1549)) |
+| **No editor scope creep** | Paint/crop crash cluster [#455](https://github.com/woelper/oculante/issues/455), [#677](https://github.com/woelper/oculante/issues/677) (closed perspective) | Stay viewer; avoid Rust-scale filter graph in TS |
+
+---
+
+### Anti-patterns Oculante users complain about (avoid in our design)
+
+1. **Shared navigation state across modes** — Compare scrubber clobbered list position ([#586](https://github.com/woelper/oculante/issues/586)); fix [#676](https://github.com/woelper/oculante/issues/676) shows how easy this regresses.
+2. **Stale frame after next/prev** — [#776](https://github.com/woelper/oculante/issues/776): don’t reuse image element without invalidating src/key.
+3. **Unbounded memory on large dimensions** — [#508](https://github.com/woelper/oculante/issues/508): always cap decode size for UI, offer “open original” separately.
+4. **Decoder panic = app death** — [#560](https://github.com/woelper/oculante/issues/560): isolate RAW/HEIF in workers; surface recoverable errors.
+5. **Format-specific EXIF** — [#601](https://github.com/woelper/oculante/issues/601): one orientation policy across JPEG/PNG/HEIC/RAW preview paths.
+6. **Zen/borderless hides recovery** — [#690](https://github.com/woelper/oculante/issues/690), [#502](https://github.com/woelper/oculante/issues/502): never one-way hide chrome in fullscreen.
+7. **GIF treated as still** — [#654](https://github.com/woelper/oculante/issues/654): copy/export must preserve animation container.
+8. **Compare + edit layer bleed** — [#503](https://github.com/woelper/oculante/issues/503), [#589](https://github.com/woelper/oculante/issues/589): reset overlays on image switch.
+9. **Config write on every tweak** — [#448](https://github.com/woelper/oculante/issues/448): debounce persistence.
+10. **Over-promising color fidelity** — [#258](https://github.com/woelper/oculante/issues/258), [#91](https://github.com/woelper/oculante/issues/91), [#710](https://github.com/woelper/oculante/issues/710): document sRGB/browser limits; optional ICC read later.
+
+---
+
+### Actionable backlog (28 items)
+
+| # | Feature | Issue | Web-first implementation notes | jsx-gallery status |
+|---|---------|-------|--------------------------------|-------------------|
+| 1 | Flipbook regex filter on folder | [#730](https://github.com/woelper/oculante/issues/730) | `searchIsRegex` + focus filter panel; lightbox navigates `visible` only | Partial (substring filter) |
+| 2 | Slide comparison (A/B wipe) | [#466](https://github.com/woelper/oculante/issues/466) | Second image in lightbox; `clip-path` driven by range input | **Gap** |
+| 3 | Compare persistent zoom per pane | [#795](https://github.com/woelper/oculante/issues/795) | `compareZoomA/B` atoms; don’t reset on scrub | **Gap** |
+| 4 | Fix next/prev skip / stale frame | [#776](https://github.com/woelper/oculante/issues/776) | Remount on `lightboxImage.id`; audit `findVisibleLightboxNeighbor` | Verify |
+| 5 | Isolated compare tray vs filmstrip index | [#676](https://github.com/woelper/oculante/issues/676), [#586](https://github.com/woelper/oculante/issues/586) | `compareSet` ids separate from `lightboxIndex` | **Gap** |
+| 6 | Preload ±1..2 visible neighbors | [#20](https://github.com/woelper/oculante/issues/20) | Extend `lightboxPreloadImageUrl` to queue | Partial |
+| 7 | Huge image decode cap / warning | [#782](https://github.com/woelper/oculante/issues/782), [#508](https://github.com/woelper/oculante/issues/508) | Max edge 8192 for display; banner if truncated | **Gap** |
+| 8 | NAS / slow FS: lazy thumb priority | [#715](https://github.com/woelper/oculante/issues/715) | `requestIdleCallback` thumb queue; cancel on scroll | Partial |
+| 9 | CR3 / RW2 / RAF preview support | [#558](https://github.com/woelper/oculante/issues/558), [#559](https://github.com/woelper/oculante/issues/559), [#560](https://github.com/woelper/oculante/issues/560) | Extend `raw.ts` magic sniff; worker guard for panic | Partial (DNG/ARW) |
+| 10 | Canon HDR HEIF honesty | [#710](https://github.com/woelper/oculante/issues/710) | “HDR HEIF — preview may vary” chip; no fake develop | **Gap** |
+| 11 | HEIC sequences / live photos | [#777](https://github.com/woelper/oculante/issues/777) | BMFF item iteration; pick cover frame | **Gap** |
+| 12 | AVIF / JXL animation in grid | [#193](https://github.com/woelper/oculante/issues/193), [#189](https://github.com/woelper/oculante/issues/189) | `ImageDecoder` loop in cell | **Gap** |
+| 13 | EXIF rotation on PNG/WebP/HEIC | [#601](https://github.com/woelper/oculante/issues/601), [#395](https://github.com/woelper/oculante/issues/395) | Parser + CSS orientation on all `ImageMeta` paths | Partial |
+| 14 | Portrait depth map display | [#688](https://github.com/woelper/oculante/issues/688) | Parse auxiliary image in EXIF/XMP; optional panel tab | **Gap** |
+| 15 | CLI / URL metadata probe | [#669](https://github.com/woelper/oculante/issues/669) | Dev-only: `?meta=` JSON endpoint or worker message | **Gap** |
+| 16 | Minimap when panned outside viewport | [#139](https://github.com/woelper/oculante/issues/139) | Canvas overlay bound to `lightboxPan`/`zoom` | **Gap** |
+| 17 | Contain + center in viewport | [#352](https://github.com/woelper/oculante/issues/352) | `object-fit: contain` policy atom vs “cover” | Partial (fit button) |
+| 18 | Touchpad pan vs zoom preference | [#125](https://github.com/woelper/oculante/issues/125) | Setting: wheel = pan when zoom>1 | Partial |
+| 19 | Animated GIF copy preserves all frames | [#654](https://github.com/woelper/oculante/issues/654) | `copy` uses original `File` blob | Verify download path |
+| 20 | GIF repeat / player cap | [#504](https://github.com/woelper/oculante/issues/504) | `iterationCount` limit in decoder loop | **Gap** |
+| 21 | WebP decode performance | [#275](https://github.com/woelper/oculante/issues/275) | Prefer `createImageBitmap`; cache thumb blobs in IDB | Partial |
+| 22 | Associated alpha / premultiply | [#315](https://github.com/woelper/oculante/issues/315) | `colorSpace` + unpremultiply when drawing to canvas | **Gap** |
+| 23 | Color management / gamma | [#258](https://github.com/woelper/oculante/issues/258), [#91](https://github.com/woelper/oculante/issues/91) | Document limitation; optional `display-p3` CSS | **Gap** |
+| 24 | Save-as AVIF/JXL export | [#444](https://github.com/woelper/oculante/issues/444) | Canvas `toBlob` where browser encodes | Partial (JPEG copy) |
+| 25 | Fullscreen + i3 / WM quirks | [#689](https://github.com/woelper/oculante/issues/689) | Standard Fullscreen API only; fallback borderless CSS | N/A (browser) |
+| 26 | Unicode / special char filenames | [#721](https://github.com/woelper/oculante/issues/721) | NFC normalize display; stable internal id | Verify |
+| 27 | Delete / overwrite confirm | [#348](https://github.com/woelper/oculante/issues/348) | Modal before `removeEntry` (future) | **Gap** (no delete) |
+| 28 | Debounced settings persistence | [#448](https://github.com/woelper/oculante/issues/448) | Batch `withLocalStorage` writes 300ms | Partial |
+
+---
+
+### Cross-reference summary: where jsx-gallery already wins
+
+- **Gallery-first product** vs Oculante flipbook/file-manager overlay ([#515](https://github.com/woelper/oculante/issues/515), [#730](https://github.com/woelper/oculante/issues/730)) — grid/list/table + folder tree are default.
+- **Filter-aware lightbox** — avoids [#776](https://github.com/woelper/oculante/issues/776)-class skips when filters hide items (if index logic stays tied to `visible`).
+- **EXIF/orientation spec** — `nomacs-exif-reference.md` → `orientation.ts` / `exifDisplay.ts`; addresses [#395](https://github.com/woelper/oculante/issues/395) lessons and [#601](https://github.com/woelper/oculante/issues/601) risk for non-JPEG.
+- **RAW preview without host RAM cliff** — embedded JPEG + worker scan; not [#508](https://github.com/woelper/oculante/issues/508)-style full raster decode.
+- **No Notan migration tax** — [#746](https://github.com/woelper/oculante/issues/746) churn doesn’t apply; ship narrow slices behind flags.
+- **Zero-install demos** — vs Homebrew/packaging threads ([#664](https://github.com/woelper/oculante/issues/664), [#93](https://github.com/woelper/oculante/issues/93)).
+
+**Highest-impact next slices (from open velocity + viewer workflow):** (1) [#730](https://github.com/woelper/oculante/issues/730)+[#776](https://github.com/woelper/oculante/issues/776) navigation/filter polish, (2) [#466](https://github.com/woelper/oculante/issues/466)+[#795](https://github.com/woelper/oculante/issues/795) compare UX, (3) [#782](https://github.com/woelper/oculante/issues/782)+[#20](https://github.com/woelper/oculante/issues/20) decode/preload bounds, (4) [#558](https://github.com/woelper/oculante/issues/558)–[#560](https://github.com/woelper/oculante/issues/560)+[#710](https://github.com/woelper/oculante/issues/710) format honesty.
+
+---
+
+### Closed issues with portable solutions
+
+| Issue | Theme | Takeaway for gallery |
+|-------|-------|----------------------|
+| [#395](https://github.com/woelper/oculante/issues/395) | EXIF rotation | Global orientation handling — test all formats in `orientation.test.ts` |
+| [#237](https://github.com/woelper/oculante/issues/237), [#446](https://github.com/woelper/oculante/issues/446) | HEIF | libheif on desktop — web uses native decode + future BMFF parser |
+| [#181](https://github.com/woelper/oculante/issues/181) | JXL | jxl-oxide path — watch `ImageDecoder` for JXL in Chromium |
+| [#683](https://github.com/woelper/oculante/issues/683) | HEIF tiled | Security/memory limits on tiled HEIF — cap read size like nomacs 512KB EXIF slice |
+| [#528](https://github.com/woelper/oculante/issues/528) | DNG | DNG open landed — gallery already extracts embedded preview |
+| [#676](https://github.com/woelper/oculante/issues/676) | Compare nav | Separate scrubber vs list positions — model as two atoms in compare mode |
+| [#784](https://github.com/woelper/oculante/issues/784) | Keybinds | Document shortcuts in UI when changing bindings (migration fallout) |
+| [#127](https://github.com/woelper/oculante/issues/127) | Metadata write | PNG rotate stripped XMP/ICC — if adding rotate write, preserve sidecars |
+| [#768](https://github.com/woelper/oculante/issues/768) | Trackpad | Scroll speed tuned — mirror sensitivity setting for wheel/pinch |
+| [#681](https://github.com/woelper/oculante/issues/681), [#697](https://github.com/woelper/oculante/issues/697) | CLI | Stdin file list — optional `postMessage` ingest for embedded demo |
+| [#684](https://github.com/woelper/oculante/issues/684) | HEIF decode opts | Decoder options matter — pass `{ preferAnimation: false }` where applicable |
+| [#800](https://github.com/woelper/oculante/issues/800) | Security | turbojpeg CVE — keep deps pinned; gallery uses browser codecs primarily |

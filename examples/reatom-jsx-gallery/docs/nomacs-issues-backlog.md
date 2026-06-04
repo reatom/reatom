@@ -1,0 +1,145 @@
+## Nomacs Issues & Community Signals
+
+**Sources:** GitHub API (100 most recently updated issues, June 2026), targeted issue/discussion fetches, local clone at `/Users/artalar/code/nomacs`, and cross-reference with `examples/reatom-jsx-gallery` plus `nomacs-exif-reference.md`. `gh` was unavailable; API was rate-limited after the initial bulk fetch.
+
+**Community meta:** [#987](https://github.com/nomacs/nomacs/issues/987) (open, 41+ comments) frames maintenance risk—users praise speed and format breadth but fear slow upstream velocity. Competing viewers (ImageGlass, OS defaults) are cited when nomacs lacks gallery/culling polish or platform fit. Several active contributors are web developers willing to triage—relevant for a web-first gallery strategy.
+
+**reatom-jsx-gallery today (baseline):** File System Access API folder ingest; grid / list / table views; debounced filters (type, size, substring search, subfolders); sort; lightbox with zoom/pan, preload, **filter-aware** navigation and 11-thumb filmstrip (`thumbnailWindow`); slideshow; EXIF panel aligned with nomacs display rules; TS parsers for JPEG/PNG/WebP/BMP/SVG/GIF + **DNG/ARW embedded preview** (worker-assisted scan); orientation via CSS `image-orientation` + manual bitmap path; favorites/selection/download/copy-JPEG; multi-theme PWA shell. **Not present:** metadata write, ratings, RAW+JPEG pairing, dual-pane compare/sync, regex find, selection-only filmstrip filter, OS Explorer sort, batch export, destructive file ops.
+
+---
+
+### Feature demand taxonomy (grouped themes)
+
+| Theme | What users want | Representative signals | Gallery implication |
+|--------|-----------------|------------------------|---------------------|
+| **Culling & library hygiene** | One logical photo per shot; fast variant comparison; ratings that stick | [#1587](https://github.com/nomacs/nomacs/issues/1587), [#1576](https://github.com/nomacs/nomacs/issues/1576), [#1482](https://github.com/nomacs/nomacs/issues/1482), `filterDuplicats` in `DkSettings` | Pair RAW+JPEG; “compare set” filter; XMP sidecar writes via FS API |
+| **Find / filter / navigate** | Regex find, filename filters, filmstrip scoped to subset, sort-stable position | [#1593](https://github.com/nomacs/nomacs/issues/1593), [#1592](https://github.com/nomacs/nomacs/issues/1592), [#1576](https://github.com/nomacs/nomacs/issues/1576) | Ctrl+F must **open** filter UI, never silently clear; scroll-sync on reorder |
+| **Zoom / pan / viewport** | Predictable fit-on-open, keep-zoom across similar sizes, edge-bounded pan, no jumps at 100% | [#1500](https://github.com/nomacs/nomacs/issues/1500), [#1575](https://github.com/nomacs/nomacs/issues/1575), [#1573](https://github.com/nomacs/nomacs/issues/1573), [#1542](https://github.com/nomacs/nomacs/issues/1542), PR [#1516](https://github.com/nomacs/nomacs/pull/1516) | Separate “display zoom” from “pixel zoom”; fuzzy dimension match; continuous scale math |
+| **Multi-instance sync & compare** | Linked zoom/pan across windows; overview navigator | [#1585](https://github.com/nomacs/nomacs/issues/1585), [#521](https://github.com/nomacs/nomacs/issues/521), [#757](https://github.com/nomacs/nomacs/issues/757) (closed) | Web: split view + `BroadcastChannel` or two-pane lightbox; minimap as canvas overlay |
+| **Thumbnails & filmstrip** | Strip always recoverable; no overlap clipping; orientation-safe thumb cache | [#1590](https://github.com/nomacs/nomacs/issues/1590), [#1059](https://github.com/nomacs/nomacs/issues/1059), [#1510](https://github.com/nomacs/nomacs/issues/1510), [#1589](https://github.com/nomacs/nomacs/issues/1589) (closed) | Full-width strip; dock/overlap modes; never rotate+clear EXIF in cache |
+| **RAW & embedded preview** | Fast cull on embedded JPEG; tone-accurate DNG; exotic RAW (X3F) | [#1587](https://github.com/nomacs/nomacs/issues/1587), [#1578](https://github.com/nomacs/nomacs/issues/1578), [#1563](https://github.com/nomacs/nomacs/issues/1563) | Preview-first pipeline; optional WASM demosaic later; “+RAW” badge |
+| **Metadata & EXIF** | Rich panel, live updates, safe writes, sidecars for RAW | [#1553](https://github.com/nomacs/nomacs/issues/1553), [#1549](https://github.com/nomacs/nomacs/issues/1549), [#1482](https://github.com/nomacs/nomacs/issues/1482), [#1438](https://github.com/nomacs/nomacs/issues/1438) | Read-only first; XMP sidecar via `createWritable`; cap MakerNote size (nomacs 2000-tag rule) |
+| **Gallery / grid UX** | Folder-scoped grid—explicit product ask | [#1544](https://github.com/nomacs/nomacs/issues/1544) | **Core positioning** for jsx-gallery vs nomacs “viewer + thumb pane” |
+| **Platform & input** | Wayland, Win11 gestures, AppImage friction, i18n | [#1536](https://github.com/nomacs/nomacs/issues/1536), [#1491](https://github.com/nomacs/nomacs/issues/1491), [#1519](https://github.com/nomacs/nomacs/issues/1519) | Pointer Events + `visualViewport`; no restart for locale; installable PWA |
+| **Batch & editing** | Format conversion, manipulators, history | [#107](https://github.com/nomacs/nomacs/issues/107), [#1557](https://github.com/nomacs/nomacs/issues/1557), [#1558](https://github.com/nomacs/nomacs/issues/1558) | Out of scope for v1 viewer; optional export queue later |
+| **OS integration** | Match Explorer/Finder sort order | [#1101](https://github.com/nomacs/nomacs/issues/1101) | Web cannot read OS sort—offer **manual order** + import JSON order file |
+
+---
+
+### Bugs that imply design requirements (web gallery)
+
+| Bug pattern | Issue(s) | Design requirement for web |
+|-------------|----------|----------------------------|
+| **Action wiring / shortcut semantics** | [#1593](https://github.com/nomacs/nomacs/issues/1593) — Ctrl+F clears filter instead of opening find | One intent per shortcut; non-toggle actions must not pass “unchecked=false” semantics; document shortcuts in UI |
+| **Stale UI after list mutation** | [#1592](https://github.com/nomacs/nomacs/issues/1592) | On sort/filter change, recompute **active index** and `scrollIntoView` filmstrip + grid selection |
+| **Fullscreen chrome trap** | [#1590](https://github.com/nomacs/nomacs/issues/1590), [#993](https://github.com/nomacs/nomacs/issues/993), [#1580](https://github.com/nomacs/nomacs/issues/1580) (closed) | Fullscreen API: always expose toggle for filmstrip/toolbar; persist panel visibility in `localStorage` |
+| **Sync state machine bugs** | [#1585](https://github.com/nomacs/nomacs/issues/1585), [#521](https://github.com/nomacs/nomacs/issues/521) | If implementing linked panes, single source of truth for transform; debounce rapid key-repeat navigation |
+| **Zoom discontinuity at fit↔100%** | [#1575](https://github.com/nomacs/nomacs/issues/1575), [#1550](https://github.com/nomacs/nomacs/issues/1550) (closed) | Use one continuous scale domain; avoid switching formulas at viewport boundary |
+| **Orientation mishandled in derived assets** | [#1510](https://github.com/nomacs/nomacs/issues/1510), [#1438](https://github.com/nomacs/nomacs/issues/1438) | Thumbnails: bake rotation into pixels **or** use `image-orientation: from-image`—never strip EXIF in read-only gallery |
+| **RAW display mismatch** | [#1578](https://github.com/nomacs/nomacs/issues/1578) | Label embedded preview as “camera JPEG”; defer demosaic; optional exposure metadata hint |
+| **Metadata UI desync** | [#1549](https://github.com/nomacs/nomacs/issues/1549) | Reatom: bind info panel to `lightboxImage` + invalidate on navigation, not cached snapshot |
+| **Thumbnail pane layout** | [#1059](https://github.com/nomacs/nomacs/issues/1059), [#644](https://github.com/nomacs/nomacs/issues/644) | Filmstrip `position: fixed` with safe-area insets; don’t reduce main viewport unpredictably |
+| **Ratings silently lost** | [#1482](https://github.com/nomacs/nomacs/issues/1482), [#1562](https://github.com/nomacs/nomacs/issues/1562) | If adding stars: write XMP sidecar immediately; show “read-only / no sidecar” state |
+
+**Closed-issue patterns worth copying:** PR [#1516](https://github.com/nomacs/nomacs/pull/1516) bundled fixes for overview slider values ([#1388](https://github.com/nomacs/nomacs/issues/1388)), frameless centering ([#1507](https://github.com/nomacs/nomacs/issues/1507)), and related viewport bugs—implies **regression tests around fit/100%/overview** when touching zoom code.
+
+---
+
+### Enhancement requests we can leapfrog in web
+
+| Area | nomacs gap | Web advantage |
+|------|------------|---------------|
+| **Gallery-first UX** | [#1544](https://github.com/nomacs/nomacs/issues/1544) — nomacs is viewer-centric | jsx-gallery already is grid/table-first; lean into folder tree + masonry |
+| **Find & filter** | [#1593](https://github.com/nomacs/nomacs/issues/1593) broken menu path | Inline filter panel + `/` or `Ctrl+F` focus search; optional regex toggle |
+| **Selection-scoped filmstrip** | [#1576](https://github.com/nomacs/nomacs/issues/1576) | `visible` computed can accept `selectionOnly` atom—trivial vs Qt filmstrip |
+| **RAW+JPEG pairing** | [#1587](https://github.com/nomacs/nomacs/issues/1587) in review limbo | Post-sort grouping in `model.ts`; badge on `GridImage`; toggle default ON |
+| **Ratings / culling metadata** | [#1482](https://github.com/nomacs/nomacs/issues/1482) closed without full fix narrative | FS Access `createWritable` on `.xmp` sidecar; no RAW body writes |
+| **Zoom policies** | [#1500](https://github.com/nomacs/nomacs/issues/1500) — radio mutual exclusion | Independent atoms: `fitMode`, `keepZoomRule`, `maxUpscale` |
+| **Compare variants** | Filename filter workaround in [#1576](https://github.com/nomacs/nomacs/issues/1576) | “Add to compare tray” (3–8 images) + horizontal swipe in lightbox |
+| **Cross-device** | macOS port called out in [#987](https://github.com/nomacs/nomacs/issues/987) | PWA + Safari `webkitdirectory` fallback |
+| **Privacy / deploy** | AppImage zip complaint [#1491](https://github.com/nomacs/nomacs/issues/1491) | Static hosting; no install friction |
+
+---
+
+### Anti-patterns nomacs users complain about (avoid in our design)
+
+1. **Silent failures** — Filter menu that clears instead of helps ([#1593](https://github.com/nomacs/nomacs/issues/1593)); ratings that disappear ([#1482](https://github.com/nomacs/nomacs/issues/1482)).
+2. **Duplicate shortcuts / ambiguous actions** — `QKeySequence::Find` bound to conflicting actions ([#1593](https://github.com/nomacs/nomacs/issues/1593)).
+3. **Irreversible UI state** — Fullscreen hides filmstrip with no recovery ([#1590](https://github.com/nomacs/nomacs/issues/1590)).
+4. **List vs viewport desync** — Sort/filter doesn’t move scrollbar/focus ([#1592](https://github.com/nomacs/nomacs/issues/1592)); overview out of sync ([#1585](https://github.com/nomacs/nomacs/issues/1585)).
+5. **Destructive metadata side effects** — Thumbnail generation clearing orientation ([#1510](https://github.com/nomacs/nomacs/issues/1510)).
+6. **Greedy pairing / hiding files** — [#1587](https://github.com/nomacs/nomacs/issues/1587) discussion: strict 1:1 only; never auto-hide ambiguous groups.
+7. **Assuming desktop sort order** — [#1101](https://github.com/nomacs/nomacs/issues/1101): OS order is platform-specific; don’t pretend without API.
+8. **Over-promising RAW quality** — Embedded preview vs LibRAW tone ([#1578](https://github.com/nomacs/nomacs/issues/1578), [#1563](https://github.com/nomacs/nomacs/issues/1563)): label preview mode honestly.
+9. **Maintenance cliff** — [#987](https://github.com/nomacs/nomacs/issues/987): avoid Qt-sized scope; ship narrow vertical slices with flags.
+10. **Flash lookup by array index** — nomacs `DkMetaData` bug noted in `nomacs-exif-reference.md`; use `Map` for bitmasks in gallery EXIF display (already directionally correct in `exifDisplay.ts`).
+
+---
+
+### Actionable backlog (25 items)
+
+| # | Feature | Issue | Web-first implementation notes | jsx-gallery status |
+|---|---------|-------|--------------------------------|-------------------|
+| 1 | RAW+JPEG pairing (Rendered visible, Raw attached) | [#1587](https://github.com/nomacs/nomacs/issues/1587) | After `flatImages` sort, group by `basename` + ext class; `pairRawJpeg` setting; `+RAW` chip on thumb | **Gap** |
+| 2 | Pair-aware delete + XMP sidecar trash | [#1587](https://github.com/nomacs/nomacs/issues/1587) | `showDirectoryPicker` + `removeEntry` where permitted; 4-way confirm dialog | **Gap** (no delete) |
+| 3 | Find & Filter (regex, open on Ctrl+F) | [#1593](https://github.com/nomacs/nomacs/issues/1593) | `searchQuery` + `searchIsRegex` + `searchFlags`; focus `FilterPanel` on shortcut | Partial (substring only) |
+| 4 | Filter filmstrip/grid by multi-selection | [#1576](https://github.com/nomacs/nomacs/issues/1576), [discussion #1572](https://github.com/nomacs/nomacs/discussions/1572) | `compareSet: Set<id>` or `filterToSelection` toggles `visible` | Partial (selection exists) |
+| 5 | Scroll-sync current item on sort/filter | [#1592](https://github.com/nomacs/nomacs/issues/1592) | `visibleIndexMap` + `requestAnimationFrame` scroll filmstrip/grid | **Gap** |
+| 6 | Fullscreen filmstrip always recoverable | [#1590](https://github.com/nomacs/nomacs/issues/1590) | `showFilmstripInFullscreen` atom; `T` toggles; never one-way hide | Partial (lightbox chrome) |
+| 7 | Overview minimap (pan/zoom bird’s-eye) | [#1585](https://github.com/nomacs/nomacs/issues/1585) | Small canvas mirroring `lightboxZoom`/`pan`; two-way bind | **Gap** |
+| 8 | Split/compare view with synced zoom | [#1575](https://github.com/nomacs/nomacs/issues/1575), [#1585](https://github.com/nomacs/nomacs/issues/1585) | CSS grid 2 cols; shared transform state; **relative zoom** for different pixel sizes | **Gap** |
+| 9 | Initial zoom / keep-zoom policies | [#1500](https://github.com/nomacs/nomacs/issues/1500) | Atoms: `openZoomPolicy`, `keepZoomPolicy`, `dimensionFuzzPercent` | Partial (fit button only) |
+| 10 | Bounded pan at image edges | [#1542](https://github.com/nomacs/nomacs/issues/1542) | Clamp pan so empty margin ≤ configurable px | **Gap** |
+| 11 | DNG/RAW preview honesty + tone hint | [#1578](https://github.com/nomacs/nomacs/issues/1578) | Banner “Embedded preview”; future WASM demosaic module | Partial (DNG/ARW preview) |
+| 12 | X3F / failed-decode → embedded thumb fallback | [#1563](https://github.com/nomacs/nomacs/issues/1563) | Extend `raw.ts` classify; `previewOnly` flag in meta | **Gap** |
+| 13 | Animated AVIF support | [#1586](https://github.com/nomacs/nomacs/issues/1586) | Decode via `ImageDecoder` API; loop in grid cell | **Gap** |
+| 14 | XMP rating write + auto-create container | [#1482](https://github.com/nomacs/nomacs/issues/1482) | Write `.xmp` sidecar with `xmp:Rating`; optimistic UI | **Gap** (read-only) |
+| 15 | Live metadata panel on thumb navigate | [#1549](https://github.com/nomacs/nomacs/issues/1549) | `effect` on `lightboxImage` refetch EXIF | Likely OK; verify |
+| 16 | Expandable EXIF columns (incl. NEFCompression) | [#1553](https://github.com/nomacs/nomacs/issues/1553) | Table column picker + manufacturer tag map | Partial (`ImageTable`) |
+| 17 | Duplicate basename filter (optional) | `filterDuplicats` in nomacs | Setting mirroring nomacs `filterDuplicateNames` | **Gap** |
+| 18 | Full-folder filmstrip (not only ±5) | Derived from [#1576](https://github.com/nomacs/nomacs/issues/1576) | Virtualized horizontal list in lightbox | Partial (`thumbnailWindow` windowed) |
+| 19 | Folder gallery mode polish | [#1544](https://github.com/nomacs/nomacs/issues/1544) | Default view grid; breadcrumb + per-folder counts | **Strength** |
+| 20 | Custom/manual sort order import | [#1101](https://github.com/nomacs/nomacs/issues/1101) | Drag-reorder linked list + export JSON order | **Gap** |
+| 21 | Pinch-zoom on Windows touch | [#1536](https://github.com/nomacs/nomacs/issues/1536) | `PointerEvent` scale in lightbox | Partial (touch in README) |
+| 22 | Large JPEG streaming / cap dimension | [#1376](https://github.com/nomacs/nomacs/issues/1376) | `createImageBitmap` with resize; warn >40MP | **Gap** |
+| 23 | Batch export selected (format convert) | [#107](https://github.com/nomacs/nomacs/issues/107) | Canvas `toBlob` pipeline + ZIP download | Partial (ZIP download) |
+| 24 | “Magic stick” / quick subject select | [#1558](https://github.com/nomacs/nomacs/issues/1558) | Optional SAM/WebGPU segmentation plugin | **Gap** |
+| 25 | Multi-instance sync (legacy nomacs killer feature) | [#521](https://github.com/nomacs/nomacs/issues/521), README | `BroadcastChannel` sync transforms between tabs | **Gap** |
+| 26 | Ignore EXIF orientation toggle (nomacs setting) | `DkSettings` / reference doc | Already `ignoreExifOrientation` | **Done** |
+| 27 | HEIC/HEIF/JXL decode | [#257](https://github.com/nomacs/nomacs/issues/257) | Browser decode where supported; else “unsupported” chip | Browser-dependent |
+| 28 | GPS map link + 1/N exposure display | nomacs #496 / reference | `exifDisplay.ts` Maps URL + exposure rational | **Done** (display) |
+| 29 | Preview mode badge for RAW fallback | [#1563](https://github.com/nomacs/nomacs/issues/1563) | Overlay in lightbox when `meta.previewOnly` | **Gap** |
+| 30 | Cull keyboard: 1–5 rating, U reject | Lightroom-adjacent workflows in [#1576](https://github.com/nomacs/nomacs/issues/1576) | `shortcuts.tsx` + filter by rating | **Gap** |
+
+---
+
+### Cross-reference summary: where jsx-gallery already wins
+
+- **Explicit gallery product** ([#1544](https://github.com/nomacs/nomacs/issues/1544)) with grid/list/table and folder tree.
+- **Filter-aware lightbox navigation** — `findVisibleLightboxNeighbor` skips hidden items (nomacs filmstrip pain point in [#1576](https://github.com/nomacs/nomacs/issues/1576)).
+- **Modern EXIF/orientation** — nomacs quirks documented in `nomacs-exif-reference.md` mirrored in `orientation.ts` / `exifDisplay.ts`.
+- **RAW preview path** without LibRAW tone surprises — embedded JPEG extraction with worker scan (`rawPreviewScanPool.ts`).
+- **Zero-install cross-platform** — addresses [#987](https://github.com/nomacs/nomacs/issues/987) platform/portability anxiety.
+
+**Highest-impact next slices (from issue velocity + culling workflow):** (1) [#1587](https://github.com/nomacs/nomacs/issues/1587) pairing, (2) [#1593](https://github.com/nomacs/nomacs/issues/1593)+[#1576](https://github.com/nomacs/nomacs/issues/1576) filter UX, (3) [#1592](https://github.com/nomacs/nomacs/issues/1592)+[#1500](https://github.com/nomacs/nomacs/issues/1500) navigation/zoom polish, (4) [#1482](https://github.com/nomacs/nomacs/issues/1482) XMP sidecar ratings for web culling parity.
+
+---
+
+### Closed issues with portable solutions
+
+| Issue | Theme | Takeaway for gallery |
+|-------|-------|----------------------|
+| [#1228](https://github.com/nomacs/nomacs/issues/1228) | Orientation | Mirrored EXIF tags 2/4/5/7 — gallery `orientation.ts` already maps 1–8 |
+| [#1238](https://github.com/nomacs/nomacs/issues/1238) | Thumbnails | Loader refactor + mirrored thumbs — validate `orientationBaked` on embed path |
+| [#533](https://github.com/nomacs/nomacs/issues/533) | Thumbnails | EXIF thumb orientation — same as `loadThumbnailFromMetadata` |
+| [#1175](https://github.com/nomacs/nomacs/issues/1175) | HEIC metadata | Show metadata panel for HEIC — port BMFF EXIF or exifr |
+| [#1453](https://github.com/nomacs/nomacs/pull/1453) | Rotation | 90° rotation improvements — `composeOrientation` when adding write |
+| [#1482](https://github.com/nomacs/nomacs/issues/1482) | XMP rating | Auto-create XMP container — sidecar write via FSA |
+| [#1561](https://github.com/nomacs/nomacs/pull/1561) | Rating | Persist rating without existing metadata |
+| [#1503](https://github.com/nomacs/nomacs/pull/1503) | HEIC | HEIF/HEIC support landed via kimageformats — browser decode path |
+| [#1459](https://github.com/nomacs/nomacs/issues/1459), [#1381](https://github.com/nomacs/nomacs/issues/1381) | HEIC | iPhone 16 HEIC load failures — test AVIF/HEIC in CI browsers |
+| [#1275](https://github.com/nomacs/nomacs/issues/1275) | LibRaw | Submodule bump — preview quality changes; stay embed-first on web |
+| [#754](https://github.com/nomacs/nomacs/issues/754), [#574](https://github.com/nomacs/nomacs/issues/574) | DNG | “Too dark” DNG — label embedded preview vs develop |
+| [#1413](https://github.com/nomacs/nomacs/issues/1413) | Thumbnails | High-quality thumbs — OpenCV INTER_AREA; gallery uses canvas scale |
+| [#1511](https://github.com/nomacs/nomacs/issues/1511) | Orientation | Editing clears derotated EXIF thumb — never strip tags in read-only mode |
+| [#1516](https://github.com/nomacs/nomacs/pull/1516) | Viewport | Bundle fix for overview/zoom regressions — regression tests on fit/100% |
