@@ -765,7 +765,11 @@ const LightboxContent = () => {
               `}
             >
               <img
-                src={() => imageNode.thumbnail.data()?.url ?? ''}
+                src={() =>
+                  imageNode.thumbnail.data()?.url ??
+                  imageNode.fullImageUrl.data() ??
+                  ''
+                }
                 alt=""
                 css={`
                   width: 60px;
