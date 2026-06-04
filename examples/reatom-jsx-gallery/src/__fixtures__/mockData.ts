@@ -1,10 +1,9 @@
 import type { FolderNode, ImageFile } from '../types'
 
-const mockPngBase64 =
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII='
-const mockPngBytes = Uint8Array.from(atob(mockPngBase64), (char) =>
-  char.charCodeAt(0),
-)
+const mockSvgText = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+  <rect width="64" height="64" rx="8" fill="#d94f45"/>
+  <circle cx="32" cy="32" r="18" fill="#fffaf2"/>
+</svg>`
 
 function createMockFileHandle(name: string): FileSystemFileHandle {
   return {
@@ -12,8 +11,8 @@ function createMockFileHandle(name: string): FileSystemFileHandle {
     name,
     getFile: () =>
       Promise.resolve(
-        new File([mockPngBytes], name, {
-          type: 'image/png',
+        new File([mockSvgText], name, {
+          type: 'image/svg+xml',
           lastModified: Date.now(),
         }),
       ),
