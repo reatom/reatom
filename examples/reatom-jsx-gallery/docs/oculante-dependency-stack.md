@@ -148,7 +148,7 @@ Entry: `open_image()` in `image_loader.rs` — extension + `file-format` sniffin
 
 **Oculante:** `load_tiff()` before RAW fallback; parallel tonemap via `rayon`.
 
-**Gallery:** TIFF logic inside `raw.ts` for DNG/ARW metadata and previews, not general multipage TIFF viewing.
+**Gallery:** TIFF logic inside `raw.ts` for DNG/ARW/CR2/NEF/ORF/SR2 metadata and previews, not general multipage TIFF viewing.
 
 ---
 
@@ -244,7 +244,7 @@ Entry: `open_image()` in `image_loader.rs` — extension + `file-format` sniffin
 | License | MIT | MIT (in-tree) | — |
 | UI | notan + egui | Reatom JSX + DOM | N/A |
 | Common raster | `image` + `image_extras` | Browser + header parsers | Low for JPEG/PNG/WebP |
-| RAW preview | `quickraw` thumb | `raw.ts` IFD + JPEG scan | Low (same strategy) |
+| RAW preview | `quickraw` thumb | `raw.ts` IFD + 64 MB JPEG scan (all listed RAW formats) | Low (same strategy) |
 | RAW develop | Commented quickraw 16-bit | None | N/A (intentional) |
 | EXIF read | kamadak-exif + img-parts bytes | `exif.ts` | Medium (maker notes, BMFF) |
 | EXIF write | img-parts `fix_exif` | None | High if save feature |

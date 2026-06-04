@@ -329,7 +329,7 @@ No disk/IDB cache; `revokeThumbnail` for blob URLs. **Port:** IndexedDB keyed by
 | **Compare-mode geometry memory** | Preserve zoom/pan when A/B-ing shots | `comparelist.rs`, `CompareItem` | Missing |
 | **Flipbook preload** | `Player` cache + adjacent file prefetch pattern | `Player::load`, `cache.rs` | Preload meta/thumb for lightbox neighbors only |
 | **Extension mismatch warning** | `file_format` vs extension | `image_loader.rs` 57–76 | Could warn in `header.ts` when sniff ≠ ext |
-| **RAW extension breadth** | quickraw supports many suffixes | `image_loader.rs` 391–398 | DNG/ARW only; extend `raw.ts` heuristics |
+| **RAW extension breadth** | quickraw supports many suffixes | `image_loader.rs` 391–398 | DNG/ARW/CR2/NEF/ORF/SR2 via TIFF IFD + 64 MB scan; exotic suffixes still gap |
 | **Lossless orientation policy doc** | Oculante applies post-decode; gallery CSS-first | `rotate_dynimage` | Document double-apply risk per codec in `orientation.ts` |
 | **Exposure/HUD helpers** | Already in nomacs port | N/A (use nomacs) | Done in `exifDisplay.ts` |
 

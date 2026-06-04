@@ -148,17 +148,35 @@ stateDiagram-v2
 
 | Module | Responsibility |
 |--------|----------------|
-| `header.ts` | Magic-byte format detect; orchestrates format parsers; adaptive EXIF read up to **512 KB** (`EXIF_READ_BYTES`) |
+| `header.ts` | Magic-byte format detect; orchestrates format parsers; **falls through** when a magic-matched parser fails (AVIF BMFF, TIFF-like RAW, SVG); adaptive EXIF read up to **512 KB** (`EXIF_READ_BYTES`) |
+
+```mermaid
+flowchart TD
+  magic[detectFormatFromMagic] --> jpeg{JPEG?}
+  jpeg -->|parse ok| done[ImageMeta]
+  jpeg -->|fail| avif
+  png{PNG?} -->|parse ok| done
+  png -->|fail| avif
+  avif[parseAvifMeta BMFF dimensions] -->|ok| done
+  avif -->|fail| tiff
+  tiff[isTiffLike + parseRawMeta] -->|ok| done
+  tiff -->|fail| svg
+  svg[SVG MIME or bytes] -->|ok| done
+  svg -->|fail| null[null]
+```
 | `formats/jpeg.ts` | SOF dimensions, progressive flag, APP1 EXIF thumbnail extract |
 | `formats/exif.ts` | TIFF IFD walk (IFD0 → Exif → GPS → Interop); multi-APP1 “largest TIFF” strategy; `LARGE_TAG_DISPLAY_COUNT` |
-| `formats/raw.ts` | DNG/ARW TIFF IFD preview tags, Sony preview tags, heuristic JPEG scan; worker offload |
+| `formats/raw.ts` | DNG/ARW/CR2/NEF/ORF/SR2 TIFF IFD preview tags, Sony preview tags, bounded 64 MB heuristic JPEG scan for all supported RAW formats; worker offload |
 | `formats/rawPreviewScanPool.ts` | Up to 2 workers scan 64 MB for JPEG SOI markers |
 | `thumbnail.ts` | Path order: JPEG EXIF embed → RAW embed → `createImageBitmap` resize |
 | `orientation.ts` | Tags 1–8, `composeOrientation` for future lossless rotate write |
 | `exifDisplay.ts` | Camera HUD, flash/compression maps (nomacs-aligned), GPS Maps URL |
 
-**Supported extensions** (`types.ts`): `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg`, `.avif`, `.bmp`, `.dng`, `.arw`.  
-**Note:** `.avif` is listed but there is no dedicated AVIF BMFF EXIF path yet (browser may still decode for thumbnails).
+**Supported extensions** (`types.ts`): `.jpg`, `.jpeg`, `.png`, `.gif`, `.webp`, `.svg`, `.avif`, `.bmp`, `.dng`, `.arw`, `.cr2`, `.nef`, `.orf`, `.sr2`.
+
+**AVIF:** `formats/bmff.ts` reads **dimensions** from `ispe` boxes; there is **no BMFF EXIF** parser yet (browser decode still handles thumbnails).
+
+**RAW:** CR2/NEF/ORF/SR2 are TIFF-like RAW classified by extension + IFD preview tags; DNG/ARW add DNG-version / Sony-Make heuristics and share the same bounded 64 MB JPEG scan when IFD preview is missing.
 
 ### 2.6 UI composition
 
@@ -208,9 +226,9 @@ nomacs `LoadThumbnailOption`:
 
 Gallery equivalent in `thumbnail.ts`:
 
-1. JPEG → `tryExifPath`
-2. DNG/ARW → `tryRawPreviewPath` (accepts smaller previews)
-3. → `generateThumbnailFromBlob`
+1. JPEG → `tryExifPath` (orientation baked on embedded EXIF JPEG when needed)
+2. RAW (DNG/ARW/CR2/NEF/ORF/SR2) → `tryRawPreviewPath` (accepts smaller previews; orientation baked on embedded preview when needed)
+3. → `generateThumbnailFromBlob` (orientation baked from `meta.exif` when valid and not ignored)
 
 **Emulate:** nomacs `maxThumbSize`, `thumbThreads`, `thumbCacheMemory`, `thumbDiskCache`, `preloadThumbs` (`DkSettings.h` Resources struct). Gallery should add IndexedDB cache keyed by `(handle.id, mtime, maxSize, ignoreOrientation)`.
 
@@ -311,7 +329,7 @@ flowchart LR
 
 ### 5.2 RAW
 
-**Current:** DNG/ARW; preview from IFD tags + Sony tags + worker JPEG scan (64 MB); no demosaic.
+**Current:** DNG/ARW/CR2/NEF/ORF/SR2; preview from IFD tags + Sony tags + worker JPEG scan (64 MB); no demosaic.
 
 **nomacs:** LibRaw + Qt RAW loader + `loadRawThumb` setting.
 
@@ -570,7 +588,7 @@ Features nomacs **cannot** match without becoming a different product:
 | `src/filesystem.ts` | Recursive directory walk |
 | `src/image-engine/header.ts` | Meta orchestration |
 | `src/image-engine/thumbnail.ts` | Thumb strategies |
-| `src/image-engine/formats/raw.ts` | DNG/ARW previews |
+| `src/image-engine/formats/raw.ts` | DNG/ARW/CR2/NEF/ORF/SR2 previews |
 | `src/components/Lightbox.tsx` | Fullscreen viewer |
 | `src/components/ImageInfoPanel.tsx` | Metadata UI |
 | `src/theme.tsx` | Theme packs |
@@ -1133,7 +1151,7 @@ Existing tests validate parser invariants—extend with nomacs-derived cases:
 
 - **Orientation:** all eight EXIF values + invalid 0/9; `composeOrientation` compositions equivalent to nomacs `setOrientation` table.
 - **EXIF:** multi-APP1 selection; GPS rational formatting; flash bitmask labels for 0x5d, 0x41.
-- **RAW:** fixture DNG/ARW snippets (minimal TIFF) asserting preview offset extraction; mock worker scan returning synthetic SOI offset.
+- **RAW:** fixture DNG/ARW/CR2/NEF/ORF/SR2 snippets (minimal TIFF) asserting preview offset extraction; mock worker scan returning synthetic SOI offset.
 - **Model:** `visible` computed respects folder + subfolder + extension filter; lightbox neighbor skips invisible nodes.
 
 ### Storybook + browser tests

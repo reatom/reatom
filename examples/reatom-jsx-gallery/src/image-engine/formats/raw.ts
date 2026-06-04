@@ -868,7 +868,7 @@ export async function extractRawPreviewData(
     }
   }
 
-  if (preferredFormat === 'dng' || preferredFormat === 'arw') {
+  if (preferredFormat !== undefined) {
     const scannedPreview = await scanLargestJpegPreview(blob)
     if (scannedPreview) {
       bestPreview = largerDecodedPreview(bestPreview, scannedPreview)

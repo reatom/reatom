@@ -312,6 +312,29 @@ describe('raw format parser', () => {
     expect(preview?.size).toBe(minimalJpegPreview.length)
   })
 
+  test('extractRawPreview runs heuristic scan for CR2 without IFD preview', async () => {
+    stubImageBitmapDecode()
+
+    const buffer = buildTiffBuffer([
+      { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 5472 },
+      { tag: IMAGE_LENGTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 3648 },
+    ])
+
+    const largeJpeg = new Uint8Array(5000)
+    largeJpeg[0] = 0xff
+    largeJpeg[1] = 0xd8
+    largeJpeg[largeJpeg.length - 2] = 0xff
+    largeJpeg[largeJpeg.length - 1] = 0xd9
+
+    const fileBytes = new Uint8Array(buffer.byteLength + largeJpeg.length)
+    fileBytes.set(new Uint8Array(buffer), 0)
+    fileBytes.set(largeJpeg, buffer.byteLength)
+
+    const preview = await extractRawPreview(new Blob([fileBytes]), 'cr2')
+    expect(preview).not.toBeNull()
+    expect(preview?.type).toBe('image/jpeg')
+  })
+
   test('extractRawPreview returns null when preview range is outside file', async () => {
     const buffer = buildTiffBuffer([
       { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 100 },

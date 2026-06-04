@@ -269,14 +269,14 @@ flowchart LR
 
 **Oculante:** Extension match → `load_raw` quickraw thumb; TIFF/DNG via `tiff` crate with float autoscale + tonemap; separate HEIF/JXL/AVIF crates.
 
-**Gallery:** DNG/ARW IFD + worker SOI scan.
+**Gallery:** DNG/ARW/CR2/NEF/ORF/SR2 IFD + worker SOI scan.
 
 **Port strategy:**
 
 | Tier | Action |
 |------|--------|
 | A | Keep embed preview; label “embedded preview (quickraw-class)” in UI |
-| B | Evaluate quickraw WASM for formats IFD walk misses (CR2, NEF) |
+| B | Evaluate quickraw WASM for formats the IFD walk still misses (CR3, RW2, RAF) |
 | C | Float TIFF via `utif` in worker for scientific TIFF users |
 
 **Avoid:** `Limits::unlimited()`—use byte caps per file type.
@@ -527,7 +527,7 @@ Features Oculante **cannot** match without becoming a different product—and wh
 | `src/model.ts` | App state, lightbox, filters |
 | `src/reatomImage.ts` | Per-file pipeline |
 | `src/image-engine/thumbnail.ts` | Thumb strategies |
-| `src/image-engine/formats/raw.ts` | DNG/ARW previews |
+| `src/image-engine/formats/raw.ts` | DNG/ARW/CR2/NEF/ORF/SR2 previews |
 | `src/components/Lightbox.tsx` | Viewer |
 | `src/components/ImageInfoPanel.tsx` | Metadata |
 | `src/theme.tsx` | Theme packs |

@@ -48,6 +48,7 @@ async function generateThumbnailFromBlob(
   maxSize: number,
   quality: number,
   meta: ImageMeta | null,
+  ignoreExifOrientation: boolean,
 ): Promise<ThumbnailResult> {
   const resizeOpts: ImageBitmapOptions = { resizeQuality: 'medium' }
   if (meta && (meta.width > maxSize || meta.height > maxSize)) {
@@ -64,7 +65,26 @@ async function generateThumbnailFromBlob(
       `Failed to decode image: ${err instanceof Error ? err.message : String(err)}`,
     )
   }
-  return bitmapToThumbnailResult(bitmap, maxSize, quality, 'generated')
+
+  let orientationBaked = false
+  if (!ignoreExifOrientation) {
+    const orientation = getOrientationFromExif(meta?.exif)
+    const needsTransform =
+      orientation.state === 'valid' &&
+      (orientation.degrees !== 0 || orientation.mirrored)
+    if (needsTransform) {
+      bitmap = await applyOrientationToImageBitmap(bitmap, orientation)
+      orientationBaked = true
+    }
+  }
+
+  return bitmapToThumbnailResult(
+    bitmap,
+    maxSize,
+    quality,
+    'generated',
+    orientationBaked,
+  )
 }
 
 async function tryEmbeddedJpegPreviewPath(
@@ -195,7 +215,13 @@ export async function loadThumbnailWithMeta(
     throw new Error('No embedded preview found in RAW file')
   }
 
-  return generateThumbnailFromBlob(source, maxSize, quality, meta)
+  return generateThumbnailFromBlob(
+    source,
+    maxSize,
+    quality,
+    meta,
+    ignoreExifOrientation,
+  )
 }
 
 export function revokeThumbnail(result: ThumbnailResult): void {

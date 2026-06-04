@@ -85,7 +85,7 @@ After load:
 5. Apply `DkImage::rotateImage` + `flipImage` when enabled.
 6. `unpremultiply`, assign sRGB if missing, convert CMYK → sRGB (Qt 6.8+).
 
-Gallery equivalent: `resolveImageOrientationStyle` uses CSS `image-orientation: from-image` on `<img>` (`orientation.ts`, `reatomImage.ts`); embedded EXIF thumbnails get canvas rotation in `thumbnail.ts` when not ignored.
+Gallery equivalent: `resolveImageOrientationStyle` uses CSS `image-orientation: from-image` on `<img>` (`orientation.ts`, `reatomImage.ts`); embedded EXIF/RAW previews and **generated** thumbnails bake orientation in `thumbnail.ts` when EXIF is valid and not ignored (`orientationBaked` avoids double-apply).
 
 #### Edit history
 
@@ -184,7 +184,7 @@ nomacs does **not** maintain explicit RAW+JPEG pairs in code. Instead **`filterD
 
 - Supports **DNG + ARW** TIFF containers; tags: `PreviewImageStart/Length`, Sony `0x94b4/0x94b5`, JPEG interchange, SubIFDs, DNG version, heuristic JPEG scan (up to 64MB), worker pool for range scan (`rawPreviewScanPool.ts`, max 2 workers).
 - Picks preview by IFD priority + largest blob; validates via `createImageBitmap`.
-- **No** LibRaw develop, no duplicate-name filter, no CR2/NEF/etc unless magic-detected as TIFF-like.
+- **No** LibRaw develop or duplicate-name filter; CR2/NEF/ORF/SR2 are handled as TIFF-like RAW by extension plus IFD preview/scan paths.
 - Lightbox/full view: embedded preview only (`reatomImage.ts`); throws if RAW thumb missing.
 
 ---
@@ -307,7 +307,7 @@ Gallery has no plugin host; features would be npm modules or built-in TS functio
 | Item | Rationale | nomacs source | Gallery status |
 |------|-----------|---------------|----------------|
 | **Duplicate basename filter (RAW+JPG)** | Avoid duplicate grid entries when `IMG_1234.CR2` + `IMG_1234.jpg` coexist | `filterDuplicateNames` `DkFileInfo.cpp` 390–413, setting `filterDuplicats` | Missing; port as optional setting in `model.ts` / `filesystem.ts` |
-| **RAW preview: more formats + Exiv2-style largest preview** | CR2/NEF/ORF as TIFF; pick largest embedded JPEG | `getPreviewImage`, `loadPreview` | Partial: DNG/ARW only; extend `raw.ts` format detection |
+| **RAW preview: more formats + Exiv2-style largest preview** | CR2/NEF/ORF as TIFF; pick largest embedded JPEG | `getPreviewImage`, `loadPreview` | Partial: DNG/ARW/CR2/NEF/ORF/SR2 via TIFF IFD + bounded JPEG scan; exotic RAW still gap |
 | **Black border crop on EXIF thumbs** | Cleaner film-scan thumbs | `removeBlackBorder` `DkThumbs.cpp` 177–223 | Missing |
 | **`force_size` thumb fallback** | Use full decode when embed too small | `DkThumbs.cpp` 137–139 | Partial: `acceptSmallPreview` for RAW only |
 | **Double-orientation detection** | HEIC/AVIF/JXL/RAW plugin may bake rotation | `maybeTransformed` `DkBasicLoader.cpp` 437–450 | Partial: `orientationBaked` flag; extend per-format in `header.ts` |

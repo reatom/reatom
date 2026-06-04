@@ -12,7 +12,7 @@ nomacs **3.23** is a Qt6 desktop binary. Dependencies are discovered at **cmake*
 |--------------|------------|------------|-------------------|
 | (required) Qt6 Core, Gui, Widgets, Network, Svg, Concurrent, PrintSupport, Core5Compat | Qt 6.x | UI, `QImageReader`, TCP sync, printing | DOM + `@reatom/jsx` + Vite |
 | `ENABLE_OPENCV` | OpenCV core/imgproc | RAW demosaic, TIFF, DRIF, manipulators, HQ thumbs, histogram | `OffscreenCanvas`, optional OpenCV.js (heavy) |
-| `ENABLE_RAW` | LibRaw (+ OpenCV) | `DkRawLoader` preview + develop | `formats/raw.ts` embed only; WASM LibRaw optional |
+| `ENABLE_RAW` | LibRaw (+ OpenCV) | `DkRawLoader` preview + develop | `formats/raw.ts` embed only (DNG/ARW/CR2/NEF/ORF/SR2); WASM LibRaw optional |
 | `ENABLE_TIFF` | libtiff (+ OpenCV) | Multipage TIFF in `loadTIFF` | Gap — `utif` / decode in worker |
 | `ENABLE_QUAZIP` | Quazip + zlib | Zip-in-archive paths (`DkFileInfo`) | Gap — `fflate` / `zip.js` |
 | `ENABLE_PLUGINS` | OpenCV + plugin DLLs | Paint, composite, batch plugins | JS plugin hooks (future) |
@@ -100,11 +100,11 @@ OpenCV.js is ~8MB+; only consider for histogram or demosaic if product accepts l
 | WebP | Qt | Native | `.webp` |
 | GIF | Qt | Native | `.gif` |
 | SVG | Qt | Native | `.svg` |
-| AVIF | KImageFormats + BMFF EXIF | Chrome/Firefox/Safari | `.avif` listed, limited EXIF |
+| AVIF | KImageFormats + BMFF EXIF | Chrome/Firefox/Safari | `.avif` listed; BMFF **dimensions** in engine, no BMFF EXIF yet |
 | HEIC/HEIF | KImageFormats ([#257](https://github.com/nomacs/nomacs/issues/257), [#1503](https://github.com/nomacs/nomacs/pull/1503)) | Safari, Chrome | Not listed — add when EXIF ready |
 | JXL | KImageFormats | Emerging | Not listed |
 | DNG/ARW | LibRaw + TIFF | Preview parser only | `.dng`, `.arw` |
-| CR2/NEF/ORF | LibRaw | — | Gap |
+| CR2/NEF/ORF/SR2 | LibRaw | Preview parser only | `.cr2`, `.nef`, `.orf`, `.sr2` |
 | PSD | libqpsd / plugin | — | Gap |
 | ZIP folder | Quazip | — | Gap |
 

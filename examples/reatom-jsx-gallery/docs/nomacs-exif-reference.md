@@ -91,7 +91,7 @@ not defined, manual, normal, aperture priority, shutter priority, program creati
 | Thumbnail embed max | 200px (Exiv2 crash) | N/A (read only) |
 | XMP rating -1 | Rejected; ignored | Not parsed yet |
 | MicrosoftPhoto.Rating | Percent, not stars (FIXME) | Not used |
-| BMFF (HEIC/AVIF) | `enableBMFF` | Browser decode + optional EXIF later |
+| BMFF (HEIC/AVIF) | `enableBMFF` | AVIF: engine reads **dimensions** only (`bmff.ts`); no BMFF EXIF yet |
 
 ## nomacs source index
 
