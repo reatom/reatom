@@ -52,35 +52,37 @@ const clearAllFilters = () => {
   includeSubfolders.setTrue()
 }
 
-const TypeCheckbox = ({ ext, label }: { ext: string; label: string }) => (
-  <label
-    css={`
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 0;
-      cursor: pointer;
-      font-size: 13px;
-      color: var(--text-primary);
-
-      &:hover {
-        color: var(--accent);
-      }
-    `}
-  >
-    <input
-      type="checkbox"
-      checked={() => filterTypes().has(ext)}
-      on:change={() => toggleTypeFilter(ext)}
+const TypeCheckbox = ({ ext, label }: { ext: string; label: string }) => {
+  return (
+    <label
       css={`
-        accent-color: var(--accent);
-        width: 16px;
-        height: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--text-primary);
+
+        &:hover {
+          color: var(--accent);
+        }
       `}
-    />
-    {label}
-  </label>
-)
+    >
+      <input
+        type="checkbox"
+        checked={() => filterTypes().has(ext)}
+        on:change={() => toggleTypeFilter(ext)}
+        css={`
+          accent-color: var(--accent);
+          width: 16px;
+          height: 16px;
+        `}
+      />
+      <span>{label}</span>
+    </label>
+  )
+}
 
 export const FilterPanel = () => {
   const handleMinSizeInput = (

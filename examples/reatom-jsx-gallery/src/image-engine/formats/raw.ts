@@ -6,12 +6,14 @@ import {
   scanRawPreviewRangesInWorker,
 } from './rawPreviewScanPool'
 
+const TIFF_TYPE_BYTE = 1
 const TIFF_TYPE_SHORT = 3
 const TIFF_TYPE_LONG = 4
 const TIFF_TYPE_RATIONAL = 5
 const TIFF_TYPE_ASCII = 2
 
 const TIFF_TYPE_SIZES: Record<number, number> = {
+  [TIFF_TYPE_BYTE]: 1,
   [TIFF_TYPE_SHORT]: 2,
   [TIFF_TYPE_LONG]: 4,
   [TIFF_TYPE_RATIONAL]: 8,
@@ -205,6 +207,12 @@ function readEntryNumber(
     const offset = entry.valueOffset + index * 4
     if (offset + 4 > view.byteLength) return null
     return readUint32(view, offset, littleEndian)
+  }
+
+  if (entry.type === TIFF_TYPE_BYTE && entry.count > index) {
+    const offset = entry.valueOffset + index
+    if (offset + 1 > view.byteLength) return null
+    return view.getUint8(offset)
   }
 
   if (entry.type === TIFF_TYPE_RATIONAL && entry.count > index) {

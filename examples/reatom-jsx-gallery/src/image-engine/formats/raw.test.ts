@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import {
   checkRawPreviewPresence,
@@ -154,7 +154,19 @@ function buildTiffBuffer(
 
 const minimalJpegPreview = new Uint8Array([0xff, 0xd8, 0xff, 0xd9])
 
+const stubImageBitmapDecode = () => {
+  vi.stubGlobal('createImageBitmap', async () => ({
+    width: 1,
+    height: 1,
+    close: () => undefined,
+  }))
+}
+
 describe('raw format parser', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   test('isTiffLike detects little-endian TIFF header', () => {
     const buffer = buildTiffBuffer([
       { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 100 },
@@ -213,6 +225,8 @@ describe('raw format parser', () => {
   })
 
   test('checkRawPreviewPresence and extractRawPreview read embedded JPEG', async () => {
+    stubImageBitmapDecode()
+
     const tagCount = 5
     const previewOffset = 8 + 2 + tagCount * 12 + 4
 
@@ -249,6 +263,8 @@ describe('raw format parser', () => {
   })
 
   test('extractRawPreview reads preview beyond header slice', async () => {
+    stubImageBitmapDecode()
+
     const tagCount = 5
     const headerSize = 8 + 2 + tagCount * 12 + 4
     const previewOffset = headerSize + 64
