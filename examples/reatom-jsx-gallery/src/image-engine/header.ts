@@ -78,8 +78,14 @@ function withDetectedFormatWarning(
   meta: ImageMeta,
   filename: string | undefined,
 ): ImageMeta {
+  if (!import.meta.env.DEV || import.meta.env.TEST) return meta
+
   const expectedFormat = expectedFormatFromFilename(filename)
-  if (expectedFormat && expectedFormat !== meta.format && expectedFormat !== 'svg') {
+  if (
+    expectedFormat &&
+    expectedFormat !== meta.format &&
+    expectedFormat !== 'svg'
+  ) {
     console.warn(
       `Image format mismatch for ${filename}: extension suggests ${expectedFormat}, loaded as ${meta.format}`,
     )
