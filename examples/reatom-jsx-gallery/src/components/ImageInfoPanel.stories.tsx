@@ -19,8 +19,10 @@ const loc = {
     canvas.queryByRole('dialog', { name: 'Image details' }),
   imageNameAppears:
     (name: string): Locator =>
-    (canvas) =>
-      canvas.findByText(name),
+    async (canvas) => {
+      const matches = await canvas.findAllByText(name)
+      return matches[0] ?? null
+    },
 } satisfies Record<string, Locator | ((name: string) => Locator)>
 
 const I = createMyself((I) => ({
