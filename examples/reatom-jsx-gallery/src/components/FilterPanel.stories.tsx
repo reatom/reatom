@@ -4,7 +4,8 @@ import { mockFolderTree } from '../__fixtures__/mockData'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import { createMyself, type Locator } from '../shared/test'
 import { loadGalleryState } from '../shared/testSetup'
-import { FilterPanel, filterPanelOpen } from './FilterPanel'
+import { FilterPanel } from './FilterPanel'
+import { filterPanelOpen } from './panelState'
 
 const waitForUpdate = () => new Promise<void>((r) => setTimeout(r, 50))
 

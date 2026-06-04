@@ -9,7 +9,8 @@ import {
   type Locator,
 } from '../shared/test'
 import { loadEmptyState, loadGalleryState } from '../shared/testSetup'
-import { imageInfoPanelOpen, ImageInfoPanel } from './ImageInfoPanel'
+import { ImageInfoPanel } from './ImageInfoPanel'
+import { imageInfoPanelOpen } from './panelState'
 
 const loc = {
   panelAppears: (canvas) =>

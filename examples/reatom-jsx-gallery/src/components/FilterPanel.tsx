@@ -1,4 +1,4 @@
-import { atom, computed } from '@reatom/core'
+import { computed } from '@reatom/core'
 
 import {
   filterSizeMax,
@@ -8,9 +8,7 @@ import {
   searchQuery,
 } from '../model'
 import { CloseIcon } from './Icons'
-
-const filterPanelOpen = atom(false, 'filterPanelOpen')
-export { filterPanelOpen }
+import { filterPanelOpen } from './panelState'
 
 const IMAGE_TYPE_OPTIONS = [
   { ext: 'jpg', label: 'JPG' },
@@ -21,16 +19,6 @@ const IMAGE_TYPE_OPTIONS = [
   { ext: 'avif', label: 'AVIF' },
   { ext: 'bmp', label: 'BMP' },
 ]
-
-export const activeFilterCount = computed(() => {
-  let count = 0
-  if (filterTypes().size > 0) count++
-  if (filterSizeMin() > 0) count++
-  if (filterSizeMax() < Infinity) count++
-  if (searchQuery() !== '') count++
-  if (!includeSubfolders()) count++
-  return count
-}, 'activeFilterCount')
 
 const toggleTypeFilter = (ext: string) => {
   filterTypes.set((prev) => {

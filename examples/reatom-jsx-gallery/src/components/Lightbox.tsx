@@ -35,7 +35,7 @@ import {
   MinusIcon,
   PlusIcon,
 } from './Icons'
-import { imageInfoPanelOpen } from './ImageInfoPanel'
+import { imageInfoPanelOpen } from './panelState'
 import { pressEvents } from './pressEvents'
 import { Slideshow } from './Slideshow'
 

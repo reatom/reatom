@@ -1,5 +1,4 @@
-import { filterPanelOpen } from './components/FilterPanel'
-import { settingsPanelOpen } from './components/SettingsPanel'
+import { filterPanelOpen, settingsPanelOpen } from './components/panelState'
 import {
   clearSelection,
   closeLightbox,

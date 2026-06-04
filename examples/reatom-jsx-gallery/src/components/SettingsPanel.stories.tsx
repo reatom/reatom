@@ -4,7 +4,8 @@ import { mockFolderTree } from '../__fixtures__/mockData'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import { createMyself, type Locator } from '../shared/test'
 import { loadGalleryState } from '../shared/testSetup'
-import { SettingsPanel, settingsPanelOpen } from './SettingsPanel'
+import { settingsPanelOpen } from './panelState'
+import { SettingsPanel } from './SettingsPanel'
 
 const loc = {
   settingsHeadingAppears: (canvas) =>

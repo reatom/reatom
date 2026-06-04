@@ -16,9 +16,7 @@ import {
 import { THEME_PACKS } from '../theme'
 import type { GridGap, ImageFit, ThemeMode, ThemePack } from '../types'
 import { CloseIcon } from './Icons'
-
-const settingsPanelOpen = atom(false, 'settingsPanelOpen')
-export { settingsPanelOpen }
+import { settingsPanelOpen } from './panelState'
 
 const GAP_OPTIONS: GridGap[] = ['none', 'small', 'medium', 'large', 'xl']
 const FIT_OPTIONS: ImageFit[] = ['contain', 'cover', 'fill', 'none']
