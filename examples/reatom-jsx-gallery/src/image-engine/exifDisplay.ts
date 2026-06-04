@@ -126,7 +126,9 @@ export type CameraHudRow = {
   href?: string
 }
 
-function parseRationalPair(value: string): { numerator: number; denominator: number } | null {
+function parseRationalPair(
+  value: string,
+): { numerator: number; denominator: number } | null {
   const parts = value.trim().split('/')
   if (parts.length !== 2) return null
   const numerator = Number(parts[0])
@@ -197,7 +199,8 @@ export function formatExposureMode(exif: ExifData): string {
   const raw = exif['Exposure Mode'] ?? exif.ExposureMode
   if (!raw) return ''
   const mode = Number.parseInt(raw.split(',')[0]?.trim() ?? '', 10)
-  if (!Number.isFinite(mode) || mode < 0 || mode >= EXPOSURE_MODES.length) return raw
+  if (!Number.isFinite(mode) || mode < 0 || mode >= EXPOSURE_MODES.length)
+    return raw
   return EXPOSURE_MODES[mode] ?? raw
 }
 

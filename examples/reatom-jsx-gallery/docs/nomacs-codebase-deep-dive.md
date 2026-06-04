@@ -8,13 +8,13 @@ Research target: `/Users/artalar/code/nomacs` (nomacs / Image Lounge 3.x, Qt6, o
 
 nomacs is organized as a single desktop application (`ImageLounge/`) with a thin `main.cpp`, a **core library** (`DkCore/`), a **GUI layer** (`DkGui/`), optional **plugins** (`ImageLounge/plugins/`), unit tests (`ImageLounge/tests/`), and build/install assets (`scripts/`, `installer/`, `xgd-data/`). Third-party code lives in git submodules under `3rd-party/` (LibRaw, OpenCV, Exiv2, Quazip, etc.).
 
-| Layer | Path | Responsibility |
-|-------|------|----------------|
-| Entry | `ImageLounge/src/main.cpp` | App bootstrap, calls `DkCachedThumb::cleanupAsync()` on shutdown |
-| Core | `ImageLounge/src/DkCore/` | Loading, metadata, thumbnails, image math, settings, plugins API, batch metadata |
-| GUI | `ImageLounge/src/DkGui/` | Main window (`DkNoMacs`), viewport, thumb strip, metadata panels, batch UI, TCP sync |
-| Plugins | `ImageLounge/plugins/` | Paint, Composite, Affine Transform, Fake Miniatures, Page Extraction, template |
-| Tests | `ImageLounge/tests/` | `DkMetaData_test`, `DkNativeImage_test`, `DkBaseViewPort_test`, `DkUtils_test` |
+| Layer   | Path                       | Responsibility                                                                       |
+| ------- | -------------------------- | ------------------------------------------------------------------------------------ |
+| Entry   | `ImageLounge/src/main.cpp` | App bootstrap, calls `DkCachedThumb::cleanupAsync()` on shutdown                     |
+| Core    | `ImageLounge/src/DkCore/`  | Loading, metadata, thumbnails, image math, settings, plugins API, batch metadata     |
+| GUI     | `ImageLounge/src/DkGui/`   | Main window (`DkNoMacs`), viewport, thumb strip, metadata panels, batch UI, TCP sync |
+| Plugins | `ImageLounge/plugins/`     | Paint, Composite, Affine Transform, Fake Miniatures, Page Extraction, template       |
+| Tests   | `ImageLounge/tests/`       | `DkMetaData_test`, `DkNativeImage_test`, `DkBaseViewPort_test`, `DkUtils_test`       |
 
 **Core class graph (simplified):**
 
@@ -44,14 +44,14 @@ Build-time feature flags (from root `README.md`): `ENABLE_RAW` (LibRaw + OpenCV)
 
 **reatom-jsx-gallery** mirrors a subset in TypeScript:
 
-| nomacs | Gallery |
-|--------|---------|
-| `DkBasicLoader` + format plugins | `image-engine/header.ts` + `formats/*` |
-| `DkMetaDataT` | `formats/exif.ts`, `exifDisplay.ts`, `orientation.ts` |
-| `DkRawLoader` / Exiv2 preview | `formats/raw.ts`, `rawPreviewScan.worker.ts` |
-| `DkThumbs` | `thumbnail.ts`, `reatomImage.ts` |
-| `DkImageLoader` + folder UI | `model.ts`, `filesystem.ts`, components |
-| TCP sync, plugins, batch | Not present (browser + File System Access API) |
+| nomacs                           | Gallery                                               |
+| -------------------------------- | ----------------------------------------------------- |
+| `DkBasicLoader` + format plugins | `image-engine/header.ts` + `formats/*`                |
+| `DkMetaDataT`                    | `formats/exif.ts`, `exifDisplay.ts`, `orientation.ts` |
+| `DkRawLoader` / Exiv2 preview    | `formats/raw.ts`, `rawPreviewScan.worker.ts`          |
+| `DkThumbs`                       | `thumbnail.ts`, `reatomImage.ts`                      |
+| `DkImageLoader` + folder UI      | `model.ts`, `filesystem.ts`, components               |
+| TCP sync, plugins, batch         | Not present (browser + File System Access API)        |
 
 ---
 
@@ -239,19 +239,19 @@ Order:
 
 ### UI/UX Patterns
 
-| Pattern | nomacs | Gallery |
-|---------|--------|---------|
-| Views | Single image viewport + thumb dock + metadata dock | Grid / list / table + lightbox |
-| Zoom | `DkViewPort::zoom`, log slider in `DkZoomWidget`, `interpolateZoomLevel` for smooth upscale | CSS `object-fit`, `imageFit` setting |
-| Sync | Alt+action or `syncActions`; `NEWTRANSFORM`, `NEWFILE`, `NEWPOSITION` over TCP (`DkConnection.cpp`, `DkViewPort::tcpSynchronize` 535–551) | N/A |
-| Slideshow | `DkSettings::SlideShow`, player HUD | `Slideshow.tsx` |
-| Metadata UI | `DkMetaDataWidgets`, translated camera/description tags | `ImageInfoPanel.tsx`, `buildCameraHudRows` |
-| Batch | `DkBatch.cpp`, plugins, rename patterns | N/A |
-| File filter | Keywords + regex + glob (`filterInfoList`, 436–468); folder filter string in loader | `FilterPanel`, table filters |
-| Sort | Filename, date, size, random (`DkImageContainer::compareFunc`) | Sort panel in model |
-| Duplicates | `filterDuplicats` + preferred JPG | Not implemented |
-| GPS map | `showOnMap` slot on loader | Not implemented |
-| Edit warnings | Orientation save warnings, prompt save before unload | Read-only |
+| Pattern       | nomacs                                                                                                                                    | Gallery                                    |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| Views         | Single image viewport + thumb dock + metadata dock                                                                                        | Grid / list / table + lightbox             |
+| Zoom          | `DkViewPort::zoom`, log slider in `DkZoomWidget`, `interpolateZoomLevel` for smooth upscale                                               | CSS `object-fit`, `imageFit` setting       |
+| Sync          | Alt+action or `syncActions`; `NEWTRANSFORM`, `NEWFILE`, `NEWPOSITION` over TCP (`DkConnection.cpp`, `DkViewPort::tcpSynchronize` 535–551) | N/A                                        |
+| Slideshow     | `DkSettings::SlideShow`, player HUD                                                                                                       | `Slideshow.tsx`                            |
+| Metadata UI   | `DkMetaDataWidgets`, translated camera/description tags                                                                                   | `ImageInfoPanel.tsx`, `buildCameraHudRows` |
+| Batch         | `DkBatch.cpp`, plugins, rename patterns                                                                                                   | N/A                                        |
+| File filter   | Keywords + regex + glob (`filterInfoList`, 436–468); folder filter string in loader                                                       | `FilterPanel`, table filters               |
+| Sort          | Filename, date, size, random (`DkImageContainer::compareFunc`)                                                                            | Sort panel in model                        |
+| Duplicates    | `filterDuplicats` + preferred JPG                                                                                                         | Not implemented                            |
+| GPS map       | `showOnMap` slot on loader                                                                                                                | Not implemented                            |
+| Edit warnings | Orientation save warnings, prompt save before unload                                                                                      | Read-only                                  |
 
 **Zoom/sync detail:** `DkViewPort` can emit normalized image coordinates for remote display mode; wheel zoom vs file skip modulated by `zoomOnWheel` + Ctrl (`DkViewPort.cpp` ~1163–1312). Gallery keyboard shortcuts in `shortcuts.tsx` (local only).
 
@@ -259,18 +259,18 @@ Order:
 
 ### Performance
 
-| Technique | nomacs location | Notes |
-|-----------|-----------------|-------|
-| Threaded file read | `DkImageContainerT::fetchFile` | `QtConcurrent::run(loadFileToBuffer)` |
-| Threaded load | `loadImageThreaded` | Buffer then image decode |
-| Thumb thread pool | `DkThumbsThreadPool` | Configurable `thumbThreads` |
-| Thumb memory cache | `DkThumbLoader::mThumbnailCache` | Byte-cost LRU |
-| Thumb disk cache | `DkCachedThumb` | Only if load ≥10ms to write |
-| Directory scan | `DkFileInfo::readDirectory` | Suffix hash set; optional content sniff if no extension |
-| EXIF perf cap | count &lt; 2000 per tag | Avoid MakerNote blobs in UI |
-| Gamma-aware resize | `DkImage::resizeImage` | Linearize → OpenCV/Qt → color space |
-| ICO load | `loadQt` | Jump frames without full decode (563–586) |
-| Spinner delay | `updateSpinnerSignalDelayed(700ms)` | Avoid flicker on fast loads |
+| Technique          | nomacs location                     | Notes                                                   |
+| ------------------ | ----------------------------------- | ------------------------------------------------------- |
+| Threaded file read | `DkImageContainerT::fetchFile`      | `QtConcurrent::run(loadFileToBuffer)`                   |
+| Threaded load      | `loadImageThreaded`                 | Buffer then image decode                                |
+| Thumb thread pool  | `DkThumbsThreadPool`                | Configurable `thumbThreads`                             |
+| Thumb memory cache | `DkThumbLoader::mThumbnailCache`    | Byte-cost LRU                                           |
+| Thumb disk cache   | `DkCachedThumb`                     | Only if load ≥10ms to write                             |
+| Directory scan     | `DkFileInfo::readDirectory`         | Suffix hash set; optional content sniff if no extension |
+| EXIF perf cap      | count &lt; 2000 per tag             | Avoid MakerNote blobs in UI                             |
+| Gamma-aware resize | `DkImage::resizeImage`              | Linearize → OpenCV/Qt → color space                     |
+| ICO load           | `loadQt`                            | Jump frames without full decode (563–586)               |
+| Spinner delay      | `updateSpinnerSignalDelayed(700ms)` | Avoid flicker on fast loads                             |
 
 **Gallery:**
 
@@ -304,66 +304,66 @@ Gallery has no plugin host; features would be npm modules or built-in TS functio
 
 #### High (strong nomacs value, feasible in browser, partial gap)
 
-| Item | Rationale | nomacs source | Gallery status |
-|------|-----------|---------------|----------------|
-| **Duplicate basename filter (RAW+JPG)** | Avoid duplicate grid entries when `IMG_1234.CR2` + `IMG_1234.jpg` coexist | `filterDuplicateNames` `DkFileInfo.cpp` 390–413, setting `filterDuplicats` | Missing; port as optional setting in `model.ts` / `filesystem.ts` |
-| **RAW preview: more formats + Exiv2-style largest preview** | CR2/NEF/ORF as TIFF; pick largest embedded JPEG | `getPreviewImage`, `loadPreview` | Partial: DNG/ARW/CR2/NEF/ORF/SR2 via TIFF IFD + bounded JPEG scan; exotic RAW still gap |
-| **Black border crop on EXIF thumbs** | Cleaner film-scan thumbs | `removeBlackBorder` `DkThumbs.cpp` 177–223 | Missing |
-| **`force_size` thumb fallback** | Use full decode when embed too small | `DkThumbs.cpp` 137–139 | Partial: `acceptSmallPreview` for RAW only |
-| **Double-orientation detection** | HEIC/AVIF/JXL/RAW plugin may bake rotation | `maybeTransformed` `DkBasicLoader.cpp` 437–450 | Partial: `orientationBaked` flag; extend per-format in `header.ts` |
-| **Exposure display helpers** | Aperture 2^(AV/2), 1/N sec exposure | `DkMetaDataHelper` | Ported in `exifDisplay.ts` |
-| **IndexedDB/session thumb cache** | nomacs disk cache dramatically speeds rescans | `DkCachedThumb` | Missing; high impact for large folders |
+| Item                                                        | Rationale                                                                 | nomacs source                                                              | Gallery status                                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Duplicate basename filter (RAW+JPG)**                     | Avoid duplicate grid entries when `IMG_1234.CR2` + `IMG_1234.jpg` coexist | `filterDuplicateNames` `DkFileInfo.cpp` 390–413, setting `filterDuplicats` | Missing; port as optional setting in `model.ts` / `filesystem.ts`                       |
+| **RAW preview: more formats + Exiv2-style largest preview** | CR2/NEF/ORF as TIFF; pick largest embedded JPEG                           | `getPreviewImage`, `loadPreview`                                           | Partial: DNG/ARW/CR2/NEF/ORF/SR2 via TIFF IFD + bounded JPEG scan; exotic RAW still gap |
+| **Black border crop on EXIF thumbs**                        | Cleaner film-scan thumbs                                                  | `removeBlackBorder` `DkThumbs.cpp` 177–223                                 | Missing                                                                                 |
+| **`force_size` thumb fallback**                             | Use full decode when embed too small                                      | `DkThumbs.cpp` 137–139                                                     | Partial: `acceptSmallPreview` for RAW only                                              |
+| **Double-orientation detection**                            | HEIC/AVIF/JXL/RAW plugin may bake rotation                                | `maybeTransformed` `DkBasicLoader.cpp` 437–450                             | Partial: `orientationBaked` flag; extend per-format in `header.ts`                      |
+| **Exposure display helpers**                                | Aperture 2^(AV/2), 1/N sec exposure                                       | `DkMetaDataHelper`                                                         | Ported in `exifDisplay.ts`                                                              |
+| **IndexedDB/session thumb cache**                           | nomacs disk cache dramatically speeds rescans                             | `DkCachedThumb`                                                            | Missing; high impact for large folders                                                  |
 
 #### Medium (valuable, heavier effort)
 
-| Item | Rationale | nomacs source | Gallery status |
-|------|-----------|---------------|----------------|
-| **Folder keyword + glob filter** | Power-user file finding | `filterInfoList` `DkFileInfo.cpp` 436–468 | Basic filters only |
-| **Multi-page TIFF / animated formats** | Loader page index | `indexPages`, `loadPage` | Not supported |
-| **XMP sidecar / crop rect** | Non-destructive crop metadata | `saveRectToXMP` `DkMetaData.cpp` | Not supported |
-| **Rating / description edit** | Workflow | `setRating`, `setDescription` | Read-only |
-| **BMFF (HEIC/AVIF) EXIF** | Modern phone photos | `enableBMFF` | Browser decodes image; limited EXIF in engine |
-| **Color-managed thumb resize** | Gamma-correct downscale | `DkImage::resizeImage` + `createThumb` | Canvas/sRGB only |
-| **Adjacent image preload** | Faster navigation | `updateCacher`, `preloadThumbs` | Could prefetch `parseImageMeta` + thumb for lightbox neighbors |
-| **Samsung panorama JPEG fix** | Real-world broken files | `DkBasicLoader.cpp` 383–396 | Not ported |
+| Item                                   | Rationale                     | nomacs source                             | Gallery status                                                 |
+| -------------------------------------- | ----------------------------- | ----------------------------------------- | -------------------------------------------------------------- |
+| **Folder keyword + glob filter**       | Power-user file finding       | `filterInfoList` `DkFileInfo.cpp` 436–468 | Basic filters only                                             |
+| **Multi-page TIFF / animated formats** | Loader page index             | `indexPages`, `loadPage`                  | Not supported                                                  |
+| **XMP sidecar / crop rect**            | Non-destructive crop metadata | `saveRectToXMP` `DkMetaData.cpp`          | Not supported                                                  |
+| **Rating / description edit**          | Workflow                      | `setRating`, `setDescription`             | Read-only                                                      |
+| **BMFF (HEIC/AVIF) EXIF**              | Modern phone photos           | `enableBMFF`                              | Browser decodes image; limited EXIF in engine                  |
+| **Color-managed thumb resize**         | Gamma-correct downscale       | `DkImage::resizeImage` + `createThumb`    | Canvas/sRGB only                                               |
+| **Adjacent image preload**             | Faster navigation             | `updateCacher`, `preloadThumbs`           | Could prefetch `parseImageMeta` + thumb for lightbox neighbors |
+| **Samsung panorama JPEG fix**          | Real-world broken files       | `DkBasicLoader.cpp` 383–396               | Not ported                                                     |
 
 #### Low (desktop-specific or poor web fit)
 
-| Item | Rationale |
-|------|-----------|
-| **TCP multi-instance sync** | Core nomacs differentiator; no web analogue without custom sync server |
-| **LibRaw full develop + demosaic** | Requires WASM LibRaw or server; huge bundle; gallery intentionally preview-only |
-| **OpenCV manipulators** (exposure, unsharp, tiny planet) | Possible via WASM OpenCV.js but large; nomacs `DkManipulatorsIpl` |
-| **Batch convert/rename** | Desktop file write; could be File System Access API + worker (complex) |
-| **Quazip in-archive viewing** | Zip `#/` paths; gallery would need zip.js |
-| **Plugin ecosystem** | Qt C++ plugins; not portable |
-| **Print / native save dialogs** | OS integration |
-| **DRIF / ROH / vec loaders** | Scientific/niche formats |
+| Item                                                     | Rationale                                                                       |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **TCP multi-instance sync**                              | Core nomacs differentiator; no web analogue without custom sync server          |
+| **LibRaw full develop + demosaic**                       | Requires WASM LibRaw or server; huge bundle; gallery intentionally preview-only |
+| **OpenCV manipulators** (exposure, unsharp, tiny planet) | Possible via WASM OpenCV.js but large; nomacs `DkManipulatorsIpl`               |
+| **Batch convert/rename**                                 | Desktop file write; could be File System Access API + worker (complex)          |
+| **Quazip in-archive viewing**                            | Zip `#/` paths; gallery would need zip.js                                       |
+| **Plugin ecosystem**                                     | Qt C++ plugins; not portable                                                    |
+| **Print / native save dialogs**                          | OS integration                                                                  |
+| **DRIF / ROH / vec loaders**                             | Scientific/niche formats                                                        |
 
 ---
 
 ### Algorithm reference (key files)
 
-| Algorithm | File:lines (approx.) |
-|-----------|---------------------|
-| Loader order + orientation | `DkBasicLoader.cpp` 264–537 |
-| Qt load, ICO frame pick | `DkBasicLoader.cpp` 540–598 |
-| RAW preview cascade | `DkBasicLoader.cpp` 649–655, 2049–2258 |
-| Demosaic + gamma + noise | `DkBasicLoader.cpp` 2296–2537 |
-| EXIF orientation read | `DkMetaData.cpp` 317–380 |
-| EXIF orientation write compose | `DkMetaData.cpp` 1142–1224 |
-| EXIF tag precedence | `DkMetaData.cpp` 533–571 |
-| Largest Exiv2 preview | `DkMetaData.cpp` 758–799 |
-| Save size guard 50% | `DkMetaData.cpp` 276–279 |
-| Thumbnail pipeline | `DkThumbs.cpp` 44–175, 251–366 |
-| Thumb scaling | `DkImageStorage.cpp` 2241–2310 |
-| Directory + duplicate filter | `DkFileInfo.cpp` 390–413, 511–572 |
-| Memory cacher | `DkImageLoader.cpp` 1639–1699 |
-| TCP sync messages | `DkConnection.cpp` 58–200, `DkViewPort.cpp` 535–551 |
-| Gallery EXIF parse | `formats/exif.ts` |
-| Gallery RAW IFD scan | `formats/raw.ts` 550–656, 841+ |
-| Gallery thumb paths | `thumbnail.ts` 69–199 |
-| Gallery orientation CSS | `orientation.ts` 110–118 |
+| Algorithm                      | File:lines (approx.)                                |
+| ------------------------------ | --------------------------------------------------- |
+| Loader order + orientation     | `DkBasicLoader.cpp` 264–537                         |
+| Qt load, ICO frame pick        | `DkBasicLoader.cpp` 540–598                         |
+| RAW preview cascade            | `DkBasicLoader.cpp` 649–655, 2049–2258              |
+| Demosaic + gamma + noise       | `DkBasicLoader.cpp` 2296–2537                       |
+| EXIF orientation read          | `DkMetaData.cpp` 317–380                            |
+| EXIF orientation write compose | `DkMetaData.cpp` 1142–1224                          |
+| EXIF tag precedence            | `DkMetaData.cpp` 533–571                            |
+| Largest Exiv2 preview          | `DkMetaData.cpp` 758–799                            |
+| Save size guard 50%            | `DkMetaData.cpp` 276–279                            |
+| Thumbnail pipeline             | `DkThumbs.cpp` 44–175, 251–366                      |
+| Thumb scaling                  | `DkImageStorage.cpp` 2241–2310                      |
+| Directory + duplicate filter   | `DkFileInfo.cpp` 390–413, 511–572                   |
+| Memory cacher                  | `DkImageLoader.cpp` 1639–1699                       |
+| TCP sync messages              | `DkConnection.cpp` 58–200, `DkViewPort.cpp` 535–551 |
+| Gallery EXIF parse             | `formats/exif.ts`                                   |
+| Gallery RAW IFD scan           | `formats/raw.ts` 550–656, 841+                      |
+| Gallery thumb paths            | `thumbnail.ts` 69–199                               |
+| Gallery orientation CSS        | `orientation.ts` 110–118                            |
 
 ---
 
@@ -379,13 +379,13 @@ The largest functional gaps for a web gallery aiming at nomacs parity are: **dup
 
 `DkSettingsManager` centralizes INI-style persistence (platform paths, portable mode). Structs map directly to preference UI in `DkPreferenceWidgets.cpp`:
 
-| Struct | Keys relevant to gallery port | Default / notes |
-|--------|------------------------------|-----------------|
-| `MetaData` | `ignoreExifOrientation`, `saveExifOrientation` | Gallery mirrors ignore via `ignoreExifOrientation` atom |
-| `Resources` | `maxThumbSize`, `thumbThreads`, `thumbCacheMemory`, `thumbDiskSpace`, `preloadThumbs`, `thumbDiskCache`, `filterDuplicats`, `preferredExtension`, `loadRawThumb`, `filterRawImages` | `preferredExtension = *.jpg` drives duplicate hiding |
-| `Global` | `sortMode`, `sortDir`, `sortSeed`, `searchHistory` | Random sort uses seed; gallery lacks random sort |
-| `Sync` | `syncAbsoluteTransform`, `switchModifier`, `syncActions` | TCP sync toggles; web analogue is `BroadcastChannel` |
-| `Display` | `zoomOnWheel`, `doubleClickForFullscreen`, icon sizes | Lightbox has partial overlap |
+| Struct      | Keys relevant to gallery port                                                                                                                                                       | Default / notes                                         |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `MetaData`  | `ignoreExifOrientation`, `saveExifOrientation`                                                                                                                                      | Gallery mirrors ignore via `ignoreExifOrientation` atom |
+| `Resources` | `maxThumbSize`, `thumbThreads`, `thumbCacheMemory`, `thumbDiskSpace`, `preloadThumbs`, `thumbDiskCache`, `filterDuplicats`, `preferredExtension`, `loadRawThumb`, `filterRawImages` | `preferredExtension = *.jpg` drives duplicate hiding    |
+| `Global`    | `sortMode`, `sortDir`, `sortSeed`, `searchHistory`                                                                                                                                  | Random sort uses seed; gallery lacks random sort        |
+| `Sync`      | `syncAbsoluteTransform`, `switchModifier`, `syncActions`                                                                                                                            | TCP sync toggles; web analogue is `BroadcastChannel`    |
+| `Display`   | `zoomOnWheel`, `doubleClickForFullscreen`, icon sizes                                                                                                                               | Lightbox has partial overlap                            |
 
 `loadRawThumb` (enum in settings) gates whether `DkRawLoader::loadPreview` asks Exiv2 for a large embedded preview (1920 px threshold when LibRaw is compiled). Gallery has no equivalent setting—always hunts largest embed in `raw.ts`.
 
@@ -428,11 +428,11 @@ Gallery `filesystem.ts` + `model.ts` flatten recursively with FSA; no duplicate 
 
 ### Tests and regression anchors
 
-| Test file | What it guards |
-|-----------|----------------|
-| `ImageLounge/tests/DkMetaData_test.cpp` | EXIF read, orientation compose, rating |
-| `DkNativeImage_test.cpp` | Image ops |
-| `DkBaseViewPort_test.cpp` | Viewport math |
-| Gallery `exif.test.ts`, `orientation.test.ts`, `raw.test.ts` | TS parser parity |
+| Test file                                                    | What it guards                         |
+| ------------------------------------------------------------ | -------------------------------------- |
+| `ImageLounge/tests/DkMetaData_test.cpp`                      | EXIF read, orientation compose, rating |
+| `DkNativeImage_test.cpp`                                     | Image ops                              |
+| `DkBaseViewPort_test.cpp`                                    | Viewport math                          |
+| Gallery `exif.test.ts`, `orientation.test.ts`, `raw.test.ts` | TS parser parity                       |
 
 When nomacs fixes land (e.g. [#1228](https://github.com/nomacs/nomacs/issues/1228) mirrored orientations, [#1238](https://github.com/nomacs/nomacs/issues/1238) thumb loader refactor), diff `DkMetaData.cpp` / `DkThumbs.cpp` and extend gallery golden fixtures—not the C++ itself.

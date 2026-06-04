@@ -253,11 +253,14 @@ export async function parseImageMeta(
 
   const avifMeta = parseAvifMeta(view)
   if (avifMeta) {
-    return withDetectedFormatWarning({
-      ...avifMeta,
-      isProgressive: false,
-      hasExifThumbnail: false,
-    }, options?.filename)
+    return withDetectedFormatWarning(
+      {
+        ...avifMeta,
+        isProgressive: false,
+        hasExifThumbnail: false,
+      },
+      options?.filename,
+    )
   }
 
   if (isTiffLike(view)) {
@@ -267,23 +270,29 @@ export async function parseImageMeta(
       source.size,
     )
     if (rawMeta) {
-      const embeddedPreview = await extractRawPreviewData(source, rawMeta.format)
+      const embeddedPreview = await extractRawPreviewData(
+        source,
+        rawMeta.format,
+      )
 
-      return withDetectedFormatWarning({
-        width: embeddedPreview?.width ?? rawMeta.width,
-        height: embeddedPreview?.height ?? rawMeta.height,
-        format: rawMeta.format,
-        isProgressive: false,
-        hasExifThumbnail: rawMeta.hasPreview || embeddedPreview !== null,
-        exif: rawMeta.exif,
-        embeddedPreview: embeddedPreview
-          ? {
-              blob: embeddedPreview.blob,
-              width: embeddedPreview.width,
-              height: embeddedPreview.height,
-            }
-          : undefined,
-      }, options?.filename)
+      return withDetectedFormatWarning(
+        {
+          width: embeddedPreview?.width ?? rawMeta.width,
+          height: embeddedPreview?.height ?? rawMeta.height,
+          format: rawMeta.format,
+          isProgressive: false,
+          hasExifThumbnail: rawMeta.hasPreview || embeddedPreview !== null,
+          exif: rawMeta.exif,
+          embeddedPreview: embeddedPreview
+            ? {
+                blob: embeddedPreview.blob,
+                width: embeddedPreview.width,
+                height: embeddedPreview.height,
+              }
+            : undefined,
+        },
+        options?.filename,
+      )
     }
   }
 

@@ -350,13 +350,7 @@ function readIfd(
 
     const name =
       tag === USER_COMMENT_TAG ? USER_COMMENT_TAG_NAME : tagName(tag, ifd)
-    const value = readEntryValue(
-      view,
-      tiffBase,
-      entryOffset,
-      littleEndian,
-      tag,
-    )
+    const value = readEntryValue(view, tiffBase, entryOffset, littleEndian, tag)
     if (value !== '') into[name] = value
   }
 

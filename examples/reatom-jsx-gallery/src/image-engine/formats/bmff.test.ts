@@ -4,12 +4,13 @@ import { parseImageMeta } from '../header'
 import { parseAvifMeta } from './bmff'
 
 function typeCode(type: string): number {
-  return ((
-    (type.charCodeAt(0) << 24) |
-    (type.charCodeAt(1) << 16) |
-    (type.charCodeAt(2) << 8) |
-    type.charCodeAt(3)
-  ) >>> 0)
+  return (
+    ((type.charCodeAt(0) << 24) |
+      (type.charCodeAt(1) << 16) |
+      (type.charCodeAt(2) << 8) |
+      type.charCodeAt(3)) >>>
+    0
+  )
 }
 
 function box(type: string, payload: Uint8Array): Uint8Array {
@@ -69,9 +70,9 @@ describe('AVIF BMFF metadata', () => {
     await expect(
       parseImageMeta(blob, { filename: 'photo.avif' }),
     ).resolves.toMatchObject({
-        width: 1920,
-        height: 1080,
-        format: 'avif',
+      width: 1920,
+      height: 1080,
+      format: 'avif',
     })
   })
 })

@@ -8,16 +8,16 @@
 
 ### See also (research pack)
 
-| Document | Contents |
-|----------|----------|
-| [nomacs-porting-playbook.md](./nomacs-porting-playbook.md) | Primary desktop reference (Qt/Exiv2); gallery architecture §2 |
-| [nomacs-codebase-deep-dive.md](./nomacs-codebase-deep-dive.md) | nomacs loader/EXIF depth |
-| [nomacs-exif-reference.md](./nomacs-exif-reference.md) | Orientation and display-map normative spec |
-| [nomacs-dependency-stack.md](./nomacs-dependency-stack.md) | Desktop deps vs web/npm/WASM |
-| [nomacs-issues-backlog.md](./nomacs-issues-backlog.md) | Community signals (nomacs GitHub) |
-| [oculante-codebase-deep-dive.md](./oculante-codebase-deep-dive.md) | Loaders, EXIF, thumbs, edit stack |
-| [oculante-issues-backlog.md](./oculante-issues-backlog.md) | Oculante GitHub taxonomy + backlog |
-| [oculante-dependency-stack.md](./oculante-dependency-stack.md) | quickraw, kamadak-exif, turbojpeg vs gallery |
+| Document                                                           | Contents                                                      |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| [nomacs-porting-playbook.md](./nomacs-porting-playbook.md)         | Primary desktop reference (Qt/Exiv2); gallery architecture §2 |
+| [nomacs-codebase-deep-dive.md](./nomacs-codebase-deep-dive.md)     | nomacs loader/EXIF depth                                      |
+| [nomacs-exif-reference.md](./nomacs-exif-reference.md)             | Orientation and display-map normative spec                    |
+| [nomacs-dependency-stack.md](./nomacs-dependency-stack.md)         | Desktop deps vs web/npm/WASM                                  |
+| [nomacs-issues-backlog.md](./nomacs-issues-backlog.md)             | Community signals (nomacs GitHub)                             |
+| [oculante-codebase-deep-dive.md](./oculante-codebase-deep-dive.md) | Loaders, EXIF, thumbs, edit stack                             |
+| [oculante-issues-backlog.md](./oculante-issues-backlog.md)         | Oculante GitHub taxonomy + backlog                            |
+| [oculante-dependency-stack.md](./oculante-dependency-stack.md)     | quickraw, kamadak-exif, turbojpeg vs gallery                  |
 
 ---
 
@@ -35,26 +35,26 @@ Three viewers anchor this research: **Oculante** (Rust/egui, MIT), **nomacs** (Q
 
 **Effort snapshot (person-weeks, one senior engineer):**
 
-| Phase | Focus | Estimate |
-|-------|--------|----------|
-| 0 | Docs + measurement baselines | 1–2 |
-| 1 | Cache + flipbook + histogram (read-only) | 4–6 |
-| 2 | Compare mode + channel preview + format gaps | 4–6 |
-| 3 | Metafile edits + lossless JPEG (optional write) | 8–12 |
+| Phase | Focus                                           | Estimate |
+| ----- | ----------------------------------------------- | -------- |
+| 0     | Docs + measurement baselines                    | 1–2      |
+| 1     | Cache + flipbook + histogram (read-only)        | 4–6      |
+| 2     | Compare mode + channel preview + format gaps    | 4–6      |
+| 3     | Metafile edits + lossless JPEG (optional write) | 8–12     |
 
 **Three-way comparison (at a glance):**
 
-| Dimension | Oculante | nomacs | Gallery |
-|-----------|----------|--------|---------|
-| Runtime | Rust + notan/egui | Qt6 C++ | Browser TS + Reatom JSX |
-| License | MIT (some GPL assets in `res/`) | GPLv3 | MIT example |
-| Metadata | kamadak-exif + img-parts preserve | Exiv2 full R/W | TS parser, read-only |
-| RAW | quickraw embed thumb | LibRaw optional | IFD + worker JPEG scan |
-| Thumbs | Disk PNG cache + full decode gen | Exiv2 + Qt + disk cache | EXIF → RAW → bitmap |
-| Editing | Operator stack + metafile | Pixel + metadata write | Copy/download only |
-| Analysis | Histogram, channels, picker | Histogram, some overlays | Info panel, no hist yet |
-| Sync | TCP receive mode (`-l`) | TCP multi-instance | — (BroadcastChannel planned) |
-| Maintenance | Maintenance / rewrite | Active | Example app |
+| Dimension   | Oculante                          | nomacs                   | Gallery                      |
+| ----------- | --------------------------------- | ------------------------ | ---------------------------- |
+| Runtime     | Rust + notan/egui                 | Qt6 C++                  | Browser TS + Reatom JSX      |
+| License     | MIT (some GPL assets in `res/`)   | GPLv3                    | MIT example                  |
+| Metadata    | kamadak-exif + img-parts preserve | Exiv2 full R/W           | TS parser, read-only         |
+| RAW         | quickraw embed thumb              | LibRaw optional          | IFD + worker JPEG scan       |
+| Thumbs      | Disk PNG cache + full decode gen  | Exiv2 + Qt + disk cache  | EXIF → RAW → bitmap          |
+| Editing     | Operator stack + metafile         | Pixel + metadata write   | Copy/download only           |
+| Analysis    | Histogram, channels, picker       | Histogram, some overlays | Info panel, no hist yet      |
+| Sync        | TCP receive mode (`-l`)           | TCP multi-instance       | — (BroadcastChannel planned) |
+| Maintenance | Maintenance / rewrite             | Active                   | Example app                  |
 
 ---
 
@@ -92,15 +92,15 @@ flowchart TB
 
 **Oculante mapping at this layer:**
 
-| Oculante module | Gallery analogue | Gap |
-|-----------------|------------------|-----|
-| `Player` + `open_image` | `reatomImage` + `parseImageMeta` | No unified format router table |
-| `Cache` (RAM LRU) | None | IndexedDB thumbs proposed (nomacs playbook §5.14) |
-| `Thumbnails` (disk) | Regenerate each session | Missing persistent thumb store |
-| `Scrubber` | `navigateLightbox` on linked list | No folder index bar / flipbook timing |
-| `CompareList` | — | No compare-at-preserved zoom |
-| `ExtendedImageInfo` | `ImageInfoPanel` + `exifDisplay` | No RGB histogram plots |
-| `EditState` / `.oculante` | — | Out of scope MVP |
+| Oculante module           | Gallery analogue                  | Gap                                               |
+| ------------------------- | --------------------------------- | ------------------------------------------------- |
+| `Player` + `open_image`   | `reatomImage` + `parseImageMeta`  | No unified format router table                    |
+| `Cache` (RAM LRU)         | None                              | IndexedDB thumbs proposed (nomacs playbook §5.14) |
+| `Thumbnails` (disk)       | Regenerate each session           | Missing persistent thumb store                    |
+| `Scrubber`                | `navigateLightbox` on linked list | No folder index bar / flipbook timing             |
+| `CompareList`             | —                                 | No compare-at-preserved zoom                      |
+| `ExtendedImageInfo`       | `ImageInfoPanel` + `exifDisplay`  | No RGB histogram plots                            |
+| `EditState` / `.oculante` | —                                 | Out of scope MVP                                  |
 
 **Data flow contrast:** Oculante loads one **current** image into GPU textures with optional RAM cache (`max_cache` default 30). Gallery materializes **N** concurrent `reatomImage` pipelines with `hardwareConcurrency - 2` thumb gate—better for grid, heavier for 10k folders unless virtualized.
 
@@ -273,11 +273,11 @@ flowchart LR
 
 **Port strategy:**
 
-| Tier | Action |
-|------|--------|
-| A | Keep embed preview; label “embedded preview (quickraw-class)” in UI |
-| B | Evaluate quickraw WASM for formats the IFD walk still misses (CR3, RW2, RAF) |
-| C | Float TIFF via `utif` in worker for scientific TIFF users |
+| Tier | Action                                                                       |
+| ---- | ---------------------------------------------------------------------------- |
+| A    | Keep embed preview; label “embedded preview (quickraw-class)” in UI          |
+| B    | Evaluate quickraw WASM for formats the IFD walk still misses (CR3, RW2, RAF) |
+| C    | Float TIFF via `utif` in worker for scientific TIFF users                    |
 
 **Avoid:** `Limits::unlimited()`—use byte caps per file type.
 
@@ -318,12 +318,12 @@ flowchart LR
 
 ### 5.5 Analysis tools
 
-| Tool | Oculante | Gallery target |
-|------|----------|----------------|
-| RGB histogram | egui_plot 3 channels | Canvas or lightweight chart lib in worker |
-| Unique color count | bit-packed hash in `from_image` | Optional debug panel |
-| Alpha unpremult view | channel shader | WebGL fragment shader toggle |
-| Pixel magnifier | info panel UV map | Extend `ImageInfoPanel` minimap |
+| Tool                 | Oculante                        | Gallery target                            |
+| -------------------- | ------------------------------- | ----------------------------------------- |
+| RGB histogram        | egui_plot 3 channels            | Canvas or lightweight chart lib in worker |
+| Unique color count   | bit-packed hash in `from_image` | Optional debug panel                      |
+| Alpha unpremult view | channel shader                  | WebGL fragment shader toggle              |
+| Pixel magnifier      | info panel UV map               | Extend `ImageInfoPanel` minimap           |
 
 **Phase 2 acceptance:** Histogram tracks selection; reduced-motion disables animation.
 
@@ -353,11 +353,11 @@ In-app browser: enhance `FolderTree` with search/filter chips (Oculante `search_
 
 ### 5.8 Network and sync
 
-| Mode | Oculante | Gallery |
-|------|----------|---------|
-| TCP image receive | `oculante -l port` | Not planned |
-| Multi-tab | — | `BroadcastChannel` (nomacs §5.6) |
-| stdin pipe | `cat img \| oculante -s` | Drag-drop only |
+| Mode              | Oculante                 | Gallery                          |
+| ----------------- | ------------------------ | -------------------------------- |
+| TCP image receive | `oculante -l port`       | Not planned                      |
+| Multi-tab         | —                        | `BroadcastChannel` (nomacs §5.6) |
+| stdin pipe        | `cat img \| oculante -s` | Drag-drop only                   |
 
 **Emulate concept:** “Receive mode” as hidden dev flag to paste image blob into lightbox—no open TCP in browser.
 
@@ -365,13 +365,13 @@ In-app browser: enhance `FolderTree` with search/filter chips (Oculante `search_
 
 ### 5.9 Performance
 
-| Technique | Oculante | Gallery | Action |
-|-----------|----------|---------|--------|
-| RAM image cache | 30 images LRU | None | Optional `Map` of last N blob URLs for lightbox only |
-| Disk thumb cache | Yes | No | Phase 1 IndexedDB |
-| Decode threads | 4 thumb | hw−2 | Expose setting |
-| GPU upload | wgpu texture | CSS/canvas | Keep 2D unless WebGL hist |
-| Release LTO | Rust fat LTO | Vite tree-shake | Monitor bundle |
+| Technique        | Oculante      | Gallery         | Action                                               |
+| ---------------- | ------------- | --------------- | ---------------------------------------------------- |
+| RAM image cache  | 30 images LRU | None            | Optional `Map` of last N blob URLs for lightbox only |
+| Disk thumb cache | Yes           | No              | Phase 1 IndexedDB                                    |
+| Decode threads   | 4 thumb       | hw−2            | Expose setting                                       |
+| GPU upload       | wgpu texture  | CSS/canvas      | Keep 2D unless WebGL hist                            |
+| Release LTO      | Rust fat LTO  | Vite tree-shake | Monitor bundle                                       |
 
 **Measurement:** Adopt nomacs playbook §5.18 protocol; add flipbook stepping FPS target.
 
@@ -483,54 +483,54 @@ Features Oculante **cannot** match without becoming a different product—and wh
 
 ## 8. Appendix: File Mapping (Oculante → Gallery)
 
-| Oculante path | Role | Gallery path | Status |
-|---------------|------|--------------|--------|
-| `src/image_loader.rs` | Format dispatch, decode | `image-engine/header.ts`, format modules | Partial |
-| `src/thumbnails.rs` | Disk thumb cache | — (proposed `ThumbnailCache.ts`) | Missing |
-| `src/cache.rs` | RAM LRU cache | — | Missing |
-| `src/utils.rs` (`Player`, `ExtendedImageInfo`) | Load pipeline, EXIF, hist | `reatomImage.ts`, `exifDisplay.ts` | Partial |
-| `src/scrubber.rs` | Folder navigation | `model.ts` `navigateLightbox` | Partial |
-| `src/comparelist.rs` | Compare geometry | — | Missing |
-| `src/filebrowser.rs` | In-app FS UI | `FolderTree.tsx`, `filesystem.ts` | Partial |
-| `src/ui/info_ui.rs` | Inspector panel | `ImageInfoPanel.tsx` | Partial |
-| `src/ui/edit_ui.rs` | Edit stack UI | — | Missing |
-| `src/image_editing.rs` | Operators, lossless | — | Missing |
-| `src/settings.rs` | JSON config | `model.ts` + localStorage | Partial |
-| `src/shortcuts.rs` | Keymap | `shortcuts.tsx` | Partial |
-| `src/net.rs` | TCP receive | — | N/A |
-| `src/paint.rs` | Brush strokes | — | Out of scope |
-| `src/ktx2_loader/*` | KTX2/DDS/Basis | — | Low |
-| `src/main.rs` | App loop, CLI | `App.tsx` | Different |
-| `kamadak-exif` | EXIF parse | `formats/exif.ts` | Gallery HUD richer |
-| `img-parts` | EXIF preserve save | — | Phase 3 |
-| `quickraw` | RAW thumb | `formats/raw.ts` | Overlap |
-| `turbojpeg` | Lossless JPEG | — | Phase 3 WASM |
+| Oculante path                                  | Role                      | Gallery path                             | Status             |
+| ---------------------------------------------- | ------------------------- | ---------------------------------------- | ------------------ |
+| `src/image_loader.rs`                          | Format dispatch, decode   | `image-engine/header.ts`, format modules | Partial            |
+| `src/thumbnails.rs`                            | Disk thumb cache          | — (proposed `ThumbnailCache.ts`)         | Missing            |
+| `src/cache.rs`                                 | RAM LRU cache             | —                                        | Missing            |
+| `src/utils.rs` (`Player`, `ExtendedImageInfo`) | Load pipeline, EXIF, hist | `reatomImage.ts`, `exifDisplay.ts`       | Partial            |
+| `src/scrubber.rs`                              | Folder navigation         | `model.ts` `navigateLightbox`            | Partial            |
+| `src/comparelist.rs`                           | Compare geometry          | —                                        | Missing            |
+| `src/filebrowser.rs`                           | In-app FS UI              | `FolderTree.tsx`, `filesystem.ts`        | Partial            |
+| `src/ui/info_ui.rs`                            | Inspector panel           | `ImageInfoPanel.tsx`                     | Partial            |
+| `src/ui/edit_ui.rs`                            | Edit stack UI             | —                                        | Missing            |
+| `src/image_editing.rs`                         | Operators, lossless       | —                                        | Missing            |
+| `src/settings.rs`                              | JSON config               | `model.ts` + localStorage                | Partial            |
+| `src/shortcuts.rs`                             | Keymap                    | `shortcuts.tsx`                          | Partial            |
+| `src/net.rs`                                   | TCP receive               | —                                        | N/A                |
+| `src/paint.rs`                                 | Brush strokes             | —                                        | Out of scope       |
+| `src/ktx2_loader/*`                            | KTX2/DDS/Basis            | —                                        | Low                |
+| `src/main.rs`                                  | App loop, CLI             | `App.tsx`                                | Different          |
+| `kamadak-exif`                                 | EXIF parse                | `formats/exif.ts`                        | Gallery HUD richer |
+| `img-parts`                                    | EXIF preserve save        | —                                        | Phase 3            |
+| `quickraw`                                     | RAW thumb                 | `formats/raw.ts`                         | Overlap            |
+| `turbojpeg`                                    | Lossless JPEG             | —                                        | Phase 3 WASM       |
 
 ### Oculante dependency → web equivalent
 
-| Crate / feature | Oculante use | Web substitute |
-|-----------------|--------------|----------------|
-| `notan` + wgpu | GPU draw | Canvas 2D / WebGL |
-| `quickraw` | RAW thumb | `raw.ts` + optional WASM |
-| `jxl-oxide` | JPEG XL | Browser JXL when available |
-| `libheif-rs` | HEIC | `createImageBitmap` + exifr |
-| `turbojpeg` | Lossless JPEG | WASM turbojpeg |
-| `resvg` / `usvg` | SVG rasterize | `<img>` or resvg-wasm |
-| `dicom-*` | DICOM | Out of scope MVP |
-| `rayon` | Parallel decode | Web Workers |
-| `kamadak-exif` | Metadata | TS parser + exifr fallback |
+| Crate / feature  | Oculante use    | Web substitute              |
+| ---------------- | --------------- | --------------------------- |
+| `notan` + wgpu   | GPU draw        | Canvas 2D / WebGL           |
+| `quickraw`       | RAW thumb       | `raw.ts` + optional WASM    |
+| `jxl-oxide`      | JPEG XL         | Browser JXL when available  |
+| `libheif-rs`     | HEIC            | `createImageBitmap` + exifr |
+| `turbojpeg`      | Lossless JPEG   | WASM turbojpeg              |
+| `resvg` / `usvg` | SVG rasterize   | `<img>` or resvg-wasm       |
+| `dicom-*`        | DICOM           | Out of scope MVP            |
+| `rayon`          | Parallel decode | Web Workers                 |
+| `kamadak-exif`   | Metadata        | TS parser + exifr fallback  |
 
 ### Gallery file index (quick reference)
 
-| Path | Purpose |
-|------|---------|
-| `src/model.ts` | App state, lightbox, filters |
-| `src/reatomImage.ts` | Per-file pipeline |
-| `src/image-engine/thumbnail.ts` | Thumb strategies |
-| `src/image-engine/formats/raw.ts` | DNG/ARW/CR2/NEF/ORF/SR2 previews |
-| `src/components/Lightbox.tsx` | Viewer |
-| `src/components/ImageInfoPanel.tsx` | Metadata |
-| `src/theme.tsx` | Theme packs |
+| Path                                | Purpose                          |
+| ----------------------------------- | -------------------------------- |
+| `src/model.ts`                      | App state, lightbox, filters     |
+| `src/reatomImage.ts`                | Per-file pipeline                |
+| `src/image-engine/thumbnail.ts`     | Thumb strategies                 |
+| `src/image-engine/formats/raw.ts`   | DNG/ARW/CR2/NEF/ORF/SR2 previews |
+| `src/components/Lightbox.tsx`       | Viewer                           |
+| `src/components/ImageInfoPanel.tsx` | Metadata                         |
+| `src/theme.tsx`                     | Theme packs                      |
 
 ---
 
@@ -538,42 +538,42 @@ Features Oculante **cannot** match without becoming a different product—and wh
 
 ### Primary references
 
-- Oculante repository: https://github.com/woelper/oculante  
-- Oculante README (formats, shortcuts, privacy): `~/code/oculante/README.md`  
-- Maintenance / rewrite: https://github.com/woelper/oculante/issues/746  
-- nomacs porting guide: [nomacs-porting-playbook.md](./nomacs-porting-playbook.md)  
-- Gallery plan: `examples/reatom-jsx-gallery/plan.md`  
+- Oculante repository: https://github.com/woelper/oculante
+- Oculante README (formats, shortcuts, privacy): `~/code/oculante/README.md`
+- Maintenance / rewrite: https://github.com/woelper/oculante/issues/746
+- nomacs porting guide: [nomacs-porting-playbook.md](./nomacs-porting-playbook.md)
+- Gallery plan: `examples/reatom-jsx-gallery/plan.md`
 
 ### Oculante source anchors
 
-| Topic | File |
-|-------|------|
-| Format match + warning | `image_loader.rs` 29–82 |
-| RAW thumb | `image_loader.rs` 784–818 |
-| Disk thumbnails | `thumbnails.rs` 1–143 |
-| RAM cache LRU | `cache.rs` 1–58 |
-| EXIF read/preserve | `utils.rs` 124–155, 972+ |
-| Compare list | `comparelist.rs` |
-| Folder scrubber | `scrubber.rs` |
-| Lossless JPEG | `ui/edit_ui.rs` 851+ |
-| TCP receive | `net.rs` |
-| Settings | `settings.rs` |
+| Topic                  | File                      |
+| ---------------------- | ------------------------- |
+| Format match + warning | `image_loader.rs` 29–82   |
+| RAW thumb              | `image_loader.rs` 784–818 |
+| Disk thumbnails        | `thumbnails.rs` 1–143     |
+| RAM cache LRU          | `cache.rs` 1–58           |
+| EXIF read/preserve     | `utils.rs` 124–155, 972+  |
+| Compare list           | `comparelist.rs`          |
+| Folder scrubber        | `scrubber.rs`             |
+| Lossless JPEG          | `ui/edit_ui.rs` 851+      |
+| TCP receive            | `net.rs`                  |
+| Settings               | `settings.rs`             |
 
 ### External standards and tools
 
-- kamadak-exif: https://github.com/kamadak/exif  
-- img-parts (EXIF in JPEG/PNG): https://github.com/google/imgparts  
-- quickraw: https://github.com/awgymer/quickraw  
-- File System Access API: https://developer.mozilla.org/en-US/docs/Web/API/File_System_API  
-- CSS `image-orientation`: MDN (gallery normative in nomacs-exif-reference)  
+- kamadak-exif: https://github.com/kamadak/exif
+- img-parts (EXIF in JPEG/PNG): https://github.com/google/imgparts
+- quickraw: https://github.com/awgymer/quickraw
+- File System Access API: https://developer.mozilla.org/en-US/docs/Web/API/File_System_API
+- CSS `image-orientation`: MDN (gallery normative in nomacs-exif-reference)
 
 ### GitHub issues (Oculante) to watch
 
-| Theme | Search |
-|-------|--------|
-| Rewrite progress | `oculante-next` branch, #746 |
-| RAW support | `quickraw` issues, README camera list |
-| HEIF on Linux | `heif` feature flag |
+| Theme            | Search                                |
+| ---------------- | ------------------------------------- |
+| Rewrite progress | `oculante-next` branch, #746          |
+| RAW support      | `quickraw` issues, README camera list |
+| HEIF on Linux    | `heif` feature flag                   |
 
 ### Research gaps (minimal TODOs)
 
@@ -585,31 +585,31 @@ Features Oculante **cannot** match without becoming a different product—and wh
 
 ## 10. Feature Parity Matrix (Oculante vs nomacs vs Gallery)
 
-| Feature | Oculante | nomacs | Gallery | Phase |
-|---------|----------|--------|---------|-------|
-| Folder tree / browse | Yes | Yes | Yes | — |
-| Grid/list/table | List/grid in FM | Yes | Yes | — |
-| EXIF read | kamadak | Exiv2 full | TS subset | 1 |
-| EXIF write / preserve | img-parts | Exiv2 | No / planned | 3 |
-| IPTC/XMP | Limited | Yes | No | 1 |
-| RAW develop | quickraw thumb only | LibRaw | Preview only | — |
-| HEIC/AVIF/JXL | Native crates | kimageformats | Partial ext | 1–2 |
-| Disk thumb cache | Yes | Yes | No | 1 |
-| RAM image cache | Yes | Qt cache | No | 1 |
-| Flipbook / scrub bar | Yes | Partial | Slideshow only | 1 |
-| Histogram | Yes | Yes | No | 2 |
-| Channel isolate | Yes | No | No | 2 |
-| Compare at zoom | Yes | Partial | No | 2 |
-| Lossless JPEG rotate | Yes | Partial | No | 3 |
-| Edit metafile | `.oculante` | XMP sidecar | No | 3 |
-| Painting | Yes | Yes | No | — |
-| Themes | Light/dark/system | Light/dark | 10 packs | — |
-| Multi-instance sync | TCP receive | TCP sync | BroadcastChannel | 3 |
-| i18n | System fonts | 30+ locales | EN | 2 |
-| PWA / zero install | No | No | Yes | — |
-| Storybook/a11y CI | No | No | Yes | — |
-| DICOM / KTX2 | Yes | No | No | — |
-| Privacy telemetry | None | None | None | — |
+| Feature               | Oculante            | nomacs        | Gallery          | Phase |
+| --------------------- | ------------------- | ------------- | ---------------- | ----- |
+| Folder tree / browse  | Yes                 | Yes           | Yes              | —     |
+| Grid/list/table       | List/grid in FM     | Yes           | Yes              | —     |
+| EXIF read             | kamadak             | Exiv2 full    | TS subset        | 1     |
+| EXIF write / preserve | img-parts           | Exiv2         | No / planned     | 3     |
+| IPTC/XMP              | Limited             | Yes           | No               | 1     |
+| RAW develop           | quickraw thumb only | LibRaw        | Preview only     | —     |
+| HEIC/AVIF/JXL         | Native crates       | kimageformats | Partial ext      | 1–2   |
+| Disk thumb cache      | Yes                 | Yes           | No               | 1     |
+| RAM image cache       | Yes                 | Qt cache      | No               | 1     |
+| Flipbook / scrub bar  | Yes                 | Partial       | Slideshow only   | 1     |
+| Histogram             | Yes                 | Yes           | No               | 2     |
+| Channel isolate       | Yes                 | No            | No               | 2     |
+| Compare at zoom       | Yes                 | Partial       | No               | 2     |
+| Lossless JPEG rotate  | Yes                 | Partial       | No               | 3     |
+| Edit metafile         | `.oculante`         | XMP sidecar   | No               | 3     |
+| Painting              | Yes                 | Yes           | No               | —     |
+| Themes                | Light/dark/system   | Light/dark    | 10 packs         | —     |
+| Multi-instance sync   | TCP receive         | TCP sync      | BroadcastChannel | 3     |
+| i18n                  | System fonts        | 30+ locales   | EN               | 2     |
+| PWA / zero install    | No                  | No            | Yes              | —     |
+| Storybook/a11y CI     | No                  | No            | Yes              | —     |
+| DICOM / KTX2          | Yes                 | No            | No               | —     |
+| Privacy telemetry     | None                | None          | None             | —     |
 
 Use §6 phases for sprint planning: Phase 1 is Oculante **cache + navigation**; nomacs still owns **metadata breadth**; Phase 2 is **analysis**; Phase 3 is **edit sidecars**.
 
@@ -642,13 +642,13 @@ Oculante equivalent: `Scrubber::next` + `Player` cache hit + `CompareList::inser
 
 ## 13. Risk register
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Oculante rewrite invalidates mapping | Medium | Doc drift | Pin version 0.9.2; watch #746 |
-| Full-decode thumb cache on web | High | OOM | EXIF-first policy (§4.2) |
-| Lossless JPEG WASM size | Medium | Slow PWA | Lazy-load module |
-| Compare state desync | Medium | UX bug | Store geometry per `ImageFile.id` |
-| quickraw vs gallery RAW divergence | Medium | Missing previews | Golden ARW/NEF fixtures |
+| Risk                                 | Likelihood | Impact           | Mitigation                        |
+| ------------------------------------ | ---------- | ---------------- | --------------------------------- |
+| Oculante rewrite invalidates mapping | Medium     | Doc drift        | Pin version 0.9.2; watch #746     |
+| Full-decode thumb cache on web       | High       | OOM              | EXIF-first policy (§4.2)          |
+| Lossless JPEG WASM size              | Medium     | Slow PWA         | Lazy-load module                  |
+| Compare state desync                 | Medium     | UX bug           | Store geometry per `ImageFile.id` |
+| quickraw vs gallery RAW divergence   | Medium     | Missing previews | Golden ARW/NEF fixtures           |
 
 ---
 
@@ -720,20 +720,20 @@ flowchart TB
 
 Oculante supports many formats the gallery will never decode in-browser without WASM. Use this table for **honest UI** (extension listed vs “preview only” vs “unsupported”).
 
-| Extension family | Oculante backend | Gallery today | Recommended UX |
-|------------------|------------------|---------------|----------------|
-| jpg/png/webp/gif/avif | image / turbojpeg / webp-animation | Yes / partial AVIF | Full grid decode |
-| svg | resvg rasterize | SVG inline in cell | Rasterize thumb in worker optional |
-| jxl | jxl-oxide | Listed, weak EXIF | Decode when browser JXL stable |
-| heic/heif | libheif optional | Browser-dependent | Show “needs Safari/Chrome” if fail |
-| dng/arw/raw* | quickraw thumb | IFD + scan | Preview badge, no develop |
-| tiff/tif | tiff crate float paths | Weak | Preview-only banner |
-| exr/hdr | exr + tonemap | No | Defer |
-| psd | psd crate | No | Defer |
-| dcm/ima | dicom-rs | No | Defer |
-| ktx2/dds | ktx2_loader / dds-rs | No | Defer (GPU texture formats) |
-| ico/icns | image / icns | No | Low priority |
-| farbfeld/qoi | image | No | Low |
+| Extension family      | Oculante backend                   | Gallery today      | Recommended UX                     |
+| --------------------- | ---------------------------------- | ------------------ | ---------------------------------- |
+| jpg/png/webp/gif/avif | image / turbojpeg / webp-animation | Yes / partial AVIF | Full grid decode                   |
+| svg                   | resvg rasterize                    | SVG inline in cell | Rasterize thumb in worker optional |
+| jxl                   | jxl-oxide                          | Listed, weak EXIF  | Decode when browser JXL stable     |
+| heic/heif             | libheif optional                   | Browser-dependent  | Show “needs Safari/Chrome” if fail |
+| dng/arw/raw\*         | quickraw thumb                     | IFD + scan         | Preview badge, no develop          |
+| tiff/tif              | tiff crate float paths             | Weak               | Preview-only banner                |
+| exr/hdr               | exr + tonemap                      | No                 | Defer                              |
+| psd                   | psd crate                          | No                 | Defer                              |
+| dcm/ima               | dicom-rs                           | No                 | Defer                              |
+| ktx2/dds              | ktx2_loader / dds-rs               | No                 | Defer (GPU texture formats)        |
+| ico/icns              | image / icns                       | No                 | Low priority                       |
+| farbfeld/qoi          | image                              | No                 | Low                                |
 
 `*` RAW list per README: nef, cr2, dng, mos, erf, raf, arw, 3fr, ari, srf, sr2, braw, r3d, nrw, raw.
 
@@ -743,19 +743,19 @@ Oculante supports many formats the gallery will never decode in-browser without 
 
 ## 18. Settings crosswalk (Oculante → gallery atoms)
 
-| Oculante `PersistentSettings` | Default | Gallery atom / constant | Notes |
-|------------------------------|---------|-------------------------|-------|
-| `max_cache` | 30 | — (proposed lightbox RAM cache) | Not grid cache |
-| `wrap_folder` | true | new `wrapFolderNavigation` | Scrubber wrap |
-| `keep_view` | false | new `keepLightboxView` | Zoom/pan on next |
-| `show_scrub_bar` | false | new `showScrubBar` | Folder index UI |
-| `auto_scale` | false | lightbox fit presets | Similar intent |
-| `zoom_multiplier` | 1.0 | `lightboxZoom` step scale | |
-| `ignoreExifOrientation` | — | `ignoreExifOrientation` | Already aligned with nomacs |
-| `theme` | Dark | `themePack` + `themeMode` | Gallery richer |
-| `decoders.heif` limits | security | future `maxDecodePixels` | Web safety |
-| `shortcuts` | JSON map | `shortcuts.tsx` | Document diff in help |
-| `info_enabled` / `edit_enabled` | — | info panel toggle | |
+| Oculante `PersistentSettings`   | Default  | Gallery atom / constant         | Notes                       |
+| ------------------------------- | -------- | ------------------------------- | --------------------------- |
+| `max_cache`                     | 30       | — (proposed lightbox RAM cache) | Not grid cache              |
+| `wrap_folder`                   | true     | new `wrapFolderNavigation`      | Scrubber wrap               |
+| `keep_view`                     | false    | new `keepLightboxView`          | Zoom/pan on next            |
+| `show_scrub_bar`                | false    | new `showScrubBar`              | Folder index UI             |
+| `auto_scale`                    | false    | lightbox fit presets            | Similar intent              |
+| `zoom_multiplier`               | 1.0      | `lightboxZoom` step scale       |                             |
+| `ignoreExifOrientation`         | —        | `ignoreExifOrientation`         | Already aligned with nomacs |
+| `theme`                         | Dark     | `themePack` + `themeMode`       | Gallery richer              |
+| `decoders.heif` limits          | security | future `maxDecodePixels`        | Web safety                  |
+| `shortcuts`                     | JSON map | `shortcuts.tsx`                 | Document diff in help       |
+| `info_enabled` / `edit_enabled` | —        | info panel toggle               |                             |
 
 Volatile: `favourite_images` → `favorite`; `recent_images` → optional recents list; `folder_bookmarks` → new atom; `encoding_options` → download format prefs if batch export added.
 
@@ -780,10 +780,10 @@ Volatile: `favourite_images` → `favorite`; `recent_images` → optional recent
 
 ## Document history
 
-| Date | Change |
-|------|--------|
+| Date       | Change                                                            |
+| ---------- | ----------------------------------------------------------------- |
 | 2026-06-04 | Initial research book from `~/code/oculante` v0.9.2 + gallery src |
 
 ---
 
-*This playbook is the canonical Oculante-inspired porting guide for the Reatom JSX Gallery. Update it when `image-engine/` or Oculante upstream behavior changes.*
+_This playbook is the canonical Oculante-inspired porting guide for the Reatom JSX Gallery. Update it when `image-engine/` or Oculante upstream behavior changes._

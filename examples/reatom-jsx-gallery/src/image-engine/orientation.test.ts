@@ -53,9 +53,9 @@ describe('resolveImageOrientationStyle', () => {
   })
 
   test('returns none when orientation already baked into pixels', () => {
-    expect(resolveImageOrientationStyle({ Orientation: '6' }, false, true)).toBe(
-      'none',
-    )
+    expect(
+      resolveImageOrientationStyle({ Orientation: '6' }, false, true),
+    ).toBe('none')
   })
 })
 

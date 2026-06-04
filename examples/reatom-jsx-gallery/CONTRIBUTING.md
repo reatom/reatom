@@ -714,7 +714,7 @@ This project does not use module-level mocking (`sb.mock()` or `vi.mock()`). Glo
 
 Network scenarios are controlled exclusively via MSW handlers (see the [MSW Integration](#msw-integration) section above).
 
-<!-- 
+<!--
 TODO
 ### Responsive Viewport Testing
 

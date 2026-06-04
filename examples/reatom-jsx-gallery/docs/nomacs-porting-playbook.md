@@ -6,17 +6,17 @@
 
 ### See also (research pack)
 
-| Document | Contents |
-|----------|----------|
-| [oculante-porting-playbook.md](./oculante-porting-playbook.md) | Oculante vs nomacs vs gallery; cache, flipbook, analysis, compare |
-| [oculante-codebase-deep-dive.md](./oculante-codebase-deep-dive.md) | Rust loaders, operator stack, quickraw, priority matrix |
-| [oculante-issues-backlog.md](./oculante-issues-backlog.md) | Oculante GitHub taxonomy + 28-item backlog |
-| [oculante-dependency-stack.md](./oculante-dependency-stack.md) | Rust crates vs web equivalents |
-| [oculante-readme-snapshot.md](./oculante-readme-snapshot.md) | Upstream README scrape |
-| [nomacs-codebase-deep-dive.md](./nomacs-codebase-deep-dive.md) | Loader chain, EXIF/RAW/thumbs, sync, priority matrix |
-| [nomacs-issues-backlog.md](./nomacs-issues-backlog.md) | GitHub issue taxonomy + 30-item backlog |
-| [nomacs-dependency-stack.md](./nomacs-dependency-stack.md) | Qt/Exiv2/LibRaw vs web equivalents |
-| [nomacs-exif-reference.md](./nomacs-exif-reference.md) | EXIF/orientation behavior spec |
+| Document                                                           | Contents                                                          |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| [oculante-porting-playbook.md](./oculante-porting-playbook.md)     | Oculante vs nomacs vs gallery; cache, flipbook, analysis, compare |
+| [oculante-codebase-deep-dive.md](./oculante-codebase-deep-dive.md) | Rust loaders, operator stack, quickraw, priority matrix           |
+| [oculante-issues-backlog.md](./oculante-issues-backlog.md)         | Oculante GitHub taxonomy + 28-item backlog                        |
+| [oculante-dependency-stack.md](./oculante-dependency-stack.md)     | Rust crates vs web equivalents                                    |
+| [oculante-readme-snapshot.md](./oculante-readme-snapshot.md)       | Upstream README scrape                                            |
+| [nomacs-codebase-deep-dive.md](./nomacs-codebase-deep-dive.md)     | Loader chain, EXIF/RAW/thumbs, sync, priority matrix              |
+| [nomacs-issues-backlog.md](./nomacs-issues-backlog.md)             | GitHub issue taxonomy + 30-item backlog                           |
+| [nomacs-dependency-stack.md](./nomacs-dependency-stack.md)         | Qt/Exiv2/LibRaw vs web equivalents                                |
+| [nomacs-exif-reference.md](./nomacs-exif-reference.md)             | EXIF/orientation behavior spec                                    |
 
 ---
 
@@ -30,12 +30,12 @@ The **Reatom JSX Gallery** is a browser-first Progressive Web App that demonstra
 
 **Effort snapshot (person-weeks, one senior engineer):**
 
-| Phase | Focus | Estimate |
-|-------|--------|----------|
-| 0 | Hardening current engine + docs/tests | 2–3 |
-| 1 | Metadata & cache parity (read-mostly) | 4–6 |
-| 2 | Viewer UX + performance at 10k+ images | 3–5 |
-| 3 | Web differentiators + optional write | 6–10 |
+| Phase | Focus                                  | Estimate |
+| ----- | -------------------------------------- | -------- |
+| 0     | Hardening current engine + docs/tests  | 2–3      |
+| 1     | Metadata & cache parity (read-mostly)  | 4–6      |
+| 2     | Viewer UX + performance at 10k+ images | 3–5      |
+| 3     | Web differentiators + optional write   | 6–10     |
 
 ---
 
@@ -113,15 +113,15 @@ sequenceDiagram
 
 Central atoms and computeds:
 
-| Concern | Primitives | Persistence |
-|---------|------------|-------------|
-| Folder | `folderTree`, `currentFolder`, `flatImages`, `selectedFolderHandle` | IndexedDB handle |
-| View | `viewMode` (grid/list/table), `gridColumns`, preview widths | localStorage |
-| Sort/filter | `sortField`, `sortOrder`, `filterTypes`, `searchQuery`, size range, `includeSubfolders` | — |
-| Selection | per-image `selected`, `favorite` | favorites → localStorage |
-| Lightbox | `lightboxOpen`, `lightboxImage`, zoom/pan, `thumbnailWindow`, preload URL | — |
-| Theme | `themePack` (10 packs), `themeMode`, `resolvedThemeMode` | localStorage |
-| EXIF policy | `ignoreExifOrientation` | localStorage |
+| Concern     | Primitives                                                                              | Persistence              |
+| ----------- | --------------------------------------------------------------------------------------- | ------------------------ |
+| Folder      | `folderTree`, `currentFolder`, `flatImages`, `selectedFolderHandle`                     | IndexedDB handle         |
+| View        | `viewMode` (grid/list/table), `gridColumns`, preview widths                             | localStorage             |
+| Sort/filter | `sortField`, `sortOrder`, `filterTypes`, `searchQuery`, size range, `includeSubfolders` | —                        |
+| Selection   | per-image `selected`, `favorite`                                                        | favorites → localStorage |
+| Lightbox    | `lightboxOpen`, `lightboxImage`, zoom/pan, `thumbnailWindow`, preload URL               | —                        |
+| Theme       | `themePack` (10 packs), `themeMode`, `resolvedThemeMode`                                | localStorage             |
+| EXIF policy | `ignoreExifOrientation`                                                                 | localStorage             |
 
 **`imagesList`** is a `reatomLinkedList` keyed by `id`. An effect rebuilds order when sort changes (full clear + `createMany` if order diverges). **Visibility** is a per-model `computed` (not DOM `display:none` on a static list)—lightbox navigation walks the linked list skipping `!visible()` nodes.
 
@@ -146,8 +146,8 @@ stateDiagram-v2
 
 ### 2.5 Image engine modules
 
-| Module | Responsibility |
-|--------|----------------|
+| Module      | Responsibility                                                                                                                                                                                      |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `header.ts` | Magic-byte format detect; orchestrates format parsers; **falls through** when a magic-matched parser fails (AVIF BMFF, TIFF-like RAW, SVG); adaptive EXIF read up to **512 KB** (`EXIF_READ_BYTES`) |
 
 ```mermaid
@@ -164,6 +164,7 @@ flowchart TD
   svg[SVG MIME or bytes] -->|ok| done
   svg -->|fail| null[null]
 ```
+
 | `formats/jpeg.ts` | SOF dimensions, progressive flag, APP1 EXIF thumbnail extract |
 | `formats/exif.ts` | TIFF IFD walk (IFD0 → Exif → GPS → Interop); multi-APP1 “largest TIFF” strategy; `LARGE_TAG_DISPLAY_COUNT` |
 | `formats/raw.ts` | DNG/ARW/CR2/NEF/ORF/SR2 TIFF IFD preview tags, Sony preview tags, bounded 64 MB heuristic JPEG scan for all supported RAW formats; worker offload |
@@ -264,22 +265,22 @@ Derived from nomacs source comments, Exiv2 edge cases, and desktop UX debt—not
 
 ### 4.1 Metadata / save path
 
-| Issue | nomacs behavior | Gallery stance |
-|-------|-----------------|----------------|
-| Exiv2 write crashes | `writeMetadata()` TODO crash on some JPEGs | No write until sandboxed pipeline |
-| Buffer shrink false save | Reject ≤50% size drop | Same guard if write added |
-| Unicode paths on Windows | FIXME in metadata open | FSA uses browser handles—less path encoding pain |
-| XMP sidecar confusion | Partial TODO for sidecar types | Explicit “sidecar required” UX |
-| MicrosoftPhoto.Rating | Percent mislabeled as stars | Do not copy; use XMP `xmp:Rating` |
-| Flash lookup by array index | Wrong labels for some values | Already using `Map` in gallery |
+| Issue                       | nomacs behavior                            | Gallery stance                                   |
+| --------------------------- | ------------------------------------------ | ------------------------------------------------ |
+| Exiv2 write crashes         | `writeMetadata()` TODO crash on some JPEGs | No write until sandboxed pipeline                |
+| Buffer shrink false save    | Reject ≤50% size drop                      | Same guard if write added                        |
+| Unicode paths on Windows    | FIXME in metadata open                     | FSA uses browser handles—less path encoding pain |
+| XMP sidecar confusion       | Partial TODO for sidecar types             | Explicit “sidecar required” UX                   |
+| MicrosoftPhoto.Rating       | Percent mislabeled as stars                | Do not copy; use XMP `xmp:Rating`                |
+| Flash lookup by array index | Wrong labels for some values               | Already using `Map` in gallery                   |
 
 ### 4.2 Thumbnail / performance
 
-| Issue | nomacs | Avoid |
-|-------|--------|-------|
-| EXIF thumb >200px | Exiv2 crash risk | Cap embed decode size in gallery |
-| Blocking UI thread | Qt threads help; still heavy | Keep workers + abortable computeds |
-| Unbounded disk cache | `thumbDiskSpace` settings needed | Quota + LRU in IndexedDB |
+| Issue                | nomacs                           | Avoid                              |
+| -------------------- | -------------------------------- | ---------------------------------- |
+| EXIF thumb >200px    | Exiv2 crash risk                 | Cap embed decode size in gallery   |
+| Blocking UI thread   | Qt threads help; still heavy     | Keep workers + abortable computeds |
+| Unbounded disk cache | `thumbDiskSpace` settings needed | Quota + LRU in IndexedDB           |
 
 ### 4.3 UX / product
 
@@ -335,11 +336,11 @@ flowchart LR
 
 **Port strategy:**
 
-| Tier | Approach | Effort |
-|------|----------|--------|
-| A (now) | Embedded JPEG/large TIFF preview only | Done |
-| B | WASM LibRaw or `@jsquash` for select formats | High |
-| C | Server-side proxy (out of scope for local PWA) | — |
+| Tier    | Approach                                       | Effort |
+| ------- | ---------------------------------------------- | ------ |
+| A (now) | Embedded JPEG/large TIFF preview only          | Done   |
+| B       | WASM LibRaw or `@jsquash` for select formats   | High   |
+| C       | Server-side proxy (out of scope for local PWA) | —      |
 
 **Emulate nomacs:**
 
@@ -427,13 +428,13 @@ Avoid nomacs complexity (peer IDs, firewalls).
 
 ### 5.8 Performance
 
-| Technique | Gallery | nomacs | Next step |
-|-----------|---------|--------|-----------|
-| Parallel folder read | 20 concurrent | thread pool | Tune via atom |
-| Thumb concurrency | hw-2 | `thumbThreads` | Expose setting |
-| List virtualization | None | Qt model/view | CSS `content-visibility` or virtual window |
-| Abort stale loads | `withAbort`, `throwAbort` | cancel futures | Per-image generation tokens |
-| Memory | revoke object URLs on dispose | QImage cache limits | Audit leak on fast scroll |
+| Technique            | Gallery                       | nomacs              | Next step                                  |
+| -------------------- | ----------------------------- | ------------------- | ------------------------------------------ |
+| Parallel folder read | 20 concurrent                 | thread pool         | Tune via atom                              |
+| Thumb concurrency    | hw-2                          | `thumbThreads`      | Expose setting                             |
+| List virtualization  | None                          | Qt model/view       | CSS `content-visibility` or virtual window |
+| Abort stale loads    | `withAbort`, `throwAbort`     | cancel futures      | Per-image generation tokens                |
+| Memory               | revoke object URLs on dispose | QImage cache limits | Audit leak on fast scroll                  |
 
 **Target:** 10k images—benchmark `imagesList` resort cost; consider incremental reorder (merge) vs full rebuild.
 
@@ -560,39 +561,39 @@ Features nomacs **cannot** match without becoming a different product:
 
 ## 8. Appendix: File Mapping (nomacs → gallery)
 
-| nomacs path | Role | Gallery path | Status |
-|-------------|------|--------------|--------|
-| `ImageLounge/src/DkCore/DkMetaData.cpp` | EXIF/IPTC/XMP read/write | `image-engine/formats/exif.ts`, `exifDisplay.ts` | Read partial |
-| `ImageLounge/src/DkCore/DkMetaData.h` | Metadata model | `image-engine/types.ts` (`ExifData`) | Partial |
-| `ImageLounge/src/DkCore/DkBasicLoader.cpp` | Load + orientation | `reatomImage.ts`, `orientation.ts` | Parity |
-| `ImageLounge/src/DkCore/DkThumbs.h` | Thumb pool/options | `thumbnail.ts`, `reatomImage.ts` | Partial |
-| `ImageLounge/src/DkCore/DkCachedThumb.*` | Thumb cache | — | Missing |
-| `ImageLounge/src/DkCore/DkSettings.h` | Preferences | `model.ts` + localStorage | Partial |
-| `ImageLounge/src/DkCore/DkImageLoader.*` | Save guards | — | Document only |
-| `ImageLounge/src/DkGui/DkViewPort.*` | Viewer/zoom | `Lightbox.tsx` | Partial |
-| `ImageLounge/src/DkGui/DkThumbsWidgets.*` | Thumb UI + batch | `ImageGrid.tsx`, `GridImage.tsx` | Partial |
-| `ImageLounge/src/DkGui/DkNetwork.*` | TCP sync | — | Use BroadcastChannel |
-| `ImageLounge/src/DkGui/DkPreferenceWidgets.*` | Settings UI | `SettingsPanel.tsx` | Partial |
-| `ImageLounge/src/DkGui/DkShortcuts.h` | Keys | `shortcuts.tsx` | Partial |
-| `ImageLounge/tests/DkMetaData_test.cpp` | Golden tests | `exif.test.ts`, `orientation.test.ts` | Growing |
-| `3rd-party/libraw` (submodule) | RAW develop | `formats/raw.ts` preview only | Subset |
-| Exiv2 (via submodule) | Metadata | Custom TS parser | Subset |
-| kimageformats | HEIC/AVIF/JXL | Browser decode | Partial |
+| nomacs path                                   | Role                     | Gallery path                                     | Status               |
+| --------------------------------------------- | ------------------------ | ------------------------------------------------ | -------------------- |
+| `ImageLounge/src/DkCore/DkMetaData.cpp`       | EXIF/IPTC/XMP read/write | `image-engine/formats/exif.ts`, `exifDisplay.ts` | Read partial         |
+| `ImageLounge/src/DkCore/DkMetaData.h`         | Metadata model           | `image-engine/types.ts` (`ExifData`)             | Partial              |
+| `ImageLounge/src/DkCore/DkBasicLoader.cpp`    | Load + orientation       | `reatomImage.ts`, `orientation.ts`               | Parity               |
+| `ImageLounge/src/DkCore/DkThumbs.h`           | Thumb pool/options       | `thumbnail.ts`, `reatomImage.ts`                 | Partial              |
+| `ImageLounge/src/DkCore/DkCachedThumb.*`      | Thumb cache              | —                                                | Missing              |
+| `ImageLounge/src/DkCore/DkSettings.h`         | Preferences              | `model.ts` + localStorage                        | Partial              |
+| `ImageLounge/src/DkCore/DkImageLoader.*`      | Save guards              | —                                                | Document only        |
+| `ImageLounge/src/DkGui/DkViewPort.*`          | Viewer/zoom              | `Lightbox.tsx`                                   | Partial              |
+| `ImageLounge/src/DkGui/DkThumbsWidgets.*`     | Thumb UI + batch         | `ImageGrid.tsx`, `GridImage.tsx`                 | Partial              |
+| `ImageLounge/src/DkGui/DkNetwork.*`           | TCP sync                 | —                                                | Use BroadcastChannel |
+| `ImageLounge/src/DkGui/DkPreferenceWidgets.*` | Settings UI              | `SettingsPanel.tsx`                              | Partial              |
+| `ImageLounge/src/DkGui/DkShortcuts.h`         | Keys                     | `shortcuts.tsx`                                  | Partial              |
+| `ImageLounge/tests/DkMetaData_test.cpp`       | Golden tests             | `exif.test.ts`, `orientation.test.ts`            | Growing              |
+| `3rd-party/libraw` (submodule)                | RAW develop              | `formats/raw.ts` preview only                    | Subset               |
+| Exiv2 (via submodule)                         | Metadata                 | Custom TS parser                                 | Subset               |
+| kimageformats                                 | HEIC/AVIF/JXL            | Browser decode                                   | Partial              |
 
 ### Gallery file index (quick reference)
 
-| Path | Purpose |
-|------|---------|
-| `src/model.ts` | App state, linked list, lightbox |
-| `src/reatomImage.ts` | Per-file async pipeline |
-| `src/filesystem.ts` | Recursive directory walk |
-| `src/image-engine/header.ts` | Meta orchestration |
-| `src/image-engine/thumbnail.ts` | Thumb strategies |
-| `src/image-engine/formats/raw.ts` | DNG/ARW/CR2/NEF/ORF/SR2 previews |
-| `src/components/Lightbox.tsx` | Fullscreen viewer |
-| `src/components/ImageInfoPanel.tsx` | Metadata UI |
-| `src/theme.tsx` | Theme packs |
-| `src/a11y.ts` | A11y helpers |
+| Path                                | Purpose                          |
+| ----------------------------------- | -------------------------------- |
+| `src/model.ts`                      | App state, linked list, lightbox |
+| `src/reatomImage.ts`                | Per-file async pipeline          |
+| `src/filesystem.ts`                 | Recursive directory walk         |
+| `src/image-engine/header.ts`        | Meta orchestration               |
+| `src/image-engine/thumbnail.ts`     | Thumb strategies                 |
+| `src/image-engine/formats/raw.ts`   | DNG/ARW/CR2/NEF/ORF/SR2 previews |
+| `src/components/Lightbox.tsx`       | Fullscreen viewer                |
+| `src/components/ImageInfoPanel.tsx` | Metadata UI                      |
+| `src/theme.tsx`                     | Theme packs                      |
+| `src/a11y.ts`                       | A11y helpers                     |
 
 ---
 
@@ -600,67 +601,67 @@ Features nomacs **cannot** match without becoming a different product:
 
 ### Primary references
 
-- nomacs repository: https://github.com/nomacs/nomacs  
-- nomacs README (build, kimageformats, LibRaw): `~/code/nomacs/README.md`  
-- EXIF behavior digest: `/Users/artalar/code/reatom/nomacs-exif-reference.md` (also `examples/reatom-jsx-gallery/docs/` when copied)  
-- Exiv2 issue **#995** (save buffer shrink): cited in `DkMetaData.cpp` ~279  
-- Gallery implementation plan: `examples/reatom-jsx-gallery/plan.md`  
-- Reatom JSX: `packages/jsx/README.md`  
+- nomacs repository: https://github.com/nomacs/nomacs
+- nomacs README (build, kimageformats, LibRaw): `~/code/nomacs/README.md`
+- EXIF behavior digest: `/Users/artalar/code/reatom/nomacs-exif-reference.md` (also `examples/reatom-jsx-gallery/docs/` when copied)
+- Exiv2 issue **#995** (save buffer shrink): cited in `DkMetaData.cpp` ~279
+- Gallery implementation plan: `examples/reatom-jsx-gallery/plan.md`
+- Reatom JSX: `packages/jsx/README.md`
 
 ### nomacs source anchors (line ranges approximate)
 
-| Topic | File |
-|-------|------|
-| Orientation read/write | `DkMetaData.cpp` 317–380, 1128–1224 |
-| Loader transform | `DkBasicLoader.cpp` 170–208, 419–495 |
-| Display maps | `DkMetaData.cpp` 1628–1716, 1719–1900 |
-| Meta settings | `DkSettings.h` 320–322 (`ignoreExifOrientation`) |
-| Thumb options | `DkThumbs.h` 60–104 |
-| Resources/cache | `DkSettings.h` 325–346 |
+| Topic                  | File                                             |
+| ---------------------- | ------------------------------------------------ |
+| Orientation read/write | `DkMetaData.cpp` 317–380, 1128–1224              |
+| Loader transform       | `DkBasicLoader.cpp` 170–208, 419–495             |
+| Display maps           | `DkMetaData.cpp` 1628–1716, 1719–1900            |
+| Meta settings          | `DkSettings.h` 320–322 (`ignoreExifOrientation`) |
+| Thumb options          | `DkThumbs.h` 60–104                              |
+| Resources/cache        | `DkSettings.h` 325–346                           |
 
 ### External standards
 
-- TIFF 6.0 / EXIF 2.32 orientation tag `0x0112`  
-- ExifTool Flash table (nomacs comment reference)  
-- File System Access API: https://developer.mozilla.org/en-US/docs/Web/API/File_System_API  
-- CSS `image-orientation`: https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation  
+- TIFF 6.0 / EXIF 2.32 orientation tag `0x0112`
+- ExifTool Flash table (nomacs comment reference)
+- File System Access API: https://developer.mozilla.org/en-US/docs/Web/API/File_System_API
+- CSS `image-orientation`: https://developer.mozilla.org/en-US/docs/Web/CSS/image-orientation
 
 ### GitHub issues (nomacs)
 
 Full triage and 30-item backlog: [nomacs-issues-backlog.md](./nomacs-issues-backlog.md). Researched via GitHub API (June 2026); `gh` CLI was unavailable in the research environment.
 
-| ID | State | Theme | Gallery note |
-|----|-------|-------|--------------|
-| [#1587](https://github.com/nomacs/nomacs/issues/1587) | open | RAW+JPEG pairing | Post-process `flatImages`; not in nomacs C++ yet |
-| [#1593](https://github.com/nomacs/nomacs/issues/1593) | open | Find/filter shortcut | Ctrl+F must open filter, not clear |
-| [#1592](https://github.com/nomacs/nomacs/issues/1592) | open | Sort scroll-sync | Recompute active index on resort |
-| [#1590](https://github.com/nomacs/nomacs/issues/1590) | open | Fullscreen filmstrip | Recoverable chrome in lightbox |
-| [#1585](https://github.com/nomacs/nomacs/issues/1585) | open | Overview sync | Minimap + linked panes |
-| [#1578](https://github.com/nomacs/nomacs/issues/1578) | open | DNG brightness | Label embedded preview |
-| [#1576](https://github.com/nomacs/nomacs/issues/1576) | open | Selection filmstrip | `filterToSelection` atom |
-| [#1563](https://github.com/nomacs/nomacs/issues/1563) | open | X3F embedded JPEG | Extend `raw.ts` |
-| [#1549](https://github.com/nomacs/nomacs/issues/1549) | open | Metadata on thumb nav | Bind panel to `lightboxImage` |
-| [#1510](https://github.com/nomacs/nomacs/issues/1510) | open | Thumb orientation | Never strip EXIF on cache |
-| [#1438](https://github.com/nomacs/nomacs/issues/1438) | open | Batch orientation | Future batch export guard |
-| [#1059](https://github.com/nomacs/nomacs/issues/1059) | open | Thumb pane layout | Fixed filmstrip + safe-area |
-| [#257](https://github.com/nomacs/nomacs/issues/257) | open | HEIC support | Browser decode + exifr |
-| [#987](https://github.com/nomacs/nomacs/issues/987) | open | Project maintenance | PWA positioning |
-| [#1228](https://github.com/nomacs/nomacs/issues/1228) | closed | Mirrored orientation | Covered in `orientation.ts` |
-| [#1238](https://github.com/nomacs/nomacs/issues/1238) | closed | Thumb loader refactor | Test `orientationBaked` |
-| [#1482](https://github.com/nomacs/nomacs/issues/1482) | closed | XMP rating container | Sidecar write via FSA |
-| [#1503](https://github.com/nomacs/nomacs/pull/1503) | closed | HEIC landed | kimageformats → browser codecs |
-| [#1459](https://github.com/nomacs/nomacs/issues/1459) | closed | iPhone 16 HEIC | CI matrix on Safari/Chrome |
-| [#754](https://github.com/nomacs/nomacs/issues/754) | closed | DNG too dark | Preview-only UX |
-| [#533](https://github.com/nomacs/nomacs/issues/533) | closed | Thumb orientation | EXIF embed rotate |
-| [#1511](https://github.com/nomacs/nomacs/issues/1511) | closed | Edit + EXIF thumb | Read-only gallery OK |
-| [#1453](https://github.com/nomacs/nomacs/pull/1453) | closed | 90° rotation | `composeOrientation` for write |
+| ID                                                    | State  | Theme                 | Gallery note                                     |
+| ----------------------------------------------------- | ------ | --------------------- | ------------------------------------------------ |
+| [#1587](https://github.com/nomacs/nomacs/issues/1587) | open   | RAW+JPEG pairing      | Post-process `flatImages`; not in nomacs C++ yet |
+| [#1593](https://github.com/nomacs/nomacs/issues/1593) | open   | Find/filter shortcut  | Ctrl+F must open filter, not clear               |
+| [#1592](https://github.com/nomacs/nomacs/issues/1592) | open   | Sort scroll-sync      | Recompute active index on resort                 |
+| [#1590](https://github.com/nomacs/nomacs/issues/1590) | open   | Fullscreen filmstrip  | Recoverable chrome in lightbox                   |
+| [#1585](https://github.com/nomacs/nomacs/issues/1585) | open   | Overview sync         | Minimap + linked panes                           |
+| [#1578](https://github.com/nomacs/nomacs/issues/1578) | open   | DNG brightness        | Label embedded preview                           |
+| [#1576](https://github.com/nomacs/nomacs/issues/1576) | open   | Selection filmstrip   | `filterToSelection` atom                         |
+| [#1563](https://github.com/nomacs/nomacs/issues/1563) | open   | X3F embedded JPEG     | Extend `raw.ts`                                  |
+| [#1549](https://github.com/nomacs/nomacs/issues/1549) | open   | Metadata on thumb nav | Bind panel to `lightboxImage`                    |
+| [#1510](https://github.com/nomacs/nomacs/issues/1510) | open   | Thumb orientation     | Never strip EXIF on cache                        |
+| [#1438](https://github.com/nomacs/nomacs/issues/1438) | open   | Batch orientation     | Future batch export guard                        |
+| [#1059](https://github.com/nomacs/nomacs/issues/1059) | open   | Thumb pane layout     | Fixed filmstrip + safe-area                      |
+| [#257](https://github.com/nomacs/nomacs/issues/257)   | open   | HEIC support          | Browser decode + exifr                           |
+| [#987](https://github.com/nomacs/nomacs/issues/987)   | open   | Project maintenance   | PWA positioning                                  |
+| [#1228](https://github.com/nomacs/nomacs/issues/1228) | closed | Mirrored orientation  | Covered in `orientation.ts`                      |
+| [#1238](https://github.com/nomacs/nomacs/issues/1238) | closed | Thumb loader refactor | Test `orientationBaked`                          |
+| [#1482](https://github.com/nomacs/nomacs/issues/1482) | closed | XMP rating container  | Sidecar write via FSA                            |
+| [#1503](https://github.com/nomacs/nomacs/pull/1503)   | closed | HEIC landed           | kimageformats → browser codecs                   |
+| [#1459](https://github.com/nomacs/nomacs/issues/1459) | closed | iPhone 16 HEIC        | CI matrix on Safari/Chrome                       |
+| [#754](https://github.com/nomacs/nomacs/issues/754)   | closed | DNG too dark          | Preview-only UX                                  |
+| [#533](https://github.com/nomacs/nomacs/issues/533)   | closed | Thumb orientation     | EXIF embed rotate                                |
+| [#1511](https://github.com/nomacs/nomacs/issues/1511) | closed | Edit + EXIF thumb     | Read-only gallery OK                             |
+| [#1453](https://github.com/nomacs/nomacs/pull/1453)   | closed | 90° rotation          | `composeOrientation` for write                   |
 
 Search queries: [orientation](https://github.com/nomacs/nomacs/issues?q=is%3Aissue+orientation), [exiv2](https://github.com/nomacs/nomacs/issues?q=is%3Aissue+exiv2), [RAW](https://github.com/nomacs/nomacs/issues?q=is%3Aissue+RAW), [HEIC](https://github.com/nomacs/nomacs/issues?q=is%3Aissue+HEIC), [thumbnail](https://github.com/nomacs/nomacs/issues?q=is%3Aissue+thumbnail).
 
 ### Gallery follow-ups
 
-- [x] Copy `nomacs-exif-reference.md` into `docs/`  
-- [ ] Link Phase 0 tests to nomacs `DkMetaData_test` vectors where extractable  
+- [x] Copy `nomacs-exif-reference.md` into `docs/`
+- [ ] Link Phase 0 tests to nomacs `DkMetaData_test` vectors where extractable
 
 ---
 
@@ -674,11 +675,11 @@ The folder tree (`FolderTree.tsx`) sets `currentFolder` on node click; combined 
 
 ### Grid, list, and table views
 
-| Component | Rendering strategy | Thumbnail source |
-|-----------|-------------------|------------------|
-| `ImageGrid.tsx` | CSS grid; `gridColumns` atom | `GridImage` → `model.thumbnail` async |
-| `ImageList.tsx` | Rows with variable preview width | Same pipeline |
-| `ImageTable.tsx` + `ImageTableRow.tsx` | Tabular metadata columns | Same + inline EXIF columns optional |
+| Component                              | Rendering strategy               | Thumbnail source                      |
+| -------------------------------------- | -------------------------------- | ------------------------------------- |
+| `ImageGrid.tsx`                        | CSS grid; `gridColumns` atom     | `GridImage` → `model.thumbnail` async |
+| `ImageList.tsx`                        | Rows with variable preview width | Same pipeline                         |
+| `ImageTable.tsx` + `ImageTableRow.tsx` | Tabular metadata columns         | Same + inline EXIF columns optional   |
 
 `GridImage.tsx` binds to `ImageModel.thumbnail` and `fullImage` states, shows loading/error chrome, handles selection checkbox and double-click → `openLightbox`. Image fit (`contain`/`cover`/`fill`/`none`) applies at cell level—nomacs uses viewport-level fit; gallery splits cell vs lightbox concerns.
 
@@ -702,11 +703,11 @@ The folder tree (`FolderTree.tsx`) sets `currentFolder` on node click; combined 
 
 ### Persistence hooks
 
-| Key | Mechanism | nomacs analog |
-|-----|-----------|---------------|
-| `gallery.selectedFolderHandle` | `withIndexedDb` | Recent folders list |
-| `gallery.favorites.{id}` | per-image localStorage | Star rating in thumb model |
-| `gallery.viewMode`, theme, grid | localStorage | QSettings ini |
+| Key                             | Mechanism              | nomacs analog              |
+| ------------------------------- | ---------------------- | -------------------------- |
+| `gallery.selectedFolderHandle`  | `withIndexedDb`        | Recent folders list        |
+| `gallery.favorites.{id}`        | per-image localStorage | Star rating in thumb model |
+| `gallery.viewMode`, theme, grid | localStorage           | QSettings ini              |
 
 IndexedDB for **directory handles** enables `RestoreSelectedFolder` on reload—critical PWA UX nomacs achieves via native recent files.
 
@@ -872,16 +873,16 @@ flowchart TB
 
 ### Tag reference (implemented)
 
-| Tag | Hex | Use |
-|-----|-----|-----|
-| JPEGInterchangeFormat | 0x0201 | Preview offset |
-| JPEGInterchangeFormatLength | 0x0202 | Preview length |
-| DNGPreviewImageStart | 0xC51B | DNG large preview |
-| DNGPreviewImageLength | 0xC51C | |
-| SonyPreviewImageStart | 0x94B4 | ARW |
-| SonyPreviewImageLength | 0x94B5 | |
-| SubIFDs | 0x014A | Nested IFD previews |
-| NewSubfileType | 0x00FE | Filter thumbnail subfiles |
+| Tag                         | Hex    | Use                       |
+| --------------------------- | ------ | ------------------------- |
+| JPEGInterchangeFormat       | 0x0201 | Preview offset            |
+| JPEGInterchangeFormatLength | 0x0202 | Preview length            |
+| DNGPreviewImageStart        | 0xC51B | DNG large preview         |
+| DNGPreviewImageLength       | 0xC51C |                           |
+| SonyPreviewImageStart       | 0x94B4 | ARW                       |
+| SonyPreviewImageLength      | 0x94B5 |                           |
+| SubIFDs                     | 0x014A | Nested IFD previews       |
+| NewSubfileType              | 0x00FE | Filter thumbnail subfiles |
 
 ### Error UX
 
@@ -890,12 +891,12 @@ flowchart TB
 
 ### LibRaw WASM evaluation criteria
 
-| Criterion | Weight |
-|-----------|--------|
-| Bundle size &lt; 2 MB gzip | High |
-| Works in Worker + COOP/COEP | High |
-| DNG + ARW + CR2 minimum | Medium |
-| Demosaic quality vs embed | Medium |
+| Criterion                           | Weight  |
+| ----------------------------------- | ------- |
+| Bundle size &lt; 2 MB gzip          | High    |
+| Works in Worker + COOP/COEP         | High    |
+| DNG + ARW + CR2 minimum             | Medium  |
+| Demosaic quality vs embed           | Medium  |
 | License compatible with MIT example | Blocker |
 
 If WASM fails criteria, stay preview-only indefinitely.
@@ -929,15 +930,15 @@ erDiagram
 
 ## 5.15 Lightbox — gesture and input matrix
 
-| Input | Action | nomacs equivalent |
-|-------|--------|-------------------|
-| ArrowLeft/Right | Prev/next visible | Arrow keys in viewport |
-| Escape | Close / exit fullscreen | Esc |
-| Space | Toggle slideshow | Space in slideshow |
-| Wheel + ctrl | Zoom | zoomOnWheel setting |
-| Drag | Pan when zoomed | pan mode |
-| Pinch | (planned) Zoom | touch viewport |
-| F | Fullscreen | doubleClickForFullscreen |
+| Input           | Action                  | nomacs equivalent        |
+| --------------- | ----------------------- | ------------------------ |
+| ArrowLeft/Right | Prev/next visible       | Arrow keys in viewport   |
+| Escape          | Close / exit fullscreen | Esc                      |
+| Space           | Toggle slideshow        | Space in slideshow       |
+| Wheel + ctrl    | Zoom                    | zoomOnWheel setting      |
+| Drag            | Pan when zoomed         | pan mode                 |
+| Pinch           | (planned) Zoom          | touch viewport           |
+| F               | Fullscreen              | doubleClickForFullscreen |
 
 Implement `prefers-reduced-motion: reduce` by disabling slideshow auto-advance and theme transitions.
 
@@ -959,7 +960,7 @@ nomacs batch plugins run native code—web stays export-only until WASM filters 
 
 Phase 2+ optional mini-language:
 
-- `ext:arw size:&gt;10MB path:"2024/"` 
+- `ext:arw size:&gt;10MB path:"2024/"`
 - Inspired by nomacs filter dialog but simpler
 - Parse to AST → update atoms `filterTypes`, `filterSizeMin`, `searchQuery`
 
@@ -971,13 +972,13 @@ Keep Phase 1 as plain substring + chips.
 
 Before each phase, record on fixed corpus (e.g. 3000 JPEG + 200 RAW):
 
-| Metric | Tool |
-|--------|------|
-| Time to first thumb visible | Performance API marks |
-| Main thread long tasks &gt; 50 ms | Chrome Performance |
-| Memory after 5 min scroll | heap snapshot |
-| EXIF parse p95 | mark `parseImageMeta` |
-| Resort linked list | mark `syncImagesList` effect |
+| Metric                            | Tool                         |
+| --------------------------------- | ---------------------------- |
+| Time to first thumb visible       | Performance API marks        |
+| Main thread long tasks &gt; 50 ms | Chrome Performance           |
+| Memory after 5 min scroll         | heap snapshot                |
+| EXIF parse p95                    | mark `parseImageMeta`        |
+| Resort linked list                | mark `syncImagesList` effect |
 
 Targets: first thumb &lt; 2 s after parse complete; resort &lt; 16 ms for 5k items (may require incremental reorder algorithm).
 
@@ -985,13 +986,13 @@ Targets: first thumb &lt; 2 s after parse complete; resort &lt; 16 ms for 5k ite
 
 ## 5.19 Accessibility — WCAG mapping
 
-| WCAG | Requirement | Gallery action |
-|------|-------------|----------------|
+| WCAG  | Requirement           | Gallery action                          |
+| ----- | --------------------- | --------------------------------------- |
 | 1.1.1 | Non-text alternatives | `alt` from filename; loading state text |
-| 2.1.1 | Keyboard | `shortcuts.tsx` + focusable cards |
-| 2.4.3 | Focus order | Lightbox trap |
-| 4.1.2 | Name, role, value | `aria-label` on grid cells |
-| 1.4.3 | Contrast | Audit each theme pack in Storybook a11y |
+| 2.1.1 | Keyboard              | `shortcuts.tsx` + focusable cards       |
+| 2.4.3 | Focus order           | Lightbox trap                           |
+| 4.1.2 | Name, role, value     | `aria-label` on grid cells              |
+| 1.4.3 | Contrast              | Audit each theme pack in Storybook a11y |
 
 nomacs Qt accessibility varies by platform—web can exceed with automated axe runs per theme.
 
@@ -999,13 +1000,13 @@ nomacs Qt accessibility varies by platform—web can exceed with automated axe r
 
 ## 5.20 Mobile/PWA — capability matrix
 
-| Feature | Chrome Android | Safari iOS | nomacs |
-|---------|----------------|------------|--------|
-| Directory picker | FSA partial | webkitdirectory fallback | native |
-| Persist handle | IndexedDB | ephemeral | native |
-| Install PWA | Yes | Add to Home | N/A |
-| RAW preview | Same engine | Same | LibRaw |
-| Share sheet | Web Share API | Limited | OS |
+| Feature          | Chrome Android | Safari iOS               | nomacs |
+| ---------------- | -------------- | ------------------------ | ------ |
+| Directory picker | FSA partial    | webkitdirectory fallback | native |
+| Persist handle   | IndexedDB      | ephemeral                | native |
+| Install PWA      | Yes            | Add to Home              | N/A    |
+| RAW preview      | Same engine    | Same                     | LibRaw |
+| Share sheet      | Web Share API  | Limited                  | OS     |
 
 Implement `RestoreSelectedFolder` failure toast when permission denied—mirror nomacs permission re-prompt.
 
@@ -1055,17 +1056,17 @@ Educational angles for Reatom marketing:
 
 ## 8.1 Complete gallery source inventory
 
-| File | Lines (approx) | Role |
-|------|----------------|------|
-| `model.ts` | 680 | State |
-| `reatomImage.ts` | 125 | Image atom factory |
-| `filesystem.ts` | 140 | FSA traversal |
-| `image-engine/formats/raw.ts` | 887 | RAW previews |
-| `image-engine/formats/exif.ts` | 558 | TIFF EXIF |
-| `theme.tsx` | 1477 | Themes |
-| `Lightbox.tsx` | 738 | Viewer |
-| `ImageInfoPanel.tsx` | 349 | Metadata UI |
-| `components/*` | varies | Presentation |
+| File                           | Lines (approx) | Role               |
+| ------------------------------ | -------------- | ------------------ |
+| `model.ts`                     | 680            | State              |
+| `reatomImage.ts`               | 125            | Image atom factory |
+| `filesystem.ts`                | 140            | FSA traversal      |
+| `image-engine/formats/raw.ts`  | 887            | RAW previews       |
+| `image-engine/formats/exif.ts` | 558            | TIFF EXIF          |
+| `theme.tsx`                    | 1477           | Themes             |
+| `Lightbox.tsx`                 | 738            | Viewer             |
+| `ImageInfoPanel.tsx`           | 349            | Metadata UI        |
+| `components/*`                 | varies         | Presentation       |
 
 Tests: `model.test.ts`, `favorites.test.ts`, `exif.test.ts`, `orientation.test.ts`, `raw.test.ts`, Storybook stories per component.
 
@@ -1073,21 +1074,21 @@ Tests: `model.test.ts`, `favorites.test.ts`, `exif.test.ts`, `orientation.test.t
 
 ## 8.2 nomacs module inventory (high level)
 
-| Directory | Modules |
-|-----------|---------|
-| `DkCore` | MetaData, BasicLoader, Thumbs, ImageContainer, Settings, Plugins |
-| `DkGui` | ViewPort, ThumbsWidgets, PreferenceWidgets, Network, Shortcuts |
-| `DkImageEdit` | Manipulators (not porting to gallery MVP) |
-| `tests` | MetaData, Utils, ViewPort unit tests |
+| Directory     | Modules                                                          |
+| ------------- | ---------------------------------------------------------------- |
+| `DkCore`      | MetaData, BasicLoader, Thumbs, ImageContainer, Settings, Plugins |
+| `DkGui`       | ViewPort, ThumbsWidgets, PreferenceWidgets, Network, Shortcuts   |
+| `DkImageEdit` | Manipulators (not porting to gallery MVP)                        |
+| `tests`       | MetaData, Utils, ViewPort unit tests                             |
 
 ---
 
 ## 9.1 Exiv2 and standards cross-links
 
-- Exiv2 issue 995 (buffer shrink): https://github.com/Exiv2/exiv2/issues/995  
-- CIPA DC-008 (EXIF 2.32): orientation tag definition  
-- Adobe XMP Specification Part 1 (rating, label)  
-- DNG 1.6 spec (preview tags)  
+- Exiv2 issue 995 (buffer shrink): https://github.com/Exiv2/exiv2/issues/995
+- CIPA DC-008 (EXIF 2.32): orientation tag definition
+- Adobe XMP Specification Part 1 (rating, label)
+- DNG 1.6 spec (preview tags)
 
 ---
 
@@ -1099,45 +1100,45 @@ When triaging upstream, filter labels: `bug`, `metadata`, `raw`, `thumbnail`, `H
 
 ## 9.3 Glossary
 
-| Term | Meaning |
-|------|---------|
-| IFD | Image File Directory (TIFF directory of tags) |
-| APP1 | JPEG segment carrying EXIF |
-| BMFF | Base Media File Format (HEIC/AVIF container) |
-| FSA | File System Access API |
-| HUD | Camera overlay rows (`buildCameraHudRows`) |
-| Embed preview | JPEG inside RAW/DNG without demosaic |
+| Term          | Meaning                                       |
+| ------------- | --------------------------------------------- |
+| IFD           | Image File Directory (TIFF directory of tags) |
+| APP1          | JPEG segment carrying EXIF                    |
+| BMFF          | Base Media File Format (HEIC/AVIF container)  |
+| FSA           | File System Access API                        |
+| HUD           | Camera overlay rows (`buildCameraHudRows`)    |
+| Embed preview | JPEG inside RAW/DNG without demosaic          |
 
 ---
 
 ## 10. Feature parity matrix (nomacs vs gallery)
 
-| Feature | nomacs | Gallery today | Phase |
-|---------|--------|---------------|-------|
-| Folder tree | Yes | Yes | — |
-| Grid/list views | Yes | Grid/list/table | — |
-| EXIF read | Exiv2 full | TS subset | 1 |
-| IPTC read | Yes | No | 1 |
-| XMP read | Yes | No | 1 |
-| Metadata write | Yes | No | 3 |
-| RAW develop | LibRaw | Preview only | 2+ |
-| HEIC/AVIF/JXL | kimageformats | Decode only / partial ext | 1 |
-| PSD | Qt | No | — |
-| Thumbnail disk cache | Yes | No | 1 |
-| Slideshow | Yes | Yes | 2 (silent FS) |
-| Multi-instance sync | TCP | No | 3 (BroadcastChannel) |
-| Batch plugins | Yes | No | 3 |
-| Print | Yes | No | — |
-| Image editing | Yes | No (out of scope) | — |
-| Themes | Light/dark/system | 10 packs × modes | — |
-| i18n | 30+ locales | EN | 2 |
-| Plugins DLL | Yes | JS hooks planned | 3 |
-| Star rating file | XMP + thumb | Favorite localStorage | 1 |
-| Duplicate hide | Setting | No | 1 |
-| Histogram | Yes | No | 2 |
-| Map GPS | External | Google Maps link | — |
-| ZIP archive browse | Quazip | No | — |
-| Game (Pong) | Yes | No | — |
+| Feature              | nomacs            | Gallery today             | Phase                |
+| -------------------- | ----------------- | ------------------------- | -------------------- |
+| Folder tree          | Yes               | Yes                       | —                    |
+| Grid/list views      | Yes               | Grid/list/table           | —                    |
+| EXIF read            | Exiv2 full        | TS subset                 | 1                    |
+| IPTC read            | Yes               | No                        | 1                    |
+| XMP read             | Yes               | No                        | 1                    |
+| Metadata write       | Yes               | No                        | 3                    |
+| RAW develop          | LibRaw            | Preview only              | 2+                   |
+| HEIC/AVIF/JXL        | kimageformats     | Decode only / partial ext | 1                    |
+| PSD                  | Qt                | No                        | —                    |
+| Thumbnail disk cache | Yes               | No                        | 1                    |
+| Slideshow            | Yes               | Yes                       | 2 (silent FS)        |
+| Multi-instance sync  | TCP               | No                        | 3 (BroadcastChannel) |
+| Batch plugins        | Yes               | No                        | 3                    |
+| Print                | Yes               | No                        | —                    |
+| Image editing        | Yes               | No (out of scope)         | —                    |
+| Themes               | Light/dark/system | 10 packs × modes          | —                    |
+| i18n                 | 30+ locales       | EN                        | 2                    |
+| Plugins DLL          | Yes               | JS hooks planned          | 3                    |
+| Star rating file     | XMP + thumb       | Favorite localStorage     | 1                    |
+| Duplicate hide       | Setting           | No                        | 1                    |
+| Histogram            | Yes               | No                        | 2                    |
+| Map GPS              | External          | Google Maps link          | —                    |
+| ZIP archive browse   | Quazip            | No                        | —                    |
+| Game (Pong)          | Yes               | No                        | —                    |
 
 Use this matrix in sprint planning: rows with Phase 0–1 are user-visible “metadata trust” work; Phase 2 is scale; Phase 3 is differentiation.
 
@@ -1242,12 +1243,12 @@ This section normatively defines gallery behavior aligned with nomacs-exif-refer
 
 ### Display path
 
-| Context | ignoreExifOrientation=false | ignoreExifOrientation=true |
-|---------|----------------------------|--------------------------|
-| Grid thumb (generated) | Browser default | none |
-| Grid thumb (EXIF embed, baked) | baked pixels | baked pixels |
-| Lightbox img | `image-orientation: from-image` | `none` |
-| Info panel | Show textual label from `getOrientationFromExif` | Show label + “(ignored)” |
+| Context                        | ignoreExifOrientation=false                      | ignoreExifOrientation=true |
+| ------------------------------ | ------------------------------------------------ | -------------------------- |
+| Grid thumb (generated)         | Browser default                                  | none                       |
+| Grid thumb (EXIF embed, baked) | baked pixels                                     | baked pixels               |
+| Lightbox img                   | `image-orientation: from-image`                  | `none`                     |
+| Info panel                     | Show textual label from `getOrientationFromExif` | Show label + “(ignored)”   |
 
 ### Future write path
 
@@ -1262,29 +1263,29 @@ If `orientation.value === 6` but `naturalWidth &lt; naturalHeight` while embedde
 
 ## 15. Reatom JSX vs Qt widget patterns
 
-| Concern | nomacs Qt | Gallery Reatom JSX |
-|---------|-----------|-------------------|
-| List model | `QAbstractItemModel` | `reatomLinkedList` + array() |
-| Async load | `QtConcurrent` | `computed` + `withAsyncData` |
-| Settings | `QSettings` signals | atom `withLocalStorage` |
-| Styles | QSS + themes CSS | `css` prop + CSS variables |
-| Shortcuts | `QShortcut` | `document` keydown in `shortcuts.tsx` |
-| Dispose | QObject tree | `model.dispose()` on reset |
+| Concern    | nomacs Qt            | Gallery Reatom JSX                    |
+| ---------- | -------------------- | ------------------------------------- |
+| List model | `QAbstractItemModel` | `reatomLinkedList` + array()          |
+| Async load | `QtConcurrent`       | `computed` + `withAsyncData`          |
+| Settings   | `QSettings` signals  | atom `withLocalStorage`               |
+| Styles     | QSS + themes CSS     | `css` prop + CSS variables            |
+| Shortcuts  | `QShortcut`          | `document` keydown in `shortcuts.tsx` |
+| Dispose    | QObject tree         | `model.dispose()` on reset            |
 
- Porting nomacs features is rarely a line-for-line UI port—translate to atoms and computeds first, then JSX.
+Porting nomacs features is rarely a line-for-line UI port—translate to atoms and computeds first, then JSX.
 
 ---
 
 ## 16. Risk register
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Parser diverges from Exiv2 | High | Wrong GPS/times | Golden tests, Exiv2 spot checks |
-| RAW scan worker OOM | Medium | Tab crash | Cap scan bytes; 2 workers max |
-| FSA permission loss | Medium | Empty gallery on reload | RestoreSelectedFolder + UX |
-| 10k resort jank | Medium | UI freeze | Incremental list reorder |
-| WASM RAW bundle bloat | High | Slow PWA load | Stay embed-only until justified |
-| Metadata write data loss | Low | Critical | Shrink guard + backup file |
+| Risk                       | Likelihood | Impact                  | Mitigation                      |
+| -------------------------- | ---------- | ----------------------- | ------------------------------- |
+| Parser diverges from Exiv2 | High       | Wrong GPS/times         | Golden tests, Exiv2 spot checks |
+| RAW scan worker OOM        | Medium     | Tab crash               | Cap scan bytes; 2 workers max   |
+| FSA permission loss        | Medium     | Empty gallery on reload | RestoreSelectedFolder + UX      |
+| 10k resort jank            | Medium     | UI freeze               | Incremental list reorder        |
+| WASM RAW bundle bloat      | High       | Slow PWA load           | Stay embed-only until justified |
+| Metadata write data loss   | Low        | Critical                | Shrink guard + backup file      |
 
 ---
 
@@ -1342,18 +1343,18 @@ nomacs equivalent: `DkThumbLoader` loads EXIF thumb with `transformed=true`, `Dk
 
 ## 20. Configuration reference (gallery atoms)
 
-| Atom | Default | nomacs setting key |
-|------|---------|-------------------|
-| `gridColumns` | 4 | thumb grid columns (conceptual) |
-| `ignoreExifOrientation` | false | `MetaData.ignoreExifOrientation` |
-| `slideshowInterval` | 3000 ms | `SlideShow.time` (seconds in nomacs) |
-| `includeSubfolders` | true | folder filter scope |
-| `sortField` | name | `sortMode` |
-| `sortOrder` | asc | `sortDir` |
-| `themePack` | polaroid | n/a (web only) |
-| MAX_PARALLEL_THUMBNAILS | hw−2 | `Resources.thumbThreads` |
-| EXIF_READ_BYTES | 512000 | full file in Exiv2 |
-| DEFAULT_MAX_SIZE | 800 | `Resources.maxThumbSize` |
+| Atom                    | Default  | nomacs setting key                   |
+| ----------------------- | -------- | ------------------------------------ |
+| `gridColumns`           | 4        | thumb grid columns (conceptual)      |
+| `ignoreExifOrientation` | false    | `MetaData.ignoreExifOrientation`     |
+| `slideshowInterval`     | 3000 ms  | `SlideShow.time` (seconds in nomacs) |
+| `includeSubfolders`     | true     | folder filter scope                  |
+| `sortField`             | name     | `sortMode`                           |
+| `sortOrder`             | asc      | `sortDir`                            |
+| `themePack`             | polaroid | n/a (web only)                       |
+| MAX_PARALLEL_THUMBNAILS | hw−2     | `Resources.thumbThreads`             |
+| EXIF_READ_BYTES         | 512000   | full file in Exiv2                   |
+| DEFAULT_MAX_SIZE        | 800      | `Resources.maxThumbSize`             |
 
 Expose these in Settings in Phase 1 for power users migrating from nomacs.
 
@@ -1377,24 +1378,24 @@ The gallery already implements the hardest **policy** pieces (orientation preced
 
 ## Document history
 
-| Date | Change |
-|------|--------|
-| 2026-06-04 | Initial standalone research book from gallery + nomacs deep read |
-| 2026-06-04 | Linked research pack (codebase, issues, deps, exif reference) |
+| Date       | Change                                                             |
+| ---------- | ------------------------------------------------------------------ |
+| 2026-06-04 | Initial standalone research book from gallery + nomacs deep read   |
+| 2026-06-04 | Linked research pack (codebase, issues, deps, exif reference)      |
 | 2026-06-04 | §9 issue ID table; API triage for open/closed orientation/RAW/HEIC |
 
 ---
 
 ### See also
 
-| Document | Contents |
-|----------|----------|
+| Document                                                       | Contents                                                          |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- |
 | [oculante-porting-playbook.md](./oculante-porting-playbook.md) | Rust viewer: cache tiers, scrubber, histogram, compare, metafiles |
-| [nomacs-codebase-deep-dive.md](./nomacs-codebase-deep-dive.md) | Loader chain, EXIF/RAW/thumbs, sync, settings, priority matrix |
-| [nomacs-issues-backlog.md](./nomacs-issues-backlog.md) | Community signals + 30-item actionable backlog |
-| [nomacs-dependency-stack.md](./nomacs-dependency-stack.md) | Qt/Exiv2/LibRaw/OpenCV vs web/npm/WASM |
-| [nomacs-exif-reference.md](./nomacs-exif-reference.md) | Orientation, flash, compression, edge-case checklist |
+| [nomacs-codebase-deep-dive.md](./nomacs-codebase-deep-dive.md) | Loader chain, EXIF/RAW/thumbs, sync, settings, priority matrix    |
+| [nomacs-issues-backlog.md](./nomacs-issues-backlog.md)         | Community signals + 30-item actionable backlog                    |
+| [nomacs-dependency-stack.md](./nomacs-dependency-stack.md)     | Qt/Exiv2/LibRaw/OpenCV vs web/npm/WASM                            |
+| [nomacs-exif-reference.md](./nomacs-exif-reference.md)         | Orientation, flash, compression, edge-case checklist              |
 
 ---
 
-*This playbook is the canonical porting guide for nomacs-inspired work on the Reatom JSX Gallery. Update it when `image-engine/` or nomacs upstream behavior changes.*
+_This playbook is the canonical porting guide for nomacs-inspired work on the Reatom JSX Gallery. Update it when `image-engine/` or nomacs upstream behavior changes._

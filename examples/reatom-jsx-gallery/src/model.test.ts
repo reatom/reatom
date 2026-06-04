@@ -99,8 +99,8 @@ test('imagesList sorts by date ascending', () =>
     const images = imagesList.array()
     const dates = images.map((i) => i.source.lastModified)
     expect(dates).toEqual([
-      1700000000000, 1700001000000, 1700002000000, 1700003000000,
-      1700004000000, 1700005000000,
+      1700000000000, 1700001000000, 1700002000000, 1700003000000, 1700004000000,
+      1700005000000,
     ])
   }))
 

@@ -5,6 +5,7 @@ A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reat
 ## Features
 
 ### Implemented
+
 - **Folder selection** with the File System Access API.
 - **Recursive parsing** with progress state and cancellation.
 - **Grid, list, and table views** with configurable columns, preview fit, gap, names, and file sizes.
@@ -16,6 +17,7 @@ A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reat
 - **Theme packs** with light, dark, and system modes.
 
 ### Planned from the research docs
+
 - IndexedDB thumbnail cache with file size and mtime keys.
 - XMP/IPTC metadata read paths.
 - Histogram, channel inspection, and compare-at-zoom.
@@ -77,6 +79,7 @@ pnpm preview
 ### Customizing the Grid
 
 Use the **Settings** panel (toolbar gear icon) to adjust:
+
 - **Columns**: 0-12, where 0 enables auto columns.
 - **Gap**: Spacing between images
 - **Image Fit**: How images fit in their containers
@@ -85,6 +88,7 @@ Use the **Settings** panel (toolbar gear icon) to adjust:
 ### Sorting & Filtering
 
 Use the toolbar controls to:
+
 - **Sort**: Click sort controls to change field and order
 - **Filter**: Use type chips, size range, subfolder scope, and search box
 - **Reset**: Clear all filters with one click
@@ -127,27 +131,32 @@ Theme packs and defaults live in `src/theme.tsx` and persisted UI atoms live in 
 ## 🔧 Browser Support
 
 ### Full Support
+
 - **Chrome** 86+ (recommended)
 - **Edge** 86+ (recommended)
 - **Opera** 72+
 
 ### Limited Support
+
 - **Firefox and Safari**: File System Access API support is limited.
 - **Mobile**: Directory picking and persistent handles vary by browser.
 
 ## 📝 Notes
 
 ### File System Access API
+
 - Requires HTTPS or localhost
 - Permissions are granted per-folder and may be revoked by the user
 - Browser may prompt for permission on each page reload
 - Some file systems may not support recursive access
 
 ### Research references
+
 - `docs/nomacs-porting-playbook.md` tracks metadata, thumbnail, performance, and test priorities.
 - `docs/oculante-porting-playbook.md` tracks scrubber, keep-view, cache, histogram, and compare-mode ideas.
 
 ### Privacy
+
 - All image processing happens locally in your browser
 - No data is uploaded to any server
 - File handles and permissions are managed by the browser
