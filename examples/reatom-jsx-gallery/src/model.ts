@@ -200,10 +200,28 @@ export const lightboxNavigationDirection = atom<1 | -1>(
 export const lightboxZoom = atom(1, 'lightboxZoom')
 export const lightboxPanX = atom(0, 'lightbox.panX')
 export const lightboxPanY = atom(0, 'lightbox.panY')
+export const wrapFolderNavigation = reatomBoolean(
+  true,
+  'lightbox.wrapFolderNavigation',
+).extend(withLocalStorage('gallery.wrapFolderNavigation'))
+export const keepLightboxView = reatomBoolean(
+  false,
+  'lightbox.keepView',
+).extend(withLocalStorage('gallery.keepLightboxView'))
+export const showLightboxScrubber = reatomBoolean(
+  true,
+  'lightbox.showScrubber',
+).extend(withLocalStorage('gallery.showLightboxScrubber'))
 
 export const resetLightboxPan = () => {
   lightboxPanX.set(0)
   lightboxPanY.set(0)
+}
+
+const resetLightboxViewAfterNavigation = () => {
+  if (keepLightboxView()) return
+  lightboxZoom.set(1)
+  resetLightboxPan()
 }
 
 // Slideshow
@@ -435,7 +453,7 @@ const findVisibleLightboxNeighbor = (
     node = getNeighbor(node)
   }
 
-  if (!node) {
+  if (!node && wrapFolderNavigation()) {
     const listState = imagesList()
     const start = direction === 1 ? listState.head : listState.tail
     let cursor = start
@@ -452,11 +470,15 @@ const findVisibleLightboxNeighbor = (
   return node
 }
 
+export const visibleImages = computed(
+  () => imagesList.array().filter((node) => node.visible()),
+  'visibleImages',
+)
+
 export const visibleIndexMap = computed(() => {
   const map = new Map<ImageModel, number>()
-  let idx = 0
-  for (const node of imagesList.array()) {
-    if (node.visible()) map.set(node, idx++)
+  for (const [idx, node] of visibleImages().entries()) {
+    map.set(node, idx)
   }
   return map
 }, 'visibleIndexMap')
@@ -662,6 +684,7 @@ export const closeLightbox = action(() => {
   lightboxOpen.setFalse()
   slideshowPlaying.setFalse()
   lightboxZoom.set(1)
+  resetLightboxPan()
 }, 'closeLightbox')
 
 export const navigateLightbox = action((direction: 1 | -1) => {
@@ -675,6 +698,14 @@ export const navigateLightbox = action((direction: 1 | -1) => {
   const node = findVisibleLightboxNeighbor(current, direction)
   if (node) {
     lightboxImage.set(() => node)
-    lightboxZoom.set(1)
+    resetLightboxViewAfterNavigation()
   }
 }, 'navigateLightbox')
+
+export const openLightboxAtVisibleIndex = action((index: number) => {
+  const image = visibleImages()[index]
+  if (!image) return
+
+  lightboxImage.set(() => image)
+  resetLightboxViewAfterNavigation()
+}, 'openLightboxAtVisibleIndex')

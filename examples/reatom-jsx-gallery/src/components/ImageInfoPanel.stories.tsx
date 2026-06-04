@@ -1,12 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
 import { mockFolderTree, mockImages } from '../__fixtures__/mockData'
-import {
-  lightboxImage,
-  lightboxOpen,
-  selectImage,
-  visibleIndexMap,
-} from '../model'
+import { lightboxImage, lightboxOpen, visibleIndexMap } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import {
   createMyself,
@@ -14,15 +9,13 @@ import {
   type Locator,
 } from '../shared/test'
 import { loadEmptyState, loadGalleryState } from '../shared/testSetup'
-import { ImageInfoPanel } from './ImageInfoPanel'
-
-const waitForUpdate = () => new Promise<void>((r) => setTimeout(r, 50))
+import { imageInfoPanelOpen, ImageInfoPanel } from './ImageInfoPanel'
 
 const loc = {
-  toggleButtonAppears: (canvas) =>
-    canvas.findByRole('button', { name: /details/i }),
-  toggleButtonDoesNotAppear: (canvas) =>
-    canvas.queryByRole('button', { name: /details/i }),
+  panelAppears: (canvas) =>
+    canvas.findByRole('dialog', { name: 'Image details' }),
+  panelDoesNotAppear: (canvas) =>
+    canvas.queryByRole('dialog', { name: 'Image details' }),
   imageNameAppears:
     (name: string): Locator =>
     (canvas) =>
@@ -30,18 +23,12 @@ const loc = {
 } satisfies Record<string, Locator | ((name: string) => Locator)>
 
 const I = createMyself((I) => ({
-  openInfoPanel: async () => {
-    await I.click(loc.toggleButtonAppears as DefiniteLocator)
-    await waitForUpdate()
-  },
   seeImageName: async (name: string) => {
+    await I.see(loc.panelAppears as DefiniteLocator)
     await I.see(loc.imageNameAppears(name))
   },
-  seeToggleButton: async () => {
-    await I.see(loc.toggleButtonAppears as Locator)
-  },
-  dontSeeToggleButton: async () => {
-    await I.dontSee(loc.toggleButtonDoesNotAppear)
+  dontSeePanel: async () => {
+    await I.dontSee(loc.panelDoesNotAppear)
   },
 }))
 
@@ -57,8 +44,6 @@ type Story = StoryObj
 export const WithSelectedImage: Story = {
   render: () => {
     loadGalleryState({ tree: mockFolderTree })
-    const model = [...visibleIndexMap().keys()][0]
-    if (model) selectImage(model)
     return (
       <StoryWrapper>
         <ImageInfoPanel />
@@ -66,8 +51,7 @@ export const WithSelectedImage: Story = {
     )
   },
   play: async () => {
-    await I.openInfoPanel()
-    await I.seeImageName(mockImages[0].name)
+    await I.dontSeePanel()
   },
 }
 
@@ -81,7 +65,7 @@ export const NoImageSelected: Story = {
     )
   },
   play: async () => {
-    await I.dontSeeToggleButton()
+    await I.dontSeePanel()
   },
 }
 
@@ -92,6 +76,7 @@ export const WithLightboxImage: Story = {
     if (model) {
       lightboxImage.set(() => model)
       lightboxOpen.setTrue()
+      imageInfoPanelOpen.setTrue()
     }
     return (
       <StoryWrapper>
@@ -100,7 +85,6 @@ export const WithLightboxImage: Story = {
     )
   },
   play: async () => {
-    await I.openInfoPanel()
     await I.seeImageName(mockImages[0].name)
   },
 }
@@ -115,6 +99,6 @@ export const EmptyGallery: Story = {
     )
   },
   play: async () => {
-    await I.dontSeeToggleButton()
+    await I.dontSeePanel()
   },
 }

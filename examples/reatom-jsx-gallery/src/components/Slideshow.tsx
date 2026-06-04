@@ -1,4 +1,4 @@
-import { atom, effect, sleep, wrap } from '@reatom/core'
+import { atom, effect, reatomMediaQuery, sleep, wrap } from '@reatom/core'
 
 import { navigateLightbox, slideshowInterval, slideshowPlaying } from '../model'
 import { PauseIcon, PlayIcon } from './Icons'
@@ -11,6 +11,8 @@ const speedOptions = [
   { ms: 10000, label: '10s' },
   { ms: 30000, label: '30s' },
 ] as const
+
+const prefersReducedMotion = reatomMediaQuery('(prefers-reduced-motion: reduce)')
 
 const pillBtnCss = `
   background: var(--overlay-control);
@@ -48,6 +50,12 @@ export const Slideshow = ({
   }
 
   const autoAdvance = effect(async () => {
+    if (prefersReducedMotion() && slideshowPlaying()) {
+      slideshowPlaying.setFalse()
+      progressPercent.set(0)
+      return
+    }
+
     while (slideshowPlaying()) {
       const ms = slideshowInterval()
       const startedAt = Date.now()
@@ -70,7 +78,18 @@ export const Slideshow = ({
   return (
     <div
       class={className}
-      ref={() => autoAdvance.unsubscribe}
+      ref={() => {
+        const pauseWhenHidden = () => {
+          if (document.hidden) slideshowPlaying.setFalse()
+        }
+
+        document.addEventListener('visibilitychange', pauseWhenHidden)
+
+        return () => {
+          autoAdvance.unsubscribe()
+          document.removeEventListener('visibilitychange', pauseWhenHidden)
+        }
+      }}
       css={`
         position: absolute;
         bottom: 52px;

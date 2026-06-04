@@ -14,9 +14,13 @@ import {
   lightboxZoom,
   navigateLightbox,
   openLightbox,
+  openLightboxAtVisibleIndex,
   resetLightboxPan,
+  showLightboxScrubber,
   slideshowPlaying,
   thumbnailWindow,
+  visibleImages,
+  visibleIndexMap,
 } from '../model'
 import {
   ChevronLeftIcon,
@@ -202,6 +206,15 @@ const LightboxContent = () => {
     () => (isPanning() ? 'grabbing' : lightboxZoom() > 1 ? 'grab' : 'default'),
     'lightbox.imageCursor',
   )
+  const scrubberValue = computed(() => {
+    const image = lightboxImage()
+    if (!image) return 0
+    return visibleIndexMap().get(image) ?? 0
+  }, 'lightbox.scrubberValue')
+  const scrubberMax = computed(
+    () => Math.max(visibleImages().length - 1, 0),
+    'lightbox.scrubberMax',
+  )
 
   const zoomIn = () => lightboxZoom.set((z: number) => Math.min(z * 1.5, 10))
   const zoomOut = () => lightboxZoom.set((z: number) => Math.max(z / 1.5, 0.1))
@@ -328,12 +341,15 @@ const LightboxContent = () => {
 
   const handlePrev = () => {
     navigateLightbox(-1)
-    resetLightboxPan()
   }
 
   const handleNext = () => {
     navigateLightbox(1)
-    resetLightboxPan()
+  }
+
+  const handleScrubberInput = (event: Event) => {
+    if (!(event.currentTarget instanceof HTMLInputElement)) return
+    openLightboxAtVisibleIndex(event.currentTarget.valueAsNumber)
   }
 
   const handleBackdropClick = (
@@ -353,14 +369,12 @@ const LightboxContent = () => {
         e.preventDefault()
         e.stopPropagation()
         navigateLightbox(-1)
-        resetLightboxPan()
         break
       case 'ArrowRight':
       case 'ArrowDown':
         e.preventDefault()
         e.stopPropagation()
         navigateLightbox(1)
-        resetLightboxPan()
         break
       case '-':
       case '_':
@@ -656,6 +670,46 @@ const LightboxContent = () => {
         class="lightbox-control-layer"
         onControlPress={showControlsFromPointer}
       />
+
+      {() => {
+        if (!showLightboxScrubber() || visibleImages().length <= 1) return null
+
+        return (
+          <label
+            class="lightbox-control-layer"
+            css={`
+              position: absolute;
+              right: max(16px, calc(16px + var(--shadow-clearance, 0px)));
+              bottom: 58px;
+              display: grid;
+              gap: 4px;
+              min-width: min(260px, calc(100vw - 32px));
+              padding: 8px 12px;
+              border: var(--border-width) var(--control-border-style)
+                rgba(255, 255, 255, 0.12);
+              border-radius: var(--radius-md);
+              background: var(--image-overlay);
+              color: #fff;
+              font-size: 11px;
+              z-index: 1020;
+              backdrop-filter: var(--panel-backdrop-filter);
+              box-shadow: var(--glow);
+            `}
+          >
+            <span>Folder position</span>
+            <input
+              type="range"
+              min="0"
+              max={scrubberMax}
+              step="1"
+              aria-label="Folder position"
+              prop:value={scrubberValue}
+              on:input={handleScrubberInput}
+              css="accent-color: var(--accent);"
+            />
+          </label>
+        )
+      }}
 
       <div
         class="lightbox-control-layer"

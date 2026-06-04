@@ -5,10 +5,17 @@ import {
   currentFolder,
   flatImages,
   folderTree,
+  keepLightboxView,
   lightboxImage,
   lightboxOpen,
+  lightboxPanX,
+  lightboxPanY,
+  lightboxZoom,
   parsingProgress,
+  showLightboxScrubber,
+  slideshowPlaying,
   viewMode,
+  wrapFolderNavigation,
 } from '../model'
 import type { FolderNode, ImageFile } from '../types'
 
@@ -51,6 +58,13 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)
+  lightboxZoom.set(1)
+  lightboxPanX.set(0)
+  lightboxPanY.set(0)
+  slideshowPlaying.setFalse()
+  wrapFolderNavigation.setTrue()
+  keepLightboxView.setFalse()
+  showLightboxScrubber.setTrue()
   viewMode.setGrid()
   filterPanelOpen.set(false)
   settingsPanelOpen.set(false)
@@ -67,6 +81,13 @@ export function loadEmptyState(): void {
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)
+  lightboxZoom.set(1)
+  lightboxPanX.set(0)
+  lightboxPanY.set(0)
+  slideshowPlaying.setFalse()
+  wrapFolderNavigation.setTrue()
+  keepLightboxView.setFalse()
+  showLightboxScrubber.setTrue()
   viewMode.setGrid()
   filterPanelOpen.set(false)
   settingsPanelOpen.set(false)

@@ -18,6 +18,8 @@ const loc = {
     canvas.findByRole('button', { name: 'Cancel' }),
   lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
   maybeLightboxCounter: (canvas) => canvas.queryByText(/\d+ \/ \d+/),
+  firstImageButtonAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Open photo1.jpg' }),
 } satisfies Record<string, Locator>
 
 const I = createMyself((I) => ({
@@ -33,14 +35,10 @@ const I = createMyself((I) => ({
     await I.see(loc.cancelButtonAppears)
   },
   openLightboxByClickingFirstImage: async () => {
-    const el = I._canvasElement
-    if (!el) throw new Error('Actor not initialized')
-    const firstImage = el.querySelector('img[alt]')
-    if (firstImage) {
-      ;(firstImage as HTMLElement).click()
-      await waitForUpdate()
-      await I.see(loc.lightboxCounterAppears)
-    }
+    const firstImage = await I.see(loc.firstImageButtonAppears)
+    firstImage.click()
+    await waitForUpdate()
+    await I.see(loc.lightboxCounterAppears)
   },
 }))
 

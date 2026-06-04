@@ -37,6 +37,7 @@ export const GridImage = ({
 }) => {
   const isSelected = () => image.selected()
   const isFavorite = () => image.favorite()
+  const imageName = () => image.source.name
 
   const handleOpen = () => openLightbox(image)
   const displayImage = () => {
@@ -52,7 +53,7 @@ export const GridImage = ({
       renderedSize() > previewSize ? image.fullImage.data() : undefined
 
     if (fullImage) {
-      fullImage.alt = image.name
+      fullImage.alt = imageName()
       fullImage.loading = 'lazy'
       const orientationStyle = resolveImageOrientationStyle(
         image.meta.data()?.exif,
@@ -75,14 +76,14 @@ export const GridImage = ({
     return (
       <img
         src={thumbnail.url}
-        alt={image.name}
+        alt={imageName()}
         loading="lazy"
         style:image-orientation={orientationStyle}
       />
     )
   }
 
-  const openLabel = () => `Open ${image.name}`
+  const openLabel = () => `Open ${imageName()}`
 
   return (
     <div
@@ -102,6 +103,8 @@ export const GridImage = ({
         overflow: hidden;
         cursor: pointer;
         transition: all 0.2s ease;
+        content-visibility: auto;
+        contain-intrinsic-size: 220px;
 
         &:focus-visible {
           outline: 3px solid var(--focus-ring);
@@ -164,7 +167,7 @@ export const GridImage = ({
           role="checkbox"
           aria-checked={isSelected}
           aria-label={() =>
-            isSelected() ? `Deselect ${image.name}` : `Select ${image.name}`
+            isSelected() ? `Deselect ${imageName()}` : `Select ${imageName()}`
           }
           css={`
             position: absolute;
@@ -206,8 +209,8 @@ export const GridImage = ({
           aria-pressed={isFavorite}
           aria-label={() =>
             isFavorite()
-              ? `Remove ${image.name} from favorites`
-              : `Add ${image.name} to favorites`
+              ? `Remove ${imageName()} from favorites`
+              : `Add ${imageName()} to favorites`
           }
           type="button"
           css={`
@@ -276,7 +279,7 @@ export const GridImage = ({
                   text-overflow: ellipsis;
                 `}
               >
-                {image.name}
+                {imageName}
               </div>
             )}
             {showSize && (
