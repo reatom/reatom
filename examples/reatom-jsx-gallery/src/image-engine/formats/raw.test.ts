@@ -215,6 +215,20 @@ describe('raw format parser', () => {
     expect(meta?.format).toBe('arw')
   })
 
+  test('parseRawMeta uses preferredFormat for TIFF-like CR2 files', () => {
+    const buffer = buildTiffBuffer([
+      { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 5472 },
+      { tag: IMAGE_LENGTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 3648 },
+    ])
+
+    const meta = parseRawMeta(new DataView(buffer), 'cr2')
+    expect(meta).toMatchObject({
+      width: 5472,
+      height: 3648,
+      format: 'cr2',
+    })
+  })
+
   test('parseRawMeta returns null for generic TIFF without RAW markers', () => {
     const buffer = buildTiffBuffer([
       { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 640 },

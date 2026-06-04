@@ -1,3 +1,4 @@
+import { parseAvifMeta } from './formats/bmff'
 import { parseBmpMeta } from './formats/bmp'
 import {
   findPngExifTiffBase,
@@ -27,10 +28,63 @@ function preferredRawFormatFromFilename(
   filename: string | undefined,
 ): RawFormat | undefined {
   if (!filename) return undefined
-  const lowerName = filename.toLowerCase()
-  if (lowerName.endsWith('.dng')) return 'dng'
-  if (lowerName.endsWith('.arw')) return 'arw'
+  const extension = filename.toLowerCase().split('.').pop()
+  switch (extension) {
+    case 'dng':
+    case 'arw':
+    case 'cr2':
+    case 'nef':
+    case 'orf':
+    case 'sr2':
+      return extension
+  }
   return undefined
+}
+
+function expectedFormatFromFilename(
+  filename: string | undefined,
+): ImageFormat | undefined {
+  if (!filename) return undefined
+  const extension = filename.toLowerCase().split('.').pop()
+  switch (extension) {
+    case 'jpg':
+    case 'jpeg':
+      return 'jpeg'
+    case 'png':
+      return 'png'
+    case 'gif':
+      return 'gif'
+    case 'webp':
+      return 'webp'
+    case 'bmp':
+      return 'bmp'
+    case 'svg':
+      return 'svg'
+    case 'avif':
+      return 'avif'
+    case 'dng':
+    case 'arw':
+    case 'cr2':
+    case 'nef':
+    case 'orf':
+    case 'sr2':
+      return extension
+    default:
+      return undefined
+  }
+}
+
+function withDetectedFormatWarning(
+  meta: ImageMeta,
+  filename: string | undefined,
+): ImageMeta {
+  const expectedFormat = expectedFormatFromFilename(filename)
+  if (expectedFormat && expectedFormat !== meta.format && expectedFormat !== 'svg') {
+    console.warn(
+      `Image format mismatch for ${filename}: extension suggests ${expectedFormat}, loaded as ${meta.format}`,
+    )
+  }
+  return meta
 }
 
 function detectFormatFromMagic(view: DataView): ImageFormat {
@@ -93,7 +147,7 @@ export async function parseImageMeta(
       ? { blob: embeddedPreviewBlob }
       : undefined
 
-    return {
+    return withDetectedFormatWarning({
       width: meta.width,
       height: meta.height,
       format: 'jpeg',
@@ -101,7 +155,7 @@ export async function parseImageMeta(
       hasExifThumbnail: embeddedPreview !== undefined,
       exif,
       embeddedPreview,
-    }
+    }, options?.filename)
   }
 
   if (format === 'png') {
@@ -119,24 +173,24 @@ export async function parseImageMeta(
         ? undefined
         : (parseExifTagsAtTiffBase(exifView, pngExifBase) ?? undefined)
 
-    return {
+    return withDetectedFormatWarning({
       ...meta,
       format: 'png',
       isProgressive: false,
       hasExifThumbnail: false,
       exif,
-    }
+    }, options?.filename)
   }
 
   if (format === 'gif') {
     const meta = parseGifMeta(view)
     if (!meta) return null
-    return {
+    return withDetectedFormatWarning({
       ...meta,
       format: 'gif',
       isProgressive: false,
       hasExifThumbnail: false,
-    }
+    }, options?.filename)
   }
 
   if (format === 'webp') {
@@ -154,24 +208,33 @@ export async function parseImageMeta(
         ? undefined
         : (parseExifTagsAtTiffBase(exifView, webpExifBase) ?? undefined)
 
-    return {
+    return withDetectedFormatWarning({
       ...meta,
       format: 'webp',
       isProgressive: false,
       hasExifThumbnail: false,
       exif,
-    }
+    }, options?.filename)
   }
 
   if (format === 'bmp') {
     const meta = parseBmpMeta(view)
     if (!meta) return null
-    return {
+    return withDetectedFormatWarning({
       ...meta,
       format: 'bmp',
       isProgressive: false,
       hasExifThumbnail: false,
-    }
+    }, options?.filename)
+  }
+
+  const avifMeta = parseAvifMeta(view)
+  if (avifMeta) {
+    return withDetectedFormatWarning({
+      ...avifMeta,
+      isProgressive: false,
+      hasExifThumbnail: false,
+    }, options?.filename)
   }
 
   if (isTiffLike(view)) {
@@ -183,7 +246,7 @@ export async function parseImageMeta(
     if (rawMeta) {
       const embeddedPreview = await extractRawPreviewData(source, rawMeta.format)
 
-      return {
+      return withDetectedFormatWarning({
         width: embeddedPreview?.width ?? rawMeta.width,
         height: embeddedPreview?.height ?? rawMeta.height,
         format: rawMeta.format,
@@ -197,7 +260,7 @@ export async function parseImageMeta(
               height: embeddedPreview.height,
             }
           : undefined,
-      }
+      }, options?.filename)
     }
   }
 
@@ -205,12 +268,12 @@ export async function parseImageMeta(
   if (isSvgBlob(source) || isProbablySvgBytes(view)) {
     const meta = await parseSvgMeta(source)
     if (!meta) return null
-    return {
+    return withDetectedFormatWarning({
       ...meta,
       format: 'svg',
       isProgressive: false,
       hasExifThumbnail: false,
-    }
+    }, options?.filename)
   }
 
   return null

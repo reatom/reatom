@@ -1,4 +1,4 @@
-import type { ExifData } from '../types'
+import type { ExifData, RawImageFormat } from '../types'
 import { EXIF_READ_BYTES } from '../types'
 import { parseExifTagsAtTiffBase } from './exif'
 import {
@@ -56,7 +56,7 @@ const MAX_HEURISTIC_SEGMENTS = 64
 const JPEG_SOI_BYTE_0 = 0xff
 const JPEG_SOI_BYTE_1 = 0xd8
 
-export type RawFormat = 'dng' | 'arw'
+export type RawFormat = RawImageFormat
 
 export type RawMeta = {
   width: number
@@ -357,10 +357,8 @@ function classifyRawFormat(
   preferredFormat?: RawFormat,
 ): RawFormat | null {
   if (hasDngVersionTag(ifd0Entries)) return 'dng'
-  if (preferredFormat === 'dng') return 'dng'
-
-  if (preferredFormat === 'arw') return 'arw'
   if (isSonyMake(ifd0Entries, view)) return 'arw'
+  if (preferredFormat) return preferredFormat
 
   return null
 }

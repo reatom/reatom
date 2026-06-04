@@ -7,6 +7,7 @@ import {
 } from './orientation'
 import type { ImageMeta, ThumbnailOptions, ThumbnailResult } from './types'
 import { DEFAULT_MAX_SIZE, DEFAULT_QUALITY } from './types'
+import { isRawImageFormat } from './types'
 
 export type ThumbnailOrientationOptions = {
   ignoreExifOrientation?: boolean
@@ -137,8 +138,7 @@ async function tryRawPreviewPath(
   meta: ImageMeta | null,
   ignoreExifOrientation: boolean,
 ): Promise<ThumbnailResult | null> {
-  const rawFormat =
-    meta?.format === 'dng' || meta?.format === 'arw' ? meta.format : undefined
+  const rawFormat = isRawImageFormat(meta?.format) ? meta.format : undefined
   const rawPreviewBlob =
     meta?.embeddedPreview?.blob ?? (await extractRawPreview(source, rawFormat))
   return tryEmbeddedJpegPreviewPath(
@@ -152,7 +152,7 @@ async function tryRawPreviewPath(
 }
 
 function isRawFormat(meta: ImageMeta | null): boolean {
-  return meta?.format === 'dng' || meta?.format === 'arw'
+  return isRawImageFormat(meta?.format)
 }
 
 export async function loadThumbnail(

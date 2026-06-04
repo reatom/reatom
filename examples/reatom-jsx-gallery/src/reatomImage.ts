@@ -17,7 +17,11 @@ import {
 } from './image-engine'
 import { extractRawPreview } from './image-engine/formats/raw'
 import { resolveImageOrientationStyle } from './image-engine/orientation'
-import type { ImageMeta } from './image-engine/types'
+import {
+  isRawImageFormat,
+  type ImageMeta,
+  type RawImageFormat,
+} from './image-engine/types'
 
 const MAX_PARALLEL_THUMBNAILS = Math.max(
   2,
@@ -32,9 +36,9 @@ export type ReatomImageOptions = {
 }
 
 function isRawImageMeta(meta: ImageMeta | null): meta is ImageMeta & {
-  format: 'dng' | 'arw'
+  format: RawImageFormat
 } {
-  return meta?.format === 'dng' || meta?.format === 'arw'
+  return isRawImageFormat(meta?.format)
 }
 
 export function reatomImage(

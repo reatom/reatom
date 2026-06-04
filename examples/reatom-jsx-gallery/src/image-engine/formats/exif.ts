@@ -537,6 +537,11 @@ export function parseExifTagsAtTiffBase(
 }
 
 export function parseExifTags(view: DataView): Record<string, string> | null {
+  const app1ExifTiffBase = findApp1ExifTiffBase(view)
+  if (app1ExifTiffBase !== null) {
+    return parseExifTagsAtTiffBase(view, app1ExifTiffBase)
+  }
+
   const bases = collectExifTiffBases(view)
   if (bases.length === 0) return null
 

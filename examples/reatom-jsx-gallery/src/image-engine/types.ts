@@ -1,3 +1,14 @@
+export const RAW_IMAGE_FORMATS = [
+  'dng',
+  'arw',
+  'cr2',
+  'nef',
+  'orf',
+  'sr2',
+] as const
+
+export type RawImageFormat = (typeof RAW_IMAGE_FORMATS)[number]
+
 export type ImageFormat =
   | 'jpeg'
   | 'png'
@@ -5,9 +16,25 @@ export type ImageFormat =
   | 'webp'
   | 'bmp'
   | 'svg'
-  | 'dng'
-  | 'arw'
+  | 'avif'
+  | RawImageFormat
   | 'unknown'
+
+export function isRawImageFormat(
+  format: ImageFormat | null | undefined,
+): format is RawImageFormat {
+  switch (format) {
+    case 'dng':
+    case 'arw':
+    case 'cr2':
+    case 'nef':
+    case 'orf':
+    case 'sr2':
+      return true
+    default:
+      return false
+  }
+}
 
 export type ExifData = Record<string, string>
 

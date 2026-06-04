@@ -18,6 +18,12 @@ const IMAGE_TYPE_OPTIONS = [
   { ext: 'svg', label: 'SVG' },
   { ext: 'avif', label: 'AVIF' },
   { ext: 'bmp', label: 'BMP' },
+  { ext: 'dng', label: 'DNG' },
+  { ext: 'arw', label: 'ARW' },
+  { ext: 'cr2', label: 'CR2' },
+  { ext: 'nef', label: 'NEF' },
+  { ext: 'orf', label: 'ORF' },
+  { ext: 'sr2', label: 'SR2' },
 ]
 
 const toggleTypeFilter = (ext: string) => {
