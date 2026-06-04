@@ -3,6 +3,7 @@ import { atom } from '@reatom/core'
 import {
   gridColumns,
   gridGap,
+  ignoreExifOrientation,
   imageFit,
   showFileSizes,
   showImageNames,
@@ -444,6 +445,11 @@ export const SettingsPanel = () => {
         label="Show File Sizes"
         checked={() => showFileSizes()}
         onToggle={showFileSizes.toggle}
+      />
+      <ToggleSwitch
+        label="Ignore EXIF Orientation"
+        checked={() => ignoreExifOrientation()}
+        onToggle={ignoreExifOrientation.toggle}
       />
 
       <SectionTitle text="Theme" />

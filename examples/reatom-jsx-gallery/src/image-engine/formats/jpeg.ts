@@ -1,4 +1,4 @@
-import { EXIF_READ_BYTES } from '../types'
+import { resolveExifReadBytes } from '../types'
 import { findApp1ExifTiffBase } from './exif'
 
 type JpegMeta = {
@@ -106,7 +106,7 @@ export function parseJpegMeta(view: DataView): JpegMeta | null {
 }
 
 export function checkExifThumbnailPresence(view: DataView): boolean {
-  return getExifThumbnailRange(view) !== null
+  return extractExifThumbnailFromView(view) !== null
 }
 
 function readTiffUint16(
@@ -180,11 +180,7 @@ function getExifThumbnailRange(
   return { start: tiffBase + thumbnailOffset, length: thumbnailLength }
 }
 
-export async function extractExifThumbnail(blob: Blob): Promise<Blob | null> {
-  const slice = blob.slice(0, EXIF_READ_BYTES)
-  const buffer = await slice.arrayBuffer()
-  const view = new DataView(buffer)
-
+export function extractExifThumbnailFromView(view: DataView): Blob | null {
   const range = getExifThumbnailRange(view)
   if (range === null) return null
 
@@ -201,6 +197,17 @@ export async function extractExifThumbnail(blob: Blob): Promise<Blob | null> {
     return null
   }
 
-  const thumbBytes = new Uint8Array(buffer, absThumbStart, thumbnailLength)
+  const thumbBytes = new Uint8Array(thumbnailLength)
+  thumbBytes.set(
+    new Uint8Array(view.buffer, view.byteOffset + absThumbStart, thumbnailLength),
+  )
   return new Blob([thumbBytes], { type: 'image/jpeg' })
+}
+
+export async function extractExifThumbnail(blob: Blob): Promise<Blob | null> {
+  const slice = blob.slice(0, resolveExifReadBytes(blob.size))
+  const buffer = await slice.arrayBuffer()
+  const view = new DataView(buffer)
+
+  return extractExifThumbnailFromView(view)
 }

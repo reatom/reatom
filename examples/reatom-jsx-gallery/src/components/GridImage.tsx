@@ -1,7 +1,9 @@
 import { focusableCardAttrs } from '../a11y'
 import type { ImageModel } from '../model'
+import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import {
   gridGap,
+  ignoreExifOrientation,
   imageFit,
   openLightbox,
   selectImage,
@@ -52,10 +54,32 @@ export const GridImage = ({
     if (fullImage) {
       fullImage.alt = image.name
       fullImage.loading = 'lazy'
+      const orientationStyle = resolveImageOrientationStyle(
+        image.meta.data()?.exif,
+        ignoreExifOrientation(),
+      )
+      if (orientationStyle) {
+        fullImage.style.imageOrientation = orientationStyle
+      } else {
+        fullImage.style.removeProperty('image-orientation')
+      }
       return fullImage
     }
 
-    return <img src={thumbnail.url} alt={image.name} loading="lazy" />
+    const orientationStyle = resolveImageOrientationStyle(
+      image.meta.data()?.exif,
+      ignoreExifOrientation(),
+      thumbnail.orientationBaked,
+    )
+
+    return (
+      <img
+        src={thumbnail.url}
+        alt={image.name}
+        loading="lazy"
+        style:image-orientation={orientationStyle}
+      />
+    )
   }
 
   const openLabel = () => `Open ${image.name}`

@@ -16,6 +16,7 @@ import {
   revokeThumbnail,
 } from './image-engine'
 import { extractRawPreview } from './image-engine/formats/raw'
+import { resolveImageOrientationStyle } from './image-engine/orientation'
 import type { ImageMeta } from './image-engine/types'
 
 const MAX_PARALLEL_THUMBNAILS = Math.max(
@@ -27,6 +28,7 @@ const activeThumbnailRequests = atom(0, 'thumbnail.activeRequests')
 export type ReatomImageOptions = {
   thumbnailOptions?: ThumbnailOptions
   filename?: string
+  readIgnoreExifOrientation?: () => boolean
 }
 
 function isRawImageMeta(meta: ImageMeta | null): meta is ImageMeta & {
@@ -64,7 +66,11 @@ export function reatomImage(
     try {
       const [fileState, metaState] = await wrap(Promise.all([file(), meta()]))
       return await wrap(
-        loadThumbnailWithMeta(fileState, metaState, options?.thumbnailOptions),
+        loadThumbnailWithMeta(fileState, metaState, {
+          ...options?.thumbnailOptions,
+          ignoreExifOrientation:
+            options?.readIgnoreExifOrientation?.() ?? false,
+        }),
       )
     } finally {
       activeThumbnailRequests.set((count) => count - 1)
@@ -75,7 +81,9 @@ export function reatomImage(
     const blob = await wrap(file())
     const metaState = await wrap(meta())
     if (isRawImageMeta(metaState)) {
-      const previewBlob = await wrap(extractRawPreview(blob, metaState.format))
+      const previewBlob =
+        metaState.embeddedPreview?.blob ??
+        (await wrap(extractRawPreview(blob, metaState.format)))
       if (previewBlob) return URL.createObjectURL(previewBlob)
     }
     return URL.createObjectURL(blob)
@@ -83,10 +91,18 @@ export function reatomImage(
 
   const fullImage = computed(async () => {
     const url = await wrap(fullImageUrl())
+    const metaState = await wrap(meta())
     const image = new Image()
     image.decoding = 'async'
     image.src = url
     await wrap(image.decode())
+    const orientationStyle = resolveImageOrientationStyle(
+      metaState?.exif,
+      options?.readIgnoreExifOrientation?.() ?? false,
+    )
+    if (orientationStyle) {
+      image.style.imageOrientation = orientationStyle
+    }
     return image
   }, `${name}.fullImage`).extend(withAsyncData())
 

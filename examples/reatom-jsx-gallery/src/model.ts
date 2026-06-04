@@ -255,6 +255,10 @@ export const showImageNames = reatomBoolean(true, 'showImageNames').extend(
 export const showFileSizes = reatomBoolean(false, 'showFileSizes').extend(
   withLocalStorage('gallery.showFileSizes'),
 )
+export const ignoreExifOrientation = reatomBoolean(
+  false,
+  'ignoreExifOrientation',
+).extend(withLocalStorage('gallery.ignoreExifOrientation'))
 
 function createImageModel(imageSource: ImageFile): ImageModel {
   const imageModel = reatomImage(
@@ -262,6 +266,7 @@ function createImageModel(imageSource: ImageFile): ImageModel {
     `image#${imageSource.id}`,
     {
       filename: imageSource.name,
+      readIgnoreExifOrientation: () => ignoreExifOrientation(),
     },
   )
   const selected = reatomBoolean(false, `image#${imageSource.id}.selected`)

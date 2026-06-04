@@ -12,6 +12,12 @@ export const EXIF_POINTER_TAGS = new Set([0x8769, 0x8825, 0xa005])
 
 export const EXIF_THUMBNAIL_TAGS = new Set([0x0201, 0x0202])
 
+export const ORIENTATION_TAG = 0x0112
+export const USER_COMMENT_TAG = 0x9286
+
+export const LARGE_TAG_DISPLAY_COUNT = 2000
+export const DATA_TOO_LARGE_PLACEHOLDER = '<data too large to display>'
+
 export const EXIF_TAGS_WITH_CUSTOM_FORMAT = new Set([
   'Image Width',
   'Image Height',
@@ -48,6 +54,12 @@ const TIFF_TYPE_SIZES: Record<number, number> = {
   [TIFF_TYPE_FLOAT]: 4,
   [TIFF_TYPE_DOUBLE]: 8,
 }
+
+const ORIENTATION_TAG_NAME = 'Orientation'
+const USER_COMMENT_TAG_NAME = 'User Comment'
+
+const PNG_CHUNK_EXIF = 0x65584966
+const WEBP_CHUNK_EXIF = 0x45584946
 
 function tagName(tag: number, ifd: IfdContext): string {
   if (ifd === 'gps') {
@@ -112,17 +124,64 @@ function formatRational(
   return `${numerator}/${denominator}`
 }
 
+function decodeUserComment(
+  view: DataView,
+  valueOffset: number,
+  totalBytes: number,
+): string {
+  if (totalBytes < 8) return ''
+
+  const headerChars: string[] = []
+  for (let i = 0; i < 8; i++) {
+    const code = view.getUint8(valueOffset + i)
+    if (code === 0) break
+    headerChars.push(String.fromCharCode(code))
+  }
+  const header = headerChars.join('')
+  const textOffset = valueOffset + 8
+  const textBytes = totalBytes - 8
+  if (textBytes <= 0) return ''
+
+  const headerLower = header.toLowerCase()
+  if (headerLower.includes('unicode') || header.includes('UTF-16')) {
+    const chars: string[] = []
+    for (let i = 0; i + 1 < textBytes; i += 2) {
+      const code = view.getUint16(textOffset + i, false)
+      if (code === 0) break
+      chars.push(String.fromCharCode(code))
+    }
+    return chars.join('').trim()
+  }
+
+  if (headerLower.includes('jis')) {
+    return '<JIS encoded comment>'
+  }
+
+  const chars: string[] = []
+  for (let i = 0; i < textBytes; i++) {
+    const code = view.getUint8(textOffset + i)
+    if (code === 0) break
+    chars.push(String.fromCharCode(code))
+  }
+  return chars.join('').trim()
+}
+
 function readEntryValue(
   view: DataView,
   tiffBase: number,
   entryOffset: number,
   littleEndian: boolean,
+  tag: number,
 ): string {
   const type = readUint16(view, entryOffset + 2, littleEndian)
   const count = readUint32(view, entryOffset + 4, littleEndian)
   const valueField = entryOffset + 8
   const typeSize = TIFF_TYPE_SIZES[type]
   if (!typeSize) return ''
+
+  if (count >= LARGE_TAG_DISPLAY_COUNT) {
+    return DATA_TOO_LARGE_PLACEHOLDER
+  }
 
   const totalBytes = count * typeSize
   const valueOffset =
@@ -131,6 +190,10 @@ function readEntryValue(
       : tiffBase + readUint32(view, valueField, littleEndian)
 
   if (valueOffset + totalBytes > view.byteLength) return ''
+
+  if (tag === USER_COMMENT_TAG && type === TIFF_TYPE_UNDEFINED) {
+    return decodeUserComment(view, valueOffset, totalBytes)
+  }
 
   if (type === TIFF_TYPE_ASCII) {
     const chars: string[] = []
@@ -239,6 +302,16 @@ function readEntryValue(
   return ''
 }
 
+function shouldSkipTagWrite(
+  tag: number,
+  ifd: IfdContext,
+  into: Record<string, string>,
+): boolean {
+  if (tag !== ORIENTATION_TAG) return false
+  if (ifd === 'ifd0') return false
+  return ORIENTATION_TAG_NAME in into
+}
+
 function readIfd(
   view: DataView,
   tiffBase: number,
@@ -273,22 +346,36 @@ function readIfd(
     }
 
     if (EXIF_THUMBNAIL_TAGS.has(tag)) continue
+    if (shouldSkipTagWrite(tag, ifd, into)) continue
 
-    const name = tagName(tag, ifd)
-    const value = readEntryValue(view, tiffBase, entryOffset, littleEndian)
+    const name =
+      tag === USER_COMMENT_TAG ? USER_COMMENT_TAG_NAME : tagName(tag, ifd)
+    const value = readEntryValue(
+      view,
+      tiffBase,
+      entryOffset,
+      littleEndian,
+      tag,
+    )
     if (value !== '') into[name] = value
   }
 
   return { exifIfd, gpsIfd, interopIfd }
 }
 
-export function findApp1ExifTiffBase(view: DataView): number | null {
-  if (view.byteLength < 4 || view.getUint16(0) !== 0xffd8) return null
+type App1ExifCandidate = {
+  tiffBase: number
+  payloadSize: number
+}
 
+function collectJpegApp1ExifCandidates(view: DataView): App1ExifCandidate[] {
+  if (view.byteLength < 4 || view.getUint16(0) !== 0xffd8) return []
+
+  const candidates: App1ExifCandidate[] = []
   let offset = 2
 
   while (offset + 2 <= view.byteLength) {
-    if (view.getUint8(offset) !== 0xff) return null
+    if (view.getUint8(offset) !== 0xff) return candidates
 
     while (offset + 1 < view.byteLength && view.getUint8(offset + 1) === 0xff) {
       offset++
@@ -309,26 +396,112 @@ export function findApp1ExifTiffBase(view: DataView): number | null {
 
     if (offset + 4 > view.byteLength) break
     const segmentLength = view.getUint16(offset + 2)
-    if (segmentLength < 2) return null
+    if (segmentLength < 2) return candidates
 
     if (marker === 0xe1) {
       const dataStart = offset + 4
-      if (dataStart + 6 > view.byteLength) return null
-      const isExif =
-        view.getUint8(dataStart) === 0x45 &&
-        view.getUint8(dataStart + 1) === 0x78 &&
-        view.getUint8(dataStart + 2) === 0x69 &&
-        view.getUint8(dataStart + 3) === 0x66 &&
-        view.getUint8(dataStart + 4) === 0x00 &&
-        view.getUint8(dataStart + 5) === 0x00
+      if (dataStart + 6 <= view.byteLength) {
+        const isExif =
+          view.getUint8(dataStart) === 0x45 &&
+          view.getUint8(dataStart + 1) === 0x78 &&
+          view.getUint8(dataStart + 2) === 0x69 &&
+          view.getUint8(dataStart + 3) === 0x66 &&
+          view.getUint8(dataStart + 4) === 0x00 &&
+          view.getUint8(dataStart + 5) === 0x00
 
-      if (isExif) return dataStart + 6
+        if (isExif) {
+          candidates.push({
+            tiffBase: dataStart + 6,
+            payloadSize: segmentLength - 2 - 6,
+          })
+        }
+      }
     }
 
     offset += 2 + segmentLength
   }
 
+  return candidates
+}
+
+export function findPngExifTiffBase(view: DataView): number | null {
+  if (view.byteLength < 24) return null
+  if (view.getUint32(0) !== 0x89504e47) return null
+
+  let offset = 8
+  while (offset + 12 <= view.byteLength) {
+    const chunkLength = view.getUint32(offset)
+    const chunkType = view.getUint32(offset + 4)
+    const dataStart = offset + 8
+
+    if (chunkType === PNG_CHUNK_EXIF && dataStart + 8 <= view.byteLength) {
+      return dataStart
+    }
+
+    offset += 12 + chunkLength
+  }
+
   return null
+}
+
+export function findWebpExifTiffBase(view: DataView): number | null {
+  if (view.byteLength < 16) return null
+  if (view.getUint32(0) !== 0x52494646) return null
+  if (view.getUint32(8) !== 0x57454250) return null
+
+  let offset = 12
+  const riffEnd = 8 + view.getUint32(4)
+
+  while (offset + 8 <= view.byteLength && offset < riffEnd) {
+    const chunkLength = view.getUint32(offset, true)
+    const chunkType = view.getUint32(offset + 4)
+    const dataStart = offset + 8
+
+    if (chunkType === WEBP_CHUNK_EXIF && dataStart + 8 <= view.byteLength) {
+      return dataStart
+    }
+
+    const paddedLength = chunkLength + (chunkLength % 2)
+    offset += 8 + paddedLength
+  }
+
+  return null
+}
+
+export function collectExifTiffBases(view: DataView): number[] {
+  const bases: number[] = []
+
+  for (const candidate of collectJpegApp1ExifCandidates(view)) {
+    bases.push(candidate.tiffBase)
+  }
+
+  const pngBase = findPngExifTiffBase(view)
+  if (pngBase !== null) bases.push(pngBase)
+
+  const webpBase = findWebpExifTiffBase(view)
+  if (webpBase !== null) bases.push(webpBase)
+
+  if (view.byteLength >= 8) {
+    const byteOrder = view.getUint16(0)
+    if (byteOrder === 0x4949 || byteOrder === 0x4d4d) {
+      if (readUint16(view, 2, byteOrder === 0x4949) === 42) {
+        bases.push(0)
+      }
+    }
+  }
+
+  return bases
+}
+
+export function findApp1ExifTiffBase(view: DataView): number | null {
+  const candidates = collectJpegApp1ExifCandidates(view)
+  if (candidates.length === 0) return null
+
+  let best = candidates[0]
+  for (const candidate of candidates) {
+    if (candidate.payloadSize > best.payloadSize) best = candidate
+  }
+  return best.tiffBase
 }
 
 export function parseExifTagsAtTiffBase(
@@ -364,7 +537,21 @@ export function parseExifTagsAtTiffBase(
 }
 
 export function parseExifTags(view: DataView): Record<string, string> | null {
-  const tiffBase = findApp1ExifTiffBase(view)
-  if (tiffBase === null) return null
-  return parseExifTagsAtTiffBase(view, tiffBase)
+  const bases = collectExifTiffBases(view)
+  if (bases.length === 0) return null
+
+  let bestTags: Record<string, string> | null = null
+  let bestTagCount = 0
+
+  for (const tiffBase of bases) {
+    const tags = parseExifTagsAtTiffBase(view, tiffBase)
+    if (!tags) continue
+    const tagCount = Object.keys(tags).length
+    if (tagCount > bestTagCount) {
+      bestTags = tags
+      bestTagCount = tagCount
+    }
+  }
+
+  return bestTags
 }

@@ -1,14 +1,23 @@
 import { extractExifThumbnail } from './formats/jpeg'
 import { extractRawPreview } from './formats/raw'
 import { parseImageMeta } from './header'
+import {
+  applyOrientationToImageBitmap,
+  getOrientationFromExif,
+} from './orientation'
 import type { ImageMeta, ThumbnailOptions, ThumbnailResult } from './types'
 import { DEFAULT_MAX_SIZE, DEFAULT_QUALITY } from './types'
+
+export type ThumbnailOrientationOptions = {
+  ignoreExifOrientation?: boolean
+}
 
 async function bitmapToThumbnailResult(
   bitmap: ImageBitmap,
   maxSize: number,
   quality: number,
   source: ThumbnailResult['source'],
+  orientationBaked = false,
 ): Promise<ThumbnailResult> {
   const { width: origWidth, height: origHeight } = bitmap
 
@@ -30,7 +39,7 @@ async function bitmapToThumbnailResult(
   const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality })
   const url = URL.createObjectURL(blob)
 
-  return { url, width, height, source }
+  return { url, width, height, source, orientationBaked }
 }
 
 async function generateThumbnailFromBlob(
@@ -61,12 +70,14 @@ async function tryEmbeddedJpegPreviewPath(
   previewBlob: Blob | null,
   maxSize: number,
   quality: number,
+  meta: ImageMeta | null,
+  ignoreExifOrientation: boolean,
   acceptSmallPreview = false,
 ): Promise<ThumbnailResult | null> {
   if (!previewBlob) return null
 
   try {
-    const bitmap = await createImageBitmap(previewBlob)
+    let bitmap = await createImageBitmap(previewBlob)
     const { width, height } = bitmap
 
     const enoughSize =
@@ -77,7 +88,25 @@ async function tryEmbeddedJpegPreviewPath(
       return null
     }
 
-    return bitmapToThumbnailResult(bitmap, maxSize, quality, 'exif')
+    let orientationBaked = false
+    if (!ignoreExifOrientation) {
+      const orientation = getOrientationFromExif(meta?.exif)
+      const needsTransform =
+        orientation.state === 'valid' &&
+        (orientation.degrees !== 0 || orientation.mirrored)
+      if (needsTransform) {
+        bitmap = await applyOrientationToImageBitmap(bitmap, orientation)
+        orientationBaked = true
+      }
+    }
+
+    return bitmapToThumbnailResult(
+      bitmap,
+      maxSize,
+      quality,
+      'exif',
+      orientationBaked,
+    )
   } catch {
     return null
   }
@@ -87,9 +116,18 @@ async function tryExifPath(
   source: Blob,
   maxSize: number,
   quality: number,
+  meta: ImageMeta | null,
+  ignoreExifOrientation: boolean,
 ): Promise<ThumbnailResult | null> {
-  const exifBlob = await extractExifThumbnail(source)
-  return tryEmbeddedJpegPreviewPath(exifBlob, maxSize, quality)
+  const exifBlob =
+    meta?.embeddedPreview?.blob ?? (await extractExifThumbnail(source))
+  return tryEmbeddedJpegPreviewPath(
+    exifBlob,
+    maxSize,
+    quality,
+    meta,
+    ignoreExifOrientation,
+  )
 }
 
 async function tryRawPreviewPath(
@@ -97,11 +135,20 @@ async function tryRawPreviewPath(
   maxSize: number,
   quality: number,
   meta: ImageMeta | null,
+  ignoreExifOrientation: boolean,
 ): Promise<ThumbnailResult | null> {
   const rawFormat =
     meta?.format === 'dng' || meta?.format === 'arw' ? meta.format : undefined
-  const rawPreviewBlob = await extractRawPreview(source, rawFormat)
-  return tryEmbeddedJpegPreviewPath(rawPreviewBlob, maxSize, quality, true)
+  const rawPreviewBlob =
+    meta?.embeddedPreview?.blob ?? (await extractRawPreview(source, rawFormat))
+  return tryEmbeddedJpegPreviewPath(
+    rawPreviewBlob,
+    maxSize,
+    quality,
+    meta,
+    ignoreExifOrientation,
+    true,
+  )
 }
 
 function isRawFormat(meta: ImageMeta | null): boolean {
@@ -119,13 +166,20 @@ export async function loadThumbnail(
 export async function loadThumbnailWithMeta(
   source: Blob,
   meta: ImageMeta | null,
-  options?: ThumbnailOptions,
+  options?: ThumbnailOptions & ThumbnailOrientationOptions,
 ): Promise<ThumbnailResult> {
   const maxSize = options?.maxSize ?? DEFAULT_MAX_SIZE
   const quality = options?.quality ?? DEFAULT_QUALITY
+  const ignoreExifOrientation = options?.ignoreExifOrientation ?? false
 
   if (meta?.format === 'jpeg') {
-    const exifResult = await tryExifPath(source, maxSize, quality)
+    const exifResult = await tryExifPath(
+      source,
+      maxSize,
+      quality,
+      meta,
+      ignoreExifOrientation,
+    )
     if (exifResult) return exifResult
   }
 
@@ -135,6 +189,7 @@ export async function loadThumbnailWithMeta(
       maxSize,
       quality,
       meta,
+      ignoreExifOrientation,
     )
     if (rawPreviewResult) return rawPreviewResult
     throw new Error('No embedded preview found in RAW file')

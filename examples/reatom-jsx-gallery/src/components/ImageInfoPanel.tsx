@@ -1,6 +1,11 @@
 import { computed, effect, reatomBoolean } from '@reatom/core'
 
 import { EXIF_TAGS_WITH_CUSTOM_FORMAT } from '../image-engine/formats/exif'
+import {
+  buildCameraHudRows,
+  formatExifDisplayValue,
+  isPinnedExifDetailTag,
+} from '../image-engine/exifDisplay'
 import type { ImageModel } from '../model'
 import {
   imagesList,
@@ -107,13 +112,26 @@ export const ImageInfoPanel = () => {
     return 'Selected image'
   }
 
+  const cameraHudRows = (): ReturnType<typeof buildCameraHudRows> => {
+    const exif = inspectedImage()?.meta.data()?.exif
+    return buildCameraHudRows(exif)
+  }
+
   const exifRowsWithoutCustomFormat = (): [string, string][] => {
     const exif = inspectedImage()?.meta.data()?.exif
     if (!exif) return []
 
     return Object.entries(exif)
-      .filter(([name]) => !EXIF_TAGS_WITH_CUSTOM_FORMAT.has(name))
+      .filter(
+        ([name]) =>
+          !EXIF_TAGS_WITH_CUSTOM_FORMAT.has(name) &&
+          !isPinnedExifDetailTag(name),
+      )
       .sort(([a], [b]) => a.localeCompare(b))
+      .map(([name, raw]) => [
+        name,
+        formatExifDisplayValue(name, raw, exif),
+      ])
   }
 
   const InfoRow = ({
@@ -126,6 +144,39 @@ export const ImageInfoPanel = () => {
     <div css={infoRowCss}>
       <span css={labelCss}>{label}</span>
       <span css={valueCss}>{value}</span>
+    </div>
+  )
+
+  const CameraRow = ({
+    label,
+    value,
+    href,
+  }: {
+    label: string
+    value: string
+    href?: string
+  }) => (
+    <div css={infoRowCss}>
+      <span css={labelCss}>{label}</span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          css={`
+            ${valueCss}
+            color: var(--accent);
+            text-decoration: none;
+            &:hover {
+              text-decoration: underline;
+            }
+          `}
+        >
+          {value}
+        </a>
+      ) : (
+        <span css={valueCss}>{value}</span>
+      )}
     </div>
   )
 
@@ -258,6 +309,24 @@ export const ImageInfoPanel = () => {
               return meta.hasExifThumbnail ? 'Yes' : 'No'
             }}
           />
+
+          <div
+            style:display={() => (cameraHudRows().length > 0 ? 'block' : 'none')}
+          >
+            <div css="font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 16px 0 8px; text-transform: uppercase; letter-spacing: 0.04em;">
+              Camera
+            </div>
+            {() =>
+              cameraHudRows().map((row) => (
+                <CameraRow
+                  label={row.label}
+                  value={row.value}
+                  href={row.href}
+                />
+              ))
+            }
+          </div>
+
           <div
             style:display={() =>
               exifRowsWithoutCustomFormat().length > 0 ? 'block' : 'none'

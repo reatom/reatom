@@ -1,10 +1,15 @@
 import { parseBmpMeta } from './formats/bmp'
-import { parseExifTags } from './formats/exif'
+import {
+  findPngExifTiffBase,
+  findWebpExifTiffBase,
+  parseExifTags,
+  parseExifTagsAtTiffBase,
+} from './formats/exif'
 import { parseGifMeta } from './formats/gif'
-import { checkExifThumbnailPresence, parseJpegMeta } from './formats/jpeg'
+import { extractExifThumbnailFromView, parseJpegMeta } from './formats/jpeg'
 import { parsePngMeta } from './formats/png'
 import {
-  extractRawPreview,
+  extractRawPreviewData,
   isTiffLike,
   parseRawMeta,
   type RawFormat,
@@ -12,7 +17,7 @@ import {
 import { parseSvgMeta } from './formats/svg'
 import { parseWebpMeta } from './formats/webp'
 import type { ImageFormat, ImageMeta } from './types'
-import { EXIF_READ_BYTES, HEADER_READ_BYTES } from './types'
+import { HEADER_READ_BYTES, resolveExifReadBytes } from './types'
 
 export type ParseImageMetaOptions = {
   filename?: string
@@ -63,19 +68,6 @@ function isSvgBlob(blob: Blob): boolean {
   return blob.type.toLowerCase() === 'image/svg+xml'
 }
 
-async function readDecodedImageSize(
-  source: Blob,
-): Promise<{ width: number; height: number } | null> {
-  try {
-    const bitmap = await createImageBitmap(source)
-    const size = { width: bitmap.width, height: bitmap.height }
-    bitmap.close()
-    return size
-  } catch {
-    return null
-  }
-}
-
 export async function parseImageMeta(
   source: Blob,
   options?: ParseImageMetaOptions,
@@ -87,7 +79,8 @@ export async function parseImageMeta(
   const format = detectFormatFromMagic(view)
 
   if (format === 'jpeg') {
-    const exifSlice = source.slice(0, EXIF_READ_BYTES)
+    const exifReadBytes = resolveExifReadBytes(source.size)
+    const exifSlice = source.slice(0, exifReadBytes)
     const exifBuffer = await exifSlice.arrayBuffer()
     const exifView = new DataView(exifBuffer)
 
@@ -95,25 +88,43 @@ export async function parseImageMeta(
     if (!meta) return null
 
     const exif = parseExifTags(exifView) ?? undefined
+    const embeddedPreviewBlob = extractExifThumbnailFromView(exifView)
+    const embeddedPreview = embeddedPreviewBlob
+      ? { blob: embeddedPreviewBlob }
+      : undefined
 
     return {
       width: meta.width,
       height: meta.height,
       format: 'jpeg',
       isProgressive: meta.isProgressive,
-      hasExifThumbnail: checkExifThumbnailPresence(exifView),
+      hasExifThumbnail: embeddedPreview !== undefined,
       exif,
+      embeddedPreview,
     }
   }
 
   if (format === 'png') {
-    const meta = parsePngMeta(view)
+    const exifReadBytes = resolveExifReadBytes(source.size)
+    const exifSlice = source.slice(0, exifReadBytes)
+    const exifBuffer = await exifSlice.arrayBuffer()
+    const exifView = new DataView(exifBuffer)
+
+    const meta = parsePngMeta(exifView)
     if (!meta) return null
+
+    const pngExifBase = findPngExifTiffBase(exifView)
+    const exif =
+      pngExifBase === null
+        ? undefined
+        : (parseExifTagsAtTiffBase(exifView, pngExifBase) ?? undefined)
+
     return {
       ...meta,
       format: 'png',
       isProgressive: false,
       hasExifThumbnail: false,
+      exif,
     }
   }
 
@@ -129,13 +140,26 @@ export async function parseImageMeta(
   }
 
   if (format === 'webp') {
-    const meta = parseWebpMeta(view)
+    const exifReadBytes = resolveExifReadBytes(source.size)
+    const exifSlice = source.slice(0, exifReadBytes)
+    const exifBuffer = await exifSlice.arrayBuffer()
+    const exifView = new DataView(exifBuffer)
+
+    const meta = parseWebpMeta(exifView)
     if (!meta) return null
+
+    const webpExifBase = findWebpExifTiffBase(exifView)
+    const exif =
+      webpExifBase === null
+        ? undefined
+        : (parseExifTagsAtTiffBase(exifView, webpExifBase) ?? undefined)
+
     return {
       ...meta,
       format: 'webp',
       isProgressive: false,
       hasExifThumbnail: false,
+      exif,
     }
   }
 
@@ -157,16 +181,22 @@ export async function parseImageMeta(
       source.size,
     )
     if (rawMeta) {
-      const preview = await extractRawPreview(source, rawMeta.format)
-      const previewSize = preview ? await readDecodedImageSize(preview) : null
+      const embeddedPreview = await extractRawPreviewData(source, rawMeta.format)
 
       return {
-        width: previewSize?.width ?? rawMeta.width,
-        height: previewSize?.height ?? rawMeta.height,
+        width: embeddedPreview?.width ?? rawMeta.width,
+        height: embeddedPreview?.height ?? rawMeta.height,
         format: rawMeta.format,
         isProgressive: false,
-        hasExifThumbnail: rawMeta.hasPreview,
+        hasExifThumbnail: rawMeta.hasPreview || embeddedPreview !== null,
         exif: rawMeta.exif,
+        embeddedPreview: embeddedPreview
+          ? {
+              blob: embeddedPreview.blob,
+              width: embeddedPreview.width,
+              height: embeddedPreview.height,
+            }
+          : undefined,
       }
     }
   }

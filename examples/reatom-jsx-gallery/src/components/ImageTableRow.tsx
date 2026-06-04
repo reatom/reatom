@@ -1,6 +1,9 @@
 import { focusableRowAttrs } from '../a11y'
+import { formatExifDisplayValue } from '../image-engine/exifDisplay'
+import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import type { ImageModel } from '../model'
 import {
+  ignoreExifOrientation,
   openLightbox,
   selectImage,
   tablePreviewHeight,
@@ -31,9 +34,21 @@ export const ImageTableRow = ({
   const isFavorite = () => image.favorite()
   const displayThumbnail = () => {
     const thumbnail = image.thumbnail.data()
-    return thumbnail ? (
-      <img src={thumbnail.url} alt={image.name} loading="lazy" />
-    ) : null
+    if (!thumbnail) return null
+
+    const orientationStyle = resolveImageOrientationStyle(
+      image.meta.data()?.exif,
+      ignoreExifOrientation(),
+      thumbnail.orientationBaked,
+    )
+    return (
+      <img
+        src={thumbnail.url}
+        alt={image.name}
+        loading="lazy"
+        style:image-orientation={orientationStyle}
+      />
+    )
   }
 
   const dimensions = () =>
@@ -158,7 +173,12 @@ export const ImageTableRow = ({
       </td>
       {exifColumns.map((columnName) => (
         <td css={tableCellCss}>
-          {() => image.meta.data()?.exif?.[columnName] ?? ''}
+          {() => {
+            const exif = image.meta.data()?.exif
+            if (!exif) return ''
+            const raw = exif[columnName] ?? ''
+            return formatExifDisplayValue(columnName, raw, exif)
+          }}
         </td>
       ))}
       <td css={tableCellCss}>

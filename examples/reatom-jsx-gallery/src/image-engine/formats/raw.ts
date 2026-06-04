@@ -1,6 +1,10 @@
 import type { ExifData } from '../types'
 import { EXIF_READ_BYTES } from '../types'
 import { parseExifTagsAtTiffBase } from './exif'
+import {
+  canScanRawPreviewInWorker,
+  scanRawPreviewRangesInWorker,
+} from './rawPreviewScanPool'
 
 const TIFF_TYPE_SHORT = 3
 const TIFF_TYPE_LONG = 4
@@ -81,7 +85,15 @@ type PreviewRange = {
 
 type DecodedPreviewCandidate = {
   blob: Blob
+  width: number
+  height: number
   area: number
+}
+
+export type RawPreviewData = {
+  blob: Blob
+  width: number
+  height: number
 }
 
 function readUint16(
@@ -648,9 +660,11 @@ async function readDecodableJpegCandidate(
 ): Promise<DecodedPreviewCandidate | null> {
   try {
     const bitmap = await createImageBitmap(blob)
-    const area = bitmap.width * bitmap.height
+    const width = bitmap.width
+    const height = bitmap.height
+    const area = width * height
     bitmap.close()
-    return { blob, area }
+    return { blob, width, height, area }
   } catch {
     return null
   }
@@ -673,13 +687,7 @@ function findJpegEndOffset(bytes: Uint8Array, start: number): number {
   return end
 }
 
-async function scanLargestJpegPreview(
-  blob: Blob,
-): Promise<DecodedPreviewCandidate | null> {
-  const scanSize = Math.min(blob.size, JPEG_SCAN_BYTES)
-  const scanBuffer = await blob.slice(0, scanSize).arrayBuffer()
-  const bytes = new Uint8Array(scanBuffer)
-
+function collectJpegPreviewSegments(bytes: Uint8Array): PreviewRange[] {
   const segments: PreviewRange[] = []
   for (let offset = 0; offset < bytes.length - 1; offset++) {
     if (
@@ -696,16 +704,48 @@ async function scanLargestJpegPreview(
     segments.push({ start: offset, length })
   }
 
-  segments.sort((left, right) => right.length - left.length)
+  return segments
+    .sort((left, right) => right.length - left.length)
+    .slice(0, MAX_HEURISTIC_SEGMENTS)
+}
+
+async function collectHeuristicJpegPreviewSegments(
+  blob: Blob,
+  scanSize: number,
+): Promise<{ segments: PreviewRange[]; buffer: ArrayBuffer }> {
+  const scanBuffer = await blob.slice(0, scanSize).arrayBuffer()
+
+  if (canScanRawPreviewInWorker()) {
+    try {
+      const segments = await scanRawPreviewRangesInWorker(scanBuffer)
+      return { segments, buffer: new ArrayBuffer(0) }
+    } catch {
+      const fallbackBuffer = await blob.slice(0, scanSize).arrayBuffer()
+      return {
+        segments: collectJpegPreviewSegments(new Uint8Array(fallbackBuffer)),
+        buffer: fallbackBuffer,
+      }
+    }
+  }
+
+  return {
+    segments: collectJpegPreviewSegments(new Uint8Array(scanBuffer)),
+    buffer: scanBuffer,
+  }
+}
+
+async function scanLargestJpegPreview(
+  blob: Blob,
+): Promise<DecodedPreviewCandidate | null> {
+  const scanSize = Math.min(blob.size, JPEG_SCAN_BYTES)
+  const { segments, buffer } = await collectHeuristicJpegPreviewSegments(
+    blob,
+    scanSize,
+  )
 
   let bestPreview: DecodedPreviewCandidate | null = null
-  for (const segment of segments.slice(0, MAX_HEURISTIC_SEGMENTS)) {
-    const segmentBlob =
-      segment.start + segment.length <= scanBuffer.byteLength
-        ? normalizePreviewBytes(
-            new Uint8Array(scanBuffer, segment.start, segment.length),
-          )
-        : await readPreviewBlob(blob, segment, scanBuffer)
+  for (const segment of segments) {
+    const segmentBlob = await readPreviewBlob(blob, segment, buffer)
 
     if (segmentBlob) {
       bestPreview = largerDecodedPreview(
@@ -798,10 +838,10 @@ export function parseRawMeta(
   }
 }
 
-export async function extractRawPreview(
+export async function extractRawPreviewData(
   blob: Blob,
   preferredFormat?: RawFormat,
-): Promise<Blob | null> {
+): Promise<RawPreviewData | null> {
   const headerReadBytes = Math.min(blob.size, EXIF_READ_BYTES)
   const slice = blob.slice(0, headerReadBytes)
   const buffer = await slice.arrayBuffer()
@@ -829,5 +869,18 @@ export async function extractRawPreview(
     }
   }
 
-  return bestPreview?.blob ?? null
+  if (!bestPreview) return null
+
+  return {
+    blob: bestPreview.blob,
+    width: bestPreview.width,
+    height: bestPreview.height,
+  }
+}
+
+export async function extractRawPreview(
+  blob: Blob,
+  preferredFormat?: RawFormat,
+): Promise<Blob | null> {
+  return (await extractRawPreviewData(blob, preferredFormat))?.blob ?? null
 }

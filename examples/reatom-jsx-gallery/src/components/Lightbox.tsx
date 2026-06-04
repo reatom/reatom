@@ -1,8 +1,10 @@
 import { atom, computed, effect, peek, sleep, wrap } from '@reatom/core'
 
 import { copyImageAsJpegToClipboard } from '../copyImage'
+import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import {
   closeLightbox,
+  ignoreExifOrientation,
   lightboxCounter,
   lightboxImage,
   lightboxOpen,
@@ -133,11 +135,26 @@ const LightboxContent = () => {
     if (fullImage) {
       fullImage.alt = model.source.name
       fullImage.draggable = false
+      const orientationStyle = resolveImageOrientationStyle(
+        model.meta.data()?.exif,
+        ignoreExifOrientation(),
+      )
+      if (orientationStyle) {
+        fullImage.style.imageOrientation = orientationStyle
+      } else {
+        fullImage.style.removeProperty('image-orientation')
+      }
       setLightboxImageElement(fullImage)
       return fullImage
     }
     const thumbnailUrl = model.thumbnail.data()?.url
     if (!thumbnailUrl) return null
+    const thumb = model.thumbnail.data()
+    const orientationStyle = resolveImageOrientationStyle(
+      model.meta.data()?.exif,
+      ignoreExifOrientation(),
+      thumb?.orientationBaked,
+    )
     return (
       <img
         src={thumbnailUrl}
@@ -145,6 +162,7 @@ const LightboxContent = () => {
         draggable={false}
         tabindex={-1}
         ref={setLightboxImageElement}
+        style:image-orientation={orientationStyle}
       />
     )
   }, 'lightbox.displayImage')
