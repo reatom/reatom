@@ -1,4 +1,4 @@
-import { atom, computed, reatomObservable } from '@reatom/core'
+import { atom, computed, context, reatomObservable } from '@reatom/core'
 
 import {
   gridColumns,
@@ -77,8 +77,8 @@ const imageGrid = atom<HTMLElement | null>(null, 'imageGrid').extend(
       width,
       itemSize,
       ref: (element: HTMLElement) => {
-        target.set(element)
-        return () => target.set(null)
+        context.start(() => target.set(element))
+        return () => context.start(() => target.set(null))
       },
     }
   },

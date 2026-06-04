@@ -86,7 +86,7 @@ export const WithLightboxImage: Story = {
     )
   },
   play: async () => {
-    await I.seeImageName(mockImages[0].name)
+    await I.seeImageName('Hiring plan.jpg')
   },
 }
 

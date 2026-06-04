@@ -55,6 +55,9 @@ const baseActor = {
 
   async click(locator: DefiniteLocator): Promise<void> {
     const el = await this.resolveLocator(locator)
+    el.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, button: 0 }),
+    )
     el.click()
   },
 
