@@ -8,9 +8,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
+    "pretest-storybook": "pnpm --filter @reatom/jsx run build",
     "test-storybook": "vitest --project=storybook",
     "test:unit": "vitest --project=unit",
+    "prestorybook": "pnpm --filter @reatom/jsx run build",
     "storybook": "storybook dev -p 6006 --no-open",
+    "prebuild-storybook": "pnpm --filter @reatom/jsx run build",
     "build-storybook": "storybook build"
   },
   "devDependencies": {

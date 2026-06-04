@@ -1,4 +1,4 @@
-import { dirname, resolve } from 'node:path'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import type { StorybookConfig } from '@storybook/html-vite'
@@ -19,6 +19,9 @@ const config: StorybookConfig = {
         jsxFactory: 'h',
         jsxFragment: 'hf',
         jsxInject: `import { h, hf } from "@reatom/jsx";`,
+      },
+      optimizeDeps: {
+        include: ['@testing-library/dom', 'storybook/test'],
       },
     })
   },

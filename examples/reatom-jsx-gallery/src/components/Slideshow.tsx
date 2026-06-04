@@ -1,4 +1,11 @@
-import { atom, effect, reatomMediaQuery, sleep, wrap } from '@reatom/core'
+import {
+  atom,
+  context,
+  effect,
+  reatomMediaQuery,
+  sleep,
+  wrap,
+} from '@reatom/core'
 
 import { navigateLightbox, slideshowInterval, slideshowPlaying } from '../model'
 import { PauseIcon, PlayIcon } from './Icons'
@@ -80,7 +87,9 @@ export const Slideshow = ({
       class={className}
       ref={() => {
         const pauseWhenHidden = () => {
-          if (document.hidden) slideshowPlaying.setFalse()
+          if (document.hidden) {
+            context.start(() => slideshowPlaying.setFalse())
+          }
         }
 
         document.addEventListener('visibilitychange', pauseWhenHidden)

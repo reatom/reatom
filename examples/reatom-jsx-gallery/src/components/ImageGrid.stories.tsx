@@ -8,7 +8,7 @@ import { ImageGrid } from './ImageGrid'
 
 const loc = {
   firstImageAppears: (canvas) =>
-    canvas.findByRole('img', { name: 'photo1.jpg' }),
+    canvas.findByRole('button', { name: 'Open photo1.jpg' }),
   noImagesTextAppears: (canvas) => canvas.findByText('No images found'),
 } satisfies Record<string, Locator>
 
