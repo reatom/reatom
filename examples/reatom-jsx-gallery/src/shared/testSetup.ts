@@ -55,8 +55,8 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
     total: tree.imageCount,
     current: tree.imageCount,
   })
-  const imagesListSync = imagesList.subscribe()
-  imagesListSync.unsubscribe()
+  const unsubscribeImagesListSync = imagesList.subscribe()
+  unsubscribeImagesListSync()
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)
@@ -80,8 +80,8 @@ export function loadEmptyState(): void {
     total: 0,
     current: 0,
   })
-  const imagesListSync = imagesList.subscribe()
-  imagesListSync.unsubscribe()
+  const unsubscribeImagesListSync = imagesList.subscribe()
+  unsubscribeImagesListSync()
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)
