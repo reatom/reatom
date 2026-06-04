@@ -1,4 +1,4 @@
-import { atom, computed } from '@reatom/core'
+import { computed } from '@reatom/core'
 
 import {
   filterSizeMax,
@@ -8,9 +8,7 @@ import {
   searchQuery,
 } from '../model'
 import { CloseIcon } from './Icons'
-
-const filterPanelOpen = atom(false, 'filterPanelOpen')
-export { filterPanelOpen }
+import { filterPanelOpen } from './panelState'
 
 const IMAGE_TYPE_OPTIONS = [
   { ext: 'jpg', label: 'JPG' },
@@ -20,17 +18,13 @@ const IMAGE_TYPE_OPTIONS = [
   { ext: 'svg', label: 'SVG' },
   { ext: 'avif', label: 'AVIF' },
   { ext: 'bmp', label: 'BMP' },
+  { ext: 'dng', label: 'DNG' },
+  { ext: 'arw', label: 'ARW' },
+  { ext: 'cr2', label: 'CR2' },
+  { ext: 'nef', label: 'NEF' },
+  { ext: 'orf', label: 'ORF' },
+  { ext: 'sr2', label: 'SR2' },
 ]
-
-export const activeFilterCount = computed(() => {
-  let count = 0
-  if (filterTypes().size > 0) count++
-  if (filterSizeMin() > 0) count++
-  if (filterSizeMax() < Infinity) count++
-  if (searchQuery() !== '') count++
-  if (!includeSubfolders()) count++
-  return count
-}, 'activeFilterCount')
 
 const toggleTypeFilter = (ext: string) => {
   filterTypes.set((prev) => {
@@ -52,35 +46,37 @@ const clearAllFilters = () => {
   includeSubfolders.setTrue()
 }
 
-const TypeCheckbox = ({ ext, label }: { ext: string; label: string }) => (
-  <label
-    css={`
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 0;
-      cursor: pointer;
-      font-size: 13px;
-      color: var(--text-primary);
-
-      &:hover {
-        color: var(--accent);
-      }
-    `}
-  >
-    <input
-      type="checkbox"
-      checked={() => filterTypes().has(ext)}
-      on:change={() => toggleTypeFilter(ext)}
+const TypeCheckbox = ({ ext, label }: { ext: string; label: string }) => {
+  return (
+    <label
       css={`
-        accent-color: var(--accent);
-        width: 16px;
-        height: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 0;
+        cursor: pointer;
+        font-size: 13px;
+        color: var(--text-primary);
+
+        &:hover {
+          color: var(--accent);
+        }
       `}
-    />
-    {label}
-  </label>
-)
+    >
+      <input
+        type="checkbox"
+        checked={() => filterTypes().has(ext)}
+        on:change={() => toggleTypeFilter(ext)}
+        css={`
+          accent-color: var(--accent);
+          width: 16px;
+          height: 16px;
+        `}
+      />
+      <span>{label}</span>
+    </label>
+  )
+}
 
 export const FilterPanel = () => {
   const handleMinSizeInput = (

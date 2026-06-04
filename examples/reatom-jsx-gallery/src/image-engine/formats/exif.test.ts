@@ -137,19 +137,21 @@ function buildTiffExifBuffer(
 }
 
 function wrapJpegApp1(tiffBuffer: ArrayBuffer): ArrayBuffer {
+  return wrapJpegApp1Segments([tiffBuffer])
+}
+
+function createApp1Segment(tiffBuffer: ArrayBuffer): Uint8Array {
   const tiffBytes = new Uint8Array(tiffBuffer)
   const payloadLength = 6 + tiffBytes.length
   const segmentLength = payloadLength + 2
-  const buffer = new ArrayBuffer(2 + 2 + segmentLength)
-  const view = new DataView(buffer)
+  const bytes = new Uint8Array(2 + segmentLength)
+  const view = new DataView(bytes.buffer)
 
-  view.setUint16(0, 0xffd8)
-  view.setUint8(2, 0xff)
-  view.setUint8(3, 0xe1)
-  view.setUint16(4, segmentLength)
+  view.setUint8(0, 0xff)
+  view.setUint8(1, 0xe1)
+  view.setUint16(2, segmentLength)
 
-  const payloadOffset = 6
-  const payload = new Uint8Array(buffer, payloadOffset)
+  const payload = new Uint8Array(bytes.buffer, 4)
   payload[0] = 0x45
   payload[1] = 0x78
   payload[2] = 0x69
@@ -158,7 +160,29 @@ function wrapJpegApp1(tiffBuffer: ArrayBuffer): ArrayBuffer {
   payload[5] = 0
   payload.set(tiffBytes, 6)
 
-  return buffer
+  return bytes
+}
+
+function wrapJpegApp1Segments(tiffBuffers: ArrayBuffer[]): ArrayBuffer {
+  const segments = tiffBuffers.map(createApp1Segment)
+  const length = 2 + segments.reduce((sum, segment) => sum + segment.length, 0)
+  const bytes = new Uint8Array(length)
+  bytes[0] = 0xff
+  bytes[1] = 0xd8
+
+  let offset = 2
+  for (const segment of segments) {
+    bytes.set(segment, offset)
+    offset += segment.length
+  }
+
+  return bytes.buffer
+}
+
+function withPadding(buffer: ArrayBuffer, byteLength: number): ArrayBuffer {
+  const bytes = new Uint8Array(byteLength)
+  bytes.set(new Uint8Array(buffer))
+  return bytes.buffer
 }
 
 describe('parseExifTagsAtTiffBase', () => {
@@ -216,6 +240,25 @@ describe('parseExifTags JPEG', () => {
     expect(findApp1ExifTiffBase(view)).toBe(6 + 6)
     const tags = parseExifTags(view)
     expect(tags?.Orientation).toBe('3')
+  })
+
+  test('uses largest APP1 TIFF payload when multiple EXIF segments exist', () => {
+    const smallerExifWithMoreTags = buildTiffExifBuffer([
+      { tag: ORIENTATION_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 3 },
+      { tag: 0x010f, type: TIFF_TYPE_ASCII, count: 5, value: 'Canon' },
+    ])
+    const largerExifWithFewerTags = withPadding(
+      buildTiffExifBuffer([
+        { tag: ORIENTATION_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 6 },
+      ]),
+      180,
+    )
+    const jpeg = wrapJpegApp1Segments([
+      smallerExifWithMoreTags,
+      largerExifWithFewerTags,
+    ])
+
+    expect(parseExifTags(new DataView(jpeg))?.Orientation).toBe('6')
   })
 })
 

@@ -199,7 +199,11 @@ export function extractExifThumbnailFromView(view: DataView): Blob | null {
 
   const thumbBytes = new Uint8Array(thumbnailLength)
   thumbBytes.set(
-    new Uint8Array(view.buffer, view.byteOffset + absThumbStart, thumbnailLength),
+    new Uint8Array(
+      view.buffer,
+      view.byteOffset + absThumbStart,
+      thumbnailLength,
+    ),
   )
   return new Blob([thumbBytes], { type: 'image/jpeg' })
 }

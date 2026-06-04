@@ -1,4 +1,4 @@
-import { computed, effect, reatomBoolean } from '@reatom/core'
+import { computed, effect } from '@reatom/core'
 
 import { EXIF_TAGS_WITH_CUSTOM_FORMAT } from '../image-engine/formats/exif'
 import {
@@ -14,7 +14,7 @@ import {
   selectedCount,
 } from '../model'
 import { CloseIcon } from './Icons'
-import { settingsPanelOpen } from './SettingsPanel'
+import { imageInfoPanelOpen, settingsPanelOpen } from './panelState'
 
 const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B'
@@ -85,8 +85,6 @@ const panelCloseButtonCss = `
     color: var(--accent-contrast);
   }
 `
-
-export const imageInfoPanelOpen = reatomBoolean(false, 'imageInfoPanel.open')
 
 export const ImageInfoPanel = () => {
   const resetOpenOnPreviewClose = effect(() => {

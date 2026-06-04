@@ -2,53 +2,33 @@
 
 A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reatom** and **JSX** (not React). Leverages the **File System Access API** to browse and display images from local folders with deep recursive parsing and extensive customization options.
 
-## ✨ Features
+## Features
 
-### Core Functionality
-- **Folder Selection** - Use File System Access API to open local folders
-- **Deep Recursive Parsing** - Traverse all subdirectories to find images
-- **Progressive Loading** - Real-time progress updates during folder scanning
+### Implemented
 
-### Grid Rendering Options
-- **Layout**: 1-12 columns, auto/adaptive, masonry, staggered (Pinterest-style)
-- **Sizing**: Multiple thumbnail sizes (100px - 400px), adaptive sizing
-- **Aspect Ratio**: Original, square, fit options
-- **Image Fit**: Contain, cover, fill, none
-- **Grid Gap**: None, small, medium, large, extra large
+- **Folder selection** with the File System Access API.
+- **Recursive parsing** with progress state and cancellation.
+- **Grid, list, and table views** with configurable columns, preview fit, gap, names, and file sizes.
+- **Sorting and filtering** by name, size, date modified, type, dimensions, file type, size range, filename, and subfolder scope.
+- **Lightbox** with zoom, pan, fullscreen, details panel, thumbnail strip, filtered navigation, folder scrubber, slideshow, download, and copy-as-JPEG.
+- **Navigation preferences** for folder-end wrapping, keeping zoom/pan while navigating, and showing the folder scrubber.
+- **Metadata-aware thumbnails** through JPEG EXIF previews, RAW embedded previews, generated browser thumbnails, EXIF orientation handling, and camera detail display.
+- **Selection and favorites** persisted per image id.
+- **Theme packs** with light, dark, and system modes.
 
-### View Modes
-- **Grid View** - Main customizable grid layout
-- **List View** - Detailed information view
-- **Lightbox** - Fullscreen image viewer with zoom/pan
-- **Slideshow** - Auto-advance with configurable interval
-- **Fullscreen** - Immersive viewing experience
+### Planned from the research docs
 
-### Sorting & Filtering
-- **Sort by**: Name, size, date modified, dimensions, random
-- **Order**: Ascending or descending
-- **Filter by**: File type, size range, date range, filename search
-- **Include/exclude**: Subfolders toggle, hidden files toggle
-
-### Advanced Features
-- **Keyboard Navigation** - Arrow keys, space, escape support
-- **Touch Gestures** - Swipe, pinch zoom on mobile
-- **Selection System** - Select multiple images
-- **Favorites** - Save images to collections
-- **Download** - Single image or multiple as ZIP
-- **Theme** - Light/dark mode with persistence
-- **Folder Tree** - Hierarchical folder navigation
-
-### PWA Features
-- **Installable** - Add to home screen
-- **Offline Support** - IndexedDB thumbnail caching
-- **Service Worker** - Asset caching for performance
-- **Responsive** - Mobile-first design
+- IndexedDB thumbnail cache with file size and mtime keys.
+- XMP/IPTC metadata read paths.
+- Histogram, channel inspection, and compare-at-zoom.
+- Batch ZIP export and guarded metadata/write workflows.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- **Node.js** 18+ 
+- **Node.js** 22+
+- **pnpm** 10+
 - **Modern Browser** (Chrome, Edge, Opera recommended for File System Access API)
   - Firefox and Safari have limited support (fallback available)
 
@@ -58,15 +38,15 @@ A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reat
 # Navigate to the project directory
 cd examples/reatom-jsx-gallery
 
-# Install dependencies
-npm install
+# Install dependencies from the workspace root
+pnpm install
 ```
 
 ### Development
 
 ```bash
 # Start the development server
-npm run dev
+pnpm dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
@@ -75,10 +55,10 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 
 ```bash
 # Build for production
-npm run build
+pnpm build
 
 # Preview the production build
-npm run preview
+pnpm preview
 ```
 
 ## 📖 Usage
@@ -93,23 +73,24 @@ npm run preview
 ### Navigating Images
 
 - **Grid View**: Click any image to open in lightbox
-- **Lightbox**: Use arrow keys or swipe to navigate
-- **Slideshow**: Click play button, adjust speed with presets (fast/normal/slow)
+- **Lightbox**: Use arrow keys, side buttons, thumbnail strip, or folder scrubber to navigate the filtered visible set.
+- **Slideshow**: Click play and choose 1s, 3s, 5s, 10s, or 30s intervals.
 
 ### Customizing the Grid
 
 Use the **Settings** panel (toolbar gear icon) to adjust:
-- **Columns**: 1, 2, 3, 4, 5, 6, 8, 12, or auto
-- **Layout**: Standard, masonry, or staggered
-- **Size**: Thumbnail size slider
+
+- **Columns**: 0-12, where 0 enables auto columns.
 - **Gap**: Spacing between images
 - **Image Fit**: How images fit in their containers
+- **Lightbox**: Wrap navigation, keep zoom while navigating, and folder scrubber visibility.
 
 ### Sorting & Filtering
 
 Use the toolbar controls to:
-- **Sort**: Click sort buttons to change order
-- **Filter**: Use type dropdown, size/date range pickers, search box
+
+- **Sort**: Click sort controls to change field and order
+- **Filter**: Use type chips, size range, subfolder scope, and search box
 - **Reset**: Clear all filters with one click
 
 ### Keyboard Shortcuts
@@ -117,7 +98,7 @@ Use the toolbar controls to:
 - `←` / `→` - Previous/next image (in lightbox)
 - `Escape` - Close lightbox or exit slideshow
 - `Space` - Play/pause slideshow
-- `F` - Toggle fullscreen
+- `F` - Toggle favorites for selected grid images
 - `T` - Toggle light/dark theme
 
 ## 🛠️ Tech Stack
@@ -127,89 +108,55 @@ Use the toolbar controls to:
 - **Build Tool**: Vite - Fast development and optimized builds
 - **TypeScript**: Full type safety
 - **File System Access API**: Local folder access
-- **IndexedDB**: Thumbnail and metadata caching
-- **PWA**: Installable web app with offline support
+- **IndexedDB**: Directory handle persistence
 
 ## 📁 Project Structure
 
-```
-reatom-jsx-gallery/
-├── src/
-│   ├── model.ts           # Reatom atoms, computed, actions
-│   ├── filesystem.ts      # File System Access API integration
-│   ├── App.tsx            # Main app component
-│   ├── components/        # UI components
-│   │   ├── ImageGrid.tsx
-│   │   ├── GridImage.tsx
-│   │   ├── Lightbox.tsx
-│   │   ├── Toolbar.tsx
-│   │   └── ...
-│   ├── cache.ts           # IndexedDB caching
-│   ├── setup.ts           # Reatom initialization
-│   └── index.tsx          # Entry point
-├── public/                # Static assets, PWA manifest
-├── package.json
-├── tsconfig.json
-├── vite.config.js
-└── README.md
+```mermaid
+flowchart TB
+  App[src/App.tsx] --> Model[src/model.ts]
+  App --> Components[src/components]
+  Components --> Lightbox[src/components/Lightbox.tsx]
+  Components --> Grid[src/components/ImageGrid.tsx]
+  Model --> Filesystem[src/filesystem.ts]
+  Model --> ImageModel[src/reatomImage.ts]
+  ImageModel --> Engine[src/image-engine]
+  App --> Setup[src/setup.ts]
 ```
 
 ## 🎨 Customization
 
-### Theme Colors
-
-Edit CSS variables in `src/App.tsx`:
-
-```tsx
-// Light mode
-root.style.setProperty('--background', '#f5f5f5')
-root.style.setProperty('--primary', '#667eea')
-
-// Dark mode
-root.style.setProperty('--background', '#1a1a1a')
-root.style.setProperty('--primary', '#667eea')
-```
-
-### Default Settings
-
-Modify default values in `src/model.ts`:
-
-```typescript
-export const gridSettings = atom<GridSettings>({
-  columns: 4,              // Default columns
-  gap: 'medium',           // Default gap
-  size: 250,               // Default thumbnail size
-  // ...
-})
-```
+Theme packs and defaults live in `src/theme.tsx` and persisted UI atoms live in `src/model.ts`.
 
 ## 🔧 Browser Support
 
 ### Full Support
+
 - **Chrome** 86+ (recommended)
 - **Edge** 86+ (recommended)
 - **Opera** 72+
 
-### Limited Support (Fallback Mode)
-- **Firefox**: Uses `<input type="file" webkitdirectory>` fallback
-- **Safari**: Uses `<input type="file" webkitdirectory>` fallback
-- **Mobile**: Limited support, File System Access API not available
+### Limited Support
+
+- **Firefox and Safari**: File System Access API support is limited.
+- **Mobile**: Directory picking and persistent handles vary by browser.
 
 ## 📝 Notes
 
 ### File System Access API
+
 - Requires HTTPS or localhost
 - Permissions are granted per-folder and may be revoked by the user
 - Browser may prompt for permission on each page reload
 - Some file systems may not support recursive access
 
-### Performance
-- Uses virtual scrolling for large image collections (10,000+ images)
-- Thumbnails are generated on-demand and cached in IndexedDB
-- Memory-conscious: off-screen images are unloaded
-- Debounced search and filtering for responsive UI
+### Research references
+
+- `docs/nomacs-porting-playbook.md` tracks metadata, thumbnail, performance, and test priorities.
+- `docs/oculante-porting-playbook.md` tracks scrubber, keep-view, cache, histogram, and compare-mode ideas.
 
 ### Privacy
+
 - All image processing happens locally in your browser
 - No data is uploaded to any server
 - File handles and permissions are managed by the browser

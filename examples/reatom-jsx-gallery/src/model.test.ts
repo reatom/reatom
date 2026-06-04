@@ -10,7 +10,12 @@ import {
   filterTypes,
   imagesList,
   includeSubfolders,
+  keepLightboxView,
   lightboxImage,
+  lightboxOpen,
+  lightboxPanX,
+  lightboxPanY,
+  lightboxZoom,
   navigateLightbox,
   openFolder,
   openLightbox,
@@ -20,7 +25,10 @@ import {
   selectImage,
   sortField,
   sortOrder,
+  slideshowPlaying,
+  syncImagesList,
   visibleIndexMap,
+  wrapFolderNavigation,
 } from './model'
 import { loadGalleryState } from './shared/testSetup'
 
@@ -33,9 +41,15 @@ test('imagesList sorts by name ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('name')
     sortOrder.set('asc')
+    syncImagesList()
     const images = imagesList.array()
-    const names = images.map((i) => i.name)
-    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)))
+    const names = images.map((i) => i.source.name)
+    expect(names).toEqual(
+      mockFolderTree.images
+        .concat(mockFolderTree.children.flatMap((folder) => folder.images))
+        .map((i) => i.name)
+        .sort((a, b) => a.localeCompare(b)),
+    )
   }))
 
 test('imagesList sorts by name descending', () =>
@@ -43,9 +57,15 @@ test('imagesList sorts by name descending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('name')
     sortOrder.set('desc')
+    syncImagesList()
     const images = imagesList.array()
-    const names = images.map((i) => i.name)
-    expect(names).toEqual([...names].sort((a, b) => b.localeCompare(a)))
+    const names = images.map((i) => i.source.name)
+    expect(names).toEqual(
+      mockFolderTree.images
+        .concat(mockFolderTree.children.flatMap((folder) => folder.images))
+        .map((i) => i.name)
+        .sort((a, b) => b.localeCompare(a)),
+    )
   }))
 
 test('imagesList sorts by size ascending', () =>
@@ -53,9 +73,10 @@ test('imagesList sorts by size ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('size')
     sortOrder.set('asc')
+    syncImagesList()
     const images = imagesList.array()
-    const sizes = images.map((i) => i.size)
-    expect(sizes).toEqual([...sizes].sort((a, b) => a - b))
+    const sizes = images.map((i) => i.source.size)
+    expect(sizes).toEqual([1024, 2048, 4096, 5120, 8192, 15360])
   }))
 
 test('imagesList sorts by size descending', () =>
@@ -63,9 +84,10 @@ test('imagesList sorts by size descending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('size')
     sortOrder.set('desc')
+    syncImagesList()
     const images = imagesList.array()
-    const sizes = images.map((i) => i.size)
-    expect(sizes).toEqual([...sizes].sort((a, b) => b - a))
+    const sizes = images.map((i) => i.source.size)
+    expect(sizes).toEqual([15360, 8192, 5120, 4096, 2048, 1024])
   }))
 
 test('imagesList sorts by date ascending', () =>
@@ -73,9 +95,13 @@ test('imagesList sorts by date ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('date')
     sortOrder.set('asc')
+    syncImagesList()
     const images = imagesList.array()
-    const dates = images.map((i) => i.lastModified)
-    expect(dates).toEqual([...dates].sort((a, b) => a - b))
+    const dates = images.map((i) => i.source.lastModified)
+    expect(dates).toEqual([
+      1700000000000, 1700001000000, 1700002000000, 1700003000000, 1700004000000,
+      1700005000000,
+    ])
   }))
 
 test('imagesList sorts by type', () =>
@@ -83,9 +109,17 @@ test('imagesList sorts by type', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('type')
     sortOrder.set('asc')
+    syncImagesList()
     const images = imagesList.array()
-    const types = images.map((i) => i.type)
-    expect(types).toEqual([...types].sort())
+    const types = images.map((i) => i.source.type)
+    expect(types).toEqual([
+      'image/gif',
+      'image/jpeg',
+      'image/jpeg',
+      'image/png',
+      'image/png',
+      'image/webp',
+    ])
   }))
 
 test('imagesList sorts by dimensions', () =>
@@ -93,6 +127,7 @@ test('imagesList sorts by dimensions', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('dimensions')
     sortOrder.set('asc')
+    syncImagesList()
     const images = imagesList.array()
     const areas = images.map((i) => i.width() * i.height())
     expect(areas).toEqual([...areas].sort((a, b) => a - b))
@@ -103,7 +138,9 @@ test('visibleIndexMap filters by type', () =>
     loadGalleryState({ tree: mockFolderTree })
     filterTypes.set(new Set(['jpg']))
     const map = visibleIndexMap()
-    expect([...map.keys()].every((i) => i.name.endsWith('.jpg'))).toBe(true)
+    expect([...map.keys()].every((i) => i.source.name.endsWith('.jpg'))).toBe(
+      true,
+    )
     expect(map.size).toBeLessThan(mockFolderTree.imageCount)
   }))
 
@@ -113,7 +150,7 @@ test('visibleIndexMap filters by search query', () =>
     searchQuery.set('Quarterly')
     const map = visibleIndexMap()
     expect(map.size).toBe(1)
-    expect([...map.keys()][0]?.name).toBe('Quarterly report.png')
+    expect([...map.keys()][0]?.source.name).toBe('Quarterly report.png')
   }))
 
 test('visibleIndexMap filters by size range', () =>
@@ -123,7 +160,9 @@ test('visibleIndexMap filters by size range', () =>
     filterSizeMax.set(10000)
     const map = visibleIndexMap()
     expect(
-      [...map.keys()].every((i) => i.size >= 5000 && i.size <= 10000),
+      [...map.keys()].every(
+        (i) => i.source.size >= 5000 && i.source.size <= 10000,
+      ),
     ).toBe(true)
   }))
 
@@ -176,12 +215,21 @@ test('openLightbox sets image and opens', () =>
     expect(lightboxImage()).toBe(target)
   }))
 
-test('closeLightbox resets zoom', () =>
+test('closeLightbox resets preview state', () =>
   context.start(() => {
     loadGalleryState({ tree: mockFolderTree })
     const visible = [...visibleIndexMap().keys()]
     openLightbox(visible[0]!)
+    lightboxZoom.set(4)
+    lightboxPanX.set(16)
+    lightboxPanY.set(-12)
+    slideshowPlaying.setTrue()
     closeLightbox()
+    expect(lightboxOpen()).toBe(false)
+    expect(slideshowPlaying()).toBe(false)
+    expect(lightboxZoom()).toBe(1)
+    expect(lightboxPanX()).toBe(0)
+    expect(lightboxPanY()).toBe(0)
   }))
 
 test('navigateLightbox wraps around', () =>
@@ -193,6 +241,43 @@ test('navigateLightbox wraps around', () =>
     expect(lightboxImage()).toBe(visible[visible.length - 1])
     navigateLightbox(1)
     expect(lightboxImage()).toBe(visible[0])
+  }))
+
+test('navigateLightbox stops at folder ends when wrap is disabled', () =>
+  context.start(() => {
+    loadGalleryState({ tree: mockFolderTree })
+    wrapFolderNavigation.setFalse()
+    const visible = [...visibleIndexMap().keys()]
+    openLightbox(visible[0]!)
+    navigateLightbox(-1)
+    expect(lightboxImage()).toBe(visible[0])
+  }))
+
+test('navigateLightbox skips filtered images', () =>
+  context.start(() => {
+    loadGalleryState({ tree: mockFolderTree })
+    searchQuery.set('photo')
+    const visible = [...visibleIndexMap().keys()]
+    openLightbox(visible[0]!)
+    navigateLightbox(1)
+    expect(lightboxImage()).toBe(visible[1])
+    expect(lightboxImage()?.source.name).toBe('photo2.png')
+  }))
+
+test('navigateLightbox keeps zoom and pan when keep view is enabled', () =>
+  context.start(() => {
+    loadGalleryState({ tree: mockFolderTree })
+    keepLightboxView.setTrue()
+    const visible = [...visibleIndexMap().keys()]
+    openLightbox(visible[0]!)
+    lightboxZoom.set(3)
+    lightboxPanX.set(24)
+    lightboxPanY.set(-8)
+    navigateLightbox(1)
+    expect(lightboxImage()).toBe(visible[1])
+    expect(lightboxZoom()).toBe(3)
+    expect(lightboxPanX()).toBe(24)
+    expect(lightboxPanY()).toBe(-8)
   }))
 
 test('favorite.toggle adds and removes', () =>

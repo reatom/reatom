@@ -1,4 +1,4 @@
-import type { ExifData } from '../types'
+import type { ExifData, RawImageFormat } from '../types'
 import { EXIF_READ_BYTES } from '../types'
 import { parseExifTagsAtTiffBase } from './exif'
 import {
@@ -6,12 +6,14 @@ import {
   scanRawPreviewRangesInWorker,
 } from './rawPreviewScanPool'
 
+const TIFF_TYPE_BYTE = 1
 const TIFF_TYPE_SHORT = 3
 const TIFF_TYPE_LONG = 4
 const TIFF_TYPE_RATIONAL = 5
 const TIFF_TYPE_ASCII = 2
 
 const TIFF_TYPE_SIZES: Record<number, number> = {
+  [TIFF_TYPE_BYTE]: 1,
   [TIFF_TYPE_SHORT]: 2,
   [TIFF_TYPE_LONG]: 4,
   [TIFF_TYPE_RATIONAL]: 8,
@@ -54,7 +56,7 @@ const MAX_HEURISTIC_SEGMENTS = 64
 const JPEG_SOI_BYTE_0 = 0xff
 const JPEG_SOI_BYTE_1 = 0xd8
 
-export type RawFormat = 'dng' | 'arw'
+export type RawFormat = RawImageFormat
 
 export type RawMeta = {
   width: number
@@ -207,6 +209,12 @@ function readEntryNumber(
     return readUint32(view, offset, littleEndian)
   }
 
+  if (entry.type === TIFF_TYPE_BYTE && entry.count > index) {
+    const offset = entry.valueOffset + index
+    if (offset + 1 > view.byteLength) return null
+    return view.getUint8(offset)
+  }
+
   if (entry.type === TIFF_TYPE_RATIONAL && entry.count > index) {
     const offset = entry.valueOffset + index * 8
     if (offset + 8 > view.byteLength) return null
@@ -349,10 +357,8 @@ function classifyRawFormat(
   preferredFormat?: RawFormat,
 ): RawFormat | null {
   if (hasDngVersionTag(ifd0Entries)) return 'dng'
-  if (preferredFormat === 'dng') return 'dng'
-
-  if (preferredFormat === 'arw') return 'arw'
   if (isSonyMake(ifd0Entries, view)) return 'arw'
+  if (preferredFormat) return preferredFormat
 
   return null
 }
@@ -862,7 +868,7 @@ export async function extractRawPreviewData(
     }
   }
 
-  if (preferredFormat === 'dng' || preferredFormat === 'arw') {
+  if (preferredFormat !== undefined) {
     const scannedPreview = await scanLargestJpegPreview(blob)
     if (scannedPreview) {
       bestPreview = largerDecodedPreview(bestPreview, scannedPreview)

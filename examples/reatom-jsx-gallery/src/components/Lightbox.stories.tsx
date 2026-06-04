@@ -9,13 +9,17 @@ import { Lightbox } from './Lightbox'
 
 const loc = {
   lightboxCounterAppears: (canvas) => canvas.findByText(/1 \/ \d+/),
-  closeButtonAppears: (canvas) => canvas.findByTitle('Close'),
+  closeButtonAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Close preview' }),
+  scrubberAppears: (canvas) =>
+    canvas.findByRole('slider', { name: 'Folder position' }),
 } satisfies Record<string, Locator>
 
 const I = createMyself((I) => ({
   seeLightboxOpen: async () => {
     await I.see(loc.lightboxCounterAppears)
     await I.see(loc.closeButtonAppears)
+    await I.see(loc.scrubberAppears)
   },
 }))
 

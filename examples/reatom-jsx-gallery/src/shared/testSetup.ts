@@ -1,14 +1,21 @@
-import { filterPanelOpen } from '../components/FilterPanel'
-import { settingsPanelOpen } from '../components/SettingsPanel'
+import { filterPanelOpen, settingsPanelOpen } from '../components/panelState'
 import {
   clearSelection,
   currentFolder,
   flatImages,
   folderTree,
+  keepLightboxView,
   lightboxImage,
   lightboxOpen,
+  lightboxPanX,
+  lightboxPanY,
+  lightboxZoom,
   parsingProgress,
+  showLightboxScrubber,
+  slideshowPlaying,
+  syncImagesList,
   viewMode,
+  wrapFolderNavigation,
 } from '../model'
 import type { FolderNode, ImageFile } from '../types'
 
@@ -48,9 +55,17 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
     total: tree.imageCount,
     current: tree.imageCount,
   })
+  syncImagesList()
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)
+  lightboxZoom.set(1)
+  lightboxPanX.set(0)
+  lightboxPanY.set(0)
+  slideshowPlaying.setFalse()
+  wrapFolderNavigation.setTrue()
+  keepLightboxView.setFalse()
+  showLightboxScrubber.setTrue()
   viewMode.setGrid()
   filterPanelOpen.set(false)
   settingsPanelOpen.set(false)
@@ -64,9 +79,17 @@ export function loadEmptyState(): void {
     total: 0,
     current: 0,
   })
+  syncImagesList()
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)
+  lightboxZoom.set(1)
+  lightboxPanX.set(0)
+  lightboxPanY.set(0)
+  slideshowPlaying.setFalse()
+  wrapFolderNavigation.setTrue()
+  keepLightboxView.setFalse()
+  showLightboxScrubber.setTrue()
   viewMode.setGrid()
   filterPanelOpen.set(false)
   settingsPanelOpen.set(false)

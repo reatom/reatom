@@ -350,13 +350,7 @@ function readIfd(
 
     const name =
       tag === USER_COMMENT_TAG ? USER_COMMENT_TAG_NAME : tagName(tag, ifd)
-    const value = readEntryValue(
-      view,
-      tiffBase,
-      entryOffset,
-      littleEndian,
-      tag,
-    )
+    const value = readEntryValue(view, tiffBase, entryOffset, littleEndian, tag)
     if (value !== '') into[name] = value
   }
 
@@ -537,6 +531,11 @@ export function parseExifTagsAtTiffBase(
 }
 
 export function parseExifTags(view: DataView): Record<string, string> | null {
+  const app1ExifTiffBase = findApp1ExifTiffBase(view)
+  if (app1ExifTiffBase !== null) {
+    return parseExifTagsAtTiffBase(view, app1ExifTiffBase)
+  }
+
   const bases = collectExifTiffBases(view)
   if (bases.length === 0) return null
 

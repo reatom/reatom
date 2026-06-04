@@ -13,7 +13,6 @@ import {
   visibleIndexMap,
 } from '../model'
 import type { ViewMode } from '../types'
-import { activeFilterCount, filterPanelOpen } from './FilterPanel'
 import {
   FilterIcon,
   GalleryMarkIcon,
@@ -25,7 +24,11 @@ import {
   SunIcon,
   TableIcon,
 } from './Icons'
-import { settingsPanelOpen } from './SettingsPanel'
+import {
+  activeFilterCount,
+  filterPanelOpen,
+  settingsPanelOpen,
+} from './panelState'
 
 const ToolbarButton = ({
   label,

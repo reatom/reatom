@@ -1,12 +1,37 @@
 import type { FolderNode, ImageFile } from '../types'
 
+const mockSvgColors = [
+  '#d94f45',
+  '#4f7fa8',
+  '#8b5cf6',
+  '#16a34a',
+  '#f59e0b',
+  '#db2777',
+] as const
+
+const createMockSvgText = (name: string): string => {
+  const colorIndex =
+    [...name].reduce((sum, char) => sum + char.charCodeAt(0), 0) %
+    mockSvgColors.length
+  const label = name.slice(0, 1).toUpperCase()
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">
+    <rect width="64" height="64" rx="8" fill="${mockSvgColors[colorIndex]}"/>
+    <circle cx="32" cy="32" r="20" fill="#fffaf2"/>
+    <text x="32" y="39" font-family="Arial, sans-serif" font-size="22" font-weight="700" text-anchor="middle" fill="${mockSvgColors[colorIndex]}">${label}</text>
+  </svg>`
+}
+
 function createMockFileHandle(name: string): FileSystemFileHandle {
   return {
     kind: 'file',
     name,
     getFile: () =>
       Promise.resolve(
-        new File([], name, { type: 'image/png', lastModified: Date.now() }),
+        new File([createMockSvgText(name)], name, {
+          type: 'image/svg+xml',
+          lastModified: Date.now(),
+        }),
       ),
     isSameEntry: () => Promise.resolve(false),
   } as FileSystemFileHandle

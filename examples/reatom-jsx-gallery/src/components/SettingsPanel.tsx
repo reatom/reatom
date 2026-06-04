@@ -5,17 +5,18 @@ import {
   gridGap,
   ignoreExifOrientation,
   imageFit,
+  keepLightboxView,
   showFileSizes,
   showImageNames,
+  showLightboxScrubber,
   themeMode,
   themePack,
+  wrapFolderNavigation,
 } from '../model'
 import { THEME_PACKS } from '../theme'
 import type { GridGap, ImageFit, ThemeMode, ThemePack } from '../types'
 import { CloseIcon } from './Icons'
-
-const settingsPanelOpen = atom(false, 'settingsPanelOpen')
-export { settingsPanelOpen }
+import { settingsPanelOpen } from './panelState'
 
 const GAP_OPTIONS: GridGap[] = ['none', 'small', 'medium', 'large', 'xl']
 const FIT_OPTIONS: ImageFit[] = ['contain', 'cover', 'fill', 'none']
@@ -450,6 +451,23 @@ export const SettingsPanel = () => {
         label="Ignore EXIF Orientation"
         checked={() => ignoreExifOrientation()}
         onToggle={ignoreExifOrientation.toggle}
+      />
+
+      <SectionTitle text="Lightbox Navigation" />
+      <ToggleSwitch
+        label="Wrap at Folder Ends"
+        checked={() => wrapFolderNavigation()}
+        onToggle={wrapFolderNavigation.toggle}
+      />
+      <ToggleSwitch
+        label="Keep Zoom While Navigating"
+        checked={() => keepLightboxView()}
+        onToggle={keepLightboxView.toggle}
+      />
+      <ToggleSwitch
+        label="Show Folder Scrubber"
+        checked={() => showLightboxScrubber()}
+        onToggle={showLightboxScrubber.toggle}
       />
 
       <SectionTitle text="Theme" />

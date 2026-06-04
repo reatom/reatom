@@ -42,13 +42,18 @@ const NOT_SET_ORIENTATION: ParsedOrientation = {
   cssImageOrientation: 'from-image',
 }
 
-export function parseOrientationTagValue(raw: string | undefined): ParsedOrientation {
+export function parseOrientationTagValue(
+  raw: string | undefined,
+): ParsedOrientation {
   if (raw === undefined || raw.trim() === '') return NOT_SET_ORIENTATION
 
   const firstValue = raw.split(',')[0]?.trim() ?? ''
   const orientation = Number.parseInt(firstValue, 10)
   if (!Number.isFinite(orientation) || orientation < 1 || orientation > 8) {
-    return { ...INVALID_ORIENTATION, value: Number.isFinite(orientation) ? orientation : 0 }
+    return {
+      ...INVALID_ORIENTATION,
+      value: Number.isFinite(orientation) ? orientation : 0,
+    }
   }
 
   const degrees = orientationDegrees(orientation)
@@ -126,8 +131,7 @@ export function composeOrientation(
   if (delta === 270) delta = -90
   if (delta === -180) delta = 180
 
-  const normalized =
-    current >= 1 && current <= 8 ? current : 1
+  const normalized = current >= 1 && current <= 8 ? current : 1
 
   if (delta === 0) return normalized
 
@@ -169,7 +173,8 @@ export async function applyOrientationToImageBitmap(
 
   const width = bitmap.width
   const height = bitmap.height
-  const swapDimensions = orientation.degrees === 90 || orientation.degrees === 270
+  const swapDimensions =
+    orientation.degrees === 90 || orientation.degrees === 270
   const canvasWidth = swapDimensions ? height : width
   const canvasHeight = swapDimensions ? width : height
 

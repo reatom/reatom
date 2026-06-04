@@ -11,7 +11,8 @@ const waitForUpdate = () => new Promise<void>((r) => setTimeout(r, 50))
 const loc = {
   lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
   maybeLightboxCounter: (canvas) => canvas.queryByText(/\d+ \/ \d+/),
-  closeButtonAppears: (canvas) => canvas.findByTitle('Close'),
+  closeButtonAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Close preview' }),
   imageCountAppears: (canvas) => canvas.findByText(/\d+ images/),
 } satisfies Record<string, Locator>
 

@@ -10,13 +10,13 @@ Companion to [nomacs-dependency-stack.md](./nomacs-dependency-stack.md) and [nom
 
 ## Licensing
 
-| Component | License | Notes |
-|-----------|---------|-------|
-| Oculante | MIT | App + most deps |
-| `image`, `kamadak-exif`, `quickraw`, `fast_image_resize`, `turbojpeg`, etc. | Mostly MIT / Apache-2.0 | Check per-crate on crates.io |
-| `libheif-rs` | Feature `heif` | libheif native (LGPL) when enabled |
-| `jpeg2k` / OpenJPEG | Feature `j2k` | Native codec |
-| Gallery `image-engine` | MIT (monorepo) | No npm image deps; zero third-party parsers |
+| Component                                                                   | License                 | Notes                                       |
+| --------------------------------------------------------------------------- | ----------------------- | ------------------------------------------- |
+| Oculante                                                                    | MIT                     | App + most deps                             |
+| `image`, `kamadak-exif`, `quickraw`, `fast_image_resize`, `turbojpeg`, etc. | Mostly MIT / Apache-2.0 | Check per-crate on crates.io                |
+| `libheif-rs`                                                                | Feature `heif`          | libheif native (LGPL) when enabled          |
+| `jpeg2k` / OpenJPEG                                                         | Feature `j2k`           | Native codec                                |
+| Gallery `image-engine`                                                      | MIT (monorepo)          | No npm image deps; zero third-party parsers |
 
 Gallery can stay MIT-only if it avoids GPL/LGPL WASM (same guidance as nomacs doc).
 
@@ -24,20 +24,20 @@ Gallery can stay MIT-only if it avoids GPL/LGPL WASM (same guidance as nomacs do
 
 ## Cargo feature flags
 
-| Feature | Enables | Default | Oculante use |
-|---------|---------|---------|--------------|
-| `default` | `turbo`, `avif_native`, `update`, `notan/shaderc`, `j2k`, `jxlcms` | yes | Release desktop build |
-| `turbo` | `turbojpeg` | yes | Fast JPEG decode + lossless rotate/crop |
-| `avif_native` | `avif-decode` | yes | AVIF when `dav1d` off |
-| `dav1d` | `libavif-image` | no | Alternative AVIF path |
-| `heif` | `libheif-rs` | no | HEIC/HEIF decode + security limits |
-| `j2k` | `jpeg2k` | yes | JPEG 2000 (`.jp2`) |
-| `jxlcms` | `jxl-oxide/lcms2` | yes | JXL color management |
-| `hdr` | (empty) | no | Marker feature |
-| `file_open` | `rfd` | no | Native file dialogs |
-| `update` | `self_update` | yes | In-app updates |
-| `lang_support` | — | no | i18n hook |
-| `notan_glsl-to-spirv` | notan SPIR-V | no | Shader pipeline variant |
+| Feature               | Enables                                                            | Default | Oculante use                            |
+| --------------------- | ------------------------------------------------------------------ | ------- | --------------------------------------- |
+| `default`             | `turbo`, `avif_native`, `update`, `notan/shaderc`, `j2k`, `jxlcms` | yes     | Release desktop build                   |
+| `turbo`               | `turbojpeg`                                                        | yes     | Fast JPEG decode + lossless rotate/crop |
+| `avif_native`         | `avif-decode`                                                      | yes     | AVIF when `dav1d` off                   |
+| `dav1d`               | `libavif-image`                                                    | no      | Alternative AVIF path                   |
+| `heif`                | `libheif-rs`                                                       | no      | HEIC/HEIF decode + security limits      |
+| `j2k`                 | `jpeg2k`                                                           | yes     | JPEG 2000 (`.jp2`)                      |
+| `jxlcms`              | `jxl-oxide/lcms2`                                                  | yes     | JXL color management                    |
+| `hdr`                 | (empty)                                                            | no      | Marker feature                          |
+| `file_open`           | `rfd`                                                              | no      | Native file dialogs                     |
+| `update`              | `self_update`                                                      | yes     | In-app updates                          |
+| `lang_support`        | —                                                                  | no      | i18n hook                               |
+| `notan_glsl-to-spirv` | notan SPIR-V                                                       | no      | Shader pipeline variant                 |
 
 Ubuntu CI also builds with **no default features** to keep a minimal path working.
 
@@ -148,7 +148,7 @@ Entry: `open_image()` in `image_loader.rs` — extension + `file-format` sniffin
 
 **Oculante:** `load_tiff()` before RAW fallback; parallel tonemap via `rayon`.
 
-**Gallery:** TIFF logic inside `raw.ts` for DNG/ARW metadata and previews, not general multipage TIFF viewing.
+**Gallery:** TIFF logic inside `raw.ts` for DNG/ARW/CR2/NEF/ORF/SR2 metadata and previews, not general multipage TIFF viewing.
 
 ---
 
@@ -218,46 +218,46 @@ Entry: `open_image()` in `image_loader.rs` — extension + `file-format` sniffin
 
 ### Edit / analysis stack
 
-| Crate | Oculante | Gallery |
-|-------|----------|-----------|
-| `imageproc` | Warp, geometric transforms | — |
-| `libblur` | Stack blur | — |
-| `lutgen` | Identity / LUT correction | — |
-| `quantette` | Palette extraction UI | — |
-| `palette` | Color math in edits | — |
-| `evalexpr` | Formula pixel ops | — |
-| `nalgebra` | Zoom/pan math | — |
+| Crate       | Oculante                   | Gallery |
+| ----------- | -------------------------- | ------- |
+| `imageproc` | Warp, geometric transforms | —       |
+| `libblur`   | Stack blur                 | —       |
+| `lutgen`    | Identity / LUT correction  | —       |
+| `quantette` | Palette extraction UI      | —       |
+| `palette`   | Color math in edits        | —       |
+| `evalexpr`  | Formula pixel ops          | —       |
+| `nalgebra`  | Zoom/pan math              | —       |
 
 ---
 
 ### UI / platform (out of gallery scope)
 
 - **notan** (wgpu backend, egui): window, textures, input.
-- **egui_***, **rfd**, **arboard**, **trash**, **self_update**, **clap**, **font-kit**, etc.
+- **egui\_\***, **rfd**, **arboard**, **trash**, **self_update**, **clap**, **font-kit**, etc.
 
 ---
 
 ## Full stack comparison table
 
-| Layer | Oculante | reatom-jsx-gallery `image-engine` | Gap severity |
-|-------|----------|-------------------------------------|--------------|
-| License | MIT | MIT (in-tree) | — |
-| UI | notan + egui | Reatom JSX + DOM | N/A |
-| Common raster | `image` + `image_extras` | Browser + header parsers | Low for JPEG/PNG/WebP |
-| RAW preview | `quickraw` thumb | `raw.ts` IFD + JPEG scan | Low (same strategy) |
-| RAW develop | Commented quickraw 16-bit | None | N/A (intentional) |
-| EXIF read | kamadak-exif + img-parts bytes | `exif.ts` | Medium (maker notes, BMFF) |
-| EXIF write | img-parts `fix_exif` | None | High if save feature |
-| Lossless JPEG | turbojpeg | None | High |
-| Resize quality | fast_image_resize convolution | Canvas / bitmap resize | Medium |
-| HEIF/AVIF/JXL | Native crates / features | Browser-only | High on unsupported browsers |
-| TIFF multipage | `tiff` crate | RAW-only TIFF subset | Medium |
-| EXR/PSD/KTX2/DDS | Yes | No | High |
-| DICOM | Yes | No | High |
-| SVG | Rasterized resvg | DOM SVG | Low |
-| Thumbnails | Disk PNG cache, 4 threads | Blob URLs, EXIF thumb path | Medium (no disk LRU) |
-| Editing | Full stack | View/metadata only | High |
-| Animated GIF/WebP | Full frame player | Basic GIF meta | Medium |
+| Layer             | Oculante                       | reatom-jsx-gallery `image-engine`                       | Gap severity                 |
+| ----------------- | ------------------------------ | ------------------------------------------------------- | ---------------------------- |
+| License           | MIT                            | MIT (in-tree)                                           | —                            |
+| UI                | notan + egui                   | Reatom JSX + DOM                                        | N/A                          |
+| Common raster     | `image` + `image_extras`       | Browser + header parsers                                | Low for JPEG/PNG/WebP        |
+| RAW preview       | `quickraw` thumb               | `raw.ts` IFD + 64 MB JPEG scan (all listed RAW formats) | Low (same strategy)          |
+| RAW develop       | Commented quickraw 16-bit      | None                                                    | N/A (intentional)            |
+| EXIF read         | kamadak-exif + img-parts bytes | `exif.ts`                                               | Medium (maker notes, BMFF)   |
+| EXIF write        | img-parts `fix_exif`           | None                                                    | High if save feature         |
+| Lossless JPEG     | turbojpeg                      | None                                                    | High                         |
+| Resize quality    | fast_image_resize convolution  | Canvas / bitmap resize                                  | Medium                       |
+| HEIF/AVIF/JXL     | Native crates / features       | Browser-only                                            | High on unsupported browsers |
+| TIFF multipage    | `tiff` crate                   | RAW-only TIFF subset                                    | Medium                       |
+| EXR/PSD/KTX2/DDS  | Yes                            | No                                                      | High                         |
+| DICOM             | Yes                            | No                                                      | High                         |
+| SVG               | Rasterized resvg               | DOM SVG                                                 | Low                          |
+| Thumbnails        | Disk PNG cache, 4 threads      | Blob URLs, EXIF thumb path                              | Medium (no disk LRU)         |
+| Editing           | Full stack                     | View/metadata only                                      | High                         |
+| Animated GIF/WebP | Full frame player              | Basic GIF meta                                          | Medium                       |
 
 ---
 
@@ -297,31 +297,31 @@ Entry: `open_image()` in `image_loader.rs` — extension + `file-format` sniffin
 
 ## Quick reference: `src/` grep map
 
-| Crate / alias | Primary files |
-|---------------|---------------|
-| `image` | `image_loader.rs`, `texture_wrapper.rs`, `thumbnails.rs`, `utils.rs`, `paint.rs` |
-| `quickraw` | `image_loader.rs` (`load_raw`) |
-| `exif` (kamadak) | `utils.rs` (`with_exif`) |
-| `img-parts` | `utils.rs` (`DynImage`, `fix_exif`) |
-| `fast_image_resize` | `image_editing.rs` |
-| `turbojpeg` | `image_loader.rs`, `image_editing.rs`, `edit_ui.rs`, `main.rs` |
-| `tiff` | `image_loader.rs` (`load_tiff`) |
-| `resvg` / `usvg` | `image_loader.rs` (`svg`) |
-| `quantette` | `ui/palette_ui.rs` |
-| `notan` | `main.rs`, `ui/*`, `texture_wrapper.rs` |
+| Crate / alias       | Primary files                                                                    |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `image`             | `image_loader.rs`, `texture_wrapper.rs`, `thumbnails.rs`, `utils.rs`, `paint.rs` |
+| `quickraw`          | `image_loader.rs` (`load_raw`)                                                   |
+| `exif` (kamadak)    | `utils.rs` (`with_exif`)                                                         |
+| `img-parts`         | `utils.rs` (`DynImage`, `fix_exif`)                                              |
+| `fast_image_resize` | `image_editing.rs`                                                               |
+| `turbojpeg`         | `image_loader.rs`, `image_editing.rs`, `edit_ui.rs`, `main.rs`                   |
+| `tiff`              | `image_loader.rs` (`load_tiff`)                                                  |
+| `resvg` / `usvg`    | `image_loader.rs` (`svg`)                                                        |
+| `quantette`         | `ui/palette_ui.rs`                                                               |
+| `notan`             | `main.rs`, `ui/*`, `texture_wrapper.rs`                                          |
 
 ---
 
 ## Relation to nomacs
 
-| Concern | nomacs | Oculante | Gallery |
-|---------|--------|----------|---------|
-| RAW develop | LibRaw + OpenCV | quickraw thumb only | IFD embed only |
-| EXIF engine | Exiv2 (GPL) | kamadak-exif (MIT) | TypeScript (MIT) |
-| Modern codecs | Qt + KImageFormats | Rust crates per format | Web codecs |
+| Concern       | nomacs             | Oculante               | Gallery          |
+| ------------- | ------------------ | ---------------------- | ---------------- |
+| RAW develop   | LibRaw + OpenCV    | quickraw thumb only    | IFD embed only   |
+| EXIF engine   | Exiv2 (GPL)        | kamadak-exif (MIT)     | TypeScript (MIT) |
+| Modern codecs | Qt + KImageFormats | Rust crates per format | Web codecs       |
 
 Oculante sits between nomacs (heavy C++/Qt) and the gallery (browser-limited): **wide format support in Rust**, but **RAW preview without LibRaw**.
 
 ---
 
-*Generated for reatom-jsx-gallery porting research. Oculante repo: `/Users/artalar/code/oculante`.*
+_Generated for reatom-jsx-gallery porting research. Oculante repo: `/Users/artalar/code/oculante`._

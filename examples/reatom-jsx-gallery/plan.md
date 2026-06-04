@@ -9,19 +9,22 @@ Create a modern, feature-rich Progressive Web App (PWA) image gallery using Reat
 ## Questions Resolved
 
 ### Q: Should the app support image editing/manipulation?
+
 A: No, focus on viewing and browsing features only. Image manipulation is out of scope.
 
 ### Q: Should the app cache images for offline access?
+
 A: No, images are local and accessed directly. PWA features for offline network access (no caching of images).
 
 ### Q: Should the app support exporting/browsing multiple folders simultaneously?
+
 A: Start with single folder support, design for extensibility to add multi-folder later.
 
 ## Edge Cases & Considerations
 
 - [ ] **Large folder structures** → Store each folder in reatomLinkedList for efficient rendering, for filtering compute style `display` property for each image based on the filter
 - [ ] **Memory constraints** → Use reatomLinkedList for each folder to manage large lists efficiently, but no virtual scrolling - rely on native browser rendering
-- [ ] **Non-image files** → Filter based on MIME types (image/*) and file extensions (.jpg, .png, .gif, .webp, .svg, .avif, .bmp)
+- [ ] **Non-image files** → Filter based on MIME types (image/\*) and file extensions (.jpg, .png, .gif, .webp, .svg, .avif, .bmp)
 - [ ] **File System Access API browser support** → Provide graceful alert for unsupported browsers
 - [ ] **Permission revocation** → Handle permission errors gracefully, re-prompt for access when needed
 - [ ] **Folder permission limits** → Some browsers restrict deep recursive access, implement chunked traversal with permission prompts

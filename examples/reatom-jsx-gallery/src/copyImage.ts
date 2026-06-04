@@ -1,5 +1,9 @@
 import { extractRawPreview } from './image-engine/formats/raw'
-import type { ImageMeta } from './image-engine/types'
+import {
+  isRawImageFormat,
+  type ImageMeta,
+  type RawImageFormat,
+} from './image-engine/types'
 import type { ImageModel } from './model'
 
 const JPEG_MIME = 'image/jpeg'
@@ -13,9 +17,9 @@ function clipboardSupportsMime(type: string): boolean {
 }
 
 function isRawImageMeta(meta: ImageMeta | null): meta is ImageMeta & {
-  format: 'dng' | 'arw'
+  format: RawImageFormat
 } {
-  return meta?.format === 'dng' || meta?.format === 'arw'
+  return isRawImageFormat(meta?.format)
 }
 
 function isJpegImage(
