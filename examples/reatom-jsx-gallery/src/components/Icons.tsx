@@ -375,17 +375,6 @@ export const CopyJpegIcon = () => (
     <svg:rect x="5" y="5" width="11" height="11" rx="1.5" />
     <svg:rect x="8" y="8" width="11" height="11" rx="1.5" />
     <svg:path d="M8.5 14.5l2-2 1.5 1.5 2.5-2.5 1.5 1.5" />
-    <svg:text
-      x="17.5"
-      y="19"
-      fill="currentColor"
-      stroke="none"
-      font-size="4.5"
-      font-family="ui-sans-serif, system-ui, sans-serif"
-      font-weight="700"
-    >
-      JPG
-    </svg:text>
   </svg:svg>
 )
 

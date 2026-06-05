@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
+import { parseImageMeta } from '../header'
 import {
   checkRawPreviewPresence,
   extractRawPreview,
@@ -227,6 +228,60 @@ describe('raw format parser', () => {
       height: 3648,
       format: 'cr2',
     })
+  })
+
+  test('parseImageMeta keeps sensor dimensions when embedded preview is smaller', async () => {
+    stubImageBitmapDecode()
+
+    const tagCount = 5
+    const previewOffset = 8 + 2 + tagCount * 12 + 4
+    const sensorWidth = 4912
+    const sensorHeight = 3264
+
+    const buffer = buildTiffBuffer(
+      [
+        {
+          tag: IMAGE_WIDTH_TAG,
+          type: TIFF_TYPE_SHORT,
+          count: 1,
+          value: sensorWidth,
+        },
+        {
+          tag: IMAGE_LENGTH_TAG,
+          type: TIFF_TYPE_SHORT,
+          count: 1,
+          value: sensorHeight,
+        },
+        { tag: MAKE_TAG, type: TIFF_TYPE_ASCII, count: 5, value: 'SONY' },
+        {
+          tag: JPEG_INTERCHANGE_FORMAT_TAG,
+          type: TIFF_TYPE_LONG,
+          count: 1,
+          value: previewOffset,
+        },
+        {
+          tag: JPEG_INTERCHANGE_FORMAT_LENGTH_TAG,
+          type: TIFF_TYPE_LONG,
+          count: 1,
+          value: minimalJpegPreview.length,
+        },
+      ],
+      minimalJpegPreview,
+    )
+
+    const meta = await parseImageMeta(new Blob([buffer]), {
+      filename: 'DSC04833.ARW',
+    })
+
+    expect(meta).toMatchObject({
+      width: sensorWidth,
+      height: sensorHeight,
+      format: 'arw',
+      hasExifThumbnail: true,
+    })
+    expect(meta?.embeddedPreview?.blob).toBeInstanceOf(Blob)
+    expect(meta?.embeddedPreview?.width).toBe(1)
+    expect(meta?.embeddedPreview?.height).toBe(1)
   })
 
   test('parseRawMeta returns null for generic TIFF without RAW markers', () => {

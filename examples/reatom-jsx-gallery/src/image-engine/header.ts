@@ -277,8 +277,8 @@ export async function parseImageMeta(
 
       return withDetectedFormatWarning(
         {
-          width: embeddedPreview?.width ?? rawMeta.width,
-          height: embeddedPreview?.height ?? rawMeta.height,
+          width: rawMeta.width,
+          height: rawMeta.height,
           format: rawMeta.format,
           isProgressive: false,
           hasExifThumbnail: rawMeta.hasPreview || embeddedPreview !== null,

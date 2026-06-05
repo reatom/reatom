@@ -3,6 +3,7 @@ import { atom } from '@reatom/core'
 import {
   gridColumns,
   gridGap,
+  developRawFullSize,
   ignoreExifOrientation,
   imageFit,
   keepLightboxView,
@@ -451,6 +452,11 @@ export const SettingsPanel = () => {
         label="Ignore EXIF Orientation"
         checked={() => ignoreExifOrientation()}
         onToggle={ignoreExifOrientation.toggle}
+      />
+      <ToggleSwitch
+        label="Develop RAW at Full Size"
+        checked={() => developRawFullSize()}
+        onToggle={developRawFullSize.toggle}
       />
 
       <SectionTitle text="Lightbox Navigation" />

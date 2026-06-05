@@ -29,6 +29,11 @@ import {
   parseDirectoryRecursive,
   pickDirectory,
 } from './filesystem'
+import {
+  isRawDisplayPipeline,
+  resolveLightboxPreloadUrl,
+  warmRawDevelopPipeline,
+} from './image-engine/rawDisplay'
 import type { ReatomImage } from './reatomImage'
 import { reatomImage } from './reatomImage'
 import {
@@ -277,21 +282,22 @@ export const ignoreExifOrientation = reatomBoolean(
   false,
   'ignoreExifOrientation',
 ).extend(withLocalStorage('gallery.ignoreExifOrientation'))
+export const developRawFullSize = reatomBoolean(
+  true,
+  'developRawFullSize',
+).extend(withLocalStorage('gallery.developRawFullSize'))
 
 function createImageModel(imageSource: ImageFile): ImageModel {
-  const imageModel = reatomImage(
-    imageSource.fileHandle,
-    `image#${imageSource.id}`,
-    {
-      filename: imageSource.name,
-      readIgnoreExifOrientation: () => ignoreExifOrientation(),
-    },
+  const name = `image#${imageSource.name}`
+  const imageModel = reatomImage(imageSource.fileHandle, name, {
+    filename: imageSource.name,
+    readIgnoreExifOrientation: () => ignoreExifOrientation(),
+    readDevelopRaw: () => developRawFullSize(),
+  })
+  const selected = reatomBoolean(false, `${name}.selected`)
+  const favorite = reatomBoolean(false, `${name}.favorite`).extend(
+    withLocalStorage(`gallery.favorite.${imageSource.relativePath}`),
   )
-  const selected = reatomBoolean(false, `image#${imageSource.id}.selected`)
-  const favorite = reatomBoolean(
-    false,
-    `image#${imageSource.id}.favorite`,
-  ).extend(withLocalStorage(`gallery.favorites.${imageSource.id}`))
 
   const visible = computed(() => {
     const activeFilterTypes = filterTypes()
@@ -329,20 +335,22 @@ function createImageModel(imageSource: ImageFile): ImageModel {
     }
 
     return true
-  }, `image#${imageSource.id}.visible`)
+  }, `${name}.visible`)
   const width = computed(
     () =>
-      imageModel.fullImage.data()?.naturalWidth ??
       imageModel.meta.data()?.width ??
+      imageModel.rawDeveloped.data()?.width ??
+      imageModel.fullImage.data()?.naturalWidth ??
       0,
-    `image#${imageSource.id}.width`,
+    `${name}.width`,
   )
   const height = computed(
     () =>
-      imageModel.fullImage.data()?.naturalHeight ??
       imageModel.meta.data()?.height ??
+      imageModel.rawDeveloped.data()?.height ??
+      imageModel.fullImage.data()?.naturalHeight ??
       0,
-    `image#${imageSource.id}.height`,
+    `${name}.height`,
   )
 
   return imageModel.extend(() => ({
@@ -387,7 +395,7 @@ export const imagesList = reatomLinkedList<
   }),
 )
 
-export const syncImagesList = action(() => {
+export const syncImagesList = () => {
   const tree = folderTree()
   if (!tree) {
     imagesList.batch(() => imagesList.clear())
@@ -438,7 +446,7 @@ export const syncImagesList = action(() => {
     imagesList.clear()
     imagesList.createMany(sorted.map((model) => [model]))
   })
-}, 'syncImagesList')
+}
 
 const listLLPrev: LL_PREV = imagesList.LL_PREV
 const listLLNext: LL_NEXT = imagesList.LL_NEXT
@@ -514,8 +522,13 @@ export const lightboxPreloadImageUrl = computed(() => {
     current,
     lightboxNavigationDirection(),
   )
+  if (!preloadTarget) return ''
 
-  return preloadTarget?.fullImageUrl.data() ?? ''
+  if (isRawDisplayPipeline(preloadTarget)) {
+    warmRawDevelopPipeline(preloadTarget)
+  }
+
+  return resolveLightboxPreloadUrl(preloadTarget)
 }, 'lightbox.preloadImageUrl')
 
 export const thumbnailWindow = computed(() => {

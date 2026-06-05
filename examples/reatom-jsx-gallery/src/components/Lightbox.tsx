@@ -3,6 +3,11 @@ import { atom, computed, effect, peek, sleep, wrap } from '@reatom/core'
 import { copyImageAsJpegToClipboard } from '../copyImage'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import {
+  resolveLightboxDownloadUrl,
+  resolveRawDisplayElement,
+  warmRawDevelopPipeline,
+} from '../image-engine/rawDisplay'
+import {
   closeLightbox,
   ignoreExifOrientation,
   lightboxCounter,
@@ -135,6 +140,29 @@ const LightboxContent = () => {
   const displayImage = computed(() => {
     const model = lightboxImage()
     if (!model) return null
+
+    warmRawDevelopPipeline(model)
+
+    const rawPipelineImage = resolveRawDisplayElement(model)
+    if (rawPipelineImage) {
+      rawPipelineImage.alt = model.source.name
+      rawPipelineImage.draggable = false
+      const orientationBaked =
+        rawPipelineImage === model.rawDevelopedImage.data()
+      const orientationStyle = resolveImageOrientationStyle(
+        model.meta.data()?.exif,
+        ignoreExifOrientation(),
+        orientationBaked,
+      )
+      if (orientationStyle) {
+        rawPipelineImage.style.imageOrientation = orientationStyle
+      } else {
+        rawPipelineImage.style.removeProperty('image-orientation')
+      }
+      setLightboxImageElement(rawPipelineImage)
+      return rawPipelineImage
+    }
+
     const fullImage = model.fullImage.data()
     if (fullImage) {
       fullImage.alt = model.source.name
@@ -151,6 +179,7 @@ const LightboxContent = () => {
       setLightboxImageElement(fullImage)
       return fullImage
     }
+
     const thumbnailUrl = model.thumbnail.data()?.url
     if (!thumbnailUrl) return null
     const thumb = model.thumbnail.data()
@@ -188,8 +217,8 @@ const LightboxContent = () => {
     const viewportHeight = 'max(1px, calc(100vh - 180px))'
 
     return {
-      width: `min(${width}px, ${viewportWidth}, calc(${viewportHeight} * ${ratio}))`,
-      height: `min(${height}px, ${viewportHeight}, calc(${viewportWidth} / ${ratio}))`,
+      width: `min(${viewportWidth}, calc(${viewportHeight} * ${ratio}))`,
+      height: `min(${viewportHeight}, calc(${viewportWidth} / ${ratio}))`,
     }
   }, 'lightbox.imageFrameSize')
 
@@ -291,8 +320,7 @@ const LightboxContent = () => {
     const img = lightboxImage()
     if (!img) return
     const anchor = document.createElement('a')
-    anchor.href =
-      peek(img.fullImageUrl.data) ?? peek(img.thumbnail.data)?.url ?? ''
+    anchor.href = resolveLightboxDownloadUrl(img)
     anchor.download = img.source.name
     document.body.appendChild(anchor)
     anchor.click()

@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "@reatom/core": "1001.*.*",
-    "@reatom/jsx": "1001.*.*"
+    "@reatom/jsx": "1001.*.*",
+    "libraw-wasm": "^1.1.2"
   }
 }

@@ -1,4 +1,9 @@
-import { extractRawPreview } from './image-engine/formats/raw'
+import { developRawToJpegBlob } from './image-engine/formats/rawDevelop'
+import {
+  extractRawPreviewData,
+  type RawPreviewData,
+} from './image-engine/formats/raw'
+import { developRawFullSize } from './model'
 import {
   isRawImageFormat,
   type ImageMeta,
@@ -22,12 +27,14 @@ function isRawImageMeta(meta: ImageMeta | null): meta is ImageMeta & {
   return isRawImageFormat(meta?.format)
 }
 
-function isJpegImage(
+function isOriginalJpegFile(
   image: ImageModel,
-  blob: Blob,
+  fileBlob: Blob,
   meta: ImageMeta | null,
 ): boolean {
-  const mime = blob.type.toLowerCase()
+  if (isRawImageMeta(meta)) return false
+
+  const mime = fileBlob.type.toLowerCase()
   if (mime === JPEG_MIME || mime === 'image/jpg') return true
   if (meta?.format === 'jpeg') return true
 
@@ -68,22 +75,56 @@ function withMimeType(blob: Blob, type: string): Blob {
   return new Blob([blob], { type })
 }
 
-async function resolveLightboxBlob(image: ImageModel): Promise<{
-  blob: Blob
-  meta: ImageMeta | null
-}> {
-  const [fileBlob, meta] = await Promise.all([image(), image.meta()])
-  if (isRawImageMeta(meta)) {
-    const previewBlob = await extractRawPreview(fileBlob, meta.format)
-    if (previewBlob) return { blob: previewBlob, meta }
+function previewPixelArea(preview: RawPreviewData): number {
+  return preview.width * preview.height
+}
+
+async function largestRawPreviewBlob(
+  fileBlob: Blob,
+  meta: ImageMeta & { format: RawImageFormat },
+): Promise<Blob | null> {
+  const cachedPreview = meta.embeddedPreview
+  const extractedPreview = await extractRawPreviewData(fileBlob, meta.format)
+
+  if (cachedPreview?.blob && extractedPreview) {
+    const cachedArea =
+      cachedPreview.width !== undefined && cachedPreview.height !== undefined
+        ? cachedPreview.width * cachedPreview.height
+        : 0
+    const extractedArea = previewPixelArea(extractedPreview)
+
+    if (extractedArea > cachedArea) return extractedPreview.blob
+    return cachedPreview.blob
   }
-  return { blob: fileBlob, meta }
+
+  if (cachedPreview?.blob) return cachedPreview.blob
+  return extractedPreview?.blob ?? null
 }
 
 async function jpegBlobForClipboard(image: ImageModel): Promise<Blob> {
-  const { blob: sourceBlob, meta } = await resolveLightboxBlob(image)
-  if (isJpegImage(image, sourceBlob, meta)) return sourceBlob
-  return blobToJpeg(sourceBlob)
+  const [fileBlob, meta] = await Promise.all([image(), image.meta()])
+
+  if (isOriginalJpegFile(image, fileBlob, meta)) {
+    return fileBlob
+  }
+
+  if (isRawImageMeta(meta)) {
+    if (developRawFullSize()) {
+      const cachedDeveloped = await image.rawDeveloped()
+      if (cachedDeveloped) return cachedDeveloped.blob
+
+      const developed = await developRawToJpegBlob(fileBlob, {
+        format: meta.format,
+        exif: meta.exif,
+      })
+      if (developed) return developed.blob
+    }
+
+    const previewBlob = await largestRawPreviewBlob(fileBlob, meta)
+    if (previewBlob) return previewBlob
+  }
+
+  return blobToJpeg(fileBlob)
 }
 
 async function blobForClipboardWrite(jpegBlob: Blob): Promise<{

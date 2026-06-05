@@ -1,6 +1,7 @@
 import { focusableCardAttrs } from '../a11y'
 import type { ImageModel } from '../model'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
+import { resolveRawDisplaySource } from '../image-engine/rawDisplay'
 import {
   gridGap,
   ignoreExifOrientation,
@@ -49,22 +50,25 @@ export const GridImage = ({
       thumbnail.height,
       imageFit(),
     )
-    const fullImage =
-      renderedSize() > previewSize ? image.fullImage.data() : undefined
 
-    if (fullImage) {
-      fullImage.alt = imageName()
-      fullImage.loading = 'lazy'
-      const orientationStyle = resolveImageOrientationStyle(
-        image.meta.data()?.exif,
-        ignoreExifOrientation(),
-      )
-      if (orientationStyle) {
-        fullImage.style.imageOrientation = orientationStyle
-      } else {
-        fullImage.style.removeProperty('image-orientation')
+    if (renderedSize() > previewSize) {
+      const rawSource = resolveRawDisplaySource(image)
+      const upscaledUrl = rawSource?.url ?? image.fullImageUrl.data()
+      if (upscaledUrl) {
+        const orientationStyle = resolveImageOrientationStyle(
+          image.meta.data()?.exif,
+          ignoreExifOrientation(),
+          rawSource?.orientationBaked ?? false,
+        )
+        return (
+          <img
+            src={upscaledUrl}
+            alt={imageName()}
+            loading="lazy"
+            style:image-orientation={orientationStyle}
+          />
+        )
       }
-      return fullImage
     }
 
     const orientationStyle = resolveImageOrientationStyle(
