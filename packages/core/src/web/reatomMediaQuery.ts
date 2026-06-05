@@ -1,6 +1,11 @@
+import type { Atom } from '../core'
 import { atom, named } from '../core'
 import { reatomObservable } from '../methods'
 import { onEvent } from './onEvent'
+
+export type MediaQueryAtom = Atom<boolean> & {
+  mediaQueryList: Atom<Pick<MediaQueryList, 'matches' | 'addEventListener'>>
+}
 
 /**
  * Creates a reactive atom that tracks a CSS media query state.
@@ -42,7 +47,7 @@ import { onEvent } from './onEvent'
 export let reatomMediaQuery = (
   query: string,
   name: string = named(`mediaQuery#${query}`),
-) => {
+): MediaQueryAtom => {
   let mediaQueryList = atom<
     Pick<MediaQueryList, 'matches' | 'addEventListener'>
   >(() => globalThis.matchMedia?.(query), `${name}._mediaQueryList`)
