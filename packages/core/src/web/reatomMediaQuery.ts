@@ -1,4 +1,4 @@
-import { atom } from '../core'
+import { atom, named } from '../core'
 import { reatomObservable } from '../methods'
 import { onEvent } from './onEvent'
 
@@ -36,10 +36,13 @@ import { onEvent } from './onEvent'
  *
  * @param query - A CSS media query string (e.g., '(min-width: 768px)',
  *   '(prefers-color-scheme: dark)')
+ * @param name - An optional name for the atom
  * @returns An atom that holds the current match state as a boolean
  */
-export let reatomMediaQuery = (query: string) => {
-  const name = `mediaQuery#${query}`
+export let reatomMediaQuery = (
+  query: string,
+  name: string = named(`mediaQuery#${query}`),
+) => {
   let mediaQueryList = atom<
     Pick<MediaQueryList, 'matches' | 'addEventListener'>
   >(() => globalThis.matchMedia?.(query), `${name}._mediaQueryList`)
