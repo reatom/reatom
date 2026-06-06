@@ -1,4 +1,4 @@
-import { isAbort } from '@reatom/core'
+import { isAbort, wrap } from '@reatom/core'
 
 import {
   folderTree,
@@ -12,19 +12,21 @@ export const RestoreSelectedFolder = () => (
     ref={() => {
       let restoreStarted = false
 
-      return selectedFolderHandle.subscribe((handle) => {
-        if (restoreStarted) return
-        if (handle === null) return
-        if (folderTree() !== null) return
+      return selectedFolderHandle.subscribe(
+        wrap((handle) => {
+          if (restoreStarted) return
+          if (handle === null) return
+          if (folderTree() !== null) return
 
-        restoreStarted = true
-        restoreSelectedFolder().catch((error: unknown) => {
-          if (isAbort(error)) return
-          queueMicrotask(() => {
-            throw error
+          restoreStarted = true
+          restoreSelectedFolder().catch((error: unknown) => {
+            if (isAbort(error)) return
+            queueMicrotask(() => {
+              throw error
+            })
           })
-        })
-      })
+        }),
+      )
     }}
   />
 )

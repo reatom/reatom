@@ -1,13 +1,10 @@
 import {
-  atom,
-  context,
-  effect,
-  reatomMediaQuery,
-  sleep,
-  wrap,
-} from '@reatom/core'
-
-import { navigateLightbox, slideshowInterval, slideshowPlaying } from '../model'
+  bindSlideshowAutoAdvance,
+  bindSlideshowPauseOnPageHidden,
+  slideshowInterval,
+  slideshowPlaying,
+  slideshowProgressPercent,
+} from '../model'
 import { PauseIcon, PlayIcon } from './Icons'
 import { pressEvents } from './pressEvents'
 
@@ -18,8 +15,6 @@ const speedOptions = [
   { ms: 10000, label: '10s' },
   { ms: 30000, label: '30s' },
 ] as const
-
-const prefersReducedMotion = reatomMediaQuery('(prefers-reduced-motion: reduce)')
 
 const pillBtnCss = `
   background: var(--overlay-control);
@@ -43,7 +38,6 @@ export const Slideshow = ({
   class: className,
   onControlPress,
 }: SlideshowProps = {}) => {
-  const progressPercent = atom(0, 'slideshow._progress')
   const pressSlideshowControl = (action: () => void) => {
     const press = pressEvents(action)
     return {
@@ -56,47 +50,16 @@ export const Slideshow = ({
     }
   }
 
-  const autoAdvance = effect(async () => {
-    if (prefersReducedMotion() && slideshowPlaying()) {
-      slideshowPlaying.setFalse()
-      progressPercent.set(0)
-      return
-    }
-
-    while (slideshowPlaying()) {
-      const ms = slideshowInterval()
-      const startedAt = Date.now()
-
-      progressPercent.set(0)
-
-      while (Date.now() - startedAt < ms) {
-        await wrap(sleep(50))
-
-        const elapsed = Date.now() - startedAt
-        progressPercent.set(Math.min((elapsed / ms) * 100, 100))
-      }
-
-      navigateLightbox(1)
-    }
-
-    progressPercent.set(0)
-  }, 'slideshow.autoAdvance')
-
   return (
     <div
       class={className}
       ref={() => {
-        const pauseWhenHidden = () => {
-          if (document.hidden) {
-            context.start(() => slideshowPlaying.setFalse())
-          }
-        }
-
-        document.addEventListener('visibilitychange', pauseWhenHidden)
+        const stopAdvance = bindSlideshowAutoAdvance()
+        const stopVisibility = bindSlideshowPauseOnPageHidden()
 
         return () => {
-          autoAdvance.unsubscribe()
-          document.removeEventListener('visibilitychange', pauseWhenHidden)
+          stopAdvance()
+          stopVisibility()
         }
       }}
       css={`
@@ -169,7 +132,7 @@ export const Slideshow = ({
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={progressPercent}
+        aria-valuenow={slideshowProgressPercent}
         aria-label="Slideshow progress"
         css={`
           width: 80px;
@@ -181,7 +144,7 @@ export const Slideshow = ({
         `}
       >
         <div
-          style:width={() => `${progressPercent()}%`}
+          style:width={() => `${slideshowProgressPercent()}%`}
           css={`
             height: 100%;
             background: var(--accent);

@@ -23,10 +23,9 @@ import {
   selectAllImages,
   selectedCount,
   selectImage,
+  slideshowPlaying,
   sortField,
   sortOrder,
-  slideshowPlaying,
-  syncImagesList,
   visibleIndexMap,
   wrapFolderNavigation,
 } from './model'
@@ -41,7 +40,6 @@ test('imagesList sorts by name ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('name')
     sortOrder.set('asc')
-    syncImagesList()
     const images = imagesList.array()
     const names = images.map((i) => i.source.name)
     expect(names).toEqual(
@@ -57,7 +55,6 @@ test('imagesList sorts by name descending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('name')
     sortOrder.set('desc')
-    syncImagesList()
     const images = imagesList.array()
     const names = images.map((i) => i.source.name)
     expect(names).toEqual(
@@ -73,7 +70,6 @@ test('imagesList sorts by size ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('size')
     sortOrder.set('asc')
-    syncImagesList()
     const images = imagesList.array()
     const sizes = images.map((i) => i.source.size)
     expect(sizes).toEqual([1024, 2048, 4096, 5120, 8192, 15360])
@@ -84,7 +80,6 @@ test('imagesList sorts by size descending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('size')
     sortOrder.set('desc')
-    syncImagesList()
     const images = imagesList.array()
     const sizes = images.map((i) => i.source.size)
     expect(sizes).toEqual([15360, 8192, 5120, 4096, 2048, 1024])
@@ -95,7 +90,6 @@ test('imagesList sorts by date ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('date')
     sortOrder.set('asc')
-    syncImagesList()
     const images = imagesList.array()
     const dates = images.map((i) => i.source.lastModified)
     expect(dates).toEqual([
@@ -109,7 +103,6 @@ test('imagesList sorts by type', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('type')
     sortOrder.set('asc')
-    syncImagesList()
     const images = imagesList.array()
     const types = images.map((i) => i.source.type)
     expect(types).toEqual([
@@ -127,7 +120,6 @@ test('imagesList sorts by dimensions', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('dimensions')
     sortOrder.set('asc')
-    syncImagesList()
     const images = imagesList.array()
     const areas = images.map((i) => i.width() * i.height())
     expect(areas).toEqual([...areas].sort((a, b) => a - b))

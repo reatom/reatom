@@ -1,5 +1,5 @@
-import { sortField, sortOrder } from '../model'
-import type { SortField, SortOrder } from '../types'
+import { sortField, sortOrder, toggleSortOrder } from '../model'
+import type { SortField } from '../types'
 import { SortAscIcon, SortDescIcon } from './Icons'
 
 const SORT_FIELD_OPTIONS: { value: SortField; label: string }[] = [
@@ -47,53 +47,44 @@ const SortFieldButton = ({
   </button>
 )
 
-export const SortPanel = () => {
-  const orderLabel = () => (sortOrder() === 'asc' ? 'Asc' : 'Desc')
-
-  const toggleOrder = () => {
-    const next: SortOrder = sortOrder() === 'asc' ? 'desc' : 'asc'
-    sortOrder.set(next)
-  }
-
-  return (
-    <div
+export const SortPanel = () => (
+  <div
+    css={`
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    `}
+  >
+    {SORT_FIELD_OPTIONS.map((opt) => (
+      <SortFieldButton value={opt.value} label={opt.label} />
+    ))}
+    <button
+      on:click={toggleSortOrder}
       css={`
-        display: flex;
+        padding: 5px 10px;
+        border: var(--border-width) var(--control-border-style) var(--accent);
+        border-radius: var(--radius-sm);
+        background: transparent;
+        color: var(--accent);
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.15s;
+        min-width: 76px;
+        text-transform: var(--control-transform);
+        display: inline-flex;
         align-items: center;
-        gap: 6px;
-        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+
+        &:hover {
+          background: var(--accent);
+          color: var(--accent-contrast);
+        }
       `}
     >
-      {SORT_FIELD_OPTIONS.map((opt) => (
-        <SortFieldButton value={opt.value} label={opt.label} />
-      ))}
-      <button
-        on:click={toggleOrder}
-        css={`
-          padding: 5px 10px;
-          border: var(--border-width) var(--control-border-style) var(--accent);
-          border-radius: var(--radius-sm);
-          background: transparent;
-          color: var(--accent);
-          font-size: 12px;
-          font-weight: 600;
-          transition: all 0.15s;
-          min-width: 76px;
-          text-transform: var(--control-transform);
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 5px;
-
-          &:hover {
-            background: var(--accent);
-            color: var(--accent-contrast);
-          }
-        `}
-      >
-        {() => (sortOrder() === 'asc' ? <SortAscIcon /> : <SortDescIcon />)}
-        <span>{orderLabel}</span>
-      </button>
-    </div>
-  )
-}
+      {() => (sortOrder() === 'asc' ? <SortAscIcon /> : <SortDescIcon />)}
+      <span>{() => (sortOrder() === 'asc' ? 'Asc' : 'Desc')}</span>
+    </button>
+  </div>
+)

@@ -1,10 +1,7 @@
 import {
-  _read,
   abortVar,
-  atom,
   computed,
   memo,
-  peek,
   throwAbort,
   withAsyncData,
   wrap,
@@ -16,21 +13,19 @@ import {
   parseImageMeta,
   revokeThumbnail,
 } from './image-engine'
-import { developRawToJpegBlob } from './image-engine/formats/rawDevelop'
 import { extractRawPreview } from './image-engine/formats/raw'
+import type { RawDevelopResult } from './image-engine/formats/rawDevelop'
+import { developRawToJpegBlob } from './image-engine/formats/rawDevelop'
 import { resolveImageOrientationStyle } from './image-engine/orientation'
 import {
-  isRawImageFormat,
   type ImageMeta,
+  isRawImageFormat,
   type RawImageFormat,
 } from './image-engine/types'
-import type { RawDevelopResult } from './image-engine/formats/rawDevelop'
-
-const MAX_PARALLEL_THUMBNAILS = Math.max(
-  2,
-  (globalThis.navigator?.hardwareConcurrency ?? 4) - 2,
-)
-const activeThumbnailRequests = atom(0, 'thumbnail.activeRequests')
+import {
+  activeThumbnailRequests,
+  maxParallelThumbnails,
+} from './models/thumbnailConcurrency'
 
 export type ReatomImageOptions = {
   thumbnailOptions?: ThumbnailOptions
@@ -86,8 +81,7 @@ export function reatomImage(
   const thumbnail = computed(async () => {
     if (
       memo(
-        (state) =>
-          !state && activeThumbnailRequests() >= MAX_PARALLEL_THUMBNAILS,
+        (state) => !state && activeThumbnailRequests() >= maxParallelThumbnails,
       )
     ) {
       throwAbort()
@@ -96,12 +90,14 @@ export function reatomImage(
     activeThumbnailRequests.set((count) => count + 1)
     try {
       const [fileState, metaState] = await wrap(Promise.all([file(), meta()]))
-      return await wrap(
+      const thumbnailResult = await wrap(
         loadThumbnailWithMeta(fileState, metaState, {
           ...options?.thumbnailOptions,
           ignoreExifOrientation: ignoreExifOrientation(),
         }),
       )
+      abortVar.subscribe(() => revokeThumbnail(thumbnailResult))
+      return thumbnailResult
     } finally {
       activeThumbnailRequests.set((count) => count - 1)
     }
@@ -191,20 +187,6 @@ export function reatomImage(
     return decodeImageFromUrl(url, metaState, ignoreExifOrientation())
   }, `${name}.fullImage`).extend(withAsyncData())
 
-  function dispose() {
-    const thumbResult = peek(thumbnail.data)
-    if (thumbResult) revokeThumbnail(thumbResult)
-
-    const embeddedUrl = _read(embeddedPreviewUrl.data)?.state
-    if (embeddedUrl) URL.revokeObjectURL(embeddedUrl)
-
-    const developedUrl = _read(developedImageUrl.data)?.state
-    if (developedUrl) URL.revokeObjectURL(developedUrl)
-
-    const fullUrl = _read(fullImageUrl.data)?.state
-    if (fullUrl) URL.revokeObjectURL(fullUrl)
-  }
-
   return file.extend(() => ({
     meta,
     thumbnail,
@@ -215,7 +197,6 @@ export function reatomImage(
     rawDevelopedImage,
     fullImageUrl,
     fullImage,
-    dispose,
   }))
 }
 

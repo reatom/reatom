@@ -20,9 +20,6 @@ const ListImage = ({ image }: { image: ImageModel }) => {
     ) : null
   }
 
-  const dimensions = () =>
-    formatDimensions(image.width(), image.height(), 'Dimensions pending')
-
   const openLabel = `Open ${image.name}`
 
   return (
@@ -141,7 +138,7 @@ const ListImage = ({ image }: { image: ImageModel }) => {
         </div>
         <div css="margin-top: 5px; font-size: 12px; color: var(--text-secondary);">
           {() =>
-            `${formatBytes(image.source.size)} | ${dimensions()} | ${formatDate(
+            `${formatBytes(image.source.size)} | ${formatDimensions(image.width(), image.height(), 'Dimensions pending')} | ${formatDate(
               image.source.lastModified,
             )}`
           }

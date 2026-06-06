@@ -3,7 +3,6 @@ type PngMeta = {
   height: number
 }
 
-const PNG_SIGNATURE_SIZE = 8
 const IHDR_CHUNK_TYPE_OFFSET = 12
 const IHDR_WIDTH_OFFSET = 16
 const IHDR_HEIGHT_OFFSET = 20

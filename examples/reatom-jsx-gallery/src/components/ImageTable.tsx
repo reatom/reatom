@@ -1,5 +1,10 @@
-import { imagesList, tablePreviewWidth } from '../model'
-import { ImageTableFilters, visibleExifColumnNames } from './ImageTableFilters'
+import {
+  imagesList,
+  tableMinWidth,
+  tablePreviewWidth,
+  visibleExifColumnNames,
+} from '../model'
+import { ImageTableFilters } from './ImageTableFilters'
 import { ImageTableRow } from './ImageTableRow'
 
 const selectColumnWidth = 68
@@ -12,22 +17,6 @@ const formatColumnWidth = 94
 const exifThumbColumnWidth = 116
 const exifColumnWidth = 160
 const favoriteColumnWidth = 82
-
-const staticTableColumnsWidth =
-  selectColumnWidth +
-  fileColumnWidth +
-  sizeColumnWidth +
-  dimensionsColumnWidth +
-  modifiedColumnWidth +
-  formatColumnWidth +
-  exifThumbColumnWidth +
-  favoriteColumnWidth
-
-const getTableMinWidth = () =>
-  staticTableColumnsWidth +
-  tablePreviewWidth() +
-  previewColumnPadding +
-  visibleExifColumnNames().length * exifColumnWidth
 
 const tableHeaderCellCss = `
   position: sticky;
@@ -80,7 +69,7 @@ export const ImageTable = () => (
       `}
     >
       <table
-        css:min-table-width={() => `${getTableMinWidth()}px`}
+        css:min-table-width={() => `${tableMinWidth()}px`}
         css:preview-column-width={() =>
           `${tablePreviewWidth() + previewColumnPadding}px`
         }

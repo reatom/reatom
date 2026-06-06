@@ -51,9 +51,6 @@ export const ImageTableRow = ({
     )
   }
 
-  const dimensions = () =>
-    formatDimensions(image.width(), image.height(), 'Pending')
-
   const openLabel = `Open ${image.name}`
 
   return (
@@ -165,7 +162,9 @@ export const ImageTableRow = ({
         </div>
       </td>
       <td css={tableCellCss}>{formatBytes(image.source.size)}</td>
-      <td css={tableCellCss}>{dimensions}</td>
+      <td css={tableCellCss}>
+        {() => formatDimensions(image.width(), image.height(), 'Pending')}
+      </td>
       <td css={tableCellCss}>{formatDate(image.source.lastModified)}</td>
       <td css={tableCellCss}>{() => image.meta.data()?.format ?? 'unknown'}</td>
       <td css={tableCellCss}>

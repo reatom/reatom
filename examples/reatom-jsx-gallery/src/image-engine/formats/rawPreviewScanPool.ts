@@ -1,9 +1,9 @@
-import RawPreviewScanWorker from './rawPreviewScan.worker?worker'
 import type {
   RawPreviewScanRange,
   RawPreviewScanRequest,
   RawPreviewScanResponse,
 } from './rawPreviewScan.types'
+import RawPreviewScanWorker from './rawPreviewScan.worker?worker'
 
 type RawPreviewScanJob = {
   buffer: ArrayBuffer
@@ -130,4 +130,24 @@ function terminateRawPreviewScanWorker(worker: Worker): void {
 
   worker.terminate()
   workerCount--
+}
+
+const shutdownError = new Error('Raw preview scan pool shut down')
+
+export function shutdownRawPreviewScanPool(): void {
+  while (pendingJobs.length > 0) {
+    const job = pendingJobs.shift()
+    job?.reject(shutdownError)
+  }
+
+  for (const worker of [...idleWorkers]) {
+    terminateRawPreviewScanWorker(worker)
+  }
+
+  for (const [worker, job] of activeJobsByWorker) {
+    job.reject(shutdownError)
+    terminateRawPreviewScanWorker(worker)
+  }
+
+  activeJobsByWorker.clear()
 }

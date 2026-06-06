@@ -1,57 +1,11 @@
-import { action, atom, computed } from '@reatom/core'
-
-import { imagesList } from '../model'
-
-const hiddenExifColumns = atom(
-  new Set<string>(),
-  'imageTable.hiddenExifColumns',
-)
-
-export const exifColumnNames = computed(() => {
-  const columnNames = new Set<string>()
-
-  for (const image of imagesList.array()) {
-    if (!image.visible()) continue
-
-    const exif = image.meta.data()?.exif
-    if (!exif) continue
-
-    for (const columnName of Object.keys(exif)) {
-      columnNames.add(columnName)
-    }
-  }
-
-  return [...columnNames].sort((a, b) => a.localeCompare(b))
-}, 'imageTable.exifColumnNames')
-
-export const visibleExifColumnNames = computed(() => {
-  const hiddenColumns = hiddenExifColumns()
-  return exifColumnNames().filter(
-    (columnName) => !hiddenColumns.has(columnName),
-  )
-}, 'imageTable.visibleExifColumnNames')
-
-const showAllExifColumns = action(() => {
-  hiddenExifColumns.set(new Set<string>())
-}, 'imageTable.showAllExifColumns')
-
-const hideAllExifColumns = action(() => {
-  hiddenExifColumns.set(new Set(exifColumnNames()))
-}, 'imageTable.hideAllExifColumns')
-
-const toggleExifColumn = action((columnName: string) => {
-  hiddenExifColumns.set((hiddenColumns) => {
-    const nextHiddenColumns = new Set(hiddenColumns)
-
-    if (nextHiddenColumns.has(columnName)) {
-      nextHiddenColumns.delete(columnName)
-    } else {
-      nextHiddenColumns.add(columnName)
-    }
-
-    return nextHiddenColumns
-  })
-}, 'imageTable.toggleExifColumn')
+import {
+  exifColumnNames,
+  hiddenExifColumns,
+  hideAllExifColumns,
+  showAllExifColumns,
+  toggleExifColumn,
+  visibleExifColumnNames,
+} from '../model'
 
 export const ImageTableFilters = () => (
   <div

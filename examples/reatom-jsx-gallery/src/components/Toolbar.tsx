@@ -8,7 +8,7 @@ import {
   selectAllImages,
   selectedCount,
   setViewMode,
-  themeMode,
+  toggleResolvedThemeMode,
   viewMode,
   visibleIndexMap,
 } from '../model'
@@ -489,11 +489,7 @@ export const Toolbar = () => (
 
       <button
         type="button"
-        on:click={() =>
-          resolvedThemeMode() === 'dark'
-            ? themeMode.setLight()
-            : themeMode.setDark()
-        }
+        on:click={toggleResolvedThemeMode}
         title="Toggle light/dark theme"
         aria-label={() =>
           resolvedThemeMode() === 'dark'

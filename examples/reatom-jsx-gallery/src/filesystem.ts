@@ -1,6 +1,6 @@
-import { abortVar, wrap } from '@reatom/core'
+import { abortVar, throwAbort, wrap } from '@reatom/core'
 
-import { parsingProgress } from './model'
+import type { ParsingProgressSnapshot } from './models/contracts'
 import type { FolderNode, ImageFile } from './types'
 import { IMAGE_EXTENSIONS } from './types'
 
@@ -27,12 +27,27 @@ type FlatEntry = {
   folder: FolderNode
 }
 
-export async function parseDirectoryRecursive(
-  rootHandle: FileSystemDirectoryHandle,
-): Promise<{ tree: FolderNode; images: ImageFile[] }> {
-  parsingProgress.set({ total: 0, current: 0 })
+export type ScanDirectoryOptions = {
+  onProgress?: (snapshot: ParsingProgressSnapshot) => void
+}
 
-  abortVar.subscribe(() => parsingProgress.set({ total: 0, current: 0 }))
+export async function scanDirectoryRecursive(
+  rootHandle: FileSystemDirectoryHandle,
+  options?: ScanDirectoryOptions,
+): Promise<{ tree: FolderNode; images: ImageFile[] }> {
+  let progress: ParsingProgressSnapshot = { total: 0, current: 0 }
+
+  const reportProgress = (
+    next:
+      | ParsingProgressSnapshot
+      | ((state: ParsingProgressSnapshot) => ParsingProgressSnapshot),
+  ) => {
+    progress = typeof next === 'function' ? next(progress) : next
+    options?.onProgress?.(progress)
+  }
+
+  reportProgress({ total: 0, current: 0 })
+  abortVar.subscribe(() => reportProgress({ total: 0, current: 0 }))
 
   const flatEntries: FlatEntry[] = []
 
@@ -53,6 +68,7 @@ export async function parseDirectoryRecursive(
 
     const iterator = dirHandle.values()
     while (true) {
+      if (abortVar.require().signal.aborted) throwAbort()
       const { value: entry, done } = await wrap(iterator.next())
       if (done) break
       if (entry.kind === 'file') {
@@ -78,7 +94,7 @@ export async function parseDirectoryRecursive(
 
     folderNode.imageCount = imageCount
 
-    parsingProgress.set((state) => ({
+    reportProgress((state) => ({
       ...state,
       total: Math.max(state.total, imageCount),
     }))
@@ -97,6 +113,7 @@ export async function parseDirectoryRecursive(
 
     async function runNext(): Promise<void> {
       while (nextIndex < items.length) {
+        if (abortVar.require().signal.aborted) throwAbort()
         const idx = nextIndex++
         const { fileHandle, folder } = items[idx]!
         const file = await wrap(fileHandle.getFile())
@@ -112,7 +129,7 @@ export async function parseDirectoryRecursive(
         } satisfies ImageFile
 
         processed++
-        parsingProgress.set((state) => ({
+        reportProgress((state) => ({
           ...state,
           current: processed,
         }))
@@ -138,3 +155,5 @@ export async function parseDirectoryRecursive(
 
   return { tree: walkRoot, images }
 }
+
+export const parseDirectoryRecursive = scanDirectoryRecursive

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
-import { mockFolderTree, mockImages } from '../__fixtures__/mockData'
+import { mockFolderTree } from '../__fixtures__/mockData'
 import { lightboxImage, lightboxOpen, visibleIndexMap } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import {

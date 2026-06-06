@@ -4,6 +4,7 @@ import {
   currentFolder,
   flatImages,
   folderTree,
+  imagesList,
   keepLightboxView,
   lightboxImage,
   lightboxOpen,
@@ -13,7 +14,6 @@ import {
   parsingProgress,
   showLightboxScrubber,
   slideshowPlaying,
-  syncImagesList,
   viewMode,
   wrapFolderNavigation,
 } from '../model'
@@ -55,7 +55,7 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
     total: tree.imageCount,
     current: tree.imageCount,
   })
-  syncImagesList()
+  imagesList.array()
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)
@@ -79,7 +79,7 @@ export function loadEmptyState(): void {
     total: 0,
     current: 0,
   })
-  syncImagesList()
+  imagesList.array()
   clearSelection()
   lightboxOpen.setFalse()
   lightboxImage.set(null)

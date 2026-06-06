@@ -1,15 +1,12 @@
+import { extractRawPreviewData } from './image-engine/formats/raw'
 import { developRawToJpegBlob } from './image-engine/formats/rawDevelop'
 import {
-  extractRawPreviewData,
-  type RawPreviewData,
-} from './image-engine/formats/raw'
-import { developRawFullSize } from './model'
-import {
-  isRawImageFormat,
   type ImageMeta,
+  isRawImageFormat,
   type RawImageFormat,
 } from './image-engine/types'
-import type { ImageModel } from './model'
+import type { ImageModel } from './models/contracts'
+import { developRawFullSize } from './models/preferences'
 
 const JPEG_MIME = 'image/jpeg'
 const PNG_MIME = 'image/png'
@@ -66,17 +63,9 @@ async function rasterizeBlob(
   }
 }
 
-const blobToJpeg = (blob: Blob) => rasterizeBlob(blob, JPEG_MIME, JPEG_QUALITY)
-
-const blobToPng = (blob: Blob) => rasterizeBlob(blob, PNG_MIME)
-
 function withMimeType(blob: Blob, type: string): Blob {
   if (blob.type === type) return blob
   return new Blob([blob], { type })
-}
-
-function previewPixelArea(preview: RawPreviewData): number {
-  return preview.width * preview.height
 }
 
 async function largestRawPreviewBlob(
@@ -91,7 +80,7 @@ async function largestRawPreviewBlob(
       cachedPreview.width !== undefined && cachedPreview.height !== undefined
         ? cachedPreview.width * cachedPreview.height
         : 0
-    const extractedArea = previewPixelArea(extractedPreview)
+    const extractedArea = extractedPreview.width * extractedPreview.height
 
     if (extractedArea > cachedArea) return extractedPreview.blob
     return cachedPreview.blob
@@ -124,7 +113,7 @@ async function jpegBlobForClipboard(image: ImageModel): Promise<Blob> {
     if (previewBlob) return previewBlob
   }
 
-  return blobToJpeg(fileBlob)
+  return rasterizeBlob(fileBlob, JPEG_MIME, JPEG_QUALITY)
 }
 
 async function blobForClipboardWrite(jpegBlob: Blob): Promise<{
@@ -138,7 +127,7 @@ async function blobForClipboardWrite(jpegBlob: Blob): Promise<{
   if (!clipboardSupportsMime(PNG_MIME)) {
     throw new Error('This browser cannot copy images to the clipboard')
   }
-  const pngBlob = await blobToPng(normalizedJpeg)
+  const pngBlob = await rasterizeBlob(normalizedJpeg, PNG_MIME)
   return { mime: PNG_MIME, blob: withMimeType(pngBlob, PNG_MIME) }
 }
 

@@ -267,7 +267,6 @@ describe('PNG eXIf chunk', () => {
     const tiff = buildTiffExifBuffer([
       { tag: ORIENTATION_TAG, type: TIFF_TYPE_SHORT, count: 1, value: 6 },
     ])
-    const tiffView = new DataView(tiff)
     const chunkDataLength = tiff.byteLength
     const png = new ArrayBuffer(8 + 12 + chunkDataLength + 4)
     const view = new DataView(png)

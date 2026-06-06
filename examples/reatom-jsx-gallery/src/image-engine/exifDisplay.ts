@@ -1,9 +1,9 @@
-import type { ExifData } from './types'
 import {
   getOrientationFromExif,
   ORIENTATION_TAG_NAME,
   parseOrientationTagValue,
 } from './orientation'
+import type { ExifData } from './types'
 
 export const CAMERA_HUD_TAGS = [
   'Make',

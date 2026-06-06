@@ -1,11 +1,13 @@
-import type { ExifData, RawImageFormat } from '../types'
+import type LibRaw from 'libraw-wasm'
+
 import {
   getOrientationFromExif,
   orientationDegrees,
   orientationMirrored,
 } from '../orientation'
-import RawDevelopEncodeWorker from './rawDevelop.worker?worker'
+import type { ExifData, RawImageFormat } from '../types'
 import type { RawEncodeRequest, RawEncodeResponse } from './rawDevelop.types'
+import RawDevelopEncodeWorker from './rawDevelop.worker?worker'
 
 export type RawDevelopResult = {
   blob: Blob
@@ -13,8 +15,8 @@ export type RawDevelopResult = {
   height: number
 }
 
-type LibRawModule = typeof import('libraw-wasm')
-type LibRawInstance = InstanceType<LibRawModule['default']>
+type LibRawModule = { default: typeof LibRaw }
+type LibRawInstance = LibRaw
 
 type LibRawImageData = {
   width: number
@@ -276,6 +278,18 @@ export function isRawDevelopSupported(): boolean {
     typeof crossOriginIsolated !== 'undefined' &&
     crossOriginIsolated
   )
+}
+
+export function shutdownRawDevelopPool(): void {
+  if (!developPool) return
+
+  for (const slot of developPool) {
+    slot.abort?.abort()
+    slot.abort = null
+  }
+
+  developPool = null
+  poolCursor = 0
 }
 
 export async function developRawToJpegBlob(

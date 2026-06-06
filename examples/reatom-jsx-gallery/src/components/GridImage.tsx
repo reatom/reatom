@@ -1,7 +1,6 @@
 import { focusableCardAttrs } from '../a11y'
-import type { ImageModel } from '../model'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
-import { resolveRawDisplaySource } from '../image-engine/rawDisplay'
+import type { ImageModel } from '../model'
 import {
   gridGap,
   ignoreExifOrientation,
@@ -12,12 +11,7 @@ import {
   showImageNames,
 } from '../model'
 import { CheckIcon, HeartIcon } from './Icons'
-
-const formatBytes = (bytes: number): string => {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1048576).toFixed(1)} MB`
-}
+import { formatBytes } from './imageGridFormat'
 
 const getPreviewSize = (
   thumbnailWidth: number,
@@ -40,7 +34,6 @@ export const GridImage = ({
   const isFavorite = () => image.favorite()
   const imageName = () => image.source.name
 
-  const handleOpen = () => openLightbox(image)
   const displayImage = () => {
     const thumbnail = image.thumbnail.data()
     if (!thumbnail) return null
@@ -52,7 +45,7 @@ export const GridImage = ({
     )
 
     if (renderedSize() > previewSize) {
-      const rawSource = resolveRawDisplaySource(image)
+      const rawSource = image.display.source()
       const upscaledUrl = rawSource?.url ?? image.fullImageUrl.data()
       if (upscaledUrl) {
         const orientationStyle = resolveImageOrientationStyle(
@@ -91,7 +84,7 @@ export const GridImage = ({
 
   return (
     <div
-      {...focusableCardAttrs(openLabel(), handleOpen)}
+      {...focusableCardAttrs(openLabel(), () => openLightbox(image))}
       attr:data-selected={isSelected}
       attr:data-gap={gridGap}
       css={`
@@ -131,7 +124,7 @@ export const GridImage = ({
           border-radius: 0;
         }
       `}
-      on:click={handleOpen}
+      on:click={() => openLightbox(image)}
     >
       <div
         css:image-fit={imageFit}

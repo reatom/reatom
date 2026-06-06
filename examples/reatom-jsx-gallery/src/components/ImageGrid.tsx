@@ -1,8 +1,7 @@
-import { atom, computed, context, reatomObservable } from '@reatom/core'
-
 import {
   gridColumns,
   gridGap,
+  imageGrid,
   imagesList,
   viewMode,
   visibleIndexMap,
@@ -12,77 +11,6 @@ import { GridImage } from './GridImage'
 import { SearchIcon } from './Icons'
 import { ImageList } from './ImageList'
 import { ImageTable } from './ImageTable'
-
-const AUTO_COLUMN_MIN_SIZE = 200
-
-const imageGrid = atom<HTMLElement | null>(null, 'imageGrid').extend(
-  (target) => {
-    const width = reatomObservable(
-      () => ({
-        initState: 0,
-        getState: () => {
-          const element = target()
-          return element ? Math.ceil(element.getBoundingClientRect().width) : 0
-        },
-        subscribe: (fn) => {
-          let observer: ResizeObserver | undefined
-
-          const readWidth = () => {
-            const element = target()
-            return element
-              ? Math.ceil(element.getBoundingClientRect().width)
-              : 0
-          }
-
-          const observeElement = () => {
-            observer?.disconnect()
-            observer = undefined
-
-            const element = target()
-            if (!element) return
-
-            fn(readWidth())
-            observer = new ResizeObserver(() => fn(readWidth()))
-            observer.observe(element)
-          }
-
-          observeElement()
-          const stopElementSubscription = target.subscribe(observeElement)
-
-          return () => {
-            stopElementSubscription()
-            observer?.disconnect()
-          }
-        },
-      }),
-      `${target.name}.width`,
-    )
-
-    const itemSize = computed(() => {
-      const gridWidth = width()
-      const gap = GRID_GAP_VALUES[gridGap()]
-      const configuredColumns = gridColumns()
-      const columns =
-        configuredColumns === 0
-          ? Math.max(
-              1,
-              Math.floor((gridWidth + gap) / (AUTO_COLUMN_MIN_SIZE + gap)),
-            )
-          : configuredColumns
-
-      return Math.max(0, Math.ceil((gridWidth - gap * (columns - 1)) / columns))
-    }, `${target.name}.itemSize`)
-
-    return {
-      width,
-      itemSize,
-      ref: (element: HTMLElement) => {
-        context.start(() => target.set(element))
-        return () => context.start(() => target.set(null))
-      },
-    }
-  },
-)
 
 const gridImagesView = imagesList.reatomMap(
   (imageNode) => (
