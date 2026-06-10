@@ -8,7 +8,12 @@ import {
 import { isRec } from '../utils'
 
 /**
- * A recursive type that represents a partial update for an atomized structure.
+ * The plain update accepted by {@link updateAtomized} for a given atomized
+ * `Shape`. It mirrors `Shape`, replacing every `Atom<Value>` with its raw
+ * `Value` (or the atom's param when it has custom params). Collections are
+ * replaced wholesale: a `Map` expects `[key, value][]`, a `Set` and a
+ * `reatomLinkedList` expect an array, and a plain array accepts either a full
+ * array or a partial `{ [index]: update }` map.
  *
  * @template Shape The type of the atomized structure.
  */
@@ -34,17 +39,89 @@ export type AtomizedUpdate<Shape> =
                 : Shape
 
 /**
- * Recursively updates an atomized structure with a plain object.
+ * Recursively applies a plain (JSON-like) `update` onto an _atomized_ structure
+ * — an arbitrary nesting of atoms and plain objects, arrays, `Map`s, `Set`s and
+ * {@link reatomLinkedList}s — by calling `.set()` on the atoms it finds along
+ * the way. The shape of `update` mirrors `target`, except that wherever
+ * `target` holds an `atom(value)` you pass the plain `value` instead.
  *
- * This function traverses an atomized data structure, which can be a nested
- * combination of atoms and plain JavaScript objects/arrays. It applies updates
- * from a `update` object, setting new values on the atoms within the `target`
- * structure.
+ * Updates are applied in one of two ways depending on the container:
  *
- * @param target The atomized structure to update. This can be an atom, or a
- *   plain object/array containing atoms.
- * @param update The plain object containing the updates. The structure of this
- *   object should mirror the structure of the `target`.
+ * - **Atoms and plain objects** are merged _partially and recursively_: only the
+ *   keys present in `update` are touched, every other field is preserved.
+ * - **Arrays, `Map`, `Set` and `reatomLinkedList`** are _replaced wholesale_ with
+ *   the provided value — there is no per-item merge. Plain arrays additionally
+ *   accept a partial form keyed by index (e.g. `{ 1: ... }`) to update
+ *   individual items in place.
+ *
+ * @example
+ *   // Set a standalone atom directly
+ *   const name = atom('John')
+ *   updateAtomized(name, 'Jane')
+ *   name() // 'Jane'
+ *
+ * @example
+ *   // Partially update atoms nested in a plain object — other atoms are kept
+ *   const user = {
+ *     name: atom('John'),
+ *     stats: { score: atom(100) },
+ *   }
+ *   updateAtomized(user, { stats: { score: 200 } })
+ *   user.name() // 'John' (untouched)
+ *   user.stats.score() // 200
+ *
+ * @example
+ *   // Atoms with custom params accept the raw param value
+ *   const expiresAt = atom(0).extend(
+ *     withParams((date: Date) => date.getTime()),
+ *   )
+ *   updateAtomized(expiresAt, new Date('2030-01-01'))
+ *   expiresAt() // new Date('2030-01-01').getTime()
+ *
+ * @example
+ *   // Plain arrays: update items by index, leaving the rest in place
+ *   const rows = [{ value: atom(1) }, { value: atom(2) }, { value: atom(3) }]
+ *   updateAtomized(rows, { 1: { value: 5 } })
+ *   rows[1].value() // 5
+ *   rows.length // 3
+ *
+ * @example
+ *   // reatomLinkedList is replaced wholesale from a snapshot of `create` params
+ *   const list = reatomLinkedList({
+ *     create: (name: string) => ({ name: atom(name) }),
+ *     initState: [{ name: atom('A') }, { name: atom('B') }],
+ *   })
+ *   updateAtomized(list, [['C'], ['D']]) // one param tuple per node
+ *   list.array().map((node) => node.name()) // ['C', 'D']
+ *
+ * @example
+ *   // A realistic form state: partial record merges + wholesale collection swap
+ *   const state = {
+ *     user: atom({ name: 'John', email: atom('john@example.com') }),
+ *     settings: {
+ *       theme: atom('dark'),
+ *       notifications: atom({ email: true, sms: atom(false) }),
+ *     },
+ *     tags: atom(new Set(['a', 'b'])),
+ *   }
+ *   updateAtomized(state, {
+ *     user: { name: 'Jonny', email: 'jonny@example.com' },
+ *     settings: { notifications: { sms: true } },
+ *     tags: ['b', 'c'], // a Set is replaced, not merged
+ *   })
+ *   state.user().name // 'Jonny'
+ *   state.user().email() // 'jonny@example.com'
+ *   state.settings.theme() // 'dark' (untouched)
+ *   state.settings.notifications().sms() // true
+ *   state.settings.notifications().email // true (preserved)
+ *   Array.from(state.tags()) // ['b', 'c']
+ *
+ * @param target The atomized structure to update in place.
+ * @param update A plain update mirroring `target`, with raw values in place of
+ *   atoms.
+ * @throws {ReatomError} When `update` does not match the shape of `target` (for
+ *   example a partial object where a full `Map`/`Set` replacement is
+ *   required).
  */
 export function updateAtomized<T>(target: T, update: AtomizedUpdate<T>): void
 

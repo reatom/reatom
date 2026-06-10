@@ -34,7 +34,9 @@ describe('updateAtomized', () => {
       },
     }
 
-    expectTypeOf<Date>().toExtend<AtomizedUpdate<typeof atomWithCustomParam>>()
+    expectTypeOf<Date>().toMatchTypeOf<
+      AtomizedUpdate<typeof atomWithCustomParam>
+    >()
 
     const updateDate = new Date()
     updateAtomized(user, { stats: { score: updateDate } })
@@ -51,13 +53,13 @@ describe('updateAtomized', () => {
     expect(plainList[1]?.value()).toBe(5)
     expect(plainList.length).toBe(3)
 
-    expectTypeOf<{ 1: { value: 5 } }>().toExtend<
+    expectTypeOf<{ 1: { value: 5 } }>().toMatchTypeOf<
       AtomizedUpdate<typeof plainList>
     >()
-    expectTypeOf<[{ value: 5 }]>().not.toExtend<
+    expectTypeOf<[{ value: 5 }]>().not.toMatchTypeOf<
       AtomizedUpdate<typeof plainList>
     >()
-    expectTypeOf<[{ value: Atom<number> }]>().toExtend<
+    expectTypeOf<[{ value: Atom<number> }]>().toMatchTypeOf<
       AtomizedUpdate<typeof plainList>
     >()
   })
@@ -100,13 +102,19 @@ describe('updateAtomized', () => {
   })
 
   test('should throw runtime error if invalid update payload passed', () => {
-    // @ts-expect-error it's not possible to do partial update of a Map
+    // A Map is replaced wholesale with a `[key, value][]` array; an atom is not
+    // a valid payload, so the type rejects it and the call throws at runtime.
+    // @ts-expect-error a Map update must be a `[key, value][]` array, not an atom
     expect(() => updateAtomized(new Map(), atom())).toThrow(ReatomError)
-    // @ts-expect-error it's not possible to do partial update of a Set
+    // A Set is replaced wholesale with an array; a partial object cannot patch
+    // it, so the type rejects it and the call throws at runtime.
+    // @ts-expect-error a Set update must be an array, not a partial object
     expect(() => updateAtomized({ value: new Set() }, { value: {} })).toThrow(
       ReatomError,
     )
-    // @ts-expect-error it's not possible to do partial update of a Set
+    // A plain record only accepts an object-shaped (partial) update; an array
+    // against a record has no valid meaning, so the call throws at runtime.
+    // @ts-expect-error a record update must be an object, not an array
     expect(() => updateAtomized({ test: 123 }, [])).toThrow(ReatomError)
   })
 
