@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, test } from 'vitest'
 
 import { type Atom, atom, ReatomError, withParams } from '../core'
 import { reatomLinkedList } from '../primitives/reatomLinkedList'
-import { type AtomizedUpdate, updateAtomized } from './atomize'
+import { type AtomizedUpdate, updateAtomized } from './updateAtomized'
 
 describe('updateAtomized', () => {
   test('should update a simple atom', () => {
