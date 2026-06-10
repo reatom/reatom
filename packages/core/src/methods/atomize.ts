@@ -19,7 +19,7 @@ export type AtomizedUpdate<Shape> =
       ? LL extends LinkedList<infer Node>
         ? Node[]
         : never
-      : Shape extends Atom<infer State, infer Params>
+      : Shape extends Atom<infer _State, infer Params>
         ? Params extends [Params[0]]
           ? AtomizedUpdate<Params[0]>
           : never
