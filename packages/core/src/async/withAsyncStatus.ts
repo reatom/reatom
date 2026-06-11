@@ -13,7 +13,7 @@ import {
 import { withComputed } from '../extensions'
 import { cacheVar } from '../extensions/withCache'
 import { withMemo } from '../extensions/withMemo'
-import { getCalls, memoKey, peek } from '../methods'
+import { getCalls, memoKey } from '../methods'
 import { isAbort } from '../utils'
 import type { AsyncDataExt } from './withAsyncData'
 import type {
@@ -170,9 +170,9 @@ export const withAsyncStatus =
     // TODO support not AsyncExt targets
     const asyncTarget = target as Target & Partial<AsyncDataExt>
 
-    const getDataValue = () => peek(() => asyncTarget.data?.())
+    const getDataValue = () => asyncTarget.data?.()
 
-    const getErrorValue = () => peek(() => (asyncTarget as any).error?.())
+    const getErrorValue = () => asyncTarget.error?.()
 
     const getStatusError = (rejection?: unknown) =>
       getErrorValue() ??
@@ -358,8 +358,18 @@ export const withAsyncStatus =
         })
 
         return isSWR
-          ? { ...state, isSWR: true, data: getDataValue() }
-          : { ...state, isSWR: false }
+          ? {
+              ...state,
+              isSWR: true,
+              data: getDataValue(),
+              error: getErrorValue(),
+            }
+          : {
+              ...state,
+              isSWR: false,
+              data: getDataValue(),
+              error: getErrorValue(),
+            }
       }),
 
       withMemo(),

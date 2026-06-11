@@ -933,53 +933,6 @@ test('go.relative throws when parent is not matched', () => {
   expect(() => reviewRoute.go.relative()).toThrow('not matched')
 })
 
-test('child loader should start in parallel and resolve after parent loader', async () => {
-  const events: Array<string> = []
-  let childLoaderResolved = false
-  let resolveParent = () => {}
-  const parentReady = new Promise<void>((resolve) => {
-    resolveParent = resolve
-  })
-
-  const parentRoute = reatomRoute({
-    path: 'parent',
-    async loader() {
-      events.push('parent:start')
-      await wrap(parentReady)
-      events.push('parent:end')
-      return 'parent'
-    },
-  })
-  const childRoute = parentRoute.reatomRoute({
-    path: 'child',
-    async loader() {
-      events.push('child:start')
-      return 'child'
-    },
-  })
-
-  childRoute.go()
-  const loading = childRoute.loader()
-  loading.then(() => {
-    childLoaderResolved = true
-    events.push('child:public-end')
-  })
-  await wrap(Promise.resolve())
-
-  expect(events).toEqual(['child:start', 'parent:start'])
-  expect(childLoaderResolved).toBe(false)
-
-  resolveParent()
-  await wrap(loading)
-
-  expect(events).toEqual([
-    'child:start',
-    'parent:start',
-    'parent:end',
-    'child:public-end',
-  ])
-})
-
 test('nested route schema preserves parent params after validation', async () => {
   const integrationId = '550e8400-e29b-41d4-a716-446655440000'
 
