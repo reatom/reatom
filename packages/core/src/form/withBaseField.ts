@@ -494,7 +494,7 @@ const runValidation = <State, Value = State>({
         }
 
         const validationErrors = [
-          { source: 'validaton', message: toError(error) },
+          { source: 'validation', message: toError(error) },
         ]
 
         validationAtom.errors.set(validationErrors)
