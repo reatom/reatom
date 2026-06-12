@@ -52,7 +52,7 @@ export const Slideshow = ({
 
   return (
     <div
-      class={className}
+      class={`slideshow-controls ${className ?? ''}`}
       ref={() => {
         const stopAdvance = bindSlideshowAutoAdvance()
         const stopVisibility = bindSlideshowPauseOnPageHidden()

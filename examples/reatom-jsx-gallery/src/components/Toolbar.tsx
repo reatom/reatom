@@ -112,6 +112,7 @@ const ViewModeButton = ({
 }) => (
   <button
     type="button"
+    class="glass-lens"
     aria-pressed={() => viewMode() === mode}
     on:click={onClick}
     title={`${mode} view`}

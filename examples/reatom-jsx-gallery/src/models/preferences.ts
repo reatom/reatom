@@ -19,6 +19,7 @@ export const themePack = reatomEnum(
     'obsidian',
     'bauhaus',
     'aurora',
+    'glass',
     'monochrome',
     'retroOs',
   ],

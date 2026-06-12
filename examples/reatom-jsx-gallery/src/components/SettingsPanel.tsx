@@ -49,6 +49,7 @@ const OptionButton = ({
 }) => (
   <button
     type="button"
+    class="glass-lens"
     on:click={onClick}
     attr:data-active={isActive}
     aria-pressed={isActive}
@@ -104,6 +105,7 @@ const ToggleSwitch = ({
   >
     <span>{label}</span>
     <div
+      data-glass-toggle="true"
       on:click={onToggle}
       attr:data-on={checked}
       css={`
@@ -174,6 +176,7 @@ const ThemePackButton = ({
 }) => (
   <button
     type="button"
+    class="glass-lens"
     on:click={() => themePack.set(value)}
     attr:data-active={() => themePack() === value}
     aria-pressed={() => themePack() === value}
@@ -238,6 +241,7 @@ const ThemeModeButton = ({
 }) => (
   <button
     type="button"
+    class="glass-lens"
     on:click={() => themeMode.set(mode)}
     attr:aria-pressed={() => themeMode() === mode}
     css={`
@@ -256,14 +260,6 @@ const ThemeModeButton = ({
       transition: all 0.15s ease;
       text-transform: var(--control-transform);
 
-      &::before {
-        content: '';
-        width: 7px;
-        height: 7px;
-        border-radius: var(--radius-round);
-        background: var(--text-muted);
-      }
-
       &:hover {
         border-color: var(--accent);
         background: var(--hover-bg);
@@ -278,11 +274,21 @@ const ThemeModeButton = ({
           0 8px 20px var(--shadow);
       }
 
-      &[aria-pressed='true']::before {
+      &[aria-pressed='true'] .theme-mode-dot {
         background: currentColor;
       }
     `}
   >
+    <span
+      class="theme-mode-dot"
+      css={`
+        width: 7px;
+        height: 7px;
+        border-radius: var(--radius-round);
+        background: var(--text-muted);
+        flex-shrink: 0;
+      `}
+    />
     {label}
   </button>
 )

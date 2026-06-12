@@ -84,6 +84,7 @@ export const GridImage = ({
 
   return (
     <div
+      class="glass-card"
       {...focusableCardAttrs(openLabel(), () => openLightbox(image))}
       attr:data-selected={isSelected}
       attr:data-gap={gridGap}
@@ -157,6 +158,7 @@ export const GridImage = ({
       >
         <button
           type="button"
+          class="glass-overlay-control"
           on:click={(e: Event) => {
             e.stopPropagation()
             selectImage(image)
@@ -199,6 +201,7 @@ export const GridImage = ({
         </button>
 
         <button
+          class="glass-overlay-control"
           on:click={(e: Event) => {
             e.stopPropagation()
             image.favorite.toggle()

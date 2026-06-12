@@ -18,6 +18,7 @@ const SortFieldButton = ({
   label: string
 }) => (
   <button
+    class="glass-lens"
     on:click={() => sortField.set(value)}
     attr:data-active={() => sortField() === value}
     css={`

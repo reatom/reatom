@@ -36,6 +36,7 @@ export type ThemePack =
   | 'obsidian'
   | 'bauhaus'
   | 'aurora'
+  | 'glass'
   | 'monochrome'
   | 'retroOs'
 

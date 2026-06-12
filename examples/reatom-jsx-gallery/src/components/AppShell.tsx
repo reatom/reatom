@@ -1,6 +1,7 @@
 import { srOnlyCss } from '../a11y'
 import { resolvedThemeMode, themePack } from '../model'
 import { activeThemeVariables, GlobalStyles } from '../theme'
+import { GlassFilters } from './GlassFilters'
 
 export const AppShell = ({ children }: { children: unknown }) => (
   <div
@@ -248,6 +249,173 @@ export const AppShell = ({ children }: { children: unknown }) => (
           transparent 34%
         );
       }
+
+      &[data-theme-pack='glass'][data-theme-mode='light'] main,
+      &[data-theme-pack='glass'][data-theme-mode='dark'] main {
+        background-color: var(--bg-primary);
+        background-image:
+          radial-gradient(
+            circle at top right,
+            var(--hero-glow-2),
+            transparent 34%
+          ),
+          radial-gradient(
+            circle at 12% 18%,
+            var(--hero-glow-1),
+            transparent 38%
+          ),
+          var(--app-bg-image);
+        background-size: auto, auto, var(--bg-size);
+      }
+
+      &[data-theme-pack='glass'][data-theme-mode='light'] {
+        background-color: #d9ecf4;
+        background-image:
+          radial-gradient(
+            circle at 18% 20%,
+            rgba(14, 116, 144, 0.24),
+            transparent 36%
+          ),
+          radial-gradient(
+            circle at 82% 8%,
+            rgba(109, 40, 217, 0.18),
+            transparent 32%
+          );
+      }
+
+      &[data-theme-pack='glass'] header,
+      &[data-theme-pack='glass'] aside[role='dialog'] {
+        border-color: var(--glass-rim);
+        box-shadow:
+          var(--glow),
+          -20px 0 56px var(--shadow-strong);
+      }
+
+      &[data-theme-pack='glass'] header {
+        box-shadow:
+          var(--glow),
+          0 14px 36px var(--shadow);
+      }
+
+      &[data-theme-pack='glass'] aside[role='dialog'] {
+        box-shadow:
+          -24px 0 64px var(--shadow-strong),
+          inset 1px 0 0 var(--glass-rim-strong);
+      }
+
+      &[data-theme-pack='glass'] .glass-lens {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+      }
+
+      &[data-theme-pack='glass'] .glass-lens::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--glass-refraction-target);
+        filter: url(#glass-pill);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+
+      &[data-theme-pack='glass'] .glass-lens::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--glass-specular);
+        box-shadow: var(--glass-lens-shadow);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+
+      &[data-theme-pack='glass'] .glass-lens > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      &[data-theme-pack='glass'] .glass-lens[aria-pressed='true'],
+      &[data-theme-pack='glass'] .glass-lens[data-active='true'] {
+        color: var(--accent-contrast);
+        border-color: var(--accent);
+        background: linear-gradient(
+          135deg,
+          var(--accent),
+          var(--accent-hover)
+        );
+        box-shadow: var(--glow);
+      }
+
+      &[data-theme-pack='glass'] .glass-lens[aria-pressed='true']::before,
+      &[data-theme-pack='glass'] .glass-lens[data-active='true']::before,
+      &[data-theme-pack='glass'] .glass-lens[aria-pressed='true']::after,
+      &[data-theme-pack='glass'] .glass-lens[data-active='true']::after {
+        opacity: 0.55;
+      }
+
+      &[data-theme-pack='glass'] [data-glass-toggle] {
+        background: var(--input-bg);
+        border-color: var(--glass-rim);
+        box-shadow: inset 0 1px 0 var(--glass-rim-strong);
+      }
+
+      &[data-theme-pack='glass'] [data-glass-toggle]::after {
+        background: var(--glass-refraction-target);
+        filter: url(#glass-toggle);
+        box-shadow: var(--glass-lens-shadow);
+        border: 1px solid var(--glass-rim-strong);
+      }
+
+      &[data-theme-pack='glass'] [data-glass-toggle][data-on='true'] {
+        background: var(--accent-soft);
+        border-color: var(--accent);
+      }
+
+      &[data-theme-pack='glass'] [data-glass-toggle][data-on='true']::after {
+        background: linear-gradient(
+          135deg,
+          var(--accent),
+          var(--accent-hover)
+        );
+      }
+
+      &[data-theme-pack='glass'] .glass-card[data-selected='true'] {
+        box-shadow: var(--selected-shadow);
+      }
+
+      &[data-theme-pack='glass'] .glass-overlay-control {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        backdrop-filter: var(--panel-backdrop-filter);
+        border-color: var(--glass-rim) !important;
+        box-shadow: var(--glass-lens-shadow);
+      }
+
+      &[data-theme-pack='glass'] .glass-overlay-control::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: var(--glass-specular);
+        pointer-events: none;
+      }
+
+      &[data-theme-pack='glass'] .glass-overlay-control > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      &[data-theme-pack='glass'] .lightbox-control-layer button,
+      &[data-theme-pack='glass'] .slideshow-controls button {
+        backdrop-filter: var(--panel-backdrop-filter);
+        border-color: var(--glass-rim) !important;
+        box-shadow: var(--glass-lens-shadow);
+      }
     `}
   >
     <a
@@ -278,6 +446,7 @@ export const AppShell = ({ children }: { children: unknown }) => (
     >
       Skip to gallery
     </a>
+    <GlassFilters />
     <GlobalStyles />
     <style>
       {`
