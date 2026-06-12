@@ -335,4 +335,5 @@ export const generateGlassDisplacementMap = (
 
 export const getPresetDisplacementMap = (
   preset: GlassLensPreset,
-): GlassDisplacementMap => generateGlassDisplacementMap(GLASS_LENS_PRESETS[preset])
+): GlassDisplacementMap =>
+  generateGlassDisplacementMap(GLASS_LENS_PRESETS[preset])

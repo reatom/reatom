@@ -462,7 +462,8 @@ Fix:
 
 ```ts
 const downloadUrl = computed(
-  () => imageModel.fullImageUrl.data() ?? imageModel.thumbnail.data()?.url ?? '',
+  () =>
+    imageModel.fullImageUrl.data() ?? imageModel.thumbnail.data()?.url ?? '',
   `${name}.display.downloadUrl`,
 )
 ```

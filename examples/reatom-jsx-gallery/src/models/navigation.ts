@@ -49,7 +49,10 @@ export const reatomFolderTreeNodeUi = (
   if (cached) return cached
 
   const nodeUi: FolderTreeNodeUi = {
-    expanded: reatomBoolean(initialExpanded, `folderTree.${folderPath}.expanded`),
+    expanded: reatomBoolean(
+      initialExpanded,
+      `folderTree.${folderPath}.expanded`,
+    ),
     isSelected: computed(
       () => currentFolder()?.path === folderPath,
       `folderTree.${folderPath}.isSelected`,

@@ -124,7 +124,9 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
         ''
       )
     }
-    return imageModel.fullImageUrl.data() ?? imageModel.thumbnail.data()?.url ?? ''
+    return (
+      imageModel.fullImageUrl.data() ?? imageModel.thumbnail.data()?.url ?? ''
+    )
   }, `${name}.display.preloadUrl`)
 
   const downloadUrl = computed(() => {
@@ -136,7 +138,9 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
         ''
       )
     }
-    return imageModel.fullImageUrl.data() ?? imageModel.thumbnail.data()?.url ?? ''
+    return (
+      imageModel.fullImageUrl.data() ?? imageModel.thumbnail.data()?.url ?? ''
+    )
   }, `${name}.display.downloadUrl`)
 
   const warmDevelopPipeline = () => {

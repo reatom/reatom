@@ -6,9 +6,9 @@ import { onEvent } from './onEvent'
 /**
  * Atom returned by {@link reatomMediaQuery}.
  *
- * Exposes `query` and `mediaQueryList` so extension authors can build on top
- * of the atom without re-deriving them: `query` is the original CSS media
- * query string, useful for logging, debugging, or composing related atoms;
+ * Exposes `query` and `mediaQueryList` so extension authors can build on top of
+ * the atom without re-deriving them: `query` is the original CSS media query
+ * string, useful for logging, debugging, or composing related atoms;
  * `mediaQueryList` is the inner atom holding the underlying `MediaQueryList`,
  * useful when an extension needs the raw browser object (e.g. to read extra
  * fields like `media`, attach additional listeners, or stub it in tests).

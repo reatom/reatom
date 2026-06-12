@@ -124,7 +124,10 @@ test('addChangeHook', () => {
 
 test('addCallHook', () => {
   const cb = vi.fn()
-  const sum = action((a: number, b: number) => a + b, 'withChangeHook.addCallHook.sum')
+  const sum = action(
+    (a: number, b: number) => a + b,
+    'withChangeHook.addCallHook.sum',
+  )
 
   const unsubscribe = addCallHook(sum, cb)
 
