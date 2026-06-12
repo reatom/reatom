@@ -285,7 +285,7 @@ describe('types', () => {
       }[]
     }
 
-    expectTypeOf(test).toExtend<ToMatchTypeOf[]>()
+    expectTypeOf(test).toMatchTypeOf<ToMatchTypeOf[]>()
   })
 
   test('should parse File and other classes properly', () => {
