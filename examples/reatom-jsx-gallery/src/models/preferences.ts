@@ -27,14 +27,38 @@ export const themePack = reatomEnum(
     name: 'themePack',
     initState: 'polaroid',
   },
-).extend(withLocalStorage('gallery.themePack'))
+)
+
+themePack.extend(
+  withLocalStorage({
+    key: 'gallery.themePack',
+    fromSnapshot: (snapshot) => {
+      for (const pack of Object.values(themePack.enum)) {
+        if (pack === snapshot) return pack
+      }
+      return themePack.enum.polaroid
+    },
+  }),
+)
 
 const prefersDarkTheme = reatomMediaQuery('(prefers-color-scheme: dark)')
 
 export const themeMode = reatomEnum(['light', 'dark', 'system'], {
   name: 'themeMode',
   initState: 'system',
-}).extend(withLocalStorage('gallery.themeMode'))
+})
+
+themeMode.extend(
+  withLocalStorage({
+    key: 'gallery.themeMode',
+    fromSnapshot: (snapshot) => {
+      for (const mode of Object.values(themeMode.enum)) {
+        if (mode === snapshot) return mode
+      }
+      return themeMode.enum.system
+    },
+  }),
+)
 
 export const resolvedThemeMode = computed<ResolvedThemeMode>(() => {
   const mode = themeMode()
