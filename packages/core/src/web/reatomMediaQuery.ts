@@ -1,6 +1,24 @@
-import { atom } from '../core'
+import type { Atom } from '../core'
+import { atom, named } from '../core'
 import { reatomObservable } from '../methods'
 import { onEvent } from './onEvent'
+
+/**
+ * Atom returned by {@link reatomMediaQuery}.
+ *
+ * Exposes `query` and `mediaQueryList` so extension authors can build on top
+ * of the atom without re-deriving them: `query` is the original CSS media
+ * query string, useful for logging, debugging, or composing related atoms;
+ * `mediaQueryList` is the inner atom holding the underlying `MediaQueryList`,
+ * useful when an extension needs the raw browser object (e.g. to read extra
+ * fields like `media`, attach additional listeners, or stub it in tests).
+ */
+export type MediaQueryAtom = Atom<boolean> & {
+  /** The original CSS media query string this atom tracks. */
+  query: string
+  /** Inner atom holding the underlying `MediaQueryList` browser object. */
+  mediaQueryList: Atom<Pick<MediaQueryList, 'matches' | 'addEventListener'>>
+}
 
 /**
  * Creates a reactive atom that tracks a CSS media query state.
@@ -36,10 +54,13 @@ import { onEvent } from './onEvent'
  *
  * @param query - A CSS media query string (e.g., '(min-width: 768px)',
  *   '(prefers-color-scheme: dark)')
+ * @param name - An optional name for the atom
  * @returns An atom that holds the current match state as a boolean
  */
-export let reatomMediaQuery = (query: string) => {
-  const name = `mediaQuery#${query}`
+export let reatomMediaQuery = (
+  query: string,
+  name: string = named(`mediaQuery#${query}`),
+): MediaQueryAtom => {
   let mediaQueryList = atom<
     Pick<MediaQueryList, 'matches' | 'addEventListener'>
   >(() => globalThis.matchMedia?.(query), `${name}._mediaQueryList`)
@@ -52,5 +73,5 @@ export let reatomMediaQuery = (query: string) => {
           fn(mediaQueryList().matches),
         ),
     }
-  }, name).extend(() => ({ mediaQueryList }))
+  }, name).extend(() => ({ query, mediaQueryList }))
 }
