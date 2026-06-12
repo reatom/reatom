@@ -1,7 +1,12 @@
 import { expect, expectTypeOf, test, vi } from 'test'
 
 import { action, atom, computed, notify, withParams } from '../core'
-import { withCallHook, withChangeHook } from './withChangeHook'
+import {
+  addCallHook,
+  addChangeHook,
+  withCallHook,
+  withChangeHook,
+} from './withChangeHook'
 
 test('atomChange', () => {
   const name = 'atomChange'
@@ -97,4 +102,40 @@ test('call hook survives throwing action', () => {
   expect(cb).toBeCalledWith(2, [4, 2])
 
   queueError.mockRestore()
+})
+
+test('addChangeHook', () => {
+  const cb = vi.fn()
+  const counter = atom(0, 'withChangeHook.addChangeHook.counter')
+
+  const unsubscribe = addChangeHook(counter, cb)
+
+  counter.set(1)
+  notify()
+  expect(cb).toBeCalledWith(1, 0)
+
+  cb.mockClear()
+  unsubscribe()
+
+  counter.set(2)
+  notify()
+  expect(cb).toBeCalledTimes(0)
+})
+
+test('addCallHook', () => {
+  const cb = vi.fn()
+  const sum = action((a: number, b: number) => a + b, 'withChangeHook.addCallHook.sum')
+
+  const unsubscribe = addCallHook(sum, cb)
+
+  sum(1, 2)
+  notify()
+  expect(cb).toBeCalledWith(3, [1, 2])
+
+  cb.mockClear()
+  unsubscribe()
+
+  sum(3, 4)
+  notify()
+  expect(cb).toBeCalledTimes(0)
 })
