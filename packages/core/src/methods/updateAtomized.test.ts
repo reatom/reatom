@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, test } from 'vitest'
+import { describe, expect, expectTypeOf, test } from 'test'
 
 import { type Atom, atom, ReatomError, withParams } from '../core'
 import { reatomLinkedList } from '../primitives/reatomLinkedList'
@@ -130,6 +130,31 @@ describe('updateAtomized', () => {
     expect(array.length).toBe(2)
     expect(array[0]?.name()).toBe('C')
     expect(array[1]?.name()).toBe('D')
+  })
+
+  test('should partially update a reatomLinkedList by index', () => {
+    const list = reatomLinkedList({
+      create: (name: string) => ({ name: atom(name) }),
+      initSnapshot: [['A'], ['B']],
+    })
+
+    updateAtomized(list, { 1: { name: 'X' } })
+
+    const array = list.array()
+    expect(array.length).toBe(2)
+    expect(array[0]?.name()).toBe('A')
+    expect(array[1]?.name()).toBe('X')
+  })
+
+  test('should throw on an out-of-range index in a reatomLinkedList partial update', () => {
+    const list = reatomLinkedList({
+      create: (name: string) => ({ name: atom(name) }),
+      initSnapshot: [['A']],
+    })
+
+    expect(() => updateAtomized(list, { 1: { name: 'X' } })).toThrow(
+      ReatomError,
+    )
   })
 
   test('should handle complex nested updates', () => {

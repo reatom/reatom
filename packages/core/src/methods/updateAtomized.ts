@@ -5,15 +5,17 @@ import {
   type LinkedList,
   type LinkedListAtom,
 } from '../primitives/reatomLinkedList'
+import type { Rec } from '../utils'
 import { isRec } from '../utils'
 
 /**
  * The plain update accepted by {@link updateAtomized} for a given atomized
  * `Shape`. It mirrors `Shape`, replacing every `Atom<Value>` with its raw
  * `Value` (or the atom's param when it has custom params). Collections are
- * replaced wholesale: a `Map` expects `[key, value][]`, a `Set` and a
- * `reatomLinkedList` expect an array, and a plain array accepts either a full
- * array or a partial `{ [index]: update }` map.
+ * replaced wholesale: a `Map` expects `[key, value][]`, a `Set` expects an
+ * array, while a plain array and a `reatomLinkedList` accept either a full
+ * array (a snapshot of `create` params for the linked list) or a partial `{
+ * [index]: update }` map.
  *
  * @template Shape The type of the atomized structure.
  */
@@ -50,9 +52,11 @@ export type AtomizedUpdate<Shape> =
  * - **Atoms and plain objects** are merged _partially and recursively_: only the
  *   keys present in `update` are touched, every other field is preserved.
  * - **Arrays, `Map`, `Set` and `reatomLinkedList`** are _replaced wholesale_ with
- *   the provided value — there is no per-item merge. Plain arrays additionally
- *   accept a partial form keyed by index (e.g. `{ 1: ... }`) to update
- *   individual items in place.
+ *   the provided value — there is no per-item merge. Plain arrays and
+ *   `reatomLinkedList`s additionally accept a partial form keyed by index (e.g.
+ *   `{ 1: ... }`) to update individual items in place; for a linked list it
+ *   updates the atoms INSIDE the addressed nodes (plain non-atom fields of a
+ *   bare-record node cannot be written back).
  *
  * @example
  *   // Set a standalone atom directly
@@ -130,6 +134,19 @@ export function updateAtomized<T>(target: T, update: AtomizedUpdate<T>) {
     if (Array.isArray(update)) {
       // @ts-expect-error bad ll inference
       target.set(target.initiateFromSnapshot(update))
+      return target
+    }
+    if (isRec(update)) {
+      const nodes = target.array()
+      for (const key in update) {
+        const node = nodes[Number(key)]
+        if (!node) {
+          throw new ReatomError(
+            `Linked list index "${key}" is out of range (${formatMessage(update)} -> ${formatMessage(target)})`,
+          )
+        }
+        updateAtomized(node, (update as Rec)[key])
+      }
       return target
     }
   } else if (isAtom(target)) {
