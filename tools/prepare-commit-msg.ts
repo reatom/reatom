@@ -106,6 +106,14 @@ function getExampleScopesFromFiles(files: string[]): string[] {
   return Array.from(scopes).sort()
 }
 
+function isDocsOnlyCommit(files: string[]): boolean {
+  const docsPattern = SCOPE_MAP.docs
+  return (
+    files.length > 0 &&
+    files.every((file) => matchesPattern(file, docsPattern))
+  )
+}
+
 function getStagedFiles(): string[] {
   const output = execSync('git diff --cached --name-only', {
     encoding: 'utf-8',
@@ -199,6 +207,24 @@ function main() {
       console.log(
         `Commit message updated for example(s): ${exampleScopes.join(', ')}`,
       )
+      return
+    }
+
+    const docsOnlyCommit = isDocsOnlyCommit(stagedFiles)
+    if (docsOnlyCommit) {
+      if (parsed?.scope) {
+        return
+      }
+
+      if (!parsed) {
+        const newFirstLine = `docs: ${trimmedFirstLine}`
+        const newMessage = restOfMessage
+          ? `${newFirstLine}\n${restOfMessage}`
+          : newFirstLine
+        fs.writeFileSync(commitMsgFile, newMessage)
+        console.log('Commit message updated for docs-only commit')
+      }
+
       return
     }
 
