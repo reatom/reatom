@@ -3,7 +3,7 @@ import { expect, test, vi } from 'test'
 import { _read, action, atom, computed } from '../core'
 import { withCallHook } from '../extensions'
 import { retryComputed, wrap } from '../methods'
-import { noop, sleep } from '../utils'
+import { noop, sleep, throwAbort } from '../utils'
 import { withAsync } from './withAsync'
 
 test('action', async () => {
@@ -85,6 +85,32 @@ test('action error handling', async () => {
     payload: 'Success',
     params: [false],
   })
+})
+
+test('abort rejection settles without calling onReject', async () => {
+  const fetch = action(async (shouldAbort: boolean) => {
+    await wrap(sleep())
+    if (shouldAbort) throwAbort('aborted')
+    return 'Success'
+  }, 'abortAsync.data').extend(withAsync())
+
+  const onReject = vi.fn()
+  fetch.onReject.extend(withCallHook((call) => onReject(call)))
+  const onSettle = vi.fn()
+  fetch.onSettle.extend(withCallHook((call) => onSettle(call)))
+
+  await wrap(fetch(true).catch(noop))
+
+  // the abort settles the async lifecycle but is not a business rejection
+  expect(onReject).not.toHaveBeenCalled()
+  expect(onSettle).toHaveBeenCalledTimes(1)
+  expect(fetch.error()).toBeUndefined()
+  expect(fetch.pending()).toBe(0)
+
+  // a real rejection still reaches onReject
+  await wrap(fetch(false))
+  expect(onReject).not.toHaveBeenCalled()
+  expect(onSettle).toHaveBeenCalledTimes(2)
 })
 
 test('computed retry', async () => {
