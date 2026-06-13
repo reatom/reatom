@@ -109,8 +109,7 @@ function getExampleScopesFromFiles(files: string[]): string[] {
 function isDocsOnlyCommit(files: string[]): boolean {
   const docsPattern = SCOPE_MAP.docs
   return (
-    files.length > 0 &&
-    files.every((file) => matchesPattern(file, docsPattern))
+    files.length > 0 && files.every((file) => matchesPattern(file, docsPattern))
   )
 }
 

@@ -17,23 +17,23 @@ Use this skill when implementing or explaining Reatom v1001. Treat [summary.md](
 
 Use this map to open only the relevant parts of [summary.md](summary.md):
 
-| Topic | Section |
-| --- | --- |
-| Atoms, computed, action, effect, extend | Core primitives and mental model |
-| Queries and mutations | withAsync |
-| Async context after await / callbacks | **wrap** rules |
-| Collections, boolean, route helpers | Primitives quick usage |
-| Nested reactive fields | Atomization |
-| Hooks, connect/disconnect, lazy work | Lifecycle and extension hooks |
-| DOM / external events | Event sampling and orchestration |
-| Hot derivations | Memoization: **memo** and **memoKey** |
-| Fields and validation | Forms: base usage and reactive validation |
-| SPA routes and loaders | Routing |
-| Search params, storage | URL sync and persistence helpers |
-| React Suspense integration | Suspense notes |
-| Batched updates | Transactions notes |
-| Tests and SSR | SSR and testing |
-| Upgrades from older Reatom | v3 migration highlights |
+| Topic                                   | Section                                   |
+| --------------------------------------- | ----------------------------------------- |
+| Atoms, computed, action, effect, extend | Core primitives and mental model          |
+| Queries and mutations                   | withAsync                                 |
+| Async context after await / callbacks   | **wrap** rules                            |
+| Collections, boolean, route helpers     | Primitives quick usage                    |
+| Nested reactive fields                  | Atomization                               |
+| Hooks, connect/disconnect, lazy work    | Lifecycle and extension hooks             |
+| DOM / external events                   | Event sampling and orchestration          |
+| Hot derivations                         | Memoization: **memo** and **memoKey**     |
+| Fields and validation                   | Forms: base usage and reactive validation |
+| SPA routes and loaders                  | Routing                                   |
+| Search params, storage                  | URL sync and persistence helpers          |
+| React Suspense integration              | Suspense notes                            |
+| Batched updates                         | Transactions notes                        |
+| Tests and SSR                           | SSR and testing                           |
+| Upgrades from older Reatom              | v3 migration highlights                   |
 
 Deeper recipes and adapter docs live on [v1001.reatom.dev](https://v1001.reatom.dev) under `/docs/handbook/*` and `/docs/reference/*`.
 
