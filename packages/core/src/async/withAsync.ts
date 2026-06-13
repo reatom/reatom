@@ -357,7 +357,11 @@ export let withAsync: {
           }, frame),
           bind((error) => {
             if (cacheState) pending.set((state) => state + 1)
-            abortVar.spawn(onReject, error, params)
+            if (isAbort(error)) {
+              abortVar.spawn(onSettle, { error, params })
+            } else {
+              abortVar.spawn(onReject, error, params)
+            }
           }, frame),
         )
       }
