@@ -7,11 +7,15 @@ description: Reviews code, docs, examples, and agent-produced changes that use R
 
 Use this skill to validate an agent's work against Reatom v1001 practices. Be skeptical: the goal is to find incorrect behavior, misleading docs, stale API usage, weak tests, and patterns that only look plausible.
 
+## Reference
+
+Before validating API usage, extension options, or documentation claims, read the relevant sections of [summary.md](summary.md). It is the canonical v1001 API reference bundled with this skill. For implementation (not review), use the `reatom` skill.
+
 ## Review Stance
 
 - Lead with findings. Do not praise before checking correctness.
 - Criticize the reviewed work, not the author.
-- Treat `summary.md` as the local source of truth when it conflicts with generic frontend habits.
+- Treat [summary.md](summary.md) as the local source of truth when it conflicts with generic frontend habits.
 - Quote concrete files/symbols and explain the failure mode.
 - Prefer one precise fix over vague advice.
 - If a change is acceptable only with a special reason, ask for that reason or mark it as a risk.
@@ -820,7 +824,7 @@ If no findings remain, say so directly and list residual risks, especially untes
 ## Final Review Checklist
 
 - Did you inspect both code and docs changed by the agent?
-- Did you compare claims against `summary.md`, not generic React/Solid/Vue habits?
+- Did you compare claims against [summary.md](summary.md), not generic React/Solid/Vue habits?
 - Did you check async context and `wrap` after every await/callback boundary?
 - Did you flag bare `wrap(() => ...)` statements and pointless `wrap(() => ...)()` IIFEs inside Reatom frames?
 - Did you challenge imperative fetching, manual routing, and parallel mutable state?
