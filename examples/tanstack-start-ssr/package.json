@@ -1,0 +1,28 @@
+{
+  "name": "reatom-tanstack-start-ssr",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "start": "node .output/server/index.mjs"
+  },
+  "dependencies": {
+    "@reatom/core": "1001.*.*",
+    "@reatom/react": "1001.*.*",
+    "@tanstack/react-router": "^1.170.15",
+    "@tanstack/react-start": "^1.168.25",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.0.2",
+    "nitro": "^3.0.260610-beta",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.14"
+  }
+}

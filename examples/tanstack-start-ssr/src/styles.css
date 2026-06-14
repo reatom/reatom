@@ -1,0 +1,131 @@
+:root {
+  color: #172033;
+  background: #f4f7fb;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page {
+  display: grid;
+  gap: 32px;
+  max-width: 960px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 64px 24px;
+}
+
+.hero {
+  display: grid;
+  gap: 18px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #396ce8;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 720px;
+  margin: 0;
+  font-size: clamp(42px, 7vw, 72px);
+  line-height: 0.95;
+}
+
+.lead {
+  max-width: 680px;
+  margin: 0;
+  color: #526071;
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.search {
+  display: grid;
+  gap: 10px;
+  max-width: 620px;
+}
+
+.search label {
+  color: #39465a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.search div {
+  display: flex;
+  gap: 12px;
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #c8d2e2;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: white;
+}
+
+.search button {
+  border: 0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  color: white;
+  background: #2457d6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #dce4ef;
+  border-radius: 24px;
+  padding: 28px;
+  background: white;
+  box-shadow: 0 20px 50px rgb(23 32 51 / 10%);
+}
+
+.card span {
+  color: #526071;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.card strong {
+  font-size: 32px;
+}
+
+.card ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+  color: #39465a;
+}
+
+@media (width < 640px) {
+  .search div {
+    flex-direction: column;
+  }
+}
