@@ -4,15 +4,23 @@ import {
   Outlet,
   Scripts,
 } from '@tanstack/react-router'
-import { reatomComponent } from '@reatom/react'
+import { reatomContext } from '@reatom/react'
+import { useMemo } from 'react'
 
 import '../styles.css'
 
-import { getSsrSnapshotScriptId } from '../lib/reatom-ssr'
-import { ssrSnapshotJsonAtom } from '../model'
+import {
+  createFrameFromSnapshot,
+  createSsrLoaderData,
+  getSsrSnapshotScriptId,
+} from '../lib/reatom-ssr'
 
-const RootDocument = reatomComponent(() => {
-  const ssrSnapshotJson = ssrSnapshotJsonAtom()
+const RootDocument = () => {
+  const loaderData = Route.useLoaderData()
+  const frame = useMemo(
+    () => createFrameFromSnapshot(loaderData.href, loaderData.snapshotJson),
+    [loaderData.href, loaderData.snapshotJson],
+  )
 
   return (
     <html lang="en">
@@ -20,19 +28,21 @@ const RootDocument = reatomComponent(() => {
         <HeadContent />
       </head>
       <body>
-        <main>
-          <Outlet />
-        </main>
+        <reatomContext.Provider value={frame}>
+          <main>
+            <Outlet />
+          </main>
+        </reatomContext.Provider>
         <script
           id={getSsrSnapshotScriptId()}
           type="application/json"
-          dangerouslySetInnerHTML={{ __html: ssrSnapshotJson }}
+          dangerouslySetInnerHTML={{ __html: loaderData.snapshotJson }}
         />
         <Scripts />
       </body>
     </html>
   )
-}, 'RootDocument')
+}
 
 export const Route = createRootRoute({
   head: () => ({
@@ -42,5 +52,6 @@ export const Route = createRootRoute({
       { title: 'Reatom TanStack Start SSR' },
     ],
   }),
+  loader: ({ location }) => createSsrLoaderData(location.href),
   component: RootDocument,
 })

@@ -4,15 +4,19 @@ import {
   noop,
   type Fn,
   type PersistRecord,
-  type RootFrame,
   top,
   urlAtom,
   wrap,
 } from '@reatom/core'
 
-import { searchResource, ssrSnapshotJsonAtom, ssrStorage } from '../model'
+import { searchResource, ssrStorage } from '../model'
 
 export type SsrSnapshot = Record<string, PersistRecord<unknown>>
+
+export interface SsrLoaderData {
+  href: string
+  snapshotJson: string
+}
 
 const snapshotScriptId = 'reatom-ssr-snapshot'
 
@@ -41,11 +45,6 @@ export const parseSsrSnapshot = (text: string): SsrSnapshot => {
 }
 
 export const getSsrSnapshotScriptId = () => snapshotScriptId
-
-export const readSsrSnapshotFromDocument = () => {
-  const snapshotElement = document.getElementById(snapshotScriptId)
-  return parseSsrSnapshot(snapshotElement?.textContent ?? '{}')
-}
 
 const allSettled = (start: Fn) =>
   new Promise<void>((resolve) => {
@@ -83,25 +82,32 @@ export const preloadSsrModel = () =>
     searchResource.data()
   })
 
-export const createServerFrame = async (href: string): Promise<RootFrame> => {
-  const frame = context.start()
+export const normalizeSsrHref = (href: string) =>
+  new URL(href, 'http://localhost').href
 
-  await frame.run(async () => {
-    setupSsrUrl(href)
+export const createSsrLoaderData = async (
+  href: string,
+): Promise<SsrLoaderData> =>
+  context.start(async () => {
+    const normalizedHref = normalizeSsrHref(href)
+
+    setupSsrUrl(normalizedHref)
     await wrap(preloadSsrModel())
-    ssrSnapshotJsonAtom.set(serializeSsrSnapshot(ssrStorage.snapshotAtom()))
+
+    return {
+      href: normalizedHref,
+      snapshotJson: serializeSsrSnapshot(ssrStorage.snapshotAtom()),
+    }
   })
 
-  return frame
-}
-
-export const createClientFrame = (href: string, snapshot: SsrSnapshot) => {
+export const createFrameFromSnapshot = (href: string, snapshotJson: string) => {
   const frame = context.start()
 
   frame.run(() => {
-    setupSsrUrl(href)
+    const snapshot = parseSsrSnapshot(snapshotJson)
+
+    setupSsrUrl(normalizeSsrHref(href))
     ssrStorage.snapshotAtom.set(snapshot)
-    ssrSnapshotJsonAtom.set(serializeSsrSnapshot(snapshot))
   })
 
   return frame

@@ -4,13 +4,5 @@ import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
-  plugins: [
-    tanstackStart({
-      client: { entry: './src/client.tsx' },
-      server: { entry: './src/server.tsx' },
-      srcDirectory: 'src',
-    }),
-    react(),
-    nitro(),
-  ],
+  plugins: [tanstackStart({ srcDirectory: 'src' }), react(), nitro()],
 })

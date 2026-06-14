@@ -23,8 +23,8 @@ const createSearchResult = (query: string): SearchResult => {
     query: normalizedQuery,
     items: [
       `${titleQuery} state is resolved during SSR`,
-      `${titleQuery} cache is serialized with the HTML`,
-      `${titleQuery} data hydrates without a loading flash`,
+      `${titleQuery} snapshot is serialized with the HTML`,
+      `${titleQuery} hydration starts from cached data`,
     ],
   }
 }
@@ -46,5 +46,3 @@ export const searchResource = computed(async () => {
   withAsyncData({ initState: createSearchResult('') }),
   withCache({ withPersist: withSsrPersist }),
 )
-
-export const ssrSnapshotJsonAtom = atom('{}', 'tanstackStartSsr.snapshotJson')
