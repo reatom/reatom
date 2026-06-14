@@ -277,6 +277,7 @@ export let withCache =
               time,
             )
 
+      // @ts-expect-error browser / node compatibility
       clearTimeoutId.unref?.()
 
       return clearTimeoutId

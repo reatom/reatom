@@ -1,11 +1,11 @@
-import { expect, subscribe, test, vi } from 'test'
+import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
 import { withAsyncData } from '../async/withAsyncData'
 import { action, atom, computed, context } from '../core'
 import { wrap } from '../methods'
 import { createMemStorage, reatomPersist } from '../persist'
 import { noop, sleep } from '../utils'
-import { withCache } from './withCache'
+import { withCache, type WithCacheOptions } from './withCache'
 
 test('withCache', async () => {
   const name = 'withCache.basic'
@@ -208,11 +208,15 @@ test('withPersist', async () => {
   const effect = vi.fn(async (a: number, b: number) => a + b)
   const fetchData1 = action(effect, `${name}.fetch1`).extend(
     withAsyncData({ initState: 0 }),
-    withCache({ withPersist: () => withMock('fetch') }),
+    withCache({
+      withPersist: (options) => withMock({ ...options, key: 'fetch' }),
+    }),
   )
   const fetchData2 = action(effect, `${name}.fetch2`).extend(
     withAsyncData({ initState: 0 }),
-    withCache({ withPersist: () => withMock('fetch') }),
+    withCache({
+      withPersist: (options) => withMock({ ...options, key: 'fetch' }),
+    }),
   )
 
   await wrap(fetchData1(1, 2))
@@ -220,6 +224,18 @@ test('withPersist', async () => {
 
   fetchData2(1, 2).catch(noop)
   expect(fetchData2.data()).toBe(3)
+})
+
+test('types: accepts generic persist adapter directly', () => {
+  const name = 'withCache.persistTypes'
+  const withSSR = reatomPersist(createMemStorage({ name }))
+  const resource = computed(async () => '', `${name}.resource`)
+
+  expectTypeOf(withSSR).toExtend<
+    NonNullable<WithCacheOptions<typeof resource>['withPersist']>
+  >()
+
+  resource.extend(withCache({ withPersist: withSSR }))
 })
 
 test('do not cache throwed', async () => {
@@ -298,8 +314,8 @@ test('Infinity cache invalidation', async () => {
 
 test('reactive cache', async () => {
   const name = 'withCache.reactive'
-  const ssrStorage = createMemStorage({ name: 'myModel', subscribe: true })
-  const withMyModelPersist = reatomPersist(ssrStorage)
+  const myStorage = createMemStorage({ name: 'myModel', subscribe: true })
+  const withMyModelPersist = reatomPersist(myStorage)
 
   const a = atom(0, `${name}.a`).extend(withMyModelPersist('a'))
   const r = computed(async () => {
@@ -326,11 +342,11 @@ test('reactive cache', async () => {
       await wrap(r())
       await wrap(sleep())
       expect(r.data()).toBe(3)
-      return ssrStorage.snapshotAtom()
+      return myStorage.snapshotAtom()
     }),
   )
 
-  ssrStorage.snapshotAtom.set(snapshot)
+  myStorage.snapshotAtom.set(snapshot)
   expect(a()).toBe(3)
   expect(r.data()).toBe(3)
 })
