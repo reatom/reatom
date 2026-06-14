@@ -96,10 +96,10 @@ export interface WithPersistOptions<State = unknown, Snapshot = unknown> {
   key: string
 
   /** Custom snapshot serializer. */
-  toSnapshot?: (state: State) => Snapshot
+  toSnapshot?(state: State): Snapshot
 
   /** Custom snapshot deserializer. */
-  fromSnapshot?: (snapshot: Snapshot, state?: State) => State
+  fromSnapshot?(snapshot: Snapshot, state?: State): State
 
   /** Schema to validate and transform the snapshot. */
   schema?: StandardSchemaV1<State, Snapshot>
