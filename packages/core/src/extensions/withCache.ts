@@ -482,7 +482,6 @@ export let withCache =
       cacheAtom.extend(
         withPersist({
           key: cacheAtom.name,
-          // @ts-expect-error snapshot unknown type
           fromSnapshot: (
             snapshot: Array<[unknown, ThisCacheRecord]>,
             state = new Map(),
