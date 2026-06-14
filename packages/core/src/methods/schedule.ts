@@ -23,10 +23,13 @@ export let schedule = <T>(
       try {
         let result = wrappedFn()
 
-        if (result instanceof Promise) result.then(res, rej)
-        else res(result)
+        if (result instanceof Promise) return result.then(res, rej)
+
+        res(result)
+        return result
       } catch (e) {
         rej(e)
+        return undefined
       }
     }, queue),
   )
