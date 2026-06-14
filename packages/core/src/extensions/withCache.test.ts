@@ -1,10 +1,12 @@
 import { expect, expectTypeOf, subscribe, test, vi } from 'test'
 
 import { withAsyncData } from '../async/withAsyncData'
-import { action, atom, computed, context } from '../core'
-import { wrap } from '../methods'
-import { createMemStorage, reatomPersist } from '../persist'
-import { noop, sleep } from '../utils'
+import { action, atom, computed, context, top } from '../core'
+import { schedule, wrap } from '../methods'
+import { createMemStorage, type PersistRecord, reatomPersist } from '../persist'
+import { withSearchParams } from '../routing'
+import { type Fn, noop, type Rec, sleep } from '../utils'
+import { urlAtom } from '../web'
 import { withCache, type WithCacheOptions } from './withCache'
 
 test('withCache', async () => {
@@ -349,4 +351,73 @@ test('reactive cache', async () => {
   myStorage.snapshotAtom.set(snapshot)
   expect(a()).toBe(3)
   expect(r.data()).toBe(3)
+})
+
+test('SSR example', async () => {
+  const allSettled = (start: Fn) =>
+    new Promise<void>((resolve) => {
+      let i = 0
+      let { root } = top()
+      let { pushQueue } = root
+
+      root.pushQueue = (cb, queue) => {
+        root[queue].push(async () => {
+          try {
+            i++
+            await cb()
+          } finally {
+            if (--i === 0) {
+              resolve()
+              root.pushQueue = pushQueue
+            }
+          }
+        })
+      }
+
+      start()
+    })
+
+  // same for client and server in this test, different IRL
+  const setupUrl = () => {
+    urlAtom.sync.set(() => noop)
+    urlAtom.set(new URL('https://example.com/?q=test-query'))
+  }
+
+  const name = 'withCache.ssr'
+  const ssrStorage = createMemStorage({ name: 'ssr' })
+  const withSSR = reatomPersist(ssrStorage)
+
+  const params = atom('', `${name}.params`).extend(withSearchParams('q'))
+  const resource = computed(async () => {
+    const value = params()
+    await wrap(schedule(() => sleep(10)))
+    return value
+  }, `${name}.resource`).extend(
+    withAsyncData({ initState: '' }),
+    withCache({ withPersist: withSSR }),
+  )
+
+  const server = async () => {
+    setupUrl()
+    await wrap(
+      allSettled(() => {
+        // trigger explicitly in this test, should call "render" IRL
+        resource.data()
+      }),
+    )
+    return ssrStorage.snapshotAtom()
+  }
+
+  const client = (snapshot: Rec<PersistRecord<unknown>>) => {
+    setupUrl()
+
+    ssrStorage.snapshotAtom.set(snapshot)
+
+    expect(params()).toBe('test-query')
+    expect(resource.data()).toBe('test-query')
+  }
+
+  const snapshot = await wrap(context.start(() => server()))
+
+  await wrap(client(snapshot))
 })
