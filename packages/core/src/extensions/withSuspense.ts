@@ -274,13 +274,15 @@ export let withSuspenseInit: {
 
   <Target extends AtomLike>(
     cb: (
-      state?: AtomState<Target>,
+      state: AtomState<Target>,
+      ...params: any[]
     ) => AtomState<Target> | Promise<AtomState<Target>>,
   ): Ext<Target>
 } =
   <Target extends AtomLike>(
     cb?: (
-      state?: AtomState<Target>,
+      state: AtomState<Target>,
+      ...params: any[]
     ) => AtomState<Target> | Promise<AtomState<Target>>,
   ): Ext<Target> =>
   (target) =>
@@ -310,10 +312,10 @@ export let withSuspenseInit: {
           },
         'read',
       ),
-      withInit((initState: AtomState<Target>) => {
+      withInit((initState: AtomState<Target>, ...params: any[]) => {
         let result: AtomState<Target> | Promise<AtomState<Target>>
         try {
-          result = cb ? cb(initState) : initState
+          result = cb ? cb(initState, ...params) : initState
         } catch (thrown: unknown) {
           if (thrown instanceof Promise) {
             result = thrown

@@ -1,6 +1,6 @@
 import { expect, subscribe, test } from 'test'
 
-import { atom, computed, isConnected, notify } from '../core'
+import { atom, computed, context, isConnected, notify } from '../core'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
 import { suspense, withSuspense, withSuspenseInit } from './withSuspense'
@@ -118,6 +118,23 @@ test('withSuspenseInit unwrap', async () => {
   expect(() => data()).toThrowError(Promise)
   await wrap(sleep())
   expect(data()).toBe(1)
+})
+
+test('withSuspenseInit init params', async () => {
+  const data = atom(0).extend(
+    withSuspenseInit((init, ...params) =>
+      params.length ? init : sleep().then(() => 1),
+    ),
+  )
+
+  context.start(() => {
+    expect(() => data()).toThrowError(Promise)
+  })
+  context.start(() => {
+    // @ts-ignore TODO fix "not" types
+    expect(() => data.set(1)).not.toThrow()
+    expect(data()).toBe(1)
+  })
 })
 
 const suspenseRetry = async (cb: () => unknown) => {
