@@ -111,11 +111,12 @@ Now we have extra atoms and actions to manage the list resource:
 
 - **list.data()**: the fetched list data
 - **list.ready()**: false by default and when the list is loading, true when the list is loaded
+- **list.pending()**: number of in-flight calls
 - **list.error()**: the error if the list fetching failed
-- **list.status()**: union of loading / error / data states
-- **list.retry()**: retry the list fetching
+- **list.retry()**: retry the list fetching (computeds can retry without `cacheParams`)
 - **list.reset()**: reset the list fetch and data to the initial state
   > you can use `list.data.reset` separately to reset the data only
+- **list.status()**: union of loading / error / data states — **opt-in**, available only when extended with `{ status: true }`; otherwise use `.ready()` / `.pending()` / `.error()`
 
 Also withAsyncData used `withAbort` under the hood, that prevent race conditions.
 
@@ -162,10 +163,15 @@ const submit = action(async (payload: MyForm) => {
 
 Key points
 
-- **submit.error()**, **submit.status()**, **submit.retry()** - the same base atom and actions
+- **submit.error()** - the same base atom
 - **submit.ready()** true by default for withAsync
+- **submit.pending()** - number of in-flight calls
+- **submit.status()** - **opt-in**, requires `withAsync({ status: true })`; otherwise use `.ready()` / `.pending()` / `.error()`
+- **submit.retry()** - **opt-in for actions**, requires `withAsync({ cacheParams: true })`; without it `retry` throws at call time. Computeds (`withAsyncData`) can retry without this option.
 - **submit.onFulfill**, **submit.onReject**, **submit.onSettle** - additional actions for precise logging and tracking, that can be "hooked" with `withCallHook` for additional logic (available in `withAsyncData` too)
 - **withAsync** does not add abort by default, add **withAbort** if needed
+
+> Note: `.status()` is opt-in via `{ status: true }`; action `.retry()` is opt-in via `{ cacheParams: true }`. Both default to `false` for performance / memory reasons. See the reatom-review skill `SKILL.md` "common rewrites" section for the full rule.
 
 ## **wrap** rules
 
