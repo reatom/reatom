@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "afterAgentResponse": [
+      {
+        "type": "prompt",
+        "prompt": "If you think the task is complete, sync your changes with the relevant JSDoc and the documentation (docs/src/content/docs/handbook).",
+        "timeout": 60
+      }
+    ]
+  }
+}
