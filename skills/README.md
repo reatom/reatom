@@ -12,10 +12,10 @@ npx skills add reatom/reatom --skill reatom-jsx
 npx skills add reatom/reatom --skill reatom-review
 ```
 
-| Skill | Bundled reference |
-| --- | --- |
-| `reatom` | `summary.md` — compact v1001 API reference |
-| `reatom-jsx` | `README.md` — `@reatom/jsx` package docs |
-| `reatom-review` | `summary.md` + review checklist |
+| Skill           | Bundled reference                          |
+| --------------- | ------------------------------------------ |
+| `reatom`        | `summary.md` — compact v1001 API reference |
+| `reatom-jsx`    | `README.md` — `@reatom/jsx` package docs   |
+| `reatom-review` | `summary.md` + review checklist            |
 
 Full docs: [v1001.reatom.dev](https://v1001.reatom.dev)
