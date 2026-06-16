@@ -11,7 +11,8 @@ Use this skill when implementing or explaining Reatom v1001. Treat [summary.md](
 
 1. Read the sections of [summary.md](summary.md) that match the task — do not load generic React/Solid/Vue state patterns when they conflict with the summary.
 2. Follow existing code in the touched package or example for naming, file layout, and extension style.
-3. For pull requests, reviews, or skeptic validation of agent output, switch to the `reatom-review` skill.
+3. For `@reatom/jsx` (native DOM JSX, mount, props, css prop), switch to the `reatom-jsx` skill.
+4. For pull requests, reviews, or skeptic validation of agent output, switch to the `reatom-review` skill.
 
 ## Section map
 
