@@ -17,20 +17,20 @@ Use this skill when implementing or explaining `@reatom/jsx`. Treat [README.md](
 
 Use this map to open only the relevant parts of [README.md](README.md):
 
-| Topic | Section |
-| --- | --- |
-| Install, tsconfig, Vite | Installation, Framework compatibility |
-| Bootstrapping the app | Example, Hot module replacement |
-| Props, children, bindings | Reference → Props, Children, Models |
-| Inline and css-prop styles | Reference → `style` props, `style:*`, CSS-in-JS |
-| Class names | Reference → `class` or `className`, `reatomClassName` |
-| Components and lists | Reference → Components |
-| Bulk prop binding | Reference → `$spread` |
-| SVG and raw markup | Reference → SVG |
-| Mount side effects | Reference → `ref` props |
-| Utilities | Utilities → `reatomClassName`, `css`, `<Bind>` |
-| TypeScript | TypeScript |
-| SSR and keyed lists | Limitations |
+| Topic                      | Section                                               |
+| -------------------------- | ----------------------------------------------------- |
+| Install, tsconfig, Vite    | Installation, Framework compatibility                 |
+| Bootstrapping the app      | Example, Hot module replacement                       |
+| Props, children, bindings  | Reference → Props, Children, Models                   |
+| Inline and css-prop styles | Reference → `style` props, `style:*`, CSS-in-JS       |
+| Class names                | Reference → `class` or `className`, `reatomClassName` |
+| Components and lists       | Reference → Components                                |
+| Bulk prop binding          | Reference → `$spread`                                 |
+| SVG and raw markup         | Reference → SVG                                       |
+| Mount side effects         | Reference → `ref` props                               |
+| Utilities                  | Utilities → `reatomClassName`, `css`, `<Bind>`        |
+| TypeScript                 | TypeScript                                            |
+| SSR and keyed lists        | Limitations                                           |
 
 ## Implementation defaults
 
