@@ -34,6 +34,7 @@
     "tsx": "catalog:",
     "typescript": "catalog:",
     "typescript-eslint": "catalog:",
+    "vitest": "catalog:",
     "zx": "catalog:"
   },
   "author": "artalar",
