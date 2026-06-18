@@ -179,3 +179,34 @@ test('correct handling of immediate sync throw of promise', async () => {
 
   await wrap(expect(suspenseRetry(otherSuspenseAtom)).resolves.toBe(true))
 })
+
+test('sync-thrown suspense atom healed via .set notifies passive subscribers', async () => {
+  const client = computed(async () => {
+    await wrap(sleep())
+    return 'CLIENT'
+  }).extend(withSuspense())
+
+  const query = atom(() => {
+    client.suspended()
+    return 'initial'
+  }).extend(withSuspenseInit())
+
+  const consumer = computed(() => {
+    try {
+      return query()
+    } catch (error) {
+      if (error instanceof Promise) return 'PENDING'
+      throw error
+    }
+  })
+
+  const track = subscribe(consumer)
+  expect(track).toHaveBeenCalledWith('PENDING')
+
+  await wrap(sleep())
+  query.set('DATA')
+  notify()
+  await wrap(sleep())
+
+  expect(track).toHaveBeenCalledWith('DATA')
+})

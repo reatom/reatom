@@ -1,5 +1,6 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
 import {
+  _copy,
   _createGlobal,
   _set,
   AtomInitState,
@@ -300,9 +301,10 @@ export let withSuspenseInit: {
                 initState instanceof AtomInitState &&
                 frame.state === undefined
               ) {
-                frame.state = initState
-                frame.error = null
-                frame.pubs = [null]
+                let restored = _copy(frame)
+                restored.state = initState
+                restored.error = null
+                restored.pubs = [null]
               }
 
               throw error
