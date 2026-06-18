@@ -1,5 +1,5 @@
 import type { Action, Computed } from '../core'
-import { _read, computed, context, named, top } from '../core'
+import { _enqueue, _read, computed, context, named, top } from '../core'
 import { withAbort } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import type { Unsubscribe } from '../utils'
@@ -91,7 +91,20 @@ export let effect = <T>(cb: () => T, name?: string) => {
     return res
   }, name).extend(withAbort(), withDynamicSubscription())
 
-  return target.extend((target) => ({
-    unsubscribe: target.subscribe(),
+  let unsubscribe = target.subscribe()
+
+  let extendedTarget = target.extend((target) => ({
+    unsubscribe: () => unsubscribe(),
   }))
+
+  const originalExtend = extendedTarget.extend
+  // @ts-ignore
+  extendedTarget.extend = (...extensions: Array<Ext>) => {
+    unsubscribe()
+    originalExtend.apply(extendedTarget, extensions)
+    unsubscribe = extendedTarget.subscribe()
+    return extendedTarget
+  }
+
+  return extendedTarget
 }

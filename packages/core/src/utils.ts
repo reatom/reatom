@@ -737,7 +737,7 @@ export const throwIfAborted = (controller?: void | null | AbortController) => {
  * @returns True if the value is an AbortError, false otherwise
  */
 export const isAbort = (thing: any): thing is AbortError =>
-  thing instanceof Error && thing.name === 'AbortError'
+  thing && (thing instanceof Error || typeof thing === 'object') && thing.name === 'AbortError'
 
 /**
  * Creates and throws an AbortError with the provided message. Optionally aborts
