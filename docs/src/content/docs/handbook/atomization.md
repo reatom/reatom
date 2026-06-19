@@ -119,6 +119,61 @@ Another cool feature and significant benefit of this pattern is seen when you ha
 For example, mapping a list of JSX elements will re-render each property update.
 This issue can only be fixed with normalization, which is more complex and less powerful than atomization.
 
+## Deatomization
+
+Atomization wraps reactive parts in atoms. Sometimes you need the opposite: a plain snapshot without reactive references — for API payloads, logging, tests, or storage.
+
+Use [`deatomize`](/reference/methods#deatomize) for that. It recursively walks a value and replaces atoms with their current state:
+
+```ts
+import { atom, deatomize, reatomEnum } from '@reatom/core'
+
+const user = {
+  id: 42,
+  name: atom('John', 'user.name'),
+  tags: reatomEnum(['admin', 'member'], 'user.tags'),
+}
+
+deatomize(user)
+// { id: 42, name: 'John', tags: 'admin' }
+```
+
+`deatomize` also works with nested objects, arrays, `Map`, and `Set`. Actions are returned as-is.
+
+### Linked lists
+
+[`reatomLinkedList`](/reference/primitives#reatomlinkedlist) stores ordered data in a linked structure, not a plain array. The atom state is a `LinkedList` object with `head`, `tail`, `size`, and internal links — so `list()` is not what you send to an API or validate with a schema.
+
+For ordered nodes in UI code, use `list.array()`. For a plain serializable snapshot, use `deatomize(list)`:
+
+```ts
+import { atom, deatomize, reatomLinkedList } from '@reatom/core'
+
+const uploads = reatomLinkedList(
+  (fileName: string) => ({
+    fileName,
+    progress: atom(0, `uploads#${fileName}.progress`),
+  }),
+  'uploads',
+)
+
+uploads.create('cover.png')
+uploads.create('hero.png')
+
+uploads().size // linked list metadata
+uploads.array() // ordered nodes with reactive fields
+
+deatomize(uploads)
+// [
+//   { fileName: 'cover.png', progress: 0 },
+//   { fileName: 'hero.png', progress: 0 },
+// ]
+```
+
+When list nodes are atoms themselves, `JSON.stringify(list)` also works because each node serializes through its own `toJSON`. For object nodes with nested atoms, prefer `deatomize(list)` to unwrap everything.
+
+Linked lists also define `fromJSON` for restoring from an array snapshot. That is used automatically by [`withPersist`](/handbook/persist#json-protocol-tojson--fromjson).
+
 ## Reasonability
 
 "Mutable properties could be an atom, readonly properties should stay a primitive" is a general rule, but exceptions exist.

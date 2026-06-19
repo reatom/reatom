@@ -327,6 +327,60 @@ const counterAtom = atom(0, 'counter').extend(withPersist('counter-key'))
 const userAtom = atom('', 'user').extend(withPersist('user-key'))
 ```
 
+## JSON protocol (toJSON / fromJSON)
+
+By default, `withPersist` serializes atom state through the atom JSON protocol:
+
+- **save**: `toSnapshot` calls `target.toJSON()`
+- **restore**: `fromSnapshot` calls `target.fromJSON(snapshot)` when it exists, otherwise uses the snapshot as state
+
+This means many atoms work with persistence out of the box — no manual `toSnapshot` / `fromSnapshot` wiring for the common case.
+
+```typescript
+import { atom, reatomLinkedList, withLocalStorage } from '@reatom/core'
+
+const counter = atom(0, 'counter').extend(withLocalStorage('counter'))
+// Saved as: 0, 1, 2...
+
+const list = reatomLinkedList(
+  (value: number) => atom(value, `list#${value}`),
+  'list',
+).extend(withLocalStorage('list'))
+// Saved as: [1, 2, 3]
+// Restored via built-in list.fromJSON
+```
+
+### Custom JSON shape
+
+Override the default when you need a different storage format. Options passed to `withPersist` take precedence over `toJSON` / `fromJSON`:
+
+```typescript
+import { atom, withFromJson, withToJson } from '@reatom/core'
+
+const createdAt = atom(new Date(), 'createdAt')
+  .extend(withToJson((state) => state.getTime()))
+  .extend(withFromJson((json) => new Date(json as number)))
+  .extend(withLocalStorage('created-at'))
+// Saved as unix timestamp, restored back to Date
+```
+
+For partial persistence or field renaming, use explicit serializers:
+
+```typescript
+const formAtom = atom({ email: '', isSubmitting: false }).extend(
+  withLocalStorage({
+    key: 'form',
+    toSnapshot: (state) => ({ email: state.email }),
+    fromSnapshot: (snapshot) => ({
+      email: snapshot.email,
+      isSubmitting: false,
+    }),
+  }),
+)
+```
+
+Primitives like [`reatomLinkedList`](/reference/primitives#reatomlinkedlist) and [`reatomSet`](/reference/primitives#reatomset) ship with `toJSON` and `fromJSON` for array-like snapshots. For nested atomized models, combine persistence with [`deatomize`](/handbook/atomization#deatomization) inside a custom `toSnapshot` when you need fully plain data.
+
 ## Configuration Options
 
 All persist adapters support the same configuration options:
@@ -377,8 +431,8 @@ const configuredAtom = atom({ name: '', age: 0 }).extend(
 | Option         | Type                         | Default            | Description                           |
 | -------------- | ---------------------------- | ------------------ | ------------------------------------- |
 | `key`          | `string`                     | **required**       | Unique key for storage                |
-| `toSnapshot`   | `(state) => any`             | `identity`         | Serialize state before saving         |
-| `fromSnapshot` | `(snapshot) => state`        | `identity`         | Deserialize state after loading       |
+| `toSnapshot`   | `(state) => any`             | `() => target.toJSON()` | Serialize state before saving    |
+| `fromSnapshot` | `(snapshot) => state`        | `target.fromJSON` or identity | Deserialize state after loading |
 | `schema`       | `StandardSchemaV1`           | `undefined`        | Schema to validate and transform data |
 | `version`      | `number \| string`           | `0`                | Version number for migration          |
 | `migration`    | `(record, version) => state` | `undefined`        | Migrate old data to current version   |
