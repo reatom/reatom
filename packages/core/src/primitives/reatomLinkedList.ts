@@ -1,5 +1,6 @@
 import type { Action, Atom, Computed } from '../core'
 import { action, atom, computed, isAtom, named, ReatomError } from '../core'
+import { withFromJson } from '../extensions/withFromJson'
 import { withToJson } from '../extensions/withToJson'
 import { peek } from '../methods'
 import type { Fn, Rec } from '../utils'
@@ -912,16 +913,6 @@ export function reatomLinkedList<
   //   }, name)
   // }
 
-  linkedList.fromJSON = (snapshot) => {
-    if (!Array.isArray(snapshot)) {
-      throw new ReatomError('Linked list snapshot should be an array.')
-    }
-
-    return createLinkedListFromSnapshot(
-      snapshot.map((value) => [value] as Params),
-    )
-  }
-
   return linkedList.extend(
     () => ({
       LL_PREV,
@@ -947,6 +938,15 @@ export function reatomLinkedList<
       // reatomReduce,
 
       __reatomLinkedList: true as const,
+    }),
+    withFromJson((snapshot) => {
+      if (!Array.isArray(snapshot)) {
+        throw new ReatomError('Linked list snapshot should be an array.')
+      }
+
+      return createLinkedListFromSnapshot(
+        snapshot.map((value) => [value] as Params),
+      )
     }),
     withToJson((state) => toArray(state)),
   ) as LinkedListAtom<Params, Node, Key>

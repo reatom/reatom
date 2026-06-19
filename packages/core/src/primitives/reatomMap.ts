@@ -1,6 +1,7 @@
 import type { Action, AtomLike } from '../core'
 import type { Computed } from '../core'
-import { _set, action, atom, computed, named, withActions } from '../core'
+import { _set, action, atom, computed, named, ReatomError, withActions } from '../core'
+import { withFromJson } from '../extensions/withFromJson'
 import { withToJson } from '../extensions/withToJson'
 
 type StateInit<Key, Value> =
@@ -117,5 +118,13 @@ export const reatomMap = <Key, Value>(
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))
+    .extend(
+      withFromJson((json) => {
+        if (!Array.isArray(json)) {
+          throw new ReatomError('Map snapshot should be an array of entries.')
+        }
+        return new Map(json as Iterable<[Key, Value]>)
+      }),
+    )
     .extend(withToJson((state) => [...state]))
 }

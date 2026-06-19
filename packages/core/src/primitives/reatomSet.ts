@@ -1,5 +1,6 @@
 import type { Action, Atom, Computed } from '../core'
-import { atom, computed, named, withActions, withParams } from '../core'
+import { atom, computed, named, ReatomError, withActions, withParams } from '../core'
+import { withFromJson } from '../extensions/withFromJson'
 import { withToJson } from '../extensions/withToJson'
 
 type StateInit<Value> = Set<Value> | ConstructorParameters<typeof Set<Value>>[0]
@@ -72,5 +73,13 @@ export const reatomSet = <T>(
     .extend((target) => ({
       size: computed(() => target().size, `${target.name}.size`),
     }))
+    .extend(
+      withFromJson((json) => {
+        if (!Array.isArray(json)) {
+          throw new ReatomError('Set snapshot should be an array.')
+        }
+        return new Set(json as Iterable<T>)
+      }),
+    )
     .extend(withToJson((state) => [...state]))
 }
