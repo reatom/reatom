@@ -22,12 +22,22 @@ Write flows as normal `async` / `await` code and make every async boundary expli
 Use for data that should be stored and read through `.data()`.
 
 ```ts
-import { abortVar, atom, computed, sleep, withAsyncData, wrap } from '@reatom/core'
+import {
+  abortVar,
+  atom,
+  computed,
+  sleep,
+  withAsyncData,
+  wrap,
+} from '@reatom/core'
 
 type SearchResult = { title: string }
 
 declare const api: {
-  search(query: string, options: { signal: AbortSignal }): Promise<Array<SearchResult>>
+  search(
+    query: string,
+    options: { signal: AbortSignal },
+  ): Promise<Array<SearchResult>>
 }
 
 const searchQuery = atom('', 'search.query')
@@ -111,7 +121,10 @@ userAtom.set(user)
 Use `wrap(fn)` when passing a callback to an external scheduler or event source:
 
 ```ts
-button.addEventListener('click', wrap(() => submit()))
+button.addEventListener(
+  'click',
+  wrap(() => submit()),
+)
 ```
 
 Do not:
@@ -140,9 +153,11 @@ Inside an abort-aware frame, pass Reatom's signal into abortable APIs:
 ```ts
 import { abortVar, wrap } from '@reatom/core'
 
-const response = await wrap(fetch('/api/items', {
-  signal: abortVar.require().signal,
-}))
+const response = await wrap(
+  fetch('/api/items', {
+    signal: abortVar.require().signal,
+  }),
+)
 ```
 
 Use `abortVar.subscribe()` when you need a scoped controller and cleanup handle:
@@ -151,9 +166,11 @@ Use `abortVar.subscribe()` when you need a scoped controller and cleanup handle:
 import { abortVar, wrap } from '@reatom/core'
 
 using subscription = abortVar.subscribe()
-const response = await wrap(fetch('/api/items', {
-  signal: subscription.controller.signal,
-}))
+const response = await wrap(
+  fetch('/api/items', {
+    signal: subscription.controller.signal,
+  }),
+)
 ```
 
 Use `abortVar.createAndRun(fn, ...params)` to fork controlled promises for `race` or manual cancellation.

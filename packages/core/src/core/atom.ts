@@ -887,8 +887,9 @@ export function cacheMiddleware(next: Fn, ...args: any[]) {
   let isInit = frame.state instanceof AtomInitState
 
   if (
-    target.__reatom.processing === 0 &&
-    (push || dirty || (dependent && !subscribed)) || (!error && isInit)
+    (target.__reatom.processing === 0 &&
+      (push || dirty || (dependent && !subscribed))) ||
+    (!error && isInit)
   ) {
     let recursionTries = 10
     recursion: while (recursionTries--) {
