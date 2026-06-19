@@ -304,7 +304,6 @@ export let withSuspenseInit: {
               ) {
                 frame.state = initState
                 frame.error = null
-                frame.pubs = [null]
               }
 
               throw error

@@ -888,7 +888,7 @@ export function cacheMiddleware(next: Fn, ...args: any[]) {
 
   if (
     target.__reatom.processing === 0 &&
-    (push || dirty || (dependent && !subscribed))
+    (push || dirty || (dependent && !subscribed)) || (!error && isInit)
   ) {
     let recursionTries = 10
     recursion: while (recursionTries--) {
