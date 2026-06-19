@@ -273,11 +273,13 @@ export const reatomPersist = <Snapshot = unknown, Options extends Rec = {}>(
         type ThisOptions = Options & { key: string }
 
         let {
-          fromSnapshot = (data: any) => data,
+          fromSnapshot = (target.fromJSON ?? ((data: any) => data)) as (
+            snapshot: Snapshot,
+          ) => AtomState<Target>,
           migration,
           subscribe = !!storage.subscribe,
           time = MAX_SAFE_TIMEOUT,
-          toSnapshot = (data: any) => data,
+          toSnapshot = () => target.toJSON() as Snapshot,
           version = 0,
           schema,
           ...storageOptions

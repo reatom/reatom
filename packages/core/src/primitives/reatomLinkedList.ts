@@ -261,17 +261,16 @@ const clearLL = <Node extends LLNode>(state: LinkedList<Node>) => {
   while (state.tail) removeLL(state, state.tail)
 }
 
-const toArray = <T extends Rec>(
-  LL_NEXT: LL_NEXT,
-  head: null | LLNode<T>,
+export const toArray = <T extends Rec>(
+  { head, LL_NEXT }: LinkedList<LLNode<T>>,
   prev?: Array<LLNode<T>>,
 ): Array<LLNode<T>> => {
-  const arr: Array<LLNode<T>> = []
+  let arr: Array<LLNode<T>> = []
   let i = 0
   while (head) {
     if (prev !== undefined && prev[i] !== head) prev = undefined
     arr.push(head)
-    head = head[LL_NEXT]
+    head = head[LL_NEXT as LL_NEXT]
     i++
   }
   return arr.length === prev?.length ? prev : arr
@@ -520,8 +519,10 @@ export function reatomLinkedList<
   const batchFn = <T>(cb: Fn): T => {
     if (STATE) return cb()
 
-    STATE = linkedList.set(
-      ({ head, tail, size, version, LL_PREV, LL_NEXT }) => ({
+    let result: T
+
+    linkedList.set(({ head, tail, size, version, LL_PREV, LL_NEXT }) => {
+      STATE = {
         LL_PREV,
         LL_NEXT,
         size,
@@ -529,14 +530,18 @@ export function reatomLinkedList<
         changes: [],
         head,
         tail,
-      }),
-    )
+      }
 
-    try {
-      return cb()
-    } finally {
-      STATE = null
-    }
+      try {
+        result = cb()
+
+        return STATE
+      } finally {
+        STATE = null
+      }
+    })
+
+    return result!
   }
 
   const batch = action(batchFn, `${name}._batch`)
@@ -664,8 +669,7 @@ export function reatomLinkedList<
   }
 
   const array: LinkedListAtom<Params, Node, Key>['array'] = computed(
-    (state: Array<LLNode<Node>> = []) =>
-      toArray(LL_NEXT, linkedList().head, state),
+    (state: Array<LLNode<Node>> = []) => toArray(linkedList(), state),
     `${name}.array`,
   )
 
@@ -835,8 +839,7 @@ export function reatomLinkedList<
     // @ts-ignore
     const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] =
       computed(
-        (state: Array<LLNode<T>> = []) =>
-          toArray(mapLL_NEXT, mapList().head, state),
+        (state: Array<LLNode<T>> = []) => toArray(mapList(), state),
         `${name}.array`,
       )
 
@@ -909,6 +912,16 @@ export function reatomLinkedList<
   //   }, name)
   // }
 
+  linkedList.fromJSON = (snapshot) => {
+    if (!Array.isArray(snapshot)) {
+      throw new ReatomError('Linked list snapshot should be an array.')
+    }
+
+    return createLinkedListFromSnapshot(
+      snapshot.map((value) => [value] as Params),
+    )
+  }
+
   return linkedList.extend(
     () => ({
       LL_PREV,
@@ -935,7 +948,7 @@ export function reatomLinkedList<
 
       __reatomLinkedList: true as const,
     }),
-    withToJson(() => array()),
+    withToJson((state) => toArray(state)),
   ) as LinkedListAtom<Params, Node, Key>
 }
 

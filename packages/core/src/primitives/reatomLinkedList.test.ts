@@ -1,15 +1,16 @@
-import { expect, subscribe, test, vi } from 'test'
+import { describe, expect, subscribe, test, vi } from 'test'
 
 import { atom, computed, isAtom, isConnected, notify } from '../core'
 import { withChangeHook } from '../extensions'
 import { deatomize, isCausedBy } from '../methods'
+import { createMemStorage, reatomPersist } from '../persist'
 import type {
   LinkedListSymbols,
   LL_NEXT,
   LL_PREV,
   LLNode,
 } from './reatomLinkedList'
-import { reatomLinkedList } from './reatomLinkedList'
+import { reatomLinkedList, toArray } from './reatomLinkedList'
 
 const validateIntegrity = <T extends LLNode>(
   head: T | null,
@@ -426,13 +427,54 @@ test('should allow using element from one list in another list via list-specific
   expect(nodeInA).not.toBe(nodeInB)
 })
 
-test('should serialize to JSON as array', () => {
-  const list = reatomLinkedList({
-    create: (n: number) => atom(n),
-    initState: [atom(1), atom(2)],
-  })
-  const node = list.create(3)
+describe('serialization / deserialization', () => {
+  test('should serialize atom nodes to JSON as plain array', () => {
+    const name = 'linkedListSerialization'
 
-  expect(JSON.stringify(node)).toBe('3')
-  expect(JSON.parse(JSON.stringify(list))).toEqual([1, 2, 3])
+    const list = reatomLinkedList(
+      {
+        create: (n: number) => atom(n, `${name}.list#${n}`),
+        initState: [atom(1), atom(2)],
+      },
+      `${name}.list`,
+    )
+
+    expect(JSON.parse(JSON.stringify(list))).toEqual([1, 2])
+  })
+
+  test('should persist and restore linked list via mem storage', () => {
+    const name = 'linkedListPersist'
+
+    const persistStorage = createMemStorage({ name })
+    const withPersist = reatomPersist(persistStorage)
+
+    const key = `${name}.list`
+
+    persistStorage.snapshotAtom.set({
+      [key]: {
+        data: [1, 2, 3],
+        id: 0,
+        timestamp: Date.now(),
+        to: Date.now() + 10000,
+        version: 0,
+      },
+    })
+
+    const list = reatomLinkedList(
+      (n: number) => atom(n, `${name}.list#${n}`),
+      key,
+    ).extend(
+      withPersist({
+        key,
+        toSnapshot: (state) => deatomize(toArray(state)),
+      }),
+    )
+
+    expect(deatomize(list)).toEqual([1, 2, 3])
+
+    list.create(4)
+    expect(deatomize(list)).toEqual([1, 2, 3, 4])
+
+    expect(persistStorage.snapshotAtom()[key]?.data).toEqual([1, 2, 3, 4])
+  })
 })

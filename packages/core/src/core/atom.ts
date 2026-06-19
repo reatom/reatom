@@ -109,6 +109,8 @@ export interface AtomLike<
 
   toJSON: () => unknown
 
+  fromJSON?: (json: unknown, state?: unknown) => unknown
+
   /** Reference to the atom's internal metadata. */
   __reatom: AtomMeta
 
