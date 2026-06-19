@@ -1,4 +1,4 @@
-import { atom, peek } from '@reatom/core'
+import { atom } from '@reatom/core'
 
 import { Draggable } from './DragTarget'
 import type { ListElement } from './model'
@@ -68,7 +68,7 @@ export const App = () => (
     >
       {list.reatomMap(
         (input) => (
-          peek(() => <Item input={input} />)
+          <Item input={input} />
         ),
         '_listView',
       )}

@@ -443,18 +443,13 @@ Components are plain functions that return DOM elements. They are stateless, hav
 
 > There’s no virtual tree or diffing — everything happens directly in the DOM.
 
-Use dynamic atoms for reactive lists:
+For small, rarely changing lists, store elements in an atom and map them inside reactive children (see below). For lists that grow, shrink, or reorder often, use [`reatomLinkedList`](#linked-lists) — it applies structural changes incrementally instead of rebuilding the whole subtree on every edit.
 
 ```tsx
-const list = atom([
-  <li>1</li>,
-  <li>2</li>,
-])
+const list = atom([<li>1</li>, <li>2</li>])
 
-const add = () => list.set((state) => [
-  ...state,
-  <li>{state.length + 1}</li>,
-])
+const add = () =>
+  list.set((state) => [...state, <li>{state.length + 1}</li>])
 
 <div>
   <button on:click={add}>Add</button>
@@ -507,6 +502,77 @@ Result:
 ```
 
 Each call creates a unique element with its own lifecycle and subscriptions.
+
+### Linked lists
+
+Reactive array children work well for tiny lists. There is no virtual DOM or keyed reconciliation: `{() => items().map(...)}` renders through a **live fragment**, so every structural change tears down the current children and inserts the mapped result again.
+
+For large, reorderable, or frequently edited lists, mount a `reatomLinkedList` from `@reatom/core`. Each item is a stable `LLNode` ref in a doubly linked list; structural edits append to a **change log** and bump a **version**. `@reatom/jsx` subscribes and applies those changes to the DOM without rebuilding the whole list.
+
+```mermaid
+flowchart LR
+  A["@reatom/core actions"] --> C["changes[] + version"]
+  C -->|"subscribe"| W["@reatom/jsx"]
+  W --> D["direct DOM update"]
+```
+
+#### Performance vs reactive arrays
+
+| Change                 | Reactive array child           | Linked-list child                                                        |
+| ---------------------- | ------------------------------ | ------------------------------------------------------------------------ |
+| Add / add many         | Rebuilds the live fragment     | `create` / `createMany` append nodes (batched in one `DocumentFragment`) |
+| Remove                 | Rebuilds the live fragment     | Removes the row node, or live-fragment markers                           |
+| Reorder (move / swap)  | Rebuilds the live fragment     | Reuses the same DOM elements via native insertion APIs                   |
+| Item content update    | May recreate row markup        | Row node is reused; inner atoms and props update                         |
+| Batch structural edits | One rebuild per subscriber run | `batch()` records many changes; DOM updated incrementally                |
+
+#### Stable DOM and JSX runtime
+
+Keeping the same element instances preserves **focus**, **text selection**, **CSS transitions**, **media playback**, **scroll position**, and row-local subscriptions. **Node object identity is the key** — there are no React-style `key` props.
+
+On subscribe, reatom jsx runtime walks `changes[]` incrementally. A missed version rebuilds from `head` to `tail`; `clear()` wipes the parent. Live-fragment removes drop markers; fragments are valid list items with reactive inner computed children.
+
+#### Data + view list
+
+`.reatomMap()` mirrors source nodes in a parallel linked list via a `WeakMap`, so `move`, `swap`, and `remove` reuse mapped view rows. **Remove from the source list**, not from the mapped view:
+
+```tsx
+import { atom, reatomLinkedList } from '@reatom/core'
+
+const todos = reatomLinkedList((title: string) => atom(title), 'todos')
+
+const TodoList = () => (
+  <ul>
+    {todos.reatomMap((titleAtom) => (
+      <li>
+        <input model:value={titleAtom} />
+        <button on:click={() => todos.remove(titleAtom)}>Remove</button>
+      </li>
+    ))}
+  </ul>
+)
+```
+
+Examples: [drag-and-drop](https://github.com/reatom/reatom/tree/v1001/examples/reatom-jsx-dnd), [gallery](https://github.com/reatom/reatom/tree/v1001/examples/reatom-jsx-gallery), [`reatomFieldArray`](https://v1001.reatom.dev/handbook/forms/concepts/field-array/) for dynamic form rows.
+
+#### API and when to use
+
+Structural methods — all record changes: `create`, `createMany`, `remove`, `removeMany`, `move(node, after)` (`after === null` inserts at head), `swap`, `clear`, `batch`. Pointer access: `list.LL_PREV` / `list.LL_NEXT`. Read-only snapshots: `list.array()` or `deatomize(list.array)` — not for mounting large dynamic lists. Keyed lookup: `reatomLinkedList({ create, key: 'id' })` + `list.map()` — fine for hundreds of items; avoid at thousands-scale.
+
+| Scenario                                   | Use                                                      |
+| ------------------------------------------ | -------------------------------------------------------- |
+| Tiny list, rare edits                      | Atom + `{() => items().map(...)}`                        |
+| Feeds, drag-and-drop, tables, field arrays | `reatomLinkedList` + optional `.reatomMap()`             |
+| Lookup by id                               | `reatomLinkedList({ create, key: 'id' })` + `list.map()` |
+
+#### Caveats
+
+- List nodes must be objects or functions — wrap primitives in objects, atoms, or DOM elements.
+- A node cannot appear twice in the same list.
+- Native `DocumentFragment` rows are not supported.
+- `move`/`swap` on fragment rows has gaps; prefer one root element per row, or render element rows through `.reatomMap()` and reorder source nodes.
+
+[`reatomLinkedList` core docs](https://v1001.reatom.dev/reference/primitives/#reatomlinkedlist)
 
 ### `$spread` prop
 
@@ -793,4 +859,4 @@ export {}
 These features are not yet supported:
 
 - ❌ DOM-less SSR (you need a DOM-like environment such as [linkedom](https://github.com/WebReflection/linkedom))
-- ❌ Keyed lists (use linked lists instead)
+- ❌ React-style keyed reconciliation (use [`reatomLinkedList`](#linked-lists) — node identity is the key; structural updates are incremental)
