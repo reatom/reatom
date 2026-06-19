@@ -8,6 +8,7 @@ npx skills add reatom/reatom
 
 # Individual skills
 npx skills add reatom/reatom --skill reatom
+npx skills add reatom/reatom --skill reatom-async
 npx skills add reatom/reatom --skill reatom-jsx
 npx skills add reatom/reatom --skill reatom-review
 ```
