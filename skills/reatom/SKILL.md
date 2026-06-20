@@ -47,6 +47,7 @@ Deeper recipes and adapter docs live on [v1001.reatom.dev](https://v1001.reatom.
 - Commands/mutations: `action(async () => ...).extend(withAsync(...))`.
 - Async boundaries that leave the Reatom frame: `await wrap(promise)`; external callbacks: pass `wrap(fn)`.
 - Derived state in `computed`; side effects in `effect` with explicit lifetime (route loader, init action, or mount scope — not unscoped module effects for feature work).
+- Forms (fields, validation, submit) through `reatomForm` / `reatomField` instead of hand-rolled per-field atoms and submit actions.
 - Route data through `reatomRoute` loaders; navigation with `.go(...)`, links with `.path(...)`.
 
 When the reference and local examples disagree, prefer the reference and fix the example if it is wrong.

@@ -34,6 +34,7 @@ Use this skill when the task is mainly about Reatom async behavior. Treat [REFER
 - Abortable fetches use `signal: abortVar.require().signal` or a scoped `abortVar.subscribe()`.
 - Debounce and throttle follow the sampling docs: `await wrap(sleep(ms))` inside the flow plus `withAbort()` strategies, not split debounce helpers.
 - Route/page data belongs in route loaders or async computeds, not component effects.
+- Form submit is an async mutation: put it in `reatomForm({ onSubmit })` and use field `validate` for async/dependent checks (debounce with `await wrap(sleep(ms))`), instead of hand-rolled submit actions or debounced validators.
 - Suspense is for global one-shot initialization, not dynamic page data.
 
 ## Review Defaults

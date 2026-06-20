@@ -39,6 +39,8 @@ Use this map to open only the relevant parts of [REFERENCE.md](REFERENCE.md):
 - `on:*` handlers that touch Reatom state are wrapped automatically; do not wrap manually in JSX.
 - Never reuse a JSX element instance in multiple places — call the component function or factory each time.
 - Prefer `model:value` / `model:checked` for two-way native controls.
+- For real forms (validation, submit, focus/dirty state) keep state in `reatomForm` / `reatomField` from `@reatom/core` and bind inputs to the field's `value` / `change` instead of ad-hoc atoms per field — see the `reatom` skill Forms section.
+- For SPA navigation use `reatomRoute`: links via `href={route.path(params)}`, programmatic moves via `route.go(params)` — see the `reatom` skill Routing section.
 - Use `prop:*` for DOM properties, `attr:*` for attributes when semantics matter.
 - Mount with `mount(root, <App />)`; call `unmount()` on teardown (including Vite HMR).
 - For dynamic lists, store elements in atoms or map inside reactive children — no keyed reconciliation.

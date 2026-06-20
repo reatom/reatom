@@ -198,6 +198,8 @@ const Input = () => {
 }
 ```
 
+For real forms — multiple fields, validation, submit, focus/dirty state — keep state in `reatomForm` / `reatomField` (`@reatom/core`) and bind each input with `value={field.value}` plus `on:input={(event) => field.change(event.currentTarget.value)}` instead of one ad-hoc atom per input. See the [forms handbook](https://v1001.reatom.dev/handbook/forms/).
+
 ### `style` props
 
 Use `style={{ key: value }}` for inline styles. Falsy values like `false`, `null`, and `undefined` remove the style.
