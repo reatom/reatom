@@ -329,6 +329,39 @@ export const processOrder = action(async (orderId: string) => {
 
 Prefer it over try-catch (which nests the happy path) and native `using` (which cannot read the frame's payload/error). It binds to the running frame, not the lexical scope, so a shared helper like `withErrorLogging()` can attach `.catch` / `.finally` to its caller's outcome — impossible with `using`.
 
+## Redux-Saga Mapping
+
+For teams migrating from `redux-saga`. Saga interprets generator-yielded effect objects through a middleware; Reatom runs native `async`/`await` inside `action` / `computed` / `effect` frames. Effects become ordinary calls plus the sampling primitives above — no `yield`, no effect descriptors, and breakpoints / stack traces stay intact.
+
+| redux-saga | Reatom v1001 |
+| --- | --- |
+| `yield take(pattern)` | `await wrap(take(target, selector?))` |
+| `yield takeMaybe(pattern)` | `const ev = take(target)` first, `await wrap(ev)` later (checkpoint, no block at the call site) |
+| `yield delay(ms)` | `await wrap(sleep(ms))` |
+| `yield select(selector)` | read the atom directly: `someAtom()` |
+| `yield put(action)` | call the action directly: `someAction(payload)` |
+| `yield call(fn, ...args)` | `await wrap(fn(...args))` |
+| `yield fork(fn, ...args)` | `const task = abortVar.createAndRun(fn, ...args)` |
+| `yield spawn(fn, ...args)` | `abortVar.spawn(fn, ...args)` |
+| `yield join(task)` | `await wrap(task)` |
+| `yield cancel(task)` | `task.controller.abort(reason?)` |
+| `yield cancelled()` | `abortVar.require().signal.aborted` |
+| `yield all([...])` | `await wrap(Promise.all([...]))` |
+| `yield race({ ... })` | `race(...controlledPromises)` |
+| `takeEvery(pattern, saga)` | subscribe + run an `action`: `withChangeHook` (atom) / `withCallHook` (action) |
+| `takeLatest(pattern, saga)` | same subscription, handler is `action(...).extend(withAbort())` (`'last-in-win'`) |
+| `takeLeading(pattern, saga)` | same subscription, handler is `action(...).extend(withAbort('first-in-win'))` |
+| `throttle(ms, pattern, saga)` | `action(async () => { ...; await wrap(sleep(ms)) }).extend(withAbort('first-in-win'))` |
+| `debounce(ms, pattern, saga)` | `action(async () => { await wrap(sleep(ms)); ... }).extend(withAbort())` |
+
+Non-obvious cases:
+
+- `fork` vs `spawn`: `abortVar.createAndRun` shares the current abort scope (a parent `withAbort('finally')`, navigation, or disconnect cancels it) and returns a `ControlledPromise` with `.controller` for join/cancel; `abortVar.spawn` is a detached abort boundary that outlives the parent abort.
+- `cancel` / self-cancel: abort another task via `task.controller.abort()`; stop the running flow from inside with `throwAbort()`; supersede an action by calling it again under `withAbort()`.
+- `cancelled` / cleanup: read `abortVar.require().signal.aborted`, or register teardown with `abortVar.subscribe()` / `framePromise().finally()`.
+
+The legacy comparison still floating around old docs maps to removed APIs — `reatomAsync`, `withConcurrency` / `withAbort({ strategy })`, `onCtxAbort`, `getTopController(ctx.cause)`. Use the v1001 equivalents above; see `Common Mistakes` for the full legacy list.
+
 ## Status, Retry, Reset
 
 Enable `status` only when UI needs detailed lifecycle flags:

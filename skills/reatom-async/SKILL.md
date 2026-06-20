@@ -20,6 +20,7 @@ Use this skill when the task is mainly about Reatom async behavior. Treat [REFER
 - Context after `await`: `wrap Rules`
 - Cancellation: `withAbort`, `abortVar and Fetch Signals`
 - Debounce, throttle, waits, races: `Sampling and Procedural Async`
+- Redux-saga migration: `Redux-Saga Mapping`
 - Loading UI and retry: `Status, Retry, Reset`
 - Suspense: `Suspense Boundaries`
 - Code review: `Common Mistakes`, `Tested Edge Cases`
