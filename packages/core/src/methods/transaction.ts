@@ -1,6 +1,14 @@
 import type { AsyncExt } from '../async'
-import type { Action, ActionState, Atom, AtomState, Ext } from '../core'
-import { action, bind, context, isAction, top, withMiddleware } from '../core'
+import type { Action, Atom, AtomState, Ext, Frame } from '../core'
+import {
+  action,
+  bind,
+  context,
+  isAction,
+  top,
+  withActionMiddleware,
+  withMiddleware,
+} from '../core'
 import { withCallHook } from '../extensions'
 import type { Fn } from '../utils'
 import { isAbort } from '../utils'
@@ -340,6 +348,21 @@ export let reatomTransaction = ({
    */
   defaultRollback?: Rollback
 }): TransactionVariable => {
+  let findRollbacks = (frame: null | Frame = top()): undefined | Rollbacks => {
+    let visited = new Set<Frame>()
+
+    while (frame && !visited.has(frame)) {
+      visited.add(frame)
+
+      let rollbacks = transactionVar.first(frame)
+      if (rollbacks !== undefined) return rollbacks
+
+      frame = frame.pubs[0]
+    }
+
+    return undefined
+  }
+
   let transactionVar = Object.assign(
     variable((rollbacks: Array<Fn> = []) => rollbacks, `transaction#${name}`),
     {
@@ -366,8 +389,7 @@ export let reatomTransaction = ({
                   !Object.is(prevState, nextState) &&
                   !isCausedBy(transactionVar.rollback)
                 ) {
-                  let rollbacks = transactionVar.set(transactionVar.find())
-                  rollbacks.push(() =>
+                  findRollbacks()?.push(() =>
                     target.set((state) =>
                       onRollback({
                         beforeState: prevState,
@@ -408,10 +430,10 @@ export let reatomTransaction = ({
             )
           }
 
-          withMiddleware(
+          withActionMiddleware(
             () =>
               function withTransaction(next: Fn, ...params: any[]) {
-                let parentRollbacks = transactionVar.get()
+                let parentRollbacks = findRollbacks(top().pubs[0])
                 let selfRollbacks = transactionVar.set()
 
                 parentRollbacks?.push(() =>
@@ -421,13 +443,10 @@ export let reatomTransaction = ({
                     .forEach((rollback) => rollback()),
                 )
 
-                if ('onReject' in target) return next(...params)
-
                 try {
-                  let result = next(...params) as ActionState
-                  let call = result[result.length - 1]
-                  if (call?.payload instanceof Promise) {
-                    call.payload.catch(bind(triggerRollback))
+                  let result = next(...params)
+                  if (!('onReject' in target) && result instanceof Promise) {
+                    result.catch(bind(triggerRollback))
                   }
                   return result
                 } catch (error) {
@@ -449,7 +468,7 @@ export let reatomTransaction = ({
           let actionStop = action<[], void>(() => {
             context()
               .root.store.get(target)
-              ?.run(() => transactionVar.find()?.splice(0))
+              ?.run(() => findRollbacks()?.splice(0))
           }, `${target.name}.stop`)
 
           return { rollback: actionRollback, stop: actionStop }
@@ -457,8 +476,7 @@ export let reatomTransaction = ({
       },
 
       rollback: action<[error?: any], void>(() => {
-        transactionVar
-          .find()
+        findRollbacks()
           ?.splice(0)
           .reverse()
           .forEach((rollback) => rollback())

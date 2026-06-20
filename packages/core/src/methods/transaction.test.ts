@@ -154,6 +154,28 @@ test('each action call has its own rollback scope', () => {
   expect(counter()).toBe(2)
 })
 
+test('nested transactions rollback through action cause chain', () => {
+  const parentState = atom(0, 'parentState').extend(withRollback())
+  const childState = atom(0, 'childState').extend(withRollback())
+
+  const child = action(() => {
+    childState.set(2)
+  }, 'child').extend(withTransaction())
+
+  const parent = action(() => {
+    parentState.set(1)
+    child()
+  }, 'parent').extend(withTransaction())
+
+  parent()
+  expect(parentState()).toBe(1)
+  expect(childState()).toBe(2)
+
+  parent.rollback()
+  expect(parentState()).toBe(0)
+  expect(childState()).toBe(0)
+})
+
 test('rollback scope should not leak', async () => {
   const doSome = action(async () => {
     await wrap(sleep())

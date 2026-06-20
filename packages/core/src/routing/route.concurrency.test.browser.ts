@@ -1,7 +1,7 @@
 import { beforeEach, expect, test } from 'test'
 
 import { computed } from '../core'
-import { wrap } from '../methods'
+import { withRollback, wrap } from '../methods'
 import { urlAtom } from '../web/url'
 import { reatomRoute } from './route'
 
@@ -271,4 +271,64 @@ test('render reads settled loader state after late subscription', async () => {
 
   expect(profileRoute.loader.data()).toEqual({ form: 'profile-form' })
   expect(App()).toBe('profile-form')
+})
+
+test('loader retry with rollback data and child params redirect does not recurse', async () => {
+  const name = 'rollbackRetryRedirect'
+  let loaderCalls = 0
+
+  const projectRoute = reatomRoute(
+    {
+      path: 'projects/:projectId',
+      async loader({ projectId }) {
+        loaderCalls++
+        return { projectId, redirectTo: 'summary' }
+      },
+    },
+    `${name}.projectRoute`,
+  )
+  projectRoute.loader.data.extend(withRollback())
+
+  const summaryRoute = projectRoute.reatomRoute(
+    {
+      path: 'summary',
+      render: () => 'summary',
+    },
+    `${name}.summaryRoute`,
+  )
+
+  const detailsRoute = projectRoute.reatomRoute(
+    {
+      path: 'details',
+      params(params: { projectId: string }) {
+        const project = projectRoute.loader.data()
+        if (project?.redirectTo === 'summary') {
+          summaryRoute.go({ projectId: params.projectId })
+          return null
+        }
+        return params
+      },
+      render: () => 'details',
+    },
+    `${name}.detailsRoute`,
+  )
+
+  const unsubscribeData = projectRoute.loader.data.subscribe()
+  const unsubscribeDetails = detailsRoute.subscribe()
+
+  try {
+    detailsRoute.go({ projectId: 'p1' })
+    await wrap(projectRoute.loader())
+
+    expect(urlAtom().pathname).toBe('/projects/p1/summary')
+    expect(loaderCalls).toBe(1)
+
+    await wrap(projectRoute.loader.retry())
+
+    expect(urlAtom().pathname).toBe('/projects/p1/summary')
+    expect(loaderCalls).toBe(2)
+  } finally {
+    unsubscribeDetails()
+    unsubscribeData()
+  }
 })
