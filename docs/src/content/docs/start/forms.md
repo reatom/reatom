@@ -103,4 +103,6 @@ export const LoginForm = reatomComponent(() => {
 
 This is a simple example, but note that since we have each field as separate atoms, we can create a separate component for each of them and it would be highly optimized and flexible. You can check out a live example in [StackBlitz](https://stackblitz.com/github/reatom/reatom/tree/v1001/examples/react-search).
 
+For native DOM JSX, see the [JSX reference — Forms](/reference/jsx#forms).
+
 Next, you'll want to learn our routing system in the next page ;)

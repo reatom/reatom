@@ -38,8 +38,9 @@ Use this map to open only the relevant parts of [REFERENCE.md](REFERENCE.md):
 - Reads: zero-arg atom call. Writes: `.set(...)`.
 - `on:*` handlers that touch Reatom state are wrapped automatically; do not wrap manually in JSX.
 - Never reuse a JSX element instance in multiple places — call the component function or factory each time.
-- Prefer `model:value` / `model:checked` for two-way native controls.
-- For real forms (validation, submit, focus/dirty state) keep state in `reatomForm` / `reatomField` from `@reatom/core` and bind inputs to the field's `value` / `change` instead of ad-hoc atoms per field — see the `reatom` skill Forms section.
+- Plain writable atoms: `model:value` / `model:checked` for search, toggles, linked-list row atoms.
+- Real forms: `reatomForm` from `@reatom/core` with `<form model={form}>` and `model:field={form.fields.x}` — never `model:value` on field atoms (bypasses `field.change`).
+- Form submit loader: style `[data-submitting]` on the form (set automatically by `model={form}`); CSS-only spinner on `[type='submit']::after`.
 - For SPA navigation use `reatomRoute`: links via `href={route.path(params)}`, programmatic moves via `route.go(params)` — see the `reatom` skill Routing section.
 - Use `prop:*` for DOM properties, `attr:*` for attributes when semantics matter.
 - Mount with `mount(root, <App />)`; call `unmount()` on teardown (including Vite HMR).

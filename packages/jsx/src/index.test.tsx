@@ -5,6 +5,8 @@ import {
   context,
   type Fn,
   isConnected,
+  reatomField,
+  reatomForm,
   sleep,
   top,
   withInit,
@@ -880,8 +882,6 @@ test('Bind', () =>
     const testDiv = (
       <Bind
         element={div}
-        // @ts-expect-error there should be an error here
-        value={inputState}
       />
     )
     const testInput = (
@@ -1149,6 +1149,203 @@ test('element unsubscribes from atom when removed from DOM', () =>
 
     expect(isConnected(valueAtom)).toBe(false)
     expect(element.className).toBe('aaa')
+  }))
+
+test('model:field uses change and focus', () =>
+  context.start(async () => {
+    const field = reatomField('', {
+      name: 'nameField',
+      validateOnChange: true,
+      validate: ({ value }) => (value.length < 3 ? 'too short' : undefined),
+    })
+
+    const input = (
+      <input model:field={field} attr:type="text" />
+    ) as HTMLInputElement
+
+    mount(parent(), input)
+    await wrap(sleep())
+
+    expect(field.focus().touched).toBe(false)
+    expect(input.value).toBe('')
+
+    input.value = 'ab'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrap(sleep())
+
+    expect(field()).toBe('ab')
+    expect(input.value).toBe('ab')
+    expect(field.validation().error).toBe('too short')
+
+    input.dispatchEvent(new Event('focus', { bubbles: true }))
+    input.dispatchEvent(new Event('blur', { bubbles: true }))
+    await wrap(sleep())
+
+    expect(field.focus().touched).toBe(true)
+    expect(field.elementRef()).toBe(input)
+  }))
+
+test('model:field binds checkbox checked', () =>
+  context.start(async () => {
+    const field = reatomField(false, 'agreeField')
+
+    const input = (
+      <input model:field={field} attr:type="checkbox" />
+    ) as HTMLInputElement
+
+    mount(parent(), input)
+    await wrap(sleep())
+
+    expect(input.checked).toBe(false)
+
+    input.checked = true
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrap(sleep())
+
+    expect(field()).toBe(true)
+    expect(input.checked).toBe(true)
+  }))
+
+test('model:field composes with ref when ref comes after', () =>
+  context.start(async () => {
+    const field = reatomField('', 'nameField')
+    let userRef: HTMLInputElement | null = null
+
+    const input = (
+      <input
+        model:field={field}
+        ref={(el) => {
+          userRef = el
+          return () => {
+            userRef = null
+          }
+        }}
+        attr:type="text"
+      />
+    ) as HTMLInputElement
+
+    mount(parent(), input)
+    await wrap(sleep())
+
+    expect(field.elementRef()).toBe(input)
+    expect(userRef).toBe(input)
+
+    input.remove()
+    await wrap(sleep())
+
+    expect(field.elementRef()).toBe(undefined)
+    expect(userRef).toBe(null)
+  }))
+
+test('model:field sets number type and uses valueAsNumber', () =>
+  context.start(async () => {
+    const field = reatomField(0, 'countField')
+
+    const input = (<input model:field={field} />) as HTMLInputElement
+
+    mount(parent(), input)
+    await wrap(sleep())
+
+    expect(input.type).toBe('number')
+    expect(input.value).toBe('0')
+
+    input.value = '42'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    await wrap(sleep())
+    expect(field()).toBe(42)
+
+    field.change(100)
+    await wrap(sleep())
+    expect(input.value).toBe('100')
+  }))
+
+test('model:field keeps text type for string field value', () =>
+  context.start(async () => {
+    const field = reatomField(0, {
+      name: 'priceField',
+      fromState: (state) => state.toFixed(2),
+    })
+
+    const input = (<input model:field={field} />) as HTMLInputElement
+
+    mount(parent(), input)
+    await wrap(sleep())
+
+    expect(input.type).toBe('text')
+    expect(input.value).toBe('0.00')
+  }))
+
+test('form model submits with preventDefault and state attrs', () =>
+  context.start(async () => {
+    let resolveSubmit!: () => void
+    const submitStarted = vi.fn()
+    const form = reatomForm(
+      { email: 'user@example.com' },
+      {
+        name: 'testForm',
+        onSubmit: async () => {
+          submitStarted()
+          await wrap(
+            new Promise<void>((resolve) => {
+              resolveSubmit = resolve
+            }),
+          )
+        },
+      },
+    )
+
+    const formElement = (
+      <form model={form}>
+        <input model:field={form.fields.email} attr:type="email" />
+        <button type="submit">Send</button>
+      </form>
+    ) as HTMLFormElement
+
+    mount(parent(), formElement)
+    await wrap(sleep())
+
+    expect(formElement.hasAttribute('data-submitting')).toBe(false)
+    expect(formElement.classList.contains('is-submitting')).toBe(false)
+
+    formElement.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    )
+    await wrap(sleep())
+
+    expect(submitStarted).toHaveBeenCalledOnce()
+    expect(formElement.hasAttribute('data-submitting')).toBe(true)
+    expect(formElement.classList.contains('is-submitting')).toBe(true)
+
+    resolveSubmit()
+    await wrap(sleep())
+
+    expect(formElement.hasAttribute('data-submitting')).toBe(false)
+    expect(formElement.hasAttribute('data-submitted')).toBe(true)
+    expect(formElement.classList.contains('is-submitted')).toBe(true)
+  }))
+
+test('form model sets submit error attrs', () =>
+  context.start(async () => {
+    const form = reatomForm(
+      { email: 'user@example.com' },
+      {
+        name: 'errorForm',
+        onSubmit: async () => {
+          throw new Error('fail')
+        },
+      },
+    )
+
+    const formElement = (<form model={form} />) as HTMLFormElement
+
+    mount(parent(), formElement)
+    await wrap(sleep())
+
+    form.submit()
+    await wrap(sleep())
+
+    expect(formElement.hasAttribute('data-submit-error')).toBe(true)
+    expect(formElement.classList.contains('has-submit-error')).toBe(true)
   }))
 
 test('preserves atom connection when moved within DOM', () =>

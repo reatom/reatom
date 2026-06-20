@@ -21,7 +21,13 @@ import {
   wrap,
 } from '@reatom/core'
 
-import type { AttributesAtomMaybe, JSX, LinkedListJSXAtom } from './jsx'
+import type {
+  AttributesAtomMaybe,
+  FieldModelBinding,
+  FormModelBinding,
+  JSX,
+  LinkedListJSXAtom,
+} from './jsx'
 import { reatomClassName } from './utils'
 
 declare type JSXElement = JSX.Element
@@ -42,6 +48,7 @@ type DomApis = Pick<
   | 'Element'
   | 'MutationObserver'
   | 'HTMLElement'
+  | 'HTMLInputElement'
   | 'DocumentFragment'
 >
 
@@ -389,10 +396,112 @@ let createLiveFragment = (dom: DomApis, name: string): LiveDocumentFragment => {
   return fragment
 }
 
+type RefCallback = (
+  element: Node,
+) => void | ((element: Node) => void) | undefined
+
 let setProps = (dom: DomApis, element: JSX.Element, props: Rec) => {
+  let fieldUserRef =
+    props['model:field'] != null && typeof props.ref === 'function'
+      ? (props.ref as RefCallback)
+      : undefined
+
   for (let key in props) {
-    let value = props[key]
-    setProp(dom, element, key, value)
+    if (key === 'ref' && fieldUserRef !== undefined) continue
+    if (key === 'model:field') {
+      bindFieldModel(dom, element, props[key], fieldUserRef)
+      continue
+    }
+    setProp(dom, element, key, props[key])
+  }
+}
+
+let bindFormModel = (
+  dom: DomApis,
+  element: JSX.Element,
+  form: FormModelBinding,
+) => {
+  let el = element as HTMLElement
+  setProp(dom, element, 'on:submit', (event: Event) => {
+    event.preventDefault()
+    form.submit()
+  })
+
+  let sync = () => {
+    let submitting = !form.submit.ready()
+    el.toggleAttribute('data-submitting', submitting)
+    el.classList.toggle('is-submitting', submitting)
+    let submitted = form.submitted()
+    el.toggleAttribute('data-submitted', submitted)
+    el.classList.toggle('is-submitted', submitted)
+    let hasError = !!form.submit.error()
+    el.toggleAttribute('data-submit-error', hasError)
+    el.classList.toggle('has-submit-error', hasError)
+  }
+  unlink(element, () => {
+    let un1 = form.submit.ready.subscribe(sync)
+    let un2 = form.submitted.subscribe(sync)
+    let un3 = form.submit.error.subscribe(sync)
+    return () => {
+      un1()
+      un2()
+      un3()
+    }
+  })
+  sync()
+}
+
+let bindFieldModel = (
+  dom: DomApis,
+  element: JSX.Element,
+  field: FieldModelBinding,
+  userRef?: RefCallback,
+) => {
+  let value = field.value()
+  let kind =
+    typeof value === 'boolean'
+      ? 'checkbox'
+      : typeof value === 'number'
+        ? 'number'
+        : 'text'
+
+  if (element instanceof dom.HTMLInputElement) {
+    if (kind === 'checkbox') set(dom, element, 'attr:type', 'checkbox')
+    else if (kind === 'number') set(dom, element, 'attr:type', 'number')
+  }
+
+  setProp(dom, element, 'on:input', (event: Event) => {
+    let target = event.target as HTMLInputElement
+    if (target.validity?.badInput) return
+    if (kind === 'checkbox') field.change(target.checked)
+    else if (kind === 'number') {
+      let num = target.valueAsNumber
+      field.change(Number.isNaN(num) ? undefined : num)
+    } else field.change(target.value)
+  })
+  setProp(dom, element, 'on:blur', field.focus.out)
+  setProp(dom, element, 'on:focus', field.focus.in)
+
+  unlink(element, () =>
+    field.value.subscribe((val) =>
+      kind === 'checkbox'
+        ? set(dom, element, 'checked', val)
+        : set(dom, element, 'value', val == null ? '' : val),
+    ),
+  )
+  unlink(element, () =>
+    field.disabled.subscribe((disabled) =>
+      set(dom, element, 'prop:disabled', disabled),
+    ),
+  )
+
+  ensureMeta(element).mount = () => {
+    field.elementRef.set(element as HTMLElement)
+    let userCleanup = userRef?.(element)
+    return (el) => {
+      field.elementRef.set(undefined)
+      if (typeof userCleanup === 'function') userCleanup(el)
+    }
   }
 }
 
@@ -459,8 +568,13 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     return
   }
 
+  if (key === 'model' && element.nodeName.toUpperCase() === 'FORM') {
+    bindFormModel(dom, element, value)
+    return
+  }
+
   if (key.startsWith('model:')) {
-    key = key.slice(6) as 'checked' | 'value' | 'valueAsDate' | 'valueAsNumber'
+    key = key.slice(6)
     if (isWritableAtom(value)) {
       setProp(dom, element, 'on:input', (event: any) => {
         if (!event.target.validity.badInput) {

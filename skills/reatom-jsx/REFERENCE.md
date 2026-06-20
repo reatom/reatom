@@ -176,13 +176,14 @@ The `children` prop defines element content. It supports:
 
 ### Models
 
-Use `model:*` props for two-way binding with native input controls.
+Use `model:*` props for two-way binding with native input controls and plain writable atoms.
 
 Supported props:
 
 - `model:value`: binds the `value` property of inputs, useful for text inputs and `<textarea>`
 - `model:valueAsNumber`: binds the `valueAsNumber` property, typically used for numeric inputs
 - `model:checked`: binds the `checked` property of checkboxes or radio buttons
+- `model:field`: binds a `reatomField` / atomized field from `reatomForm` (change, focus, disabled, elementRef)
 
 ```tsx
 const value = atom('')
@@ -198,7 +199,92 @@ const Input = () => {
 }
 ```
 
-For real forms — multiple fields, validation, submit, focus/dirty state — keep state in `reatomForm` / `reatomField` (`@reatom/core`) and bind each input with `value={field.value}` plus `on:input={(event) => field.change(event.currentTarget.value)}` instead of one ad-hoc atom per input. See the [forms handbook](https://v1001.reatom.dev/handbook/forms/).
+### Forms
+
+For real forms — validation, submit, focus/dirty state — use `reatomForm` from `@reatom/core` with JSX bindings:
+
+- `<form model={form}>` — `preventDefault`, calls `form.submit()`, toggles `data-submitting` / `data-submitted` / `data-submit-error` (and matching classes) on the form element
+- `model:field={form.fields.name}` — wires each input through `field.change` and focus tracking
+
+Use `model:value` / `model:checked` for simple controls (search, toggles). Use `model:field` for form fields. See the [forms handbook](https://v1001.reatom.dev/handbook/forms/).
+
+```ts title="loginForm.ts"
+import { reatomForm } from '@reatom/core'
+
+export const loginForm = reatomForm(
+  {
+    username: '',
+    password: '',
+    passwordDouble: '',
+  },
+  {
+    validate({ password, passwordDouble }) {
+      if (password !== passwordDouble) {
+        return 'Passwords do not match'
+      }
+    },
+    onSubmit: async (values) => api.login(values),
+    validateOnBlur: true,
+    name: 'loginForm',
+  },
+)
+```
+
+```tsx title="LoginForm.jsx"
+import { css } from '@reatom/jsx'
+import { loginForm } from './loginForm'
+
+const formStyles = css`
+  &[data-submitting] [type='submit'] {
+    color: transparent;
+    position: relative;
+    pointer-events: none;
+  }
+  &[data-submitting] [type='submit']::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+`
+
+export const LoginForm = () => (
+  <form model={loginForm} css={formStyles}>
+    <input
+      model:field={loginForm.fields.username}
+      placeholder="Enter your username"
+    />
+    <span>{() => loginForm.fields.username.validation().error}</span>
+
+    <input
+      model:field={loginForm.fields.password}
+      attr:type="password"
+      placeholder="Enter your password"
+    />
+
+    <input
+      model:field={loginForm.fields.passwordDouble}
+      attr:type="password"
+      placeholder="Confirm your password"
+    />
+
+    <button type="submit">Login</button>
+  </form>
+)
+```
+
+`<form model={form}>` wires submit (`preventDefault` + `form.submit()`) and toggles `data-submitting`, `data-submitted`, and `data-submit-error` on the form for CSS. The submit button needs no extra props — the spinner above is CSS-only while `data-submitting` is set.
 
 ### `style` props
 

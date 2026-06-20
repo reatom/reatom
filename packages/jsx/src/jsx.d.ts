@@ -3,11 +3,31 @@ Respectfully copied from https://github.com/ryansolid/dom-expressions/blob/ae71a
 */
 
 import type {
+  Action,
+  Atom,
   AtomLike,
+  FieldAtom,
+  FieldLikeAtom,
   LinkedList,
   LLNode,
 } from '@reatom/core'
 import type * as csstype from 'csstype'
+
+/** Minimal field shape for `model:field` binding in JSX. */
+export type FieldModelBinding = Pick<
+  FieldAtom,
+  'change' | 'value' | 'focus' | 'disabled' | 'elementRef'
+>
+
+/** Minimal form shape for `<form model={...}>` binding in JSX. */
+export type FormModelBinding = {
+  submit: Action<any[], any> & {
+    ready: AtomLike<boolean>
+    error: AtomLike<Error | undefined>
+  }
+  submitted: Atom<boolean>
+  fields: Record<string, FieldLikeAtom>
+}
 
 type Primitive =
   | (string & {})
@@ -2023,6 +2043,8 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/submit_event
      */
     'on:submit'?: EventHandler<T, SubmitEvent> | null | undefined
+    /** Binds a {@link FormModelBinding}: auto submit, loading/submitted/error data attrs and classes. */
+    model?: FormModelBinding
   }
   interface IframeHTMLAttributes<T = HTMLElementTagNameMap['iframe']>
     extends HTMLAttributes<T> {
@@ -2482,6 +2504,8 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement/valueAsNumber
      */
     'model:valueAsNumber'?: number | null | undefined
+    /** Binds a {@link FieldModelBinding}: value, change, focus, disabled, elementRef. */
+    'model:field'?: FieldModelBinding
   }
   interface InsHTMLAttributes<T = HTMLElementTagNameMap['ins']>
     extends HTMLAttributes<T> {
@@ -3224,6 +3248,8 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/value
      */
     'model:value'?: string | null | undefined
+    /** Binds a {@link FieldModelBinding}: value, change, focus, disabled, elementRef. */
+    'model:field'?: FieldModelBinding
   }
   interface HTMLSlotElementAttributes<T = HTMLElementTagNameMap['slot']>
     extends HTMLAttributes<T> {
@@ -3693,6 +3719,8 @@ export namespace JSX {
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLTextAreaElement/value
      */
     'model:value'?: string | null | undefined
+    /** Binds a {@link FieldModelBinding}: value, change, focus, disabled, elementRef. */
+    'model:field'?: FieldModelBinding
   }
   interface TimeHTMLAttributes<T = HTMLElementTagNameMap['time']>
     extends HTMLAttributes<T> {

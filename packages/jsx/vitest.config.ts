@@ -12,21 +12,36 @@ export default defineConfig({
     },
   },
   test: {
-    sequence: { groupOrder: 13 },
-    testTimeout: 5000,
-    name: '@reatom/jsx',
-    include: ['./src/**/*.test.tsx'],
-    browser: {
-      enabled: true,
-      provider: playwright(),
-      headless: true,
-      screenshotFailures: false,
-      instances: [
-        {
-          name: 'jsx-chromium',
-          browser: 'chromium',
+    projects: [
+      {
+        extends: true,
+        test: {
+          sequence: { groupOrder: 13 },
+          testTimeout: 5000,
+          name: '@reatom/jsx',
+          include: ['./src/**/*.test.tsx'],
+          browser: {
+            enabled: true,
+            provider: playwright(),
+            headless: true,
+            screenshotFailures: false,
+            instances: [
+              {
+                name: 'jsx-chromium',
+                browser: 'chromium',
+              },
+            ],
+          },
         },
-      ],
-    },
+      },
+      {
+        extends: true,
+        test: {
+          name: '@reatom/jsx-types',
+          include: ['./src/**/*.test-d.ts'],
+          environment: 'node',
+        },
+      },
+    ],
   },
 })
