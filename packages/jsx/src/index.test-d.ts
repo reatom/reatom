@@ -1,5 +1,5 @@
 import { atom } from '@reatom/core'
-import { type FieldAtom,reatomField, reatomForm } from '@reatom/core'
+import { type FieldAtom, reatomField, reatomForm } from '@reatom/core'
 import { expectTypeOf, test } from 'vitest'
 
 import type {

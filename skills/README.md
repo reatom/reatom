@@ -32,18 +32,18 @@ flowchart TD
   RJ --> JSX
 ```
 
-| Path | Role |
-|------|------|
-| `skills/` | Canonical skill files — **only edit here** |
-| `.cursor/skills/` | Symlink → `skills/` (Cursor discovery) |
-| `.agents/skills/` | Symlink → `skills/` (Codex discovery) |
+| Path              | Role                                       |
+| ----------------- | ------------------------------------------ |
+| `skills/`         | Canonical skill files — **only edit here** |
+| `.cursor/skills/` | Symlink → `skills/` (Cursor discovery)     |
+| `.agents/skills/` | Symlink → `skills/` (Codex discovery)      |
 
-| Symlink | Points to |
-|---------|-----------|
-| `summary.md` | `skills/reatom/REFERENCE.md` |
-| `docs/src/content/docs/summary.md` | `skills/reatom/REFERENCE.md` |
-| `packages/core/README.md` | `skills/reatom/REFERENCE.md` |
-| `packages/jsx/README.md` | `skills/reatom-jsx/REFERENCE.md` |
+| Symlink                            | Points to                        |
+| ---------------------------------- | -------------------------------- |
+| `summary.md`                       | `skills/reatom/REFERENCE.md`     |
+| `docs/src/content/docs/summary.md` | `skills/reatom/REFERENCE.md`     |
+| `packages/core/README.md`          | `skills/reatom/REFERENCE.md`     |
+| `packages/jsx/README.md`           | `skills/reatom-jsx/REFERENCE.md` |
 
 **Do not diff, merge, or sync symlink targets.** Paths like `summary.md` and `packages/core/README.md` are the same content as `skills/reatom/REFERENCE.md`. Comparing them wastes time and tokens.
 
