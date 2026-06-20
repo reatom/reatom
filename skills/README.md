@@ -16,6 +16,7 @@ npx skills add reatom/reatom --skill reatom-review
 | Skill           | Bundled reference                          |
 | --------------- | ------------------------------------------ |
 | `reatom`        | `summary.md` — compact v1001 API reference |
+| `reatom-async`  | `README.md` — async flows, cancellation, sampling, and Suspense |
 | `reatom-jsx`    | `README.md` — `@reatom/jsx` package docs   |
 | `reatom-review` | `summary.md` + review checklist            |
 

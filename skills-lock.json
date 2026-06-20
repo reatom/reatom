@@ -7,6 +7,12 @@
       "skillPath": "skills/reatom/SKILL.md",
       "computedHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
+    "reatom-async": {
+      "source": "reatom/reatom",
+      "sourceType": "github",
+      "skillPath": "skills/reatom-async/SKILL.md",
+      "computedHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
     "reatom-jsx": {
       "source": "reatom/reatom",
       "sourceType": "github",

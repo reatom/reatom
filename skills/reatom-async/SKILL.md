@@ -5,11 +5,11 @@ description: Masters Reatom v1001 async flows. Use when implementing, documentin
 
 # Reatom Async
 
-Use this skill when the task is mainly about Reatom async behavior. Treat [summary.md](summary.md) as the bundled async source of truth.
+Use this skill when the task is mainly about Reatom async behavior. Treat [README.md](README.md) as the bundled async source of truth.
 
 ## How to Use
 
-1. Read only the [summary.md](summary.md) sections that match the task.
+1. Read only the [README.md](README.md) sections that match the task.
 2. Prefer Reatom async patterns over debounce libraries, mount-time fetches, refs, local component promise state, or manual AbortController bookkeeping.
 3. For general Reatom modeling, use the `reatom` skill. For `@reatom/jsx` DOM JSX specifics, use `reatom-jsx`. For reviews, combine this skill with `reatom-review`.
 4. If docs, source, and tests disagree, prefer source and tests, then fix the doc/example that is stale.
@@ -31,7 +31,7 @@ Use this skill when the task is mainly about Reatom async behavior. Treat [summa
 - Every async boundary that leaves a Reatom frame uses `await wrap(promise)`.
 - External callbacks that call Reatom state/actions are passed as `wrap(fn)` or wired with `onEvent`.
 - Abortable fetches use `signal: abortVar.require().signal` or a scoped `abortVar.subscribe()`.
-- Debounce and throttle use `await wrap(sleep(ms))` plus `withAbort()` strategies.
+- Debounce and throttle follow the sampling docs: `await wrap(sleep(ms))` inside the flow plus `withAbort()` strategies, not split debounce helpers.
 - Route/page data belongs in route loaders or async computeds, not component effects.
 - Suspense is for global one-shot initialization, not dynamic page data.
 
