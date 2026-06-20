@@ -5,11 +5,11 @@ description: Masters Reatom v1001 async flows. Use when implementing, documentin
 
 # Reatom Async
 
-Use this skill when the task is mainly about Reatom async behavior. Treat [README.md](README.md) as the bundled async source of truth.
+Use this skill when the task is mainly about Reatom async behavior. Treat [REFERENCE.md](REFERENCE.md) as the bundled async source of truth.
 
 ## How to Use
 
-1. Read only the [README.md](README.md) sections that match the task.
+1. Read only the [REFERENCE.md](REFERENCE.md) sections that match the task.
 2. Prefer Reatom async patterns over debounce libraries, mount-time fetches, refs, local component promise state, or manual AbortController bookkeeping.
 3. For general Reatom modeling, use the `reatom` skill. For `@reatom/jsx` DOM JSX specifics, use `reatom-jsx`. For reviews, combine this skill with `reatom-review`.
 4. If docs, source, and tests disagree, prefer source and tests, then fix the doc/example that is stale.
