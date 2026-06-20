@@ -49,22 +49,22 @@ Add needed dependencies by running `pnpm install` in the repository root. To add
 
 Agent skills for AI coding assistants live in [`skills/`](skills/). This is the only directory you should edit.
 
-| Path | Role |
-|------|------|
-| `skills/` | Canonical skill files (edit here) |
+| Path              | Role                                   |
+| ----------------- | -------------------------------------- |
+| `skills/`         | Canonical skill files (edit here)      |
 | `.cursor/skills/` | Symlink → `skills/` (Cursor discovery) |
-| `.agents/skills/` | Symlink → `skills/` (Codex discovery) |
+| `.agents/skills/` | Symlink → `skills/` (Codex discovery)  |
 
 Each skill has a `SKILL.md` entrypoint. Bundled reference docs use `REFERENCE.md` (not `README.md` or `summary.md`).
 
 External files symlink to skill references — edit the skill file, not the symlink target:
 
-| Symlink | Canonical source |
-|---------|-------------------|
-| `summary.md` | `skills/reatom/REFERENCE.md` |
-| `docs/src/content/docs/summary.md` | `skills/reatom/REFERENCE.md` |
-| `packages/core/README.md` | `skills/reatom/REFERENCE.md` |
-| `packages/jsx/README.md` | `skills/reatom-jsx/REFERENCE.md` |
+| Symlink                            | Canonical source                 |
+| ---------------------------------- | -------------------------------- |
+| `summary.md`                       | `skills/reatom/REFERENCE.md`     |
+| `docs/src/content/docs/summary.md` | `skills/reatom/REFERENCE.md`     |
+| `packages/core/README.md`          | `skills/reatom/REFERENCE.md`     |
+| `packages/jsx/README.md`           | `skills/reatom-jsx/REFERENCE.md` |
 
 The `reatom-review` skill has no bundled reference — it instructs the agent to also load the `reatom` skill.
 

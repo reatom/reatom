@@ -1,5 +1,12 @@
 import type { Action, Atom, Computed } from '../core'
-import { atom, computed, named, ReatomError, withActions, withParams } from '../core'
+import {
+  atom,
+  computed,
+  named,
+  ReatomError,
+  withActions,
+  withParams,
+} from '../core'
 import { withFromJson } from '../extensions/withFromJson'
 import { withToJson } from '../extensions/withToJson'
 

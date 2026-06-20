@@ -333,26 +333,26 @@ Prefer it over try-catch (which nests the happy path) and native `using` (which 
 
 For teams migrating from `redux-saga`. Saga interprets generator-yielded effect objects through a middleware; Reatom runs native `async`/`await` inside `action` / `computed` / `effect` frames. Effects become ordinary calls plus the sampling primitives above — no `yield`, no effect descriptors, and breakpoints / stack traces stay intact.
 
-| redux-saga | Reatom v1001 |
-| --- | --- |
-| `yield take(pattern)` | `await wrap(take(target, selector?))` |
-| `yield takeMaybe(pattern)` | `const ev = take(target)` first, `await wrap(ev)` later (checkpoint, no block at the call site) |
-| `yield delay(ms)` | `await wrap(sleep(ms))` |
-| `yield select(selector)` | read the atom directly: `someAtom()` |
-| `yield put(action)` | call the action directly: `someAction(payload)` |
-| `yield call(fn, ...args)` | `await wrap(fn(...args))` |
-| `yield fork(fn, ...args)` | `const task = abortVar.createAndRun(fn, ...args)` |
-| `yield spawn(fn, ...args)` | `abortVar.spawn(fn, ...args)` |
-| `yield join(task)` | `await wrap(task)` |
-| `yield cancel(task)` | `task.controller.abort(reason?)` |
-| `yield cancelled()` | `abortVar.require().signal.aborted` |
-| `yield all([...])` | `await wrap(Promise.all([...]))` |
-| `yield race({ ... })` | `race(...controlledPromises)` |
-| `takeEvery(pattern, saga)` | subscribe + run an `action`: `withChangeHook` (atom) / `withCallHook` (action) |
-| `takeLatest(pattern, saga)` | same subscription, handler is `action(...).extend(withAbort())` (`'last-in-win'`) |
-| `takeLeading(pattern, saga)` | same subscription, handler is `action(...).extend(withAbort('first-in-win'))` |
-| `throttle(ms, pattern, saga)` | `action(async () => { ...; await wrap(sleep(ms)) }).extend(withAbort('first-in-win'))` |
-| `debounce(ms, pattern, saga)` | `action(async () => { await wrap(sleep(ms)); ... }).extend(withAbort())` |
+| redux-saga                    | Reatom v1001                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| `yield take(pattern)`         | `await wrap(take(target, selector?))`                                                           |
+| `yield takeMaybe(pattern)`    | `const ev = take(target)` first, `await wrap(ev)` later (checkpoint, no block at the call site) |
+| `yield delay(ms)`             | `await wrap(sleep(ms))`                                                                         |
+| `yield select(selector)`      | read the atom directly: `someAtom()`                                                            |
+| `yield put(action)`           | call the action directly: `someAction(payload)`                                                 |
+| `yield call(fn, ...args)`     | `await wrap(fn(...args))`                                                                       |
+| `yield fork(fn, ...args)`     | `const task = abortVar.createAndRun(fn, ...args)`                                               |
+| `yield spawn(fn, ...args)`    | `abortVar.spawn(fn, ...args)`                                                                   |
+| `yield join(task)`            | `await wrap(task)`                                                                              |
+| `yield cancel(task)`          | `task.controller.abort(reason?)`                                                                |
+| `yield cancelled()`           | `abortVar.require().signal.aborted`                                                             |
+| `yield all([...])`            | `await wrap(Promise.all([...]))`                                                                |
+| `yield race({ ... })`         | `race(...controlledPromises)`                                                                   |
+| `takeEvery(pattern, saga)`    | subscribe + run an `action`: `withChangeHook` (atom) / `withCallHook` (action)                  |
+| `takeLatest(pattern, saga)`   | same subscription, handler is `action(...).extend(withAbort())` (`'last-in-win'`)               |
+| `takeLeading(pattern, saga)`  | same subscription, handler is `action(...).extend(withAbort('first-in-win'))`                   |
+| `throttle(ms, pattern, saga)` | `action(async () => { ...; await wrap(sleep(ms)) }).extend(withAbort('first-in-win'))`          |
+| `debounce(ms, pattern, saga)` | `action(async () => { await wrap(sleep(ms)); ... }).extend(withAbort())`                        |
 
 Non-obvious cases:
 

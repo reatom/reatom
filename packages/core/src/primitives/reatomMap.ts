@@ -1,6 +1,14 @@
 import type { Action, AtomLike } from '../core'
 import type { Computed } from '../core'
-import { _set, action, atom, computed, named, ReatomError, withActions } from '../core'
+import {
+  _set,
+  action,
+  atom,
+  computed,
+  named,
+  ReatomError,
+  withActions,
+} from '../core'
 import { withFromJson } from '../extensions/withFromJson'
 import { withToJson } from '../extensions/withToJson'
 
