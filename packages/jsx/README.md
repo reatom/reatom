@@ -505,36 +505,32 @@ Each call creates a unique element with its own lifecycle and subscriptions.
 
 ### Linked lists
 
-Reactive array children work well for tiny lists. There is no virtual DOM or keyed reconciliation: `{() => items().map(...)}` renders through a **live fragment**, so every structural change tears down the current children and inserts the mapped result again.
+Reactive array children are perfect for short, mostly-static lists. There is no virtual DOM and no keyed reconciliation here, so a `{() => items().map(...)}` child renders through a live fragment: whenever the array changes, the current children are torn down and the freshly mapped result is inserted in their place. For a handful of items that is exactly what you want — cheap and simple.
 
-For large, reorderable, or frequently edited lists, mount a `reatomLinkedList` from `@reatom/core`. Each item is a stable `LLNode` ref in a doubly linked list; structural edits append to a **change log** and bump a **version**. `@reatom/jsx` subscribes and applies those changes to the DOM without rebuilding the whole list.
+Once a list grows long, reorders often, or gets edited many times per interaction, that full rebuild starts to cost you. This is where `reatomLinkedList` from `@reatom/core` earns its place. It keeps every item as a stable node in a doubly linked list, and each structural edit is appended to a change log that bumps a version number. `@reatom/jsx` subscribes to that log and replays only what changed onto the DOM, so the list is patched in place rather than recreated from scratch.
 
 ```mermaid
 flowchart LR
-  A["@reatom/core actions"] --> C["changes[] + version"]
-  C -->|"subscribe"| W["@reatom/jsx"]
-  W --> D["direct DOM update"]
+  A["linked list actions"]; B["changes[] + version"]; C["reatom/jsx subscription"]; D["direct DOM updates"]
+  A --> B
+  B --> C
+  C --> D
 ```
 
 #### Performance vs reactive arrays
 
-| Change                 | Reactive array child           | Linked-list child                                                        |
-| ---------------------- | ------------------------------ | ------------------------------------------------------------------------ |
-| Add / add many         | Rebuilds the live fragment     | `create` / `createMany` append nodes (batched in one `DocumentFragment`) |
-| Remove                 | Rebuilds the live fragment     | Removes the row node, or live-fragment markers                           |
-| Reorder (move / swap)  | Rebuilds the live fragment     | Reuses the same DOM elements via native insertion APIs                   |
-| Item content update    | May recreate row markup        | Row node is reused; inner atoms and props update                         |
-| Batch structural edits | One rebuild per subscriber run | `batch()` records many changes; DOM updated incrementally                |
+| Classic immutable array change                      | Reactive array child       | LL method               | Linked-list child                                      |
+| --------------------------------------------------- | -------------------------- | ----------------------- | ------------------------------------------------------ |
+| **Add** — `arr.set(state => [...state, next])`      | Rebuilds the live fragment | `create` / `createMany` | Appends nodes, batched in one `DocumentFragment`       |
+| **Remove** — `arr.set(state => state.filter(...))`  | Rebuilds the live fragment | `remove` / `removeMany` | Drops the row node (or its live-fragment markers)      |
+| **Reorder** — `arr.set(state => [...state].sort())` | Rebuilds the live fragment | `move` / `swap`         | Reuses the same DOM elements via native insertion APIs |
+| **Update item** — `arr.set(state => state.with())`  | Rebuilds the live fragment | inner atom `.set()`     | Row node is reused; inner atoms and props update       |
 
-#### Stable DOM and JSX runtime
-
-Keeping the same element instances preserves **focus**, **text selection**, **CSS transitions**, **media playback**, **scroll position**, and row-local subscriptions. **Node object identity is the key** — there are no React-style `key` props.
-
-On subscribe, reatom jsx runtime walks `changes[]` incrementally. A missed version rebuilds from `head` to `tail`; `clear()` wipes the parent. Live-fragment removes drop markers; fragments are valid list items with reactive inner computed children.
+Performance aside, the linked-list methods are simply nicer to live with. `create`, `remove`, `move`, and `swap` say what you mean, while the immutable-array column above leans on index math, spreads, and `filter`/`map`/`with` callbacks — more code to write and more places to get an index wrong. So even for modest lists where rebuild cost is a non-issue, reach for `reatomLinkedList` when you want the friendlier API.
 
 #### Data + view list
 
-`.reatomMap()` mirrors source nodes in a parallel linked list via a `WeakMap`, so `move`, `swap`, and `remove` reuse mapped view rows. **Remove from the source list**, not from the mapped view:
+`.reatomMap()` keeps a parallel linked list of views, tied back to the source nodes through a `WeakMap`. Since that mapping is stable, `move`, `swap`, and `remove` on the source quietly reuse the matching view rows. The rule to remember: edit the _source_ list, never the mapped view. For example:
 
 ```tsx
 import { atom, reatomLinkedList } from '@reatom/core'
@@ -557,7 +553,7 @@ Examples: [drag-and-drop](https://github.com/reatom/reatom/tree/v1001/examples/r
 
 #### API and when to use
 
-Structural methods — all record changes: `create`, `createMany`, `remove`, `removeMany`, `move(node, after)` (`after === null` inserts at head), `swap`, `clear`, `batch`. Pointer access: `list.LL_PREV` / `list.LL_NEXT`. Read-only snapshots: `list.array()` or `deatomize(list.array)` — not for mounting large dynamic lists. Keyed lookup: `reatomLinkedList({ create, key: 'id' })` + `list.map()` — fine for hundreds of items; avoid at thousands-scale.
+Every structural method records a change: `create`, `createMany`, `remove`, `removeMany`, `move(node, after)` (pass `after === null` to insert at the head), `swap`, `clear`, and `batch` for folding many edits into a single DOM pass. You can also walk the list by hand through `list.LL_PREV` / `list.LL_NEXT`. When you just need a plain snapshot, reach for `list.array()` or `deatomize(list.array)` — great for reading, but not for mounting large dynamic lists. And when lookup by id matters, `reatomLinkedList({ create, key: 'id' })` together with `list.map()` is comfortable for hundreds of items, though you'll want another approach once you reach the thousands.
 
 | Scenario                                   | Use                                                      |
 | ------------------------------------------ | -------------------------------------------------------- |
@@ -567,10 +563,10 @@ Structural methods — all record changes: `create`, `createMany`, `remove`, `re
 
 #### Caveats
 
-- List nodes must be objects or functions — wrap primitives in objects, atoms, or DOM elements.
-- A node cannot appear twice in the same list.
+- List nodes have to be objects or functions, so wrap primitives in objects, atoms, or DOM elements first.
+- The same node cannot appear twice in one list.
 - Native `DocumentFragment` rows are not supported.
-- `move`/`swap` on fragment rows has gaps; prefer one root element per row, or render element rows through `.reatomMap()` and reorder source nodes.
+- `move` and `swap` are still rough on fragment rows, so prefer a single root element per row — or render element rows through `.reatomMap()` and reorder the source nodes instead.
 
 [`reatomLinkedList` core docs](https://v1001.reatom.dev/reference/primitives/#reatomlinkedlist)
 
