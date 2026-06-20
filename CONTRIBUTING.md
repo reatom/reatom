@@ -66,7 +66,11 @@ External files symlink to skill references — edit the skill file, not the syml
 | `packages/core/README.md`          | `skills/reatom/REFERENCE.md`     |
 | `packages/jsx/README.md`           | `skills/reatom-jsx/REFERENCE.md` |
 
+**Do not diff, merge, or sync symlink targets.** If you see the same content at `summary.md`, `packages/core/README.md`, and `skills/reatom/REFERENCE.md`, that is expected — they are one file. Comparing or copying between them wastes review time and agent tokens.
+
 The `reatom-review` skill has no bundled reference — it instructs the agent to also load the `reatom` skill.
+
+See also [`AGENTS.md`](AGENTS.md) and [`skills/README.md`](skills/README.md) for the layout diagram.
 
 ## Coding guide
 
