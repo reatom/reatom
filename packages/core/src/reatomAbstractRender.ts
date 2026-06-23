@@ -148,7 +148,20 @@ export let reatomAbstractRender = <Props, Result>({
     let mount = bind(() => {
       recheckAbort(_read(_render)!)
 
+      // Catch up after subscribe: deps may change between render and mount
+      // (e.g. parent useLayoutEffect) while _render has no subscribers yet.
+      // The immediate subscribe callback must sync the host renderer; changedVar
+      // gate is for subsequent updates only.
+      let isFirstSubscriptionCall = true
+
       let unsubscribe = _render.subscribe((state) => {
+        if (isFirstSubscriptionCall) {
+          isFirstSubscriptionCall = false
+          changedVar.set(false)
+          rerender(state)
+          return
+        }
+
         let deps = 0
         if (
           changedVar.find((changed) =>

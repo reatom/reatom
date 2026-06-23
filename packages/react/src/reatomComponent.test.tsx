@@ -7,10 +7,11 @@ import {
   rAF,
   take,
   top,
+  withAsyncData,
   withSuspenseInit,
   wrap,
 } from '@reatom/core'
-import React, { act, startTransition,Suspense } from 'react'
+import React, { act, startTransition, Suspense, useLayoutEffect } from 'react'
 import ReactDOM from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 
@@ -457,5 +458,49 @@ describe('reatomComponent', () => {
       expect(
         document.querySelector('[data-testid="result"]'),
       ).toBeInTheDocument()
+    }))
+
+  test('rerenders when async resource fulfills before mount subscription', () =>
+    context.start(async () => {
+      let resolve!: (value: string) => void
+      const promise = new Promise<string>((res) => {
+        resolve = res
+      })
+
+      const resource = computed(async () => promise, 'resource').extend(
+        withAsyncData(),
+      )
+
+      const BrokenView = reatomComponent(() => {
+        const data = resource.data()
+        const status = resource.status()
+
+        return (
+          <div data-testid="view">
+            {status.isPending ? 'loading' : `data: ${data}`}
+          </div>
+        )
+      }, 'BrokenView')
+
+      const Parent = () => {
+        useLayoutEffect(() => {
+          resolve('ok')
+        }, [])
+
+        return <BrokenView />
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <Parent />
+        </reatomContext.Provider>,
+      )
+
+      await wrap(tick())
+
+      expect(document.querySelector('[data-testid="view"]')?.textContent).toBe(
+        'data: ok',
+      )
     }))
 })
