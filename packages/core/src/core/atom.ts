@@ -665,7 +665,7 @@ function subscribe(this: AtomLike, userCb?: Fn) {
     relink(frame!, [null])
   }
 
-  if (userCb && !isActionSubscription) userCb(frame.state)
+  if (userCb && !isActionSubscription) frame.run(userCb, frame.state)
 
   return bind(() => {
     let idx = frame.subs.lastIndexOf(listener)

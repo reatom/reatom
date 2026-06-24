@@ -135,6 +135,22 @@ test('subscribe to cached atom', () => {
   expect(a1Frame?.subs.length).toBe(1)
 })
 
+test('subscribe initial callback runs in the target frame', () => {
+  const source = atom(0, 'subscribeInitialCallbackFrame.source')
+  const callbackAtoms = new Array<ReturnType<typeof top>['atom']>()
+
+  source.subscribe(() => {
+    callbackAtoms.push(top().atom)
+  })
+
+  expect(callbackAtoms).toEqual([source])
+
+  source.set(1)
+  notify()
+
+  expect(callbackAtoms).toEqual([source, source])
+})
+
 test('update propagation for atom with listener', () => {
   const name = 'updatePropagation'
   const a1 = atom(0, `${name}.a1`)
