@@ -172,6 +172,7 @@ export let withAbort =
           try {
             abortSubscription = abortVar.subscribe((error) => {
               maybePromise.catch(noop)
+              wrappedPromise?.catch(noop)
               rej(error)
             })
             let value = await maybePromise
