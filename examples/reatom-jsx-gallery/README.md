@@ -169,11 +169,11 @@ Theme packs and defaults live in `src/theme.tsx` and persisted UI atoms live in 
 
 Binary image corpora live under `src/__fixtures__/images/` in three tiers:
 
-| Tier | Size | Use |
-|------|------|-----|
-| `tier-a` | ~4 MB | Default CI — EXIF, PNG/WebP/AVIF/GIF/SVG/BMP smoke tests |
-| `tier-b` | ~40 MB | Extended parser/decode and stress cases |
-| `tier-c` | ~140 MB (Git LFS) | Real RAW/DNG/ARW/ORF embedded-preview tests |
+| Tier     | Size              | Use                                                      |
+| -------- | ----------------- | -------------------------------------------------------- |
+| `tier-a` | ~4 MB             | Default CI — EXIF, PNG/WebP/AVIF/GIF/SVG/BMP smoke tests |
+| `tier-b` | ~40 MB            | Extended parser/decode and stress cases                  |
+| `tier-c` | ~140 MB (Git LFS) | Real RAW/DNG/ARW/ORF embedded-preview tests              |
 
 ```bash
 # Re-download from pinned upstream URLs (updates manifest sha256)

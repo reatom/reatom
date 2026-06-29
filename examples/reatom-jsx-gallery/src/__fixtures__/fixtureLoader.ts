@@ -22,7 +22,8 @@ export type FixtureManifestEntry = {
 
 const fixturesRoot = join(dirname(fileURLToPath(import.meta.url)), 'images')
 
-const manifestEntries = (manifest as { entries: FixtureManifestEntry[] }).entries
+const manifestEntries = (manifest as { entries: FixtureManifestEntry[] })
+  .entries
 
 export function listFixtures(tier?: FixtureTier): FixtureManifestEntry[] {
   if (!tier) return manifestEntries
@@ -92,9 +93,7 @@ export async function readFixtureBlob(
 
 export async function tierCAvailable(): Promise<boolean> {
   try {
-    const fileStat = await stat(
-      fixtureAbsPath('tier-c', 'raw/IMG_3887.CR2'),
-    )
+    const fileStat = await stat(fixtureAbsPath('tier-c', 'raw/IMG_3887.CR2'))
     return fileStat.size > 1000
   } catch {
     return false
