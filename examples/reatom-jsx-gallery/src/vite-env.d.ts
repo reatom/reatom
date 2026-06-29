@@ -16,5 +16,6 @@ declare module 'libraw-wasm' {
     open(data: Uint8Array, options?: LibRawOpenOptions): Promise<void>
     metadata(full?: boolean): Promise<Record<string, unknown>>
     imageData(): Promise<unknown>
+    dispose?(): void
   }
 }

@@ -33,7 +33,7 @@ type DevelopOrientation = {
 }
 
 type DevelopSlot = {
-  instance: LibRawInstance
+  instance: LibRawInstance | null
   abort: AbortController | null
 }
 
@@ -54,11 +54,23 @@ function loadLibRawModule(): Promise<LibRawModule> {
 function ensurePool(LibRaw: LibRawModule['default']): DevelopSlot[] {
   if (!developPool) {
     developPool = Array.from({ length: DEVELOP_POOL_SIZE }, () => ({
-      instance: new LibRaw(),
+      instance: null,
       abort: null,
     }))
   }
   return developPool
+}
+
+function disposeSlotInstance(slot: DevelopSlot): void {
+  const instance = slot.instance
+  if (!instance) return
+
+  if (typeof instance.dispose === 'function') {
+    instance.dispose()
+  } else {
+    instance.worker.terminate()
+  }
+  slot.instance = null
 }
 
 function createAbortError(): DOMException {
@@ -206,21 +218,20 @@ async function developWithPool(
 
   if (slot.abort) {
     slot.abort.abort()
-    slot.instance.worker.terminate()
-    slot.instance = new LibRaw()
+    disposeSlotInstance(slot)
     slot.abort = null
   }
 
   const abort = new AbortController()
   slot.abort = abort
-  const instance = slot.instance
+  const instance = new LibRaw()
+  slot.instance = instance
   const signal = abort.signal
 
   const onExternalAbort = () => {
     if (slot.abort === abort) {
       abort.abort()
-      slot.instance.worker.terminate()
-      slot.instance = new LibRaw()
+      disposeSlotInstance(slot)
       slot.abort = null
     }
   }
@@ -267,7 +278,10 @@ async function developWithPool(
     }
   } finally {
     externalSignal?.removeEventListener('abort', onExternalAbort)
-    if (slot.abort === abort) slot.abort = null
+    if (slot.abort === abort) {
+      slot.abort = null
+      disposeSlotInstance(slot)
+    }
   }
 }
 
@@ -286,6 +300,7 @@ export function shutdownRawDevelopPool(): void {
   for (const slot of developPool) {
     slot.abort?.abort()
     slot.abort = null
+    disposeSlotInstance(slot)
   }
 
   developPool = null
