@@ -19,6 +19,7 @@ import {
   navigateLightbox,
   openFolder,
   openLightbox,
+  refreshImagesList,
   searchQuery,
   selectAllImages,
   selectedCount,
@@ -40,6 +41,7 @@ test('imagesList sorts by name ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('name')
     sortOrder.set('asc')
+    refreshImagesList()
     const images = imagesList.array()
     const names = images.map((i) => i.source.name)
     expect(names).toEqual(
@@ -55,6 +57,7 @@ test('imagesList sorts by name descending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('name')
     sortOrder.set('desc')
+    refreshImagesList()
     const images = imagesList.array()
     const names = images.map((i) => i.source.name)
     expect(names).toEqual(
@@ -70,8 +73,9 @@ test('imagesList sorts by size ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('size')
     sortOrder.set('asc')
+    refreshImagesList()
     const images = imagesList.array()
-    const sizes = images.map((i) => i.source.size)
+    const sizes = images.map((i) => i.fileInfo.data()?.size)
     expect(sizes).toEqual([1024, 2048, 4096, 5120, 8192, 15360])
   }))
 
@@ -80,8 +84,9 @@ test('imagesList sorts by size descending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('size')
     sortOrder.set('desc')
+    refreshImagesList()
     const images = imagesList.array()
-    const sizes = images.map((i) => i.source.size)
+    const sizes = images.map((i) => i.fileInfo.data()?.size)
     expect(sizes).toEqual([15360, 8192, 5120, 4096, 2048, 1024])
   }))
 
@@ -90,8 +95,9 @@ test('imagesList sorts by date ascending', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('date')
     sortOrder.set('asc')
+    refreshImagesList()
     const images = imagesList.array()
-    const dates = images.map((i) => i.source.lastModified)
+    const dates = images.map((i) => i.fileInfo.data()?.lastModified)
     expect(dates).toEqual([
       1700000000000, 1700001000000, 1700002000000, 1700003000000, 1700004000000,
       1700005000000,
@@ -103,8 +109,9 @@ test('imagesList sorts by type', () =>
     loadGalleryState({ tree: mockFolderTree })
     sortField.set('type')
     sortOrder.set('asc')
+    refreshImagesList()
     const images = imagesList.array()
-    const types = images.map((i) => i.source.type)
+    const types = images.map((i) => i.fileInfo.data()?.type)
     expect(types).toEqual([
       'image/gif',
       'image/jpeg',
@@ -153,7 +160,10 @@ test('visibleIndexMap filters by size range', () =>
     const map = visibleIndexMap()
     expect(
       [...map.keys()].every(
-        (i) => i.source.size >= 5000 && i.source.size <= 10000,
+        (i) => {
+          const size = i.fileInfo.data()?.size
+          return size !== undefined && size >= 5000 && size <= 10000
+        },
       ),
     ).toBe(true)
   }))

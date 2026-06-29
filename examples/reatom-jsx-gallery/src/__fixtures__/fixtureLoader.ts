@@ -77,9 +77,12 @@ function createImageFromFixture(
     name,
     path: folderPath,
     relativePath: folderPath ? `${folderPath}/${name}` : name,
-    size: entry.size,
-    type: mimeFromFilename(name),
-    lastModified: 1700000000000,
+    fileInfo: {
+      name,
+      size: entry.size,
+      type: mimeFromFilename(name),
+      lastModified: 1700000000000,
+    },
     fileHandle: createFixtureFileHandle(entry.tier, entry.dest),
   }
 }

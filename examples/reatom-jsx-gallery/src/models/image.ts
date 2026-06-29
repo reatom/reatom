@@ -1,8 +1,9 @@
 import { computed, reatomBoolean, withLocalStorage } from '@reatom/core'
 
 import { isRawImageFormat } from '../image-engine/types'
+import { formatBytes, formatDate, formatDimensions } from '../imageFormat'
 import { reatomImage } from '../reatomImage'
-import type { ImageFile } from '../types'
+import type { ImageFile, ImageFileInfo } from '../types'
 import type { GalleryImageModel } from './contracts'
 import {
   filterSizeMax,
@@ -14,7 +15,10 @@ import {
 import { currentFolder } from './folder'
 import { developRawFullSize, ignoreExifOrientation } from './preferences'
 
-function matchesVisibleFilters(imageSource: ImageFile): boolean {
+function matchesVisibleFilters(
+  imageSource: ImageFile,
+  readFileInfo: () => ImageFileInfo | null,
+): boolean {
   const activeFilterTypes = filterTypes()
   const query = searchQuery().toLowerCase()
   const sizeMin = filterSizeMin()
@@ -32,7 +36,11 @@ function matchesVisibleFilters(imageSource: ImageFile): boolean {
 
   if (query && !imageSource.name.toLowerCase().includes(query)) return false
 
-  if (imageSource.size < sizeMin || imageSource.size > sizeMax) return false
+  if (sizeMin > 0 || sizeMax < Infinity) {
+    const fileInfo = readFileInfo()
+    if (fileInfo === null) return false
+    if (fileInfo.size < sizeMin || fileInfo.size > sizeMax) return false
+  }
 
   if (folder) {
     const folderPath = folder.path
@@ -56,6 +64,7 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
   const name = `image#${imageSource.name}`
   const imageModel = reatomImage(imageSource.fileHandle, name, {
     filename: imageSource.name,
+    initialFileInfo: imageSource.fileInfo,
     readIgnoreExifOrientation: () => ignoreExifOrientation(),
     readDevelopRaw: () => developRawFullSize(),
   })
@@ -65,12 +74,13 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
   )
 
   const visible = computed(
-    () => matchesVisibleFilters(imageSource),
+    () => matchesVisibleFilters(imageSource, imageModel.fileInfo.data),
     `${name}.visible`,
   )
 
   const width = computed(
     () =>
+      imageModel.thumbnailMeta.data()?.width ??
       imageModel.meta.data()?.width ??
       imageModel.rawDeveloped.data()?.width ??
       imageModel.fullImage.data()?.naturalWidth ??
@@ -80,6 +90,7 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
 
   const height = computed(
     () =>
+      imageModel.thumbnailMeta.data()?.height ??
       imageModel.meta.data()?.height ??
       imageModel.rawDeveloped.data()?.height ??
       imageModel.fullImage.data()?.naturalHeight ??
@@ -112,7 +123,11 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
   )
 
   const isRawPipeline = computed(
-    () => isRawImageFormat(imageModel.meta.data()?.format),
+    () =>
+      isRawImageFormat(
+        imageModel.thumbnailMeta.data()?.format ??
+          imageModel.meta.data()?.format,
+      ),
     `${name}.display.isRawPipeline`,
   )
 
@@ -143,6 +158,33 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
     )
   }, `${name}.display.downloadUrl`)
 
+  const sizeLabel = computed(() => {
+    const fileInfo = imageModel.fileInfo.data()
+    return fileInfo === null ? 'Size pending' : formatBytes(fileInfo.size)
+  }, `${name}.display.sizeLabel`)
+
+  const typeLabel = computed(() => {
+    const fileInfo = imageModel.fileInfo.data()
+    return fileInfo === null ? 'Type pending' : fileInfo.type || 'Unknown'
+  }, `${name}.display.typeLabel`)
+
+  const lastModifiedLabel = computed(() => {
+    const fileInfo = imageModel.fileInfo.data()
+    return fileInfo === null
+      ? 'Modified pending'
+      : formatDate(fileInfo.lastModified)
+  }, `${name}.display.lastModifiedLabel`)
+
+  const dimensionsLabel = computed(
+    () => formatDimensions(width(), height(), 'Dimensions pending'),
+    `${name}.display.dimensionsLabel`,
+  )
+
+  const summaryLabel = computed(
+    () => `${sizeLabel()} | ${dimensionsLabel()} | ${lastModifiedLabel()}`,
+    `${name}.display.summaryLabel`,
+  )
+
   return imageModel.extend(() => ({
     id: imageSource.id,
     source: imageSource,
@@ -158,6 +200,11 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
       preloadUrl,
       downloadUrl,
       isRawPipeline,
+      sizeLabel,
+      typeLabel,
+      lastModifiedLabel,
+      dimensionsLabel,
+      summaryLabel,
     },
   }))
 }

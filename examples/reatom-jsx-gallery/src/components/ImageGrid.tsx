@@ -16,9 +16,7 @@ const gridImagesView = imagesList.reatomMap(
   (imageNode) => (
     <div css="display: contents;">
       {() =>
-        imageNode.visible() && (
-          <GridImage image={imageNode} renderedSize={imageGrid.itemSize} />
-        )
+        imageNode.visible() && <GridImage image={imageNode} />
       }
     </div>
   ),

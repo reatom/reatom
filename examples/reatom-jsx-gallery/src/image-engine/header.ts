@@ -1,8 +1,10 @@
 import { parseAvifMeta } from './formats/bmff'
 import { parseBmpMeta } from './formats/bmp'
 import {
+  findApp1ExifTiffBase,
   findPngExifTiffBase,
   findWebpExifTiffBase,
+  parseExifOrientationAtTiffBase,
   parseExifTags,
   parseExifTagsAtTiffBase,
 } from './formats/exif'
@@ -13,6 +15,7 @@ import {
   extractRawPreviewData,
   isTiffLike,
   parseRawMeta,
+  parseRawPreviewMeta,
   type RawFormat,
 } from './formats/raw'
 import { parseSvgMeta } from './formats/svg'
@@ -126,6 +129,189 @@ function detectFormatFromMagic(view: DataView): ImageFormat {
 
 function isSvgBlob(blob: Blob): boolean {
   return blob.type.toLowerCase() === 'image/svg+xml'
+}
+
+function exifFromOrientation(orientation: string | null): ImageMeta['exif'] {
+  return orientation ? { Orientation: orientation } : undefined
+}
+
+export async function parseImagePreviewMeta(
+  source: Blob,
+  options?: ParseImageMetaOptions,
+): Promise<ImageMeta | null> {
+  const headerSlice = source.slice(0, HEADER_READ_BYTES)
+  const buffer = await headerSlice.arrayBuffer()
+  const view = new DataView(buffer)
+
+  const format = detectFormatFromMagic(view)
+
+  if (format === 'jpeg') {
+    const exifReadBytes = resolveExifReadBytes(source.size)
+    const exifSlice = source.slice(0, exifReadBytes)
+    const exifBuffer = await exifSlice.arrayBuffer()
+    const exifView = new DataView(exifBuffer)
+
+    const meta = parseJpegMeta(exifView)
+    if (meta) {
+      const tiffBase = findApp1ExifTiffBase(exifView)
+      const embeddedPreviewBlob = extractExifThumbnailFromView(exifView)
+      const embeddedPreview = embeddedPreviewBlob
+        ? { blob: embeddedPreviewBlob }
+        : undefined
+
+      return withDetectedFormatWarning(
+        {
+          width: meta.width,
+          height: meta.height,
+          format: 'jpeg',
+          isProgressive: meta.isProgressive,
+          hasExifThumbnail: embeddedPreview !== undefined,
+          exif:
+            tiffBase === null
+              ? undefined
+              : exifFromOrientation(
+                  parseExifOrientationAtTiffBase(exifView, tiffBase),
+                ),
+          embeddedPreview,
+        },
+        options?.filename,
+      )
+    }
+  }
+
+  if (format === 'png') {
+    const exifReadBytes = resolveExifReadBytes(source.size)
+    const exifSlice = source.slice(0, exifReadBytes)
+    const exifBuffer = await exifSlice.arrayBuffer()
+    const exifView = new DataView(exifBuffer)
+
+    const meta = parsePngMeta(exifView)
+    if (meta) {
+      const pngExifBase = findPngExifTiffBase(exifView)
+      return withDetectedFormatWarning(
+        {
+          ...meta,
+          format: 'png',
+          isProgressive: false,
+          hasExifThumbnail: false,
+          exif:
+            pngExifBase === null
+              ? undefined
+              : exifFromOrientation(
+                  parseExifOrientationAtTiffBase(exifView, pngExifBase),
+                ),
+        },
+        options?.filename,
+      )
+    }
+  }
+
+  if (format === 'gif') {
+    const meta = parseGifMeta(view)
+    if (meta) {
+      return withDetectedFormatWarning(
+        {
+          ...meta,
+          format: 'gif',
+          isProgressive: false,
+          hasExifThumbnail: false,
+        },
+        options?.filename,
+      )
+    }
+  }
+
+  if (format === 'webp') {
+    const exifReadBytes = resolveExifReadBytes(source.size)
+    const exifSlice = source.slice(0, exifReadBytes)
+    const exifBuffer = await exifSlice.arrayBuffer()
+    const exifView = new DataView(exifBuffer)
+
+    const meta = parseWebpMeta(exifView)
+    if (meta) {
+      const webpExifBase = findWebpExifTiffBase(exifView)
+      return withDetectedFormatWarning(
+        {
+          ...meta,
+          format: 'webp',
+          isProgressive: false,
+          hasExifThumbnail: false,
+          exif:
+            webpExifBase === null
+              ? undefined
+              : exifFromOrientation(
+                  parseExifOrientationAtTiffBase(exifView, webpExifBase),
+                ),
+        },
+        options?.filename,
+      )
+    }
+  }
+
+  if (format === 'bmp') {
+    const meta = parseBmpMeta(view)
+    if (meta) {
+      return withDetectedFormatWarning(
+        {
+          ...meta,
+          format: 'bmp',
+          isProgressive: false,
+          hasExifThumbnail: false,
+        },
+        options?.filename,
+      )
+    }
+  }
+
+  const avifMeta = parseAvifMeta(view)
+  if (avifMeta) {
+    return withDetectedFormatWarning(
+      {
+        ...avifMeta,
+        isProgressive: false,
+        hasExifThumbnail: false,
+      },
+      options?.filename,
+    )
+  }
+
+  if (isTiffLike(view)) {
+    const rawMeta = parseRawPreviewMeta(
+      view,
+      preferredRawFormatFromFilename(options?.filename),
+      source.size,
+    )
+    if (rawMeta) {
+      return withDetectedFormatWarning(
+        {
+          width: rawMeta.width,
+          height: rawMeta.height,
+          format: rawMeta.format,
+          isProgressive: false,
+          hasExifThumbnail: rawMeta.hasPreview,
+          exif: rawMeta.exif,
+        },
+        options?.filename,
+      )
+    }
+  }
+
+  if (isSvgBlob(source) || isProbablySvgBytes(view)) {
+    const meta = await parseSvgMeta(source)
+    if (meta) {
+      return withDetectedFormatWarning(
+        {
+          ...meta,
+          format: 'svg',
+          isProgressive: false,
+          hasExifThumbnail: false,
+        },
+        options?.filename,
+      )
+    }
+  }
+
+  return null
 }
 
 export async function parseImageMeta(

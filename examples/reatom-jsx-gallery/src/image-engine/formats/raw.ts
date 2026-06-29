@@ -1,6 +1,6 @@
 import type { ExifData, RawImageFormat } from '../types'
 import { EXIF_READ_BYTES } from '../types'
-import { parseExifTagsAtTiffBase } from './exif'
+import { parseExifOrientationAtTiffBase, parseExifTagsAtTiffBase } from './exif'
 import {
   canScanRawPreviewInWorker,
   scanRawPreviewRangesInWorker,
@@ -840,6 +840,39 @@ export function parseRawMeta(
     height: dimensions.height,
     format,
     hasPreview,
+    exif,
+  }
+}
+
+export function parseRawPreviewMeta(
+  view: DataView,
+  preferredFormat?: RawFormat,
+  fileByteLength = view.byteLength,
+): RawMeta | null {
+  const header = parseTiffHeader(view)
+  if (!header) return null
+
+  const ifd0Entries = readIfdEntries(
+    view,
+    header.tiffBase,
+    header.ifd0Offset,
+    header.littleEndian,
+  )
+
+  const format = classifyRawFormat(ifd0Entries, view, preferredFormat)
+  if (!format) return null
+
+  const dimensions = readDimensionsFromAllIfds(view, header)
+  if (!dimensions) return null
+
+  const orientation = parseExifOrientationAtTiffBase(view, header.tiffBase)
+  const exif = orientation ? { Orientation: orientation } : undefined
+
+  return {
+    width: dimensions.width,
+    height: dimensions.height,
+    format,
+    hasPreview: findPreviewRange(view, header, fileByteLength) !== null,
     exif,
   }
 }

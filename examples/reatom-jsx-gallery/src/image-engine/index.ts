@@ -1,5 +1,5 @@
 export { buildCameraHudRows, formatExifDisplayValue } from './exifDisplay'
-export { parseImageMeta } from './header'
+export { parseImageMeta, parseImagePreviewMeta } from './header'
 export {
   getOrientationFromExif,
   resolveImageOrientationStyle,

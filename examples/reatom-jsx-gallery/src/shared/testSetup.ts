@@ -1,5 +1,6 @@
 import { filterPanelOpen, settingsPanelOpen } from '../components/panelState'
 import {
+  bindImagesListSync,
   clearSelection,
   currentFolder,
   flatImages,
@@ -18,6 +19,13 @@ import {
   wrapFolderNavigation,
 } from '../model'
 import type { FolderNode, ImageFile } from '../types'
+
+let stopImagesListSync: (() => void) | null = null
+
+function connectImagesListSync(): void {
+  stopImagesListSync?.()
+  stopImagesListSync = bindImagesListSync()
+}
 
 function cloneImage(img: ImageFile): ImageFile {
   return { ...img }
@@ -55,6 +63,7 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
     total: tree.imageCount,
     current: tree.imageCount,
   })
+  connectImagesListSync()
   imagesList.array()
   clearSelection()
   lightboxOpen.setFalse()
@@ -75,10 +84,6 @@ export function loadGalleryStateWithImageModels(
   options: LoadGalleryStateOptions,
 ): void {
   loadGalleryState(options)
-  imagesList.batch(() => {
-    imagesList.clear()
-    imagesList.createMany(flatImages().map((image) => [image]))
-  })
 }
 
 export function loadEmptyState(): void {

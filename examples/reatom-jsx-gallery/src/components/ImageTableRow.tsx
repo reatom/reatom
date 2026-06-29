@@ -10,7 +10,6 @@ import {
   tablePreviewWidth,
 } from '../model'
 import { CheckIcon, HeartIcon } from './Icons'
-import { formatBytes, formatDate, formatDimensions } from './imageGridFormat'
 
 export const tableCellCss = `
   min-width: 0;
@@ -161,11 +160,9 @@ export const ImageTableRow = ({
           </div>
         </div>
       </td>
-      <td css={tableCellCss}>{formatBytes(image.source.size)}</td>
-      <td css={tableCellCss}>
-        {() => formatDimensions(image.width(), image.height(), 'Pending')}
-      </td>
-      <td css={tableCellCss}>{formatDate(image.source.lastModified)}</td>
+      <td css={tableCellCss}>{image.display.sizeLabel}</td>
+      <td css={tableCellCss}>{image.display.dimensionsLabel}</td>
+      <td css={tableCellCss}>{image.display.lastModifiedLabel}</td>
       <td css={tableCellCss}>{() => image.meta.data()?.format ?? 'unknown'}</td>
       <td css={tableCellCss}>
         {() => (image.meta.data()?.hasExifThumbnail ? 'yes' : 'no')}

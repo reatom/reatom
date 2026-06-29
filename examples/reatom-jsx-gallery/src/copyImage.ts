@@ -37,9 +37,6 @@ function isOriginalJpegFile(
   if (mime === JPEG_MIME || mime === 'image/jpg') return true
   if (meta?.format === 'jpeg') return true
 
-  const sourceType = image.source.type.toLowerCase()
-  if (sourceType === JPEG_MIME || sourceType === 'image/jpg') return true
-
   const extension = image.source.name.split('.').pop()?.toLowerCase()
   return extension === 'jpg' || extension === 'jpeg'
 }

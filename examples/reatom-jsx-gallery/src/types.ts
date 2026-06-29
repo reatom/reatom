@@ -1,12 +1,17 @@
+export type ImageFileInfo = {
+  name: string
+  size: number
+  type: string
+  lastModified: number
+}
+
 export type ImageFile = {
   id: string
   name: string
   path: string
   relativePath: string
-  size: number
-  type: string
-  lastModified: number
   fileHandle: FileSystemFileHandle
+  fileInfo?: ImageFileInfo
 }
 
 export type FolderNode = {

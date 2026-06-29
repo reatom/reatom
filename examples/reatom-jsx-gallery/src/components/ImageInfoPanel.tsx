@@ -8,23 +8,6 @@ import {
 } from '../model'
 import { CloseIcon } from './Icons'
 
-const formatBytes = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  const exponent = Math.floor(Math.log(bytes) / Math.log(1024))
-  const value = bytes / Math.pow(1024, exponent)
-  return `${value.toFixed(exponent > 0 ? 1 : 0)} ${units[exponent]}`
-}
-
-const formatDate = (timestamp: number): string =>
-  new Date(timestamp).toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-
 const infoRowCss = `
   display: flex;
   justify-content: space-between;
@@ -150,34 +133,19 @@ export const ImageInfoPanel = () => (
         />
         <InfoRow
           label="Size"
-          value={() => {
-            const source = inspectedImage()?.source
-            return source ? formatBytes(source.size) : ''
-          }}
+          value={() => inspectedImage()?.display.sizeLabel() ?? ''}
         />
         <InfoRow
           label="Dimensions"
-          value={() => {
-            const image = inspectedImage()
-            if (!image) return ''
-
-            const width = image.width()
-            const height = image.height()
-            if (width && height) return `${width} × ${height}`
-
-            return image.meta.pending() ? 'Loading…' : 'Unavailable'
-          }}
+          value={() => inspectedImage()?.display.dimensionsLabel() ?? ''}
         />
         <InfoRow
           label="Type"
-          value={() => inspectedImage()?.source.type || ''}
+          value={() => inspectedImage()?.display.typeLabel() ?? ''}
         />
         <InfoRow
           label="Modified"
-          value={() => {
-            const source = inspectedImage()?.source
-            return source ? formatDate(source.lastModified) : ''
-          }}
+          value={() => inspectedImage()?.display.lastModifiedLabel() ?? ''}
         />
         <InfoRow
           label="Format"

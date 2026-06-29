@@ -30,11 +30,31 @@ export const imagesList = reatomLinkedList<
   },
   'imagesList',
 ).extend(
-  withConnectHook(() => {
-    effect(() => {
-      syncImagesList()
-    }, 'syncImagesList')
-  }),
+  withConnectHook(() => bindImagesListSync()),
+)
+
+export function bindImagesListSync(): () => void {
+  const syncEffect = effect(() => {
+    syncImagesList()
+  }, 'syncImagesList')
+
+  const unsubscribeFolderTree = folderTree.subscribe(() => syncImagesList())
+  const unsubscribeFlatImages = flatImages.subscribe(() => syncImagesList())
+  const unsubscribeSortField = sortField.subscribe(() => syncImagesList())
+  const unsubscribeSortOrder = sortOrder.subscribe(() => syncImagesList())
+
+  return () => {
+    syncEffect.unsubscribe()
+    unsubscribeFolderTree()
+    unsubscribeFlatImages()
+    unsubscribeSortField()
+    unsubscribeSortOrder()
+  }
+}
+
+export const refreshImagesList = action(
+  () => syncImagesList(),
+  'imagesList.refresh',
 )
 
 function syncImagesList() {
@@ -60,13 +80,19 @@ function syncImagesList() {
         comparison = left.source.name.localeCompare(right.source.name)
         break
       case 'size':
-        comparison = left.source.size - right.source.size
+        comparison =
+          (left.fileInfo.data()?.size ?? 0) -
+          (right.fileInfo.data()?.size ?? 0)
         break
       case 'date':
-        comparison = left.source.lastModified - right.source.lastModified
+        comparison =
+          (left.fileInfo.data()?.lastModified ?? 0) -
+          (right.fileInfo.data()?.lastModified ?? 0)
         break
       case 'type':
-        comparison = left.source.type.localeCompare(right.source.type)
+        comparison = (left.fileInfo.data()?.type ?? '').localeCompare(
+          right.fileInfo.data()?.type ?? '',
+        )
         break
       case 'dimensions':
         comparison =

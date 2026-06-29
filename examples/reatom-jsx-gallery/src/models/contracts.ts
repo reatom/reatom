@@ -22,6 +22,11 @@ export type GalleryImageDisplayModel = {
   preloadUrl: Computed<string>
   downloadUrl: Computed<string>
   isRawPipeline: Computed<boolean>
+  sizeLabel: Computed<string>
+  typeLabel: Computed<string>
+  lastModifiedLabel: Computed<string>
+  dimensionsLabel: Computed<string>
+  summaryLabel: Computed<string>
 }
 
 export type GalleryImageModel = ReatomImage & {

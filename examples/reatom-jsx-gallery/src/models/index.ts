@@ -1,10 +1,12 @@
 export { setViewMode } from './appActions'
 export {
+  bindImagesListSync,
   clearSelection,
   favoriteImages,
   favoritesCount,
   imagesList,
   primarySelectedImage,
+  refreshImagesList,
   resetGallerySession,
   selectAllImages,
   selectedCount,

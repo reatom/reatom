@@ -8,7 +8,6 @@ import {
   selectImage,
 } from '../model'
 import { CheckIcon, HeartIcon } from './Icons'
-import { formatBytes, formatDate, formatDimensions } from './imageGridFormat'
 
 const ListImage = ({ image }: { image: ImageModel }) => {
   const isSelected = () => image.selected()
@@ -137,11 +136,7 @@ const ListImage = ({ image }: { image: ImageModel }) => {
           {image.source.relativePath || image.source.path}
         </div>
         <div css="margin-top: 5px; font-size: 12px; color: var(--text-secondary);">
-          {() =>
-            `${formatBytes(image.source.size)} | ${formatDimensions(image.width(), image.height(), 'Dimensions pending')} | ${formatDate(
-              image.source.lastModified,
-            )}`
-          }
+          {image.display.summaryLabel}
         </div>
       </div>
 

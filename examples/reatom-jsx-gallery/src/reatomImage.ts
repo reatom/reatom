@@ -10,6 +10,7 @@ import type { ThumbnailOptions } from './image-engine'
 import {
   loadThumbnailWithMeta,
   parseImageMeta,
+  parseImagePreviewMeta,
   revokeThumbnail,
 } from './image-engine'
 import { extractRawPreview } from './image-engine/formats/raw'
@@ -22,10 +23,12 @@ import {
   type RawImageFormat,
 } from './image-engine/types'
 import { acquireThumbnailSlot } from './models/thumbnailConcurrency'
+import type { ImageFileInfo } from './types'
 
 export type ReatomImageOptions = {
   thumbnailOptions?: ThumbnailOptions
   filename?: string
+  initialFileInfo?: ImageFileInfo
   readIgnoreExifOrientation?: () => boolean
   readDevelopRaw?: () => boolean
 }
@@ -34,6 +37,24 @@ function isRawImageMeta(meta: ImageMeta | null): meta is ImageMeta & {
   format: RawImageFormat
 } {
   return isRawImageFormat(meta?.format)
+}
+
+function getBlobFileInfo(blob: Blob, fallbackName: string): ImageFileInfo {
+  if (blob instanceof File) {
+    return {
+      name: blob.name,
+      size: blob.size,
+      type: blob.type,
+      lastModified: blob.lastModified,
+    }
+  }
+
+  return {
+    name: fallbackName,
+    size: blob.size,
+    type: blob.type,
+    lastModified: 0,
+  }
 }
 
 async function decodeImageFromUrl(
@@ -69,6 +90,18 @@ export function reatomImage(
     return await wrap(source.getFile())
   }, `${name}.file`).extend(withAsyncData())
 
+  const fileInfo = computed(async () => {
+    const blob = await wrap(file())
+    return getBlobFileInfo(blob, options?.filename ?? name)
+  }, `${name}.fileInfo`).extend(
+    withAsyncData({ initState: options?.initialFileInfo ?? null }),
+  )
+
+  const thumbnailMeta = computed(async () => {
+    const blob = await wrap(file())
+    return await wrap(parseImagePreviewMeta(blob, { filename: options?.filename }))
+  }, `${name}.thumbnailMeta`).extend(withAsyncData())
+
   const meta = computed(async () => {
     const blob = await wrap(file())
     return await wrap(parseImageMeta(blob, { filename: options?.filename }))
@@ -79,7 +112,9 @@ export function reatomImage(
     const releaseThumbnailSlot = await wrap(acquireThumbnailSlot(signal))
 
     try {
-      const [fileState, metaState] = await wrap(Promise.all([file(), meta()]))
+      const [fileState, metaState] = await wrap(
+        Promise.all([file(), thumbnailMeta()]),
+      )
       const thumbnailOptions = {
         ...options?.thumbnailOptions,
         ignoreExifOrientation: ignoreExifOrientation(),
@@ -159,7 +194,7 @@ export function reatomImage(
   }, `${name}.rawDevelopedImage`).extend(withAsyncData())
 
   const fullImageUrl = computed(async () => {
-    const metaState = await wrap(meta())
+    const metaState = await wrap(thumbnailMeta())
     if (isRawImageMeta(metaState)) return null
 
     const blob = await wrap(file())
@@ -179,6 +214,8 @@ export function reatomImage(
   }, `${name}.fullImage`).extend(withAsyncData())
 
   return file.extend(() => ({
+    fileInfo,
+    thumbnailMeta,
     meta,
     thumbnail,
     embeddedPreviewUrl,

@@ -11,24 +11,11 @@ import {
   showImageNames,
 } from '../model'
 import { CheckIcon, HeartIcon } from './Icons'
-import { formatBytes } from './imageGridFormat'
-
-const getPreviewSize = (
-  thumbnailWidth: number,
-  thumbnailHeight: number,
-  fit: ReturnType<typeof imageFit>,
-) => {
-  return fit === 'cover' || fit === 'fill'
-    ? Math.min(thumbnailWidth, thumbnailHeight)
-    : Math.max(thumbnailWidth, thumbnailHeight)
-}
 
 export const GridImage = ({
   image,
-  renderedSize,
 }: {
   image: ImageModel
-  renderedSize: () => number
 }) => {
   const isSelected = () => image.selected()
   const isFavorite = () => image.favorite()
@@ -38,34 +25,8 @@ export const GridImage = ({
     const thumbnail = image.thumbnail.data()
     if (!thumbnail) return null
 
-    const previewSize = getPreviewSize(
-      thumbnail.width,
-      thumbnail.height,
-      imageFit(),
-    )
-
-    if (renderedSize() > previewSize) {
-      const rawSource = image.display.source()
-      const upscaledUrl = rawSource?.url ?? image.fullImageUrl.data()
-      if (upscaledUrl) {
-        const orientationStyle = resolveImageOrientationStyle(
-          image.meta.data()?.exif,
-          ignoreExifOrientation(),
-          rawSource?.orientationBaked ?? false,
-        )
-        return (
-          <img
-            src={upscaledUrl}
-            alt={imageName()}
-            loading="lazy"
-            style:image-orientation={orientationStyle}
-          />
-        )
-      }
-    }
-
     const orientationStyle = resolveImageOrientationStyle(
-      image.meta.data()?.exif,
+      image.thumbnailMeta.data()?.exif,
       ignoreExifOrientation(),
       thumbnail.orientationBaked,
     )
@@ -290,7 +251,7 @@ export const GridImage = ({
                   margin-top: 2px;
                 `}
               >
-                {formatBytes(image.source.size)}
+                {image.display.sizeLabel}
               </div>
             )}
           </div>

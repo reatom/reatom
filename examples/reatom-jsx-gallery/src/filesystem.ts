@@ -25,6 +25,7 @@ function getFileExtension(filename: string): string {
 type FlatEntry = {
   fileHandle: FileSystemFileHandle
   folder: FolderNode
+  name: string
 }
 
 export type ScanDirectoryOptions = {
@@ -76,7 +77,7 @@ export async function scanDirectoryRecursive(
         if (IMAGE_EXTENSIONS.includes(extension)) {
           const fileHandle = entry as FileSystemFileHandle
           imageCount++
-          flatEntries.push({ fileHandle, folder: folderNode })
+          flatEntries.push({ fileHandle, folder: folderNode, name: entry.name })
         }
       } else if (entry.kind === 'directory') {
         subdirectoryHandles.push(entry as FileSystemDirectoryHandle)
@@ -104,54 +105,29 @@ export async function scanDirectoryRecursive(
 
   const walkRoot = await wrap(walkTree(rootHandle, ''))
 
-  const CONCURRENCY = 20
+  function createImageEntries(items: FlatEntry[]): ImageFile[] {
+    return items.map(({ fileHandle, folder, name }, index) => {
+      if (abortVar.require().signal.aborted) throwAbort()
 
-  async function processWithPool(items: FlatEntry[]): Promise<ImageFile[]> {
-    const imageEntries = new Array<ImageFile>(items.length)
-    let nextIndex = 0
-    let processed = 0
+      const image = {
+        id: `${folder.path}/${name}#${index}`,
+        name,
+        path: folder.path,
+        relativePath: folder.path ? `${folder.path}/${name}` : name,
+        fileHandle,
+      } satisfies ImageFile
 
-    async function runNext(): Promise<void> {
-      while (nextIndex < items.length) {
-        if (abortVar.require().signal.aborted) throwAbort()
-        const idx = nextIndex++
-        const { fileHandle, folder } = items[idx]!
-        const file = await wrap(fileHandle.getFile())
-        imageEntries[idx] = {
-          id: crypto.randomUUID(),
-          name: file.name,
-          path: folder.path,
-          relativePath: folder.path ? `${folder.path}/${file.name}` : file.name,
-          size: file.size,
-          type: file.type,
-          lastModified: file.lastModified,
-          fileHandle,
-        } satisfies ImageFile
+      folder.images.push(image)
+      reportProgress((state) => ({
+        ...state,
+        current: index + 1,
+      }))
 
-        processed++
-        reportProgress((state) => ({
-          ...state,
-          current: processed,
-        }))
-      }
-    }
-
-    await wrap(
-      Promise.all(
-        Array.from({ length: Math.min(CONCURRENCY, items.length) }, () =>
-          runNext(),
-        ),
-      ),
-    )
-
-    for (let index = 0; index < items.length; index++) {
-      const { folder } = items[index]!
-      folder.images.push(imageEntries[index]!)
-    }
-    return imageEntries
+      return image
+    })
   }
 
-  const images = await wrap(processWithPool(flatEntries))
+  const images = createImageEntries(flatEntries)
 
   return { tree: walkRoot, images }
 }

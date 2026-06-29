@@ -530,6 +530,66 @@ export function parseExifTagsAtTiffBase(
   return Object.keys(tags).length > 0 ? tags : null
 }
 
+function readOrientationFromIfd(
+  view: DataView,
+  tiffBase: number,
+  ifdRelOffset: number,
+): { orientation: string | null; exifIfd: number } {
+  const ifdAbsOffset = tiffBase + ifdRelOffset
+  if (ifdAbsOffset + 2 > view.byteLength) {
+    return { orientation: null, exifIfd: 0 }
+  }
+
+  const littleEndian = view.getUint16(tiffBase) === 0x4949
+  const entryCount = readUint16(view, ifdAbsOffset, littleEndian)
+  let exifIfd = 0
+
+  for (let i = 0; i < entryCount; i++) {
+    const entryOffset = ifdAbsOffset + 2 + i * 12
+    if (entryOffset + 12 > view.byteLength) break
+
+    const tag = readUint16(view, entryOffset, littleEndian)
+    if (tag === ORIENTATION_TAG) {
+      const orientation = readEntryValue(
+        view,
+        tiffBase,
+        entryOffset,
+        littleEndian,
+        tag,
+      )
+      return { orientation: orientation || null, exifIfd }
+    }
+    if (tag === 0x8769) {
+      exifIfd = readUint32(view, entryOffset + 8, littleEndian)
+    }
+  }
+
+  return { orientation: null, exifIfd }
+}
+
+export function parseExifOrientationAtTiffBase(
+  view: DataView,
+  tiffBase: number,
+): string | null {
+  if (tiffBase + 8 > view.byteLength) return null
+
+  const byteOrderMark = view.getUint16(tiffBase)
+  if (byteOrderMark !== 0x4949 && byteOrderMark !== 0x4d4d) return null
+
+  const littleEndian = byteOrderMark === 0x4949
+  const magic = readUint16(view, tiffBase + 2, littleEndian)
+  if (magic !== 42) return null
+
+  const ifd0Offset = readUint32(view, tiffBase + 4, littleEndian)
+  if (ifd0Offset === 0) return null
+
+  const ifd0 = readOrientationFromIfd(view, tiffBase, ifd0Offset)
+  if (ifd0.orientation) return ifd0.orientation
+  if (ifd0.exifIfd === 0) return null
+
+  return readOrientationFromIfd(view, tiffBase, ifd0.exifIfd).orientation
+}
+
 export function parseExifTags(view: DataView): Record<string, string> | null {
   const app1ExifTiffBase = findApp1ExifTiffBase(view)
   if (app1ExifTiffBase !== null) {
