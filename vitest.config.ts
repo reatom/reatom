@@ -14,6 +14,8 @@ export default defineConfig({
       './packages/preact/vitest.browser.config.ts',
       './packages/solid-js/vitest.browser.config.ts',
       './packages/vue/vitest.config.ts',
+      './packages/opentelemetry/vitest.config.ts',
+      './packages/web-analytics/vitest.config.ts',
     ],
   },
 })

@@ -1,0 +1,40 @@
+{
+  "name": "@reatom/opentelemetry",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "OpenTelemetry integration for Reatom",
+  "exports": {
+    "types": "./dist/index.d.ts",
+    "require": "./dist/index.cjs",
+    "default": "./dist/index.js"
+  },
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsdown",
+    "test": "vitest run"
+  },
+  "tsdown": {
+    "format": {
+      "esm": { "target": ["es2024"] },
+      "cjs": { "target": ["node18"] }
+    },
+    "fixedExtension": false
+  },
+  "author": "artalar",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/reatom/reatom.git"
+  },
+  "peerDependencies": {
+    "@reatom/core": "*"
+  },
+  "devDependencies": {
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
