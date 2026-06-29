@@ -51,7 +51,7 @@ function loadLibRawModule(): Promise<LibRawModule> {
   return libRawModulePromise
 }
 
-function ensurePool(LibRaw: LibRawModule['default']): DevelopSlot[] {
+function ensurePool(_LibRaw: LibRawModule['default']): DevelopSlot[] {
   if (!developPool) {
     developPool = Array.from({ length: DEVELOP_POOL_SIZE }, () => ({
       instance: null,
@@ -132,7 +132,7 @@ function encodeRgbToJpeg(
 ): Promise<Blob> {
   const worker = getEncodeWorker()
   const id = nextEncodeId++
-  const buffer = rgb.buffer
+  const buffer = rgb.buffer as ArrayBuffer
 
   return new Promise<Blob>((resolve, reject) => {
     if (signal.aborted) {

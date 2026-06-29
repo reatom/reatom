@@ -1,9 +1,4 @@
-import { dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import type { StorybookConfig } from '@storybook/html-vite'
-
-const dir = dirname(fileURLToPath(import.meta.url))
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],

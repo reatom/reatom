@@ -1,18 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
 import { StoryWrapper } from '../shared/StoryWrapper'
-import { createMyself, type Locator } from '../shared/test'
+import { type Canvas, createMyself, type Locator } from '../shared/test'
 import { loadParsingState } from '../shared/testSetup'
 import { ProgressBar } from './ProgressBar'
 
 const loc = {
-  scanningHeadingAppears: (canvas) =>
+  scanningHeadingAppears: (canvas: Canvas) =>
     canvas.findByRole('heading', { name: 'Scanning folder...' }),
   percentageAppears:
     (value: number): Locator =>
-    (canvas) =>
+    (canvas: Canvas) =>
       canvas.findByText(`${value}%`),
-  cancelButtonAppears: (canvas) =>
+  cancelButtonAppears: (canvas: Canvas) =>
     canvas.findByRole('button', { name: 'Cancel' }),
 } satisfies Record<string, Locator | ((value: number) => Locator)>
 
@@ -20,13 +20,10 @@ const I = createMyself((I) => ({
   seeProgress: async (pct: number) => {
     await I.see(loc.percentageAppears(pct))
   },
-  seeCancelButton: async () => {
-    await I.see(loc.cancelButtonAppears)
-  },
   seeMidProgress: async () => {
     await I.see(loc.scanningHeadingAppears)
     await I.see(loc.percentageAppears(50))
-    await I.seeCancelButton()
+    await I.see(loc.cancelButtonAppears)
   },
 }))
 

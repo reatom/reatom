@@ -4,9 +4,8 @@ import { fileURLToPath } from 'node:url'
 
 import {
   fixturePathBasename,
-  listFixtures,
-  mimeFromFilename,
   type FixtureTier,
+  mimeFromFilename,
 } from './fixtureManifest'
 
 export type { FixtureManifestEntry, FixtureTier } from './fixtureManifest'
@@ -34,7 +33,7 @@ export async function readFixtureBlob(
   relativePath: string,
 ): Promise<Blob> {
   const bytes = await readFixtureBytes(tier, relativePath)
-  return new Blob([bytes], {
+  return new Blob([bytes as BlobPart], {
     type: mimeFromFilename(fixturePathBasename(relativePath)),
   })
 }

@@ -1,8 +1,8 @@
+import '../src/setup'
+
 import { clearStack, context } from '@reatom/core'
 import { mount } from '@reatom/jsx'
 import type { Preview } from '@storybook/html'
-
-import '../src/setup'
 
 let unmountFn: (() => void) | null = null
 

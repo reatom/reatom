@@ -4,6 +4,7 @@ import { mockFolderTree } from '../__fixtures__/mockData'
 import { imagesList, lightboxImage, lightboxOpen } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import {
+  type Canvas,
   createMyself,
   type DefiniteLocator,
   type Locator,
@@ -17,9 +18,9 @@ import { ImageInfoPanel } from './ImageInfoPanel'
 import { imageInfoPanelOpen } from './panelState'
 
 const loc = {
-  panelAppears: (canvas) =>
+  panelAppears: (canvas: Canvas) =>
     canvas.findByRole('dialog', { name: 'Image details' }),
-  panelDoesNotAppear: (canvas) =>
+  panelDoesNotAppear: (canvas: Canvas) =>
     canvas.queryByRole('dialog', { name: 'Image details' }),
   imageNameAppears:
     (name: string): Locator =>

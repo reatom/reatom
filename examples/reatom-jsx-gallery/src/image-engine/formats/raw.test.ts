@@ -124,13 +124,14 @@ function buildTiffBuffer(
     writeUint16(view, entryOffset + 2, resolvedTag.type, true)
     writeUint32(view, entryOffset + 4, resolvedTag.count, true)
 
-    if (resolvedTag.inline) {
+    if (resolvedTag.inline && 'inlineValue' in resolvedTag) {
+      const inlineValue = resolvedTag.inlineValue
       if (resolvedTag.type === TIFF_TYPE_SHORT) {
-        writeUint16(view, entryOffset + 8, resolvedTag.inlineValue, true)
+        writeUint16(view, entryOffset + 8, inlineValue, true)
       } else if (resolvedTag.type === TIFF_TYPE_LONG) {
-        writeUint32(view, entryOffset + 8, resolvedTag.inlineValue, true)
+        writeUint32(view, entryOffset + 8, inlineValue, true)
       } else if (resolvedTag.type === TIFF_TYPE_BYTE) {
-        view.setUint8(entryOffset + 8, resolvedTag.inlineValue)
+        view.setUint8(entryOffset + 8, inlineValue)
       }
     } else {
       writeUint32(view, entryOffset + 8, resolvedTag.valueOffset, true)

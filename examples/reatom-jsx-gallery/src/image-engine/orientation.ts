@@ -129,7 +129,6 @@ export function composeOrientation(
 ): number {
   let delta = deltaDegrees
   if (delta === 270) delta = -90
-  if (delta === -180) delta = 180
 
   const normalized = current >= 1 && current <= 8 ? current : 1
 

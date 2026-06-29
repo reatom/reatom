@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
-import { listFixtures, readFixtureBlob } from './fixtureLoader.node'
 import { parseImageMeta } from '../image-engine/header'
+import { listFixtures, readFixtureBlob } from './fixtureLoader.node'
 
 describe('tier-a fixtures', () => {
   test('parseImageMeta succeeds for every tier-a file', async () => {

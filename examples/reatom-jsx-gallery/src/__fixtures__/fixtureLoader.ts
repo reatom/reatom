@@ -1,12 +1,11 @@
 import type { FolderNode, ImageFile } from '../types'
-
 import {
+  type FixtureManifestEntry,
   fixturePathBasename,
   fixturePathDirname,
+  type FixtureTier,
   listFixtures,
   mimeFromFilename,
-  type FixtureManifestEntry,
-  type FixtureTier,
 } from './fixtureManifest'
 
 export type { FixtureManifestEntry, FixtureTier } from './fixtureManifest'
@@ -28,7 +27,7 @@ function fixtureAssetUrl(tier: FixtureTier, relativePath: string): string {
   return url
 }
 
-function createMockDirHandle(name: string): FileSystemDirectoryHandle {
+export function createMockDirHandle(name: string): FileSystemDirectoryHandle {
   return {
     kind: 'directory',
     name,
@@ -36,11 +35,11 @@ function createMockDirHandle(name: string): FileSystemDirectoryHandle {
     getFileHandle: () => Promise.reject(new Error('Not implemented')),
     removeEntry: () => Promise.reject(new Error('Not implemented')),
     resolve: () => Promise.reject(new Error('Not implemented')),
-    keys: () => [][Symbol.asyncIterator](),
-    values: () => [][Symbol.asyncIterator](),
-    entries: () => [][Symbol.asyncIterator](),
+    keys: async function* () {},
+    values: async function* () {},
+    entries: async function* () {},
     isSameEntry: () => Promise.resolve(false),
-  } as FileSystemDirectoryHandle
+  } as unknown as FileSystemDirectoryHandle
 }
 
 export function createFixtureFileHandle(
@@ -63,7 +62,7 @@ export function createFixtureFileHandle(
       })
     },
     isSameEntry: () => Promise.resolve(false),
-  } as FileSystemFileHandle
+  } as unknown as FileSystemFileHandle
 }
 
 function createImageFromFixture(

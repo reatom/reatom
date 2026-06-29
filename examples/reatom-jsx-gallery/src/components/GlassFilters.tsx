@@ -17,31 +17,31 @@ const GlassFilter = ({ preset }: { preset: GlassLensPreset }) => {
   return (
     <svg:filter
       id={filterId}
-      x="-12%"
-      y="-12%"
-      width="124%"
-      height="124%"
+      x={-0.12}
+      y={-0.12}
+      width={1.24}
+      height={1.24}
       attr:color-interpolation-filters="sRGB"
     >
       <svg:feImage
         href={displacementMap.href}
         result="displacementMap"
-        attr:preserveAspectRatio="none"
+        preserveAspectRatio="none"
       />
       <svg:feDisplacementMap
         in="SourceGraphic"
         in2="displacementMap"
         scale={displacementMap.scale}
-        attr:xChannelSelector="R"
-        attr:yChannelSelector="G"
+        xChannelSelector="R"
+        yChannelSelector="G"
         result="refracted"
       />
       <svg:feDisplacementMap
         in="refracted"
         in2="displacementMap"
         scale={chromaScale}
-        attr:xChannelSelector="R"
-        attr:yChannelSelector="G"
+        xChannelSelector="R"
+        yChannelSelector="G"
         result="chromaShift"
       />
       <svg:feBlend in="refracted" in2="chromaShift" mode="screen" />

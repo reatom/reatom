@@ -1,4 +1,4 @@
-import type { LLNode } from '@reatom/core'
+import type { LL_NEXT, LL_PREV, LLNode } from '@reatom/core'
 import { action, computed, withAsync, wrap } from '@reatom/core'
 
 import { copyImageAsJpegToClipboard } from '../copyImage'
@@ -60,11 +60,11 @@ export const lightboxCounter = computed(() => {
 }, 'lightboxCounter')
 
 export const thumbnailWindow = computed(() => {
-  const current = lightboxImage() as LLNode<GalleryImageModel>
+  const current = lightboxImage() as LLNode<GalleryImageModel> | null
   if (!current || !current.visible()) return []
 
-  const listLLPrev = imagesList.LL_PREV
-  const listLLNext = imagesList.LL_NEXT
+  const listLLPrev: LL_PREV = imagesList.LL_PREV
+  const listLLNext: LL_NEXT = imagesList.LL_NEXT
 
   const before: GalleryImageModel[] = []
   let node = current[listLLPrev] ?? null

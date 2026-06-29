@@ -1,7 +1,9 @@
+import type { JSX } from '@reatom/jsx'
+
 import { resolvedThemeMode, themePack } from '../model'
 import { activeThemeVariables, GlobalStyles } from '../theme'
 
-export const StoryWrapper = ({ children }: { children: unknown }) => (
+export const StoryWrapper = ({ children }: { children: JSX.ElementChildren }) => (
   <div
     attr:data-theme-pack={themePack}
     attr:data-theme-mode={resolvedThemeMode}

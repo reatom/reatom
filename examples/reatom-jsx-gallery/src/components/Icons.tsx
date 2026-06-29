@@ -1,8 +1,12 @@
+const iconSizeCss = `
+  width: 1em;
+  height: 1em;
+`
+
 export const GalleryMarkIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -19,8 +23,7 @@ export const GalleryMarkIcon = () => (
 export const GridIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -38,8 +41,7 @@ export const GridIcon = () => (
 export const ListIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -59,8 +61,7 @@ export const ListIcon = () => (
 export const TableIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -79,8 +80,7 @@ export const TableIcon = () => (
 export const ImageFrameIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -96,8 +96,7 @@ export const ImageFrameIcon = () => (
 export const InfoIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.9"
@@ -114,8 +113,7 @@ export const InfoIcon = () => (
 export const PlayIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="currentColor"
     attr:aria-hidden="true"
   >
@@ -126,8 +124,7 @@ export const PlayIcon = () => (
 export const PauseIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="currentColor"
     attr:aria-hidden="true"
   >
@@ -138,8 +135,7 @@ export const PauseIcon = () => (
 export const SearchIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.9"
@@ -155,8 +151,7 @@ export const SearchIcon = () => (
 export const FilterIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -173,8 +168,7 @@ export const FilterIcon = () => (
 export const SettingsIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.7"
@@ -190,8 +184,7 @@ export const SettingsIcon = () => (
 export const SunIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -214,8 +207,7 @@ export const SunIcon = () => (
 export const MoonIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -230,8 +222,7 @@ export const MoonIcon = () => (
 export const FolderIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -247,8 +238,7 @@ export const FolderIcon = () => (
 export const FolderRootIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -265,8 +255,7 @@ export const FolderRootIcon = () => (
 export const ChevronRightIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="2"
@@ -281,8 +270,7 @@ export const ChevronRightIcon = () => (
 export const ChevronLeftIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="2"
@@ -297,8 +285,7 @@ export const ChevronLeftIcon = () => (
 export const CloseIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="2"
@@ -313,8 +300,7 @@ export const CloseIcon = () => (
 export const HeartIcon = ({ filled }: { filled: boolean }) => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill={filled ? 'currentColor' : 'none'}
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -329,8 +315,7 @@ export const HeartIcon = ({ filled }: { filled: boolean }) => (
 export const CheckIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="2.2"
@@ -345,8 +330,7 @@ export const CheckIcon = () => (
 export const DownloadIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.9"
@@ -363,8 +347,7 @@ export const DownloadIcon = () => (
 export const CopyJpegIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -381,8 +364,7 @@ export const CopyJpegIcon = () => (
 export const MinusIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="2.2"
@@ -396,8 +378,7 @@ export const MinusIcon = () => (
 export const PlusIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="2.2"
@@ -412,8 +393,7 @@ export const PlusIcon = () => (
 export const FitIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.8"
@@ -432,8 +412,7 @@ export const FitIcon = () => (
 export const FullscreenIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.9"
@@ -451,8 +430,7 @@ export const FullscreenIcon = () => (
 export const SortAscIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.9"
@@ -471,8 +449,7 @@ export const SortAscIcon = () => (
 export const SortDescIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"
-    width="1em"
-    height="1em"
+    css={iconSizeCss}
     fill="none"
     stroke="currentColor"
     attr:stroke-width="1.9"

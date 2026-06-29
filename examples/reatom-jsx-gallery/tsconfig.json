@@ -13,6 +13,8 @@
     "isolatedModules": true,
     "strict": true,
     "strictNullChecks": true,
-    "resolveJsonModule": true
-  }
+    "resolveJsonModule": true,
+    "allowJs": true
+  },
+  "include": ["src", ".storybook/**/*.ts", "vitest.config.ts", "vite.config.js"]
 }

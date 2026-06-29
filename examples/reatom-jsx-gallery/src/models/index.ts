@@ -114,10 +114,10 @@ export {
   startLightboxPan,
 } from './lightboxSession'
 export {
-  reatomFolderTreeNodeUi,
   folderBreadcrumbSegments,
   folderTreeIsAllSelected,
   folderTreeSidebarVisible,
+  reatomFolderTreeNodeUi,
 } from './navigation'
 export {
   filterPanelOpen,

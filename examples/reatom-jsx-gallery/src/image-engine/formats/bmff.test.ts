@@ -50,7 +50,7 @@ function buildAvifBuffer(width: number, height: number): ArrayBuffer {
   const ipco = box('ipco', box('ispe', ispePayload))
   const iprp = box('iprp', ipco)
   const meta = box('meta', concatBytes(new Uint8Array(4), iprp))
-  return concatBytes(box('ftyp', ftypPayload), meta).buffer
+  return concatBytes(box('ftyp', ftypPayload), meta).buffer as ArrayBuffer
 }
 
 describe('AVIF BMFF metadata', () => {

@@ -1,9 +1,11 @@
+import type { JSX } from '@reatom/jsx'
+
 import { srOnlyCss } from '../a11y'
 import { resolvedThemeMode, themePack } from '../model'
 import { activeThemeVariables, GlobalStyles } from '../theme'
 import { GlassFilters } from './GlassFilters'
 
-export const AppShell = ({ children }: { children: unknown }) => (
+export const AppShell = ({ children }: { children: JSX.ElementChildren }) => (
   <div
     attr:data-theme-pack={themePack}
     attr:data-theme-mode={resolvedThemeMode}

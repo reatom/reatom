@@ -1,6 +1,5 @@
 import type { FolderNode, ImageFile } from '../types'
-
-import { buildFixtureFolderTree } from './fixtureLoader'
+import { buildFixtureFolderTree, createMockDirHandle } from './fixtureLoader'
 
 const mockSvgColors = [
   '#d94f45',
@@ -36,22 +35,7 @@ function createMockFileHandle(name: string): FileSystemFileHandle {
         }),
       ),
     isSameEntry: () => Promise.resolve(false),
-  } as FileSystemFileHandle
-}
-
-function createMockDirHandle(name: string): FileSystemDirectoryHandle {
-  return {
-    kind: 'directory',
-    name,
-    getDirectoryHandle: () => Promise.reject(new Error('Not implemented')),
-    getFileHandle: () => Promise.reject(new Error('Not implemented')),
-    removeEntry: () => Promise.reject(new Error('Not implemented')),
-    resolve: () => Promise.reject(new Error('Not implemented')),
-    keys: () => [][Symbol.asyncIterator](),
-    values: () => [][Symbol.asyncIterator](),
-    entries: () => [][Symbol.asyncIterator](),
-    isSameEntry: () => Promise.resolve(false),
-  } as FileSystemDirectoryHandle
+  } as unknown as FileSystemFileHandle
 }
 
 export function createMockImage(overrides: Partial<ImageFile> = {}): ImageFile {
