@@ -21,9 +21,7 @@ import {
   isRawImageFormat,
   type RawImageFormat,
 } from './image-engine/types'
-import {
-  acquireThumbnailSlot,
-} from './models/thumbnailConcurrency'
+import { acquireThumbnailSlot } from './models/thumbnailConcurrency'
 
 export type ReatomImageOptions = {
   thumbnailOptions?: ThumbnailOptions

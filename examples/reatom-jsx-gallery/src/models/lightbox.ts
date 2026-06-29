@@ -5,10 +5,7 @@ import { copyImageAsJpegToClipboard } from '../copyImage'
 import { downloadPreparedGalleryImage } from '../download'
 import { imagesList, visibleIndexMap } from './collection'
 import type { GalleryImageModel } from './contracts'
-import {
-  navigateLightbox,
-  resetLightboxPan,
-} from './lightboxNavigation'
+import { navigateLightbox, resetLightboxPan } from './lightboxNavigation'
 import {
   lightboxImage,
   lightboxNavigationDirection,

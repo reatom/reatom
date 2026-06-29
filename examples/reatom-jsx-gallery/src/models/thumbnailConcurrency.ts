@@ -41,9 +41,7 @@ function runNextThumbnailJob() {
   }
 }
 
-export function acquireThumbnailSlot(
-  signal: AbortSignal,
-): Promise<() => void> {
+export function acquireThumbnailSlot(signal: AbortSignal): Promise<() => void> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
       reject(createThumbnailAbortError(signal))
@@ -90,4 +88,3 @@ function releaseThumbnailSlot() {
   syncActiveThumbnailRequests()
   runNextThumbnailJob()
 }
-
