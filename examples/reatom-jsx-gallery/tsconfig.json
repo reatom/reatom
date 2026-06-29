@@ -12,6 +12,7 @@
     "noEmit": true,
     "isolatedModules": true,
     "strict": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "resolveJsonModule": true
   }
 }

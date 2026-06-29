@@ -165,6 +165,35 @@ Theme packs and defaults live in `src/theme.tsx` and persisted UI atoms live in 
 - Browser may prompt for permission on each page reload
 - Some file systems may not support recursive access
 
+### Test fixtures
+
+Binary image corpora live under `src/__fixtures__/images/` in three tiers:
+
+| Tier | Size | Use |
+|------|------|-----|
+| `tier-a` | ~4 MB | Default CI — EXIF, PNG/WebP/AVIF/GIF/SVG/BMP smoke tests |
+| `tier-b` | ~40 MB | Extended parser/decode and stress cases |
+| `tier-c` | ~140 MB (Git LFS) | Real RAW/DNG/ARW/ORF embedded-preview tests |
+
+```bash
+# Re-download from pinned upstream URLs (updates manifest sha256)
+pnpm fixtures:fetch
+
+# Run fixture tests
+pnpm test:fixtures              # tier-a
+pnpm test:fixtures:extended     # tier-a + tier-b
+pnpm test:fixtures:raw          # tier-c (requires Git LFS)
+```
+
+After clone, pull LFS objects for tier-c:
+
+```bash
+git lfs install
+git lfs pull
+```
+
+Attribution: [`src/__fixtures__/LICENSES.md`](src/__fixtures__/LICENSES.md).
+
 ### Research references
 
 - `docs/nomacs-porting-playbook.md` tracks metadata, thumbnail, performance, and test priorities.

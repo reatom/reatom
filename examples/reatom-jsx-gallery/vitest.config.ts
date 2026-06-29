@@ -22,8 +22,36 @@ export default mergeConfig(
           test: {
             name: 'unit',
             include: ['./src/**/*.test.ts'],
-            exclude: ['./src/**/*.stories.*', './.storybook/**'],
+            exclude: [
+              './src/**/*.stories.*',
+              './src/**/*.fixtures-*.test.ts',
+              './.storybook/**',
+            ],
             environment: 'node',
+          },
+        },
+        {
+          test: {
+            name: 'fixtures-a',
+            include: ['./src/**/*.fixtures-a.test.ts'],
+            environment: 'node',
+            testTimeout: 30_000,
+          },
+        },
+        {
+          test: {
+            name: 'fixtures-b',
+            include: ['./src/**/*.fixtures-b.test.ts'],
+            environment: 'node',
+            testTimeout: 60_000,
+          },
+        },
+        {
+          test: {
+            name: 'fixtures-c',
+            include: ['./src/**/*.fixtures-c.test.ts'],
+            environment: 'node',
+            testTimeout: 120_000,
           },
         },
         {

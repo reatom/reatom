@@ -1,5 +1,7 @@
 import type { FolderNode, ImageFile } from '../types'
 
+import { buildFixtureFolderTree } from './fixtureLoader'
+
 const mockSvgColors = [
   '#d94f45',
   '#4f7fa8',
@@ -145,3 +147,5 @@ export const mockEmptyFolder: FolderNode = {
   children: [],
   imageCount: 0,
 }
+
+export const fixtureFolderTree = buildFixtureFolderTree('tier-a')

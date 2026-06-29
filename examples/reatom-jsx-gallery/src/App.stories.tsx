@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
-import { mockFolderTree } from './__fixtures__/mockData'
+import { fixtureFolderTree, mockFolderTree } from './__fixtures__/mockData'
 import { App } from './App'
 import { createMyself, type Locator } from './shared/test'
 import { loadEmptyState, loadGalleryState } from './shared/testSetup'
@@ -65,6 +65,16 @@ export const EmptyState: Story = {
 export const GalleryLoaded: Story = {
   render: () => {
     loadGalleryState({ tree: mockFolderTree })
+    return <App />
+  },
+  play: async () => {
+    await I.seeGalleryLoaded()
+  },
+}
+
+export const GalleryWithFixtures: Story = {
+  render: () => {
+    loadGalleryState({ tree: fixtureFolderTree })
     return <App />
   },
   play: async () => {

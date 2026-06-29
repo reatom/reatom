@@ -125,7 +125,10 @@ Stories in this project follow two distinct levels:
 
 ```
 src/
-├── __fixtures__/              # Mock data (mockData.ts)
+├── __fixtures__/              # mockData.ts, manifest.json, fixtureLoader.ts, images/
+│   ├── images/tier-a/         # default CI corpus (~4 MB)
+│   ├── images/tier-b/         # extended corpus (~40 MB)
+│   └── images/tier-c/         # RAW corpus via Git LFS (~140 MB)
 ├── shared/                   # Test utilities (test.ts, testSetup.ts, StoryWrapper.tsx)
 ├── integration/               # (reserved for future use)
 ├── App.stories.tsx           # Integration stories — full App
@@ -145,7 +148,9 @@ src/
     └── ...
 ```
 
-**Integration stories** (`src/App.stories.tsx`) render the full `App` component. They test complete user journeys including folder loading, lightbox flow, and parsing progress. State is prepared via `loadGalleryState`, `loadEmptyState`, or `loadParsingState` from `shared/testSetup`.
+**Integration stories** (`src/App.stories.tsx`) render the full `App` component. They test complete user journeys including folder loading, lightbox flow, and parsing progress. State is prepared via `loadGalleryState`, `loadEmptyState`, or `loadParsingState` from `shared/testSetup`. Use `fixtureFolderTree` from `__fixtures__/mockData` when stories need real image bytes (see `GalleryWithFixtures`).
+
+**Fixture tiers:** add golden parser tests against `tier-a` by default (`*.fixtures-a.test.ts`). Use `tier-b` for stress/corrupt cases and `tier-c` for RAW preview extraction. Run `pnpm fixtures:fetch` after editing `manifest.json` upstream URLs.
 
 **Component stories** (`src/components/*.stories.tsx`) render individual components in isolation, wrapped in `StoryWrapper` for layout and theming. They use `loadGalleryState` or `loadEmptyState` to set up the model before rendering.
 

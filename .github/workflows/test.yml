@@ -25,7 +25,7 @@ jobs:
           cache_dependency_path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm --filter @reatom/core... --filter @reatom/react... --filter @reatom/jsx... --filter @reatom/zod... install --ignore-scripts
+        run: pnpm --filter @reatom/core... --filter @reatom/react... --filter @reatom/jsx... --filter @reatom/zod... --filter reatom-jsx-gallery... install --ignore-scripts
 
       - name: Build core package
         run: pnpm --filter @reatom/core run build
@@ -55,6 +55,7 @@ jobs:
             pnpm --filter @reatom/core run test:browser
             pnpm --filter @reatom/react run test
             pnpm --filter @reatom/jsx run test
+            pnpm --filter reatom-jsx-gallery run test:fixtures
           ) &
           browser_pid="$!"
 
