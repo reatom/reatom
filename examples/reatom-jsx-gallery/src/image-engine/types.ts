@@ -75,5 +75,5 @@ export const EXIF_READ_BYTES = 512_000
 export function resolveExifReadBytes(fileSize: number): number {
   return Math.min(fileSize, EXIF_READ_BYTES)
 }
-export const DEFAULT_MAX_SIZE = 800
+export const DEFAULT_MAX_SIZE = 300
 export const DEFAULT_QUALITY = 0.75
