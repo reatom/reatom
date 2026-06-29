@@ -1,3 +1,5 @@
+import { abortVar, wrap } from '@reatom/core'
+
 import { extractRawPreviewData } from './image-engine/formats/raw'
 import { developRawToJpegBlob } from './image-engine/formats/rawDevelop'
 import {
@@ -47,7 +49,7 @@ async function rasterizeBlob(
   type: typeof JPEG_MIME | typeof PNG_MIME,
   quality?: number,
 ): Promise<Blob> {
-  const bitmap = await createImageBitmap(blob)
+  const bitmap = await wrap(createImageBitmap(blob))
   try {
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
     const ctx = canvas.getContext('2d')
@@ -55,8 +57,8 @@ async function rasterizeBlob(
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, bitmap.width, bitmap.height)
     ctx.drawImage(bitmap, 0, 0)
-    return await canvas.convertToBlob(
-      type === JPEG_MIME ? { type, quality } : { type },
+    return await wrap(
+      canvas.convertToBlob(type === JPEG_MIME ? { type, quality } : { type }),
     )
   } finally {
     bitmap.close()
@@ -73,7 +75,9 @@ async function largestRawPreviewBlob(
   meta: ImageMeta & { format: RawImageFormat },
 ): Promise<Blob | null> {
   const cachedPreview = meta.embeddedPreview
-  const extractedPreview = await extractRawPreviewData(fileBlob, meta.format)
+  const extractedPreview = await wrap(
+    extractRawPreviewData(fileBlob, meta.format),
+  )
 
   if (cachedPreview?.blob && extractedPreview) {
     const cachedArea =
@@ -91,7 +95,7 @@ async function largestRawPreviewBlob(
 }
 
 async function jpegBlobForClipboard(image: ImageModel): Promise<Blob> {
-  const [fileBlob, meta] = await Promise.all([image(), image.meta()])
+  const [fileBlob, meta] = await wrap(Promise.all([image(), image.meta()]))
 
   if (isOriginalJpegFile(image, fileBlob, meta)) {
     return fileBlob
@@ -99,21 +103,24 @@ async function jpegBlobForClipboard(image: ImageModel): Promise<Blob> {
 
   if (isRawImageMeta(meta)) {
     if (developRawFullSize()) {
-      const cachedDeveloped = await image.rawDeveloped()
+      const cachedDeveloped = await wrap(image.rawDeveloped())
       if (cachedDeveloped) return cachedDeveloped.blob
 
-      const developed = await developRawToJpegBlob(fileBlob, {
-        format: meta.format,
-        exif: meta.exif,
-      })
+      const developed = await wrap(
+        developRawToJpegBlob(fileBlob, {
+          format: meta.format,
+          exif: meta.exif,
+          signal: abortVar.require().signal,
+        }),
+      )
       if (developed) return developed.blob
     }
 
-    const previewBlob = await largestRawPreviewBlob(fileBlob, meta)
+    const previewBlob = await wrap(largestRawPreviewBlob(fileBlob, meta))
     if (previewBlob) return previewBlob
   }
 
-  return rasterizeBlob(fileBlob, JPEG_MIME, JPEG_QUALITY)
+  return await wrap(rasterizeBlob(fileBlob, JPEG_MIME, JPEG_QUALITY))
 }
 
 async function blobForClipboardWrite(jpegBlob: Blob): Promise<{
@@ -132,17 +139,19 @@ async function blobForClipboardWrite(jpegBlob: Blob): Promise<{
 }
 
 export async function copyImageAsJpegToClipboard(image: ImageModel) {
-  const jpegBlob = await jpegBlobForClipboard(image)
+  const jpegBlob = await wrap(jpegBlobForClipboard(image))
   const clipboard = navigator.clipboard
   if (!clipboard?.write) {
     throw new Error('Clipboard API is not available')
   }
 
-  const { mime, blob } = await blobForClipboardWrite(jpegBlob)
+  const { mime, blob } = await wrap(blobForClipboardWrite(jpegBlob))
 
-  await clipboard.write([
-    new ClipboardItem({
-      [mime]: blob,
-    }),
-  ])
+  await wrap(
+    clipboard.write([
+      new ClipboardItem({
+        [mime]: blob,
+      }),
+    ]),
+  )
 }

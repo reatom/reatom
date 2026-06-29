@@ -8,7 +8,6 @@ import type { GalleryImageModel } from './contracts'
 import {
   navigateLightbox,
   resetLightboxPan,
-  warmLightboxPreloadTarget,
 } from './lightboxNavigation'
 import {
   lightboxImage,
@@ -20,6 +19,7 @@ import { imageInfoPanelOpen } from './panels'
 import { slideshowPlaying } from './slideshow'
 
 export {
+  lightboxPreloadImageElement,
   lightboxPreloadImageUrl,
   lightboxScrubberMax,
   lightboxScrubberValue,
@@ -92,10 +92,6 @@ export const openLightbox = action((model: GalleryImageModel) => {
   lightboxZoom.set(1)
   resetLightboxPan()
   lightboxOpen.setTrue()
-  if (model.display.isRawPipeline()) {
-    model.display.warmDevelopPipeline()
-  }
-  warmLightboxPreloadTarget()
 }, 'openLightbox')
 
 export const closeLightbox = action(() => {

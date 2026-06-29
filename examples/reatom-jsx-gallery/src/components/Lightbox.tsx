@@ -23,6 +23,7 @@ import {
   lightboxImageTransform,
   lightboxIsFullscreen,
   lightboxOpen,
+  lightboxPreloadImageElement,
   lightboxPreloadImageUrl,
   lightboxScrubberMax,
   lightboxScrubberValue,
@@ -468,6 +469,7 @@ const LightboxContent = () => {
       </div>
 
       {() => {
+        lightboxPreloadImageElement()
         const preloadUrl = lightboxPreloadImageUrl()
         if (!preloadUrl) return null
 

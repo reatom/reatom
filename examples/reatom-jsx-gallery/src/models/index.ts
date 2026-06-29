@@ -73,6 +73,7 @@ export {
   lightboxOpen,
   lightboxPanX,
   lightboxPanY,
+  lightboxPreloadImageElement,
   lightboxPreloadImageUrl,
   lightboxScrubberMax,
   lightboxScrubberValue,

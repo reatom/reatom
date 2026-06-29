@@ -22,7 +22,6 @@ export type GalleryImageDisplayModel = {
   preloadUrl: Computed<string>
   downloadUrl: Computed<string>
   isRawPipeline: Computed<boolean>
-  warmDevelopPipeline: () => void
 }
 
 export type GalleryImageModel = ReatomImage & {

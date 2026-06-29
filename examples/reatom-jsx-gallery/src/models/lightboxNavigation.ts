@@ -6,7 +6,6 @@ import {
   visibleImages,
   visibleIndexMap,
 } from './collection'
-import type { GalleryImageModel } from './contracts'
 import {
   keepLightboxView,
   lightboxImage,
@@ -42,22 +41,18 @@ const resolvePreloadTarget = () => {
   )
 }
 
-const warmLightboxImagePipeline = (model: GalleryImageModel) => {
-  if (!model.display.isRawPipeline()) return
-  model.display.warmDevelopPipeline()
-}
-
-export const warmLightboxPreloadTarget = action(() => {
-  const preloadTarget = resolvePreloadTarget()
-  if (!preloadTarget?.display.isRawPipeline()) return
-  preloadTarget.display.warmDevelopPipeline()
-}, 'lightbox.warmPreloadTarget')
-
 export const lightboxPreloadImageUrl = computed(() => {
   const preloadTarget = resolvePreloadTarget()
   if (!preloadTarget) return ''
   return preloadTarget.display.preloadUrl()
 }, 'lightbox.preloadImageUrl')
+
+export const lightboxPreloadImageElement = computed(() => {
+  const preloadTarget = resolvePreloadTarget()
+  if (!preloadTarget) return null
+
+  return preloadTarget.display.element() ?? preloadTarget.fullImage.data()
+}, 'lightbox.preloadImageElement')
 
 export const navigateLightbox = action((direction: 1 | -1) => {
   const currentImage = lightboxImage()
@@ -75,8 +70,6 @@ export const navigateLightbox = action((direction: 1 | -1) => {
   if (neighbor) {
     lightboxImage.set(() => neighbor)
     resetLightboxViewAfterNavigation()
-    warmLightboxImagePipeline(neighbor)
-    warmLightboxPreloadTarget()
   }
 }, 'navigateLightbox')
 
@@ -86,8 +79,6 @@ export const openLightboxAtVisibleIndex = action((index: number) => {
 
   lightboxImage.set(() => image)
   resetLightboxViewAfterNavigation()
-  warmLightboxImagePipeline(image)
-  warmLightboxPreloadTarget()
 }, 'openLightboxAtVisibleIndex')
 
 export const lightboxScrubberValue = computed(() => {

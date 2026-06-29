@@ -143,11 +143,6 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
     )
   }, `${name}.display.downloadUrl`)
 
-  const warmDevelopPipeline = () => {
-    if (!isRawPipeline()) return
-    void imageModel.rawDeveloped()
-  }
-
   return imageModel.extend(() => ({
     id: imageSource.id,
     source: imageSource,
@@ -163,7 +158,6 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
       preloadUrl,
       downloadUrl,
       isRawPipeline,
-      warmDevelopPipeline,
     },
   }))
 }

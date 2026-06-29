@@ -23,6 +23,21 @@ A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reat
 - Histogram, channel inspection, and compare-at-zoom.
 - Batch ZIP export and guarded metadata/write workflows.
 
+## Supported image formats
+
+| Extensions                                                                             | Thumbnail & display                                                                                                                                                                                                                                                     |
+| -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.jpg`, `.jpeg`                                                                        | EXIF embedded preview when available; EXIF orientation; camera metadata in details                                                                                                                                                                                      |
+| `.png`, `.gif`, `.webp`, `.avif`, `.bmp`                                               | Browser `createImageBitmap`/canvas thumbnail when no format-specific preview; optional EXIF in PNG/WebP chunks; AVIF via BMFF header parse                                                                                                                              |
+| `.svg`                                                                                 | Parsed dimensions; rendered in grid and lightbox                                                                                                                                                                                                                        |
+| `.dng` (Adobe), `.arw`/`.sr2` (Sony), `.cr2` (Canon), `.nef` (Nikon), `.orf` (Olympus) | Embedded JPEG previews from TIFF IFD (64 MB scan), not full demosaic by default. **Develop RAW at Full Size** (Settings) develops full-resolution JPEGs in a worker for lightbox and copy. Not all camera models; exotic RAW suffixes outside this list are not scanned |
+
+**Pipeline:** JPEG → EXIF thumbnail; RAW → embedded preview or optional full develop; raster/SVG → browser thumbnail — all feed grid and lightbox.
+
+**Copy-as-JPEG** (`src/copyImage.ts`): JPEG originals as-is; RAW prefers developed JPEG when the setting is on, else largest embedded preview, else rasterize; other formats rasterize to JPEG (PNG clipboard fallback if `image/jpeg` is unsupported).
+
+**Filtering:** Toolbar type chips match these extensions (`src/models/filters.ts`), plus size range, subfolder scope, and filename search.
+
 ## 🚀 Getting Started
 
 ### Prerequisites

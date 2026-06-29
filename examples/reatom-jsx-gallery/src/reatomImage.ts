@@ -1,7 +1,6 @@
 import {
   abortVar,
   computed,
-  memo,
   throwAbort,
   withAsyncData,
   wrap,
@@ -23,8 +22,7 @@ import {
   type RawImageFormat,
 } from './image-engine/types'
 import {
-  activeThumbnailRequests,
-  maxParallelThumbnails,
+  acquireThumbnailSlot,
 } from './models/thumbnailConcurrency'
 
 export type ReatomImageOptions = {
@@ -79,27 +77,26 @@ export function reatomImage(
   }, `${name}.meta`).extend(withAsyncData())
 
   const thumbnail = computed(async () => {
-    if (
-      memo(
-        (state) => !state && activeThumbnailRequests() >= maxParallelThumbnails,
-      )
-    ) {
-      throwAbort()
-    }
+    const signal = abortVar.require().signal
+    const releaseThumbnailSlot = await wrap(acquireThumbnailSlot(signal))
 
-    activeThumbnailRequests.set((count) => count + 1)
     try {
       const [fileState, metaState] = await wrap(Promise.all([file(), meta()]))
+      const thumbnailOptions = {
+        ...options?.thumbnailOptions,
+        ignoreExifOrientation: ignoreExifOrientation(),
+      }
       const thumbnailResult = await wrap(
-        loadThumbnailWithMeta(fileState, metaState, {
-          ...options?.thumbnailOptions,
-          ignoreExifOrientation: ignoreExifOrientation(),
-        }),
+        loadThumbnailWithMeta(fileState, metaState, thumbnailOptions),
       )
+      if (signal.aborted) {
+        revokeThumbnail(thumbnailResult)
+        throwAbort('thumbnail request aborted')
+      }
       abortVar.subscribe(() => revokeThumbnail(thumbnailResult))
       return thumbnailResult
     } finally {
-      activeThumbnailRequests.set((count) => count - 1)
+      releaseThumbnailSlot()
     }
   }, `${name}.thumbnail`).extend(withAsyncData())
 
@@ -144,10 +141,6 @@ export function reatomImage(
   const rawEmbeddedPreviewImage = computed(async () => {
     const metaState = await wrap(meta())
     if (!isRawImageMeta(metaState)) return null
-
-    if (developRawEnabled()) {
-      void wrap(rawDeveloped())
-    }
 
     const url = await wrap(embeddedPreviewUrl())
     if (!url) return null
