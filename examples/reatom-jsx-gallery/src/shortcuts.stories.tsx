@@ -2,9 +2,12 @@ import type { Meta, StoryObj } from '@storybook/html'
 
 import { mockFolderTree } from './__fixtures__/mockData'
 import { App } from './App'
-import { openLightbox, visibleIndexMap } from './model'
+import { imagesList, openLightbox } from './model'
 import { createMyself, type Locator } from './shared/test'
-import { loadGalleryState } from './shared/testSetup'
+import {
+  loadGalleryState,
+  loadGalleryStateWithImageModels,
+} from './shared/testSetup'
 
 const waitForUpdate = () => new Promise<void>((r) => setTimeout(r, 50))
 
@@ -44,8 +47,8 @@ type Story = StoryObj
 
 export const CloseLightbox: Story = {
   render: () => {
-    loadGalleryState({ tree: mockFolderTree })
-    const first = [...visibleIndexMap().keys()][0]
+    loadGalleryStateWithImageModels({ tree: mockFolderTree })
+    const first = imagesList.array()[0]
     if (first) openLightbox(first)
     return <App />
   },

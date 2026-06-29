@@ -71,6 +71,16 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
   settingsPanelOpen.set(false)
 }
 
+export function loadGalleryStateWithImageModels(
+  options: LoadGalleryStateOptions,
+): void {
+  loadGalleryState(options)
+  imagesList.batch(() => {
+    imagesList.clear()
+    imagesList.createMany(flatImages().map((image) => [image]))
+  })
+}
+
 export function loadEmptyState(): void {
   flatImages.set([])
   folderTree.set(null)

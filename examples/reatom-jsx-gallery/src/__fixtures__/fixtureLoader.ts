@@ -1,103 +1,31 @@
-import { readFile, stat } from 'node:fs/promises'
-import { basename, dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
-
 import type { FolderNode, ImageFile } from '../types'
 
-import manifest from './manifest.json'
+import {
+  fixturePathBasename,
+  fixturePathDirname,
+  listFixtures,
+  mimeFromFilename,
+  type FixtureManifestEntry,
+  type FixtureTier,
+} from './fixtureManifest'
 
-export type FixtureTier = 'tier-a' | 'tier-b' | 'tier-c'
+export type { FixtureManifestEntry, FixtureTier } from './fixtureManifest'
+export { listFixtures, mimeFromFilename } from './fixtureManifest'
 
-export type FixtureManifestEntry = {
-  tier: FixtureTier
-  dest: string
-  url?: string
-  pixlsGitPath?: string
-  generated?: string
-  license: string
-  source: string
-  sha256: string
-  size: number
-}
+const fixtureAssetUrls = import.meta.glob('./images/**/*', {
+  query: '?url',
+  import: 'default',
+  eager: true,
+}) as Record<string, string>
 
-const fixturesRoot = join(dirname(fileURLToPath(import.meta.url)), 'images')
-
-const manifestEntries = (manifest as { entries: FixtureManifestEntry[] })
-  .entries
-
-export function listFixtures(tier?: FixtureTier): FixtureManifestEntry[] {
-  if (!tier) return manifestEntries
-  return manifestEntries.filter((entry) => entry.tier === tier)
-}
-
-export function fixtureAbsPath(
-  tier: FixtureTier,
-  relativePath: string,
-): string {
-  return join(fixturesRoot, tier, relativePath)
-}
-
-export function mimeFromFilename(filename: string): string {
-  const extension = filename.toLowerCase().split('.').pop()
-  switch (extension) {
-    case 'jpg':
-    case 'jpeg':
-      return 'image/jpeg'
-    case 'png':
-      return 'image/png'
-    case 'gif':
-      return 'image/gif'
-    case 'webp':
-      return 'image/webp'
-    case 'avif':
-      return 'image/avif'
-    case 'bmp':
-      return 'image/bmp'
-    case 'svg':
-      return 'image/svg+xml'
-    case 'dng':
-      return 'image/x-adobe-dng'
-    case 'cr2':
-      return 'image/x-canon-cr2'
-    case 'nef':
-      return 'image/x-nikon-nef'
-    case 'arw':
-      return 'image/x-sony-arw'
-    case 'orf':
-      return 'image/x-olympus-orf'
-    case 'tiff':
-    case 'tif':
-      return 'image/tiff'
-    case 'ico':
-      return 'image/x-icon'
-    default:
-      return 'application/octet-stream'
+function fixtureAssetUrl(tier: FixtureTier, relativePath: string): string {
+  const normalizedPath = relativePath.replace(/\\/g, '/')
+  const key = `./images/${tier}/${normalizedPath}`
+  const url = fixtureAssetUrls[key]
+  if (!url) {
+    throw new Error(`Missing fixture asset URL for ${tier}/${normalizedPath}`)
   }
-}
-
-export async function readFixtureBytes(
-  tier: FixtureTier,
-  relativePath: string,
-): Promise<Uint8Array> {
-  const buffer = await readFile(fixtureAbsPath(tier, relativePath))
-  return new Uint8Array(buffer)
-}
-
-export async function readFixtureBlob(
-  tier: FixtureTier,
-  relativePath: string,
-): Promise<Blob> {
-  const bytes = await readFixtureBytes(tier, relativePath)
-  return new Blob([bytes], { type: mimeFromFilename(basename(relativePath)) })
-}
-
-export async function tierCAvailable(): Promise<boolean> {
-  try {
-    const fileStat = await stat(fixtureAbsPath('tier-c', 'raw/IMG_3887.CR2'))
-    return fileStat.size > 1000
-  } catch {
-    return false
-  }
+  return url
 }
 
 function createMockDirHandle(name: string): FileSystemDirectoryHandle {
@@ -119,15 +47,17 @@ export function createFixtureFileHandle(
   tier: FixtureTier,
   relativePath: string,
 ): FileSystemFileHandle {
-  const name = basename(relativePath)
+  const name = fixturePathBasename(relativePath)
   const mime = mimeFromFilename(name)
+  const assetUrl = fixtureAssetUrl(tier, relativePath)
 
   return {
     kind: 'file',
     name,
     getFile: async () => {
-      const bytes = await readFixtureBytes(tier, relativePath)
-      return new File([bytes], name, {
+      const response = await fetch(assetUrl)
+      const blob = await response.blob()
+      return new File([await blob.arrayBuffer()], name, {
         type: mime,
         lastModified: 1700000000000,
       })
@@ -140,7 +70,7 @@ function createImageFromFixture(
   entry: FixtureManifestEntry,
   folderPath: string,
 ): ImageFile {
-  const name = basename(entry.dest)
+  const name = fixturePathBasename(entry.dest)
   const id = `fixture-${entry.sha256.slice(0, 12)}`
 
   return {
@@ -205,7 +135,7 @@ export function buildFixtureFolderTree(tier: FixtureTier): FolderNode {
   const folderMap = new Map<string, FolderNode>([['', root]])
 
   for (const entry of listFixtures(tier)) {
-    const folderPath = dirname(entry.dest)
+    const folderPath = fixturePathDirname(entry.dest)
     const normalizedFolderPath =
       folderPath === '.' ? '' : folderPath.replace(/\\/g, '/')
     const folder = getOrCreateFolder(root, folderMap, normalizedFolderPath)

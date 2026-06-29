@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
 import { mockFolderTree } from '../__fixtures__/mockData'
-import { openLightbox, visibleIndexMap } from '../model'
+import { imagesList, openLightbox } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import { createMyself, type Locator } from '../shared/test'
-import { loadGalleryState } from '../shared/testSetup'
+import { loadGalleryStateWithImageModels } from '../shared/testSetup'
 import { Lightbox } from './Lightbox'
 
 const loc = {
-  lightboxCounterAppears: (canvas) => canvas.findByText(/1 \/ \d+/),
+  lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
   closeButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Close preview' }),
   scrubberAppears: (canvas) =>
@@ -34,8 +34,8 @@ type Story = StoryObj
 
 export const OpenWithImages: Story = {
   render: () => {
-    loadGalleryState({ tree: mockFolderTree })
-    const first = [...visibleIndexMap().keys()][0]
+    loadGalleryStateWithImageModels({ tree: mockFolderTree })
+    const first = imagesList.array()[0]
     if (first) openLightbox(first)
     return (
       <StoryWrapper>

@@ -1,14 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/html'
 
 import { mockFolderTree } from '../__fixtures__/mockData'
-import { lightboxImage, lightboxOpen, visibleIndexMap } from '../model'
+import { imagesList, lightboxImage, lightboxOpen } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import {
   createMyself,
   type DefiniteLocator,
   type Locator,
 } from '../shared/test'
-import { loadEmptyState, loadGalleryState } from '../shared/testSetup'
+import {
+  loadEmptyState,
+  loadGalleryState,
+  loadGalleryStateWithImageModels,
+} from '../shared/testSetup'
 import { ImageInfoPanel } from './ImageInfoPanel'
 import { imageInfoPanelOpen } from './panelState'
 
@@ -74,8 +78,8 @@ export const NoImageSelected: Story = {
 
 export const WithLightboxImage: Story = {
   render: () => {
-    loadGalleryState({ tree: mockFolderTree })
-    const model = [...visibleIndexMap().keys()][0]
+    loadGalleryStateWithImageModels({ tree: mockFolderTree })
+    const model = imagesList.array()[0]
     if (model) {
       lightboxImage.set(() => model)
       lightboxOpen.setTrue()
@@ -88,7 +92,7 @@ export const WithLightboxImage: Story = {
     )
   },
   play: async () => {
-    await I.seeImageName('Hiring plan.jpg')
+    await I.seeImageName('photo1.jpg')
   },
 }
 
