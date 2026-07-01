@@ -29,9 +29,7 @@ export const imagesList = reatomLinkedList<
     key: 'id',
   },
   'imagesList',
-).extend(
-  withConnectHook(() => bindImagesListSync()),
-)
+).extend(withConnectHook(() => bindImagesListSync()))
 
 export function bindImagesListSync(): () => void {
   const syncEffect = effect(() => {
@@ -81,8 +79,7 @@ function syncImagesList() {
         break
       case 'size':
         comparison =
-          (left.fileInfo.data()?.size ?? 0) -
-          (right.fileInfo.data()?.size ?? 0)
+          (left.fileInfo.data()?.size ?? 0) - (right.fileInfo.data()?.size ?? 0)
         break
       case 'date':
         comparison =

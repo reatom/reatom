@@ -99,7 +99,9 @@ export function reatomImage(
 
   const thumbnailMeta = computed(async () => {
     const blob = await wrap(file())
-    return await wrap(parseImagePreviewMeta(blob, { filename: options?.filename }))
+    return await wrap(
+      parseImagePreviewMeta(blob, { filename: options?.filename }),
+    )
   }, `${name}.thumbnailMeta`).extend(withAsyncData())
 
   const meta = computed(async () => {

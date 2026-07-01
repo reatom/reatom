@@ -159,12 +159,10 @@ test('visibleIndexMap filters by size range', () =>
     filterSizeMax.set(10000)
     const map = visibleIndexMap()
     expect(
-      [...map.keys()].every(
-        (i) => {
-          const size = i.fileInfo.data()?.size
-          return size !== undefined && size >= 5000 && size <= 10000
-        },
-      ),
+      [...map.keys()].every((i) => {
+        const size = i.fileInfo.data()?.size
+        return size !== undefined && size >= 5000 && size <= 10000
+      }),
     ).toBe(true)
   }))
 
