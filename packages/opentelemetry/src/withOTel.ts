@@ -2,6 +2,7 @@ import type { AtomLike, GenericExt } from '@reatom/core'
 import {
   bind,
   isAbort,
+  isAction,
   STACK,
   top,
   withActionMiddleware,
@@ -16,15 +17,18 @@ import type { TraceId } from './generateTraceId.ts'
 import { generateTraceId } from './generateTraceId.ts'
 import { serialize } from './serialize.ts'
 import { spanIdVar } from './spanIdVar.ts'
-import { traceIdVar } from './traceIdVar.ts'
 import type { OtlpAttrValue } from './toOtlpValue.ts'
+import { traceIdVar } from './traceIdVar.ts'
 
 export interface WithOTelOptions {
   kind?: SpanKind
 }
 
 export interface CreateWithOTelInput {
-  /** Receives a fully-formed SpanInput when an instrumented atom/action finishes. */
+  /**
+   * Receives a fully-formed SpanInput when an instrumented atom/action
+   * finishes.
+   */
   queueSpan: (span: SpanInput) => void
 }
 
@@ -79,19 +83,11 @@ const exceptionEvent = (error: unknown, timeMs: number): SpanEventInput => {
   return { name: 'exception', timeMs, attributes }
 }
 
-// Must match the function name in `@reatom/core`'s `core/action.ts`.
-// `isAction` consults the `reactive` flag, which `action()` flips only
-// AFTER `createAtom` runs `EXTENSIONS` — so during auto-instrumentation
-// the structural middlewares array is the only reliable signal.
-const ACTION_MIDDLEWARE_NAME = 'actionMiddleware'
-const hasActionMiddleware = (target: AtomLike): boolean =>
-  target.__reatom.middlewares.some((m) => m.name === ACTION_MIDDLEWARE_NAME)
-
 /**
- * Idempotent: applying twice to the same target merges options (later
- * override wins) but installs the middleware only once, so a global
- * `addGlobalExtension(withOTel())` plus a local `withOTel({ kind })`
- * override doesn't double-emit.
+ * Idempotent: applying twice to the same target merges options (later override
+ * wins) but installs the middleware only once, so a global
+ * `addGlobalExtension(withOTel())` plus a local `withOTel({ kind })` override
+ * doesn't double-emit.
  */
 export const createWithOTel = ({ queueSpan }: CreateWithOTelInput) => {
   const optionsByTarget = new WeakMap<AtomLike, WithOTelOptions>()
@@ -104,14 +100,6 @@ export const createWithOTel = ({ queueSpan }: CreateWithOTelInput) => {
       else optionsByTarget.set(target, (opts = { ...options }))
 
       if (installed.has(target)) return target
-
-      const isAction = hasActionMiddleware(target)
-
-      // Reatom calls EXTENSIONS twice for actions: once inside `createAtom`
-      // while `reactive` is still true, and once at the tail of `action()`
-      // after the flip. Defer the install on the first invocation so
-      // `withActionMiddleware`'s `isAction` check passes the second time.
-      if (isAction && target.__reatom.reactive) return target
 
       installed.add(target)
 
@@ -154,11 +142,9 @@ export const createWithOTel = ({ queueSpan }: CreateWithOTelInput) => {
           })
 
         const queueErr = (error: unknown) =>
-          queueWith(
-            undefined,
-            { code: 'error', message: serialize(error) },
-            [exceptionEvent(error, nowMs())],
-          )
+          queueWith(undefined, { code: 'error', message: serialize(error) }, [
+            exceptionEvent(error, nowMs()),
+          ])
 
         const emitErr = (error: unknown) => {
           if (isControlFlow(error)) {
@@ -171,7 +157,7 @@ export const createWithOTel = ({ queueSpan }: CreateWithOTelInput) => {
         return { queueWith, queueErr, emitErr }
       }
 
-      if (isAction) {
+      if (isAction(target)) {
         return target.extend(
           withActionMiddleware(() => (next, ...params) => {
             const { queueWith, emitErr } = startMiddleware()
@@ -247,4 +233,3 @@ export const createWithOTel = ({ queueSpan }: CreateWithOTelInput) => {
     }) as GenericExt<AtomLike>
   }
 }
-

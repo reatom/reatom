@@ -25,7 +25,7 @@ jobs:
           cache_dependency_path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm --filter @reatom/core... --filter @reatom/react... --filter @reatom/jsx... --filter @reatom/zod... --filter gallery... install --ignore-scripts
+        run: pnpm --filter @reatom/core... --filter @reatom/opentelemetry... --filter @reatom/react... --filter @reatom/jsx... --filter @reatom/zod... --filter gallery... install --ignore-scripts
 
       - name: Build core package
         run: pnpm --filter @reatom/core run build
@@ -44,8 +44,12 @@ jobs:
             pnpm --filter @reatom/zod run test &
             zod_pid="$!"
 
+            pnpm --filter @reatom/opentelemetry run test &
+            opentelemetry_pid="$!"
+
             wait "$core_unit_pid" || failed=1
             wait "$zod_pid" || failed=1
+            wait "$opentelemetry_pid" || failed=1
 
             exit "$failed"
           ) &

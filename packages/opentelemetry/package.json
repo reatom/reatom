@@ -19,8 +19,8 @@
 	"scripts": {
 		"prepublishOnly": "pnpm run build && pnpm run test",
 		"build": "tsdown",
-		"test": "vitest run src/*",
-		"test:watch": "vitest src/*"
+		"test": "vitest run",
+		"test:watch": "vitest"
 	},
 	"tsdown": {
 		"format": [
@@ -66,9 +66,11 @@
 		"/dist"
 	],
 	"devDependencies": {
+		"@vitest/spy": "catalog:",
 		"@typescript-eslint/eslint-plugin": "^8.28.0",
 		"@typescript-eslint/parser": "^8.28.0",
 		"eslint-plugin-simple-import-sort": "^12.1.1",
-		"tsdown": "catalog:"
+		"tsdown": "catalog:",
+		"vitest": "catalog:"
 	}
 }

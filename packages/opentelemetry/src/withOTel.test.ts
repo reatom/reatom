@@ -1,4 +1,11 @@
-import { action, atom, context, sleep, wrap } from '@reatom/core'
+import {
+  action,
+  actionMiddleware,
+  atom,
+  context,
+  sleep,
+  wrap,
+} from '@reatom/core'
 import { expect, test, vi } from 'vitest'
 
 import type { SpanInput } from './buildSpan.ts'
@@ -15,11 +22,32 @@ const collectSpans = () => {
   return { spans, queueSpan }
 }
 
+test('async action instrumentation survives minified core middleware names', async () => {
+  const { spans, queueSpan } = collectSpans()
+  const withOTel = createWithOTel({ queueSpan })
+  const originalName = actionMiddleware.name
+  try {
+    Object.defineProperty(actionMiddleware, 'name', { value: 'a' })
+    const increment = action(
+      async (value: number) => value + 1,
+      'increment',
+    ).extend(withOTel())
+
+    expect(await context.start(() => increment(41))).toBe(42)
+    expect(spans).toHaveLength(1)
+    expect(spans[0]?.attributes).toEqual({ params: '[41]', payload: '42' })
+  } finally {
+    Object.defineProperty(actionMiddleware, 'name', { value: originalName })
+  }
+})
+
 test('sync action records a span with name, params, payload, and unset status', () => {
   const { spans, queueSpan } = collectSpans()
   const withOTel = createWithOTel({ queueSpan })
 
-  const greet = action((name: string) => `hi ${name}`, 'greet').extend(withOTel())
+  const greet = action((name: string) => `hi ${name}`, 'greet').extend(
+    withOTel(),
+  )
 
   context.start(() => {
     expect(greet('alice')).toBe('hi alice')
@@ -46,7 +74,9 @@ test('respects kind option override', () => {
   const { spans, queueSpan } = collectSpans()
   const withOTel = createWithOTel({ queueSpan })
 
-  const fetchUser = action(() => 1, 'fetchUser').extend(withOTel({ kind: 'client' }))
+  const fetchUser = action(() => 1, 'fetchUser').extend(
+    withOTel({ kind: 'client' }),
+  )
 
   context.start(() => {
     fetchUser()
@@ -229,8 +259,7 @@ test('atom records a span with prev/next state on setter call', () => {
 
   expect(spans.length).toBeGreaterThanOrEqual(1)
   const transition = spans.find(
-    (s) =>
-      s.attributes?.prevState === '0' && s.attributes?.nextState === '1',
+    (s) => s.attributes?.prevState === '0' && s.attributes?.nextState === '1',
   )
   expect(transition).toBeDefined()
   expect(transition!.name).toBe('counter')

@@ -5,6 +5,7 @@ export default defineConfig({
     projects: [
       './packages/core/vitest.config.ts',
       './packages/core/vitest.browser.config.ts',
+      './packages/opentelemetry/vitest.config.ts',
       './packages/admin/vitest.config.ts',
       './packages/jsx/vitest.config.ts',
       './packages/react/vitest.config.ts',
