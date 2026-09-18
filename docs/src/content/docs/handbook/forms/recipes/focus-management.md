@@ -50,7 +50,7 @@ declare module '@reatom/core' {
 Now let's take this bunch of logic and wrap it into a separate reusable extension:
 
 ```ts
-import { type FormAtom, withCallHook } from 'reatom'
+import { type FormAtom, withCallHook } from '@reatom/core'
 
 export const withFormAutoFocusOnError = () => (form: FormAtom<any>) => {
   form.submit.onReject.extend(

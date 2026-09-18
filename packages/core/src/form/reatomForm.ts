@@ -654,7 +654,10 @@ export function reatomForm<
     }
 
     return state
-  }, `${name}.validation.trigger`).extend(withAsync(), withAbort())
+  }, `${name}.validation.trigger`).extend(
+    withAsync({ status: true }),
+    withAbort(),
+  )
 
   const submit = action((...params: SubmitParams) => {
     return wrap(triggerValidation())

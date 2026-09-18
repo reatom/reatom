@@ -1,6 +1,6 @@
 import { expect, subscribe, test } from 'test'
 
-import { atom, computed, isConnected, notify } from '../core'
+import { atom, computed, context, isConnected, notify } from '../core'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
 import { suspense, withSuspense, withSuspenseInit } from './withSuspense'
@@ -85,14 +85,14 @@ test('withSuspense', async () => {
   )
 
   const track = subscribe(data.suspended)
-  expect(track).toBeCalledTimes(0)
-  await wrap(sleep())
   expect(track).toBeCalledTimes(1)
+  await wrap(sleep())
+  expect(track).toBeCalledTimes(2)
   expect(track).toBeCalledWith(0)
 
   param.set(1)
   await wrap(sleep())
-  expect(track).toBeCalledTimes(2)
+  expect(track).toBeCalledTimes(3)
   expect(track).toBeCalledWith(1)
 })
 
@@ -120,6 +120,34 @@ test('withSuspenseInit unwrap', async () => {
   expect(data()).toBe(1)
 })
 
+test('withSuspenseInit init params', async () => {
+  const data = atom(0).extend(
+    withSuspenseInit((init, ...params) =>
+      params.length ? init : sleep().then(() => 1),
+    ),
+  )
+
+  context.start(() => {
+    expect(() => data()).toThrowError(Promise)
+  })
+  context.start(() => {
+    // @ts-ignore TODO fix "not" types
+    expect(() => data.set(1)).not.toThrow()
+    expect(data()).toBe(1)
+  })
+})
+
+const suspenseRetry = async (cb: () => unknown) => {
+  while (true) {
+    try {
+      return cb()
+    } catch (error) {
+      if (error instanceof Promise) await wrap(error)
+      else throw error
+    }
+  }
+}
+
 test('correct handling of conditional suspense computeds', async () => {
   const suspenseAtom = atom(async () => {
     await wrap(sleep())
@@ -142,17 +170,6 @@ test('correct handling of conditional suspense computeds', async () => {
     return suspenseProxy()
   })
 
-  const suspenseRetry = async (cb: () => unknown) => {
-    while (true) {
-      try {
-        return cb()
-      } catch (error) {
-        if (error instanceof Promise) await wrap(error)
-        else throw error
-      }
-    }
-  }
-
   await wrap(expect(suspenseRetry(component)).resolves.toBe(true))
   suspenseProxyDep.set(1)
   await wrap(expect(suspenseRetry(component)).resolves.toBe(false))
@@ -164,4 +181,49 @@ test('correct handling of conditional suspense computeds', async () => {
   suspenseProxyDep.set(1)
   await wrap(sleep())
   expect(component()).toBe(false)
+})
+
+test('correct handling of immediate sync throw of promise', async () => {
+  const suspenseDepAtom = atom(async () => {
+    await wrap(sleep())
+    return true
+  }).extend(withSuspenseInit())
+
+  const otherSuspenseAtom = atom(() => {
+    if (suspenseDepAtom()) return true
+    return wrap(sleep()).then(() => false)
+  }).extend(withSuspenseInit())
+
+  await wrap(expect(suspenseRetry(otherSuspenseAtom)).resolves.toBe(true))
+})
+
+test('sync-thrown suspense atom healed via .set notifies passive subscribers', async () => {
+  const client = computed(async () => {
+    await wrap(sleep())
+    return 'CLIENT'
+  }).extend(withSuspense())
+
+  const query = atom(() => {
+    client.suspended()
+    return 'initial'
+  }).extend(withSuspenseInit())
+
+  const consumer = computed(() => {
+    try {
+      return query()
+    } catch (error) {
+      if (error instanceof Promise) return 'PENDING'
+      throw error
+    }
+  })
+
+  const track = subscribe(consumer)
+  expect(track).toHaveBeenCalledWith('PENDING')
+
+  await wrap(sleep())
+  query.set('DATA')
+  notify()
+  await wrap(sleep())
+
+  expect(track).toHaveBeenCalledWith('DATA')
 })

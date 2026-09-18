@@ -1,6 +1,6 @@
 import { expect, test } from 'test'
 
-import { action, atom, computed, isConnected } from '../core'
+import { action, atom, computed, isConnected, notify } from '../core'
 import { withSuspenseInit } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import { sleep } from '../utils'
@@ -47,7 +47,7 @@ test("effect didn't connect to reactive parent", async () => {
   await wrap(sleep())
 
   expect(comp()).toBe(compState)
-  expect(effectState).instanceOf(Error)
+  expect(effectState).toBeInstanceOf(Error)
 })
 
 test('different types of abort', async () => {
@@ -86,8 +86,8 @@ test('different types of abort', async () => {
     expect(computedLogs).toEqual(['rerun', 'rerun'])
     expect(effectLogs).toEqual([
       'rerun',
-      'rerun',
       expect.stringContaining(`${name}.nativeEffect.withAbort concurrent`),
+      'rerun',
     ])
 
     // need to unsubscribe and do all checks exactly after an update
@@ -98,8 +98,8 @@ test('different types of abort', async () => {
 
     expect(effectLogs).toEqual([
       'rerun',
-      'rerun',
       expect.stringContaining(`${name}.nativeEffect.withAbort concurrent`),
+      'rerun',
       expect.stringContaining(`${name}.nativeEffect._subscribe unsubscribe`),
     ])
   }, `${name}.doWithAbort`)
@@ -168,4 +168,63 @@ test('rerun on suspended dependency', async () => {
   }, `${name}.effect`)
 
   await testCompleted
+})
+
+test('sync unsubscribe', async () => {
+  const name = `syncUnsubscribe`
+  let updates = 0
+
+  const resource = atom(0, `${name}.resource`)
+
+  const { unsubscribe } = effect(() => {
+    resource()
+    updates++
+  }, `${name}.effect`)
+
+  expect(updates).toBe(1)
+
+  resource.set(1)
+  resource.set(2)
+  expect(updates).toBe(1)
+
+  unsubscribe()
+  expect(updates).toBe(1)
+
+  await wrap(sleep())
+  expect(updates).toBe(1)
+})
+
+test('effect concurrent disposal', () => {
+  const name = 'computedTriggeredDisposal'
+  const state = atom(0, `${name}.state`)
+  let effectRuns = 0
+
+  const value = computed(() => {
+    if (state() === 1) {
+      unsubscribeEffect()
+    }
+    return state()
+  }, `${name}.value`)
+
+  const unsubscribeEffect = effect(() => {
+    value()
+    effectRuns++
+  }, `${name}.effect`).unsubscribe
+
+  effect(() => {
+    value()
+  }, `${name}.keepAlive`)
+
+  expect(effectRuns).toBe(1)
+
+  state.set(1)
+  notify()
+  expect(effectRuns).toBe(1)
+  // expect(context().state.store.get(value)?.subs).toEqual([keepAlive])
+
+  state.set(2)
+  notify()
+  state.set(3)
+  notify()
+  expect(effectRuns).toBe(1)
 })

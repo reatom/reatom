@@ -131,7 +131,7 @@ export const VictoryOverlay = () => {
           {() => {
             const isDraw = winner() === 'draw'
             // Draw animation - peaceful floating hearts
-            return Array.from({ length: 12 }).map((_, i) => (
+            return Array.from({ length: 12 }).map(() => (
               <div
                 css:animation-delay={`${Math.random() * 2}s`}
                 css:animation-duration={`${3 + Math.random() * 2}s`}

@@ -12,14 +12,14 @@ import {
 import { expect, test } from 'vitest'
 
 // eslint-disable-next-line unused-imports/no-unused-imports
-import { DEBUG, h, hf, mount } from '.'
+import { DEBUG, h, hf, instance, mount } from '.'
 
 clearStack()
 
 DEBUG.extend(withInit(() => false))
 
 const parent = atom(() => {
-  const main = (<main />) as HTMLElement
+  const main = instance(HTMLElement, <main />)
   window.document.body.appendChild(main)
 
   return main
@@ -121,6 +121,39 @@ test('linked list createMany', () =>
     )
   }))
 
+test('linked list render keeps changes payload for sibling subscribers', () =>
+  context.start(async () => {
+    const list = reatomLinkedList((value: number) => <span>{value}</span>)
+
+    const container = <div>{list}</div>
+    mount(parent(), container)
+    await wrap(sleep())
+
+    // A sibling consumer applying the same incremental contract as the
+    // renderer (e.g. analytics or scroll-into-view of new rows). It
+    // subscribes after the renderer, so its notification runs later.
+    const seen: number[] = []
+    const unsubscribe = list.subscribe((state) => {
+      for (const change of state.changes) {
+        if (change.kind === 'createMany') {
+          for (const node of change.nodes) {
+            seen.push(Number(node.textContent))
+          }
+        }
+      }
+    })
+
+    list.createMany([[1], [2], [3]])
+    await wrap(sleep())
+
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>1</span><span>2</span><span>3</span>',
+    )
+    expect(seen).toEqual([1, 2, 3])
+
+    unsubscribe()
+  }))
+
 test('linked list move to head', () =>
   context.start(async () => {
     const list = reatomLinkedList((value: number) => <span>{value}</span>)
@@ -178,6 +211,36 @@ test('linked list removeMany', () =>
     expect(stripJsxCompilerProps(container.innerHTML)).toBe('')
   }))
 
+test('linked list render inside a function child is not tracked', () =>
+  context.start(async () => {
+    let mapperCalls = 0
+    const list = reatomLinkedList((value: number) => ({ value }), 'list')
+    list.create(1)
+
+    const container = (
+      <div>
+        {() => (
+          <ul>
+            {list.reatomMap((node) => {
+              mapperCalls++
+              return <li>{node.value}</li>
+            }, 'list.views')}
+          </ul>
+        )}
+      </div>
+    )
+    mount(parent(), container)
+    await wrap(sleep())
+    expect(mapperCalls).toBe(1)
+
+    // A tracked initial read would make the wrapper computed depend on the
+    // list, so this create would recreate the subtree and remap every node.
+    list.create(2)
+    await wrap(sleep())
+    expect(mapperCalls).toBe(2)
+    expect(container.querySelectorAll('li').length).toBe(2)
+  }))
+
 test('linked list createMany and removeMany with reatomMap', () =>
   context.start(async () => {
     const list = reatomLinkedList((value: number) => atom(value))
@@ -201,4 +264,3 @@ test('linked list createMany and removeMany with reatomMap', () =>
     expect(parent().innerText).toBe('2')
     expect(list.array()).toEqual([nodes[1]])
   }))
-

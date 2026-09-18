@@ -254,29 +254,25 @@ describe('types', () => {
   })
 
   test('should parse linked list as array', () => {
-    const model = reatomLinkedList(
-      // @ts-expect-error
-      (value: number) => ({
-        kind: 'TEST' as const,
-        bool1: atom(true),
-        array: atom([
-          atom({
-            type: reatomEnum(['A', 'B', 'C']),
-            str1: atom(''),
-            bool: atom(false),
-            nestedLinkedList: reatomLinkedList(() =>
-              reatomEnum(['A', 'B', 'C']),
-            ),
-          }),
-        ]),
-      }),
-    )
+    const model = reatomLinkedList((value: number) => ({
+      kind: 'TEST' as const,
+      bool: atom(true),
+      num: atom(value),
+      array: atom([
+        atom({
+          type: reatomEnum(['A', 'B', 'C']),
+          str1: atom(''),
+          bool: atom(false),
+          nestedLinkedList: reatomLinkedList(() => reatomEnum(['A', 'B', 'C'])),
+        }),
+      ]),
+    }))
 
     const test = deatomize(model)
 
     type ToMatchTypeOf = {
       kind: 'TEST'
-      bool1: boolean
+      bool: boolean
       array: {
         type: 'A' | 'B' | 'C'
         str1: string
@@ -286,6 +282,23 @@ describe('types', () => {
     }
 
     expectTypeOf(test).toExtend<ToMatchTypeOf[]>()
+
+    model.create(1)
+    expect(deatomize(model)).toEqual([
+      {
+        kind: 'TEST',
+        bool: true,
+        num: 1,
+        array: [
+          {
+            type: 'A',
+            str1: '',
+            bool: false,
+            nestedLinkedList: [],
+          },
+        ],
+      },
+    ])
   })
 
   test('should parse File and other classes properly', () => {

@@ -1,0 +1,21 @@
+Attribution-ShareAlike 4.0 International
+
+This catalog (the merged lens records under catalog/data/ and catalog/meta.ts)
+is licensed under CC BY-SA 4.0.
+
+You are free to share and adapt the catalog, including commercially, if you
+give appropriate credit, provide a link to the license, and distribute your
+adaptations under the same license.
+
+Full legal code: https://creativecommons.org/licenses/by-sa/4.0/legalcode
+
+Sources
+- Wikidata items: CC0 1.0 — https://creativecommons.org/publicdomain/zero/1.0/
+- English Wikipedia tables: CC BY-SA 4.0 — https://creativecommons.org/licenses/by-sa/4.0/
+- Lensfun database: CC BY-SA 3.0 — https://creativecommons.org/licenses/by-sa/3.0/
+
+Product names are trademarks of their respective owners. Numeric specifications
+are published facts. Barrel material and correction tier are inferred
+classifications for filtering, not manufacturer claims.
+
+The surrounding TypeScript / JSX module code follows the repository license.

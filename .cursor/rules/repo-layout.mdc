@@ -1,0 +1,21 @@
+---
+alwaysApply: true
+---
+
+# Repository layout — skills and symlinks
+
+Edit agent skills only in `skills/`. These paths are symlinks to the same tree — do not treat them as separate copies:
+
+- `.cursor/skills/` → `skills/`
+- `.agents/skills/` → `skills/`
+
+These external readmes are file symlinks — same content as the skill reference, not duplicates to diff or merge:
+
+- `summary.md` → `skills/reatom/REFERENCE.md`
+- `docs/src/content/docs/summary.md` → `skills/reatom/REFERENCE.md`
+- `packages/core/README.md` → `skills/reatom/REFERENCE.md`
+- `packages/jsx/README.md` → `skills/reatom-jsx/REFERENCE.md`
+
+When updating API or JSX docs, edit the canonical file under `skills/`. Do not compare or sync symlink targets.
+
+Full diagram: `skills/README.md`.

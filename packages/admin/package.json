@@ -23,6 +23,10 @@
     "test": "pnpm test:unit && pnpm test:stories",
     "test:unit": "vitest run --project=@reatom/admin",
     "test:stories": "vitest run --project=storybook",
+    "test:stories:smoke": "vitest run --project=storybook --grep @smoke",
+    "test:stories:visual": "vitest run --project=storybook --grep @visual",
+    "test:stories:watch": "vitest --project=storybook",
+    "typecheck": "tsc --noEmit",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -53,7 +57,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/reatom/reatom.git",
+    "url": "https://github.com/reatom/reatom.git",
     "directory": "packages/admin"
   },
   "bugs": {
@@ -75,20 +79,23 @@
     "/dist"
   ],
   "devDependencies": {
-    "@reatom/jsx": ">=1000.14.1",
-    "@storybook/addon-vitest": "^10.2.19",
-    "@storybook/html": "^10.2.19",
-    "@storybook/html-vite": "^10.2.19",
-    "@typescript-eslint/eslint-plugin": "^8.28.0",
-    "@typescript-eslint/parser": "^8.28.0",
-    "@vitest/browser": "^4.0.18",
-    "@vitest/browser-playwright": "^4.0.18",
-    "@vitest/ui": "4.0.18",
-    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "@storybook/addon-a11y": "^10.4.6",
+    "@storybook/addon-vitest": "^10.4.6",
+    "@storybook/html": "^10.4.6",
+    "@storybook/html-vite": "^10.4.6",
+    "@typescript-eslint/eslint-plugin": "catalog:",
+    "@typescript-eslint/parser": "catalog:",
+    "@vitest/browser": "catalog:",
+    "@vitest/browser-playwright": "catalog:",
+    "@vitest/ui": "catalog:",
+    "eslint-plugin-simple-import-sort": "catalog:",
+    "kahraman": "^0.2.0",
+    "playwright": "catalog:",
     "msw": "^2.12.13",
-    "msw-storybook-addon": "^2.0.6",
-    "storybook": "^10.2.19",
+    "msw-storybook-addon": "^2.0.7",
+    "storybook": "^10.4.6",
     "tsdown": "catalog:",
-    "vitest": "^4.0.18"
+    "vite": "catalog:",
+    "vitest": "catalog:"
   }
 }

@@ -34,7 +34,7 @@ Here we must use `memo` to subscribe only to this specific part of the [`focus` 
 Now let's take this bunch of logic and wrap it into a separate reusable extension:
 
 ```ts
-import { type FormAtom, effect, memo, wrap, sleep } from 'reatom'
+import { type FormAtom, effect, memo, wrap, sleep } from '@reatom/core'
 
 export const withFormAutoSubmit =
   ({

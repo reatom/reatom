@@ -1,7 +1,12 @@
 import { expect, expectTypeOf, test, vi } from 'test'
 
-import { action, atom, computed, notify } from '../core'
-import { withCallHook, withChangeHook } from './withChangeHook'
+import { action, atom, computed, notify, withParams } from '../core'
+import {
+  addCallHook,
+  addChangeHook,
+  withCallHook,
+  withChangeHook,
+} from './withChangeHook'
 
 test('atomChange', () => {
   const name = 'atomChange'
@@ -51,4 +56,89 @@ test('actionCall', () => {
   sum(1, 2)
   notify()
   expect(cb).toBeCalledWith(3, [1, 2])
+})
+
+test('change hook survives throwing setter', () => {
+  const cb = vi.fn()
+  const queueError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+  const counter = atom(0, 'withChangeHook.throwingSetter.counter')
+    .extend(withChangeHook(cb))
+    .extend(
+      withParams((value: number) => {
+        if (value < 0) throw new Error('negative')
+        return value
+      }),
+    )
+
+  expect(() => counter.set(-1)).toThrow('negative')
+  notify()
+  expect(cb).toBeCalledTimes(0)
+  expect(queueError).not.toBeCalled()
+
+  counter.set(1)
+  notify()
+  expect(cb).toBeCalledWith(1, 0)
+
+  queueError.mockRestore()
+})
+
+test('call hook survives throwing action', () => {
+  const cb = vi.fn()
+  const queueError = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+  const divide = action((a: number, b: number) => {
+    if (b === 0) throw new Error('zero')
+    return a / b
+  }, 'withChangeHook.throwingAction.divide').extend(withCallHook(cb))
+
+  expect(() => divide(1, 0)).toThrow('zero')
+  notify()
+  expect(cb).toBeCalledTimes(0)
+  expect(queueError).not.toBeCalled()
+
+  divide(4, 2)
+  notify()
+  expect(cb).toBeCalledWith(2, [4, 2])
+
+  queueError.mockRestore()
+})
+
+test('addChangeHook', () => {
+  const cb = vi.fn()
+  const counter = atom(0, 'withChangeHook.addChangeHook.counter')
+
+  const unsubscribe = addChangeHook(counter, cb)
+
+  counter.set(1)
+  notify()
+  expect(cb).toBeCalledWith(1, 0)
+
+  cb.mockClear()
+  unsubscribe()
+
+  counter.set(2)
+  notify()
+  expect(cb).toBeCalledTimes(0)
+})
+
+test('addCallHook', () => {
+  const cb = vi.fn()
+  const sum = action(
+    (a: number, b: number) => a + b,
+    'withChangeHook.addCallHook.sum',
+  )
+
+  const unsubscribe = addCallHook(sum, cb)
+
+  sum(1, 2)
+  notify()
+  expect(cb).toBeCalledWith(3, [1, 2])
+
+  cb.mockClear()
+  unsubscribe()
+
+  sum(3, 4)
+  notify()
+  expect(cb).toBeCalledTimes(0)
 })

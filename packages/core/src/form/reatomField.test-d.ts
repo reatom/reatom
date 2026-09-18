@@ -1,5 +1,5 @@
 import { expectTypeOf, test } from 'test'
-import z from 'zod'
+import { z } from 'zod'
 
 import type { Atom } from '../core'
 import { atom } from '../core'

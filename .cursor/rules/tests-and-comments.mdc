@@ -1,0 +1,6 @@
+---
+globs: packages/*/src/**
+alwaysApply: false
+---
+
+Do not forget to test and comment (JSDoc and docs/src/content/docs/handbook) on important changes.

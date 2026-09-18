@@ -2,6 +2,7 @@ import { beforeEach, expect, test, vi } from 'test'
 
 import { atom } from '../core/atom'
 import { wrap } from '../methods'
+import { reatomBoolean } from '../primitives/reatomBoolean'
 import { sleep } from '../utils'
 import { urlAtom } from '../web/url'
 import { searchParamsAtom, withSearchParams } from './searchParams'
@@ -164,6 +165,38 @@ test('search reset', async () => {
 
   expect(urlAtom().search).toBe('')
   expect(urlAtom().pathname).toBe('/results')
+})
+
+test('back navigation with omitted false search param', async () => {
+  history.replaceState({}, '', '/')
+
+  const open = reatomBoolean(false, 'open').extend(
+    withSearchParams('open', {
+      parse: (raw) => (raw ? Boolean(Number(raw)) : false),
+      serialize: (state) => (state ? '1' : undefined),
+    }),
+  )
+
+  open.subscribe()
+
+  await wrap(sleep())
+
+  expect(open()).toBe(false)
+  expect(urlAtom().search).toBe('')
+
+  open.setTrue()
+
+  await wrap(sleep())
+
+  expect(open()).toBe(true)
+  expect(urlAtom().search).toBe('?open=1')
+
+  history.back()
+
+  await wrap(sleep())
+
+  expect(open()).toBe(false)
+  expect(urlAtom().search).toBe('')
 })
 
 test('inactive subpath should not affect mutated atoms', async () => {

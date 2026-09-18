@@ -1,4 +1,4 @@
-import { action, atom, computed, notify } from '@reatom/core'
+import { action, atom, notify } from '@reatom/core'
 import { expect, test } from 'test'
 
 import { ADMIN_FRAME } from '../root'

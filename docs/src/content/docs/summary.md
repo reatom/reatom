@@ -1,1 +1,1 @@
-../../../../summary.md
+../../../../skills/reatom/REFERENCE.md

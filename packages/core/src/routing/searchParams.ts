@@ -1,6 +1,7 @@
 import type { Action, Atom, AtomState, Computed } from '../core'
 import {
   _enqueue,
+  _read,
   action,
   atom,
   computed,
@@ -74,7 +75,7 @@ const isSubpath = (currentPath: string, targetPath: string) =>
     : `${currentPath}/` === targetPath
 
 /** Create an atom that represents search parameters from the URL. */
-export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
+const initSearchParamsAtom = () =>
   computed(() => Object.fromEntries(urlAtom().searchParams), 'searchParamsAtom')
     .extend((target) =>
       Object.assign(target, {
@@ -111,7 +112,10 @@ export const searchParamsAtom: SearchParamsAtom = /* @__PURE__ */ (() =>
             )
           },
         }) satisfies Pick<SearchParamsAtom, 'lens'>,
-    ))()
+    )
+
+export const searchParamsAtom: SearchParamsAtom =
+  /* @__PURE__ */ initSearchParamsAtom()
 
 /**
  * Create an atom that synchronizes with a URL search parameter.
@@ -215,6 +219,11 @@ export function withSearchParams<T = string>(
                 return
               }
 
+              if (key in prev && currentPath === prevUrl.pathname) {
+                state = parse(undefined) as AtomState<Target>
+                return
+              }
+
               const prevState = serialize(state)
               if (prevState !== undefined) {
                 _enqueue(() => {
@@ -232,7 +241,7 @@ export function withSearchParams<T = string>(
         let frame = top()
         let prevFrame = _getPrevFrame(frame)
         if (
-          frame === frame.root.store.get(target) &&
+          frame === _read(target) &&
           frame.pubs[1]?.state === prevFrame?.pubs[1]?.state &&
           isSubpath(urlAtom().pathname, path)
         ) {

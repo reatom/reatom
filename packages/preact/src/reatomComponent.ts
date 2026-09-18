@@ -1,6 +1,7 @@
 import {
   action,
   assert,
+  bind,
   type Frame,
   named,
   notify,
@@ -8,12 +9,35 @@ import {
   ReatomError,
   type Rec,
   STACK,
-  top,
+  withAbort,
   wrap,
 } from '@reatom/core'
-import type { ComponentChildren, ComponentClass, ComponentType } from 'preact'
-import { Component, createContext } from 'preact'
-import { useContext, useEffect, useMemo } from 'preact/hooks'
+import type { ComponentChildren } from 'preact'
+import { createContext } from 'preact'
+import {
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'preact/hooks'
+
+type ReatomComponentOptions =
+  | string
+  | {
+      deps?: Array<string>
+      name?: string
+      abortOnUnmount?: boolean
+    }
+
+type ReatomFactoryComponentOptions =
+  | string
+  | {
+      deps?: Array<string>
+      name?: string
+    }
+
+type PreactRender<Props extends Rec> = (props: Props) => ComponentChildren
 
 export let _getComponentDebugName = (fallback?: string): string => {
   let name = fallback
@@ -34,7 +58,7 @@ export let useFrame = (): Frame => {
   return frame
 }
 
-export const useWrap = <Params extends any[], Payload>(
+export const useWrap = <Params extends unknown[], Payload>(
   callback: (...params: Params) => Payload,
   name?: string,
 ): ((...params: Params) => Payload) => {
@@ -60,156 +84,109 @@ export const useWrap = <Params extends any[], Payload>(
     [],
   )
 
-  useEffect(() => {
+  useImmediateEffect(() => {
     ref.callback = callback
   })
 
   return ref.stableFn
 }
 
+let useImmediateEffect =
+  typeof document !== 'undefined' ? useLayoutEffect : useEffect
+
 export let isSuspense = (thing: unknown) =>
   thing instanceof Promise ||
   (thing instanceof Error && thing.message.startsWith('Suspense Exception'))
 
-let isClassComponent = (
-  Component: ComponentType<any>,
-): Component is ComponentClass<any> =>
-  Component.prototype && typeof Component.prototype.render === 'function'
-
 export let reatomComponent = <Props extends Rec = {}>(
-  UserComponent: ComponentType<Props>,
-  name?: string,
-): ComponentClass<Props> => {
-  name ||= named('Component', UserComponent.displayName || UserComponent.name)
-
-  let ComponentClass = Component as ComponentClass<Props>
-
-  if (isClassComponent(UserComponent)) {
-    ComponentClass = UserComponent
-    UserComponent = UserComponent.prototype.render
+  Component: PreactRender<Props>,
+  options?: ReatomComponentOptions,
+): PreactRender<Props> => {
+  let deps: Array<string> = []
+  let name: string | undefined
+  let abortOnUnmount = false
+  if (typeof options === 'object') {
+    deps = options.deps ?? []
+    name = options.name
+    abortOnUnmount = options.abortOnUnmount ?? false
+  } else {
+    name = options
   }
+  name ||= named('Component', Component.name)
 
-  return class ReatomComponent extends ComponentClass {
-    static override displayName = name
-    static override contextType = reatomContext
+  function render(props: Props): ComponentChildren {
+    let frame = useFrame()
 
-    __reatom!: {
-      render: (props: Props) => { result: ComponentChildren }
-      unmount: () => void
-    }
+    let [, rerender] = useState({ result: null as ComponentChildren })
 
-    constructor(props: Props) {
-      super(props)
-
-      let frame = this.context ?? STACK[0]
-
-      assert(
-        frame,
-        'the root is not set, you probably forgot to specify the provider',
-        ReatomError,
-      )
-
-      let { render, mount } = reatomAbstractRender({
-        frame,
-        render: (props: Props) => {
-          try {
-            this.props = props
-            // @ts-expect-error
-            return UserComponent.call(this, props)
-          } catch (error) {
-            if (isSuspense(error)) {
-              return error as never
+    let { render, mount } = useMemo(
+      () =>
+        reatomAbstractRender({
+          frame,
+          render(props: Props) {
+            try {
+              return Component(props)
+            } catch (error) {
+              if (isSuspense(error)) {
+                return error as never
+              }
+              throw error
             }
-            throw error
-          }
-        },
-        rerender: () => this.forceUpdate(),
-        name: name!,
-      })
+          },
+          rerender,
+          name: name!,
+          abortOnUnmount,
+        }),
+      [frame, ...deps.map((dep) => props[dep])],
+    )
 
-      this.__reatom = {
-        render,
-        unmount: mount(),
-      }
-    }
+    useEffect(mount, [mount, ...deps.map((dep) => props[dep])])
 
-    override componentWillUnmount() {
-      this.__reatom.unmount()
-      super.componentWillUnmount?.()
-    }
-
-    override render() {
-      let { result } = this.__reatom.render(this.props)
-      if (isSuspense(result)) throw result
-      return result
-    }
+    let { result } = render(props)
+    if (isSuspense(result)) throw result
+    return result
   }
+
+  Object.defineProperty(render, 'name', { value: name })
+
+  return render
 }
 
 export let reatomFactoryComponent = <Props extends Rec = {}>(
-  init: (initProps: Props) => (props: Props) => ComponentChildren,
-  name?: string,
-): ComponentClass<Props> => {
-  name ||= named('Component', (init as { name?: string }).name)
+  init: (
+    initProps: Props,
+    options: { name: string },
+  ) => (props: Props) => ComponentChildren,
+  options?: ReatomFactoryComponentOptions,
+): PreactRender<Props> => {
+  const deps = typeof options === 'object' ? (options.deps ?? []) : []
+  const name = typeof options === 'object' ? options.name : options
 
-  return class ReatomFactoryComponent extends Component<Props> {
-    static override displayName = name
-    static override contextType = reatomContext
+  const Component: PreactRender<Props> = reatomComponent(
+    (props: Props): ComponentChildren => {
+      const { abort, render } = useMemo(
+        (): {
+          abort: () => void
+          render: (props: Props) => ComponentChildren
+        } => {
+          const initAction = action(init, `${Component.name}._init`).extend(
+            withAbort(),
+          )
 
-    _render!: (props: Props) => { result: ComponentChildren }
-    _unmount!: () => void
-    _userRender: ((props: Props) => ComponentChildren) | null = null
-
-    constructor(props: Props) {
-      super(props)
-
-      let frame = this.context ?? STACK[0]
-
-      assert(
-        frame,
-        'the root is not set, you probably forgot to specify the provider',
-        ReatomError,
-      )
-
-      let { render, mount } = reatomAbstractRender({
-        frame,
-        render: (props: Props) => {
-          try {
-            if (!this._userRender) {
-              let currentFrame = top()
-              try {
-                // @ts-expect-error internals
-                currentFrame.atom.__reatom.linking = false
-                this._userRender = init(props)
-              } finally {
-                // @ts-expect-error internals
-                currentFrame.atom.__reatom.linking = true
-              }
-            }
-            return this._userRender(props)
-          } catch (error) {
-            if (isSuspense(error)) {
-              return error as never
-            }
-            throw error
+          return {
+            abort: bind(initAction.abort),
+            render: initAction(props, { name: Component.name }),
           }
         },
-        rerender: () => this.forceUpdate(),
-        name: name!,
-      })
+        deps.map((dep) => props[dep]),
+      )
 
-      this._render = render
-      this._unmount = mount()
-    }
+      useEffect(() => abort, [])
 
-    override componentWillUnmount() {
-      this._unmount()
-    }
+      return render(props)
+    },
+    { deps, name, abortOnUnmount: false },
+  )
 
-    override render() {
-      let { result } = this._render(this.props)
-      if (isSuspense(result)) throw result
-      return result
-    }
-  }
+  return Component
 }

@@ -2,16 +2,14 @@ import type { StandardSchemaV1 } from '@standard-schema/spec'
 
 import {
   abortVar,
-  type AsyncDataExt,
   identity,
   isDeepEqual,
   noop,
-  type Plain,
   type Rec,
   withAsyncData,
   wrap,
 } from '../'
-import type { Action, Atom, Computed } from '../core'
+import type { Atom } from '../core'
 import {
   action,
   atom,
@@ -21,295 +19,18 @@ import {
   withMiddleware,
 } from '../core'
 import { type UrlAtom, urlAtom } from '../web/url'
+import type {
+  Codec,
+  RouteAtom,
+  RouteChild,
+  RouteExt,
+  RouteGo,
+  RouteLoader,
+  RouteMixin,
+  RouteOptions,
+} from './route.types'
 
-type MaybeVoid<T> = {} extends T ? T | void : T
-
-/**
- * Extracts parameter types from a route path pattern string.
- *
- * Extracts parameter names from path patterns like `:userId`, `:postId?`, etc.
- * and creates a type mapping parameter names to their types.
- *
- * @example
- *   type Params = PathParams<'users/:userId/posts/:postId?'>
- *   // Params = { userId: string; postId?: string }
- *
- * @example
- *   type Params = PathParams<':id'>
- *   // Params = { id: string }
- */
-export type PathParams<Path extends string = string> =
-  Path extends `:${infer Param}/${infer Rest}`
-    ? { [key in Param]: string } & PathParams<Rest>
-    : Path extends `:${infer MaybeOptionalParam}`
-      ? MaybeOptionalParam extends `${infer OptionalParam}?`
-        ? { [key in OptionalParam]?: string }
-        : { [key in MaybeOptionalParam]: string }
-      : Path extends `${string}/${infer Rest}`
-        ? PathParams<Rest>
-        : {}
-
-export type PathKeys<Path extends string> = Record<keyof PathParams<Path>, any>
-
-/**
- * Type representing a rendered route component/child.
- *
- * Redeclare this type in your framework module to enable type-safe route
- * rendering. This allows you to use framework-specific types (like JSX.Element,
- * VNode, TemplateResult) as route children.
- *
- * @example
- *   // For React/Preact
- *   declare module '@reatom/core' {
- *     interface RouteChild extends JSX.Element {}
- *   }
- *
- * @example
- *   // For Vue
- *   declare module '@reatom/core' {
- *     interface RouteChild extends VNode {}
- *   }
- *
- * @example
- *   // For Lit
- *   declare module '@reatom/core' {
- *     interface RouteChild extends TemplateResult {}
- *   }
- */
-export interface RouteChild {}
-
-/**
- * Configuration options for creating a route.
- *
- * Routes can be created with just a path string, or with a full configuration
- * object that includes validation schemas, data loaders, and render functions.
- *
- * @example
- *   // Simple path-only route
- *   const route = reatomRoute('users/:userId')
- *
- * @example
- *   // Route with validation and loader
- *   const route = reatomRoute({
- *     path: 'users/:userId',
- *     params: z.object({
- *       userId: z.string().regex(/^\d+$/).transform(Number),
- *     }),
- *     search: z.object({ tab: z.enum(['posts', 'comments']).optional() }),
- *     async loader(params) {
- *       return fetch(`/api/users/${params.userId}`).then((r) => r.json())
- *     },
- *   })
- *
- * @example
- *   // Search-only route (no path, preserves current pathname)
- *   const dialogRoute = reatomRoute({
- *     search: z.object({ dialog: z.enum(['login', 'signup']).optional() }),
- *   })
- */
-export interface RouteOptions<
-  Path extends string = '',
-  ParamsInput extends PathKeys<Path> = PathParams<Path>,
-  SearchInput extends Partial<Rec<string>> = {},
-  ParamsOutput extends Rec = ParamsInput,
-  SearchOutput extends Rec = SearchInput,
-  LoaderParams = Plain<ParamsOutput & SearchOutput>,
-  Payload = LoaderParams,
-> {
-  /**
-   * Path pattern string. Use `:paramName` for required parameters and
-   * `:paramName?` for optional parameters.
-   *
-   * @example
-   *   'users/:userId'
-   *
-   * @example
-   *   'posts/:postId?'
-   *
-   * @example
-   *   'api/products/:productId/settings'
-   */
-  path?: Path
-
-  /**
-   * Schema to validate and transform path parameters. Uses Standard Schema
-   * (compatible with Zod, Valibot, etc.).
-   *
-   * URL parameters are always strings, so validation schemas should accept
-   * strings and transform them to the desired types.
-   *
-   * @example
-   *   params: z.object({
-   *     userId: z.string().regex(/^\d+$/).transform(Number),
-   *   })
-   */
-  params?:
-    | StandardSchemaV1<ParamsInput, ParamsOutput>
-    | ((params: ParamsInput) => null | ParamsOutput)
-
-  /**
-   * Schema to validate and transform search/query parameters. Uses Standard
-   * Schema (compatible with Zod, Valibot, etc.).
-   *
-   * Note: All search parameters should be optional in the schema.
-   *
-   * @example
-   *   search: z.object({
-   *     sort: z.enum(['asc', 'desc']).optional(),
-   *     page: z.string().transform(Number).default('1'),
-   *   })
-   */
-  search?: StandardSchemaV1<SearchInput, SearchOutput>
-
-  /**
-   * Async function that loads data when the route becomes active.
-   *
-   * Receives validated parameters (path + search params combined).
-   * Automatically aborted when navigating away from the route.
-   *
-   * @example
-   *   async loader({ userId, tab }) {
-   *   const user = await fetch(`/api/users/${userId}`).then(r => r.json())
-   *   return user
-   *   }
-   */
-  loader?: (params: LoaderParams) => Promise<Payload>
-
-  /**
-   * Function that renders the route component. Receives the whole route object
-   * with non-nullable state and all route properties (outlet, loader, etc.).
-   *
-   * This enables framework-agnostic component composition where routes define
-   * their own components that are automatically composed hierarchically.
-   *
-   * @example
-   *   render(self) {
-   *   // self() returns params (non-nullable when render is called)
-   *   // self.outlet() returns active child route components
-   *   // self.loader for data loading state
-   *   return html`<div>
-   *   <header>My App</header>
-   *   <main>${self.outlet().map(child => child)}</main>
-   *   </div>`
-   *   }
-   */
-  render?: (
-    options: Computed<Plain<ParamsOutput & SearchOutput>> &
-      RouteExt<
-        string,
-        ParamsOutput,
-        SearchOutput,
-        Payload,
-        ParamsInput,
-        SearchInput
-      >,
-  ) => RouteChild
-
-  /**
-   * When `true`, the route acts as a **layout** — its `render` fires on any
-   * match (partial or exact) and wraps children through `outlet()`.
-   *
-   * When `false` (default), the route acts as a **feature/leaf** — `render`
-   * only fires on exact URL matches. When a child route is active, `render`
-   * returns `null` and children propagate through the outlet chain to the
-   * nearest layout ancestor.
-   *
-   * @default false
-   * @see RouteExt.exact
-   */
-  layout?: boolean
-
-  /**
-   * @deprecated Use `layout` instead (with inverted logic: `exactRender: true`
-   *   = `layout: false`).
-   */
-  exactRender?: boolean
-}
-
-export interface RouteMixin<
-  Path extends string,
-  Params extends PathKeys<Path> = PathParams<Path>,
-  InputParams = Params,
-> {
-  /**
-   * Create a sub-route by appending a path pattern to the current route.
-   *
-   * @example
-   *   const usersRoute = reatomRoute('users') // Creates /users route
-   *   const userRoute = usersRoute.reatomRoute(':userId') // Creates /users/:userId route
-   *
-   * @param path The sub-path pattern to append (e.g., 'users', ':userId',
-   *   'posts/:postId?')
-   * @returns A new RouteAtom for the combined path pattern
-   */
-  reatomRoute<SubPath extends string>(
-    path: SubPath,
-    name?: string,
-  ): RouteAtom<
-    `${Path}/${SubPath}`,
-    // @ts-expect-error TODO
-    Plain<Params & PathParams<SubPath>>,
-    {},
-    {},
-    Plain<InputParams & PathParams<SubPath>>
-  >
-
-  /**
-   * Create a sub-route with validation schemas for parameters and search
-   * params.
-   *
-   * @example
-   *   import { z } from 'zod'
-   *
-   *   const userRoute = reatomRoute({
-   *     path: 'user/:id',
-   *     params: z.object({ id: z.number() }), // Should match the path
-   *     search: z.object({ sort: z.enum(['asc', 'desc']).optional() }),
-   *   })
-   *
-   *   // Navigate with validated params
-   *   userRoute.go({ id: 123, tab: 'profile' })
-   *
-   * @param options Route configuration object or just a path string
-   * @param options.path The sub-path pattern to append
-   * @param options.params Optional schema to validate the path parameters
-   * @param options.search Optional schema to validate search parameters. Each
-   *   param should be optional!
-   * @returns A new RouteAtom for the combined path with validation
-   */
-  reatomRoute<
-    SubPath extends string = '',
-    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
-    SubSearchInput extends Partial<Rec<string>> = {},
-    SubParamsOutput extends Rec = SubParamsInput,
-    SubSearchOutput extends Rec = SubSearchInput,
-    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
-    Payload = LoaderParams,
-  >(
-    options: RouteOptions<
-      SubPath,
-      Params & SubParamsInput,
-      SubSearchInput,
-      SubParamsOutput,
-      SubSearchOutput,
-      LoaderParams,
-      Payload
-    >,
-    name?: string,
-  ): RouteAtom<
-    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
-    // @ts-expect-error TODO
-    Plain<SubParamsOutput>,
-    Plain<SubSearchOutput>,
-    Payload,
-    Plain<InputParams & SubParamsInput>,
-    Plain<SubSearchInput>
-  >
-}
-
-export type TrimPath<Path extends string> = Path extends `//${infer Path}`
-  ? TrimPath<`/${Path}`>
-  : Path
+export type * from './route.types'
 
 function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   if (value instanceof Promise) {
@@ -317,29 +38,13 @@ function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   }
 }
 
-const validateParams = <Input, Output>(
-  validator:
-    | StandardSchemaV1<Input, Output>
-    | ((params: Input) => null | Output),
-  params: Input,
-  name: string,
-): Output | null => {
-  if (typeof validator === 'function') {
-    return validator(params)
-  }
+const isStandardSchema = (
+  v: unknown,
+): v is StandardSchemaV1<unknown, unknown> =>
+  v !== null && typeof v === 'object' && '~standard' in v
 
-  const validation = validator['~standard'].validate(params)
-
-  assertPromise(validation)
-
-  if (validation.issues) {
-    throw new Error(
-      `Invalid ${name}: ${JSON.stringify(validation.issues, null, 2)}`,
-    )
-  }
-
-  return validation.value
-}
+const isCodec = (v: unknown): v is Codec<any, any> =>
+  typeof v === 'object' && v !== null && 'decode' in v && 'encode' in v
 
 const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   const validation = schema['~standard'].validate(params)
@@ -355,251 +60,17 @@ const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   return validation.value
 }
 
-/**
- * Route loader interface describing async data loading capabilities, mostly
- * crafted from `withAsyncData` extension, see `loader` property of a route for
- * examples.
- */
-export interface RouteLoader<Params extends Rec = Rec, Payload = any>
-  extends
-    Computed<Promise<Payload>>,
-    AsyncDataExt<[Params], Payload, Payload, undefined, Error | undefined> {}
-
-/** Route extension interface for route computed atom. */
-export interface RouteExt<
-  Path extends string = string,
-  Params extends PathKeys<Path> = PathParams<Path>,
-  Search extends Rec<string> = {},
-  Payload = Plain<Params & Search>,
-  InputParams = Params,
-  InputSearch = Search,
-> extends RouteMixin<Path, Params, InputParams> {
-  /**
-   * Navigate to this route with the given parameters.
-   *
-   * Updates the browser URL and triggers route matching. For search-only
-   * routes, preserves the current pathname and only updates search parameters.
-   *
-   * @example
-   *   userRoute.go({ userId: '123' })
-   *   // Navigates to /users/123
-   *
-   * @example
-   *   searchRoute.go({ q: 'reatom', page: 2 }, true)
-   *   // Navigates to /search?q=reatom&page=2 and replaces history entry
-   *
-   * @example
-   *   homeRoute.go() // Navigate without parameters
-   *   // Navigates to /
-   *
-   * @param params - Route parameters (path + search). Can be omitted if route
-   *   has no required parameters.
-   * @param replace - If `true`, replaces current history entry instead of
-   *   creating a new one. Defaults to `false`.
-   * @returns The new URL object
-   */
-  go: Action<
-    [params: MaybeVoid<InputParams & InputSearch>, replace?: boolean],
-    URL
-  >
-
-  /**
-   * Async loader for fetching route data.
-   *
-   * Automatically executes when the route becomes active. Extended with
-   * `withAsyncData` extension, which provides loading state, error handling,
-   * and retry functionality, automatically rerun (and abort prev run) on params
-   * change, or just abort when navigating away.
-   *
-   * @example
-   *   const ready = userRoute.loader.ready()
-   *   const user = userRoute.loader.data()
-   *   const error = userRoute.loader.error()
-   *   userRoute.loader.retry()
-   */
-  loader: RouteLoader<Plain<Params & Search>, Payload>
-
-  /**
-   * Computed atom indicating if the current URL exactly matches this route.
-   *
-   * Returns `true` only when the URL is an exact match (not a partial match).
-   * Useful for conditional rendering that should only appear on the exact
-   * route.
-   *
-   * @example
-   *   // At URL: /users/123
-   *   usersRoute.exact() // false (partial match)
-   *   userRoute.exact() // true (exact match)
-   *
-   * @example
-   *   // Only show component on exact route
-   *   {userRoute.exact() && <UserDetails />}
-   */
-  exact: Computed<boolean>
-
-  layout: boolean
-
-  /**
-   * Computed atom indicating if the current URL matches this route (partial or
-   * exact).
-   *
-   * Returns `true` when the route matches, `false` otherwise. More permissive
-   * than `exact()` - returns true for both exact and partial matches.
-   *
-   * Helpful to track the route active state, and to create a route model with
-   * memoization.
-   *
-   * Used under the hood of the `outlet` computed.
-   *
-   * @example
-   *   // At URL: /users/123/edit
-   *   usersRoute.match() // true (partial match)
-   *   userRoute.match() // true (partial match)
-   *   userEditRoute.match() // true (exact match)
-   */
-  match: Computed<boolean>
-
-  /**
-   * The path pattern string for this route.
-   *
-   * Helpful for matching links or other route-related logic.
-   *
-   * @example
-   *   '/users/:userId'
-   *
-   * @example
-   *   '/posts/:postId?'
-   */
-  pattern: Path
-
-  /**
-   * Builds a URL path string for this route without navigating.
-   *
-   * Useful for creating links or programmatically constructing URLs. Includes
-   * search parameters if the route has a search schema.
-   *
-   * @example
-   *   userRoute.path({ userId: '123' })
-   *   // Returns: '/users/123'
-   *
-   * @example
-   *   searchRoute.path({ q: 'reatom', page: 2 })
-   *   // Returns: '/search?q=reatom&page=2'
-   *
-   * @example
-   *   // Use in links
-   *   <a href={userRoute.path({ userId: '123' })}>View User</a>
-   *
-   * @param params - Route parameters (path + search). Can be omitted if route
-   *   has no required parameters.
-   * @returns The URL path string (including search params if applicable)
-   */
-  path: (params: MaybeVoid<InputParams & InputSearch>) => string
-
-  /**
-   * Registry of all child routes created from this route.
-   *
-   * Routes are automatically registered here when created via `.reatomRoute()`.
-   * Useful for accessing all child routes or implementing global route logic.
-   *
-   * @example
-   *   const layoutRoute = reatomRoute('dashboard')
-   *   const usersRoute = layoutRoute.reatomRoute('users')
-   *   const postsRoute = layoutRoute.reatomRoute('posts')
-   *
-   *   // Access all child routes
-   *   layoutRoute.routes // { 'dashboard/users': usersRoute, 'dashboard/posts': postsRoute }
-   */
-  routes: Rec<RouteAtom>
-
-  /**
-   * Computed atom returning an array of all active child route components.
-   *
-   * Contains the rendered output from all child routes that are currently
-   * matched. Used in parent route `render` functions to compose child
-   * components.
-   *
-   * @example
-   *   const layoutRoute = reatomRoute({
-   *     render(self) {
-   *       return html`<div>
-   *         <main>${self.outlet().map((child) => child)}</main>
-   *       </div>`
-   *     },
-   *   })
-   */
-  outlet: Computed<RouteChild[]>
-
-  /**
-   * Computed atom returning the rendered component for this route, or `null`.
-   *
-   * Returns the result of the route's `render` function when the route matches,
-   * `null` otherwise. Used to render route components in a component tree.
-   *
-   * @example
-   *   const App = reatomComponent(() => {
-   *     return layoutRoute.render() // Returns the rendered component or null
-   *   })
-   */
-  render: Computed<null | RouteChild>
-
-  parent: RouteAtom | null
-
-  inputParams: Atom<null | InputParams>
+const validateParams = <Input, Output>(
+  validator:
+    | StandardSchemaV1<Input, Output>
+    | ((params: Input) => null | Output),
+  params: Input,
+  name: string,
+): Output | null => {
+  return typeof validator === 'function'
+    ? validator(params)
+    : validate(validator, params, name)
 }
-
-/**
- * A route atom that matches URLs and provides navigation, loading, and
- * rendering.
- *
- * Routes are computed atoms that return route parameters when matched, or
- * `null` when not matched. They also provide navigation actions, data loading,
- * and component rendering capabilities.
- *
- * Routes can be created with `reatomRoute()` and nested using `.reatomRoute()`.
- *
- * @example
- *   // Create a route
- *   const userRoute = reatomRoute('users/:userId')
- *
- *   // Use as computed atom
- *   const params = userRoute() // { userId: '123' } or null
- *
- *   // Navigate
- *   userRoute.go({ userId: '456' })
- *
- *   // Create nested route
- *   const userEditRoute = userRoute.reatomRoute('edit')
- *   // Full path: /users/:userId/edit
- *
- * @example
- *   // Route with validation and loader
- *   const userRoute = reatomRoute({
- *     path: 'users/:userId',
- *     params: z.object({ userId: z.string().transform(Number) }),
- *     async loader({ userId }) {
- *       return fetch(`/api/users/${userId}`).then((r) => r.json())
- *     },
- *   })
- */
-export interface RouteAtom<
-  Path extends string = string,
-  ParamsOutput extends PathKeys<Path> = PathParams<Path>,
-  SearchOutput extends Rec<string> = {},
-  Payload = Plain<ParamsOutput & SearchOutput>,
-  ParamsInput = ParamsOutput,
-  SearchInput = SearchOutput,
->
-  extends
-    Computed<null | Plain<ParamsOutput & SearchOutput>>,
-    RouteExt<
-      Path,
-      ParamsOutput,
-      SearchOutput,
-      Payload,
-      ParamsInput,
-      SearchInput
-    > {}
 
 const getPatternName = (part: string) => {
   const start = part.startsWith(':') ? 1 : 0
@@ -607,34 +78,145 @@ const getPatternName = (part: string) => {
   return start || end ? part.slice(start, end) : part
 }
 
-const getParentInputParams = (
+const getParentCachedParams = (
   parent: RouteAtom | UrlAtom | null,
 ): Atom<null | {}> | null => {
   if (!parent) return null
-  if ('inputParams' in parent && parent.inputParams) return parent.inputParams
+  if ('cachedParams' in parent && parent.cachedParams)
+    return parent.cachedParams
   return parent === urlAtom
     ? null
     : // @ts-expect-error
-      getParentInputParams(parent.parent)
+      getParentCachedParams(parent.parent)
 }
 
-const setAllParentInputParams = (
+const setAllParentCachedParams = (
   parent: RouteAtom | UrlAtom | null,
   params: any,
   exclude: Atom<null | {}> | null,
 ): void => {
   if (!parent || parent === urlAtom) return
   if (
-    'inputParams' in parent &&
-    parent.inputParams &&
-    parent.inputParams !== exclude
+    'cachedParams' in parent &&
+    parent.cachedParams &&
+    parent.cachedParams !== exclude
   ) {
-    parent.inputParams.set(params)
+    parent.cachedParams.set(params)
   }
   if ('parent' in parent && parent.parent) {
-    setAllParentInputParams(parent.parent, params, exclude)
+    setAllParentCachedParams(parent.parent, params, exclude)
   }
 }
+
+const pathnameAtOrBelowBase = (pathname: string, base: string): boolean => {
+  if (base === '' || base === '/') return true
+  return pathname === base || pathname.startsWith(`${base}/`)
+}
+
+type PathSegment = {
+  name: string
+  param: boolean
+  optional: boolean
+}
+
+type PathMatch = {
+  exact: boolean
+  params: Rec
+}
+
+const memo = <Argument, Result>(compute: (argument: Argument) => Result) => {
+  let lastArgument: Argument | typeof compute = compute
+  let lastResult!: Result
+
+  return (argument: Argument): Result => {
+    if (lastArgument !== compute && lastArgument === argument) {
+      return lastResult
+    }
+    lastArgument = argument
+    lastResult = compute(argument)
+    return lastResult
+  }
+}
+
+const splitPath = memo((path: string) => path.split('/').filter(Boolean))
+
+const createPathSegments = (path: string): Array<PathSegment> =>
+  splitPath(path).map((part, index, parts) => {
+    const param = part.startsWith(':')
+    return {
+      name: getPatternName(part),
+      param,
+      optional: param && part.endsWith('?') && index === parts.length - 1,
+    }
+  })
+
+const getPathParamNames = (segments: Array<PathSegment>): Set<string> =>
+  new Set(
+    segments.filter((segment) => segment.param).map((segment) => segment.name),
+  )
+
+const matchPath = (
+  segments: Array<PathSegment>,
+  pathname: string,
+  hasNoExplicitPath: boolean,
+): PathMatch | null => {
+  const parts = splitPath(pathname)
+  const optionalLastSegment = segments.at(-1)?.optional === true
+  if (parts.length < segments.length - (optionalLastSegment ? 1 : 0)) {
+    return null
+  }
+
+  const params: Rec = {}
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i]!
+    const pathPart = parts[i]
+    if (pathPart === undefined && segment.optional) continue
+    if (pathPart === undefined) return null
+    if (segment.param) {
+      try {
+        params[segment.name] = decodeURIComponent(pathPart)
+      } catch {
+        return null
+      }
+    } else if (segment.name !== pathPart) return null
+  }
+
+  const exact =
+    hasNoExplicitPath && segments.length === 0
+      ? true
+      : parts.length === segments.length ||
+        (optionalLastSegment && parts.length === segments.length - 1)
+
+  return { exact, params }
+}
+
+const buildPath = (
+  segments: Array<PathSegment>,
+  params: Rec,
+  pattern: string,
+) => {
+  let path = ''
+  for (const { name, optional, param } of segments) {
+    if (!param) {
+      path += `/${name}`
+      continue
+    }
+
+    const value = params[name]
+    const present = value !== undefined && value !== null
+    if (present) path += `/${encodeURIComponent(String(value))}`
+    else if (!optional) {
+      throw new Error(`Missing param "${name}" for route ${pattern}`)
+    }
+  }
+
+  return path
+}
+
+const pickParams = (params: Rec, names: Set<string>): Rec =>
+  Object.fromEntries(
+    [...names].filter((key) => key in params).map((key) => [key, params[key]]),
+  )
 
 const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
   return function reatomRoute(
@@ -656,6 +238,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       exactRender: optionExactRender,
     } = options
 
+    const paramsIsCodec = isCodec(paramsSchema)
+    const searchIsCodec = isCodec(searchSchema)
+
     const layout = optionLayout ?? optionExactRender === false
 
     if (subPath.startsWith('/')) {
@@ -676,66 +261,140 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
 
     const pattern = `${parentPattern}/${subPath}`
 
-    name = named(name || `route.${pattern}`)
+    name = name
+      ? named(name)
+      : named(layout ? 'route.layout' : 'route') + pattern
 
-    const hasOptionalPart = pattern.endsWith('?')
+    const patternSegments = createPathSegments(pattern)
+    const ownSegments = createPathSegments(subPath)
+    const pathParamNames = getPathParamNames(patternSegments)
+    const ownPathParamNames = getPathParamNames(ownSegments)
 
-    const patternParts = pattern.split('/').filter(Boolean)
+    let parentCachedParams = getParentCachedParams(parent)
+    let cachedParams =
+      typeof paramsSchema === 'function'
+        ? atom(null, `${name}._cachedParams`)
+        : parentCachedParams
 
-    const paramsNames = patternParts.filter((part) => part.startsWith(':'))
-
-    const hasParams = paramsNames.length > 0
-
-    const getPath = (params: void | Rec = {}): string => {
-      let pathParams: Rec
-      if (!paramsSchema) {
-        pathParams = params || {}
-      } else {
-        pathParams = validateParams(paramsSchema, params as any, 'params')
-        if (pathParams === null) {
-          if (inputParams) pathParams = {}
-          else throw new Error(`Invalid params for route ${pattern}`)
-        }
-      }
-      let searchParams = searchSchema
-        ? validate(searchSchema, params, 'search')
-        : null
-
-      let path = ''
-
-      for (let i = 0; i < patternParts.length; i++) {
-        const part = patternParts[i]!
-        if (part.startsWith(':')) {
-          const paramName = getPatternName(part)
-          const isOptional = hasOptionalPart && i === patternParts.length - 1
-          if (paramName in pathParams) {
-            path += `/${pathParams[paramName]}`
-          } else if (!isOptional) {
-            throw new Error(`Missing param "${paramName}" for route ${pattern}`)
-          }
-        } else {
-          path += `/${part}`
-        }
+    const validatePathParams = (routeParams: Rec): Rec => {
+      if (!paramsSchema) return routeParams
+      if (isCodec(paramsSchema) && !isStandardSchema(paramsSchema)) {
+        throw new Error(`Invalid params for route ${pattern}`)
       }
 
-      path ||= '/'
+      const validated = validateParams(
+        paramsSchema,
+        routeParams as any,
+        'params',
+      )
 
-      if (searchParams) {
-        const urlSearchParams = new URLSearchParams()
-        for (const [key, value] of Object.entries(searchParams)) {
-          urlSearchParams.set(key, String(value))
-        }
-        path += '?' + urlSearchParams.toString()
+      if (validated === null) {
+        if (cachedParams) return {}
+        throw new Error(`Invalid params for route ${pattern}`)
       }
 
-      return path
+      return validated as Rec
     }
 
-    let parentInputParams = getParentInputParams(parent)
-    let inputParams =
-      typeof paramsSchema === 'function'
-        ? atom(null, `${name}._inputParams`)
-        : parentInputParams
+    const encodePathParams = (routeParams: Rec): Rec => {
+      if (!paramsSchema) return routeParams
+
+      if (!paramsIsCodec) return validatePathParams(routeParams)
+
+      try {
+        return paramsSchema.encode(
+          pickParams(routeParams, ownPathParamNames),
+        ) as Rec
+      } catch (encodeError) {
+        if (!isStandardSchema(paramsSchema)) throw encodeError
+        return validatePathParams(routeParams)
+      }
+    }
+
+    const buildLocalPathnameSegments = (routeParams: void | Rec): string => {
+      if (ownSegments.length === 0) return ''
+
+      const routeParamsObj = (routeParams ?? {}) as Rec
+      return buildPath(ownSegments, encodePathParams(routeParamsObj), pattern)
+    }
+
+    const pathnameBuilder = (routeParams: Rec): string => {
+      const local = buildLocalPathnameSegments(routeParams)
+      if (parent === urlAtom) {
+        return local || '/'
+      }
+      const parentRoute = parent as RouteAtom
+      const base = parentRoute.pathnameBuilder(routeParams)
+      if (local === '') {
+        return base
+      }
+      if (base === '/') {
+        return local
+      }
+      return `${base.replace(/\/$/, '')}${local}`
+    }
+
+    const encodeSearchParams = (routeParams: Rec): Rec | null => {
+      if (!searchSchema) return null
+
+      if (!searchIsCodec) {
+        validate(searchSchema, routeParams, 'search')
+        return routeParams
+      }
+
+      try {
+        return searchSchema.encode(routeParams) as Rec
+      } catch (encodeError) {
+        if (!isStandardSchema(searchSchema)) throw encodeError
+        validate(searchSchema, routeParams, 'search')
+        return routeParams
+      }
+    }
+
+    const appendSearch = (path: string, searchParams: Rec | null): string => {
+      if (!searchParams) return path
+
+      const urlSearchParams = new URLSearchParams()
+
+      for (const [key, value] of Object.entries(searchParams)) {
+        if (pathParamNames.has(key) || value == null) continue
+        urlSearchParams.set(key, String(value))
+      }
+
+      const search = urlSearchParams.toString()
+      return search ? `${path}?${search}` : path
+    }
+
+    const getPath = (params: void | Rec = {}): string => {
+      const routeParams = (params ?? {}) as Rec
+      return appendSearch(
+        pathnameBuilder(routeParams),
+        encodeSearchParams(routeParams),
+      )
+    }
+
+    const getUrl = (url: URL, params: void | Rec = {}): URL => {
+      const newUrl = new URL(getPath(params), url)
+      const isPathlessRelativeNavigation = hasNoExplicitPath
+
+      if (
+        isPathlessRelativeNavigation &&
+        pathnameAtOrBelowBase(url.pathname, newUrl.pathname)
+      ) {
+        newUrl.pathname = url.pathname
+      }
+
+      if (
+        isPathlessRelativeNavigation &&
+        !searchSchema &&
+        newUrl.pathname === url.pathname &&
+        newUrl.search === ''
+      ) {
+        newUrl.search = url.search
+      }
+
+      return newUrl
+    }
 
     const loader = computed(async () => {
       let params = routeAtom()
@@ -746,8 +405,11 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         throw controller.signal.reason
       }
 
+      // start before parent to load all route in parallel
       const promise = optionsLoader(params)
 
+      // expose the current result only
+      // after the parent loader settles successfully.
       if ('loader' in parent) {
         if (promise instanceof Promise) promise.catch(noop)
         await wrap(parent.loader())
@@ -759,119 +421,134 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       withAsyncData({ status: true }),
     ) as unknown as RouteLoader
 
-    const exact = computed(() => {
-      const params = routeAtom()
+    const routeMatch = computed(
+      (state?: null | PathMatch): null | PathMatch => {
+        if ('match' in parent && !parent.match()) return null
 
-      if (params === null) return false
+        const url = urlAtom()
+        const pathMatch = matchPath(
+          patternSegments,
+          url.pathname,
+          hasNoExplicitPath,
+        )
 
-      if (patternParts.length === 0 && hasNoExplicitPath) return true
+        if (!pathMatch) return null
 
-      const pathname = urlAtom().pathname || '/'
+        let params = pathMatch.params
 
-      if (hasParams && pattern === pathname) return true
+        const parentParams =
+          parent !== urlAtom && 'match' in parent ? parent() : null
+        if (parentParams) {
+          params = { ...parentParams, ...params }
+        }
 
-      const parts = pathname.split('/').filter(Boolean)
+        const cachedParamsState =
+          typeof paramsSchema === 'function' ? (cachedParams?.() ?? null) : null
+        if (cachedParamsState) {
+          params = { ...cachedParamsState, ...params }
+        }
 
-      const isLengthCorrect =
-        parts.length === patternParts.length ||
-        (hasOptionalPart && parts.length === patternParts.length - 1)
+        let resultParams: Rec
+        let searchParams: Rec | undefined
 
-      if (!isLengthCorrect) return false
+        try {
+          if (!paramsSchema) {
+            resultParams = params
+          } else if (typeof paramsSchema === 'function') {
+            const validatedParams = validateParams(
+              paramsSchema,
+              params as any,
+              'params',
+            )
+            if (validatedParams === null) return null
+            resultParams = validatedParams as Rec
+          } else {
+            const ownParams = pickParams(params, ownPathParamNames)
+            const validatedOwn = paramsIsCodec
+              ? paramsSchema.decode(ownParams as any)
+              : validateParams(paramsSchema, ownParams as any, 'params')
+            if (validatedOwn === null) return null
+            resultParams = { ...params, ...validatedOwn }
+          }
 
-      return patternParts.every((patternPart, i) => {
-        if (patternPart.startsWith(':')) return true
+          if (searchSchema) {
+            const rawSearchParams = Object.fromEntries(url.searchParams)
+            searchParams = searchIsCodec
+              ? (searchSchema.decode(rawSearchParams) as Rec)
+              : validate(searchSchema, rawSearchParams, 'search')
+          }
+        } catch {
+          return null
+        }
 
-        return getPatternName(patternPart) === parts[i]
-      })
-    }, `${name}.exact`)
+        if (searchParams) {
+          const mergedParams = { ...resultParams }
+          for (const key in searchParams) {
+            if (
+              key in mergedParams &&
+              !(cachedParamsState && key in cachedParamsState)
+            ) {
+              throw new ReatomError(
+                `Params collision for "${key}" in route ${pattern}`,
+              )
+            }
+            mergedParams[key] = searchParams[key]
+          }
+          resultParams = mergedParams
+        }
+
+        const stableParams =
+          state?.params && isDeepEqual(state.params, resultParams)
+            ? state.params
+            : resultParams
+
+        return state?.exact === pathMatch.exact && state.params === stableParams
+          ? state
+          : { exact: pathMatch.exact, params: stableParams }
+      },
+      `${name}._match`,
+    )
+
+    const exact = computed(
+      () => routeAtom() !== null && (routeMatch()?.exact ?? false),
+      `${name}.exact`,
+    )
 
     const go = action((params: any, replace = false) => {
       return urlAtom.set((url) => {
-        inputParams?.set(params)
-        if (inputParams !== parentInputParams) {
-          setAllParentInputParams(parent, params, inputParams)
+        cachedParams?.set(params)
+        if (cachedParams !== parentCachedParams) {
+          setAllParentCachedParams(parent, params, cachedParams)
         }
-        const newUrl = new URL(getPath(params), url)
-        if (hasNoExplicitPath && url.pathname.startsWith(newUrl.pathname)) {
-          newUrl.pathname = url.pathname
-        }
-        return newUrl
+        return getUrl(url, params)
       }, replace)
-    }, `${name}.go`) as Action as RouteExt['go']
+    }, `${name}.go`).extend((target) => ({
+      relative: action((relParams: any, replace = false) => {
+        if (parent === urlAtom) {
+          return target(relParams, replace)
+        }
+        const parentRoute = parent as RouteAtom
+        if (!parentRoute.match() || parentRoute() === null) {
+          throw new ReatomError(
+            'Cannot navigate relative: parent route is not matched',
+          )
+        }
+        const parentSnapshot = { ...parentRoute() } as Rec
+        const rel = { ...(relParams ?? {}) } as Rec
+        for (const key of Object.keys(parentSnapshot)) {
+          if (Object.prototype.hasOwnProperty.call(rel, key)) {
+            delete rel[key]
+          }
+        }
+        return target({ ...parentSnapshot, ...rel }, replace)
+      }, `${target.name}.relative`),
+    })) as RouteGo
 
     const routeAtom = computed((state?: null | Rec): null | Rec => {
-      if ('match' in parent && !parent.match!()) return null
+      const match = routeMatch()
+      if (!match) return null
 
-      let url = urlAtom()
-      let pathname = url.pathname
-      let inputParamsState = inputParams?.() ?? null
-      let params: null | Rec = inputParamsState ?? null
-
-      if (!params) {
-        params = {}
-        let parts = pathname.split('/').filter(Boolean)
-
-        for (let i = 0; i < patternParts.length; i++) {
-          if (i > parts.length || (i === parts.length && !hasOptionalPart)) {
-            return null
-          }
-
-          let part = patternParts[i]!
-          let name = getPatternName(part)
-          let pathPart = parts[i]
-
-          if (part.startsWith(':')) {
-            params[name] = pathPart
-          } else if (name !== pathPart) {
-            return null
-          }
-        }
-      }
-
-      const parentParams =
-        parent !== urlAtom && 'match' in parent ? parent() : null
-      if (parentParams) {
-        params = { ...parentParams, ...params }
-      }
-
-      let validatedParams: Rec
-      let validatedSearch: undefined | Rec
-
-      try {
-        if (!paramsSchema) {
-          validatedParams = params
-        } else {
-          validatedParams = validateParams(
-            paramsSchema,
-            params as any,
-            'params',
-          )
-          if (validatedParams === null) return null
-        }
-
-        if (searchSchema) {
-          let searchParams = Object.fromEntries(url.searchParams)
-          validatedSearch = validate(searchSchema, searchParams, 'search')
-        }
-      } catch {
-        return null
-      }
-
-      let result = validatedParams
-
-      if (validatedSearch) {
-        result = { ...validatedParams }
-        for (let key in validatedSearch) {
-          if (key in result && !(inputParamsState && key in inputParamsState)) {
-            throw new ReatomError(
-              `Params collision for "${key}" in route ${pattern}`,
-            )
-          }
-          result[key] = validatedSearch[key]
-        }
-      }
-
-      return isDeepEqual(state, result) ? state! : result
+      return isDeepEqual(state, match.params) ? state! : match.params
     }, name).extend((target) => {
       let reatomRoute = createRouteFactory(target as RouteAtom)
 
@@ -916,16 +593,17 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         outlet,
         render,
         parent,
-        inputParams:
-          inputParams ??
-          ('inputParams' in parent ? parent.inputParams : undefined),
+        pathnameBuilder,
+        cachedParams:
+          cachedParams ??
+          ('cachedParams' in parent ? parent.cachedParams : undefined),
         reatomRoute,
       } as RouteExt
     }) as RouteAtom
 
     parent.routes[name] = urlAtom.routes[name] = routeAtom
 
-    if (inputParams && inputParams !== parentInputParams) {
+    if (cachedParams && cachedParams !== parentCachedParams) {
       routeAtom.extend(
         withMiddleware(() => (next, ...params) => {
           let state
@@ -935,8 +613,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
             state = null
             throw error
           } finally {
-            if (state === null && inputParams() !== null) {
-              inputParams.set(null)
+            if (state === null && cachedParams() !== null) {
+              cachedParams.set(null)
             }
           }
         }),
@@ -1014,8 +692,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
  * @param name - Optional name for the route atom (for debugging)
  * @returns A new RouteAtom instance
  */
-export let reatomRoute = /* @__PURE__ */ (() =>
-  createRouteFactory(urlAtom) as RouteMixin<''>['reatomRoute'])()
+export let reatomRoute = /* @__PURE__ */ createRouteFactory(
+  urlAtom,
+) as RouteMixin<''>['reatomRoute']
 
 /**
  * A computed atom that indicates whether the current URL matches any defined
@@ -1030,15 +709,19 @@ export let reatomRoute = /* @__PURE__ */ (() =>
  * @returns A boolean indicating whether the current URL is not matched by any
  *   route
  */
-export const is404 = /* @__PURE__ */ (() =>
+const initIs404 = () =>
   computed(
     () => Object.values(urlAtom.routes).every((route) => !route()),
     'is404',
-  ))()
+  )
 
-export const isSomeLoaderPending = /* @__PURE__ */ (() =>
+export const is404 = /* @__PURE__ */ initIs404()
+
+const initIsSomeLoaderPending = () =>
   computed(
     () =>
       Object.values(urlAtom.routes).some((route) => route.loader.pending() > 0),
     'isSomeLoaderPending',
-  ))()
+  )
+
+export const isSomeLoaderPending = /* @__PURE__ */ initIsSomeLoaderPending()

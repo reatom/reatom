@@ -2,15 +2,14 @@ name: Lint markdown
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened,  ready_for_review]
     paths:
       - "**.md"
       - "**.mdx"
-  push:
-    branches:
-      - v1000
 
 jobs:
   remark-lint:
+    timeout-minutes: 1
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,7 +24,8 @@ jobs:
         uses: pnpm/action-setup@1e1c8eafbd745f64b1ef30a7d7ed7965034c486c
         with:
           cache: true
+          cache_dependency_path: pnpm-lock.yaml
 
-      - run: pnpm install --ignore-scripts
+      - run: pnpm --filter reatom-workspace install --ignore-scripts
 
       - run: node --run lint:md

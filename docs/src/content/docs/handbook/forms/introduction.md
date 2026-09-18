@@ -17,3 +17,5 @@ The forms API is composed of the following primitives:
 - [`reatomForm`](/handbook/forms/concepts/form): the form primitive itself - combining `reatomFieldSet`, schema-based validation, and submission functionality
 
 By combining these primitives, you can construct form models of any complexity while maintaining framework agnosticism, simplifying testing, and achieving unprecedented levels of performance and flexibility.
+
+In **React/Preact**, bind fields with `bindField` from `@reatom/react` or `@reatom/preact`. In **native JSX** (`@reatom/jsx`), use `<form model={form}>` for submit and loading state attributes, and `model:field={form.fields.x}` on each control — same core model, no extra form API.

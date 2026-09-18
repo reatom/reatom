@@ -75,16 +75,22 @@ export const reatomPersistWebStorage = (
     clear({ key }) {
       storage.removeItem(key)
     },
-    subscribe({ key, cache }, cb) {
+    subscribe({ key }, cb) {
       const handler = (event: StorageEvent) => {
-        if (event.storageArea === storage && event.key === key) {
-          if (event.newValue === null) {
-            cache?.delete(key)
-          } else {
-            const rec = JSON.parse(event.newValue)
-            assertPersistRecord(rec, name)
-            cb(rec)
-          }
+        if (event.key !== key) return
+        // Manually constructed StorageEvents often have storageArea === null.
+        if (event.storageArea != null && event.storageArea !== storage) return
+
+        if (event.newValue === null) {
+          cb(null)
+          return
+        }
+        try {
+          const rec = JSON.parse(event.newValue)
+          assertPersistRecord(rec, name)
+          cb(rec)
+        } catch {
+          // Malformed storage payload - ignore
         }
       }
       globalThis.addEventListener?.('storage', handler, false)
@@ -93,13 +99,15 @@ export const reatomPersistWebStorage = (
   })
 }
 
-let isWebStorageAvailable = /* @__PURE__ */ (() => {
+const initIsWebStorageAvailable = () => {
   try {
     return !!globalThis.localStorage
   } catch {
     return false
   }
-})()
+}
+
+let isWebStorageAvailable = /* @__PURE__ */ initIsWebStorageAvailable()
 
 /**
  * Default localStorage persistence adapter with automatic fallback to memory
@@ -145,7 +153,7 @@ let isWebStorageAvailable = /* @__PURE__ */ (() => {
  * @see {@link withSessionStorage} for session-only storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
+const initWithLocalStorage = () =>
   isWebStorageAvailable
     ? /* @__PURE__ */ reatomPersistWebStorage(
         'withLocalStorage',
@@ -153,7 +161,10 @@ export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
       )
     : /* @__PURE__ */ reatomPersist(
         createMemStorage({ name: 'withLocalStorage' }),
-      ))()
+      )
+
+export const withLocalStorage: WithPersist =
+  /* @__PURE__ */ initWithLocalStorage()
 
 /**
  * Default sessionStorage persistence adapter with automatic fallback to memory
@@ -195,7 +206,10 @@ export const withLocalStorage: WithPersist = /* @__PURE__ */ (() =>
  * @see {@link withLocalStorage} for persistent cross-session storage
  * @see {@link reatomPersistWebStorage} for custom storage implementations
  */
-export const withSessionStorage: WithPersist = /* @__PURE__ */ (() =>
+const initWithSessionStorage = () =>
   isWebStorageAvailable
     ? reatomPersistWebStorage('withSessionStorage', globalThis.sessionStorage)
-    : reatomPersist(createMemStorage({ name: 'withSessionStorage' })))()
+    : reatomPersist(createMemStorage({ name: 'withSessionStorage' }))
+
+export const withSessionStorage: WithPersist =
+  /* @__PURE__ */ initWithSessionStorage()

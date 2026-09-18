@@ -1,10 +1,14 @@
+import type { ReatomAbortController } from '@reatom/core'
 import {
+  _read,
+  abortVar,
   action,
   atom,
   clearStack,
   context,
   effect,
   getCalls,
+  isAbort,
   rAF,
   sleep,
   take,
@@ -38,6 +42,53 @@ afterEach(() => {
 })
 
 describe('reatomFactoryComponent', () => {
+  test('aborts on unmount', () =>
+    context.start(async () => {
+      let isLoopAborted = false
+      const startPooling = action(async () => {
+        try {
+          while (true) {
+            await wrap(sleep())
+          }
+        } catch (error) {
+          isLoopAborted = isAbort(error)
+        }
+      }, 'startPooling')
+
+      let initController: undefined | ReatomAbortController
+      let renderController: undefined | ReatomAbortController
+
+      const TestComponent = reatomFactoryComponent(() => {
+        startPooling()
+
+        initController = abortVar.get()!
+
+        return () => {
+          renderController = abortVar.get()
+          return <div>test</div>
+        }
+      }, 'TestComponent')
+
+      const root = document.getElementById('root')!
+      render(
+        <reatomContext.Provider value={top()}>
+          <TestComponent />
+        </reatomContext.Provider>,
+        root,
+      )
+
+      await wrap(tick())
+
+      render(null, root)
+      await wrap(tick())
+      await wrap(sleep())
+
+      expect(initController!.signal.aborted).toBe(true)
+      expect(renderController?.signal.aborted).toBeFalsy()
+      expect(abortVar.require(_read(startPooling)).signal.aborted).toBe(true)
+      expect(isLoopAborted).toBe(true)
+    }))
+
   test('creates component with factory initialization', () =>
     context.start(async () => {
       const Counter = reatomFactoryComponent(
@@ -203,6 +254,97 @@ describe('reatomFactoryComponent', () => {
       await wrap(tickEvent())
       expect(poolingLoop).toBe(2)
       expect(poolingTrack).toBe(2)
+    }))
+
+  test('should ignore reactivity inside the init phase', () =>
+    context.start(async () => {
+      const someAtom = atom(0, 'someAtom')
+      let inits = 0
+      let rerenders = 0
+      const counter = atom(1, 'counter')
+
+      const Counter = reatomFactoryComponent(() => {
+        someAtom()
+        inits++
+
+        return () => {
+          rerenders++
+          return <div data-testid="count">{counter()}</div>
+        }
+      }, 'Counter')
+
+      render(
+        <reatomContext.Provider value={top()}>
+          <Counter />
+        </reatomContext.Provider>,
+        document.getElementById('root')!,
+      )
+
+      await wrap(tick())
+      someAtom.set((state) => state + 1)
+      await wrap(tick())
+      expect(inits).toBe(1)
+      expect(rerenders).toBe(1)
+
+      counter.set((state) => state + 1)
+      await wrap(tick())
+      expect(inits).toBe(1)
+      expect(rerenders).toBe(2)
+      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
+        '2',
+      )
+    }))
+
+  test('init callback reruns when deps props change', () =>
+    context.start(async () => {
+      let inits = 0
+      let renders = 0
+      const capturedIds: Array<string> = []
+
+      const ItemComponent = reatomFactoryComponent(
+        (props: { itemId: string }) => {
+          inits++
+          capturedIds.push(props.itemId)
+          const localState = atom(`state-for-${props.itemId}`, 'localState')
+
+          return () => {
+            renders++
+            return <div data-testid="output">{localState()}</div>
+          }
+        },
+        { deps: ['itemId'], name: 'ItemComponent' },
+      )
+
+      const currentItemId = atom('item-1', 'currentItemId')
+
+      const App = reatomComponent(
+        () => <ItemComponent itemId={currentItemId()} />,
+        'App',
+      )
+
+      render(
+        <reatomContext.Provider value={top()}>
+          <App />
+        </reatomContext.Provider>,
+        document.getElementById('root')!,
+      )
+
+      await wrap(tick())
+      expect(inits).toBe(1)
+      expect(renders).toBe(1)
+      expect(capturedIds).toEqual(['item-1'])
+      expect(
+        document.querySelector('[data-testid="output"]')?.textContent,
+      ).toBe('state-for-item-1')
+
+      currentItemId.set('item-2')
+      await wrap(tick())
+      expect(inits).toBe(2)
+      expect(renders).toBe(2)
+      expect(capturedIds).toEqual(['item-1', 'item-2'])
+      expect(
+        document.querySelector('[data-testid="output"]')?.textContent,
+      ).toBe('state-for-item-2')
     }))
 })
 

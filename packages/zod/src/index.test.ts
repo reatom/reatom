@@ -234,7 +234,6 @@ test('date set overload', () => {
 
   expect(model.date()).toBeInstanceOf(Date)
   model.date.set(dateObj)
-  // expect(model.date()).toBe(dateObj)
   expect(model.date().toISOString()).toBe(dateObj.toISOString())
 
   const timestamp = dateObj.getTime()
@@ -253,6 +252,26 @@ test('date set overload', () => {
 
   model.optionalDate.set(undefined)
   expect(model.optionalDate()).toBe(undefined)
+})
+
+test('string template literal', () => {
+  const schema = z.object({
+    em: z.templateLiteral([z.number(), 'em']),
+    complex: z.templateLiteral([
+      z.string(),
+      '_1_',
+      z.boolean(),
+      '_2_',
+      z.number(),
+      '_3_',
+      z.null(),
+    ]),
+    test: z.bigint(),
+  })
+  const model = reatomZod(schema)
+
+  expect(model.em()).toBe('0em')
+  expect(model.complex()).toBe('_1_false_2_0_3_null')
 })
 
 test('extend', () => {

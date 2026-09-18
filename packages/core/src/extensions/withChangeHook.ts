@@ -1,5 +1,5 @@
 import type { Action, AtomLike, AtomState, Ext } from '../core'
-import { _enqueue, ReatomError, top, withMiddleware } from '../core'
+import { _enqueue, _recompile, ReatomError, top, withMiddleware } from '../core'
 import type { OverloadParameters, Unsubscribe } from '../utils'
 
 /**
@@ -65,6 +65,7 @@ import type { OverloadParameters, Unsubscribe } from '../utils'
  * @throws {ReatomError} If callback is not a function
  * @see {@link addChangeHook} For dynamically adding/removing change hooks
  * @see {@link withCallHook} For reacting to action calls instead of state changes
+ * @see {@link withErrorHook} For reacting to failed updates and action calls
  * @see {@link withConnectHook} For reacting to connection lifecycle events
  */
 export let withChangeHook = <Target extends AtomLike>(
@@ -82,17 +83,18 @@ export let withChangeHook = <Target extends AtomLike>(
       function withChangeHook(next, ...params) {
         let frame = top()
         let prevState = frame.state
+        let update = { state: prevState as AtomState<Target> }
 
         // enqueue before next call for better predictable logs
         _enqueue(() => {
-          if (!Object.is(prevState, state)) {
-            frame.run(cb, state, prevState)
+          if (!Object.is(prevState, update.state)) {
+            frame.run(cb, update.state, prevState)
           }
         }, 'hook')
 
         // @ts-ignore
-        let state = next(...params)
-        return state
+        update.state = next(...params)
+        return update.state
       },
   )
 }
@@ -119,13 +121,21 @@ export let addChangeHook = <T extends AtomLike>(
   target: T,
   cb: (state: AtomState<T>, prevState?: AtomState<T>) => void,
 ): Unsubscribe => {
-  let { middlewares } = target.extend(withChangeHook(cb)).__reatom
+  let { middlewares } = target.__reatom
+  let before = new Set(middlewares)
 
-  let hook = middlewares[middlewares.length - 1]!
+  target.extend(withChangeHook(cb))
+
+  let hook = middlewares.find((middleware) => !before.has(middleware))
+  if (!hook) {
+    throw new ReatomError('Failed to add change hook')
+  }
+
   return () => {
     let index = middlewares.indexOf(hook)
     if (index !== -1) {
       middlewares.splice(index, 1)
+      _recompile(target)
     }
   }
 }
@@ -216,21 +226,22 @@ export let withCallHook = <Target extends Action>(
     return function withCallHook(next, ...params) {
       let frame = top()
       let prevState = frame.state
+      let update = { state: prevState as AtomState<Target> }
 
       // enqueue before next call for better predictable logs
       _enqueue(() => {
-        if (!Object.is(prevState, state)) {
-          for (let i = prevState?.length ?? 0; i < state.length; i++) {
-            let { params, payload } = state[i]!
+        if (!Object.is(prevState, update.state)) {
+          for (let i = prevState?.length ?? 0; i < update.state.length; i++) {
+            let { params, payload } = update.state[i]!
             frame.run(cb, payload, params as OverloadParameters<Target>)
           }
         }
       }, 'hook')
 
       // @ts-ignore
-      let state = next(...params)
+      update.state = next(...params)
 
-      return state
+      return update.state
     }
   })
 }
@@ -258,13 +269,21 @@ export let addCallHook = <Target extends Action>(
   target: Target,
   cb: (payload: ReturnType<Target>, params: OverloadParameters<Target>) => void,
 ): Unsubscribe => {
-  let { middlewares } = target.extend(withCallHook(cb)).__reatom
+  let { middlewares } = target.__reatom
+  let before = new Set(middlewares)
 
-  let hook = middlewares[middlewares.length - 1]!
+  target.extend(withCallHook(cb))
+
+  let hook = middlewares.find((middleware) => !before.has(middleware))
+  if (!hook) {
+    throw new ReatomError('Failed to add call hook')
+  }
+
   return () => {
     let index = middlewares.indexOf(hook)
     if (index !== -1) {
       middlewares.splice(index, 1)
+      _recompile(target)
     }
   }
 }

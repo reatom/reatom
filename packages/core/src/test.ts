@@ -1,8 +1,8 @@
 import { type Mock, test as viTest, vi } from 'vitest'
 
-import type { AtomLike } from './core'
+import type { Action, AtomLike } from './core'
 import { clearStack, context, top } from './core'
-import { noop, type Unsubscribe } from './utils'
+import { type Fn, noop, type Unsubscribe } from './utils'
 
 clearStack()
 
@@ -18,14 +18,60 @@ export const silentQueuesErrors = () => {
   }
 }
 
+const wrapTestCallback = (name: string, fn: Fn) => {
+  return (...args: Array<unknown>) => {
+    Reflect.defineProperty(fn, 'name', { value: name })
+    return context.start(() => fn(...args))
+  }
+}
+
+const wrapTestArgs = (args: Array<unknown>) => {
+  if (typeof args[0] !== 'string') return args
+
+  const next = args.slice()
+  for (let i = next.length - 1; i >= 1; i--) {
+    if (typeof next[i] === 'function') {
+      next[i] = wrapTestCallback(args[0], next[i] as Fn)
+      break
+    }
+  }
+  return next
+}
+
+const wrappedTestApis = new WeakMap<object, object>()
+
+const wrapVitestTestApi = <T extends object>(api: T): T => {
+  const cached = wrappedTestApis.get(api)
+  if (cached) return cached as T
+
+  const proxy = new Proxy(api, {
+    apply(target, thisArg, argArray) {
+      const args = argArray as Array<unknown>
+      const result = Reflect.apply(
+        target as (...args: Array<unknown>) => unknown,
+        thisArg,
+        wrapTestArgs(args),
+      )
+      return typeof result === 'function' ? wrapVitestTestApi(result) : result
+    },
+    get(target, prop) {
+      const value = Reflect.get(target, prop)
+      return typeof value === 'function' ? wrapVitestTestApi(value) : value
+    },
+  })
+
+  wrappedTestApis.set(api, proxy)
+  return proxy
+}
+
 /**
  * Enhanced version of Vitest's test function that automatically wraps test
  * callbacks in Reatom's context to ensure proper atom tracking and execution
  * within Reatom's reactive system.
  *
- * This wrapper preserves all functionality from Vitest while adding
- * Reatom-specific context handling, which prevents "missed context" errors when
- * testing Reatom atoms and actions.
+ * This wrapper preserves all Vitest modifiers (`skip`, `only`, `todo`, `each`,
+ * `skipIf`, …) while adding Reatom-specific context handling, which prevents
+ * "missed context" errors when testing Reatom atoms and actions.
  *
  * @example
  *   import { test, expect } from '@reatom/core/test'
@@ -41,11 +87,7 @@ export const silentQueuesErrors = () => {
  * @param fn - The test function to execute within Reatom context
  * @returns The result of the Vitest test execution
  */
-export const test = ((name: string, fn: () => void | Promise<void>) =>
-  viTest(name, () => {
-    Reflect.defineProperty(fn, 'name', { value: name })
-    return context.start(fn)
-  })) as typeof viTest
+export const test = wrapVitestTestApi(viTest)
 
 export { viTest }
 
@@ -79,6 +121,16 @@ export { viTest }
  * @param cb - Optional callback function to execute on each atom update
  * @returns A Vitest mock function with unsubscribe method attached
  */
+export function subscribe<Params extends any[], Payload, Result = void>(
+  target: Action<Params, Payload>,
+  cb?: (payload: Payload, params: Params) => Result,
+): Mock<(payload: Payload, params: Params) => Result> & {
+  unsubscribe: Unsubscribe
+}
+export function subscribe<State, T extends (state: State) => any>(
+  target: AtomLike<State>,
+  cb?: T,
+): Mock<T> & { unsubscribe: Unsubscribe }
 export function subscribe<State, T extends (state: State) => any>(
   target: AtomLike<State>,
   cb: T = noop as T,
@@ -97,6 +149,7 @@ export function subscribe<State, T extends (state: State) => any>(
  * These exports provide all standard Vitest testing utilities while ensuring
  * compatibility with Reatom's testing utilities defined in this file.
  */
+export { expectTypeOf } from 'expect-type'
 export {
   afterAll,
   afterEach,
@@ -104,7 +157,6 @@ export {
   beforeEach,
   describe,
   expect,
-  expectTypeOf,
   vi,
 } from 'vitest'
 

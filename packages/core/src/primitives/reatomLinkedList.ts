@@ -1,5 +1,16 @@
 import type { Action, Atom, Computed } from '../core'
-import { action, atom, computed, isAtom, named, ReatomError } from '../core'
+import {
+  _enqueue,
+  action,
+  atom,
+  computed,
+  isAtom,
+  named,
+  ReatomError,
+} from '../core'
+import { withChangeHook } from '../extensions/withChangeHook'
+import { withFromJson } from '../extensions/withFromJson'
+import { withToJson } from '../extensions/withToJson'
 import { peek } from '../methods'
 import type { Fn, Rec } from '../utils'
 import { isObject } from '../utils'
@@ -257,20 +268,30 @@ const moveLL = <Node extends LLNode>(
 }
 
 const clearLL = <Node extends LLNode>(state: LinkedList<Node>) => {
-  while (state.tail) removeLL(state, state.tail)
+  const LL_PREV: LL_PREV = state.LL_PREV as any
+  const LL_NEXT: LL_NEXT = state.LL_NEXT as any
+  let node: null | LLNode = state.head
+  state.head = null
+  state.tail = null
+  state.size = 0
+  while (node) {
+    const next = node[LL_NEXT]
+    node[LL_PREV] = null
+    node[LL_NEXT] = null
+    node = next
+  }
 }
 
-const toArray = <T extends Rec>(
-  LL_NEXT: LL_NEXT,
-  head: null | LLNode<T>,
+export const toArray = <T extends Rec>(
+  { head, LL_NEXT }: LinkedList<LLNode<T>>,
   prev?: Array<LLNode<T>>,
 ): Array<LLNode<T>> => {
-  const arr: Array<LLNode<T>> = []
+  let arr: Array<LLNode<T>> = []
   let i = 0
   while (head) {
     if (prev !== undefined && prev[i] !== head) prev = undefined
     arr.push(head)
-    head = head[LL_NEXT]
+    head = head[LL_NEXT as LL_NEXT]
     i++
   }
   return arr.length === prev?.length ? prev : arr
@@ -519,8 +540,10 @@ export function reatomLinkedList<
   const batchFn = <T>(cb: Fn): T => {
     if (STATE) return cb()
 
-    STATE = linkedList.set(
-      ({ head, tail, size, version, LL_PREV, LL_NEXT }) => ({
+    let result: T
+
+    linkedList.set(({ head, tail, size, version, LL_PREV, LL_NEXT }) => {
+      STATE = {
         LL_PREV,
         LL_NEXT,
         size,
@@ -528,14 +551,18 @@ export function reatomLinkedList<
         changes: [],
         head,
         tail,
-      }),
-    )
+      }
 
-    try {
-      return cb()
-    } finally {
-      STATE = null
-    }
+      try {
+        result = cb()
+
+        return STATE
+      } finally {
+        STATE = null
+      }
+    })
+
+    return result!
   }
 
   const batch = action(batchFn, `${name}._batch`)
@@ -663,8 +690,7 @@ export function reatomLinkedList<
   }
 
   const array: LinkedListAtom<Params, Node, Key>['array'] = computed(
-    (state: Array<LLNode<Node>> = []) =>
-      toArray(LL_NEXT, linkedList().head, state),
+    (state: Array<LLNode<Node>> = []) => toArray(linkedList(), state),
     `${name}.array`,
   )
 
@@ -731,7 +757,7 @@ export function reatomLinkedList<
         }
 
         for (let head = ll.head; head; head = head[LL_NEXT]) {
-          const node = peek(() => cb(head)) as LLNode<T>
+          const node = peek(cb, head) as LLNode<T>
           addLL(mapList, node, mapList.tail)
           mapList.map.set(head, node)
           hooks.onCreate?.(node)
@@ -753,7 +779,7 @@ export function reatomLinkedList<
         for (const change of ll.changes) {
           switch (change.kind) {
             case 'create': {
-              const node = cb(change.node) as LLNode<T>
+              const node = peek(cb, change.node) as LLNode<T>
               addLL(mapList, node, mapList.tail)
               mapList.map.set(change.node, node)
               mapList.changes.push({ kind: 'create', node })
@@ -763,7 +789,7 @@ export function reatomLinkedList<
             case 'createMany': {
               const nodes: Array<LLNode<T>> = []
               for (const originNode of change.nodes) {
-                const node = cb(originNode) as LLNode<T>
+                const node = peek(cb, originNode) as LLNode<T>
                 addLL(mapList, node, mapList.tail)
                 mapList.map.set(originNode, node)
                 nodes.push(node)
@@ -811,6 +837,7 @@ export function reatomLinkedList<
             case 'clear': {
               hooks.onClear?.(mapList)
               clearLL(mapList)
+              mapList.map = new WeakMap()
               mapList.changes.push({ kind: 'clear' })
               break
             }
@@ -834,8 +861,7 @@ export function reatomLinkedList<
     // @ts-ignore
     const array: LinkedListDerivedAtom<LLNode<Node>, LLNode<T>>['array'] =
       computed(
-        (state: Array<LLNode<T>> = []) =>
-          toArray(mapLL_NEXT, mapList().head, state),
+        (state: Array<LLNode<T>> = []) => toArray(mapList(), state),
         `${name}.array`,
       )
 
@@ -908,31 +934,50 @@ export function reatomLinkedList<
   //   }, name)
   // }
 
-  return Object.assign(linkedList, {
-    LL_PREV,
-    LL_NEXT,
-    batch,
-    create,
-    createMany,
-    remove,
-    removeMany,
-    swap,
-    move,
-    clear,
+  return linkedList.extend(
+    () => ({
+      LL_PREV,
+      LL_NEXT,
+      batch,
+      create,
+      createMany,
+      remove,
+      removeMany,
+      swap,
+      move,
+      clear,
 
-    find,
+      find,
 
-    array,
-    map,
-    initiateFromState: createLinkedListFromState,
-    initiateFromSnapshot: createLinkedListFromSnapshot,
+      array,
+      map,
+      initiateFromState: createLinkedListFromState,
+      initiateFromSnapshot: createLinkedListFromSnapshot,
 
-    reatomMap,
-    // reatomFilter,
-    // reatomReduce,
+      reatomMap,
+      // reatomFilter,
+      // reatomReduce,
 
-    __reatomLinkedList: true as const,
-  }) as LinkedListAtom<Params, Node, Key>
+      __reatomLinkedList: true as const,
+    }),
+    withChangeHook((_, prev) => {
+      if (prev) {
+        _enqueue(() => {
+          prev.changes = []
+        }, 'cleanup')
+      }
+    }),
+    withFromJson((snapshot) => {
+      if (!Array.isArray(snapshot)) {
+        throw new ReatomError('Linked list snapshot should be an array.')
+      }
+
+      return createLinkedListFromSnapshot(
+        snapshot.map((value) => [value] as Params),
+      )
+    }),
+    withToJson((state) => toArray(state)),
+  ) as LinkedListAtom<Params, Node, Key>
 }
 
 /**

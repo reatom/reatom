@@ -1,4 +1,4 @@
-import { _enqueue, isAction, type QueueKind, top } from '../core'
+import { _enqueue, isAction, top } from '../core'
 import { schedule } from './schedule'
 
 /**
@@ -72,11 +72,10 @@ import { schedule } from './schedule'
  *     await wrap(fetchOrder(orderId))
  *   })
  *
- * @param queue - Queue type to schedule in (default: "effect")
  * @returns Promise that resolves with the current frame's state
  * @see {@link https://github.com/tc39/proposal-explicit-resource-management}
  */
-export let framePromise = (queue: QueueKind = 'effect'): Promise<unknown> => {
+export let framePromise = (): Promise<unknown> => {
   let frame = top()
   let state: unknown
 
@@ -87,5 +86,5 @@ export let framePromise = (queue: QueueKind = 'effect'): Promise<unknown> => {
 
   return schedule(() => {
     return state
-  }, queue)
+  }, 'effect')
 }

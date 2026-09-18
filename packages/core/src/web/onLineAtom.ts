@@ -45,7 +45,7 @@ type OnlineAtom = Atom<boolean> & {
  *   the initial state may not always reflect the actual connectivity status.
  *   The atom will correct itself once the first online/offline event fires.
  */
-export let onLineAtom: OnlineAtom = /* @__PURE__ */ (() =>
+const initOnLineAtom = () =>
   reatomObservable(
     () => ({
       getState: () => navigator.onLine,
@@ -64,4 +64,6 @@ export let onLineAtom: OnlineAtom = /* @__PURE__ */ (() =>
   ).extend(() => ({
     offlineAtAtom: atom<number | undefined>(undefined, 'onLine.offlineAtAtom'),
     onlineAtAtom: atom<number | undefined>(undefined, 'onLine.onlineAtAtom'),
-  })))()
+  }))
+
+export let onLineAtom: OnlineAtom = /* @__PURE__ */ initOnLineAtom()

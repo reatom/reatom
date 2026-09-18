@@ -82,7 +82,7 @@ export const reatomPersistCookieStore = (
     async clear({ key }) {
       await cookieStore.delete(key)
     },
-    subscribe({ key }, cb) {
+    subscribe({ key, cache }, cb) {
       const handler = (event: CookieChangeEvent) => {
         for (const cookie of event.changed) {
           if (cookie.name === key && cookie.value) {
@@ -90,6 +90,14 @@ export const reatomPersistCookieStore = (
               const rec: PersistRecord = JSON.parse(
                 decodeURIComponent(cookie.value),
               )
+              const cached = cache?.get(key)
+              if (
+                cached &&
+                (cached.id === rec.id ||
+                  JSON.stringify(cached.data) === JSON.stringify(rec.data))
+              ) {
+                return
+              }
               cb(rec)
             } catch {
               // Invalid JSON - ignore
@@ -105,13 +113,15 @@ export const reatomPersistCookieStore = (
   })
 }
 
-export let isCookieStoreAvailable = /* @__PURE__ */ (() => {
+const initIsCookieStoreAvailable = () => {
   try {
     return 'cookieStore' in globalThis
   } catch {
     return false
   }
-})()
+}
+
+export let isCookieStoreAvailable = /* @__PURE__ */ initIsCookieStoreAvailable()
 
 /**
  * Modern Cookie Store API persistence adapter with automatic fallback to memory
@@ -176,9 +186,12 @@ export let isCookieStoreAvailable = /* @__PURE__ */ (() => {
  * @see {@link CookieStoreOptions} for all available options
  * @see {@link withCookie} for synchronous document.cookie API alternative
  */
-export const withCookieStore: WithPersistCookieStore = /* @__PURE__ */ (() =>
+const initWithCookieStore = () =>
   isCookieStoreAvailable
     ? reatomPersistCookieStore('withCookieStore', globalThis.cookieStore)
     : (reatomPersist(
         createMemStorage({ name: 'withCookieStore' }),
-      ) as unknown as WithPersistCookieStore))()
+      ) as unknown as WithPersistCookieStore)
+
+export const withCookieStore: WithPersistCookieStore =
+  /* @__PURE__ */ initWithCookieStore()

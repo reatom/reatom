@@ -1,4 +1,4 @@
-import { type Atom } from '../../core'
+import { _createGlobal, type Atom } from '../../core'
 import {
   createMemStorage,
   type PersistRecord,
@@ -6,7 +6,7 @@ import {
   reatomPersist,
   type WithPersist,
 } from '../index'
-import {isBroadcastChannelAvailable} from './isBroadcastChannelAvailable';
+import { isBroadcastChannelAvailable } from './isBroadcastChannelAvailable'
 
 /**
  * Web storage persist interface that extends the base persist functionality
@@ -39,22 +39,32 @@ export type BroadcastMessage =
       key: string
     }
 
-// One-time check for optional idb-keyval dependency
-let idb: any = null
-let idbChecked = false
+// Lazy `idb-keyval` import. Memoizes the in-flight promise so concurrent
+// callers share one resolution instead of racing on a checked-but-not-loaded
+// state.
+let idbLazy = _createGlobal(
+  'persistIndexedDbLazy',
+  (): {
+    promise: Promise<any> | null
+    module: any
+  } => ({
+    promise: null,
+    module: null,
+  }),
+)
 
-const checkIdb = async () => {
-  if (idbChecked) return idb
-  idbChecked = true
+const checkIdb = (): Promise<any> => {
+  if (idbLazy.promise) return idbLazy.promise
 
-  try {
-    idb = await import('idb-keyval')
-  } catch {
-    console.warn('idb-keyval not available - using memory storage fallback')
-    idb = null
-  }
+  idbLazy.promise = import('idb-keyval').then(
+    (module) => (idbLazy.module = module),
+    () => {
+      console.warn('idb-keyval not available - using memory storage fallback')
+      return (idbLazy.module = null)
+    },
+  )
 
-  return idb
+  return idbLazy.promise
 }
 
 /**
@@ -192,10 +202,7 @@ export const reatomPersistIndexedDb = (
               }
             })()
           } else if (event.data._type === 'push') {
-            const { rec } = event.data
-            if (rec !== null) {
-              cb(rec)
-            }
+            cb(event.data.rec)
           }
         } catch (error) {
           console.warn('Failed to handle IndexedDB broadcast message:', error)
@@ -226,13 +233,15 @@ export const reatomPersistIndexedDb = (
 }
 
 // Note: idb-keyval availability is checked dynamically at runtime
-let isIndexedDbAvailable = /* @__PURE__ */ (() => {
+const initIsIndexedDbAvailable = () => {
   try {
     return !!globalThis.indexedDB && isBroadcastChannelAvailable
   } catch {
     return false
   }
-})()
+}
+
+let isIndexedDbAvailable = /* @__PURE__ */ initIsIndexedDbAvailable()
 
 /**
  * Default IndexedDB persistence adapter with automatic fallback to memory
@@ -297,7 +306,7 @@ let isIndexedDbAvailable = /* @__PURE__ */ (() => {
  * @see {@link withLocalStorage} for simpler persistent storage
  * @see {@link withBroadcastChannel} for memory-only cross-tab sync
  */
-export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ (() =>
+const initWithIndexedDb = () =>
   isIndexedDbAvailable
     ? reatomPersistIndexedDb(
         'reatom_default',
@@ -305,4 +314,7 @@ export const withIndexedDb: WithPersistWebStorage = /* @__PURE__ */ (() =>
       )
     : (reatomPersist(
         createMemStorage({ name: 'withIndexedDb' }),
-      ) as unknown as WithPersistWebStorage))()
+      ) as unknown as WithPersistWebStorage)
+
+export const withIndexedDb: WithPersistWebStorage =
+  /* @__PURE__ */ initWithIndexedDb()

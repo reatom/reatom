@@ -1,0 +1,860 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "tier": "tier-a",
+      "dest": "bmp/rgb24-2x2.bmp",
+      "generated": "bmp24-2x2",
+      "license": "Public Domain",
+      "source": "Generated locally for bmpsuite-style 24-bit RGB smoke test",
+      "sha256": "408a32b09c0919e2b28cef2f0971cabbd1d476f979436392fe98ab6ef06bfc01",
+      "size": 70
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_1.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_1.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "a23b1b0eac8c5ee5ae0373d07984b8d57df152e6be363d2ab77b304285bcad81",
+      "size": 347327
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_2.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_2.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "4fdadb01889abd7df4bfd24c4c3e9d12017ae8d9b21851fcabd4279f9500f925",
+      "size": 349209
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_3.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_3.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "b151bf11b88398f7358a3a74bf8b7f96b9e436f3d4bb2f86034d1c412039d2d3",
+      "size": 348796
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_4.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_4.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "74e91f96c3b9464890a82650043f6a53dd141167854f8197b3f7997ba0e6fcc9",
+      "size": 348052
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_5.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_5.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "5fbfecd9244a37dd0826df446de84365295ad14d592ab7e6d1bf8b73fc364cff",
+      "size": 351275
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_6.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_6.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "9b344e9f0c869d8637ea22e672df9451d8d3cc1d2d0b291af3b284e538e5f124",
+      "size": 352727
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_7.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_7.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "a502346769a6adcf0a2f01bc20454eee008fbe859b7f31be29557a1a50f90a98",
+      "size": 351856
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Landscape_8.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Landscape_8.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "b89a4185fc8b8daa9313cb29957fc950e903e11714519af18862fb67417c39c2",
+      "size": 352067
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_1.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_1.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "2d8247813c4cedbfcbec5205963655cce449a0286399c5a0128fae4dc9ec50ce",
+      "size": 245684
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_2.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_2.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "a673062f30e7d39f50d0568abf6fe26430831bbc6d4154f28dc67c444d31ace5",
+      "size": 246915
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_3.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_3.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "e4ca468a3be28da2dc6b0f6701c12dcd9be3c7ef37eb5425187b2ca3ef542ba5",
+      "size": 247276
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_4.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_4.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "de5acdae6b89e635f6bf7d6da8a53fd8a1759b3319951b9d545d3fc839b97833",
+      "size": 246554
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_5.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_5.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "468714af3b15d491e4de6a48d491404ad45956fb2e28ed6deaf6a3e47f488b14",
+      "size": 251487
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_6.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_6.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "eb1f8c59199fc7d27361cb1bb9b82cb91f77cc0bd2934be516bcebb2e2eb9d33",
+      "size": 251800
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_7.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_7.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "5d5de444365e3ff99c6c92fbe1db3034b535fb0fef14d8bc3f56f43b616269c2",
+      "size": 250892
+    },
+    {
+      "tier": "tier-a",
+      "dest": "exif/Portrait_8.jpg",
+      "url": "https://raw.githubusercontent.com/recurser/exif-orientation-examples/v2.0.1/Portrait_8.jpg",
+      "license": "MIT",
+      "source": "recurser/exif-orientation-examples v2.0.1",
+      "sha256": "66b38ab2c7fbd6850d5a5d2aa953b144acd8226056ee5b7fa2355d4d90c015eb",
+      "size": 251978
+    },
+    {
+      "tier": "tier-a",
+      "dest": "gif/clock.gif",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/animated/clock.gif",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset animated/clock.gif",
+      "sha256": "a1aff87d433d4f5066e46c4dd5617008e202bad7cfb90fcea22769bfaf5ce4c3",
+      "size": 26371
+    },
+    {
+      "tier": "tier-a",
+      "dest": "metadata/ExifTool.jpg",
+      "url": "https://raw.githubusercontent.com/exiftool/exiftool/master/t/images/ExifTool.jpg",
+      "license": "Artistic-2.0",
+      "source": "exiftool/exiftool t/images/ExifTool.jpg",
+      "sha256": "fdca3287a21453b51e250e67aba836d560e6043559a6e37acb429a03e720e412",
+      "size": 26106
+    },
+    {
+      "tier": "tier-a",
+      "dest": "metadata/GPS.jpg",
+      "url": "https://raw.githubusercontent.com/exiftool/exiftool/master/t/images/GPS.jpg",
+      "license": "Artistic-2.0",
+      "source": "exiftool/exiftool t/images/GPS.jpg",
+      "sha256": "4fb0a681632d618a2a35f463127e3e39ab5eac683f88e7945f9b3ea82692d843",
+      "size": 2133
+    },
+    {
+      "tier": "tier-a",
+      "dest": "metadata/XMP.jpg",
+      "url": "https://raw.githubusercontent.com/exiftool/exiftool/master/t/images/XMP.jpg",
+      "license": "Artistic-2.0",
+      "source": "exiftool/exiftool t/images/XMP.jpg",
+      "sha256": "8b39cd1636913ef5027dd6816b006a3942e6df5377aa2ebfcf082916e9859b39",
+      "size": 10314
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn0g01.png",
+      "url": "http://www.schaik.com/pngsuite/basn0g01.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "c8b1364d7771dd2f5a1b2d7d633abcf3f48dafee608558ecd2e5fc98f61894cd",
+      "size": 164
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn0g02.png",
+      "url": "http://www.schaik.com/pngsuite/basn0g02.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "ca172e92d179c77b3d321ad501e452a59bdaafafde8ebd74fd0669c4eae58efc",
+      "size": 104
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn0g04.png",
+      "url": "http://www.schaik.com/pngsuite/basn0g04.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "fb2d42c4c8f5c51590e675994a9b0c718fbf71c80e28142f231cfa7c5b0e26e8",
+      "size": 145
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn0g08.png",
+      "url": "http://www.schaik.com/pngsuite/basn0g08.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "268d061075d1dd2eeec62b31303d09f6998549e1bfb447a5f09c80a2b0978ac3",
+      "size": 138
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn0g16.png",
+      "url": "http://www.schaik.com/pngsuite/basn0g16.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "1a1fe155f40c11d79350b3f84c7eb2b29719037e57073cb7ae2ab9e8323f9360",
+      "size": 167
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn2c08.png",
+      "url": "http://www.schaik.com/pngsuite/basn2c08.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "c90e86090a625661b19960cafdde6e347d6e32d73837aaae533f66dd3f099506",
+      "size": 145
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn2c16.png",
+      "url": "http://www.schaik.com/pngsuite/basn2c16.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "1e1c28ec0ee5da6224404b4005076dd30e2335a1a80c0ca722046a245c4a2b3b",
+      "size": 302
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn3p01.png",
+      "url": "http://www.schaik.com/pngsuite/basn3p01.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "c2d7cd682df5f74506b33a5d70c344aaee248fda79fdfef8e873426fd6f2b75b",
+      "size": 112
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn3p02.png",
+      "url": "http://www.schaik.com/pngsuite/basn3p02.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "0466bb7ed9984cf03b70704564bcffab1df8ec0e8167473ba0f75e4fedce5a8f",
+      "size": 146
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn3p04.png",
+      "url": "http://www.schaik.com/pngsuite/basn3p04.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "e1fc7be978d3149b98533d0076245ae64353b7967290f4204c1282ecb4ec1aba",
+      "size": 216
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn4a08.png",
+      "url": "http://www.schaik.com/pngsuite/basn4a08.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "7be24b618bfd437b921ae0caf9341d112338c6290cc62466deb19d2c7a512968",
+      "size": 126
+    },
+    {
+      "tier": "tier-a",
+      "dest": "png/basn6a08.png",
+      "url": "http://www.schaik.com/pngsuite/basn6a08.png",
+      "license": "Freeware",
+      "source": "PngSuite / schaik.com/pngsuite",
+      "sha256": "559c594166eb156f461c9beff0f053196730dc998fdb0d2b801c89e6680860a5",
+      "size": 184
+    },
+    {
+      "tier": "tier-a",
+      "dest": "svg/shapes_and_text.svg",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/shapes_and_text.svg",
+      "license": "MIT",
+      "source": "woelper/oculante tests/shapes_and_text.svg",
+      "sha256": "fb13c4630e813d7db5b0c0506b50db137a49de81682cb4de8410fdbc120bfb8a",
+      "size": 4944
+    },
+    {
+      "tier": "tier-a",
+      "dest": "web/animated-avif.avif",
+      "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/master/images/animated-avif.avif",
+      "license": "BSD-3-Clause",
+      "source": "web-platform-tests/wpt images/",
+      "sha256": "3a2c003a8d37698316986e9c48361cda37bb24ef35ae947b84074757bf4c7eb8",
+      "size": 42404
+    },
+    {
+      "tier": "tier-a",
+      "dest": "web/apng.png",
+      "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/master/images/apng.png",
+      "license": "BSD-3-Clause",
+      "source": "web-platform-tests/wpt images/",
+      "sha256": "76c3568f8dbf0adcdf15d8a42acd96815ccf317d566118d569c218725167d0a0",
+      "size": 259
+    },
+    {
+      "tier": "tier-a",
+      "dest": "web/green.avif",
+      "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/master/images/green.avif",
+      "license": "BSD-3-Clause",
+      "source": "web-platform-tests/wpt images/",
+      "sha256": "5fb76c8dba2312deea9b8a63dc04aad67919b4a0ff454de75eb1adde39138951",
+      "size": 320
+    },
+    {
+      "tier": "tier-a",
+      "dest": "web/green.png",
+      "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/master/images/green.png",
+      "license": "BSD-3-Clause",
+      "source": "web-platform-tests/wpt images/",
+      "sha256": "c27973460bbd796574d9623ec70089128996119ba715d27c22938dbfdf9ecf80",
+      "size": 87
+    },
+    {
+      "tier": "tier-a",
+      "dest": "web/transparent.png",
+      "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/master/images/transparent.png",
+      "license": "BSD-3-Clause",
+      "source": "web-platform-tests/wpt images/",
+      "sha256": "096b4a4ab29b143c791cb6292dccb353d27c32cfbea1829ef08814d0926db298",
+      "size": 100
+    },
+    {
+      "tier": "tier-a",
+      "dest": "web/webp-animated.webp",
+      "url": "https://raw.githubusercontent.com/web-platform-tests/wpt/master/images/webp-animated.webp",
+      "license": "BSD-3-Clause",
+      "source": "web-platform-tests/wpt images/",
+      "sha256": "292753f066add623af1e30bbeeca58f15b3d6d1052e12b13e30f21f8d3c14505",
+      "size": 340
+    },
+    {
+      "tier": "tier-a",
+      "dest": "webp/alpha_filter_0_method_0.webp",
+      "url": "https://raw.githubusercontent.com/webmproject/libwebp-test-data/main/alpha_filter_0_method_0.webp",
+      "license": "BSD-3-Clause",
+      "source": "webmproject/libwebp-test-data",
+      "sha256": "150ff79f16e254281153d7e75e5968663c7f83ae58217b36c12d11088045eb07",
+      "size": 22038
+    },
+    {
+      "tier": "tier-a",
+      "dest": "webp/lossless1.webp",
+      "url": "https://raw.githubusercontent.com/webmproject/libwebp-test-data/main/lossless1.webp",
+      "license": "BSD-3-Clause",
+      "source": "webmproject/libwebp-test-data",
+      "sha256": "5eaf3d3e7f7a38487afa8d3f91062167eb061cd6a5dfa455d24a9a2004860311",
+      "size": 15368
+    },
+    {
+      "tier": "tier-a",
+      "dest": "webp/test.webp",
+      "url": "https://raw.githubusercontent.com/webmproject/libwebp-test-data/main/test.webp",
+      "license": "BSD-3-Clause",
+      "source": "webmproject/libwebp-test-data",
+      "sha256": "a3665d7a6fd48ff60137ae29ac6792207aed3f768c2c05ef324f64c78352d5a5",
+      "size": 4928
+    },
+    {
+      "tier": "tier-b",
+      "dest": "avif/colors-animated-8bpc.avif",
+      "url": "https://raw.githubusercontent.com/AOMediaCodec/libavif/main/tests/data/colors-animated-8bpc.avif",
+      "license": "BSD-2-Clause",
+      "source": "AOMediaCodec/libavif tests/data",
+      "sha256": "2f8683d21725261f37f86e115f0c212cc52d0fefd3a2ddfcc4fa648c1859906d",
+      "size": 1235
+    },
+    {
+      "tier": "tier-b",
+      "dest": "avif/repetition3.avif",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/AVIF/repetition3.avif",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset AVIF/repetition3.avif",
+      "sha256": "d2fed02a979d8007ff2e94602960f297a34aefd75ef95ed02832a7ea157e141b",
+      "size": 5707
+    },
+    {
+      "tier": "tier-b",
+      "dest": "corrupt/Bad_height.bmp",
+      "url": "https://raw.githubusercontent.com/image-rs/image/main/tests/bad/bmp/Bad_height.bmp",
+      "license": "MIT OR Apache-2.0",
+      "source": "image-rs/image tests/bad/bmp",
+      "sha256": "e7744aab98041f77feb9ee80b1225c0bfe1dd48aa4331dd200b774e06ae2b753",
+      "size": 128
+    },
+    {
+      "tier": "tier-b",
+      "dest": "corrupt/Bad_shortfile.bmp",
+      "url": "https://raw.githubusercontent.com/image-rs/image/main/tests/bad/bmp/Bad_shortfile.bmp",
+      "license": "MIT OR Apache-2.0",
+      "source": "image-rs/image tests/bad/bmp",
+      "sha256": "7402abcfcaa49130f51bf3a19293c1a3e7e2488cfa51a9e44527db6e8cfa7aeb",
+      "size": 273
+    },
+    {
+      "tier": "tier-b",
+      "dest": "corrupt/Bad_smile-incorrect-image-length.ico",
+      "url": "https://raw.githubusercontent.com/image-rs/image/main/tests/bad/ico/Bad_smile-incorrect-image-length.ico",
+      "license": "MIT OR Apache-2.0",
+      "source": "image-rs/image tests/bad/ico",
+      "sha256": "ebee9654386a65a46cafc2ff3dbd91e4d3ad05442164322f0e432aae5ff43a50",
+      "size": 772
+    },
+    {
+      "tier": "tier-b",
+      "dest": "corrupt/Bad_width.bmp",
+      "url": "https://raw.githubusercontent.com/image-rs/image/main/tests/bad/bmp/Bad_width.bmp",
+      "license": "MIT OR Apache-2.0",
+      "source": "image-rs/image tests/bad/bmp",
+      "sha256": "2f973cc0c224b008261c22028a292ed7539961a423cbf88464a5a79fffb15337",
+      "size": 128
+    },
+    {
+      "tier": "tier-b",
+      "dest": "corrupt/hpredict_cmyk.tiff",
+      "url": "https://raw.githubusercontent.com/image-rs/image/main/tests/bad/tiff/TODO%20hpredict_cmyk.tiff",
+      "license": "MIT OR Apache-2.0",
+      "source": "image-rs/image tests/bad/tiff",
+      "sha256": "f28f444f89bd0f2e89482eac5e2eff11b5f7638f70d7fe69722043a9658300d9",
+      "size": 2668
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_1.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_1.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "589cdcccf73638335c868ac77d12520ddfa05e29fddcbf3870bd7ba799ca4c84",
+      "size": 351989
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_2.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_2.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "4de1be7d2b533ee108950fc0a4c647d7a948b239c5cbf77e4d9a39f3e3373d50",
+      "size": 353909
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_3.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_3.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "bf01fe6fcfc8b49662498c1563926b40905a79e95f2cb5e707fe3bd4b68f6f81",
+      "size": 353474
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_4.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_4.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "ecc7d8cdceaf42b59778de310933c1ebe45c5daffda1274f2200301054bab654",
+      "size": 352734
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_5.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_5.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "d86339a4e7bd4a85fe6f6dc3acd0568ebfaa2e9b4e64e1f8de29d70731247528",
+      "size": 360097
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_6.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_6.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "61156e6df58d006c39fc286436dd26960529f172b56fa06882d9e7bcf0745385",
+      "size": 361585
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_7.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_7.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "40d5132bceb2f28367ac9c02a3851b006e0f94d1c0590608ac4112f4387163fc",
+      "size": 360672
+    },
+    {
+      "tier": "tier-b",
+      "dest": "exif/Landscape_8.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/orientation/with-thumb/Landscape_8.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset orientation/with-thumb",
+      "sha256": "3b60f86b3dbc491a7b91c019101afe0363efdcf376b06647121097c3e7b562b6",
+      "size": 360915
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_1.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_1.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "87ea27ba9f24cb133251850a7ebd11427ba5e4be0a3a8534a58b00041b2db06d",
+      "size": 139435
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_2.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_2.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "47aa72c02bd24b17db58cd8e25a57dd97f54abc9461fc1fb8bf2d8889d8494a5",
+      "size": 137359
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_3.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_3.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "533f2e6d35a62e9bc144dbb3921a9b2105cf2498eaafb10812f197e6108bd758",
+      "size": 140965
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_4.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_4.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "552568f6965f76c94fced5cd3286775fcc7746fbc796f7a7ab8e7c8d533b666c",
+      "size": 140588
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_5.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_5.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "592f903706fe4b215a08adbd0ed8b62d28aad4e6532ee13777f4aa12787f54a7",
+      "size": 137611
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_6.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_6.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "a05082c57819232106a0612f57268efab011f7a2a477483b878a2b4509cd8e59",
+      "size": 137628
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_7.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_7.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "e5273d4ea5fddcaf27fefc7ea4162c2b3c77ad056e2d8d65a5d61787b5b15db4",
+      "size": 140645
+    },
+    {
+      "tier": "tier-b",
+      "dest": "orient-sharp/Landscape_8.jpg",
+      "url": "https://raw.githubusercontent.com/lovell/sharp/main/test/fixtures/Landscape_8.jpg",
+      "license": "Apache-2.0",
+      "source": "lovell/sharp test/fixtures",
+      "sha256": "5b5c9979cbf6077e97894488be20c849b5eb008fe685c0cb75060c4ab6812ce0",
+      "size": 141286
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/001.opaque.monob.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/001.opaque.monob.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "91fb5bc23e1b2bfcb84b296cfe47212b316d3373c12de1533eec9b876203e49c",
+      "size": 5017
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/004.opaque.gray16be.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/004.opaque.gray16be.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "3fa421bd8824a738ce7322c9766bbc8a0d3a7c1da64921318921d4083958bc9f",
+      "size": 274209
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/006.opaque.pal8.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/006.opaque.pal8.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "1a1a19996bdfd6fa648128b44f6e03d18f7feaba00479a9bda9829bae155540d",
+      "size": 443885
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/007.opaque.rgb24.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/007.opaque.rgb24.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "bc2e15da7444100f87b0bbc94098eb791ea80815571383f129422e339834b648",
+      "size": 74868
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/008.opaque.rgba.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/008.opaque.rgba.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "2160e05ffb90eb176e4b2f273cfd007ed5b28025154826a48f6d92d8134697f2",
+      "size": 93132
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/010.opaque.rgba64be.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/010.opaque.rgba64be.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "6b4f0e2ceff816ceacdee00bd8ab58d07a85beb97a5f59b11d0f24339687a00b",
+      "size": 206758
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/011.transparent.ya8.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/011.transparent.ya8.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "26514e28b19d483c694ea5cb98b75bf791f9b1b2ce1bdc059608cbe256d30a39",
+      "size": 99291
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/013.transparent.rgba.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/013.transparent.rgba.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "6035a003322175764c375006b0980dd29bf64059c107b4e5d5170ccfa4e721c6",
+      "size": 122064
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/015.colorkey.ya8.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/015.colorkey.ya8.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "aa2305a787157949432f789bdcfafa7bdf36b46803dc6b45acc00eef40969634",
+      "size": 17662
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/018.colorkey.rgba.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/018.colorkey.rgba.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "5eadd681968a5869654822f73ed8e178c2ed95fceab449502f42d2a2a5ee1c45",
+      "size": 25428
+    },
+    {
+      "tier": "tier-b",
+      "dest": "png-formats/019.colorkey.rgba64be.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/png/019.colorkey.rgba64be.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/png",
+      "sha256": "e08ef58c04fa5df61016373ea4fa471a3a7950f9579e6be5b045d864fe846c2b",
+      "size": 34596
+    },
+    {
+      "tier": "tier-b",
+      "dest": "rotations/img-001.avif",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/exiftool-rotations/img-001.avif",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/exiftool-rotations",
+      "sha256": "a0e55e36104b005d97cbf1cbe6315b739f7c56d077f3cfcc62302f98892ba3b3",
+      "size": 5041
+    },
+    {
+      "tier": "tier-b",
+      "dest": "rotations/img-001.jpg",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/exiftool-rotations/img-001.jpg",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/exiftool-rotations",
+      "sha256": "7f47d0690614d05239a39eb003b1a3809bb72c38c9a7a4bbec92f4e1cc960baa",
+      "size": 82076
+    },
+    {
+      "tier": "tier-b",
+      "dest": "rotations/img-001.png",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/exiftool-rotations/img-001.png",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/exiftool-rotations",
+      "sha256": "5e20e39acbf667354736d6e0f0a6a39f850e47187771bb2a56983cfeb0d6e5c6",
+      "size": 284225
+    },
+    {
+      "tier": "tier-b",
+      "dest": "rotations/img-001.webp",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/generated/exiftool-rotations/img-001.webp",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset generated/exiftool-rotations",
+      "sha256": "b91ad8555da85a9081b358cb8c7647e8cbe6572a048a9f116c20e25e0c4ed303",
+      "size": 19482
+    },
+    {
+      "tier": "tier-b",
+      "dest": "stress/AR-ar-test.png",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/AR-%D8%A7%D8%AE%D8%AA%D8%A8%D8%A7%D8%B1.png",
+      "license": "MIT",
+      "source": "woelper/oculante tests/AR-اختبار.png",
+      "sha256": "44167134b21d762b0d9e4d3671d588555b96e83003d41f51e57a8d69cd7465fa",
+      "size": 2818
+    },
+    {
+      "tier": "tier-b",
+      "dest": "stress/JP-konnichiwa.png",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/JP-%E3%81%93%E3%82%93%E3%81%AB%E3%81%A1%E3%81%AF.png",
+      "license": "MIT",
+      "source": "woelper/oculante tests/JP-こんにちは.png",
+      "sha256": "74d74246783876d229f74c5ecd881be8e0db65699669a0c0b7f85d27aabb5e0b",
+      "size": 4931
+    },
+    {
+      "tier": "tier-b",
+      "dest": "stress/large.png",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/large.png",
+      "license": "MIT",
+      "source": "woelper/oculante tests/large.png",
+      "sha256": "353ffd9663eddee4736ae3313bd63184698785b82bb0a77f4ec90b42726eccf2",
+      "size": 9107013
+    },
+    {
+      "tier": "tier-b",
+      "dest": "stress/moss.jpg",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/moss.jpg",
+      "license": "MIT",
+      "source": "woelper/oculante tests/moss.jpg",
+      "sha256": "30e0ae982ace5aa695af884bec3e6134c2b2c9b21ce8f5c309f79cd915e39648",
+      "size": 144120
+    },
+    {
+      "tier": "tier-b",
+      "dest": "stress/pngtest_16bit.png",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/pngtest_16bit.png",
+      "license": "MIT",
+      "source": "woelper/oculante tests/pngtest_16bit.png",
+      "sha256": "79afc15836828e6d81c49eff3fc6c27dc832b8abac402b8d84544b1a7341033c",
+      "size": 1640030
+    },
+    {
+      "tier": "tier-b",
+      "dest": "stress/SC-test.png",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/SC-%E6%B8%AC%E8%A9%A6.png",
+      "license": "MIT",
+      "source": "woelper/oculante tests/SC-測試.png",
+      "sha256": "f62cfe03579a3d10aa9cba6768fa59c3b20e94498a7119246360b853ebd7b1d0",
+      "size": 5256
+    },
+    {
+      "tier": "tier-b",
+      "dest": "stress/unpremult.png",
+      "url": "https://raw.githubusercontent.com/woelper/oculante/master/tests/unpremult.png",
+      "license": "MIT",
+      "source": "woelper/oculante tests/unpremult.png",
+      "sha256": "f2e0e7730075befa2322226410e3db9a5e48c1a6f9e2dd3a330ef21b9ed42492",
+      "size": 314397
+    },
+    {
+      "tier": "tier-c",
+      "dest": "dng/574-purple-cast.dng",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/nomacs-issues/574.purple%20cast.dng",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset nomacs-issues/574.purple cast.dng",
+      "sha256": "ee5beedfe1a130e9244800c0ff62ecee5629415cfc00ebf82a30b109ad2588f7",
+      "size": 10639952
+    },
+    {
+      "tier": "tier-c",
+      "dest": "pixls/RAW_OLYMPUS_C5050Z.ORF",
+      "pixlsGitPath": "Olympus/C5050Z/RAW_OLYMPUS_C5050Z.ORF",
+      "license": "CC0",
+      "source": "raw.pixls.us data.lfs.git Olympus/C5050Z/RAW_OLYMPUS_C5050Z.ORF",
+      "sha256": "f4b013e78204ebaadd740d93416080856b3c51ec154760e2e2de0e552873044a",
+      "size": 7457792
+    },
+    {
+      "tier": "tier-c",
+      "dest": "pixls/RX700064.ARW",
+      "pixlsGitPath": "SONY/DSC-RX100M7A/RX700064.ARW",
+      "license": "CC0",
+      "source": "raw.pixls.us data.lfs.git SONY/DSC-RX100M7A/RX700064.ARW",
+      "sha256": "80adbc5b1cb3342058d5998cf2eda1e6b408565169462d6d26dfe02f0c140b30",
+      "size": 21021696
+    },
+    {
+      "tier": "tier-c",
+      "dest": "raw/DSC_0073.NEF",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/RAW/DSC_0073.NEF",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset RAW/DSC_0073.NEF",
+      "sha256": "b6cc380a6ef820eb784c28902fe4b172474c3827c937862392364b8936c934e3",
+      "size": 23321088
+    },
+    {
+      "tier": "tier-c",
+      "dest": "raw/IMG_3887.CR2",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/RAW/IMG_3887.CR2",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset RAW/IMG_3887.CR2",
+      "sha256": "c56c8628309a9dcab5496f25076e5673f91b5bba710c6b896fe92a46e4ce2d9b",
+      "size": 28958271
+    },
+    {
+      "tier": "tier-c",
+      "dest": "raw/IMG_4059.CR2",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/RAW/IMG_4059.CR2",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset RAW/IMG_4059.CR2",
+      "sha256": "5a5e9c15fa4d7fe9dde97264a8f8977c5d085d4030d20f158ba840fc874cd739",
+      "size": 27969657
+    },
+    {
+      "tier": "tier-c",
+      "dest": "raw/IMG_4073.CR2",
+      "url": "https://raw.githubusercontent.com/nomacs/formats_testset/main/RAW/IMG_4073.CR2",
+      "license": "BSD-3-Clause",
+      "source": "nomacs/formats_testset RAW/IMG_4073.CR2",
+      "sha256": "22f4a501c5a7ab0477150eda37c6eab2a8d495eca98c1a7b3137495ddb188bc9",
+      "size": 27903972
+    }
+  ]
+}

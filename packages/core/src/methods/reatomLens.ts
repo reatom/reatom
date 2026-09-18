@@ -1,7 +1,10 @@
 import type { Atom, AtomState } from '../core'
-import { createAtom } from '../core'
+import { createAtom, isAtom, withMiddleware } from '../core'
+import { isObject } from '../utils'
 
 type LensKey = string | number | symbol
+
+type ResolveLensKey<Key> = Key extends Atom<infer K> ? K : Key
 
 type LensValue<T, K extends LensKey> =
   T extends Map<infer MapKey, infer MapValue>
@@ -26,7 +29,7 @@ const defaultGet = <T, K extends LensKey>(
   if (Array.isArray(parent)) {
     return parent[key as number] as LensValue<T, K>
   }
-  if (typeof parent === 'object' && parent !== null) {
+  if (isObject(parent)) {
     return (parent as Record<K, LensValue<T, K>>)[key] as LensValue<T, K>
   }
   return undefined as LensValue<T, K>
@@ -38,20 +41,23 @@ const defaultSet = <T, K extends LensKey>(
   value: LensValue<T, K>,
 ): T => {
   if (parent instanceof Map) {
-    const currentValue = parent.get(key as K)
+    let currentValue = parent.get(key as K)
     if (Object.is(currentValue, value)) return parent
-    const next = new Map(parent)
+    let next = new Map(parent)
     next.set(key as K, value)
     return next as T
   }
   if (Array.isArray(parent)) {
-    const index = key as number
-    const currentValue = parent[index]
+    let index = key as number
+    let currentValue = parent[index]
     if (Object.is(currentValue, value)) return parent
-    return [...parent.slice(0, index), value, ...parent.slice(index + 1)] as T
+    parent = [...parent] as T
+    // @ts-expect-error - index is a number
+    parent[index] = value
+    return parent as T
   }
-  if (typeof parent === 'object' && parent !== null) {
-    const currentValue = (parent as Record<K, LensValue<T, K>>)[key]
+  if (isObject(parent)) {
+    let currentValue = (parent as Record<K, LensValue<T, K>>)[key]
     if (Object.is(currentValue, value)) return parent
     return { ...parent, [key]: value } as T
   }
@@ -88,6 +94,15 @@ const defaultSet = <T, K extends LensKey>(
  *   valueAtom.set('value2') // Updates mapAtom with new Map
  *
  * @example
+ *   // With a dynamic atom key
+ *   const dataAtom = atom({ name: 'John', age: 30 })
+ *   const fieldAtom = atom<'name' | 'age'>('name')
+ *   const valueAtom = reatomLens(dataAtom, fieldAtom)
+ *   valueAtom() // → 'John'
+ *   fieldAtom.set('age')
+ *   valueAtom() // → 30
+ *
+ * @example
  *   // With custom get/set functions
  *   const dataAtom = atom({ nested: { deep: { value: 42 } } })
  *   const deepAtom = reatomLens(dataAtom, 'nested', {
@@ -105,7 +120,7 @@ const defaultSet = <T, K extends LensKey>(
  * @template Key - The key type to access the nested property
  * @param parent - The parent atom containing the state to lens into
  * @param key - The key to access the nested property (string for objects,
- *   number for arrays, any for Maps)
+ *   number for arrays, any for Maps) or an atom with the key state
  * @param options - Optional configuration with custom get/set functions
  * @param options.get - Custom function to extract the value from the parent
  *   state. Defaults to parent[key] for objects/arrays or parent.get(key) for
@@ -113,60 +128,60 @@ const defaultSet = <T, K extends LensKey>(
  * @param options.set - Custom function to immutably update the parent state.
  *   Defaults to creating new objects/arrays/Maps with the updated value
  * @param name - Optional name for the lens atom. Defaults to
- *   `${parent.name}.${String(key)}`
+ *   `${parent.name}.${key}` where atom keys use the key atom name
  * @returns A lens atom that tracks and updates the parent atom's nested
  *   property
  */
 export const reatomLens = <
   Parent extends Atom<any>,
-  Key extends LensKey,
-  Value = LensValue<AtomState<Parent>, Key>,
+  Key extends LensKey | Atom<LensKey>,
+  ResolvedKey extends ResolveLensKey<Key> & LensKey = ResolveLensKey<Key> &
+    LensKey,
+  Value = LensValue<AtomState<Parent>, ResolvedKey>,
 >(
   parent: Parent,
   key: Key,
   options?: {
-    get?: (parent: AtomState<Parent>, key: Key) => Value
+    get?: (parent: AtomState<Parent>, key: ResolvedKey) => Value
     set?: (
       parent: AtomState<Parent>,
-      key: Key,
+      key: ResolvedKey,
       value: Value,
     ) => AtomState<Parent>
   },
-  name?: string,
+  name = `${parent.name}.${isAtom(key) ? key.name : String(key)}`,
 ): Atom<Value> => {
-  const get = (options?.get ?? defaultGet) as (
+  let get = (options?.get ?? defaultGet) as (
     parent: AtomState<Parent>,
-    key: Key,
+    key: ResolvedKey,
   ) => Value
-  const set = (options?.set ?? defaultSet) as (
+  let set = (options?.set ?? defaultSet) as (
     parent: AtomState<Parent>,
-    key: Key,
+    key: ResolvedKey,
     value: Value,
   ) => AtomState<Parent>
 
-  const lensName = name ?? `${parent.name}.${String(key)}`
+  let getKey = isAtom(key) ? key : () => key as unknown as ResolvedKey
 
-  const lensAtom = createAtom(
-    {
-      initState: get(parent(), key),
-      computed: () => {
-        parent()
-        return get(parent(), key)
-      },
-    },
-    lensName,
+  // Use `createAtom` instead of direct `computed` to preserve the `.set` method
+  return createAtom({ computed: () => get(parent(), getKey()) }, name).extend(
+    withMiddleware(
+      () =>
+        (next, ...args: [] | [Value | ((current: Value) => Value)]): Value => {
+          if (args.length !== 0) {
+            let update = args[0]
+            let key = getKey()
+            let parentState = parent()
+            let state = get(parentState, key)
+            let newState =
+              typeof update === 'function'
+                ? (update as (current: Value) => Value)(state)
+                : update
+            parent.set(set(parentState, key, newState))
+          }
+
+          return next()
+        },
+    ),
   )
-
-  return Object.assign(lensAtom, {
-    set(update: Value | ((current: Value) => Value)): Value {
-      const currentParent = parent()
-      const currentValue = get(currentParent, key)
-      const newValue =
-        typeof update === 'function'
-          ? (update as (current: Value) => Value)(currentValue)
-          : update
-      parent.set(set(currentParent, key, newValue))
-      return newValue
-    },
-  }) as Atom<Value>
 }

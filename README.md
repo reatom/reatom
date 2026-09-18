@@ -239,7 +239,7 @@ const LoginPage = reatomComponent(() => {
 
 For a fast start, use our template with React and Mantine:
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1000/examples/react-search)
+[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/reatom/reatom/tree/v1001/examples/react-search)
 
 ## Documentation
 

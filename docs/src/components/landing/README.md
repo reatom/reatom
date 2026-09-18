@@ -65,7 +65,7 @@ import ShikiCodeBlock from './ShikiCodeBlock.astro'
   code={`const example = "Hello World"`}
   annotations={[{ pattern: 'const', note: 'Variable declaration keyword' }]}
   filename="example.tsx"
-  playgroundUrl="https://stackblitz.com/github/reatom/reatom/tree/v1000/examples/react-search"
+  playgroundUrl="https://stackblitz.com/github/reatom/reatom/tree/v1001/examples/react-search"
 />
 ```
 

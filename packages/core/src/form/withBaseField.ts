@@ -494,7 +494,7 @@ const runValidation = <State, Value = State>({
         }
 
         const validationErrors = [
-          { source: 'validaton', message: toError(error) },
+          { source: 'validation', message: toError(error) },
         ]
 
         validationAtom.errors.set(validationErrors)
@@ -755,7 +755,7 @@ export const withBaseField =
                 ...validationArgs,
               })
               return validationTarget.merge(propsToMerge)
-            }, `${validationTarget.name}.trigger.validationEffect`)()
+            }, `${validationTarget.name}.trigger.validationEffect`)()!
           }
         }, `${validationTarget.name}.trigger`).extend(withAbort()),
       }))

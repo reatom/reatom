@@ -1,15 +1,16 @@
-import { expect, subscribe, test, vi } from 'test'
+import { describe, expect, subscribe, test, vi } from 'test'
 
 import { atom, computed, isAtom, isConnected, notify } from '../core'
 import { withChangeHook } from '../extensions'
 import { deatomize, isCausedBy } from '../methods'
+import { createMemStorage, reatomPersist } from '../persist'
 import type {
   LinkedListSymbols,
   LL_NEXT,
   LL_PREV,
   LLNode,
 } from './reatomLinkedList'
-import { reatomLinkedList } from './reatomLinkedList'
+import { reatomLinkedList, toArray } from './reatomLinkedList'
 
 const validateIntegrity = <T extends LLNode>(
   head: T | null,
@@ -400,6 +401,57 @@ test('should track createMany and removeMany with reatomMap', () => {
   expect(mapped().changes[0]!.kind).toBe('removeMany')
 })
 
+test('should keep changes payload readable synchronously after a follow-up update', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+
+  list.createMany([[1], [2]])
+  const state = list()
+
+  list.create(3)
+
+  const change = state.changes[0]!
+  expect(change.kind).toBe('createMany')
+  expect(
+    change.kind === 'createMany' && change.nodes.map(({ n }) => n),
+  ).toEqual([1, 2])
+
+  notify()
+  expect(state.changes).toEqual([])
+})
+
+test('should keep changes payload intact for a subscriber doing a re-entrant update', () => {
+  const list = reatomLinkedList((n: number) => ({ n }))
+
+  // Mirror consumer: incrementally applies `state.changes` to an external
+  // structure — the same contract as jsx `walkLinkedList` and `reatomMap`.
+  const mirror = new Set<number>()
+  list.subscribe((state) => {
+    // A "capped list" invariant: react to overflow with a re-entrant update
+    // before syncing the notification payload.
+    if (state.size > 2) {
+      list.remove(state.head!)
+    }
+
+    for (const change of state.changes) {
+      if (change.kind === 'create') {
+        mirror.add(change.node.n)
+      } else if (change.kind === 'createMany') {
+        for (const node of change.nodes) mirror.add(node.n)
+      } else if (change.kind === 'remove') {
+        mirror.delete(change.node.n)
+      } else if (change.kind === 'removeMany') {
+        for (const node of change.nodes) mirror.delete(node.n)
+      }
+    }
+  })
+
+  list.createMany([[1], [2], [3]])
+  notify()
+
+  expect(list.array().map(({ n }) => n)).toEqual([2, 3])
+  expect([...mirror]).toEqual([2, 3])
+})
+
 test('should allow using element from one list in another list via list-specific symbols', () => {
   const listA = reatomLinkedList((n: number) => ({ n }))
   const listB = reatomLinkedList((n: number) => ({ n }))
@@ -424,4 +476,56 @@ test('should allow using element from one list in another list via list-specific
   expect(nextInB?.n).toBe(20)
 
   expect(nodeInA).not.toBe(nodeInB)
+})
+
+describe('serialization / deserialization', () => {
+  test('should serialize atom nodes to JSON as plain array', () => {
+    const name = 'linkedListSerialization'
+
+    const list = reatomLinkedList(
+      {
+        create: (n: number) => atom(n, `${name}.list#${n}`),
+        initState: [atom(1), atom(2)],
+      },
+      `${name}.list`,
+    )
+
+    expect(JSON.parse(JSON.stringify(list))).toEqual([1, 2])
+  })
+
+  test('should persist and restore linked list via mem storage', () => {
+    const name = 'linkedListPersist'
+
+    const persistStorage = createMemStorage({ name })
+    const withPersist = reatomPersist(persistStorage)
+
+    const key = `${name}.list`
+
+    persistStorage.snapshotAtom.set({
+      [key]: {
+        data: [1, 2, 3],
+        id: 0,
+        timestamp: Date.now(),
+        to: Date.now() + 10000,
+        version: 0,
+      },
+    })
+
+    const list = reatomLinkedList(
+      (n: number) => atom(n, `${name}.list#${n}`),
+      key,
+    ).extend(
+      withPersist({
+        key,
+        toSnapshot: (state) => deatomize(toArray(state)),
+      }),
+    )
+
+    expect(deatomize(list)).toEqual([1, 2, 3])
+
+    list.create(4)
+    expect(deatomize(list)).toEqual([1, 2, 3, 4])
+
+    expect(persistStorage.snapshotAtom()[key]?.data).toEqual([1, 2, 3, 4])
+  })
 })

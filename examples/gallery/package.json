@@ -1,0 +1,42 @@
+{
+  "name": "gallery",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "pretest-storybook": "pnpm --filter @reatom/jsx run build",
+    "test-storybook": "vitest --project=storybook",
+    "test-storybook:smoke": "vitest --project=storybook --run src/App.stories.tsx",
+    "test:unit": "vitest --project=unit",
+    "test:fixtures": "vitest --project=fixtures-a",
+    "test:fixtures:extended": "vitest --project=fixtures-a --project=fixtures-b",
+    "test:fixtures:raw": "vitest --project=fixtures-c",
+    "fixtures:fetch": "node scripts/fetch-fixtures.mjs --write-hashes",
+    "prestorybook": "pnpm --filter @reatom/jsx run build",
+    "storybook": "storybook dev -p 6006 --no-open",
+    "prebuild-storybook": "pnpm --filter @reatom/jsx run build",
+    "build-storybook": "storybook build"
+  },
+  "devDependencies": {
+    "@storybook/addon-a11y": "^10.2.0",
+    "@storybook/addon-vitest": "^10.2.0",
+    "@storybook/html-vite": "^10.2.0",
+    "@storybook/html": "^10.2.0",
+    "@testing-library/dom": "^10.4.0",
+    "@vitest/browser-playwright": "^4.1.7",
+    "playwright": "^1.60.0",
+    "storybook": "^10.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
+  },
+  "dependencies": {
+    "@reatom/core": "1001.*.*",
+    "@reatom/jsx": "1001.*.*",
+    "libraw-wasm": "^1.1.2"
+  }
+}

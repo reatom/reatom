@@ -4,7 +4,9 @@ import {
   atom,
   computed,
   effect,
+  onEvent,
   reatomEnum,
+  withAbort,
   withAsync,
   withChangeHook,
   withIndexedDb,
@@ -114,7 +116,7 @@ function shuffledIndices(length: number): number[] {
   return indices
 }
 
-function revokeObjectUrlAtom() {
+function revokeCurrentObjectUrl() {
   const url = currentObjectUrl()
   if (url) {
     URL.revokeObjectURL(url)
@@ -133,7 +135,7 @@ function clearMediaElementSource() {
 }
 
 function resetPlaybackState() {
-  revokeObjectUrlAtom()
+  revokeCurrentObjectUrl()
   clearMediaElementSource()
   isPlaying.set(false)
   positionSec.set(0)
@@ -197,16 +199,16 @@ export const loadCurrentTrack = action(async () => {
     resetPlaybackState()
     return
   }
-  revokeObjectUrlAtom()
+  revokeCurrentObjectUrl()
   const file = await wrap(entry.handle.getFile())
   const url = URL.createObjectURL(file)
   currentObjectUrl.set(url)
   positionSec.set(0)
   durationSec.set(0)
   el.src = url
-  await resumeAudioGraph()
+  await wrap(resumeAudioGraph())
   await wrap(el.play())
-}, 'loadCurrentTrack').extend(withAsync())
+}, 'loadCurrentTrack').extend(withAsync(), withAbort())
 
 function applyScannedTracks(folderName: string, tracks: PlaylistEntry[]) {
   folderLabel.set(folderName)
@@ -300,7 +302,7 @@ export const togglePlay = action(async () => {
   if (isPlaying()) {
     el.pause()
   } else {
-    await resumeAudioGraph()
+    await wrap(resumeAudioGraph())
     await wrap(el.play())
   }
 }, 'togglePlay')
@@ -411,7 +413,7 @@ export const seekToRatio = action((ratio: number) => {
 
 export function bindAudioElement(el: HTMLAudioElement | null) {
   if (!el) {
-    revokeObjectUrlAtom()
+    revokeCurrentObjectUrl()
     audioElementHost.set(null)
     return
   }
@@ -420,35 +422,27 @@ export function bindAudioElement(el: HTMLAudioElement | null) {
   ensureAudioGraph(el)
   el.volume = volume()
 
-  const onTimeUpdate = () => {
-    positionSec.set(el.currentTime)
-  }
-  const onLoadedMetadata = () => {
-    durationSec.set(Number.isFinite(el.duration) ? el.duration : 0)
-  }
-  const onEnded = () => {
-    handleTrackEnded()
-  }
-  const onPlay = () => {
-    isPlaying.set(true)
-  }
-  const onPause = () => {
-    isPlaying.set(false)
-  }
-
-  el.addEventListener('timeupdate', onTimeUpdate)
-  el.addEventListener('loadedmetadata', onLoadedMetadata)
-  el.addEventListener('ended', onEnded)
-  el.addEventListener('play', onPlay)
-  el.addEventListener('pause', onPause)
+  const unsubs = [
+    onEvent(el, 'timeupdate', () => {
+      positionSec.set(el.currentTime)
+    }),
+    onEvent(el, 'loadedmetadata', () => {
+      durationSec.set(Number.isFinite(el.duration) ? el.duration : 0)
+    }),
+    onEvent(el, 'ended', () => {
+      handleTrackEnded()
+    }),
+    onEvent(el, 'play', () => {
+      isPlaying.set(true)
+    }),
+    onEvent(el, 'pause', () => {
+      isPlaying.set(false)
+    }),
+  ]
 
   return () => {
-    el.removeEventListener('timeupdate', onTimeUpdate)
-    el.removeEventListener('loadedmetadata', onLoadedMetadata)
-    el.removeEventListener('ended', onEnded)
-    el.removeEventListener('play', onPlay)
-    el.removeEventListener('pause', onPause)
-    revokeObjectUrlAtom()
+    unsubs.forEach((unsub) => unsub())
+    revokeCurrentObjectUrl()
     audioElementHost.set(null)
   }
 }

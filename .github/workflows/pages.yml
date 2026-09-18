@@ -8,7 +8,7 @@ on:
   # Runs on pushes targeting the default branch
   push:
     branches: 
-      - v1000
+      - v1001
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -31,6 +31,7 @@ env:
 
 jobs:
   build:
+    timeout-minutes: 5
     name: Build
     runs-on: ubuntu-latest
     steps:
@@ -50,6 +51,7 @@ jobs:
         uses: pnpm/action-setup@1e1c8eafbd745f64b1ef30a7d7ed7965034c486c
         with:
           cache: true
+          cache_dependency_path: pnpm-lock.yaml
           run_install: true
 
 

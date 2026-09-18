@@ -1,5 +1,13 @@
 import type { Atom, AtomLike, AtomState, Computed, Ext } from '../core'
-import { _set, bind, createAtom, top } from '../core'
+import {
+  _createGlobal,
+  _set,
+  AtomInitState,
+  bind,
+  createAtom,
+  top,
+  withMiddleware,
+} from '../core'
 import { wrap } from '../methods'
 import { withInit } from './withInit'
 
@@ -16,7 +24,10 @@ export interface SuspenseRecord {
  * Internal suspense cache mapping promises to their settlement state. Do not
  * use it directly, only for libraries!
  */
-export let SUSPENSE = new WeakMap<Promise<any>, SuspenseRecord>()
+export let SUSPENSE = _createGlobal(
+  'withSuspense_suspenseMap',
+  () => new WeakMap<Promise<any>, SuspenseRecord>(),
+)
 
 /**
  * Checks if a promise is settled and returns its value or fallback. If the
@@ -210,9 +221,8 @@ export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
  * init, then work with it synchronously. Combine with `withChangeHook` to sync
  * changes back to a server or database.
  *
- * **Without callback**: Transforms `Atom<Promise<State>>` into `Atom<State>`.
- * The atom's async initializer is unwrapped, and consumers receive the resolved
- * value.
+ * **Without callback**: Transforms `Atom<Promise<State>>` or sync atoms that
+ * may return or throw a suspense promise into `Atom<State>`.
  *
  * @example
  *   const userSettings = atom(async () => {
@@ -260,25 +270,51 @@ export let suspense = <State>(target: AtomLike<State>): Awaited<State> =>
  * @returns Extension that initializes the atom with the callback result
  */
 export let withSuspenseInit: {
-  <State>(): Ext<Atom<Promise<State>>, Atom<State>>
+  <State>(): Ext<Atom<State>, Atom<Awaited<State>>>
 
   <Target extends AtomLike>(
     cb: (
-      state?: AtomState<Target>,
+      state: AtomState<Target>,
+      ...params: any[]
     ) => AtomState<Target> | Promise<AtomState<Target>>,
   ): Ext<Target>
 } =
   <Target extends AtomLike>(
     cb?: (
-      state?: AtomState<Target>,
+      state: AtomState<Target>,
+      ...params: any[]
     ) => AtomState<Target> | Promise<AtomState<Target>>,
   ): Ext<Target> =>
   (target) =>
     target.extend(
-      withInit((initState: AtomState<Target>) => {
+      withMiddleware(
+        () =>
+          // Special case for suspense in native init callback
+          function withSuspenseInit(next, ...params) {
+            let frame = top()
+            let initState = frame.state
+
+            try {
+              return next(...params)
+            } catch (error) {
+              if (
+                error instanceof Promise &&
+                initState instanceof AtomInitState &&
+                frame.state === undefined
+              ) {
+                frame.state = initState
+                frame.error = null
+              }
+
+              throw error
+            }
+          },
+        'read',
+      ),
+      withInit((initState: AtomState<Target>, ...params: any[]) => {
         let result: AtomState<Target> | Promise<AtomState<Target>>
         try {
-          result = cb ? cb(initState) : initState
+          result = cb ? cb(initState, ...params) : initState
         } catch (thrown: unknown) {
           if (thrown instanceof Promise) {
             result = thrown

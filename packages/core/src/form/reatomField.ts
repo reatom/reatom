@@ -153,7 +153,7 @@ export function withField<T extends Atom, State = AtomState<T>, Value = State>(
       `${name}.value`,
     )
 
-    const change = action((newValue) => {
+    const change = action((newValue: Value) => {
       const prevValue = value()
       if (!filter(newValue, prevValue)) return prevValue
 

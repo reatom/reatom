@@ -10,6 +10,8 @@ export default defineConfig({
   },
 
   test: {
+    sequence: { groupOrder: 11 },
+    testTimeout: 5000,
     name: '@reatom/core-browser',
     include: ['./src/**/*.test.browser.ts'],
     // inspectBrk: true,

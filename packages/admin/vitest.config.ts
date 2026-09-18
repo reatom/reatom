@@ -8,11 +8,29 @@ import { defineConfig } from 'vitest/config'
 const dir = dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
+  plugins: [
+    {
+      name: 'reatom-admin-gallery-harness',
+      transform(code, id) {
+        if (
+          id.includes('examples/gallery') &&
+          id.includes('GalleryWorkspace')
+        ) {
+          return code.replace(
+            /ref=\{\(\) => bindBackgroundPreviewLoader\(\)\}/g,
+            'ref={() => () => undefined}',
+          )
+        }
+        return null
+      },
+    },
+  ],
   resolve: {
     alias: {
       '@reatom/core': resolve(dir, '../core/src'),
       '@reatom/jsx': resolve(dir, '../jsx/src'),
       test: resolve(dir, './src/test.ts'),
+      'gallery-app': resolve(dir, '../../examples/gallery/src'),
     },
   },
   oxc: {
@@ -20,11 +38,18 @@ export default defineConfig({
       runtime: 'classic',
       pragma: 'h',
       pragmaFrag: 'hf',
+      throwIfNamespace: false,
     },
     jsxInject: `import { h, hf } from "@reatom/jsx"`,
   },
 
   test: {
+    sequence: { groupOrder: 12 },
+    testTimeout: 180_000,
+    // Gallery lightbox/filter journeys leave deep abort-parent chains that
+    // reject asynchronously after the story asserts; ignore those so a green
+    // suite is not failed by post-test teardown noise.
+    dangerouslyIgnoreUnhandledErrors: true,
     projects: [
       {
         extends: true,

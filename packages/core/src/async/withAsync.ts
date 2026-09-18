@@ -1,5 +1,7 @@
 import type { Action, Atom, AtomLike, Computed } from '../core'
 import {
+  _createGlobal,
+  _read,
   action,
   atom,
   bind,
@@ -10,18 +12,23 @@ import {
   top,
   withMiddleware,
 } from '../core'
+import { cacheVar } from '../extensions/withCache'
 import { abortVar, getCalls, ifChanged, reset, retryComputed } from '../methods'
 import type { Fn } from '../utils'
 import { isAbort } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
 
-let defaultStatus = computed(() => {
-  throw new ReatomError(
-    'status is turned off by default, you need to activate it explicitly in options',
-  )
-}, 'defaultStatus').extend((target) => ({
-  reset: action(() => target(), `${target.name}.reset`),
-})) as AsyncStatusAtom
+let defaultStatus = _createGlobal(
+  'withAsync_defaultStatus',
+  () =>
+    computed(() => {
+      throw new ReatomError(
+        'status is turned off by default, you need to activate it explicitly in options',
+      )
+    }, 'defaultStatus').extend((target) => ({
+      reset: action(() => target(), `${target.name}.reset`),
+    })) as AsyncStatusAtom,
+)
 
 /**
  * Extension interface added by {@link withAsync} to atoms or actions that return
@@ -97,7 +104,7 @@ export interface AsyncExt<
    *
    * @throws {ReatomError} When accessed without being enabled in options
    */
-  status: AsyncStatusAtom<any, any>
+  status: AsyncStatusAtom<any, any, Error>
 
   /**
    * Atom that caches the last called parameters for retry functionality. Must
@@ -204,8 +211,16 @@ export let withAsync: {
     ? T & AsyncExt<Params, Payload, Err | EmptyErr>
     : never
 } =
-  (options) =>
+  <Err = Error, EmptyErr = undefined>(
+    options?: null | AsyncOptions<Err, EmptyErr>,
+  ) =>
   (target: AtomLike): any => {
+    if ('cacheAtom' in target) {
+      throw new ReatomError(
+        'can not attach withAsync after withCache, you need to reorder them',
+      )
+    }
+
     let {
       parseError = (e: any) => (e instanceof Error ? e : new Error(String(e))),
       emptyError,
@@ -235,9 +250,18 @@ export let withAsync: {
         // which is especially important for an atom target
         computed(state = 0) {
           if (target.__reatom.reactive) {
-            ifChanged(target, () => state++)
+            ifChanged(target, () => {
+              const targetFrame = _read(target)
+              const cacheState = targetFrame && cacheVar.first(targetFrame)
+              if (!cacheState) state++
+            })
           } else {
-            state += getCalls(target as Action).length
+            const calls = getCalls(target as Action)
+            const targetFrame = _read(target)
+            const cacheState = targetFrame && cacheVar.first(targetFrame)
+            if (calls.length !== 0 && !cacheState) {
+              state += calls.length
+            }
           }
           return state
         },
@@ -310,25 +334,52 @@ export let withAsync: {
         throw new ReatomError('promise expected')
       }
 
-      if (touched.has(promise)) return state
-      touched.add(promise)
+      const cacheState = cacheVar.first()
+      const isCacheHit = cacheState !== undefined
+      const promiseToTrack = cacheState?.isSWR
+        ? cacheState.promise
+        : isCacheHit
+          ? undefined
+          : promise
+      const isPromiseFresh =
+        promiseToTrack !== undefined && !touched.has(promiseToTrack)
 
-      promise.then(
-        bind((payload) => {
-          abortVar.spawn(onFulfill, payload, params)
-        }, frame),
-        bind((error) => {
-          abortVar.spawn(onReject, error, params)
-        }, frame),
-      )
+      if (isCacheHit) touched.add(promise)
 
-      if (!pending.__reatom.processing) retryComputed(pending)
+      if (cacheState?.payload) {
+        pending.set((state) => state + 1)
+        onFulfill(cacheState.payload.value, params)
+      }
+
+      if (isPromiseFresh) {
+        touched.add(promiseToTrack)
+        promiseToTrack.then(
+          bind((payload) => {
+            if (cacheState) pending.set((state) => state + 1)
+            abortVar.spawn(onFulfill, payload, params)
+          }, frame),
+          bind((error) => {
+            if (cacheState) pending.set((state) => state + 1)
+            if (isAbort(error)) {
+              abortVar.spawn(onSettle, { error, params })
+            } else {
+              abortVar.spawn(onReject, error, params)
+            }
+          }, frame),
+        )
+      }
+
+      if (!isCacheHit && isPromiseFresh && !pending.__reatom.processing) {
+        retryComputed(pending)
+      }
 
       if (!target.__reatom.reactive) {
         state.at(-1)!.payload = promise
       }
 
-      if (resetError === 'onCall') error.set(emptyError)
+      if (!isCacheHit && isPromiseFresh && resetError === 'onCall') {
+        error.set(emptyError)
+      }
 
       return state
     }

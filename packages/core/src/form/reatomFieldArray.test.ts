@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from 'test'
-import z from 'zod'
+import { z } from 'zod'
 
 import { addCallHook, atom, notify, sleep, wrap } from '../'
 import { reatomFieldArray } from '.'

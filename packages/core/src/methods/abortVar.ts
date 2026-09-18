@@ -1,7 +1,7 @@
 import {
   bind,
   type Frame,
-  type GenericAction,
+  type GAction,
   top,
   withActionMiddleware,
 } from '../core'
@@ -71,7 +71,7 @@ export class AbortVariable extends Variable<
     return result
   }
 
-  declare createAndRun: GenericAction<
+  declare createAndRun: GAction<
     <Params extends any[], Payload>(
       cb: (...params: Params) => Payload,
       ...params: Params
@@ -240,7 +240,9 @@ export class AbortVariable extends Variable<
  *
  * @type {AbortVariable}
  */
-export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
+const initAbortVar = () => new AbortVariable()
+
+export let abortVar = /* @__PURE__ */ initAbortVar()
 
 /**
  * Races multiple controlled promises and automatically aborts all losers when
@@ -264,12 +266,29 @@ export let abortVar = /* @__PURE__ */ (() => new AbortVariable())()
  */
 export let race = <Payload>(
   ...promises: Array<ControlledPromise<Payload>>
-): Promise<Payload> =>
-  Promise.race(promises).finally(
+): Promise<Payload> => {
+  let settled: undefined | ControlledPromise<Payload>
+  return Promise.race(
+    promises.map((fork) =>
+      fork.then(
+        (value) => {
+          settled ??= fork
+          return value
+        },
+        (error) => {
+          settled ??= fork
+          throw error
+        },
+      ),
+    ),
+  ).finally(
     wrap(() => {
-      promises.forEach((fork) => fork.controller.abort('race'))
+      for (let fork of promises) {
+        if (fork !== settled) fork.controller.abort('race')
+      }
     }),
   )
+}
 
 // TODO
 // export let disableAbort = () => abortVar.set()

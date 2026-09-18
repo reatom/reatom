@@ -1,5 +1,5 @@
 import type { Action, AssignerExt, Frame } from '../core'
-import { _enqueue, action, top, withMiddleware } from '../core'
+import { _enqueue, _read, action, top, withMiddleware } from '../core'
 import { memoKey, ReatomAbortController } from '../methods'
 import { abortVar } from '../methods'
 import { _getPrevFrame } from '../methods/context'
@@ -121,6 +121,16 @@ export let withAbort =
       let computationError: unknown
       let hasError = false
 
+      if (target.__reatom.reactive) recomputed.delete(frame)
+
+      if (
+        prevController &&
+        strategy === 'last-in-win' &&
+        !target.__reatom.reactive
+      ) {
+        abortControllers(activeControllers, 'concurrent')
+      }
+
       try {
         state = next(...params)
       } catch (error) {
@@ -128,17 +138,18 @@ export let withAbort =
         hasError = true
       }
 
-      if (prevController && strategy === 'last-in-win') {
+      if (
+        prevController &&
+        strategy === 'last-in-win' &&
+        target.__reatom.reactive &&
+        !recomputed.has(frame)
+      ) {
         // may be just reading, no computed recall
-        if (target.__reatom.reactive && !recomputed.has(frame)) {
-          // TODO try
-          // if (state !== prevState) throw 42
-          abortVar.set(prevController)
-          if (hasError) throw computationError
-          return state
-        }
-
-        abortControllers(activeControllers, 'concurrent')
+        // TODO try
+        // if (state !== prevState) throw 42
+        abortVar.set(prevController)
+        if (hasError) throw computationError
+        return state
       }
 
       if (hasError) throw computationError
@@ -161,6 +172,7 @@ export let withAbort =
           try {
             abortSubscription = abortVar.subscribe((error) => {
               maybePromise.catch(noop)
+              wrappedPromise?.catch(noop)
               rej(error)
             })
             let value = await maybePromise
@@ -210,7 +222,15 @@ export let withAbort =
       withMiddleware(
         () =>
           (next: Fn, ...args: any[]) => {
-            recomputed.add(top())
+            let frame = top()
+            let prevFrame = _getPrevFrame(frame)
+            let prevController = prevFrame && abortVar.first(prevFrame)
+
+            if (strategy === 'last-in-win' && prevController) {
+              abortControllers(getAbortState().activeControllers, 'concurrent')
+            }
+
+            recomputed.add(frame)
             return next(...args)
           },
         'computed',
@@ -221,7 +241,7 @@ export let withAbort =
 
     return {
       abort: action((reason?: any) => {
-        let targetFrame = top().root.store.get(target)
+        let targetFrame = _read(target)
         let abortState = targetFrame?.run(getAbortState)
         let activeControllers = abortState?.activeControllers
 

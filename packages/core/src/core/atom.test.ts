@@ -4,12 +4,14 @@ import { withComputed } from '../extensions'
 import { identity } from '../utils'
 import {
   _read,
+  action,
   type Atom,
   atom,
   computed,
   context,
   createAtom,
   isConnected,
+  mock,
   notify,
   top,
   withMiddleware,
@@ -133,6 +135,22 @@ test('subscribe to cached atom', () => {
   // Check that a1 has exactly one subscriber
   const a1Frame = _read(a1)
   expect(a1Frame?.subs.length).toBe(1)
+})
+
+test('subscribe initial callback runs in the target frame', () => {
+  const source = atom(0, 'subscribeInitialCallbackFrame.source')
+  const callbackAtoms = new Array<ReturnType<typeof top>['atom']>()
+
+  source.subscribe(() => {
+    callbackAtoms.push(top().atom)
+  })
+
+  expect(callbackAtoms).toEqual([source])
+
+  source.set(1)
+  notify()
+
+  expect(callbackAtoms).toEqual([source, source])
 })
 
 test('update propagation for atom with listener', () => {
@@ -420,4 +438,175 @@ test('read middleware', () => {
   )
 
   expect(a()).toBe(1)
+})
+
+test('reactivity restored after error', () => {
+  const name = 'reactivityRestoredAfterError'
+  const source = atom(0, `${name}.source`)
+  let shouldThrow = false
+  const dep = computed(() => {
+    source()
+    if (shouldThrow) throw new Error('error')
+    return 'state'
+  }, `${name}.dep`)
+  const consumer = computed(() => {
+    return dep()
+  }, `${name}.consumer`)
+  const states = new Array<string>()
+
+  consumer.subscribe((state) => states.push(state))
+  expect(states).toEqual(['state'])
+
+  shouldThrow = true
+  source.set(1)
+  notify()
+  expect(states).toEqual(['state'])
+  expect(() => consumer()).toThrow('error')
+
+  shouldThrow = false
+  source.set(2)
+  notify()
+  expect(consumer()).toBe('state')
+  expect(states).toEqual(['state'])
+})
+
+test('error propagation for subscribe callback', () => {
+  const name = 'errorSubscribe'
+
+  const flag = atom(false, `${name}.flag`)
+  const dep = computed(() => {
+    if (flag()) {
+      throw new Error(name)
+    }
+    return 'state'
+  }, `${name}.dep`)
+
+  const listener = subscribe(dep)
+  expect(listener).toBeCalledTimes(1)
+  expect(listener).toBeCalledWith('state')
+
+  flag.set(true)
+  notify()
+  // without errorCb the throw escapes to the notify queue; userCb is skipped
+  expect(listener).toBeCalledTimes(1)
+  expect(() => dep()).toThrow(name)
+})
+
+test('subscribe errorCb receives thrown error and skips userCb', () => {
+  const name = 'subscribeErrorCb'
+  const source = atom(0, `${name}.source`)
+  let shouldThrow = false
+  const dep = computed(() => {
+    let n = source()
+    if (shouldThrow) throw new Error(name)
+    return `ok-${n}`
+  }, `${name}.dep`)
+
+  const states: string[] = []
+  const errors: unknown[] = []
+
+  dep.subscribe(
+    (state) => states.push(state),
+    (error) => errors.push(error),
+  )
+  expect(states).toEqual(['ok-0'])
+  expect(errors).toEqual([])
+
+  shouldThrow = true
+  source.set(1)
+  notify()
+  expect(states).toEqual(['ok-0'])
+  expect(errors).toHaveLength(1)
+  expect(errors[0]).toBeInstanceOf(Error)
+  expect((errors[0] as Error).message).toBe(name)
+
+  shouldThrow = false
+  source.set(2)
+  notify()
+  expect(states).toEqual(['ok-0', 'ok-2'])
+  expect(errors).toHaveLength(1)
+})
+
+test('subscribe userCb fires on recovery to the same state after errorCb', () => {
+  const name = 'subscribeErrorRecoverySameState'
+  const source = atom(0, `${name}.source`)
+  let shouldThrow = false
+  const dep = computed(() => {
+    source()
+    if (shouldThrow) throw new Error(name)
+    return 'same'
+  }, `${name}.dep`)
+
+  const states: string[] = []
+  const errors: unknown[] = []
+
+  dep.subscribe(
+    (state) => states.push(state),
+    (error) => errors.push(error),
+  )
+  expect(states).toEqual(['same'])
+
+  shouldThrow = true
+  source.set(1)
+  notify()
+  expect(errors).toHaveLength(1)
+  expect(states).toEqual(['same'])
+
+  shouldThrow = false
+  source.set(2)
+  notify()
+  // the subscriber saw an error last, so an equal state must still be delivered
+  expect(states).toEqual(['same', 'same'])
+  expect(errors).toHaveLength(1)
+})
+
+test('subscribe errorCb receives initial error', () => {
+  const name = 'subscribeInitError'
+  const dep = computed(() => {
+    throw new Error(name)
+  }, `${name}.dep`)
+
+  const states: string[] = []
+  const errors: unknown[] = []
+
+  dep.subscribe(
+    (state) => states.push(state),
+    (error) => errors.push(error),
+  )
+  expect(states).toEqual([])
+  expect(errors).toHaveLength(1)
+  expect((errors[0] as Error).message).toBe(name)
+})
+
+test('subscribe without errorCb still throws on init', () => {
+  const name = 'subscribeInitThrow'
+  const dep = computed(() => {
+    throw new Error(name)
+  }, `${name}.dep`)
+
+  expect(() => dep.subscribe(() => {})).toThrow(name)
+})
+
+test('mock action returns the mocked payload', () => {
+  const name = 'mockAction'
+  const doSmth = action((n: number) => n * 2, name)
+  const unmock = mock(doSmth, (n) => n * 10)
+
+  expect(doSmth(1)).toBe(10)
+
+  unmock()
+  expect(doSmth(1)).toBe(2)
+})
+
+test('mock atom intercepts set', () => {
+  const name = 'mockAtom'
+  const counter = atom(0, name)
+  const unmock = mock(counter, (value: number) => value + 100)
+
+  counter.set(1)
+  expect(counter()).toBe(101)
+
+  unmock()
+  counter.set(2)
+  expect(counter()).toBe(2)
 })

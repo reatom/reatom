@@ -1,8 +1,13 @@
-import { urlAtom } from '@reatom/core'
+import { atom, urlAtom } from '@reatom/core'
 
 import type { Admin } from '../../index'
 import type { AdminFrame } from '../../types'
 import { formatDateTime, formatJson } from '../format'
+import {
+  getFrameExportPayload,
+  getFrameInspectorPayload,
+  isActionFrame,
+} from '../frame-inspector'
 import {
   badge,
   buttonBase,
@@ -10,7 +15,6 @@ import {
   card,
   colors,
   flex,
-  flexCol,
   flexWrap,
   gap,
   mono,
@@ -34,12 +38,15 @@ export const FrameDetail = ({
 }: FrameDetailProps) => {
   const atoms = admin.store.getAtoms()
   const frameIndex = admin.store.frameIndex()
-  const framePayload = {
-    state: frame.state,
-    params: frame.params,
-    payload: frame.payload,
-    error: frame.error,
-  }
+  const exportPayload = getFrameExportPayload(frame)
+  const inspectorPayload = getFrameInspectorPayload(frame)
+  const isAction = isActionFrame(frame)
+  const copyState = atom<'idle' | 'copied'>(
+    'idle',
+    `_Admin.view.frameDetail.copy.${frame.id}`,
+  )
+
+  let copyTimer: ReturnType<typeof setTimeout> | null = null
 
   return (
     <div
@@ -86,7 +93,11 @@ export const FrameDetail = ({
                 color: ${frame.error !== null ? colors.error : colors.accent};
               `}
             >
-              {frame.error !== null ? 'Error frame' : 'Frame'}
+              {frame.error !== null
+                ? 'Error frame'
+                : isAction
+                  ? 'Action'
+                  : 'State'}
             </span>
             <span
               css={`
@@ -130,16 +141,22 @@ export const FrameDetail = ({
             type="button"
             css={buttonGhost}
             on:click={() => {
-              navigator.clipboard.writeText(formatJson(framePayload))
+              void navigator.clipboard.writeText(formatJson(exportPayload))
+              copyState.set('copied')
+              if (copyTimer !== null) clearTimeout(copyTimer)
+              copyTimer = setTimeout(() => {
+                copyState.set('idle')
+                copyTimer = null
+              }, 1500)
             }}
           >
-            Copy JSON
+            {() => (copyState() === 'copied' ? 'Copied' : 'Copy JSON')}
           </button>
           <button
             type="button"
             css={buttonGhost}
             on:click={() => {
-              const blob = new Blob([formatJson(framePayload)], {
+              const blob = new Blob([formatJson(exportPayload)], {
                 type: 'application/json',
               })
               const url = URL.createObjectURL(blob)
@@ -174,6 +191,7 @@ export const FrameDetail = ({
             color: ${colors.error};
             white-space: pre-wrap;
             word-break: break-word;
+            pointer-events: auto;
           `}
         >
           <strong>Captured error</strong>
@@ -193,9 +211,9 @@ export const FrameDetail = ({
             font-size: 0.9rem;
           `}
         >
-          Structured payload
+          {isAction ? 'Action payload' : 'Current state'}
         </h4>
-        <JsonInspector value={framePayload} />
+        <JsonInspector value={inspectorPayload} />
       </section>
 
       {frame.pubIds.length > 0 && (

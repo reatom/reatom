@@ -153,21 +153,31 @@ Mounts the product shell into a specific DOM element.
 
 ### `createAdminDevtools(options?)`
 
-Creates the docked in-page devtools shell with resize, show, and hide
-capabilities.
+Creates the docked in-page devtools shell with a corner resize grip, minimize
+in the toolbar (collapses to a floating pill), and show/hide capabilities. The
+product chrome is a dense toolbar (brand, Live/Replay source, recording toggle,
+session actions) with an inline metrics strip rather than oversized summary
+cards.
 
 ## Built-in test strategy
 
-The package is designed to be tested with realistic user scenarios:
+The package is designed to be tested with realistic user scenarios. Storybook
+interactions use [Kahraman](https://github.com/apphane-dev/kahraman) through the
+project adapter in [`.storybook/helpers`](.storybook/helpers), with conventions
+documented in [`.storybook/README.md`](.storybook/README.md).
 
 - unit tests for the reporter, store, filters, timeline, and graph
-- Storybook interaction stories that simulate real debugging journeys with real
-  example applications
+- Kahraman-driven Storybook interaction stories that simulate real debugging
+  journeys with real example applications
 - high-level Storybook investigations that validate:
   - admin-first instrumentation setup
   - captured action and atom activity
   - replayable inspection flows
   - user-visible debugging workflows
+- long-form gallery integration journeys (`Integration/Gallery`) that
+  mix app curation (view modes, search, selection, favorites, lightbox) with
+  admin Activity / Timeline / Graph / Filter studio inspection across 25–50
+  sequential steps per story
 
 ## Development scripts
 
@@ -175,5 +185,13 @@ The package is designed to be tested with realistic user scenarios:
 pnpm --filter @reatom/admin storybook
 pnpm --filter @reatom/admin test:unit
 pnpm --filter @reatom/admin test:stories
+pnpm --filter @reatom/admin test:stories:smoke
+pnpm --filter @reatom/admin test:stories:visual
 pnpm --filter @reatom/admin test
 ```
+
+## Multi-agent workflow
+
+Parallel agent sessions coordinate through [`workflow/README.md`](workflow/README.md)
+and [`workflow/backlog.yaml`](workflow/backlog.yaml). Every feature follows
+Storybook e2e TDD with programmatic assertions and visual screenshot baselines.

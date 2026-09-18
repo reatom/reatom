@@ -16,7 +16,7 @@ export interface FetchRequestInit<
   getResult?: (response: Response) => Result | Promise<Result>
 }
 
-export let FetchRequest = /* @__PURE__ */ (() =>
+const initFetchRequest = () =>
   class FetchRequest<
     Result = unknown,
     Params extends any[] = any[],
@@ -78,7 +78,7 @@ export let FetchRequest = /* @__PURE__ */ (() =>
       } as FetchRequestInit<Res, P>)
     }
 
-    fetch(...params: Params): Promise<Response> {
+    fetch(...params: Params): Promise<Result> {
       const { transport, getInit, getResult, ...init } = this.init
 
       const url = new URL(init.url)
@@ -97,6 +97,8 @@ export let FetchRequest = /* @__PURE__ */ (() =>
           ? (body as BodyInit)
           : JSON.stringify(body)
 
-      return transport(url, init).then(getResult) as Promise<Response>
+      return transport(url, init).then(getResult)
     }
-  })()
+  }
+
+export let FetchRequest = /* @__PURE__ */ initFetchRequest()

@@ -1,4 +1,4 @@
-import type { Frame, GenericAction } from '../core'
+import type { Frame, GAction } from '../core'
 import { action, context, named, ReatomError, top } from '../core'
 import type { Fn } from '../utils'
 import { identity } from '../utils'
@@ -121,7 +121,7 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
    * @returns {Payload} The return value of the callback
    * @throws {ReatomError} If value is undefined
    */
-  run: GenericAction<
+  run: GAction<
     <Params extends any[], Payload>(
       value: T,
       cb: (...params: Params) => Payload,
@@ -140,7 +140,7 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
    *     loggerVar.get()?.log('Hello!') // uses auto-created console
    *   })
    */
-  createAndRun: GenericAction<
+  createAndRun: GAction<
     <Params extends any[], Payload>(
       cb: (...params: Params) => Payload,
       ...params: Params
@@ -165,7 +165,7 @@ export class Variable<T extends NonUndefined, Params extends any[] = any[]> {
    *     }),
    *   )
    */
-  spawn: GenericAction<
+  spawn: GAction<
     <Params extends any[], Payload>(
       cb: (...params: Params) => Payload,
       ...params: Params

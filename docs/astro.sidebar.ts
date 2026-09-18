@@ -26,6 +26,7 @@ export const sidebar = [
       'handbook/suspense',
       'handbook/lifecycle',
       'handbook/routing',
+      'handbook/computed-factory',
       'handbook/persist',
       'handbook/sampling',
       {
@@ -68,9 +69,13 @@ export const sidebar = [
 
   group('Guides', {
     badge: icon('puzzle'),
-    autogenerate: {
-      directory: 'guides',
-    },
+    items: [
+      {
+        autogenerate: {
+          directory: 'guides',
+        },
+      },
+    ],
   }),
 
   group('Reference', {
@@ -143,9 +148,14 @@ export const sidebar = [
         link: '/reference/jsx',
       },
       {
+        label: '@reatom/vite',
+        link: '/reference/vite',
+      },
+      {
         label: '@reatom/zod',
         link: '/reference/zod',
       },
+      'examples',
     ],
   }),
 ]

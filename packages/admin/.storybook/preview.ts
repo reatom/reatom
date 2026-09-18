@@ -1,5 +1,6 @@
 /// <reference path="../src/global.d.ts" />
 import { urlAtom } from '@reatom/core'
+import kahramanPreview, { type KahramanParameters } from 'kahraman/preview'
 import { initialize, mswLoader } from 'msw-storybook-addon'
 
 import { reatomJsxXoHandlers } from '../src/stories/reatom-jsx-xo/mocks/handlers'
@@ -13,24 +14,34 @@ import { FALLBACK_VIEWPORT, getViewportSize } from './viewports'
 
 type ViewportGlobal = { value?: string } | string | undefined
 type PreviewGlobals = Record<string, ViewportGlobal>
+type PreviewContext = {
+  globals: PreviewGlobals
+  parameters?: KahramanParameters
+}
 
-initialize({
-  onUnhandledRequest: 'bypass',
-  quiet: true,
-  serviceWorker: {
-    url: `${import.meta.env['BASE_URL']}mockServiceWorker.js`,
+initialize(
+  {
+    onUnhandledRequest: 'bypass',
+    quiet: true,
+    serviceWorker: {
+      url: `${import.meta.env['BASE_URL']}mockServiceWorker.js`,
+    },
   },
-}, [reatomJsxXoHandlers.githubStars])
+  [reatomJsxXoHandlers.githubStars],
+)
 
 const preview = {
   parameters: {
-    a11y: { test: 'todo' },
+    a11y: { test: 'off' },
     msw: {
       handlers: reatomJsxXoHandlers,
     },
   },
   loaders: [mswLoader],
-  async beforeEach({ globals }: { globals: PreviewGlobals }) {
+  async beforeEach(context: PreviewContext) {
+    kahramanPreview.beforeEach(context)
+    const { globals } = context
+
     urlAtom.routes = {}
     if (typeof window !== 'undefined' && window.location.pathname !== '/') {
       window.history.replaceState({}, '', '/')

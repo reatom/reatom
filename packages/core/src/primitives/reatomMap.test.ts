@@ -55,4 +55,16 @@ describe(`reatomMap`, () => {
     })
     expect(mapAtom.size()).toBe(1)
   })
+
+  test('should serialize to JSON as array of entries', () => {
+    const mapAtom = reatomMap(new Map(defaultMapEntries))
+    mapAtom.set('d', 4)
+
+    expect(JSON.parse(JSON.stringify(mapAtom))).toEqual([
+      ['a', 1],
+      ['b', 2],
+      ['c', 3],
+      ['d', 4],
+    ])
+  })
 })

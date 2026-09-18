@@ -13,7 +13,7 @@ If you want to report a bug, create a reproduction using StackBlitz or CodeSandb
 > Update requirements for development
 
 1. fork and clone the repository
-2. create a development branch from `v1000`
+2. create a development branch from `v1001`
 3. install dependencies from the root of the repo (Node 24.2.0 and `pnpm@10.25.0` are recommended):
    ```sh
    pnpm install
@@ -25,7 +25,7 @@ If you want to report a bug, create a reproduction using StackBlitz or CodeSandb
    ```
    Replace `<PACKAGE_NAME>` with the relevant package name like `@reatom/react`
 5. [make changes](#coding-guide) and [commit them](#commit-messages)
-6. upload feature branch and create a [Pull Request](https://github.com/reatom/reatom/compare) to merge changes to `v1000`
+6. upload feature branch and create a [Pull Request](https://github.com/reatom/reatom/compare) to merge changes to `v1001`
 7. link your PR to the issue using a [closing keyword](https://help.github.com/en/articles/closing-issues-using-keywords) or provide changes description with motivation and explanation in the comment (example: `fix #74`)
 8. wait until a team member responds
 
@@ -44,6 +44,33 @@ Add needed dependencies by running `pnpm install` in the repository root. To add
 
 <!-- ??? -->
 <!-- To add new Package naming rule. -->
+
+## Agent skills
+
+Agent skills for AI coding assistants live in [`skills/`](skills/). This is the only directory you should edit.
+
+| Path              | Role                                   |
+| ----------------- | -------------------------------------- |
+| `skills/`         | Canonical skill files (edit here)      |
+| `.cursor/skills/` | Symlink → `skills/` (Cursor discovery) |
+| `.agents/skills/` | Symlink → `skills/` (Codex discovery)  |
+
+Each skill has a `SKILL.md` entrypoint. Bundled reference docs use `REFERENCE.md` (not `README.md` or `summary.md`).
+
+External files symlink to skill references — edit the skill file, not the symlink target:
+
+| Symlink                            | Canonical source                 |
+| ---------------------------------- | -------------------------------- |
+| `summary.md`                       | `skills/reatom/REFERENCE.md`     |
+| `docs/src/content/docs/summary.md` | `skills/reatom/REFERENCE.md`     |
+| `packages/core/README.md`          | `skills/reatom/REFERENCE.md`     |
+| `packages/jsx/README.md`           | `skills/reatom-jsx/REFERENCE.md` |
+
+**Do not diff, merge, or sync symlink targets.** If you see the same content at `summary.md`, `packages/core/README.md`, and `skills/reatom/REFERENCE.md`, that is expected — they are one file. Comparing or copying between them wastes review time and agent tokens.
+
+The `reatom-review` skill has no bundled reference — it instructs the agent to also load the `reatom` skill.
+
+See also [`AGENTS.md`](AGENTS.md) and [`skills/README.md`](skills/README.md) for the layout diagram.
 
 ## Coding guide
 

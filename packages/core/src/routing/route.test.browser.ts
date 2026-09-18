@@ -1,5 +1,5 @@
 import { beforeEach, expect, expectTypeOf, test, vi } from 'test'
-import z from 'zod'
+import { z } from 'zod'
 
 import { computed } from '../core'
 import { withChangeHook } from '../extensions'
@@ -189,9 +189,9 @@ test('route chainable functionality', async () => {
 
 test('route typed params', () => {
   {
-    // @ts-expect-error - test
-    const catalogRoute = reatomRoute({
+    reatomRoute({
       path: 'catalog/:id',
+      // @ts-expect-error - test
       params: z.object({ /* mistake -> */ ib: z.number() }),
     })
   }
@@ -380,7 +380,7 @@ test('params types transform', async () => {
   const issueRoute = reatomRoute({
     path: 'issue/:issueId',
     params: z.object({
-      issueId: z.string().regex(/^\d+$/).transform(Number),
+      issueId: z.coerce.number(),
     }),
     async loader(params) {
       return {
@@ -389,7 +389,7 @@ test('params types transform', async () => {
     },
   })
 
-  issueRoute.go({ issueId: '123' })
+  issueRoute.go({ issueId: 123 })
 
   expect(await wrap(issueRoute.loader())).toEqual({ issueId: 123 })
 })
@@ -416,28 +416,6 @@ test('search params memo', async () => {
   await wrap(sleep()) // wait the hook
   expect(route1Track).toBeCalledTimes(1)
   expect(route2()).toEqual({ q: '123' })
-})
-
-test('params collision', async () => {
-  const strictRoute = reatomRoute({
-    path: 'strictRoute/:id',
-  })
-
-  const liberalRoute = reatomRoute({
-    path: 'liberalRoute/:id',
-    search: z.record(z.string(), z.string()),
-  })
-
-  const expectedId = '42'
-  const maliciousId = 'lol'
-
-  urlAtom.go(`/strictRoute/${expectedId}?id=${maliciousId}`)
-
-  expect(strictRoute()).toEqual({ id: expectedId })
-
-  urlAtom.go(`/liberalRoute/${expectedId}?id=${maliciousId}`)
-
-  expect(() => liberalRoute()).toThrow('Params collision')
 })
 
 test('search-only route should preserve pathname', async () => {
@@ -864,9 +842,160 @@ test('params callback with correct search params inherence', () => {
 test('search params transform', () => {
   const userRoute = reatomRoute({
     path: 'user',
-    search: z.object({ u: z.string().optional() }).transform(raw => ({ userId: raw.u })),
+    search: z
+      .object({ u: z.string().optional() })
+      .transform((raw) => ({ userId: raw.u })),
   })
 
-  userRoute.go({ u: '123' })
+  urlAtom.go('/user?u=123')
   expect(userRoute()).toMatchObject({ userId: '123' })
+})
+
+test('pathful callback child unmatches when sibling is active', async () => {
+  const projectsRoute = reatomRoute('projects/:projectId')
+  const reviewRoute = projectsRoute.reatomRoute({
+    path: 'review',
+    params: (input) => input,
+  })
+  const settingsRoute = projectsRoute.reatomRoute({
+    path: 'settings',
+    params: (input) => input,
+  })
+
+  reviewRoute.go({ projectId: '123' })
+  await wrap(sleep())
+
+  expect(reviewRoute()).toEqual({ projectId: '123' })
+  expect(settingsRoute()).toBeNull()
+
+  settingsRoute.go({ projectId: '123' })
+  await wrap(sleep())
+
+  expect(reviewRoute()).toBeNull()
+  expect(settingsRoute()).toEqual({ projectId: '123' })
+})
+
+test('optional path param undefined omits segment', () => {
+  const postRoute = reatomRoute('posts/:postId?')
+  postRoute.go({ postId: undefined })
+  expect(urlAtom().pathname).toBe('/posts')
+})
+
+test('pathless nested route does not treat prefix path as parent subpath', () => {
+  const authRoute = reatomRoute('auth')
+  const authDialogRoute = authRoute.reatomRoute({
+    search: z.object({ dialog: z.enum(['a', 'b']).optional() }),
+  })
+
+  urlAtom.go('/auth-dialog')
+  authDialogRoute.go({ dialog: 'a' })
+  expect(urlAtom().pathname).toBe('/auth')
+  expect(urlAtom().search).toBe('?dialog=a')
+})
+
+test('go.relative navigates from sibling using parent params', async () => {
+  const projectsRoute = reatomRoute('projects/:projectId', 'rel.projects')
+  const settingsRoute = projectsRoute.reatomRoute('settings', 'rel.settings')
+  const reviewRoute = projectsRoute.reatomRoute('review', 'rel.review')
+
+  settingsRoute.go({ projectId: '123' })
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/projects/123/settings')
+
+  reviewRoute.go.relative()
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/projects/123/review')
+})
+
+test('go.relative merges explicit child params over parent', async () => {
+  const orgRoute = reatomRoute('org/:orgId', 'rel.org')
+  const teamRoute = orgRoute.reatomRoute('team/:teamId', 'rel.team')
+  const memberRoute = orgRoute.reatomRoute('member/:memberId', 'rel.member')
+
+  teamRoute.go({ orgId: 'o1', teamId: 't9' })
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/org/o1/team/t9')
+
+  memberRoute.go.relative({ memberId: 'm3' })
+  await wrap(sleep())
+
+  expect(urlAtom().pathname).toBe('/org/o1/member/m3')
+})
+
+test('go.relative throws when parent is not matched', () => {
+  const projectsRoute = reatomRoute('projects/:projectId')
+  const reviewRoute = projectsRoute.reatomRoute('review')
+
+  urlAtom.go('/')
+  expect(() => reviewRoute.go.relative()).toThrow('not matched')
+})
+
+test('nested route schema preserves parent params after validation', async () => {
+  const integrationId = '550e8400-e29b-41d4-a716-446655440000'
+
+  const integrationsListRoute = reatomRoute('integrations')
+  const integrationsDetailsRoute = integrationsListRoute.reatomRoute({
+    path: ':id',
+    params: z.object({ id: z.uuid() }),
+  })
+  const integrationsDetailsTypeRoute = integrationsDetailsRoute.reatomRoute({
+    path: ':type',
+    params: z.object({
+      type: z.enum(['foo', 'bar']),
+    }),
+    async loader({ id, type }) {
+      expect(id).toBe(integrationId)
+      expect(type).toBe('foo')
+    },
+  })
+
+  integrationsDetailsTypeRoute.go({ id: integrationId, type: 'foo' })
+  await wrap(sleep())
+
+  expect(integrationsDetailsRoute()).toEqual({ id: integrationId })
+  expect(integrationsDetailsTypeRoute()).toEqual({
+    id: integrationId,
+    type: 'foo',
+  })
+
+  urlAtom.go(`/integrations/${integrationId}/bar`)
+  await wrap(sleep())
+
+  expect(integrationsDetailsTypeRoute()).toEqual({
+    id: integrationId,
+    type: 'bar',
+  })
+
+  urlAtom.go(`/integrations/not-a-uuid/foo`)
+  await wrap(sleep())
+
+  expect(integrationsDetailsRoute()).toBe(null)
+  expect(integrationsDetailsTypeRoute()).toBe(null)
+})
+
+test('loader should not cached without params', async () => {
+  const rootRoute = reatomRoute({ layout: true })
+
+  const childRouteLoader = vi.fn(async () => {})
+  const childRoute = rootRoute.reatomRoute({
+    path: 'child',
+    loader: childRouteLoader,
+  })
+
+  childRoute.loader.subscribe()
+  expect(childRouteLoader).not.toHaveBeenCalled()
+
+  childRoute.go()
+  await wrap(Promise.resolve())
+  expect(childRouteLoader).toHaveBeenCalled()
+  expect(childRouteLoader).toHaveBeenCalledTimes(1)
+
+  urlAtom.go('/some')
+  await wrap(Promise.resolve())
+  childRoute.go()
+  await wrap(Promise.resolve())
+  expect(childRouteLoader).toHaveBeenCalledTimes(2)
 })

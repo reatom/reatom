@@ -1,6 +1,7 @@
 import { describe, expect, expectTypeOf, test } from 'test'
 
-import { atom, computed, notify } from '../core'
+import { _read, atom, computed, notify } from '../core'
+import { isCausedBy } from './isCausedBy'
 import { reatomLens } from './reatomLens'
 
 describe('runtime', () => {
@@ -164,12 +165,12 @@ describe('runtime', () => {
 
   test('should handle array out of bounds', () => {
     const listAtom = atom(['a', 'b'])
-    const thirdAtom = reatomLens(listAtom, 2)
+    const thirdAtom = reatomLens(listAtom, 3)
 
     expect(thirdAtom()).toBeUndefined()
 
     thirdAtom.set('c')
-    expect(listAtom()).toEqual(['a', 'b', 'c'])
+    expect(listAtom()).toEqual(['a', 'b', undefined, 'c'])
     expect(thirdAtom()).toBe('c')
   })
 
@@ -287,6 +288,84 @@ describe('runtime', () => {
 
     expect(nameAtom.name).toBe('userAtom.name')
   })
+
+  test('should track change cause for the parent atom', () => {
+    const userAtom = atom({ name: 'John' })
+    const nameAtom = reatomLens(userAtom, 'name')
+
+    nameAtom.set('Jane')
+
+    expect(_read(userAtom)!.run(isCausedBy, nameAtom)).toBeTruthy()
+  })
+
+  test('should work with atom key on object', () => {
+    const userAtom = atom({ name: 'John', age: 30 }, 'userAtom')
+    const keyAtom = atom<'name' | 'age'>('name', 'fieldAtom')
+    const valueAtom = reatomLens(userAtom, keyAtom)
+    const initialParent = userAtom()
+
+    expect(valueAtom()).toBe('John')
+    expect(valueAtom.name).toBe('userAtom.fieldAtom')
+
+    valueAtom.set('Jane')
+    expect(valueAtom()).toBe('Jane')
+    expect(userAtom()).toEqual({ name: 'Jane', age: 30 })
+    expect(userAtom()).not.toBe(initialParent)
+
+    keyAtom.set('age')
+    notify()
+    expect(valueAtom()).toBe(30)
+
+    valueAtom.set(25)
+    expect(userAtom()).toEqual({ name: 'Jane', age: 25 })
+  })
+
+  test('should work with atom key on Map', () => {
+    const mapAtom = atom(
+      new Map([
+        ['a', 1],
+        ['b', 2],
+      ]),
+    )
+    const keyAtom = atom<'a' | 'b'>('a')
+    const valueAtom = reatomLens(mapAtom, keyAtom)
+
+    expect(valueAtom()).toBe(1)
+
+    keyAtom.set('b')
+    notify()
+    expect(valueAtom()).toBe(2)
+
+    valueAtom.set(22)
+    expect(mapAtom().get('b')).toBe(22)
+
+    mapAtom.set(
+      new Map([
+        ['a', 10],
+        ['b', 20],
+      ]),
+    )
+    notify()
+    expect(valueAtom()).toBe(20)
+  })
+
+  test('should work with atom key on array', () => {
+    const listAtom = atom(['a', 'b', 'c'])
+    const indexAtom = atom(0)
+    const valueAtom = reatomLens(listAtom, indexAtom)
+
+    expect(valueAtom()).toBe('a')
+
+    valueAtom.set('x')
+    expect(listAtom()).toEqual(['x', 'b', 'c'])
+
+    indexAtom.set(2)
+    notify()
+    expect(valueAtom()).toBe('c')
+
+    valueAtom.set('z')
+    expect(listAtom()).toEqual(['x', 'b', 'z'])
+  })
 })
 
 describe('types', () => {
@@ -313,20 +392,21 @@ describe('types', () => {
 
   test('should infer correct type with custom get and set', () => {
     const dataAtom = atom({ nested: { deep: { value: 42 } } })
-    const deepAtom = reatomLens<typeof dataAtom, 'nested', number | undefined>(
-      dataAtom,
+    const deepAtom = reatomLens<
+      typeof dataAtom,
       'nested',
-      {
-        get: (parent) => parent.nested?.deep?.value,
-        set: (parent, _, value) => ({
-          ...parent,
-          nested: {
-            ...parent.nested,
-            deep: { ...parent.nested.deep, value: value ?? 0 },
-          },
-        }),
-      },
-    )
+      'nested',
+      number | undefined
+    >(dataAtom, 'nested', {
+      get: (parent) => parent.nested?.deep?.value,
+      set: (parent, _, value) => ({
+        ...parent,
+        nested: {
+          ...parent.nested,
+          deep: { ...parent.nested.deep, value: value ?? 0 },
+        },
+      }),
+    })
 
     expectTypeOf(deepAtom()).toEqualTypeOf<number | undefined>()
   })
@@ -344,5 +424,21 @@ describe('types', () => {
     const valueAtom = reatomLens(dataAtom, sym)
 
     expectTypeOf(valueAtom()).toEqualTypeOf<string>()
+  })
+
+  test('should infer correct type for atom key', () => {
+    const userAtom = atom({ name: 'John', age: 30 })
+    const keyAtom = atom<'name' | 'age'>('name')
+    const valueAtom = reatomLens(userAtom, keyAtom)
+
+    expectTypeOf(valueAtom()).toEqualTypeOf<string | number>()
+  })
+
+  test('should infer correct type for atom key on array', () => {
+    const listAtom = atom(['a', 'b', 'c'])
+    const indexAtom = atom(0)
+    const valueAtom = reatomLens(listAtom, indexAtom)
+
+    expectTypeOf(valueAtom()).toEqualTypeOf<string | undefined>()
   })
 })

@@ -1,3 +1,4 @@
+import { _createGlobal } from './core/globalStore'
 import type { SetTimeout } from './setTimeout'
 
 /**
@@ -290,6 +291,9 @@ export const isRec = (thing: unknown): thing is Record<string, unknown> => {
  * For iterables, compares each item in sequence for equality. For objects,
  * compares direct property values but not nested objects deeply.
  *
+ * Tradeoff: `Map` / `Set` equality follows insertion order (iterator sequence),
+ * not set-theoretic membership — cheaper, but order-sensitive.
+ *
  * @param a - First value to compare
  * @param b - Second value to compare
  * @param is - Optional comparison function to use for individual values
@@ -349,17 +353,21 @@ export const isShallowEqual = (a: any, b: any, is = Object.is) => {
  * sets. Uses a WeakMap to track visited objects to avoid infinite recursion
  * with circular references.
  *
+ * Same `Map` / `Set` insertion-order tradeoff as {@link isShallowEqual}.
+ *
  * @param a - First value to compare
  * @param b - Second value to compare
  * @returns True if the values are deeply equal, false otherwise
  */
 export const isDeepEqual = (a: any, b: any) => {
-  const visited = new WeakMap()
+  const visited = new WeakMap<object, WeakSet<object>>()
 
   const is = (a: any, b: any) => {
-    if (isObject(a)) {
-      if (visited.has(a)) return visited.get(a) === b
-      visited.set(a, b)
+    if (isObject(a) && isObject(b)) {
+      let paired = visited.get(a)
+      if (paired?.has(b)) return true
+      if (!paired) visited.set(a, (paired = new WeakSet()))
+      paired.add(b)
     }
     return isShallowEqual(a, b, is)
   }
@@ -447,6 +455,19 @@ export const entries: {
 } = Object.entries
 
 /**
+ * Type-safe version of Object.fromEntries that preserves key and value type
+ * information. Creates an object from an iterable of key-value pairs.
+ *
+ * @template K - The key type
+ * @template V - The value type
+ * @param entries - An iterable of [key, value] pairs
+ * @returns An object with the specified keys and values
+ */
+export const fromEntries: {
+  <K extends PropertyKey, V>(entries: Iterable<readonly [K, V]>): Record<K, V>
+} = Object.fromEntries
+
+/**
  * Creates a new object with only the specified keys from the original object.
  *
  * @example
@@ -509,8 +530,10 @@ export const omit = <T, K extends keyof T>(
  */
 export const jsonClone = <T>(value: T): T => JSON.parse(JSON.stringify(value))
 
-let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
-  Math.floor(Math.random() * (max - min + 1)) + min
+let randomImpl = _createGlobal('utils_randomImpl', () => ({
+  rand: (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
+    Math.floor(Math.random() * (max - min + 1)) + min,
+}))
 
 /**
  * Generates a random integer between min and max (inclusive).
@@ -520,7 +543,7 @@ let _random = (min = 0, max = Number.MAX_SAFE_INTEGER - 1) =>
  *   1)
  * @returns A random integer between min and max
  */
-export const random: typeof _random = (min, max) => _random(min, max)
+export const random = (min?: number, max?: number) => randomImpl.rand(min, max)
 
 /**
  * Replaces the default random number generator with a custom implementation.
@@ -537,13 +560,12 @@ export const random: typeof _random = (min, max) => _random(min, max)
  *   implementation when called
  */
 export const mockRandom = (fn: typeof random) => {
-  const origin = _random
-  _random = fn
+  const origin = randomImpl.rand
+  randomImpl.rand = fn as typeof randomImpl.rand
   return () => {
-    _random = origin
+    randomImpl.rand = origin
   }
 }
-
 /**
  * Asserts that a value is not null or undefined. Throws a TypeError if the
  * value is null or undefined. Also serves as a type guard to narrow the type to
@@ -565,9 +587,35 @@ export const nonNullable = <T>(value: T, message?: string): NonNullable<T> => {
   return value
 }
 
+/**
+ * Asserts that a value is an instance of the given constructor. Throws a
+ * TypeError if the check fails. Also serves as a type guard to narrow the value
+ * to the expected instance type.
+ *
+ * @example
+ *   const main = instance(HTMLElement, <main />)
+ *   const input = instance(HTMLInputElement, <input />)
+ *
+ * @template T - The expected instance type
+ * @param prototype - Constructor to check against
+ * @param element - The value to check
+ * @returns The input value if it is an instance of the constructor
+ * @throws {TypeError} If the value is not an instance of the constructor
+ */
+export const instance = <T>(prototype: new () => T, element: unknown): T => {
+  if (element instanceof prototype) return element
+
+  const received = element == null ? String(element) : element.constructor.name
+
+  throw TypeError(`Expected ${prototype.name} but got ${received}`)
+}
+
 const toString = /* @__PURE__ */ Object.prototype.toString
 const toStringArray = /* @__PURE__ */ [].toString
-const visited = new WeakMap<{}, string>()
+const visited = _createGlobal(
+  'utils_toStringKeyVisited',
+  () => new WeakMap<{}, string>(),
+)
 
 /**
  * Converts any JavaScript value to a stable string representation. Handles
@@ -580,7 +628,11 @@ const visited = new WeakMap<{}, string>()
  * - Symbols
  * - Functions
  * - Custom class instances
- * - Regular objects (with sorted keys for stability)
+ * - Regular objects (with sorted keys for property-order stability)
+ *
+ * Tradeoff: each object gets a unique identity tag, so distinct instances with
+ * the same structure do not stringify to the same key (needed for cycles /
+ * caching). Plain-object keys are sorted; `Map` / `Set` keep insertion order.
  *
  * @example
  *   // Handles circular references
@@ -588,66 +640,75 @@ const visited = new WeakMap<{}, string>()
  *   obj.self = obj
  *   const key = toStringKey(obj) // No infinite recursion!
  *
- *   // Stable representation of objects (key order doesn't matter)
- *   toStringKey({ a: 1, b: 2 }) === toStringKey({ b: 2, a: 1 }) // true
- *
  * @param thing - The value to convert to a string
  * @param immutable - Whether to memoize results for complex objects (defaults
  *   to true)
  * @returns A string representation of the value
  */
 export const toStringKey = (thing: any, immutable = true): string => {
-  let tag = typeof thing
+  const stack = new WeakSet<object>()
 
-  if (tag === 'symbol') return `[reatom Symbol]${thing.description || 'symbol'}`
+  const walk = (thing: any): string => {
+    let tag = typeof thing
 
-  if (
-    tag !== 'function' &&
-    (tag !== 'object' ||
-      thing === null ||
-      thing instanceof Date ||
-      thing instanceof RegExp)
-  ) {
-    return `[reatom ${tag}]` + thing
-  }
+    if (tag === 'symbol')
+      return `[reatom Symbol]${thing.description || 'symbol'}`
 
-  if (visited.has(thing)) return visited.get(thing)!
+    if (
+      tag !== 'function' &&
+      (tag !== 'object' ||
+        thing === null ||
+        thing instanceof Date ||
+        thing instanceof RegExp)
+    ) {
+      return `[reatom ${tag}]` + thing
+    }
 
-  let name =
-    Reflect.getPrototypeOf(thing)?.constructor.name ||
-    toString.call(thing).slice(8, -1)
-  // get a unique prefix for each type to separate same array / map
-  // thing could be a circular or not stringifiable object from a userspace
-  let result = `[reatom ${name}#${random()}]`
-  if (tag === 'function') {
-    visited.set(thing, (result += thing.name))
+    const cached = visited.get(thing)
+    if (cached !== undefined && (immutable || stack.has(thing))) return cached
+
+    let name =
+      Reflect.getPrototypeOf(thing)?.constructor.name ||
+      toString.call(thing).slice(8, -1)
+    let identity = cached ?? `[reatom ${name}#${random()}]`
+    if (tag === 'function') {
+      if (cached === undefined) visited.set(thing, (identity += thing.name))
+      return visited.get(thing)!
+    }
+
+    let result = identity
+    if (cached === undefined) visited.set(thing, identity)
+    stack.add(thing)
+
+    let proto = Reflect.getPrototypeOf(thing)
+    if (
+      proto &&
+      Reflect.getPrototypeOf(proto) &&
+      thing.toString !== toStringArray &&
+      Symbol.iterator in thing === false
+    ) {
+      stack.delete(thing)
+      return result
+    }
+
+    if (Symbol.iterator in thing) {
+      for (let item of thing) result += walk(item)
+    } else {
+      for (let [key, value] of Object.entries(thing).sort(([a], [b]) =>
+        a.localeCompare(b),
+      )) {
+        result += walk(key) + walk(value)
+      }
+    }
+
+    stack.delete(thing)
+
+    if (immutable) visited.set(thing, result)
+
     return result
   }
-  visited.set(thing, result)
 
-  let proto = Reflect.getPrototypeOf(thing)
-  if (
-    proto &&
-    Reflect.getPrototypeOf(proto) &&
-    thing.toString !== toStringArray &&
-    Symbol.iterator in thing === false
-  ) {
-    return result
-  }
-
-  let iterator =
-    Symbol.iterator in thing
-      ? thing
-      : Object.entries(thing).sort(([a], [b]) => a.localeCompare(b))
-  for (let item of iterator) result += toStringKey(item, immutable)
-
-  if (immutable) {
-    visited.set(thing, result)
-  } else {
-    visited.delete(thing)
-  }
-
-  return result
+  return walk(thing)
 }
 
 /**
@@ -660,7 +721,10 @@ export interface AbortError extends DOMException {
   name: 'AbortError'
 }
 
-let i = 0
+let abortErrorOrdinal = _createGlobal('utils_abortErrorOrdinal', () => ({
+  n: 0,
+}))
+
 /**
  * Converts any value to an AbortError. If the value is already an AbortError,
  * it will be returned as is. Otherwise, creates a new AbortError with
@@ -682,7 +746,7 @@ export const toAbortError = (reason: any): AbortError => {
       reason = isObject(reason) ? toString.call(reason) : String(reason)
     }
 
-    reason += ` [#${++i}]`
+    reason += ` [#${++abortErrorOrdinal.n}]`
 
     if (typeof DOMException === 'undefined') {
       reason = new Error(reason, options)
@@ -745,7 +809,7 @@ export const throwAbort = (
  * @param args - Optional arguments to pass to the handler function
  * @returns A timeout ID that can be used with clearTimeout
  */
-export const setTimeout: SetTimeout = /* @__PURE__ */ (() =>
+const initSetTimeout = () =>
   Object.assign((...params: Parameters<SetTimeout>) => {
     const intervalId = globalThis.setTimeout(...params)
     return typeof intervalId === 'number'
@@ -755,7 +819,9 @@ export const setTimeout: SetTimeout = /* @__PURE__ */ (() =>
             return -1
           },
         })
-  }, globalThis.setTimeout))()
+  }, globalThis.setTimeout)
+
+export const setTimeout: SetTimeout = /* @__PURE__ */ initSetTimeout()
 
 /**
  * Maximum safe integer value for setTimeout delay. Any timeout value larger

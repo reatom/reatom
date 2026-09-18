@@ -1,5 +1,5 @@
 import type { Action, Computed } from '../core'
-import { computed, context, named, top } from '../core'
+import { _read, computed, context, named, top } from '../core'
 import { withAbort } from '../extensions'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import type { Unsubscribe } from '../utils'
@@ -66,6 +66,19 @@ export let effect = <T>(cb: () => T, name?: string) => {
     // TODO optimize
     // need to link abortVar to unsubscribe
     memo(() => void getCalls(target.subscribe as Action))
+
+    // let frame = top()
+    // let oldPubs = _getPrevFrame(frame)?.pubs
+    // if (_read(target.subscribe as Action)?.['var#abort']?.signal.aborted) {
+    //   for (let i = frame.pubs.length; oldPubs && i < oldPubs.length; i++) {
+    //     let pub = oldPubs[i]
+    //     if (pub) frame.pubs.push(pub)
+    //   }
+    //   return
+    // }
+    if (_read(target.subscribe as Action)?.['var#abort']?.signal.aborted) {
+      return
+    }
 
     let res = cb()
     if (res instanceof Promise) {

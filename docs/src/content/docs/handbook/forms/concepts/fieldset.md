@@ -179,7 +179,7 @@ Let's assume we have the following form:
 
 ```ts
 import { reatomForm, reatomFieldSet } from '@reatom/core'
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 const checkoutForm = reatomForm(
   {

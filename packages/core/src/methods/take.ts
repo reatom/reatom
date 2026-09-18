@@ -1,11 +1,11 @@
-import type { AtomLike } from '../core'
-import { action, bind, computed, isAtom, top } from '../core'
+import type { Action, AtomLike } from '../core'
+import { _createGlobal, action, bind, computed, isAtom, top } from '../core'
 import { withDynamicSubscription } from '../extensions/withDynamicSubscription'
 import type { Fn, Unsubscribe } from '../utils'
 import { isAbort, noop } from '../utils'
 import { getCalls } from './ifChanged'
 
-let i = 0
+let takeOrdinal = _createGlobal('takeOrdinal', () => ({ n: 0 }))
 
 /**
  * Awaits the next update of an atom or call of an action.
@@ -68,7 +68,7 @@ export function take(
   let map =
     typeof mapOrName === 'function' ? mapOrName : ((name = mapOrName), null)
 
-  name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++i}`}`
+  name = `${top().atom.name || 'root'}.take${name ? `.${name}` : `#${++takeOrdinal.n}`}`
 
   const targetAtom = isAtom(target)
     ? target
@@ -101,7 +101,7 @@ export function take(
         if (targetAtom.__reatom.reactive) {
           value = targetAtom()
         } else {
-          let [call] = getCalls(targetAtom)
+          let [call] = getCalls(targetAtom as Action)
           if (call) {
             value = call.payload
           }
@@ -120,7 +120,9 @@ export function take(
 
         res(value)
       } catch (error) {
-        if (!isAbort(error)) {
+        if (error instanceof Promise) {
+          error.catch(noop)
+        } else if (!isAbort(error)) {
           if (isFirstCall) {
             syncResult = { kind: 'rejected', value: error }
             log('reject', error)

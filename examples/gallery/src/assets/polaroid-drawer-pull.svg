@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="90" height="30" viewBox="0 0 90 30" fill="none">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="5" x2="0" y2="25" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f2e4bd"/><stop offset=".2" stop-color="#a89a76"/>
+      <stop offset=".42" stop-color="#e3d3aa"/><stop offset=".55" stop-color="#796d51"/>
+      <stop offset=".8" stop-color="#bbab82"/><stop offset="1" stop-color="#655b45"/>
+    </linearGradient>
+    <linearGradient id="grip" x1="45" y1="13" x2="45" y2="22" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff0c6"/><stop offset=".22" stop-color="#d8c9a4"/>
+      <stop offset=".5" stop-color="#a99b79"/><stop offset="1" stop-color="#524b3b"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-30%" width="140%" height="180%">
+      <feDropShadow dx="0" dy="3" stdDeviation="1.5" flood-color="#392510" flood-opacity=".6"/>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="7" y="4" width="12" height="20" rx="3" fill="url(#metal)" stroke="#73664a"/>
+    <rect x="71" y="4" width="12" height="20" rx="3" fill="url(#metal)" stroke="#73664a"/>
+    <path d="M13 11V18Q13 20 18 20H72Q77 20 77 18V11" stroke="#514731" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M13 10V16Q13 18 18 18H72Q77 18 77 16V10" stroke="url(#grip)" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M19 16H71" stroke="#f8e9be" stroke-opacity=".65" stroke-linecap="round"/>
+    <g fill="#bdae87" stroke="#756749" stroke-width=".7">
+      <circle cx="13" cy="7" r="1.7"/><circle cx="77" cy="7" r="1.7"/>
+    </g>
+    <path d="M12 8L14 6M76 6L78 8" stroke="#594e38" stroke-width=".7"/>
+  </g>
+</svg>
