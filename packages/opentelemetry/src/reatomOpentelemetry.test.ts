@@ -18,8 +18,12 @@ afterEach(() => {
   while (cleanups.length) cleanups.pop()!()
 })
 
-const setup = (overrides: Partial<Parameters<typeof reatomOpentelemetry>[0]> = {}) => {
-  const fetchMock = vi.fn<typeof globalThis.fetch>(async () => new Response('{}', { status: 200 }))
+const setup = (
+  overrides: Partial<Parameters<typeof reatomOpentelemetry>[0]> = {},
+) => {
+  const fetchMock = vi.fn<typeof globalThis.fetch>(
+    async () => new Response('{}', { status: 200 }),
+  )
   const otel = reatomOpentelemetry({
     endpoint: 'https://traces.example.com',
     serviceName: 'test-svc',
@@ -51,22 +55,26 @@ test('flushed batch posts OTLP/JSON payload to /v1/traces with service.name attr
   expect(init?.method).toBe('POST')
 
   expect(parsePayload(init!.body as string)).toEqual({
-    resourceSpans: [{
-      resource: { attributes: { 'service.name': 'test-svc' } },
-      scope: { name: '@reatom/opentelemetry', version: '' },
-      spans: [{
-        traceId: expect.stringMatching(HEX_TRACE_ID),
-        spanId: expect.stringMatching(HEX_SPAN_ID),
-        parentSpanId: undefined,
-        name: 'greet',
-        kind: 'internal',
-        startTimeUnixNano: expect.any(String),
-        endTimeUnixNano: expect.any(String),
-        attributes: { params: '[]', payload: 'hello' },
-        events: [],
-        status: undefined,
-      }],
-    }],
+    resourceSpans: [
+      {
+        resource: { attributes: { 'service.name': 'test-svc' } },
+        scope: { name: '@reatom/opentelemetry', version: '' },
+        spans: [
+          {
+            traceId: expect.stringMatching(HEX_TRACE_ID),
+            spanId: expect.stringMatching(HEX_SPAN_ID),
+            parentSpanId: undefined,
+            name: 'greet',
+            kind: 'internal',
+            startTimeUnixNano: expect.any(String),
+            endTimeUnixNano: expect.any(String),
+            attributes: { params: '[]', payload: 'hello' },
+            events: [],
+            status: undefined,
+          },
+        ],
+      },
+    ],
   })
 })
 
@@ -87,7 +95,9 @@ test('filter excludes matching targets from auto-instrumentation', async () => {
 
   expect(fetchMock).toHaveBeenCalledTimes(1)
   const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
-  const names = body.resourceSpans[0].scopeSpans[0].spans.map((s: { name: string }) => s.name)
+  const names = body.resourceSpans[0].scopeSpans[0].spans.map(
+    (s: { name: string }) => s.name,
+  )
   expect(names).toContain('public.visible')
   expect(names).not.toContain('private.hidden')
 })
@@ -108,7 +118,9 @@ test('atoms created before reatomOpentelemetry are NOT auto-instrumented', async
 
   expect(fetchMock).toHaveBeenCalledTimes(1)
   const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
-  const names = body.resourceSpans[0].scopeSpans[0].spans.map((s: { name: string }) => s.name)
+  const names = body.resourceSpans[0].scopeSpans[0].spans.map(
+    (s: { name: string }) => s.name,
+  )
   expect(names).toContain('fresh')
   expect(names).not.toContain('orphan')
 })
@@ -160,7 +172,9 @@ test('auto-instrumented action emits params/payload, not prevState/nextState', a
 
   const greet = action((name: string) => `hi ${name}`, 'greet')
 
-  context.start(() => { greet('alice') })
+  context.start(() => {
+    greet('alice')
+  })
   await otel.flush()
 
   const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
@@ -198,14 +212,20 @@ test('auto-instrumented atom still emits prevState/nextState', async () => {
 
   const counter = atom(0, 'counter')
 
-  context.start(() => { counter.set(1) })
+  context.start(() => {
+    counter.set(1)
+  })
   await otel.flush()
 
   const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
   const transition = body.resourceSpans[0].scopeSpans[0].spans.find(
     (s: Pick<OtlpSpan, 'name' | 'attributes'>) => {
       const attrs = attrsOf(s)
-      return s.name === 'counter' && attrs.prevState === '0' && attrs.nextState === '1'
+      return (
+        s.name === 'counter' &&
+        attrs.prevState === '0' &&
+        attrs.nextState === '1'
+      )
     },
   )
   expect(transition).toBeDefined()
@@ -266,7 +286,9 @@ test('pagehide flushes even when document.visibilityState is "visible"', async (
     const { otel, fetchMock } = setup()
 
     const probe = action(() => 'x', 'probe')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     const pagehideHandler = windowListeners.get('pagehide')
     expect(pagehideHandler).toBeDefined()
@@ -295,7 +317,9 @@ test('persistent HTTP error after retries surfaces an export failure warning', a
     })
 
     const probe = action(() => 'x', 'probe')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     const flushPromise = otel.flush()
     await vi.runAllTimersAsync()
@@ -326,7 +350,9 @@ test('dispose() cancels an in-flight retry sleep, no further fetch attempts', as
   })
 
   const probe = action(() => 'x', 'probe')
-  context.start(() => { probe() })
+  context.start(() => {
+    probe()
+  })
 
   const flushPromise = otel.flush()
   await new Promise<void>((r) => setTimeout(r, 20))
@@ -358,7 +384,9 @@ test('dispose() does not log abort warnings', async () => {
     })
 
     const probe = action(() => 'x', 'probe')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
     const flushPromise = otel.flush()
     await new Promise<void>((r) => setTimeout(r, 20))
 
@@ -378,7 +406,9 @@ test('dispose() does not log abort warnings', async () => {
 test('default unload transport is keepalive fetch — sendBeacon is NOT called when useBeacon is unspecified', async () => {
   const { windowListeners, restore } = installDomStubs()
   try {
-    const sendBeacon = vi.fn<(url: string, data: BodyInit) => boolean>(() => true)
+    const sendBeacon = vi.fn<(url: string, data: BodyInit) => boolean>(
+      () => true,
+    )
     const fetchMock = vi.fn<typeof globalThis.fetch>(
       async () => new Response('{}', { status: 200 }),
     )
@@ -395,7 +425,9 @@ test('default unload transport is keepalive fetch — sendBeacon is NOT called w
     cleanups.push(otel.dispose)
 
     const probe = action(() => 'x', 'probe')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     windowListeners.get('pagehide')!()
     await new Promise<void>((r) => setTimeout(r, 0))
@@ -416,21 +448,27 @@ test('beacon delivery failure surfaces an export warning', async () => {
   const { windowListeners, restore } = installDomStubs()
   const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
   try {
-    const sendBeacon = vi.fn<(url: string, data: BodyInit) => boolean>(() => false)
+    const sendBeacon = vi.fn<(url: string, data: BodyInit) => boolean>(
+      () => false,
+    )
     const otel = reatomOpentelemetry({
       endpoint: 'https://traces.example.com',
       serviceName: 'test-svc',
       batchInterval: 50,
       maxBatchSize: 10,
       maxQueueSize: 100,
-      fetch: vi.fn<typeof globalThis.fetch>(async () => new Response('{}', { status: 200 })),
+      fetch: vi.fn<typeof globalThis.fetch>(
+        async () => new Response('{}', { status: 200 }),
+      ),
       sendBeacon,
       useBeacon: true,
     })
     cleanups.push(otel.dispose)
 
     const probe = action(() => 'x', 'probe')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     windowListeners.get('pagehide')!()
 
@@ -446,7 +484,9 @@ test('beacon delivery failure surfaces an export warning', async () => {
 test('user-supplied version flows through to scope.version on every batch', async () => {
   const { otel, fetchMock } = setup({ version: '2.3.0' })
   const probe = action(() => 'x', 'probe')
-  context.start(() => { probe() })
+  context.start(() => {
+    probe()
+  })
   await otel.flush()
 
   const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
@@ -467,8 +507,12 @@ test('passes custom resourceAttributes and headers through to the fetch call', a
   await otel.flush()
 
   const init = fetchMock.mock.calls[0]![1]!
-  expect((init.headers as Record<string, string>).Authorization).toBe('Bearer token')
-  expect(parsePayload(init.body as string).resourceSpans[0]!.resource.attributes).toEqual({
+  expect((init.headers as Record<string, string>).Authorization).toBe(
+    'Bearer token',
+  )
+  expect(
+    parsePayload(init.body as string).resourceSpans[0]!.resource.attributes,
+  ).toEqual({
     'service.name': 'test-svc',
     'deployment.environment': 'staging',
   })
@@ -488,21 +532,27 @@ test('bigint and Uint8Array resource attributes do not crash flush', async () =>
     })
 
     const probe = action(() => 'x', 'probe')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     await otel.flush()
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(warnSpy).not.toHaveBeenCalled()
     const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)
-    const attrs: Array<{ key: string; value: { stringValue?: string; bytesValue?: string } }> =
-      body.resourceSpans[0].resource.attributes
+    const attrs: Array<{
+      key: string
+      value: { stringValue?: string; bytesValue?: string }
+    }> = body.resourceSpans[0].resource.attributes
     // bigint exceeds int64 range — emitted as the [Unsafe bigint ...] marker.
-    expect(attrs.find((a) => a.key === 'build.id')?.value.stringValue).toContain(
-      'Unsafe bigint',
-    )
+    expect(
+      attrs.find((a) => a.key === 'build.id')?.value.stringValue,
+    ).toContain('Unsafe bigint')
     // Uint8Array → base64 bytesValue per OTLP/JSON spec.
-    expect(attrs.find((a) => a.key === 'build.hash')?.value.bytesValue).toBe('3q2+7w==')
+    expect(attrs.find((a) => a.key === 'build.hash')?.value.bytesValue).toBe(
+      '3q2+7w==',
+    )
   } finally {
     warnSpy.mockRestore()
   }
@@ -522,7 +572,9 @@ test('cyclic resourceAttributesVar value does not hang flush (stableKey cycle pr
     resourceAttributesVar.set(cyclic as Record<string, OtlpAttrValue>)
   }, 'tagged')
 
-  context.start(() => { tagged() })
+  context.start(() => {
+    tagged()
+  })
 
   await otel.flush()
 

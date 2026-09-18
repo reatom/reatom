@@ -15,20 +15,18 @@ const DEFAULT_MAX_BEACON_BYTES = 63_000
 /**
  * Sends queued spans via `navigator.sendBeacon` during page unload.
  *
- * `sendBeacon` cannot carry custom headers (browser limitation) and
- * caps payload size near 64KB — so this drops the oldest spans in a
- * loop until the payload fits `maxBeaconBytes`. Newest spans win:
- * those are closest to the unload that triggered the flush.
+ * `sendBeacon` cannot carry custom headers (browser limitation) and caps
+ * payload size near 64KB — so this drops the oldest spans in a loop until the
+ * payload fits `maxBeaconBytes`. Newest spans win: those are closest to the
+ * unload that triggered the flush.
  *
- * Empty `spans` is a trivial success. Returns `false` when even a
- * single span exceeds the limit or when `sendBeacon` itself rejects
- * the payload (queue full).
+ * Empty `spans` is a trivial success. Returns `false` when even a single span
+ * exceeds the limit or when `sendBeacon` itself rejects the payload (queue
+ * full).
  *
  * https://developer.mozilla.org/en-US/docs/Web/API/Navigator/sendBeacon
  */
-export const flushWithBeacon = <T>(
-  input: FlushWithBeaconInput<T>,
-): boolean => {
+export const flushWithBeacon = <T>(input: FlushWithBeaconInput<T>): boolean => {
   if (input.spans.length === 0) return true
 
   // SSR / JSDOM / older browsers may have `document` but no `navigator.sendBeacon`.

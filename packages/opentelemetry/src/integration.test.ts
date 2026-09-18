@@ -2,7 +2,15 @@ import { createServer, type IncomingMessage } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import { action, atom, computed, context, sleep, wrap } from '@reatom/core'
-import { afterAll, afterEach, beforeAll, beforeEach, expect, test, vi } from 'vitest'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  expect,
+  test,
+  vi,
+} from 'vitest'
 
 import type { OtlpSpan } from './buildSpan.ts'
 import { reatomOpentelemetry } from './reatomOpentelemetry.ts'
@@ -26,7 +34,10 @@ interface ReceivedRequest {
   body: string
 }
 
-type Responder = (req: IncomingMessage, body: string) => {
+type Responder = (
+  req: IncomingMessage,
+  body: string,
+) => {
   status: number
   body?: string
   headers?: Record<string, string>
@@ -104,7 +115,8 @@ const start = (
 
 const collectedSpans = (): OtlpSpan[] =>
   received.flatMap(
-    (r) => JSON.parse(r.body).resourceSpans[0].scopeSpans[0].spans as OtlpSpan[],
+    (r) =>
+      JSON.parse(r.body).resourceSpans[0].scopeSpans[0].spans as OtlpSpan[],
   )
 
 const resourceAttributesOf = (
@@ -116,7 +128,9 @@ test('a sync action ships a span with action-shaped attributes', async () => {
   const otel = start()
   const greet = action((name: string) => `hi ${name}`, 'integration.greet')
 
-  context.start(() => { greet('alice') })
+  context.start(() => {
+    greet('alice')
+  })
   await otel.flush()
 
   expect(received).toHaveLength(1)
@@ -125,22 +139,26 @@ test('a sync action ships a span with action-shaped attributes', async () => {
   expect(received[0]!.headers['content-type']).toBe('application/json')
 
   expect(parsePayload(received[0]!.body)).toEqual({
-    resourceSpans: [{
-      resource: { attributes: { 'service.name': 'integration-svc' } },
-      scope: { name: '@reatom/opentelemetry', version: '0.0.0-test' },
-      spans: [{
-        traceId: expect.stringMatching(HEX_TRACE_ID),
-        spanId: expect.stringMatching(HEX_SPAN_ID),
-        parentSpanId: undefined,
-        name: 'integration.greet',
-        kind: 'internal',
-        startTimeUnixNano: expect.any(String),
-        endTimeUnixNano: expect.any(String),
-        attributes: { params: '["alice"]', payload: 'hi alice' },
-        events: [],
-        status: undefined,
-      }],
-    }],
+    resourceSpans: [
+      {
+        resource: { attributes: { 'service.name': 'integration-svc' } },
+        scope: { name: '@reatom/opentelemetry', version: '0.0.0-test' },
+        spans: [
+          {
+            traceId: expect.stringMatching(HEX_TRACE_ID),
+            spanId: expect.stringMatching(HEX_SPAN_ID),
+            parentSpanId: undefined,
+            name: 'integration.greet',
+            kind: 'internal',
+            startTimeUnixNano: expect.any(String),
+            endTimeUnixNano: expect.any(String),
+            attributes: { params: '["alice"]', payload: 'hi alice' },
+            events: [],
+            status: undefined,
+          },
+        ],
+      },
+    ],
   })
 })
 
@@ -149,7 +167,9 @@ test('nested actions share a trace; inner span parents to the outer', async () =
   const inner = action(() => 'inner-result', 'integration.inner')
   const outer = action(() => inner(), 'integration.outer')
 
-  context.start(() => { outer() })
+  context.start(() => {
+    outer()
+  })
   await otel.flush()
 
   const innerSpan = findSpan(received[0]!.body, 'integration.inner')
@@ -182,8 +202,12 @@ test('two entry points produce two distinct traces', async () => {
   const a = action(() => 'a', 'integration.a')
   const b = action(() => 'b', 'integration.b')
 
-  context.start(() => { a() })
-  context.start(() => { b() })
+  context.start(() => {
+    a()
+  })
+  context.start(() => {
+    b()
+  })
   await otel.flush()
 
   const spans = collectedSpans()
@@ -198,13 +222,16 @@ test('atom transitions ship spans with prev/next state attributes', async () => 
   const otel = start()
   const counter = atom(0, 'integration.counter')
 
-  context.start(() => { counter.set(1) })
+  context.start(() => {
+    counter.set(1)
+  })
   await otel.flush()
 
   const transition = parseSpans(received[0]!.body).find(
-    (s) => s.name === 'integration.counter'
-      && s.attributes.prevState === '0'
-      && s.attributes.nextState === '1',
+    (s) =>
+      s.name === 'integration.counter' &&
+      s.attributes.prevState === '0' &&
+      s.attributes.nextState === '1',
   )
   expect(transition).toBeDefined()
 })
@@ -215,7 +242,9 @@ test('custom headers and resourceAttributes reach the collector', async () => {
     resourceAttributes: { 'deployment.environment': 'staging' },
   })
   const probe = action(() => 'x', 'integration.probe')
-  context.start(() => { probe() })
+  context.start(() => {
+    probe()
+  })
   await otel.flush()
 
   expect(received[0]!.headers.authorization).toBe('Bearer secret')
@@ -251,14 +280,20 @@ test('persistent retryable failures retry and eventually succeed', async () => {
     attempts++
     return attempts <= 2 ? { status: 503 } : { status: 200, body: '{}' }
   }
-  const otel = start({ retry: { maxRetries: 5, baseDelayMs: 1, maxDelayMs: 10 } })
+  const otel = start({
+    retry: { maxRetries: 5, baseDelayMs: 1, maxDelayMs: 10 },
+  })
   const probe = action(() => 'x', 'integration.retry')
-  context.start(() => { probe() })
+  context.start(() => {
+    probe()
+  })
 
   await otel.flush()
 
   expect(attempts).toBe(3)
-  expect(collectedSpans().some((s) => s.name === 'integration.retry')).toBe(true)
+  expect(collectedSpans().some((s) => s.name === 'integration.retry')).toBe(
+    true,
+  )
 })
 
 test('persistent HTTP failure surfaces as a console.warn and never escalates', async () => {
@@ -266,7 +301,9 @@ test('persistent HTTP failure surfaces as a console.warn and never escalates', a
   await withWarnSpy(async (warnSpy) => {
     const otel = start({ retry: { maxRetries: 0 } })
     const probe = action(() => 'x', 'integration.fail')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     await otel.flush()
 
@@ -322,7 +359,9 @@ test('partialSuccess with rejectedSpans=0 emits no warning (success ack with hin
   await withWarnSpy(async (warnSpy) => {
     const otel = start()
     const probe = action(() => 'x', 'integration.partial-zero')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     await otel.flush()
 
@@ -354,7 +393,9 @@ test('persistent HTTP failure logs the count of dropped spans', async () => {
 test('flush() resolves only after the collector has received the batch', async () => {
   const otel = start()
   const probe = action(() => 'x', 'integration.flush-settles')
-  context.start(() => { probe() })
+  context.start(() => {
+    probe()
+  })
 
   expect(received).toHaveLength(0)
   await otel.flush()
@@ -368,7 +409,9 @@ test('after dispose, subsequent atoms are not auto-instrumented', async () => {
   otel.dispose()
 
   const after = action(() => 1, 'integration.after-dispose')
-  context.start(() => { after() })
+  context.start(() => {
+    after()
+  })
 
   await otel.flush()
   expect(received).toHaveLength(0)
@@ -383,7 +426,9 @@ test('a previously-instrumented action emits no spans after dispose', async () =
 
   // The bound middleware on `live` still runs; it must short-circuit
   // instead of pushing into the orphaned queue.
-  context.start(() => { live() })
+  context.start(() => {
+    live()
+  })
 
   await otel.flush()
   expect(received).toHaveLength(0)
@@ -399,7 +444,9 @@ test('useBeacon: false unload-flush dispatches the fetch with keepalive: true', 
     start({ useBeacon: false, fetch: fetchSpy })
 
     const probe = action(() => 'x', 'integration.unload-keepalive')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     windowListeners.get('pagehide')!()
     await new Promise<void>((r) => setTimeout(r, 0))
@@ -425,7 +472,9 @@ test('flush() awaits the unload-triggered keepalive send', async () => {
     const otel = start({ useBeacon: false, fetch: fetchSpy })
 
     const probe = action(() => 'x', 'integration.unload-await')
-    context.start(() => { probe() })
+    context.start(() => {
+      probe()
+    })
 
     windowListeners.get('pagehide')!()
     await new Promise<void>((r) => setTimeout(r, 0))
@@ -457,7 +506,9 @@ test('resourceAttributesVar overrides merge into the emitted resource attributes
     })
   }, 'integration.tagged')
 
-  context.start(() => { tagged() })
+  context.start(() => {
+    tagged()
+  })
   await otel.flush()
 
   const attrs = resourceAttributesOf(0)
@@ -487,7 +538,10 @@ test('resourceAttributesVar.set() AFTER an awaited wrap is seen by the queued sp
   })
   const fetchUser = action(async () => {
     await wrap(sleep(0))
-    resourceAttributesVar.set({ 'http.status': '200', 'feature.flag': 'post-await' })
+    resourceAttributesVar.set({
+      'http.status': '200',
+      'feature.flag': 'post-await',
+    })
     return 'ok'
   }, 'integration.post-await-set')
 
@@ -508,7 +562,9 @@ test('resourceAttributesVar.set() AFTER an awaited wrap is seen by the queued sp
 })
 
 test('spans with distinct resourceAttributesVar overrides land in separate resourceSpans entries within one batch', async () => {
-  const otel = start({ resourceAttributes: { 'deployment.environment': 'dev' } })
+  const otel = start({
+    resourceAttributes: { 'deployment.environment': 'dev' },
+  })
   const stagingAction = action(() => {
     resourceAttributesVar.set({ 'deployment.environment': 'staging' })
   }, 'integration.tag-staging')
@@ -516,7 +572,10 @@ test('spans with distinct resourceAttributesVar overrides land in separate resou
     resourceAttributesVar.set({ 'deployment.environment': 'production' })
   }, 'integration.tag-prod')
 
-  context.start(() => { stagingAction(); prodAction() })
+  context.start(() => {
+    stagingAction()
+    prodAction()
+  })
   await otel.flush()
 
   expect(received).toHaveLength(1)
@@ -524,16 +583,28 @@ test('spans with distinct resourceAttributesVar overrides land in separate resou
   expect(parsed.resourceSpans).toHaveLength(2)
   // Heterogeneous resources MUST split into distinct resourceSpans entries
   // (OTLP wire requirement; same-resource grouping is not optional).
-  expect(parsed.resourceSpans).toEqual(expect.arrayContaining([
-    expect.objectContaining({
-      resource: { attributes: { 'service.name': 'integration-svc', 'deployment.environment': 'staging' } },
-      spans: [expect.objectContaining({ name: 'integration.tag-staging' })],
-    }),
-    expect.objectContaining({
-      resource: { attributes: { 'service.name': 'integration-svc', 'deployment.environment': 'production' } },
-      spans: [expect.objectContaining({ name: 'integration.tag-prod' })],
-    }),
-  ]))
+  expect(parsed.resourceSpans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        resource: {
+          attributes: {
+            'service.name': 'integration-svc',
+            'deployment.environment': 'staging',
+          },
+        },
+        spans: [expect.objectContaining({ name: 'integration.tag-staging' })],
+      }),
+      expect.objectContaining({
+        resource: {
+          attributes: {
+            'service.name': 'integration-svc',
+            'deployment.environment': 'production',
+          },
+        },
+        spans: [expect.objectContaining({ name: 'integration.tag-prod' })],
+      }),
+    ]),
+  )
 })
 
 test('resourceAttributesVar override does not bleed into the next batch', async () => {
@@ -545,9 +616,13 @@ test('resourceAttributesVar override does not bleed into the next batch', async 
   }, 'integration.tagged-leak')
   const untagged = action(() => 'x', 'integration.untagged-leak')
 
-  context.start(() => { tagged() })
+  context.start(() => {
+    tagged()
+  })
   await otel.flush()
-  context.start(() => { untagged() })
+  context.start(() => {
+    untagged()
+  })
   await otel.flush()
 
   expect(received).toHaveLength(2)
@@ -578,10 +653,14 @@ test('a dropped span does not leak its resourceAttributesVar override into the b
     resourceAttributesVar.set({ 'feature.flag': 'leaked' })
   }, 'integration.overflowed')
 
-  context.start(() => { accepted() })
+  context.start(() => {
+    accepted()
+  })
   // maxQueueSize is already saturated; this span's override must NOT
   // attach to the batch made of the previously-accepted span.
-  context.start(() => { overflowed() })
+  context.start(() => {
+    overflowed()
+  })
   await otel.flush()
 
   const attrs = resourceAttributesOf(0)
@@ -609,7 +688,9 @@ test('drop-newest backpressure caps the queue at maxQueueSize', async () => {
   })
   await otel.flush()
 
-  const burstSpans = collectedSpans().filter((s) => s.name === 'integration.burst')
+  const burstSpans = collectedSpans().filter(
+    (s) => s.name === 'integration.burst',
+  )
   expect(burstSpans.length).toBeLessThanOrEqual(5)
 })
 
@@ -623,7 +704,9 @@ test('deep mixed chain: action -> atom.set -> computed atom -> nested action sha
     log(doubled())
   }, 'chain.trigger')
 
-  context.start(() => { trigger() })
+  context.start(() => {
+    trigger()
+  })
   await otel.flush()
 
   expect(received).toHaveLength(1)
@@ -632,7 +715,9 @@ test('deep mixed chain: action -> atom.set -> computed atom -> nested action sha
   const findByName = (name: string): ParsedSpan => {
     const matches = spans.filter((s) => s.name === name)
     if (matches.length !== 1) {
-      throw new Error(`expected exactly 1 span named "${name}", got ${matches.length}`)
+      throw new Error(
+        `expected exactly 1 span named "${name}", got ${matches.length}`,
+      )
     }
     return matches[0]!
   }
@@ -679,7 +764,9 @@ test('a failing nested action emits an error span and exception event without po
     ok()
   }, 'chain.orchestrate')
 
-  context.start(() => { orchestrate() })
+  context.start(() => {
+    orchestrate()
+  })
   await otel.flush()
 
   expect(received).toHaveLength(1)
@@ -688,7 +775,9 @@ test('a failing nested action emits an error span and exception event without po
   const findByName = (name: string): ParsedSpan => {
     const matches = spans.filter((s) => s.name === name)
     if (matches.length !== 1) {
-      throw new Error(`expected exactly 1 span named "${name}", got ${matches.length}`)
+      throw new Error(
+        `expected exactly 1 span named "${name}", got ${matches.length}`,
+      )
     }
     return matches[0]!
   }

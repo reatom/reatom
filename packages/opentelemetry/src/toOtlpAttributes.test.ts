@@ -27,7 +27,9 @@ test('handles array values', () => {
   expect(toOtlpAttributes({ tags: ['a', 'b'] })).toEqual([
     {
       key: 'tags',
-      value: { arrayValue: { values: [{ stringValue: 'a' }, { stringValue: 'b' }] } },
+      value: {
+        arrayValue: { values: [{ stringValue: 'a' }, { stringValue: 'b' }] },
+      },
     },
   ])
 })

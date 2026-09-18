@@ -1,10 +1,10 @@
 import { random } from '@reatom/core'
 
 /**
- * Exponential backoff with full jitter (AWS recipe): delay sampled
- * uniformly from `[0, cap]` where `cap = min(baseDelayMs * 2^N, maxDelayMs)`.
- * Maximizes spread to prevent synchronized retry waves from hammering a
- * recovering collector.
+ * Exponential backoff with full jitter (AWS recipe): delay sampled uniformly
+ * from `[0, cap]` where `cap = min(baseDelayMs * 2^N, maxDelayMs)`. Maximizes
+ * spread to prevent synchronized retry waves from hammering a recovering
+ * collector.
  *
  * Tests override determinism via core's `mockRandom`.
  *

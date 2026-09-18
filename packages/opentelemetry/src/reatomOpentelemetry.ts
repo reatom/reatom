@@ -52,7 +52,9 @@ const stableKey = (
   const keys = Object.keys(value).sort()
   const result =
     'O{' +
-    keys.map((k) => JSON.stringify(k) + ':' + stableKey(value[k], seen)).join(',') +
+    keys
+      .map((k) => JSON.stringify(k) + ':' + stableKey(value[k], seen))
+      .join(',') +
     '}'
   seen.delete(value)
   return result
@@ -61,7 +63,10 @@ const stableKey = (
 export interface ReatomOpentelemetryInput {
   endpoint: string
   serviceName: string
-  /** Construction-time defaults. For per-trace runtime overrides set `resourceAttributesVar`. */
+  /**
+   * Construction-time defaults. For per-trace runtime overrides set
+   * `resourceAttributesVar`.
+   */
   resourceAttributes?: Record<string, OtlpAttrValue>
   headers?: Record<string, string>
   /** Auto-instrumentation predicate. Truthy = instrument, falsy = skip. */
@@ -71,7 +76,8 @@ export interface ReatomOpentelemetryInput {
   maxQueueSize?: number
   maxBeaconBytes?: number
   /**
-   * Opt-in to `navigator.sendBeacon` for unload-time delivery. Default: `false`.
+   * Opt-in to `navigator.sendBeacon` for unload-time delivery. Default:
+   * `false`.
    *
    * Beacon can NOT be used with collectors that need custom auth headers, and
    * because OTLP/JSON triggers a CORS preflight that browsers cannot run during
@@ -91,10 +97,10 @@ export interface ReatomOpentelemetryInput {
     'maxRetries' | 'baseDelayMs' | 'maxDelayMs'
   >
   /**
-   * Instrumentation scope version emitted on every batch. Recommended:
-   * pass your app or library version so collectors can distinguish
-   * releases. Defaults to empty string (OTLP-valid but groups all batches
-   * under one "@reatom/opentelemetry@" bucket on the collector side).
+   * Instrumentation scope version emitted on every batch. Recommended: pass
+   * your app or library version so collectors can distinguish releases.
+   * Defaults to empty string (OTLP-valid but groups all batches under one
+   * "@reatom/opentelemetry@" bucket on the collector side).
    */
   version?: string
   /** Internal — injection point for tests. */
@@ -157,7 +163,10 @@ export const reatomOpentelemetry = (
   }
   const groupItemsByResource = (
     items: QueueItem[],
-  ): Array<{ resourceAttributes: Record<string, OtlpAttrValue>; spans: OtlpSpan[] }> => {
+  ): Array<{
+    resourceAttributes: Record<string, OtlpAttrValue>
+    spans: OtlpSpan[]
+  }> => {
     if (!items.some((i) => i.resourceAttributes)) {
       return [{ resourceAttributes, spans: items.map((i) => i.span) }]
     }
@@ -172,7 +181,10 @@ export const reatomOpentelemetry = (
       let group = groups.get(key)
       if (!group) {
         group = {
-          resourceAttributes: { ...resourceAttributes, ...item.resourceAttributes },
+          resourceAttributes: {
+            ...resourceAttributes,
+            ...item.resourceAttributes,
+          },
           spans: [],
         }
         groups.set(key, group)
@@ -217,7 +229,9 @@ export const reatomOpentelemetry = (
         // a subset was rejected. Body parse is best-effort — many collectors
         // return empty bodies.
         let parsed:
-          | { partialSuccess?: { rejectedSpans?: number; errorMessage?: string } }
+          | {
+              partialSuccess?: { rejectedSpans?: number; errorMessage?: string }
+            }
           | undefined
         try {
           const text = await response.text()
@@ -227,7 +241,11 @@ export const reatomOpentelemetry = (
           return
         }
         const ps = parsed?.partialSuccess
-        if (ps && typeof ps.rejectedSpans === 'number' && ps.rejectedSpans > 0) {
+        if (
+          ps &&
+          typeof ps.rejectedSpans === 'number' &&
+          ps.rejectedSpans > 0
+        ) {
           console.warn(
             `[@reatom/opentelemetry] OTLP export to ${input.endpoint}: partialSuccess rejected ${ps.rejectedSpans} spans${ps.errorMessage ? ': ' + ps.errorMessage : ''}`,
           )
@@ -304,7 +322,10 @@ export const reatomOpentelemetry = (
   }
 
   const onVisibilityChange = () => {
-    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    if (
+      typeof document !== 'undefined' &&
+      document.visibilityState === 'hidden'
+    ) {
       flushNow()
     }
   }

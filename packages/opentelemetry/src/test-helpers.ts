@@ -3,16 +3,16 @@ import { vi } from 'vitest'
 
 /**
  * Decodes an OTLP span's attribute KeyValue array into a plain record of
- * stringValue payloads. Used by the unit and integration test suites to
- * assert on attribute contents without re-implementing the drilling.
+ * stringValue payloads. Used by the unit and integration test suites to assert
+ * on attribute contents without re-implementing the drilling.
  *
  * `value` is typed as `unknown` because the wire `OtlpAnyValue` is a
  * discriminated union — only the stringValue variant is interesting to
  * attribute assertions, so we narrow at the access boundary.
  */
-export const attrsOf = (
-  span: { attributes: ReadonlyArray<{ key: string; value: unknown }> },
-): Record<string, string | undefined> =>
+export const attrsOf = (span: {
+  attributes: ReadonlyArray<{ key: string; value: unknown }>
+}): Record<string, string | undefined> =>
   Object.fromEntries(
     span.attributes.map((a) => [
       a.key,
@@ -27,9 +27,9 @@ export interface DomStubs {
 
 /**
  * Stubs `globalThis.document` and `globalThis.window` with addEventListener /
- * removeEventListener that record into Maps the test can fire from.
- * Caller MUST call the returned `restore` (typically in a `finally`) to
- * avoid leaking globals into subsequent tests.
+ * removeEventListener that record into Maps the test can fire from. Caller MUST
+ * call the returned `restore` (typically in a `finally`) to avoid leaking
+ * globals into subsequent tests.
  */
 export const installDomStubs = (
   documentOverrides: Partial<{ visibilityState: 'visible' | 'hidden' }> = {},
@@ -71,9 +71,9 @@ export const installDomStubs = (
 type WarnSpy = MockInstance<typeof console.warn>
 
 /**
- * Spies on `console.warn` for the duration of `fn`, then restores. Use
- * for tests that assert on warning output — keeps every spy paired with
- * its restore so no test leaks a mocked console into the next.
+ * Spies on `console.warn` for the duration of `fn`, then restores. Use for
+ * tests that assert on warning output — keeps every spy paired with its restore
+ * so no test leaks a mocked console into the next.
  */
 export const withWarnSpy = async (
   fn: (warn: WarnSpy) => void | Promise<void>,
@@ -116,7 +116,14 @@ const decodeAttrs = (kv: OtlpKeyValue[]): Record<string, unknown> => {
   return out
 }
 
-const SPAN_KIND_NAME = ['unspecified', 'internal', 'server', 'client', 'producer', 'consumer'] as const
+const SPAN_KIND_NAME = [
+  'unspecified',
+  'internal',
+  'server',
+  'client',
+  'producer',
+  'consumer',
+] as const
 const STATUS_CODE_NAME = ['unset', 'ok', 'error'] as const
 
 export interface ParsedSpan {
@@ -124,12 +131,16 @@ export interface ParsedSpan {
   spanId: string
   parentSpanId?: string
   name: string
-  kind: typeof SPAN_KIND_NAME[number]
+  kind: (typeof SPAN_KIND_NAME)[number]
   startTimeUnixNano: string
   endTimeUnixNano: string
   attributes: Record<string, unknown>
-  events: Array<{ name: string; timeUnixNano: string; attributes: Record<string, unknown> }>
-  status?: { code: typeof STATUS_CODE_NAME[number]; message?: string }
+  events: Array<{
+    name: string
+    timeUnixNano: string
+    attributes: Record<string, unknown>
+  }>
+  status?: { code: (typeof STATUS_CODE_NAME)[number]; message?: string }
 }
 
 export interface ParsedResourceSpans {
@@ -144,8 +155,8 @@ export interface ParsedPayload {
 
 /**
  * Decodes the OTLP/JSON wire body into a shape that's readable in
- * `expect(...).toEqual(...)` assertions: hex IDs preserved as strings,
- * AnyValue unions flattened to plain JS, kind/code enums named.
+ * `expect(...).toEqual(...)` assertions: hex IDs preserved as strings, AnyValue
+ * unions flattened to plain JS, kind/code enums named.
  */
 export const parsePayload = (body: string | unknown): ParsedPayload => {
   const raw = typeof body === 'string' ? JSON.parse(body) : body
@@ -155,27 +166,29 @@ export const parsePayload = (body: string | unknown): ParsedPayload => {
       return {
         resource: { attributes: decodeAttrs(rs.resource?.attributes ?? []) },
         scope: { name: ss.scope?.name ?? '', version: ss.scope?.version ?? '' },
-        spans: (ss.spans ?? []).map((s: any): ParsedSpan => ({
-          traceId: s.traceId,
-          spanId: s.spanId,
-          parentSpanId: s.parentSpanId,
-          name: s.name,
-          kind: SPAN_KIND_NAME[s.kind] ?? 'unspecified',
-          startTimeUnixNano: s.startTimeUnixNano,
-          endTimeUnixNano: s.endTimeUnixNano,
-          attributes: decodeAttrs(s.attributes ?? []),
-          events: (s.events ?? []).map((e: any) => ({
-            name: e.name,
-            timeUnixNano: e.timeUnixNano,
-            attributes: decodeAttrs(e.attributes ?? []),
-          })),
-          status: s.status
-            ? {
-                code: STATUS_CODE_NAME[s.status.code] ?? 'unset',
-                message: s.status.message,
-              }
-            : undefined,
-        })),
+        spans: (ss.spans ?? []).map(
+          (s: any): ParsedSpan => ({
+            traceId: s.traceId,
+            spanId: s.spanId,
+            parentSpanId: s.parentSpanId,
+            name: s.name,
+            kind: SPAN_KIND_NAME[s.kind] ?? 'unspecified',
+            startTimeUnixNano: s.startTimeUnixNano,
+            endTimeUnixNano: s.endTimeUnixNano,
+            attributes: decodeAttrs(s.attributes ?? []),
+            events: (s.events ?? []).map((e: any) => ({
+              name: e.name,
+              timeUnixNano: e.timeUnixNano,
+              attributes: decodeAttrs(e.attributes ?? []),
+            })),
+            status: s.status
+              ? {
+                  code: STATUS_CODE_NAME[s.status.code] ?? 'unset',
+                  message: s.status.message,
+                }
+              : undefined,
+          }),
+        ),
       }
     }),
   }
@@ -188,7 +201,10 @@ export const parseSpans = (body: string | unknown): ParsedSpan[] =>
 /** Convenience: pick one span by name (asserts uniqueness). */
 export const findSpan = (body: string | unknown, name: string): ParsedSpan => {
   const matches = parseSpans(body).filter((s) => s.name === name)
-  if (matches.length !== 1) throw new Error(`expected exactly 1 span named "${name}", got ${matches.length}`)
+  if (matches.length !== 1)
+    throw new Error(
+      `expected exactly 1 span named "${name}", got ${matches.length}`,
+    )
   return matches[0]!
 }
 

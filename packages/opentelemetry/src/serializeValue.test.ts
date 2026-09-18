@@ -1,4 +1,4 @@
-import { action,atom } from '@reatom/core'
+import { action, atom } from '@reatom/core'
 import { expect, test } from 'vitest'
 
 import { serializeValue } from './serializeValue.ts'
@@ -30,9 +30,7 @@ test('converts null and undefined to marker strings', () => {
 
 test('stringifies bigint', () => {
   expect(serializeValue(42n)).toBe('42')
-  expect(serializeValue(9_999_999_999_999_999_999n)).toBe(
-    '9999999999999999999',
-  )
+  expect(serializeValue(9_999_999_999_999_999_999n)).toBe('9999999999999999999')
 })
 
 test('marks symbols', () => {

@@ -109,8 +109,10 @@ test('user-supplied content-type (any case) does not shadow application/json', a
     headers: { 'content-type': 'application/x-protobuf', 'X-Foo': 'bar' },
     fetch,
   })
-  const headers = (fetch.mock.calls[0]![1]! as RequestInit)
-    .headers as Record<string, string>
+  const headers = (fetch.mock.calls[0]![1]! as RequestInit).headers as Record<
+    string,
+    string
+  >
   expect(headers['Content-Type']).toBe('application/json')
   expect(headers['content-type']).toBeUndefined()
   expect(headers['X-Foo']).toBe('bar')

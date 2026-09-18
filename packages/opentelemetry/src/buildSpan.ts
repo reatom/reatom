@@ -60,6 +60,7 @@ export const buildSpan = (input: SpanInput): OtlpSpan => {
     events: input.events?.map(buildSpanEvent) ?? [],
   }
   if (input.parentSpanId) span.parentSpanId = input.parentSpanId
-  if (input.status) span.status = buildSpanStatus(input.status.code, input.status.message)
+  if (input.status)
+    span.status = buildSpanStatus(input.status.code, input.status.message)
   return span
 }

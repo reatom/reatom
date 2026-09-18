@@ -158,4 +158,3 @@ test('includes events when provided', () => {
     },
   ])
 })
-

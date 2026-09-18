@@ -144,9 +144,7 @@ test('detects mutual cycles across array/object boundary', () => {
           key: 'b',
           value: {
             kvlistValue: {
-              values: [
-                { key: 'a', value: { stringValue: '[Circular]' } },
-              ],
+              values: [{ key: 'a', value: { stringValue: '[Circular]' } }],
             },
           },
         },

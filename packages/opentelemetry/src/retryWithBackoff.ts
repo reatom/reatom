@@ -10,7 +10,10 @@ export interface RetryWithBackoffInput {
   maxDelayMs?: number
   sleep?: (ms: number) => Promise<unknown>
   now?: () => number
-  /** Aborts the retry loop. Caller is responsible for plumbing the same signal into `send`'s fetch. */
+  /**
+   * Aborts the retry loop. Caller is responsible for plumbing the same signal
+   * into `send`'s fetch.
+   */
   signal?: AbortSignal
 }
 
@@ -26,10 +29,10 @@ type Outcome =
 /**
  * Wraps `send` with exponential backoff on retryable failures.
  *
- * Honors `Retry-After` when present, falls back to jittered backoff.
- * After `maxRetries` the last outcome is surfaced — response returned
- * or error rethrown — so the caller can still decide. An aborted
- * `signal` short-circuits the loop and surfaces the abort reason.
+ * Honors `Retry-After` when present, falls back to jittered backoff. After
+ * `maxRetries` the last outcome is surfaced — response returned or error
+ * rethrown — so the caller can still decide. An aborted `signal` short-circuits
+ * the loop and surfaces the abort reason.
  */
 export const retryWithBackoff = async ({
   send,

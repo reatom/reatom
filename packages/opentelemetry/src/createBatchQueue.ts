@@ -16,15 +16,15 @@ export interface BatchQueue<T> {
 /**
  * In-memory batch queue with interval- and size-triggered flushing.
  *
- * On `maxQueueSize` overflow, INCOMING items are dropped so the earliest
- * data survives the overflow-window flush. Matches OTel JS SDK
- * BatchSpanProcessorBase._addToBuffer; the spec only mandates that spans
- * ARE dropped, leaving direction to implementations.
+ * On `maxQueueSize` overflow, INCOMING items are dropped so the earliest data
+ * survives the overflow-window flush. Matches OTel JS SDK
+ * BatchSpanProcessorBase._addToBuffer; the spec only mandates that spans ARE
+ * dropped, leaving direction to implementations.
  *
- * Rejected batches are NOT requeued: retry belongs inside the `flush`
- * callback (via `retryWithBackoff`). Requeueing after a terminal failure
- * just pressures a failing exporter on the next interval — same trade-off
- * OTel JS SDK BatchSpanProcessor makes.
+ * Rejected batches are NOT requeued: retry belongs inside the `flush` callback
+ * (via `retryWithBackoff`). Requeueing after a terminal failure just pressures
+ * a failing exporter on the next interval — same trade-off OTel JS SDK
+ * BatchSpanProcessor makes.
  *
  * https://github.com/open-telemetry/opentelemetry-js/blob/main/packages/opentelemetry-sdk-trace-base/src/export/BatchSpanProcessorBase.ts
  */

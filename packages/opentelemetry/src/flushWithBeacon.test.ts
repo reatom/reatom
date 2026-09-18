@@ -75,11 +75,7 @@ test('truncates oldest spans until payload fits maxBeaconBytes', () => {
 
 test('truncation keeps newest spans and drops oldest', async () => {
   const sendBeacon = beaconMock(true)
-  const spans = [
-    { name: 'oldest' },
-    { name: 'middle' },
-    { name: 'newest' },
-  ]
+  const spans = [{ name: 'oldest' }, { name: 'middle' }, { name: 'newest' }]
   flushWithBeacon({
     endpoint: 'https://c.example',
     spans,

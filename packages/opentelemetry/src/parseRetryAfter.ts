@@ -1,8 +1,8 @@
 /**
- * Parses a `Retry-After` header (delta-seconds or HTTP-date) into a
- * delay in milliseconds. Returns `undefined` when absent, unparseable,
- * or in the past — callers fall back to computed backoff. A past date
- * is no information, not an instruction to retry immediately.
+ * Parses a `Retry-After` header (delta-seconds or HTTP-date) into a delay in
+ * milliseconds. Returns `undefined` when absent, unparseable, or in the past —
+ * callers fall back to computed backoff. A past date is no information, not an
+ * instruction to retry immediately.
  *
  * `now` is a parameter so tests are deterministic.
  *

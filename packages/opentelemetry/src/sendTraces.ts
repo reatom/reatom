@@ -11,9 +11,9 @@ export interface SendTracesInput {
   headers?: Record<string, string>
   fetch?: typeof globalThis.fetch
   /**
-   * Set on unload-triggered fetches so the browser holds the connection
-   * past page teardown (capped at 64 KB per origin). Off by default to
-   * avoid the cap on normal in-flight batches.
+   * Set on unload-triggered fetches so the browser holds the connection past
+   * page teardown (capped at 64 KB per origin). Off by default to avoid the cap
+   * on normal in-flight batches.
    */
   keepalive?: boolean
   /** Aborts the in-flight fetch — used by `dispose()` to tear down cleanly. */
@@ -40,9 +40,9 @@ const buildHeaders = (
 /**
  * POSTs an OTLP/JSON trace payload to `${endpoint}/v1/traces`.
  *
- * Caller-supplied `headers` are attached for auth/tenancy. `Content-Type`
- * is locked to `application/json` per spec; user-supplied content-type
- * headers are dropped. `fetch` is injectable for retry wrapping and tests.
+ * Caller-supplied `headers` are attached for auth/tenancy. `Content-Type` is
+ * locked to `application/json` per spec; user-supplied content-type headers are
+ * dropped. `fetch` is injectable for retry wrapping and tests.
  *
  * https://opentelemetry.io/docs/specs/otlp/#otlphttp-request
  */

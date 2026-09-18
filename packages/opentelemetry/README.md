@@ -145,11 +145,11 @@ local kind override produces exactly one span per call.
 
 ## Span shape
 
-| Target | Attributes emitted on success | Status on resolve | Status on reject |
-|---|---|---|---|
-| Action (sync) | `params`, `payload` | unset | `error` (unset for `AbortError` / suspension) |
-| Action (async) | `params`, `payload` (final value) | unset on resolve | `error` on reject |
-| Atom set / computed | `prevState`, `nextState` | unset | `error` (atom suspension is rethrown without a span) |
+| Target              | Attributes emitted on success     | Status on resolve | Status on reject                                     |
+| ------------------- | --------------------------------- | ----------------- | ---------------------------------------------------- |
+| Action (sync)       | `params`, `payload`               | unset             | `error` (unset for `AbortError` / suspension)        |
+| Action (async)      | `params`, `payload` (final value) | unset on resolve  | `error` on reject                                    |
+| Atom set / computed | `prevState`, `nextState`          | unset             | `error` (atom suspension is rethrown without a span) |
 
 Per the OTel API spec, `STATUS_CODE_OK` is reserved for application code —
 instrumentation libraries leave success spans **unset**. Setting `OK`
@@ -329,4 +329,3 @@ process.on('beforeExit', async () => {
 - The unload flush uses `fetch({ keepalive: true })`, which the browser
   holds open past teardown and which carries your headers. There is a
   ~64 KB keepalive budget per origin — large unload bursts may still drop.
-

@@ -42,24 +42,38 @@ test('emits one resourceSpans entry per group with distinct resource attributes'
   const result = buildExportPayload({
     groups: [
       {
-        resourceAttributes: { 'service.name': 'app', 'deployment.environment': 'staging' },
+        resourceAttributes: {
+          'service.name': 'app',
+          'deployment.environment': 'staging',
+        },
         version: '1.0.0',
         spans: [makeSpan('a')],
       },
       {
-        resourceAttributes: { 'service.name': 'app', 'deployment.environment': 'production' },
+        resourceAttributes: {
+          'service.name': 'app',
+          'deployment.environment': 'production',
+        },
         version: '1.0.0',
         spans: [makeSpan('b')],
       },
     ],
   })
   expect(result.resourceSpans).toHaveLength(2)
-  const envOf = (rs: typeof result.resourceSpans[number]) => {
-    const attr = rs.resource.attributes.find((a) => a.key === 'deployment.environment')
-    return attr && 'stringValue' in attr.value ? attr.value.stringValue : undefined
+  const envOf = (rs: (typeof result.resourceSpans)[number]) => {
+    const attr = rs.resource.attributes.find(
+      (a) => a.key === 'deployment.environment',
+    )
+    return attr && 'stringValue' in attr.value
+      ? attr.value.stringValue
+      : undefined
   }
-  const stagingEntry = result.resourceSpans.find((rs) => envOf(rs) === 'staging')!
-  const prodEntry = result.resourceSpans.find((rs) => envOf(rs) === 'production')!
+  const stagingEntry = result.resourceSpans.find(
+    (rs) => envOf(rs) === 'staging',
+  )!
+  const prodEntry = result.resourceSpans.find(
+    (rs) => envOf(rs) === 'production',
+  )!
   expect(stagingEntry).toBeDefined()
   expect(prodEntry).toBeDefined()
   expect(stagingEntry.scopeSpans[0]!.spans[0]!.name).toBe('a')

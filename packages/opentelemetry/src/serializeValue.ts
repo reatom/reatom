@@ -5,23 +5,21 @@ import { nonFiniteString } from './nonFiniteString.ts'
 /**
  * Converts any JS value to a JSON-safe form for span attribute use.
  *
- * Primitives pass through; non-JSON-safe types (bigint, symbol,
- * function, Promise, Error, Date, RegExp, Atom, Action, ArrayBuffer
- * views, Weak* collections) become human-readable marker strings
- * (`[Atom name]`, `[Error msg]`, etc.) so a flat JSON.stringify at
- * the outer `serialize` layer produces a stable attribute value.
+ * Primitives pass through; non-JSON-safe types (bigint, symbol, function,
+ * Promise, Error, Date, RegExp, Atom, Action, ArrayBuffer views, Weak*
+ * collections) become human-readable marker strings (`[Atom name]`, `[Error
+ * msg]`, etc.) so a flat JSON.stringify at the outer `serialize` layer produces
+ * a stable attribute value.
  *
- * Nested structures (plain objects, arrays, Maps, Sets) recurse up
- * to `maxDepth` levels (default 2) — beyond that they collapse to
- * `[Object]` / `[Array]` / `[Map]` / `[Set]` markers to cap payload
- * size. Cycles are detected via an ancestor-stack WeakSet and
- * replaced with `[Circular]`.
+ * Nested structures (plain objects, arrays, Maps, Sets) recurse up to
+ * `maxDepth` levels (default 2) — beyond that they collapse to `[Object]` /
+ * `[Array]` / `[Map]` / `[Set]` markers to cap payload size. Cycles are
+ * detected via an ancestor-stack WeakSet and replaced with `[Circular]`.
  *
- * Resilient by OTel mandate: container traversal cannot escape
- * exceptions from hostile getters/proxies/iterators — a failed
- * branch yields `[Unserializable]` instead. Non-finite numbers
- * (NaN, ±Infinity) are stringified per protobuf-JSON, matching
- * `toOtlpDoubleValue`.
+ * Resilient by OTel mandate: container traversal cannot escape exceptions from
+ * hostile getters/proxies/iterators — a failed branch yields `[Unserializable]`
+ * instead. Non-finite numbers (NaN, ±Infinity) are stringified per
+ * protobuf-JSON, matching `toOtlpDoubleValue`.
  */
 export const serializeValue = (value: unknown, maxDepth = 2): unknown => {
   // Fast-path: primitives don't need cycle tracking. Avoids a WeakSet
@@ -87,7 +85,9 @@ const encode = (
     return `[Error ${value.message}${causeTail}]`
   }
   if (value instanceof Date) {
-    return Number.isNaN(value.getTime()) ? '[Invalid Date]' : value.toISOString()
+    return Number.isNaN(value.getTime())
+      ? '[Invalid Date]'
+      : value.toISOString()
   }
   if (value instanceof RegExp) return value.toString()
   if (value instanceof WeakMap) return '[WeakMap]'

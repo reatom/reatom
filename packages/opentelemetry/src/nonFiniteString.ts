@@ -1,8 +1,8 @@
 /**
- * Returns the protobuf-JSON string representation of a non-finite
- * number, or `undefined` if the value is finite (so callers can use
- * the raw number). Shared between the OTLP double encoder and the
- * attribute serializer to keep both layers on the same spec wire.
+ * Returns the protobuf-JSON string representation of a non-finite number, or
+ * `undefined` if the value is finite (so callers can use the raw number).
+ * Shared between the OTLP double encoder and the attribute serializer to keep
+ * both layers on the same spec wire.
  *
  * https://protobuf.dev/programming-guides/json/
  */
