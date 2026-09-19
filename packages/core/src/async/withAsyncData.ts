@@ -142,11 +142,12 @@ export function withAsyncData<
  * Extension that adds async data management to atoms or actions that return
  * promises.
  *
- * This overload allows specifying a completely custom state type with an
- * initial value. The resolved payload will be merged with the state without
- * custom mapping.
+ * This overload allows a custom initial value whose type may differ from the
+ * resolved payload (for example `initState: null`). Without `mapPayload`, the
+ * fulfilled state type is the payload; `initState` is only the pre-fulfill
+ * value used by `data` and status narrowing.
  *
- * @template State - The custom state type
+ * @template State - The initial state type (before the first fulfill)
  * @template T - The atom or action type
  * @template Err - The type of errors after parsing
  * @template EmptyErr - The type of the empty error state
@@ -166,7 +167,7 @@ export function withAsyncData<
 ): (
   target: T,
 ) => T extends AtomLike<any, infer Params, Promise<infer Payload>>
-  ? AsyncDataExt<Params, Payload, State, Payload, Err | EmptyErr>
+  ? AsyncDataExt<Params, Payload, Payload, State, Err | EmptyErr>
   : never
 
 /**

@@ -417,11 +417,13 @@ test('status includes data property with initState', async () => {
   expectTypeOf(fetch.data).toExtend<Atom<number>>()
 
   const statusInitial = fetch.status()
+  expectTypeOf(statusInitial.data).toExtend<number>()
   expect(statusInitial.data).toBe(0)
   expect(statusInitial.isPending).toBe(false)
 
   const promise = fetch(10)
   const statusPending = fetch.status()
+  expectTypeOf(statusPending.data).toExtend<number>()
   expect(statusPending.data).toBe(0)
   expect(statusPending.isPending).toBe(true)
 
@@ -429,6 +431,43 @@ test('status includes data property with initState', async () => {
   const statusFulfilled = fetch.status()
   expect(statusFulfilled.data).toBe(11)
   expect(statusFulfilled.isFulfilled).toBe(true)
+  if (statusFulfilled.isFulfilled) {
+    expectTypeOf(statusFulfilled.data).toExtend<number>()
+  }
+})
+
+test('status data narrows with null initState', async () => {
+  interface Details {
+    description: string
+  }
+  const fetch = action(
+    async (_id: string): Promise<Details> => ({ description: 'ok' }),
+    'statusNullInitState.fetch',
+  ).extend(withAsyncData({ initState: null, status: true }))
+
+  expectTypeOf(fetch.data).toExtend<Atom<null | Details>>()
+
+  const status = fetch.status()
+  expectTypeOf(status.data).toExtend<Details | null>()
+
+  if (status.isFulfilled) {
+    expectTypeOf(status.data).toEqualTypeOf<Details>()
+  }
+  if (status.isPending) {
+    expectTypeOf(status.data).toExtend<Details | null>()
+  }
+
+  const promise = fetch('1')
+  expect(fetch.status().data).toBe(null)
+  expect(fetch.status().isPending).toBe(true)
+
+  await wrap(promise)
+  const statusFulfilled = fetch.status()
+  expect(statusFulfilled.isFulfilled).toBe(true)
+  expect(statusFulfilled.data).toEqual({ description: 'ok' })
+  if (statusFulfilled.isFulfilled) {
+    expectTypeOf(statusFulfilled.data).toEqualTypeOf<Details>()
+  }
 })
 
 test('reset action resets dependencies and data', async () => {
