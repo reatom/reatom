@@ -172,7 +172,6 @@ function mountBackground(canvas: HTMLCanvasElement) {
 
 export const GlassBackground = () => (
   <canvas
-    class="glass-background"
     attr:aria-hidden="true"
     ref={mountBackground}
     css={`

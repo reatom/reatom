@@ -62,7 +62,6 @@ export const ImageTableFilters = () => (
           )
         }
 
-        const hiddenColumns = hiddenExifColumns()
         return columnNames.map((columnName) => (
           <label
             css={`
@@ -84,7 +83,7 @@ export const ImageTableFilters = () => (
           >
             <input
               type="checkbox"
-              checked={!hiddenColumns.has(columnName)}
+              checked={() => !hiddenExifColumns().has(columnName)}
               on:change={() => toggleExifColumn(columnName)}
             />
             <span css="min-width: 0; overflow: hidden; text-overflow: ellipsis;">

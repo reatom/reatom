@@ -19,7 +19,8 @@ const minSharpThumbnailLongEdge = 256
 
 const loc = {
   imageCountAppears: (canvas) => canvas.findByText(/\d+ images/),
-  lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
+  lightboxCounterAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Close preview' }),
 } satisfies Record<string, Locator>
 
 const I = createMyself((I) => ({

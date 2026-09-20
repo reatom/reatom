@@ -1,5 +1,4 @@
 import { focusableCardAttrs } from '../a11y'
-import { ChoiceButton, IconButton } from '../design-system'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import type { ImageModel } from '../model'
 import {
@@ -7,15 +6,46 @@ import {
   ignoreExifOrientation,
   imageFit,
   openLightbox,
-  selectImage,
   showFileSizes,
   showImageNames,
 } from '../model'
-import { CheckIcon, HeartIcon } from './Icons'
+import { themeCss } from '../themeCss'
+import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
+
+const overlayControlCss = `
+  pointer-events: auto;
+  ${themeCss(
+    'glass',
+    `
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      -webkit-backdrop-filter: blur(8px) saturate(1.2);
+      backdrop-filter: blur(8px) saturate(1.2);
+    `,
+  )}
+  ${themeCss(
+    'bauhaus',
+    `
+      width: 28px;
+      height: 28px;
+    `,
+  )}
+  ${themeCss(
+    'obsidian',
+    `
+      border-radius: 2px;
+      width: 28px;
+      height: 28px;
+    `,
+  )}
+  ${themeCss('cartoon', 'border-radius: 0;')}
+  ${themeCss('retroOs', 'border-radius: 0;')}
+  ${themeCss('minimal', 'border-radius: 0;')}
+  ${themeCss('paper', 'border-radius: 50%;')}
+`
 
 export const GridImage = ({ image }: { image: ImageModel }) => {
-  const isSelected = () => image.selected()
-  const isFavorite = () => image.favorite()
   const imageName = () => image.source.name
 
   const displayImage = () => {
@@ -44,9 +74,8 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
 
   return (
     <div
-      class="glass-card"
       {...focusableCardAttrs(openLabel, () => openLightbox(image))}
-      attr:data-selected={isSelected}
+      attr:data-selected={image.selected}
       attr:data-gap={gridGap}
       css={`
         position: relative;
@@ -68,27 +97,54 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
           outline: 3px solid var(--focus-ring);
           outline-offset: 2px;
         }
+        --overlay-opacity: 0;
+        &:hover {
+          --overlay-opacity: 1;
+        }
+        &:focus-within {
+          --overlay-opacity: 1;
+          content-visibility: visible;
+        }
+        @media (hover: none) {
+          --overlay-opacity: 1;
+        }
         &:hover {
           border-color: var(--accent);
           transform: var(--card-hover-transform);
           box-shadow: var(--card-hover-shadow);
         }
-        &:hover .grid-image-overlay {
-          opacity: 1;
-        }
         &[data-selected='true'] {
           border-color: var(--accent);
           box-shadow: var(--selected-shadow);
+          --overlay-opacity: 1;
         }
         &[data-gap='none'] {
           border-width: 0;
           border-radius: 0;
         }
+        :where([data-theme-pack='glass'][data-glass-refraction='true']) & [data-ui-slot='overlay'] {
+          backdrop-filter: url(#glass-circleSmall) blur(1px) saturate(1.15);
+        }
+        @media (prefers-contrast: more), (forced-colors: active) {
+          :where([data-theme-pack='glass']) & [data-ui-slot='overlay'] {
+            background: Canvas;
+            color: CanvasText;
+            border-color: CanvasText;
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+          }
+        }
+        @media (prefers-reduced-transparency: reduce) {
+          :where([data-theme-pack='glass']) & [data-ui-slot='overlay'] {
+            background: #2f2f2f;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none !important;
+          }
+        }
       `}
       on:click={() => openLightbox(image)}
     >
       <div
-        class="grid-image-preview"
         css:image-fit={imageFit}
         css={`
           position: absolute;
@@ -108,66 +164,39 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
       </div>
 
       <div
-        class="grid-image-overlay"
-        on:keydown={(event: KeyboardEvent) => {
-          // Native buttons activate themselves; do not also activate the card
-          // or gallery-wide Space shortcut.
-          if (event.key === 'Enter' || event.key === ' ')
-            event.stopPropagation()
-        }}
         css={`
           position: absolute;
           inset: 0;
-          opacity: 0;
-          transition: opacity 0.15s ease;
+          opacity: var(--overlay-opacity);
+          transition: ${import.meta.env.TEST ? 'none' : 'opacity 0.15s ease'};
           pointer-events: none;
         `}
       >
-        <ChoiceButton
-          class="glass-overlay-control"
+        <ImageSelectButton
+          image={image}
           slot="overlay"
-          label={() =>
-            isSelected() ? `Deselect ${imageName()}` : `Select ${imageName()}`
-          }
-          selected={isSelected}
-          selection="checked"
-          stopPropagation
-          onClick={() => selectImage(image)}
-          size="icon"
           css={`
             position: absolute;
             top: 8px;
             left: 8px;
             width: 24px;
             height: 24px;
-            pointer-events: auto;
+            ${overlayControlCss}
           `}
-        >
-          {() => (isSelected() ? <CheckIcon /> : null)}
-        </ChoiceButton>
+        />
 
-        <IconButton
-          class="glass-overlay-control"
+        <ImageFavoriteButton
+          image={image}
           slot="overlay"
-          label={() =>
-            isFavorite()
-              ? `Remove ${imageName()} from favorites`
-              : `Add ${imageName()} to favorites`
-          }
-          selected={isFavorite}
-          stopPropagation
-          onClick={() => image.favorite.toggle()}
           css={`
             position: absolute;
             top: 8px;
             right: 8px;
             width: 28px;
             height: 28px;
-            pointer-events: auto;
+            ${overlayControlCss}
           `}
-        >
-          {() => <HeartIcon filled={isFavorite()} />}
-        </IconButton>
+        />
       </div>
 
       {() => {
@@ -176,7 +205,7 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
         if (!showName && !showSize) return null
         return (
           <div
-            class="grid-image-caption"
+            attr:data-caption={imageName}
             css={`
               position: absolute;
               right: 0;

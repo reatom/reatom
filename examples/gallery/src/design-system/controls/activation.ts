@@ -1,4 +1,4 @@
-import { pressEvents } from '../../components/pressEvents'
+import { pressEvents } from './pressEvents'
 
 export type ActivationMode = 'click' | 'press'
 

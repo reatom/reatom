@@ -7,6 +7,7 @@ import {
   wrap,
 } from '@reatom/core'
 
+import { isNativeActivationTarget } from '../a11y'
 import { copyImageAsJpegToClipboard } from '../copyImage'
 import { downloadPreparedGalleryImage } from '../download'
 import { visibleImages, visibleIndexMap } from './collection'
@@ -167,6 +168,8 @@ export const handleLightboxKeyDown = action((event: KeyboardEvent) => {
       lightboxZoomIn()
       break
     case ' ':
+      if (event.defaultPrevented) return
+      if (isNativeActivationTarget(event.target)) return
       event.preventDefault()
       event.stopPropagation()
       slideshowPlaying.toggle()

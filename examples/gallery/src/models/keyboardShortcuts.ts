@@ -1,5 +1,6 @@
 import { action, effect, onEvent } from '@reatom/core'
 
+import { isNativeActivationTarget } from '../a11y'
 import { clearSelection, currentImages, selectAllImages } from './collection'
 import { closeLightbox, lightboxOpen, navigateLightbox } from './lightbox'
 import { filterPanelOpen, settingsPanelOpen } from './panels'
@@ -54,6 +55,8 @@ export const handleKeyboardShortcut = action((event: KeyboardEvent) => {
       return
     }
     if (event.key === ' ') {
+      if (event.defaultPrevented) return
+      if (isNativeActivationTarget(event.target)) return
       event.preventDefault()
       slideshowPlaying.toggle()
       return

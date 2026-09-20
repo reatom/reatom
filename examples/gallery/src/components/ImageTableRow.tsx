@@ -1,5 +1,4 @@
 import { focusableRowAttrs } from '../a11y'
-import { ChoiceButton, IconButton } from '../design-system'
 import { formatExifDisplayValue } from '../image-engine/exifDisplay'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import type { ImageModel } from '../model'
@@ -7,11 +6,10 @@ import {
   bindGalleryImagePreviewWhen,
   ignoreExifOrientation,
   openLightbox,
-  selectImage,
   tablePreviewHeight,
   tablePreviewWidth,
 } from '../model'
-import { CheckIcon, HeartIcon } from './Icons'
+import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
 
 export const tableCellCss = `
   min-width: 0;
@@ -33,8 +31,6 @@ export const ImageTableRow = ({
   exifColumns: string[]
   visible: () => boolean
 }) => {
-  const isSelected = () => image.selected()
-  const isFavorite = () => image.favorite()
   const displayThumbnail = () => {
     if (image.previewLoadPriority() === 'off') return null
 
@@ -62,7 +58,7 @@ export const ImageTableRow = ({
     <tr
       {...focusableRowAttrs(openLabel, () => openLightbox(image))}
       ref={() => bindGalleryImagePreviewWhen(image, visible)}
-      attr:data-selected={isSelected}
+      attr:data-selected={image.selected}
       style:display={() => (visible() ? 'table-row' : 'none')}
       css:preview-width={() => `${tablePreviewWidth()}px`}
       css:preview-height={() => `${tablePreviewHeight()}px`}
@@ -89,19 +85,10 @@ export const ImageTableRow = ({
           vertical-align: middle;
         `}
       >
-        <ChoiceButton
-          label={() =>
-            isSelected() ? `Deselect ${image.name}` : `Select ${image.name}`
-          }
-          selected={isSelected}
-          selection="checked"
-          stopPropagation
-          onClick={() => selectImage(image)}
-          size="icon"
+        <ImageSelectButton
+          image={image}
           css="width: 24px; height: 24px; margin-inline: auto;"
-        >
-          {() => (isSelected() ? <CheckIcon /> : null)}
-        </ChoiceButton>
+        />
       </td>
       <td css={tableCellCss}>
         <div
@@ -166,19 +153,7 @@ export const ImageTableRow = ({
         </td>
       ))}
       <td css={tableCellCss}>
-        <IconButton
-          label={() =>
-            isFavorite()
-              ? `Remove ${image.name} from favorites`
-              : `Add ${image.name} to favorites`
-          }
-          selected={isFavorite}
-          stopPropagation
-          onClick={() => image.favorite.toggle()}
-          css="width: 30px; height: 30px;"
-        >
-          {() => <HeartIcon filled={isFavorite()} />}
-        </IconButton>
+        <ImageFavoriteButton image={image} css="width: 30px; height: 30px;" />
       </td>
     </tr>
   )

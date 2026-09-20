@@ -29,6 +29,7 @@ export const SortPanel = () => (
     ))}
     <Button
       appearance="quiet"
+      size="sm"
       label={() => (sortOrder() === 'asc' ? 'Asc' : 'Desc')}
       onClick={toggleSortOrder}
       css="min-width: 76px; gap: 5px;"

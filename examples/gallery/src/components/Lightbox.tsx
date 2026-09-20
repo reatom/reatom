@@ -1,10 +1,7 @@
 import { onEvent, wrap } from '@reatom/core'
 
-import {
-  ChoiceButton,
-  IconButton,
-  resolveViewerControlCssVars,
-} from '../design-system'
+import { ChoiceButton, IconButton } from '../design-system'
+import { registerGlassSurface } from '../glassSurfaces'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import {
   bindLightboxDisplayTargetDebouncer,
@@ -43,10 +40,8 @@ import {
   navigateLightbox,
   openLightboxAtVisibleIndex,
   resetLightboxSession,
-  resolvedThemeMode,
   showLightboxScrubber,
   startLightboxPan,
-  themePack,
   thumbnailWindow,
   toggleLightboxImageFavorite,
   visibleImages,
@@ -65,6 +60,7 @@ import {
   MinusIcon,
   PlusIcon,
 } from './Icons'
+import { lightboxChromeCss } from './lightboxChrome'
 import { imageInfoPanelOpen } from './panelState'
 import { Slideshow } from './Slideshow'
 
@@ -157,7 +153,7 @@ const LightboxImageFrame = ({
 
       return (
         <div
-          class="lightbox-photo-print"
+          id="lightbox-print"
           attr:data-caption={() => model.source.name}
           style:width={() => lightboxImageFrameSize().width}
           style:height={() => lightboxImageFrameSize().height}
@@ -312,7 +308,7 @@ const LightboxContent = () => {
 
   return (
     <div
-      class="gallery-lightbox"
+      id="gallery-lightbox"
       role="dialog"
       aria-modal="true"
       aria-label={lightboxDialogLabel}
@@ -355,9 +351,6 @@ const LightboxContent = () => {
         }
       }}
       attr:data-controls-visible={lightboxControlsVisible}
-      style={() =>
-        resolveViewerControlCssVars(themePack(), resolvedThemeMode())
-      }
       on:keydown={handleLightboxKeyDown}
       on:click={(event: MouseEvent & { currentTarget: HTMLDivElement }) => {
         if (event.target === event.currentTarget) closeLightbox()
@@ -382,31 +375,23 @@ const LightboxContent = () => {
         justify-content: center;
         outline: none;
         user-select: none;
-        .lightbox-control-layer {
-          opacity: 1;
-          pointer-events: auto;
-          transition: opacity 0.35s ease;
-        }
-        &[data-controls-visible='false'] .lightbox-control-layer {
-          opacity: 0;
-          pointer-events: none;
-        }
-        &[data-controls-visible='false'] .lightbox-control-layer:focus-within {
-          opacity: 1;
-          pointer-events: auto;
+        --control-opacity: 1;
+        --control-pointer: auto;
+        &[data-controls-visible='false'] {
+          --control-opacity: 0;
+          --control-pointer: none;
         }
         @media (prefers-reduced-motion: reduce) {
-          .lightbox-control-layer {
-            opacity: 1 !important;
-            pointer-events: auto !important;
-            transition: none !important;
-          }
+          --control-opacity: 1;
+          --control-pointer: auto;
         }
       `}
     >
       <div
-        class="lightbox-control-layer lightbox-toolbar"
+        id="lightbox-toolbar"
+        ref={registerGlassSurface('viewer')}
         css={`
+          ${lightboxChromeCss}
           position: absolute;
           top: 0;
           left: 0;
@@ -510,7 +495,7 @@ const LightboxContent = () => {
       </div>
 
       <div
-        class="lightbox-photo-stage"
+        id="lightbox-stage"
         style:cursor={lightboxImageCursor}
         css={`
           flex: 1;
@@ -546,10 +531,11 @@ const LightboxContent = () => {
 
       <IconButton
         {...lightboxActivation}
-        class="lightbox-control-layer"
+        ref={registerGlassSurface('viewer')}
         label="Previous image"
         onClick={() => navigateLightbox(-1)}
         css={`
+          ${lightboxChromeCss}
           ${navLayoutCss} left: 16px;
         `}
       >
@@ -557,28 +543,28 @@ const LightboxContent = () => {
       </IconButton>
       <IconButton
         {...lightboxActivation}
-        class="lightbox-control-layer"
+        ref={registerGlassSurface('viewer')}
         label="Next image"
         onClick={() => navigateLightbox(1)}
         css={`
+          ${lightboxChromeCss}
           ${navLayoutCss} right: 16px;
         `}
       >
         <ChevronRightIcon />
       </IconButton>
 
-      <Slideshow
-        class="lightbox-control-layer"
-        onControlPress={lightboxShowControlsFromPointer}
-      />
+      <Slideshow onControlPress={lightboxShowControlsFromPointer} />
 
       {() => {
         if (!showLightboxScrubber() || visibleImages().length <= 1) return null
 
         return (
           <label
-            class="lightbox-control-layer"
+            id="lightbox-scrubber"
+            ref={registerGlassSurface('viewer')}
             css={`
+              ${lightboxChromeCss}
               position: absolute;
               right: max(16px, calc(16px + var(--shadow-clearance, 0px)));
               bottom: 58px;
@@ -617,8 +603,10 @@ const LightboxContent = () => {
       }}
 
       <div
-        class="lightbox-control-layer lightbox-filmstrip"
+        id="lightbox-filmstrip"
+        ref={registerGlassSurface('viewer')}
         css={`
+          ${lightboxChromeCss}
           position: absolute;
           bottom: 0;
           left: 0;

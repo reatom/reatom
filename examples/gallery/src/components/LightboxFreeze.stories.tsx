@@ -12,7 +12,8 @@ import type { FolderNode } from '../types'
 import { Lightbox } from './Lightbox'
 
 const loc = {
-  lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
+  lightboxCounterAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Close preview' }),
   zoomInButton: (canvas) => canvas.findByRole('button', { name: 'Zoom in' }),
 } satisfies Record<string, Locator>
 

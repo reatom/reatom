@@ -21,7 +21,8 @@ const personalFixtureByName = new Map<string, PersonalFixtureEntry>(
 )
 
 const loc = {
-  lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
+  lightboxCounterAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Close preview' }),
   closeButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Close preview' }),
   scrubberAppears: (canvas) =>

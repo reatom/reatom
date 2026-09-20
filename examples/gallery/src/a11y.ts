@@ -10,10 +10,22 @@ export const srOnlyCss = `
   border: 0;
 `
 
+export const isNativeActivationTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  return (
+    target.closest(
+      'button, [data-ui], a, input, textarea, select, [role="button"]',
+    ) !== null
+  )
+}
+
 export const keyboardActivate = (action: () => void) => ({
   'on:keydown': (event: KeyboardEvent) => {
+    if (event.target !== event.currentTarget) return
     if (event.key !== 'Enter' && event.key !== ' ') return
     event.preventDefault()
+    event.stopPropagation()
     action()
   },
 })

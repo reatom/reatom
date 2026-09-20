@@ -1,14 +1,16 @@
 import { keyboardActivate } from '../a11y'
 import { IconButton } from '../design-system'
+import { registerGlassSurface } from '../glassSurfaces'
 import {
   currentFolder,
   folderTree,
   folderTreeIsAllSelected,
   folderTreeSidebarVisible,
   reatomFolderTreeNodeUi,
-  themePack,
 } from '../model'
+import { themeCss } from '../themeCss'
 import type { FolderNode } from '../types'
+import { BauhausSidebarPrint } from './BauhausArtwork'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -16,9 +18,59 @@ import {
   FolderRootIcon,
 } from './Icons'
 
-const folderSidebarWidth = 240
-const folderToggleSize = 34
-const folderHeaderRailHeight = 40
+const folderTreeRootCss = `
+  display: flex;
+  height: 100%;
+  position: relative;
+`
+
+const folderSidebarCss = `
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width, 240px);
+  min-width: var(--sidebar-width, 240px);
+  background-color: var(--panel-bg);
+  background-image: var(--surface-bg-image);
+  background-size: var(--surface-bg-size);
+  border-right: var(--border-width) var(--border-style) var(--border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px;
+  transition:
+    margin-left 0.3s ease,
+    opacity 0.3s ease;
+  margin-left: calc(-1 * var(--sidebar-width, 240px));
+  opacity: 0;
+  box-shadow: 12px 0 32px var(--shadow);
+  backdrop-filter: var(--panel-backdrop-filter);
+  clip-path: var(--surface-clip-path);
+  &[data-open='true'] {
+    margin-left: 0;
+    opacity: 1;
+  }
+`
+
+const folderToggleCss = `
+  position: absolute;
+  top: calc((var(--folder-header-rail-height, 40px) - var(--folder-toggle-size, 34px)) / 2);
+  left: calc(var(--folder-toggle-size, 34px) / 2);
+  z-index: 10;
+  width: var(--folder-toggle-size, 34px);
+  height: var(--folder-toggle-size, 34px);
+  transform: translateX(-50%);
+  isolation: isolate;
+  &[data-ui='button'][data-ui-role][data-ui-surface] {
+    --_bg: var(--bg-elevated);
+    --_hover-bg: var(--bg-tertiary);
+    --_press-bg: var(--bg-tertiary);
+    --_border: var(--border-strong);
+    --_shadow: none;
+    --_image: none;
+  }
+  &[aria-expanded='true'] {
+    left: var(--sidebar-width, 240px);
+  }
+`
 
 const treeNodeCss = `
   display: flex;
@@ -67,9 +119,20 @@ const FolderTreeNode = ({
 
   return (
     <div
-      class="gallery-folder-node"
+      role="group"
+      aria-label={node.name}
       css={`
         padding-left: ${depth * 12}px;
+        ${themeCss(
+          'polaroid',
+          `
+            padding-left: 0;
+            display: flow-root;
+            & & {
+              margin-left: 3px;
+            }
+          `,
+        )}
       `}
     >
       <div
@@ -149,33 +212,12 @@ const FolderTreeNode = ({
 }
 
 export const FolderTree = () => (
-  <div css="display: flex; height: 100%; position: relative;">
+  <div css={folderTreeRootCss}>
     <div
-      class="gallery-folder-sidebar"
+      id="gallery-folder-sidebar"
       data-open={folderTreeSidebarVisible}
-      css={`
-        width: ${folderSidebarWidth}px;
-        min-width: ${folderSidebarWidth}px;
-        background-color: var(--panel-bg);
-        background-image: var(--surface-bg-image);
-        background-size: var(--surface-bg-size);
-        border-right: var(--border-width) var(--border-style) var(--border);
-        overflow-y: auto;
-        overflow-x: hidden;
-        padding: 10px;
-        transition:
-          margin-left 0.3s ease,
-          opacity 0.3s ease;
-        margin-left: -${folderSidebarWidth}px;
-        opacity: 0;
-        box-shadow: 12px 0 32px var(--shadow);
-        backdrop-filter: var(--panel-backdrop-filter);
-        clip-path: var(--surface-clip-path);
-        &[data-open='true'] {
-          margin-left: 0;
-          opacity: 1;
-        }
-      `}
+      ref={registerGlassSurface('panel')}
+      css={folderSidebarCss}
     >
       <div role="tree" aria-label="Folders">
         <div
@@ -203,12 +245,8 @@ export const FolderTree = () => (
           <span css="font-size: 15px;">
             <FolderRootIcon />
           </span>
-          <span>
-            {() =>
-              themePack() === 'polaroid'
-                ? (folderTree()?.name ?? 'All folders')
-                : 'All folders'
-            }
+          <span attr:data-folder-name={() => folderTree()?.name ?? 'All folders'}>
+            All folders
           </span>
         </div>
 
@@ -225,45 +263,16 @@ export const FolderTree = () => (
           return <FolderTreeNode node={tree} depth={0} />
         }}
       </div>
-      <div
-        class="bauhaus-sidebar-print"
-        attr:aria-hidden="true"
-        css="display: none;"
-      >
-        <div class="bauhaus-print-shapes">
-          <span />
-          <span />
-          <span />
-        </div>
-        <span class="bauhaus-print-title">
-          Look
-          <br />
-          closer.
-        </span>
-        <span class="bauhaus-print-note">THERE’S MORE TO SEE.</span>
-      </div>
+      <BauhausSidebarPrint />
     </div>
 
     <IconButton
-      class="gallery-folder-toggle"
       label={() =>
         folderTreeSidebarVisible() ? 'Hide folder tree' : 'Show folder tree'
       }
       expanded={folderTreeSidebarVisible}
       onClick={folderTreeSidebarVisible.toggle}
-      css={`
-        position: absolute;
-        top: ${(folderHeaderRailHeight - folderToggleSize) / 2}px;
-        z-index: 10;
-        width: ${folderToggleSize}px;
-        height: ${folderToggleSize}px;
-        transform: translateX(-50%);
-      `}
-      style:left={() =>
-        folderTreeSidebarVisible()
-          ? `${folderSidebarWidth}px`
-          : `${folderToggleSize / 2}px`
-      }
+      css={folderToggleCss}
     >
       {() =>
         folderTreeSidebarVisible() ? <ChevronLeftIcon /> : <ChevronRightIcon />

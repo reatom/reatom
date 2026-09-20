@@ -1,4 +1,4 @@
-import { Button, IconButton, Switch } from '../design-system'
+import { Button, Switch } from '../design-system'
 import {
   clearFilters,
   filterSizeMaxKb,
@@ -11,7 +11,9 @@ import {
   setFilterSizeMinKb,
   toggleFilterType,
 } from '../model'
-import { CloseIcon } from './Icons'
+import { themeCss } from '../themeCss'
+import { fieldCss } from './fieldStyles'
+import { Panel } from './Panel'
 import { filterPanelOpen } from './panelState'
 
 const TypeCheckbox = ({ ext, label }: { ext: string; label: string }) => (
@@ -45,64 +47,13 @@ const TypeCheckbox = ({ ext, label }: { ext: string; label: string }) => (
 )
 
 export const FilterPanel = () => (
-  <aside
-    role="dialog"
-    aria-modal="true"
-    aria-label="Filters"
-    aria-hidden={() => !filterPanelOpen()}
-    prop:inert={() => !filterPanelOpen()}
-    attr:data-open={filterPanelOpen}
-    css={`
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: 300px;
-      height: 100vh;
-      background: var(--bg-secondary);
-      border-left: var(--border-width) var(--border-style) var(--border);
-      z-index: 1000;
-      transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow-y: auto;
-      padding: 20px;
-      box-shadow: -18px 0 48px var(--shadow-strong);
-      background-color: var(--panel-bg);
-      background-image: var(--surface-bg-image);
-      background-size: var(--surface-bg-size);
-      backdrop-filter: var(--panel-backdrop-filter);
-      clip-path: var(--surface-clip-path);
-
-      &[data-open='true'] {
-        transform: translateX(0);
-      }
-    `}
+  <Panel
+    label="Filters"
+    closeLabel="Close filters"
+    open={filterPanelOpen}
+    onClose={() => filterPanelOpen.set(false)}
+    width="300px"
   >
-    <div class="gallery-panel-scroll" css="display: contents;">
-      <div
-        css={`
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 16px;
-        `}
-      >
-        <h2
-          css={`
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-          `}
-        >
-          Filters
-        </h2>
-        <IconButton
-          label="Close filters"
-          onClick={() => filterPanelOpen.set(false)}
-        >
-          <CloseIcon />
-        </IconButton>
-      </div>
-
       <div css="margin-bottom: 16px;">
         <input
           type="search"
@@ -111,24 +62,7 @@ export const FilterPanel = () => (
           model:value={searchQuery}
           css={`
             width: 100%;
-            padding: 8px 12px;
-            border: var(--border-width) var(--control-border-style)
-              var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--input-bg);
-            color: var(--text-primary);
-            font-size: 13px;
-            outline: none;
-            transition: border-color 0.15s;
-
-            &:focus {
-              border-color: var(--accent);
-              box-shadow: 0 0 0 3px var(--focus-ring);
-            }
-
-            &::placeholder {
-              color: var(--text-secondary);
-            }
+            ${fieldCss}
           `}
         />
       </div>
@@ -145,7 +79,19 @@ export const FilterPanel = () => (
       >
         File Types
       </h3>
-      <div class="filter-type-options" css="margin-bottom: 16px;">
+      <div
+        css={`
+          margin-bottom: 16px;
+          ${themeCss(
+            'glass',
+            `
+              display: grid;
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+              gap: 4px 8px;
+            `,
+          )}
+        `}
+      >
         {IMAGE_TYPE_OPTIONS.map((option) => (
           <TypeCheckbox ext={option.ext} label={option.label} />
         ))}
@@ -174,23 +120,7 @@ export const FilterPanel = () => (
           }
           css={`
             width: 50%;
-            padding: 6px 10px;
-            border: var(--border-width) var(--control-border-style)
-              var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--input-bg);
-            color: var(--text-primary);
-            font-size: 13px;
-            outline: none;
-
-            &:focus {
-              border-color: var(--accent);
-              box-shadow: 0 0 0 3px var(--focus-ring);
-            }
-
-            &::placeholder {
-              color: var(--text-secondary);
-            }
+            ${fieldCss}
           `}
         />
         <input
@@ -208,23 +138,7 @@ export const FilterPanel = () => (
           }}
           css={`
             width: 50%;
-            padding: 6px 10px;
-            border: var(--border-width) var(--control-border-style)
-              var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--input-bg);
-            color: var(--text-primary);
-            font-size: 13px;
-            outline: none;
-
-            &:focus {
-              border-color: var(--accent);
-              box-shadow: 0 0 0 3px var(--focus-ring);
-            }
-
-            &::placeholder {
-              color: var(--text-secondary);
-            }
+            ${fieldCss}
           `}
         />
       </div>
@@ -243,6 +157,5 @@ export const FilterPanel = () => (
         onClick={clearFilters}
         css="width: 100%;"
       />
-    </div>
-  </aside>
+  </Panel>
 )

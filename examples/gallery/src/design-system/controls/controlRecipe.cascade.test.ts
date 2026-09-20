@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import { expect, test } from 'vitest'
 
-import { controlRecipeCss } from './controlStyles'
+import { composeControlCss, controlRecipeCss } from './controlStyles'
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -23,4 +23,23 @@ test('recipe type sits on [data-ui], so ThemeRoot button inherit cannot win', ()
 test('ThemeRoot only inherits type onto raw buttons', async () => {
   const source = await readFile(join(here, '../ThemeRoot.tsx'), 'utf8')
   expect(source).toContain(':where(button:not([data-ui]))')
+})
+
+test('size overrides compose after role defaults and before consumer css', () => {
+  expect(controlRecipeCss()).not.toMatch(
+    /:where\(\[data-ui="button"\]\[data-ui-size/,
+  )
+  const composed = composeControlCss(
+    'app',
+    'action',
+    'lg',
+    'width: 99px; height: 99px;',
+  )
+  expect(composed).toMatch(/--_min-height:\s*var\(--ui-app-action-min-height\)/)
+  expect(composed.indexOf('--_min-height: 48px')).toBeGreaterThan(
+    composed.indexOf('--_min-height: var(--ui-app-action-min-height)'),
+  )
+  expect(composed.indexOf('width: 99px')).toBeGreaterThan(
+    composed.indexOf('--_min-height: 48px'),
+  )
 })

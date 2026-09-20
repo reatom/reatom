@@ -34,7 +34,6 @@ export type ThemeRootProps = {
   mode?: ResolvedThemeMode | (() => ResolvedThemeMode)
   includeAtmosphere?: boolean
   bindDocument?: boolean
-  class?: string
   css?: string
 }
 
@@ -55,6 +54,10 @@ const resolveMode = (
 const supportsGlassRefraction = /Chrome\/|Chromium\//.test(navigator.userAgent)
 
 const themeBoundaryCss = `
+  --sidebar-width: 240px;
+  --folder-toggle-size: 34px;
+  --folder-header-rail-height: 40px;
+
   &, *, *::before, *::after {
     box-sizing: border-box;
   }
@@ -167,11 +170,9 @@ export const ThemeRoot = ({
   mode,
   includeAtmosphere = false,
   bindDocument = false,
-  class: className,
   css = '',
 }: ThemeRootProps) => (
   <div
-    class={['gallery-theme-root', className].filter(Boolean).join(' ')}
     ref={(node) => {
       bindThemeFonts()
       bindControlRecipe()

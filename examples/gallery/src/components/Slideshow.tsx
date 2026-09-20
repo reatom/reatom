@@ -1,4 +1,5 @@
 import { ChoiceButton, IconButton } from '../design-system'
+import { registerGlassSurface } from '../glassSurfaces'
 import {
   bindSlideshowAutoAdvance,
   bindSlideshowPauseOnPageHidden,
@@ -7,6 +8,7 @@ import {
   slideshowProgressPercent,
 } from '../model'
 import { PauseIcon, PlayIcon } from './Icons'
+import { lightboxChromeCss } from './lightboxChrome'
 
 const speedOptions = [
   { ms: 1000, label: '1s' },
@@ -17,14 +19,10 @@ const speedOptions = [
 ] as const
 
 type SlideshowProps = {
-  class?: string
   onControlPress?: () => void
 }
 
-export const Slideshow = ({
-  class: className,
-  onControlPress,
-}: SlideshowProps = {}) => {
+export const Slideshow = ({ onControlPress }: SlideshowProps = {}) => {
   const slideshowActivation = {
     activation: 'press' as const,
     stopPropagation: true,
@@ -34,17 +32,20 @@ export const Slideshow = ({
 
   return (
     <div
-      class={`slideshow-controls ${className ?? ''}`}
-      ref={() => {
+      id="slideshow-controls"
+      ref={(element) => {
         const stopAdvance = bindSlideshowAutoAdvance()
         const stopVisibility = bindSlideshowPauseOnPageHidden()
+        const stopGlass = registerGlassSurface('viewer')(element)
 
         return () => {
           stopAdvance()
           stopVisibility()
+          stopGlass()
         }
       }}
       css={`
+        ${lightboxChromeCss}
         position: absolute;
         bottom: 52px;
         left: 50%;

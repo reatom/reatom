@@ -1,14 +1,16 @@
 import type { JSX } from '@reatom/jsx'
 
-import type { ControlSize, ControlSurface } from '../themeTypes'
+import type { ControlRole, ControlSize, ControlSurface } from '../themeTypes'
 import { type ActivationMode, createActivationHandlers } from './activation'
+import { composeControlCss } from './controlStyles'
 import {
   type ReactiveBoolean,
   type ReactiveString,
   resolveReactiveBoolean,
 } from './shared'
 
-export type ButtonAppearance = 'action' | 'quiet'
+export type ButtonAppearance = Exclude<ControlRole, 'switch'>
+export type ChoiceSelection = 'pressed' | 'checked' | 'current'
 
 export type ButtonProps = {
   label: ReactiveString
@@ -18,6 +20,7 @@ export type ButtonProps = {
   size?: ControlSize
   disabled?: ReactiveBoolean
   selected?: ReactiveBoolean
+  selection?: ChoiceSelection
   title?: ReactiveString
   expanded?: ReactiveBoolean
   bracket?: boolean
@@ -27,9 +30,8 @@ export type ButtonProps = {
   stopPropagation?: boolean
   onBefore?: () => void
   type?: 'button' | 'submit'
-  class?: string | (() => string)
   css?: string
-  'style:left'?: string | (() => string)
+  ref?: (element: HTMLButtonElement) => void | (() => void)
   children?: JSX.ElementChildren
 }
 
@@ -41,6 +43,7 @@ export const Button = ({
   size = 'md',
   disabled,
   selected,
+  selection,
   title,
   expanded,
   bracket,
@@ -50,9 +53,8 @@ export const Button = ({
   stopPropagation = false,
   onBefore,
   type = 'button',
-  class: className,
   css,
-  'style:left': styleLeft,
+  ref,
   children,
 }: ButtonProps) => {
   const handlers = createActivationHandlers(onClick, {
@@ -61,6 +63,10 @@ export const Button = ({
     stopPropagation,
     onBefore,
   })
+  const selectedValue =
+    selected === undefined ? undefined : () => resolveReactiveBoolean(selected)
+  const selectionMode =
+    selection ?? (selected === undefined ? undefined : 'pressed')
 
   return (
     <button
@@ -72,15 +78,14 @@ export const Button = ({
       data-terminal-bracket={bracket ? 'true' : undefined}
       data-ui-slot={slot}
       attr:aria-describedby={describedBy}
-      attr:data-ui-selected={
-        selected === undefined
-          ? undefined
-          : () => resolveReactiveBoolean(selected)
-      }
-      aria-pressed={
-        selected === undefined
-          ? undefined
-          : () => resolveReactiveBoolean(selected)
+      attr:data-ui-selected={selectedValue}
+      role={selectionMode === 'checked' ? 'checkbox' : undefined}
+      aria-pressed={selectionMode === 'pressed' ? selectedValue : undefined}
+      aria-checked={selectionMode === 'checked' ? selectedValue : undefined}
+      attr:aria-current={
+        selectionMode === 'current'
+          ? () => (selectedValue?.() ? 'true' : undefined)
+          : undefined
       }
       aria-label={label}
       title={title ?? (size === 'icon' ? label : undefined)}
@@ -90,9 +95,8 @@ export const Button = ({
           : () => resolveReactiveBoolean(expanded)
       }
       prop:disabled={() => resolveReactiveBoolean(disabled)}
-      class={className}
-      css={css}
-      style:left={styleLeft}
+      css={composeControlCss(surface, appearance, size, css)}
+      ref={ref}
       {...handlers}
     >
       {children ?? label}

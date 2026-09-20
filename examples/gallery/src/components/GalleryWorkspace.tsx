@@ -12,7 +12,7 @@ import { SortPanel } from './SortPanel'
 
 export const GalleryWorkspace = () => (
   <div
-    class="gallery-workspace"
+    id="gallery-workspace"
     css="flex: 1; overflow: hidden; display: flex;"
   >
     {() => {
@@ -34,7 +34,7 @@ export const GalleryWorkspace = () => (
 
         return (
           <div
-            class="gallery-pathbar"
+            id="gallery-pathbar"
             css={`
               padding: 4px 16px;
               display: flex;

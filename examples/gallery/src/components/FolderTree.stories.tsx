@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/html'
+import { expect } from 'storybook/test'
 
 import { mockEmptyFolder, mockFolderTree } from '../__fixtures__/mockData'
+import { folderTreeSidebarVisible } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import { createMyself, type Locator } from '../shared/test'
 import { loadGalleryState } from '../shared/testSetup'
@@ -77,5 +79,36 @@ export const ExpandCollapse: Story = {
   },
   play: async () => {
     await I.expandFirstFolder()
+  },
+}
+
+export const TogglePositionFollowsSidebarWidth: Story = {
+  render: () => {
+    loadGalleryState({ tree: mockFolderTree })
+    folderTreeSidebarVisible.setTrue()
+    return renderFolderTree()
+  },
+  play: async () => {
+    const openToggle = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Hide folder tree' }),
+    )
+    const sidebarWidth =
+      getComputedStyle(openToggle).getPropertyValue('--sidebar-width').trim() ||
+      '240px'
+    await expect(getComputedStyle(openToggle).left).toBe(sidebarWidth)
+
+    openToggle.click()
+    await waitForUpdate()
+
+    const closedToggle = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Show folder tree' }),
+    )
+    const toggleSize =
+      getComputedStyle(closedToggle)
+        .getPropertyValue('--folder-toggle-size')
+        .trim() || '34px'
+    await expect(getComputedStyle(closedToggle).left).toBe(
+      `${Number.parseFloat(toggleSize) / 2}px`,
+    )
   },
 }

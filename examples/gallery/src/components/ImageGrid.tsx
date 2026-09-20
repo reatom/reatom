@@ -1,68 +1,64 @@
-import {
-  bindGalleryImagePreview,
-  folderModelTree,
-  type GalleryFolderModel,
-  gridColumns,
-  gridGap,
-  imageGrid,
-  isFolderBranchInCurrentScope,
-  isFolderImagesInCurrentScope,
-  viewMode,
-  visibleIndexMap,
-} from '../model'
+import { gridColumns, gridGap, imageGrid, viewMode, visibleIndexMap } from '../model'
+import { themeCss } from '../themeCss'
 import { GRID_GAP_VALUES } from '../types'
+import { FolderImageTree, PreviewBoundImage } from './FolderImageTree'
 import { GridImage } from './GridImage'
 import { SearchIcon } from './Icons'
 import { ImageList } from './ImageList'
 import { ImageTable } from './ImageTable'
 
-const GridImageEntry = ({
-  image,
-  folder,
-}: {
-  image: GalleryFolderModel['images'][number]
-  folder: GalleryFolderModel
-}) => (
-  <div
-    class="grid-image-entry"
-    style:display={() => (image.visible() ? 'contents' : 'none')}
-    ref={() => bindGalleryImagePreview(image, folder)}
-  >
-    <GridImage image={image} />
-  </div>
-)
-
-const GridFolder = ({ folder }: { folder: GalleryFolderModel }) => (
-  <div
-    style:display={() =>
-      isFolderBranchInCurrentScope(folder) ? 'contents' : 'none'
-    }
-  >
-    <div
-      style:display={() =>
-        isFolderImagesInCurrentScope(folder) ? 'contents' : 'none'
+const gridEntryCss = `
+  ${themeCss(
+    'bauhaus',
+    `
+      --print-color: var(--bauhaus-red);
+      --print-shape: circle(50%);
+      &:nth-child(3n + 2) {
+        --print-color: var(--bauhaus-blue);
+        --print-shape: inset(0);
       }
-    >
-      {() =>
-        folder
-          .sortedImages()
-          .map((image) => <GridImageEntry image={image} folder={folder} />)
+      &:nth-child(3n) {
+        --print-color: var(--bauhaus-yellow);
+        --print-shape: polygon(50% 0, 100% 100%, 0 100%);
       }
-    </div>
-    {folder.children.map((child) => (
-      <GridFolder folder={child} />
-    ))}
-  </div>
-)
-
-const GridFolderTree = () => (
-  <div css="display: contents;">
-    {() => {
-      const tree = folderModelTree()
-      return tree ? <GridFolder folder={tree} /> : null
-    }}
-  </div>
-)
+    `,
+  )}
+  ${themeCss(
+    'polaroid',
+    `
+      &:nth-child(5n + 2) > [data-gap='medium'],
+      &:nth-child(5n + 2) > [data-gap='large'],
+      &:nth-child(5n + 2) > [data-gap='xl'] {
+        transform: rotate(-0.55deg);
+      }
+      &:nth-child(5n + 4) > [data-gap='medium'],
+      &:nth-child(5n + 4) > [data-gap='large'],
+      &:nth-child(5n + 4) > [data-gap='xl'] {
+        transform: rotate(0.65deg);
+      }
+      &:nth-child(6n + 2) > [data-gap]::before,
+      &:nth-child(6n + 5) > [data-gap]::before {
+        content: '';
+        position: absolute;
+        top: 3px;
+        left: 50%;
+        width: 68px;
+        height: 17px;
+        background: linear-gradient(105deg, rgba(255,255,255,.25), transparent 42%), var(--polaroid-tape);
+        box-shadow: 0 2px 3px rgba(49, 38, 28, 0.18);
+        opacity: 0.94;
+        pointer-events: none;
+        z-index: 3;
+      }
+      &:nth-child(6n + 2) > [data-gap]::before {
+        transform: translateX(-50%) rotate(-4deg);
+      }
+      &:nth-child(6n + 5) > [data-gap]::before {
+        transform: translateX(-50%) rotate(5deg);
+      }
+    `,
+  )}
+`
 
 const NoImagesMessage = () => (
   <div
@@ -129,7 +125,21 @@ export const ImageGrid = () => (
 
       return (
         <div css="display: contents;">
-          {mode === 'list' ? <ImageList /> : <GridFolderTree />}
+          {mode === 'list' ? (
+            <ImageList />
+          ) : (
+            <FolderImageTree
+              renderImage={(image, folder) => (
+                <PreviewBoundImage
+                  image={image}
+                  folder={folder}
+                  css={gridEntryCss}
+                >
+                  <GridImage image={image} />
+                </PreviewBoundImage>
+              )}
+            />
+          )}
         </div>
       )
     }}

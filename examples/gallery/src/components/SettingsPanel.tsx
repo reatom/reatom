@@ -1,4 +1,4 @@
-import { ChoiceButton, IconButton, Switch, THEME_PACKS } from '../design-system'
+import { ChoiceButton, Switch, THEME_PACKS } from '../design-system'
 import {
   developRawFullSize,
   glassBackgroundAnimation,
@@ -17,7 +17,7 @@ import {
   wrapFolderNavigation,
 } from '../model'
 import type { GridGap, ImageFit, ThemeMode, ThemePack } from '../types'
-import { CloseIcon } from './Icons'
+import { Panel } from './Panel'
 import { settingsPanelOpen } from './panelState'
 
 const GAP_OPTIONS: GridGap[] = ['none', 'small', 'medium', 'large', 'xl']
@@ -105,7 +105,6 @@ const ThemeModeButton = ({
     `}
   >
     <span
-      class="theme-mode-dot"
       css={`
         width: 7px;
         height: 7px;
@@ -120,69 +119,21 @@ const ThemeModeButton = ({
 )
 
 export const SettingsPanel = () => (
-  <aside
-    role="dialog"
-    aria-modal="true"
-    aria-label="Settings"
-    aria-hidden={() => !settingsPanelOpen()}
-    prop:inert={() => !settingsPanelOpen()}
-    attr:data-open={settingsPanelOpen}
+  <Panel
+    label="Settings"
+    closeLabel="Close settings"
+    open={settingsPanelOpen}
+    onClose={() => settingsPanelOpen.set(false)}
+    width="320px"
     css={`
-      position: fixed;
-      top: 0;
-      right: 0;
-      width: 320px;
-      height: 100vh;
-      background: var(--bg-secondary);
-      border-left: var(--border-width) var(--border-style) var(--border);
-      z-index: 1000;
-      transform: translateX(100%);
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      overflow-y: auto;
       padding: 20px calc(20px + var(--shadow-clearance, 0px))
         calc(20px + var(--shadow-clearance, 0px)) 20px;
-      box-shadow: -18px 0 48px var(--shadow-strong);
-      background-color: var(--panel-bg);
-      background-image: var(--surface-bg-image);
-      background-size: var(--surface-bg-size);
-      backdrop-filter: var(--panel-backdrop-filter);
-      clip-path: var(--surface-clip-path);
 
-      &[data-open='true'] {
-        transform: translateX(0);
-      }
-
-      [data-ui='button'][aria-pressed='true'] .theme-mode-dot {
+      [data-ui='button'][aria-pressed='true'] > span:first-child {
         opacity: 1;
       }
     `}
   >
-    <div class="gallery-panel-scroll" css="display: contents;">
-      <div
-        css={`
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 16px;
-        `}
-      >
-        <h2
-          css={`
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-          `}
-        >
-          Settings
-        </h2>
-        <IconButton
-          label="Close settings"
-          onClick={() => settingsPanelOpen.set(false)}
-        >
-          <CloseIcon />
-        </IconButton>
-      </div>
-
       <SectionTitle text="Grid Columns" />
       <div
         css={`
@@ -256,39 +207,39 @@ export const SettingsPanel = () => (
       <SectionTitle text="UI Options" />
       <Switch
         label="Show Image Names"
-        checked={() => showImageNames()}
+        checked={showImageNames}
         onToggle={showImageNames.toggle}
       />
       <Switch
         label="Show File Sizes"
-        checked={() => showFileSizes()}
+        checked={showFileSizes}
         onToggle={showFileSizes.toggle}
       />
       <Switch
         label="Ignore EXIF Orientation"
-        checked={() => ignoreExifOrientation()}
+        checked={ignoreExifOrientation}
         onToggle={ignoreExifOrientation.toggle}
       />
       <Switch
         label="Develop RAW at Full Size"
-        checked={() => developRawFullSize()}
+        checked={developRawFullSize}
         onToggle={developRawFullSize.toggle}
       />
 
       <SectionTitle text="Lightbox Navigation" />
       <Switch
         label="Wrap at Folder Ends"
-        checked={() => wrapFolderNavigation()}
+        checked={wrapFolderNavigation}
         onToggle={wrapFolderNavigation.toggle}
       />
       <Switch
         label="Keep Zoom While Navigating"
-        checked={() => keepLightboxView()}
+        checked={keepLightboxView}
         onToggle={keepLightboxView.toggle}
       />
       <Switch
         label="Show Folder Scrubber"
-        checked={() => showLightboxScrubber()}
+        checked={showLightboxScrubber}
         onToggle={showLightboxScrubber.toggle}
       />
 
@@ -298,7 +249,7 @@ export const SettingsPanel = () => (
           <div>
             <Switch
               label="Animate Glass Background"
-              checked={() => glassBackgroundAnimation()}
+              checked={glassBackgroundAnimation}
               onToggle={glassBackgroundAnimation.toggle}
             />
             <p css="font-size: 12px; color: var(--text-secondary); margin: 0 0 12px;">
@@ -331,6 +282,5 @@ export const SettingsPanel = () => (
         <ThemeModeButton mode="dark" label="Dark" />
         <ThemeModeButton mode="system" label="System" />
       </div>
-    </div>
-  </aside>
+  </Panel>
 )

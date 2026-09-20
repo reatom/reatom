@@ -1,8 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/html'
+import { context } from '@reatom/core'
+import { expect, userEvent } from 'storybook/test'
 
 import { mockFolderTree } from './__fixtures__/mockData'
 import { App } from './App'
-import { currentImages, openLightbox } from './model'
+import { currentImages, openLightbox, slideshowPlaying } from './model'
 import { createMyself, type Locator } from './shared/test'
 import {
   loadGalleryState,
@@ -12,8 +14,10 @@ import {
 const waitForUpdate = () => new Promise<void>((r) => setTimeout(r, 50))
 
 const loc = {
-  lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
-  maybeLightboxCounter: (canvas) => canvas.queryByText(/\d+ \/ \d+/),
+  lightboxAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Close preview' }),
+  maybeLightbox: (canvas) =>
+    canvas.queryByRole('button', { name: 'Close preview' }),
   closeButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Close preview' }),
   imageCountAppears: (canvas) => canvas.findByText(/\d+ images/),
@@ -21,10 +25,10 @@ const loc = {
 
 const I = createMyself((I) => ({
   seeLightboxOpen: async () => {
-    await I.see(loc.lightboxCounterAppears)
+    await I.see(loc.lightboxAppears)
   },
   seeLightboxClosed: async () => {
-    await I.dontSee(loc.maybeLightboxCounter)
+    await I.dontSee(loc.maybeLightbox)
   },
   closeLightbox: async () => {
     await I.click(loc.closeButtonAppears)
@@ -66,5 +70,28 @@ export const FullAppWithShortcuts: Story = {
   },
   play: async () => {
     await I.seeImageCount()
+  },
+}
+
+export const TableRowSpaceDoesNotStartSlideshow: Story = {
+  render: () => {
+    loadGalleryState({ tree: mockFolderTree })
+    return <App />
+  },
+  play: async () => {
+    await I.seeImageCount()
+    const tableView = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'table view' }),
+    )
+    tableView.click()
+    await waitForUpdate()
+    const row = await I.see((canvas) =>
+      canvas.findByRole('row', { name: /photo1\.jpg/i }),
+    )
+    row.focus()
+    await userEvent.keyboard(' ')
+    await I.seeLightboxOpen()
+    const playing = context.start(() => slideshowPlaying())
+    await expect(playing).toBe(false)
   },
 }

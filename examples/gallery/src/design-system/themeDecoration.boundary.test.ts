@@ -13,7 +13,7 @@ const decorationSuffixes = ['Details.ts', 'Details.tsx', 'Theme.ts']
 const decorationFiles = new Set(['ThemeViewerDetails.ts'])
 
 const controlSelector =
-  /(?:^|[^\w-])(\[data-ui|[.]glass-lens|[.]glass-overlay-control|[.]lightbox-control-layer|\[data-glass-toggle|\[aria-pressed|\[aria-checked|\[data-active|\[data-ui-selected)/
+  /(?:^|[^\w-])(\[data-ui|\[data-glass-toggle|\[aria-pressed|\[aria-checked|\[data-active|\[data-ui-selected|#gallery-folder-sidebar ~ \[data-ui)/
 const chromeOnly = /:not\(\[data-ui\]\)/
 const a11yFallback =
   /forced-colors|prefers-contrast|prefers-reduced-transparency|Canvas(?:Text)?/

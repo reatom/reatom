@@ -5,9 +5,9 @@ import { MoonIcon, SunIcon } from './Icons'
 export const ThemeToggle = () => (
   <IconButton
     label="Toggle theme"
+    title="Toggle light/dark theme"
     onClick={toggleResolvedThemeMode}
-    css="width: 36px; height: 36px;"
   >
-    {() => (resolvedThemeMode() === 'light' ? <SunIcon /> : <MoonIcon />)}
+    {() => (resolvedThemeMode() === 'dark' ? <MoonIcon /> : <SunIcon />)}
   </IconButton>
 )

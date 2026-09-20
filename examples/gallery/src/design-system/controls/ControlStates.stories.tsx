@@ -55,6 +55,9 @@ const Specimen = () => (
     >
       <span aria-hidden="true">★</span>
     </IconButton>
+    <Button label="Small action" size="sm" onClick={onAction} />
+    <Button label="Medium action" size="md" onClick={onAction} />
+    <Button label="Large action" size="lg" onClick={onAction} />
   </div>
 )
 
@@ -87,6 +90,22 @@ export const CartoonLight: Story = {
       canvas.findByRole('button', { name: 'Sized' }),
     )
     await expect(getComputedStyle(sized).width).toBe('24px')
+    const small = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Small action' }),
+    )
+    const medium = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Medium action' }),
+    )
+    const large = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Large action' }),
+    )
+    await expect(getComputedStyle(small).minHeight).toBe('28px')
+    await expect(getComputedStyle(small).padding).toBe('5px 10px')
+    await expect(getComputedStyle(medium).minHeight).toBe('32px')
+    await expect(getComputedStyle(medium).padding).toBe('7px 13px')
+    await expect(getComputedStyle(large).minHeight).toBe('48px')
+    await expect(getComputedStyle(large).padding).toBe('13px 26px')
+    await expect(getComputedStyle(large).fontSize).toBe('16px')
     const disabled = await I.see(loc.disabledAppears)
     await expect(disabled).toBeDisabled()
     onAction.mockClear()
@@ -105,6 +124,38 @@ export const CartoonDark: Story = {
     await assertHoverChangesPaint(await I.see(loc.unselectedAppears))
     await assertHoverChangesPaint(await I.see(loc.selectedAppears))
     await assertHoverChangesPaint(await I.see(loc.switchAppears))
+  },
+}
+
+export const BlueprintLightSizes: Story = {
+  render: () => (
+    <StoryWrapper pack="blueprint" mode="light">
+      <div css="display: flex; flex-wrap: wrap; gap: 12px; align-items: center;">
+        <Button label="Small action" size="sm" onClick={onAction} />
+        <Button label="Medium action" size="md" onClick={onAction} />
+        <Button label="Large action" size="lg" onClick={onAction} />
+      </div>
+    </StoryWrapper>
+  ),
+  play: async () => {
+    const small = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Small action' }),
+    )
+    const medium = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Medium action' }),
+    )
+    const large = await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Large action' }),
+    )
+    await expect(getComputedStyle(small).minHeight).toBe('28px')
+    await expect(getComputedStyle(small).padding).toBe('5px 10px')
+    await expect(getComputedStyle(small).fontSize).toBe('13px')
+    await expect(getComputedStyle(medium).minHeight).toBe('32px')
+    await expect(getComputedStyle(medium).padding).toBe('7px 13px')
+    await expect(getComputedStyle(medium).fontSize).toBe('13px')
+    await expect(getComputedStyle(large).minHeight).toBe('48px')
+    await expect(getComputedStyle(large).padding).toBe('13px 26px')
+    await expect(getComputedStyle(large).fontSize).toBe('16px')
   },
 }
 

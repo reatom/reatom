@@ -1,22 +1,10 @@
 import { focusableCardAttrs } from '../a11y'
-import { ChoiceButton, IconButton } from '../design-system'
-import {
-  bindGalleryImagePreview,
-  folderModelTree,
-  type GalleryFolderModel,
-  type ImageModel,
-  isFolderBranchInCurrentScope,
-  isFolderImagesInCurrentScope,
-  listPreviewHeight,
-  listPreviewWidth,
-  openLightbox,
-  selectImage,
-} from '../model'
-import { CheckIcon, HeartIcon } from './Icons'
+import type { ImageModel } from '../model'
+import { listPreviewHeight, listPreviewWidth, openLightbox } from '../model'
+import { FolderImageTree, PreviewBoundImage } from './FolderImageTree'
+import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
 
 const ListImage = ({ image }: { image: ImageModel }) => {
-  const isSelected = () => image.selected()
-  const isFavorite = () => image.favorite()
   const displayThumbnail = () => {
     if (image.previewLoadPriority() === 'off') return null
 
@@ -31,7 +19,7 @@ const ListImage = ({ image }: { image: ImageModel }) => {
   return (
     <div
       {...focusableCardAttrs(openLabel, () => openLightbox(image))}
-      attr:data-selected={isSelected}
+      attr:data-selected={image.selected}
       css:preview-width={() => `${listPreviewWidth()}px`}
       css:preview-height={() => `${listPreviewHeight()}px`}
       on:click={() => openLightbox(image)}
@@ -65,19 +53,7 @@ const ListImage = ({ image }: { image: ImageModel }) => {
         }
       `}
     >
-      <ChoiceButton
-        label={() =>
-          isSelected() ? `Deselect ${image.name}` : `Select ${image.name}`
-        }
-        selected={isSelected}
-        selection="checked"
-        stopPropagation
-        onClick={() => selectImage(image)}
-        size="icon"
-        css="width: 26px; height: 26px;"
-      >
-        {() => (isSelected() ? <CheckIcon /> : null)}
-      </ChoiceButton>
+      <ImageSelectButton image={image} css="width: 26px; height: 26px;" />
 
       <div
         css={`
@@ -128,66 +104,17 @@ const ListImage = ({ image }: { image: ImageModel }) => {
         </div>
       </div>
 
-      <IconButton
-        label={() =>
-          isFavorite()
-            ? `Remove ${image.name} from favorites`
-            : `Add ${image.name} to favorites`
-        }
-        selected={isFavorite}
-        stopPropagation
-        onClick={() => image.favorite.toggle()}
-        css="width: 34px; height: 34px;"
-      >
-        {() => <HeartIcon filled={isFavorite()} />}
-      </IconButton>
+      <ImageFavoriteButton image={image} css="width: 34px; height: 34px;" />
     </div>
   )
 }
 
-const ListImageEntry = ({
-  image,
-  folder,
-}: {
-  image: ImageModel
-  folder: GalleryFolderModel
-}) => (
-  <div
-    style:display={() => (image.visible() ? 'contents' : 'none')}
-    ref={() => bindGalleryImagePreview(image, folder)}
-  >
-    <ListImage image={image} />
-  </div>
-)
-
-const ListFolder = ({ folder }: { folder: GalleryFolderModel }) => (
-  <div
-    style:display={() =>
-      isFolderBranchInCurrentScope(folder) ? 'contents' : 'none'
-    }
-  >
-    <div
-      style:display={() =>
-        isFolderImagesInCurrentScope(folder) ? 'contents' : 'none'
-      }
-    >
-      {() =>
-        folder
-          .sortedImages()
-          .map((image) => <ListImageEntry image={image} folder={folder} />)
-      }
-    </div>
-    {folder.children.map((child) => (
-      <ListFolder folder={child} />
-    ))}
-  </div>
-)
-
 export const ImageList = () => (
-  <div css="display: contents;">
-    {() => {
-      const tree = folderModelTree()
-      return tree ? <ListFolder folder={tree} /> : null
-    }}
-  </div>
+  <FolderImageTree
+    renderImage={(image, folder) => (
+      <PreviewBoundImage image={image} folder={folder}>
+        <ListImage image={image} />
+      </PreviewBoundImage>
+    )}
+  />
 )

@@ -62,6 +62,16 @@ test('glass choice type is 11px, not the 16px body inherit', () => {
   expect(theme.viewer.choice.typography.fontSize).toBe('11px')
 })
 
+test('retro light app action is a square bevel, not the default glow pill', () => {
+  const theme = resolveRegisteredControlTheme('retroOs', 'light')
+  expect(theme.app.action.geometry.radius).toBe('0px')
+  expect(theme.app.action.geometry.borderStyle).toBe('solid')
+  expect(theme.app.action.rest.shadow).toBe('var(--retro-raised)')
+  expect(theme.app.action.rest.background).toBe(
+    'var(--retro-face, var(--input-bg))',
+  )
+})
+
 test('paper viewer choice is not a capsule; icon chrome stays round', () => {
   const theme = resolveRegisteredControlTheme('paper', 'light')
   expect(theme.viewer.choice.geometry.radius).not.toBe('50%')

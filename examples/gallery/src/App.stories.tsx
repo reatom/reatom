@@ -18,8 +18,8 @@ const loc = {
   scanningTextAppears: (canvas) => canvas.findByText('Scanning folder...'),
   cancelButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Cancel' }),
-  lightboxCounterAppears: (canvas) => canvas.findByText(/\d+ \/ \d+/),
-  maybeLightboxCounter: (canvas) => canvas.queryByText(/\d+ \/ \d+/),
+  lightboxCounterAppears: (canvas) =>
+    canvas.findByRole('button', { name: 'Close preview' }),
   firstImageButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Open photo1.jpg' }),
 } satisfies Record<string, Locator>

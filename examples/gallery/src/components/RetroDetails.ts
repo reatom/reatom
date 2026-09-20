@@ -25,7 +25,7 @@ export const retroDetailsCss = `
       --retro-inset: none;
     }
 
-    .gallery-toolbar, .gallery-pathbar, .gallery-folder-sidebar,
+    #gallery-toolbar, #gallery-pathbar, #gallery-folder-sidebar,
     aside[role='dialog'] {
       --text-primary: var(--retro-ink);
       --text-secondary: var(--retro-ink);
@@ -39,7 +39,7 @@ export const retroDetailsCss = `
       background: var(--retro-face);
       font-family: Tahoma, 'MS Sans Serif', sans-serif;
     }
-    .gallery-toolbar {
+    #gallery-toolbar {
       position: relative;
       min-height: 92px;
       padding: 40px 12px 10px;
@@ -47,7 +47,7 @@ export const retroDetailsCss = `
       border: 1px solid var(--retro-edge);
       box-shadow: var(--retro-raised);
     }
-    .gallery-toolbar::before {
+    #gallery-toolbar::before {
       content: 'Gallery — Photo Explorer';
       position: absolute;
       inset: 3px 3px auto;
@@ -59,14 +59,14 @@ export const retroDetailsCss = `
       letter-spacing: .02em;
       pointer-events: none;
     }
-    .gallery-brand {
+    #gallery-brand {
       gap: 7px;
       color: var(--retro-ink);
       font-size: 15px;
       font-weight: 700;
       letter-spacing: -.03em;
     }
-    .gallery-brand > span {
+    #gallery-brand > span:first-child {
       width: 26px; height: 26px;
       border: 1px solid #314a58;
       border-radius: 0;
@@ -74,20 +74,20 @@ export const retroDetailsCss = `
       color: #fff;
       box-shadow: inset 1px 1px #e2f2d9, 1px 1px var(--retro-edge);
     }
-    .gallery-toolbar [data-ui='button'], .gallery-pathbar [data-ui='button'] {
+    #gallery-toolbar [data-ui='button'], #gallery-pathbar [data-ui='button'] {
       font-size: 12px;
       font-weight: 400;
     }
-    &[data-theme-mode='dark'] .gallery-pathbar { --accent: #bdd9ee; }
-    .gallery-toolbar input {
+    &[data-theme-mode='dark'] #gallery-pathbar { --accent: #bdd9ee; }
+    #gallery-toolbar input {
       color: var(--retro-ink);
       background: var(--retro-paper);
       border: 1px solid var(--retro-edge);
       border-radius: 0;
       box-shadow: var(--retro-inset);
     }
-    .gallery-toolbar input::placeholder { color: var(--retro-muted); }
-    .gallery-pathbar {
+    #gallery-toolbar input::placeholder { color: var(--retro-muted); }
+    #gallery-pathbar {
       min-height: 42px;
       border: 1px solid var(--retro-edge);
       box-shadow: var(--retro-raised);
@@ -100,13 +100,13 @@ export const retroDetailsCss = `
       background-size: auto;
       box-shadow: inset 2px 2px 0 #193a3c80;
     }
-    .gallery-folder-sidebar {
+    #gallery-folder-sidebar {
       padding: 12px 10px;
       border: 1px solid var(--retro-edge);
       box-shadow: var(--retro-raised);
       background-image: none;
     }
-    .gallery-folder-sidebar::before {
+    #gallery-folder-sidebar::before {
       content: 'Folders';
       display: block;
       padding: 7px 8px;
@@ -117,14 +117,14 @@ export const retroDetailsCss = `
       font-weight: 700;
       letter-spacing: .02em;
     }
-    .gallery-folder-sidebar [role='tree'] {
+    #gallery-folder-sidebar [role='tree'] {
       min-height: 240px;
       padding: 10px 6px 18px;
       background: var(--retro-paper);
       border: 1px solid var(--retro-edge);
       box-shadow: var(--retro-inset);
     }
-    .gallery-folder-sidebar [role='treeitem'] {
+    #gallery-folder-sidebar [role='treeitem'] {
       min-height: 32px;
       padding: 6px;
       border: 1px solid transparent;
@@ -134,59 +134,56 @@ export const retroDetailsCss = `
       gap: 5px;
       transition: none;
     }
-    .gallery-folder-sidebar [role='treeitem'] svg {
+    #gallery-folder-sidebar [role='treeitem'] svg {
       color: #9b711c;
       fill: #ebc764;
       filter: drop-shadow(1px 1px 0 #0002);
     }
-    .gallery-folder-sidebar [role='treeitem'] button svg { fill: none; color: var(--retro-muted); }
-    .gallery-folder-sidebar [role='treeitem']:hover { background: var(--retro-face); }
-    .gallery-folder-sidebar [role='treeitem'][aria-selected='true'] {
+    #gallery-folder-sidebar [role='treeitem'] button svg { fill: none; color: var(--retro-muted); }
+    #gallery-folder-sidebar [role='treeitem']:hover { background: var(--retro-face); }
+    #gallery-folder-sidebar [role='treeitem'][aria-selected='true'] {
       background: #234e7a;
       color: #fff;
       border: 1px dotted #e7eff4;
       box-shadow: none;
     }
-    .gallery-folder-sidebar [role='treeitem'][aria-selected='true'] > span:last-child { color: #fff; }
-    .gallery-folder-sidebar [role='treeitem'] > span:nth-child(3) {
+    #gallery-folder-sidebar [role='treeitem'][aria-selected='true'] > span:last-child { color: #fff; }
+    #gallery-folder-sidebar [role='treeitem'] > span:nth-child(3) {
       white-space: normal;
       overflow-wrap: anywhere;
       line-height: 1.4;
     }
-    .glass-card {
+    [data-gap] {
       background: var(--retro-face);
       border: 1px solid var(--retro-edge);
       border-radius: 0;
       box-shadow: var(--retro-raised), 3px 4px 0 #15343466;
       transition: none;
     }
-    .glass-card:not([data-gap='none']) {
+    [data-gap]:not([data-gap='none']) {
       display: flex; flex-direction: column; aspect-ratio: auto;
       padding: 3px;
     }
-    .glass-card:not([data-gap='none']) .grid-image-preview {
+    [data-gap]:not([data-gap='none']) > div:first-of-type {
       position: relative; inset: auto; aspect-ratio: 1; order: 2;
       margin-top: 3px;
       border: 1px solid var(--retro-edge);
       border-radius: 0;
     }
-    .glass-card:not([data-gap='none']) .grid-image-caption {
+    [data-gap]:not([data-gap='none']) [data-caption] {
       position: relative; order: 1; margin: 0; padding: 6px 8px;
       background: var(--retro-title);
       text-shadow: none;
       border: 0;
     }
-    .glass-card:not([data-gap='none']) .grid-image-caption > div {
+    [data-gap]:not([data-gap='none']) [data-caption] > div {
       color: #fff; font: 11px Tahoma, sans-serif;
     }
-    .glass-card:not([data-gap='none']) .grid-image-caption > div + div { opacity: .75; margin-top: 3px; }
-    .glass-card[data-selected='true'] {
+    [data-gap]:not([data-gap='none']) [data-caption] > div + div { opacity: .75; margin-top: 3px; }
+    [data-gap][data-selected='true'] {
       outline: 2px solid #f2d476;
       outline-offset: 2px;
       box-shadow: var(--retro-raised), 3px 4px 0 #15343466;
-    }
-    .glass-card .glass-overlay-control {
-      border-radius: 0;
     }
     aside[role='dialog'] {
       border: 2px solid var(--retro-edge);
@@ -199,26 +196,21 @@ export const retroDetailsCss = `
       font: bold 14px Tahoma, sans-serif;
       letter-spacing: 0;
     }
-    .gallery-folder-toggle {
-      transform: translateX(-50%);
-      transition: left .3s ease;
-    }
-    .glass-card:not([data-gap='none']) {
+    [data-gap]:not([data-gap='none']) {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto auto;
     }
-    .glass-card:not([data-gap='none']) .grid-image-caption { grid-area: 1 / 1; }
-    .glass-card:not([data-gap='none']) .grid-image-preview { grid-area: 2 / 1; }
-    .glass-card .grid-image-overlay { z-index: 2; }
-    .glass-card:not([data-gap='none']) .grid-image-overlay {
+    [data-gap]:not([data-gap='none']) [data-caption] { grid-area: 1 / 1; }
+    [data-gap]:not([data-gap='none']) > div:first-of-type { grid-area: 2 / 1; }
+    [data-gap] > div:nth-of-type(2) { z-index: 2; }
+    [data-gap]:not([data-gap='none']) > div:nth-of-type(2) {
       position: relative;
       inset: auto;
       grid-area: 2 / 1;
       align-self: stretch;
       min-height: 0;
     }
-    .glass-card:focus-within .grid-image-overlay { opacity: 1; }
     &[data-theme-mode='light'] {
       [role='treeitem']:focus-visible {
         outline: 1px dotted #252723;
@@ -229,12 +221,6 @@ export const retroDetailsCss = `
         border: 2px solid var(--retro-edge);
         box-shadow: var(--retro-raised);
         backdrop-filter: none;
-      }
-      aside[role='dialog'] > .gallery-panel-scroll > div:first-child {
-        background: var(--retro-title);
-        padding: 3px;
-        margin: -15px -15px 20px;
-        gap: 8px;
       }
       aside[role='dialog'] h2 { background: transparent; margin: 0; padding: 3px 6px; }
       aside[role='dialog'] input[type='range'] {
@@ -264,41 +250,41 @@ export const retroDetailsCss = `
     /* FAR-inspired console palette, with actual gallery controls and labels. */
     &[data-theme-mode='dark'] {
       --far-font: 'Cascadia Mono', 'Lucida Console', Consolas, monospace;
-      .gallery-toolbar, .gallery-pathbar, .gallery-folder-sidebar,
+      #gallery-toolbar, #gallery-pathbar, #gallery-folder-sidebar,
       main, aside[role='dialog'], button, input {
         font-family: var(--far-font);
         text-shadow: none;
       }
-      .gallery-toolbar {
+      #gallery-toolbar {
         min-height: 86px;
         padding-top: 34px;
         border: 1px solid #00aaaa;
         box-shadow: none;
       }
-      .gallery-toolbar::before {
+      #gallery-toolbar::before {
         content: 'Gallery ▸ Photo Explorer';
         background: #008080;
         color: #fff;
         height: 24px;
         font: 13px var(--far-font);
       }
-      .gallery-brand { color: #ffff55; font: bold 14px var(--far-font); }
-      .gallery-brand > span {
+      #gallery-brand { color: #ffff55; font: bold 14px var(--far-font); }
+      #gallery-brand > span:first-child {
         background: #000080;
         border: 1px solid #00ffff;
         color: #00ffff;
         box-shadow: none;
       }
-      .gallery-toolbar [data-ui='button'], .gallery-pathbar [data-ui='button'] {
+      #gallery-toolbar [data-ui='button'], #gallery-pathbar [data-ui='button'] {
         font-family: var(--far-font);
       }
-      .gallery-toolbar input {
+      #gallery-toolbar input {
         color: #ffff55;
         background: #000080;
         border: 1px solid #00aaaa;
         box-shadow: none;
       }
-      .gallery-pathbar {
+      #gallery-pathbar {
         --accent: #00ffff;
         background: #000080;
         border: 3px double #00aaaa;
@@ -310,13 +296,13 @@ export const retroDetailsCss = `
         border-top: 0;
         box-shadow: none;
       }
-      .gallery-folder-sidebar {
+      #gallery-folder-sidebar {
         border: 3px double #00aaaa;
         padding: 10px 6px;
         background: #000080;
         box-shadow: none;
       }
-      .gallery-folder-sidebar::before {
+      #gallery-folder-sidebar::before {
         content: 'Name';
         padding: 0 8px 8px;
         border: 0;
@@ -326,49 +312,48 @@ export const retroDetailsCss = `
         box-shadow: none;
         font: 13px var(--far-font);
       }
-      .gallery-folder-sidebar [role='tree'] {
+      #gallery-folder-sidebar [role='tree'] {
         min-height: 0;
         padding: 0;
         border: 0;
         background: #000080;
         box-shadow: none;
       }
-      .gallery-folder-sidebar [role='treeitem'] {
+      #gallery-folder-sidebar [role='treeitem'] {
         min-height: 28px;
         padding: 4px 3px;
         font: 13px var(--far-font);
         color: #00ffff;
       }
-      .gallery-folder-sidebar [role='treeitem'] svg,
-      .gallery-folder-sidebar [role='treeitem'] button svg {
+      #gallery-folder-sidebar [role='treeitem'] svg,
+      #gallery-folder-sidebar [role='treeitem'] button svg {
         color: #00ffff;
         fill: none;
         filter: none;
       }
-      .gallery-folder-sidebar [role='treeitem']:hover { background: #000099; }
-      .gallery-folder-sidebar [role='treeitem'][aria-selected='true'] {
+      #gallery-folder-sidebar [role='treeitem']:hover { background: #000099; }
+      #gallery-folder-sidebar [role='treeitem'][aria-selected='true'] {
         background: #008080;
         border: 1px solid transparent;
         color: #fff;
         box-shadow: none;
       }
-      .glass-card, .glass-card[data-selected='true'] {
+      [data-gap], [data-gap][data-selected='true'] {
         border: 1px solid #00aaaa;
         background: #000080;
         box-shadow: none;
       }
-      .glass-card:not([data-gap='none']) .grid-image-caption {
+      [data-gap]:not([data-gap='none']) [data-caption] {
         background: #000080;
         padding: 5px 6px;
       }
-      .glass-card:not([data-gap='none']) .grid-image-caption > div {
+      [data-gap]:not([data-gap='none']) [data-caption] > div {
         color: #00ffff;
         font: 12px var(--far-font);
       }
-      .glass-card[data-selected='true'] { outline: 1px solid #ffff55; }
-      .glass-card[data-selected='true'] .grid-image-caption { background: #008080; }
-      .glass-card[data-selected='true'] .grid-image-caption > div { color: #ffff55; }
-      .glass-card .glass-overlay-control { border-radius: 0; }
+      [data-gap][data-selected='true'] { outline: 1px solid #ffff55; }
+      [data-gap][data-selected='true'] [data-caption] { background: #008080; }
+      [data-gap][data-selected='true'] [data-caption] > div { color: #ffff55; }
       aside[role='dialog'] {
         background: #008080;
         color: #fff;
@@ -385,26 +370,17 @@ export const retroDetailsCss = `
         font: 16px var(--far-font);
         border-bottom: 1px solid #00ffff;
       }
-      .gallery-folder-toggle:hover, .gallery-folder-toggle:focus-visible {
-        background: #008080;
-        color: #fff;
-        border-color: #00ffff;
-        outline: 1px dotted #00ffff;
-        outline-offset: -5px;
-        box-shadow: none;
-      }
-      .gallery-folder-toggle:active { background: #00aaaa; color: #000080; }
-      .gallery-lightbox {
+      #gallery-lightbox {
         background: #000080;
-        .lightbox-toolbar {
+        #lightbox-toolbar {
           border: 3px double #00ffff;
           background: #000080;
           box-shadow: none;
         }
-        .lightbox-toolbar > span { color: #ffff55; font: 14px var(--far-font); }
-        .lightbox-photo-print { box-shadow: 0 0 0 1px #00ffff, 0 0 0 3px #000080, 0 0 0 4px #00aaaa; }
-        .lightbox-filmstrip { background: #000080; border-top: 3px double #00aaaa; }
-        .slideshow-controls, > label.lightbox-control-layer {
+        #lightbox-toolbar > span { color: #ffff55; font: 14px var(--far-font); }
+        #lightbox-print { box-shadow: 0 0 0 1px #00ffff, 0 0 0 3px #000080, 0 0 0 4px #00aaaa; }
+        #lightbox-filmstrip { background: #000080; border-top: 3px double #00aaaa; }
+        #slideshow-controls, #lightbox-scrubber {
           background: #008080;
           color: #fff;
           border: 3px double #00ffff;
@@ -414,8 +390,8 @@ export const retroDetailsCss = `
       }
     }
     @media (max-width: 600px) {
-      .gallery-toolbar { padding: 38px 8px 8px; }
-      .gallery-brand { font-size: 13px; }
+      #gallery-toolbar { padding: 38px 8px 8px; }
+      #gallery-brand { font-size: 13px; }
     }
   }
 `

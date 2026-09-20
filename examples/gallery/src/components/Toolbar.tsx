@@ -1,32 +1,30 @@
 import { Button, ChoiceButton, IconButton } from '../design-system'
+import { registerGlassSurface } from '../glassSurfaces'
 import { isFileSystemAccessSupported } from '../filesystem'
 import {
   clearSelection,
   folderTree,
   openFolder,
   resetOpenedFolder,
-  resolvedThemeMode,
   searchQuery,
   selectAllImages,
   selectedCount,
   setViewMode,
-  themePack,
-  toggleResolvedThemeMode,
   viewMode,
   visibleIndexMap,
 } from '../model'
+import { themeCss } from '../themeCss'
 import {
   FilterIcon,
   GalleryMarkIcon,
   GridIcon,
   InstantCameraIcon,
   ListIcon,
-  MoonIcon,
   SearchIcon,
   SettingsIcon,
-  SunIcon,
   TableIcon,
 } from './Icons'
+import { ThemeToggle } from './ThemeToggle'
 import {
   activeFilterCount,
   filterPanelOpen,
@@ -35,7 +33,8 @@ import {
 
 export const Toolbar = () => (
   <header
-    class="gallery-toolbar"
+    id="gallery-toolbar"
+    ref={registerGlassSurface('panel')}
     css={`
       display: flex;
       align-items: center;
@@ -66,7 +65,7 @@ export const Toolbar = () => (
       `}
     >
       <span
-        class="gallery-brand"
+        id="gallery-brand"
         css={`
           font-size: 18px;
           font-weight: 700;
@@ -99,25 +98,66 @@ export const Toolbar = () => (
               0 10px 24px var(--shadow);
           `}
         >
-          {() =>
-            themePack() === 'polaroid' ? (
-              <InstantCameraIcon />
-            ) : (
-              <GalleryMarkIcon />
-            )
-          }
+          <span
+            css={`
+              display: none;
+              ${themeCss('polaroid', 'display: inline-flex;')}
+            `}
+          >
+            <InstantCameraIcon />
+          </span>
+          <span
+            css={`
+              display: inline-flex;
+              ${themeCss('polaroid', 'display: none;')}
+            `}
+          >
+            <GalleryMarkIcon />
+          </span>
         </span>
-        {() =>
-          themePack() === 'polaroid'
-            ? 'Instant'
-            : themePack() === 'blueprint'
-              ? 'Blueprint'
-              : themePack() === 'obsidian'
-                ? 'Obsidian'
-                : themePack() === 'minimal'
-                  ? 'Minimal'
-                  : 'Gallery'
-        }
+        <span
+          css={`
+            display: none;
+            ${themeCss('polaroid', 'display: inline;')}
+          `}
+        >
+          Instant
+        </span>
+        <span
+          css={`
+            display: none;
+            ${themeCss('blueprint', 'display: inline;')}
+          `}
+        >
+          Blueprint
+        </span>
+        <span
+          css={`
+            display: none;
+            ${themeCss('obsidian', 'display: inline;')}
+          `}
+        >
+          Obsidian
+        </span>
+        <span
+          css={`
+            display: none;
+            ${themeCss('minimal', 'display: inline;')}
+          `}
+        >
+          Minimal
+        </span>
+        <span
+          css={`
+            display: inline;
+            ${themeCss('polaroid', 'display: none;')}
+            ${themeCss('blueprint', 'display: none;')}
+            ${themeCss('obsidian', 'display: none;')}
+            ${themeCss('minimal', 'display: none;')}
+          `}
+        >
+          Gallery
+        </span>
       </span>
 
       <Button
@@ -160,6 +200,7 @@ export const Toolbar = () => (
       aria-label="View mode"
       css={`
         display: flex;
+        align-items: center;
         gap: calc(4px + var(--shadow-clearance, 0px));
         flex-shrink: 0;
       `}
@@ -317,7 +358,7 @@ export const Toolbar = () => (
       `}
     />
 
-    <div css="display: flex; gap: calc(4px + var(--shadow-clearance, 0px)); flex-shrink: 0;">
+    <div css="display: flex; align-items: center; gap: calc(4px + var(--shadow-clearance, 0px)); flex-shrink: 0;">
       <IconButton
         label={() => {
           const count = activeFilterCount()
@@ -364,17 +405,7 @@ export const Toolbar = () => (
         <SettingsIcon />
       </IconButton>
 
-      <IconButton
-        label={() =>
-          resolvedThemeMode() === 'dark'
-            ? 'Switch to light theme'
-            : 'Switch to dark theme'
-        }
-        title="Toggle light/dark theme"
-        onClick={toggleResolvedThemeMode}
-      >
-        {() => (resolvedThemeMode() === 'dark' ? <MoonIcon /> : <SunIcon />)}
-      </IconButton>
+      <ThemeToggle />
     </div>
   </header>
 )

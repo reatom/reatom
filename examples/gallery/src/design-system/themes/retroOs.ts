@@ -45,6 +45,8 @@ const bevel = {
   },
   geometry: {
     radius: '0px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
   },
 }
 
@@ -87,6 +89,8 @@ const far = {
   },
   geometry: {
     radius: '0px',
+    borderWidth: '1px',
+    borderStyle: 'solid',
   },
 }
 
@@ -160,6 +164,7 @@ export const retroOsControlOverrides = (
 
   return {
     app: {
+      action: bevel,
       quiet: bevel,
       choice: bevel,
     },

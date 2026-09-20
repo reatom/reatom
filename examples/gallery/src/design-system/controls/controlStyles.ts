@@ -1,4 +1,10 @@
-import { CONTROL_ROLES, CONTROL_SURFACES } from '../themeTypes'
+import {
+  CONTROL_ROLES,
+  CONTROL_SURFACES,
+  type ControlRole,
+  type ControlSize,
+  type ControlSurface,
+} from '../themeTypes'
 
 const bindLocalVars = (surface: string, role: string) => {
   const prefix = `--ui-${surface}-${role}`
@@ -45,18 +51,24 @@ const bindLocalVars = (surface: string, role: string) => {
     --_radius: var(${prefix}-radius);
     --_border-width: var(${prefix}-border-width);
     --_border-style: var(${prefix}-border-style);
-    --_pad-x: var(${prefix}-pad-x);
-    --_pad-y: var(${prefix}-pad-y);
-    --_min-height: var(${prefix}-min-height);
     --_gap: var(${prefix}-gap);
     --_icon-size: var(${prefix}-icon-size);
     --_font-family: var(${prefix}-font-family);
-    --_font-size: var(${prefix}-font-size);
     --_font-weight: var(${prefix}-font-weight);
     --_letter-spacing: var(${prefix}-letter-spacing);
     --_text-transform: var(${prefix}-text-transform);
     --_duration: var(${prefix}-duration);
     --_easing: var(${prefix}-easing);
+  `
+}
+
+const bindSizeVars = (surface: string, role: string) => {
+  const prefix = `--ui-${surface}-${role}`
+  return `
+    --_pad-x: var(${prefix}-pad-x);
+    --_pad-y: var(${prefix}-pad-y);
+    --_min-height: var(${prefix}-min-height);
+    --_font-size: var(${prefix}-font-size);
   `
 }
 
@@ -67,9 +79,45 @@ const roleBindings = () =>
         role === 'switch'
           ? `[data-ui="switch"][data-ui-surface="${surface}"]`
           : `[data-ui="button"][data-ui-role="${role}"][data-ui-surface="${surface}"]`
-      return `${selector} { ${bindLocalVars(surface, role)} }`
+      const sizeVars = role === 'switch' ? bindSizeVars(surface, role) : ''
+      return `${selector} { ${bindLocalVars(surface, role)}${sizeVars} }`
     }),
   ).join('\n')
+
+const sizeOverrideCss = (size: ControlSize) => {
+  if (size === 'sm') {
+    return `
+      --_min-height: 28px;
+      --_pad-x: 10px;
+      --_pad-y: 5px;
+    `
+  }
+  if (size === 'lg') {
+    return `
+      --_min-height: 48px;
+      --_pad-x: 26px;
+      --_pad-y: 13px;
+      --_font-size: 16px;
+    `
+  }
+  if (size === 'icon') {
+    return `
+      width: var(--_min-height);
+      height: var(--_min-height);
+      min-width: 0;
+      min-height: 0;
+      padding: 0;
+    `
+  }
+  return ''
+}
+
+export const composeControlCss = (
+  surface: ControlSurface,
+  role: Exclude<ControlRole, 'switch'>,
+  size: ControlSize,
+  consumerCss?: string,
+) => `${bindSizeVars(surface, role)}${sizeOverrideCss(size)}${consumerCss ?? ''}`
 
 const paintTransition = import.meta.env.TEST
   ? 'none'
@@ -116,27 +164,6 @@ export const controlRecipeCss = () => `
     flex-shrink: 0;
     width: var(--_icon-size);
     height: var(--_icon-size);
-  }
-
-  :where([data-ui="button"][data-ui-size="sm"]) {
-    --_min-height: 28px;
-    --_pad-x: 10px;
-    --_pad-y: 5px;
-  }
-
-  :where([data-ui="button"][data-ui-size="lg"]) {
-    --_min-height: 48px;
-    --_pad-x: 26px;
-    --_pad-y: 13px;
-    --_font-size: 16px;
-  }
-
-  :where([data-ui="button"][data-ui-size="icon"]) {
-    width: var(--_min-height);
-    height: var(--_min-height);
-    min-width: 0;
-    min-height: 0;
-    padding: 0;
   }
 
   [data-ui="button"][data-ui-slot="overlay"] {
