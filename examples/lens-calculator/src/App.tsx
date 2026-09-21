@@ -25,7 +25,7 @@ export const App = () => (
     <main
       css={`
         display: grid;
-        grid-template-columns: minmax(360px, 22.5rem) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 22.5rem) minmax(0, 1fr);
         grid-template-rows: auto 1fr;
         align-items: start;
         gap: 1.25rem;

@@ -26,7 +26,6 @@ const Wordmark = () => (
       css={`
         ${label}
         font-size: 0.625rem;
-        letter-spacing: 0.26em;
         color: var(--ink-faint);
       `}
     >

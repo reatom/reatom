@@ -33,7 +33,7 @@ const Preview = () => (
         css={`
           margin: 0;
           font-size: 0.6875rem;
-          letter-spacing: 0.22em;
+          letter-spacing: var(--label-tracking);
           text-transform: uppercase;
           color: var(--ink-faint);
         `}

@@ -25,6 +25,7 @@ export const Controls = () => (
     aria-label={t.controls.aria}
     css={`
       ${panel}
+      min-width: 0;
       display: grid;
       align-content: start;
       gap: 1.25rem;

@@ -119,7 +119,9 @@ export const IrisField = () => (
       css={`
         ${mono}
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
+        gap: 0.25rem 0.75rem;
         font-size: 0.5625rem;
         color: var(--ink-faint);
       `}
