@@ -1,12 +1,13 @@
 import { estimate } from '../model'
 import { panel } from '../styles'
+import { t } from '../translations'
 import { MassBar } from './readout/MassBar'
 import { Primary, Spec } from './readout/Primary'
 import { Reference } from './readout/Reference'
 
 export const Readout = () => (
   <section
-    aria-label="Estimate"
+    aria-label={t.readout.aria}
     css={`
       ${panel}
       display: grid;
@@ -35,17 +36,17 @@ export const Readout = () => (
         `}
       >
         <Primary
-          name="Diameter"
+          name={t.readout.diameter}
           value={() => estimate().barrelDiameter.toFixed(0)}
           unit="mm"
         />
         <Primary
-          name="Length"
+          name={t.readout.length}
           value={() => estimate().length.toFixed(0)}
           unit="mm"
         />
         <Primary
-          name="Mass"
+          name={t.readout.mass}
           value={() => Math.round(estimate().mass.total / 5) * 5 + ''}
           unit="g"
         />
@@ -61,53 +62,53 @@ export const Readout = () => (
       `}
     >
       <Spec
-        name="Filter thread"
+        name={t.readout.filterThread}
         value={() => {
           const thread = estimate().filterThread
-          return thread === null ? 'rear drop-in' : `M${thread} × 0.75`
+          return thread === null ? t.readout.rearDropIn : `M${thread} × 0.75`
         }}
       />
       <Spec
-        name="Front element"
+        name={t.readout.frontElement}
         value={() => `Ø ${estimate().frontElement.toFixed(1)} mm`}
       />
       <Spec
-        name="Entrance pupil"
+        name={t.readout.entrancePupil}
         value={() => `Ø ${estimate().entrancePupil.toFixed(1)} mm`}
       />
       <Spec
-        name="Iris wide open"
+        name={t.readout.irisWideOpen}
         value={() =>
           `Ø ${estimate().stopDiameter.toFixed(1)} mm · ${Math.round(estimate().stopPosition * 100)} %`
         }
       />
       <Spec
-        name="Elements / groups"
+        name={t.readout.elementsGroups}
         value={() => `${estimate().elementCount} / ${estimate().groupCount}`}
       />
       <Spec
-        name="Diagonal angle of view"
+        name={t.readout.aov}
         value={() => `${estimate().diagonalAovDeg.toFixed(1)}°`}
       />
       <Spec
-        name="Back focus"
+        name={t.readout.backFocus}
         value={() => `${estimate().backFocus.toFixed(1)} mm`}
       />
       <Spec
-        name="Flange distance"
+        name={t.readout.flange}
         value={() =>
           `${estimate().mount.flange} mm · ${estimate().mount.label}`
         }
       />
       <Spec
-        name="Optical type"
+        name={t.readout.opticalType}
         value={() => {
           const { kind } = estimate()
           return kind === 'wide'
-            ? 'retrofocus'
+            ? t.readout.retrofocus
             : kind === 'tele'
-              ? 'telephoto'
-              : 'double Gauss'
+              ? t.readout.telephoto
+              : t.readout.gauss
         }}
       />
     </div>

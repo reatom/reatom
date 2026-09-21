@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@reatom/core": "1001.*.*",
@@ -14,6 +15,7 @@
   },
   "devDependencies": {
     "typescript": "^7.0.2",
-    "vite": "^8.0.14"
+    "vite": "^8.0.14",
+    "vitest": "catalog:"
   }
 }

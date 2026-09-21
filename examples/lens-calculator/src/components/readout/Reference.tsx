@@ -1,5 +1,6 @@
 import { nearestReference, nearestSearchOpen } from '../../model'
 import { label, mono } from '../../styles'
+import { t } from '../../translations'
 import { chip } from '../controls/widgets'
 
 export const Reference = () => (
@@ -34,7 +35,7 @@ export const Reference = () => (
           color: var(--ink-faint);
         `}
       >
-        Nearest production lens
+        {t.reference.nearest}
       </span>
       <span
         css={`
@@ -53,7 +54,8 @@ export const Reference = () => (
         {() => {
           const lens = nearestReference()
           if (lens === null) return ''
-          const filter = lens.filter === null ? 'drop-in' : `M${lens.filter}`
+          const filter =
+            lens.filter === null ? t.reference.dropIn : `M${lens.filter}`
           return `Ø ${lens.diameter} × ${lens.length} mm · ${lens.weight} g · ${lens.elements} el · ${filter}`
         }}
       </span>
@@ -100,10 +102,10 @@ export const Reference = () => (
           >
             {() =>
               nearestSearchOpen() && !catalog.ready() && error === undefined
-                ? 'Loading catalog…'
+                ? t.reference.loadingCatalog
                 : error
-                  ? 'Retry catalog'
-                  : 'Find nearest'
+                  ? t.reference.retryCatalog
+                  : t.reference.findNearest
             }
           </button>
           {error ? (

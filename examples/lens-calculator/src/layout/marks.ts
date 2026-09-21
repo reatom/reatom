@@ -1,4 +1,5 @@
 import type { LensEstimate } from '../optics'
+import { t } from '../translations'
 import type { DrawingFrame } from './frame'
 import type { HardwareLayout } from './hardware'
 import { formatMm, polyline } from './paths'
@@ -112,13 +113,13 @@ export const layoutMarks = (
       role: 'axial',
       x: imageX - 8,
       y: axisY - 7,
-      lines: ['axial beam'],
+      lines: [t.sheet.axialBeam],
     },
     {
       role: 'corner',
       x: imageX - 8,
       y: axisY + imageHalf - 19,
-      lines: ['corner beam', `${vignetting.toFixed(1)} EV falloff`],
+      lines: [t.sheet.cornerBeam, t.sheet.falloff(vignetting.toFixed(1))],
     },
   ]
 
@@ -157,7 +158,7 @@ export const layoutMarks = (
       from: { x: imageX, y: axisY - imageHalf },
       to: { x: imageX, y: axisY + imageHalf },
       offset: 30,
-      label: `image plane Ø ${formatMm(format.imageCircle)} · ${format.sensor}`,
+      label: t.sheet.imagePlane(formatMm(format.imageCircle), format.sensor),
     },
   ]
 
@@ -169,14 +170,17 @@ export const layoutMarks = (
       text: { x: frontFaceX + 6, y: above - 36 },
       label:
         filterThread === null
-          ? 'no front thread · rear drop-in filter'
-          : `M${filterThread} × 0.75 filter thread`,
+          ? t.sheet.noThread
+          : t.sheet.filterThread(filterThread),
       align: 'start',
     },
     {
       anchor: { x: stopX, y: axisY - slotOuterR },
       text: { x: stopOnRightHalf ? stopX - 14 : stopX + 14, y: above - 14 },
-      label: `iris Ø ${formatMm(stopDiameter)} · entrance pupil Ø ${formatMm(entrancePupil)}`,
+      label: t.sheet.irisCallout(
+        formatMm(stopDiameter),
+        formatMm(entrancePupil),
+      ),
       align: stopOnRightHalf ? 'end' : 'start',
     },
   ]

@@ -9,6 +9,7 @@ import {
   VIGNETTING_MIN,
 } from '../../optics'
 import { mono, numberInput, rangeInput } from '../../styles'
+import { t } from '../../translations'
 import { FieldHead } from './widgets'
 
 export const FocalField = () => (
@@ -18,7 +19,7 @@ export const FocalField = () => (
       gap: 0.35rem;
     `}
   >
-    <FieldHead name="Focal length" value={() => `${focal()} mm`} />
+    <FieldHead name={t.controls.focal} value={() => `${focal()} mm`} />
     <div
       css={`
         display: grid;
@@ -44,7 +45,9 @@ export const FocalField = () => (
         attr:max={FOCAL_MAX}
         attr:step={1}
         prop:value={() => String(focal())}
-        on:change={(event) => focal.fromInput(event.currentTarget.valueAsNumber)}
+        on:change={(event) =>
+          focal.fromInput(event.currentTarget.valueAsNumber)
+        }
         css={numberInput}
       />
     </div>
@@ -58,7 +61,7 @@ export const ApertureField = () => (
       gap: 0.35rem;
     `}
   >
-    <FieldHead name="Max aperture" value={() => `f/${fNumber()}`} />
+    <FieldHead name={t.controls.aperture} value={() => `f/${fNumber()}`} />
     <input
       type="range"
       attr:min={0}
@@ -92,12 +95,12 @@ export const IrisField = () => (
     `}
   >
     <FieldHead
-      name="Iris position"
+      name={t.controls.iris}
       value={() => {
         const { stopPosition, designStopPosition } = estimate()
-        const percent = `${Math.round(stopPosition * 100)} % of track`
+        const percent = t.controls.irisTrack(Math.round(stopPosition * 100))
         return stopPosition === designStopPosition
-          ? `${percent} · design`
+          ? `${percent} · ${t.controls.irisDesign}`
           : percent
       }}
     />
@@ -107,7 +110,9 @@ export const IrisField = () => (
       attr:max={STOP_SHIFT_MAX}
       attr:step={0.05}
       prop:value={() => String(stopShift())}
-      on:input={(event) => stopShift.fromInput(event.currentTarget.valueAsNumber)}
+      on:input={(event) =>
+        stopShift.fromInput(event.currentTarget.valueAsNumber)
+      }
       css={rangeInput}
     />
     <div
@@ -119,9 +124,9 @@ export const IrisField = () => (
         color: var(--ink-faint);
       `}
     >
-      <span>toward front</span>
-      <span>design</span>
-      <span>toward mount</span>
+      <span>{t.controls.towardFront}</span>
+      <span>{t.controls.irisDesign}</span>
+      <span>{t.controls.towardMount}</span>
     </div>
   </label>
 )
@@ -134,7 +139,7 @@ export const VignettingField = () => (
     `}
   >
     <FieldHead
-      name="Corner falloff wide open"
+      name={t.controls.vignetting}
       value={() => `${vignetting().toFixed(1)} EV`}
     />
     <input
@@ -143,7 +148,9 @@ export const VignettingField = () => (
       attr:max={VIGNETTING_MAX}
       attr:step={0.5}
       prop:value={() => String(vignetting())}
-      on:input={(event) => vignetting.fromInput(event.currentTarget.valueAsNumber)}
+      on:input={(event) =>
+        vignetting.fromInput(event.currentTarget.valueAsNumber)
+      }
       css={rangeInput}
     />
   </label>

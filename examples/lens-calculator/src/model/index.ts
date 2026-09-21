@@ -13,7 +13,7 @@ export {
   tier,
   vignetting,
 } from './params'
-export { type Preset, presets } from './presets'
+export { type Preset, type PresetId, presets } from './presets'
 export {
   blueprint,
   designation,

@@ -1,8 +1,10 @@
 import { label, panel } from '../styles'
+import { t } from '../translations'
 import { prose } from './article/blocks'
+import { I18nPost } from './article/I18nPost'
 import { Notes } from './article/Notes'
 
-export const Article = () => (
+export const EnvelopeNotes = () => (
   <article
     css={`
       ${panel}
@@ -19,7 +21,7 @@ export const Article = () => (
         max-width: 68ch;
       `}
     >
-      <p css={label}>Notes on the envelope</p>
+      <p css={label}>{t.envelope.kicker}</p>
       <h2
         css={`
           margin: 0;
@@ -28,15 +30,9 @@ export const Article = () => (
           letter-spacing: 0.01em;
         `}
       >
-        Why a 50 / 1.4 is already large, and a 14 / 1.8 is even larger
+        {t.envelope.title}
       </h2>
-      <p css={prose}>
-        This page is a first-order fit, not a ray-trace. Entrance pupil, field
-        angle and mount geometry set the envelope; element count follows speed,
-        field, correction tier and iris asymmetry; mass is glass volume plus a
-        barrel shell, drive and mount. Expect ±25 % against production lenses.
-        The drawing is a paraxial sketch.
-      </p>
+      <p css={prose}>{t.envelope.lead}</p>
     </header>
 
     <div
@@ -66,8 +62,7 @@ export const Article = () => (
           color: var(--ink-faint);
         `}
       >
-        Calibrated against ~30 published primes · catalog of 2,901 for nearest
-        match · first-order only
+        {t.envelope.footer}
       </p>
       <a
         href="https://v1001.reatom.dev/"
@@ -85,8 +80,20 @@ export const Article = () => (
           }
         `}
       >
-        @reatom/jsx · withSearchParams
+        {t.envelope.reatom}
       </a>
     </footer>
   </article>
+)
+
+export const Article = () => (
+  <div
+    css={`
+      display: grid;
+      gap: 1.25rem;
+    `}
+  >
+    <EnvelopeNotes />
+    <I18nPost />
+  </div>
 )

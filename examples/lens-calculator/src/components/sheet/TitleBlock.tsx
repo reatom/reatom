@@ -1,6 +1,6 @@
 import { SHEET_HEIGHT, SHEET_WIDTH } from '../../layout'
 import { designation, estimate } from '../../model'
-import { bodySpecs, formatSpecs, tierSpecs } from '../../optics'
+import { t } from '../../translations'
 import { annotation, FRAME_INNER } from './annotation'
 
 export const TitleCell = ({
@@ -81,7 +81,7 @@ export const TitleBlock = () => {
         y={y}
         width={columns[0]!}
         height={rowHeight}
-        title="Designation"
+        title={t.sheet.designation}
         value={() => `PRIME ${designation()}`}
         strong
       />
@@ -90,9 +90,9 @@ export const TitleBlock = () => {
         y={y}
         width={columns[1]!}
         height={rowHeight}
-        title="Format · mount"
+        title={t.sheet.formatMount}
         value={() =>
-          `${formatSpecs[estimate().spec.format].label} · ${estimate().mount.label}`
+          `${t.format[estimate().spec.format]} · ${estimate().mount.label}`
         }
       />
       <TitleCell
@@ -100,7 +100,7 @@ export const TitleBlock = () => {
         y={y}
         width={columns[2]!}
         height={rowHeight}
-        title="Est. mass"
+        title={t.sheet.estMass}
         value={() => `${Math.round(estimate().mass.total / 5) * 5} g`}
         strong
       />
@@ -109,7 +109,7 @@ export const TitleBlock = () => {
         y={y + rowHeight}
         width={columns[0]!}
         height={rowHeight}
-        title="Envelope Ø × L"
+        title={t.sheet.envelope}
         value={() =>
           `${estimate().barrelDiameter.toFixed(1)} × ${estimate().length.toFixed(1)} mm`
         }
@@ -119,9 +119,9 @@ export const TitleBlock = () => {
         y={y + rowHeight}
         width={columns[1]!}
         height={rowHeight}
-        title="Design"
+        title={t.sheet.design}
         value={() =>
-          `${tierSpecs[estimate().spec.tier].label} · ${estimate().elementCount} el / ${estimate().groupCount} gr`
+          `${t.tier[estimate().spec.tier]} · ${estimate().elementCount} el / ${estimate().groupCount} gr`
         }
       />
       <TitleCell
@@ -129,8 +129,8 @@ export const TitleBlock = () => {
         y={y + rowHeight}
         width={columns[2]!}
         height={rowHeight}
-        title="Body · sheet"
-        value={() => `${bodySpecs[estimate().spec.body].label} · 1/1`}
+        title={t.sheet.bodySheet}
+        value={() => `${t.body[estimate().spec.body]} · 1/1`}
       />
     </svg:g>
   )

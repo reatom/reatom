@@ -52,6 +52,19 @@ flowchart LR
 - Reactive SVG built from a computed blueprint: paths, dimension lines and callouts are plain functions of an atom.
 - `css` prop with CSS variables for theming, `attr:hidden` for conditional rows, `prop:value` + `on:input` on ranges, `model:checked` on toggles.
 - A generic `Segmented<T>` control component typed over an enum atom.
+- Native i18n (typed translation objects, one language chunk) with English and Russian, plus autodetection from `navigator.languages`.
+
+## Language
+
+The UI and both articles follow the native-JS i18n pattern from [this DEV post](https://dev.to/artalar/building-a-lightning-fast-i18n-alternative-why-i-ditched-i18next-for-native-javascript-2o06): `t.key` on a typed object, dynamic `import()` of `en` or `ru`, `Intl` for units.
+
+Language resolution:
+
+1. Explicit choice in `localStorage` (`en` or `ru`)
+2. First match in `navigator.languages` via `Intl.Locale`
+3. English
+
+`Auto` in the header selector clears the stored choice so the browser list is used again. Changing language reloads the page so only the active dictionary is loaded.
 
 ## Run
 

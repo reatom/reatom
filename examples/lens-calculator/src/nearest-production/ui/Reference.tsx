@@ -1,4 +1,5 @@
 import { label, mono } from '../../styles'
+import { t } from '../../translations'
 import { productionCatalog } from '../catalog'
 import { manufacturerLabels, mountLabels } from '../catalog/labels'
 import { catalogMeta } from '../catalog/meta'
@@ -20,7 +21,11 @@ const formatLensStats = (lens: ProductionLens) => {
   const weight = lens.weight !== null ? `${lens.weight} g` : null
   const elements = lens.elements !== null ? `${lens.elements} el` : null
   const filter =
-    lens.filter === null ? null : lens.filter === 0 ? 'drop-in' : `M${lens.filter}`
+    lens.filter === null
+      ? null
+      : lens.filter === 0
+        ? t.reference.dropIn
+        : `M${lens.filter}`
   return [size, weight, elements, filter].filter(Boolean).join(' · ')
 }
 
@@ -52,7 +57,7 @@ const LensCard = ({ lens }: { lens: ProductionLens }) => (
         color: var(--ink-dim);
       `}
     >
-      {() => formatLensStats(lens) || 'optical identity only'}
+      {() => formatLensStats(lens) || t.reference.identityOnly}
     </span>
   </div>
 )
@@ -65,10 +70,12 @@ export const ProductionReference = () => (
     `}
   >
     <Select<MountId | typeof anyOption>
-      name="System / mount"
+      name={t.reference.mount}
       value={mount}
       options={mountOptions}
-      render={(option) => (option === anyOption ? 'Any' : mountLabels[option])}
+      render={(option) =>
+        option === anyOption ? t.filter.any : mountLabels[option]
+      }
     />
 
     <p
@@ -80,14 +87,17 @@ export const ProductionReference = () => (
       `}
     >
       {() => {
-        if (!productionCatalog.ready()) return 'Loading production catalog…'
+        if (!productionCatalog.ready()) return t.reference.loadingProduction
         const error = productionCatalog.error()
         if (error) return error.message
         const nearest = nearestProductionLens()
         if (nearest === null) {
-          return `No close match in ${productionCatalog.data().length} catalogued lenses.`
+          return t.reference.noMatch(productionCatalog.data().length)
         }
-        return `${matchingLenses().length} close matches · ${productionCatalog.data().length} loaded`
+        return t.reference.closeMatches(
+          matchingLenses().length,
+          productionCatalog.data().length,
+        )
       }}
     </p>
 
@@ -113,7 +123,7 @@ export const ProductionReference = () => (
               color: var(--ink-faint);
             `}
           >
-            Nearest production lens
+            {t.reference.nearest}
           </span>
           <LensCard lens={nearest} />
         </p>
@@ -152,7 +162,7 @@ export const ProductionReference = () => (
         color: var(--ink-faint);
       `}
     >
-      {`${catalogMeta.lensCount} lenses · catalog CC BY-SA 4.0 · Wikidata CC0 · Wikipedia · Lensfun`}
+      {t.reference.catalogFoot(catalogMeta.lensCount)}
     </p>
   </div>
 )

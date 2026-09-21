@@ -1,27 +1,24 @@
 import { Section, Segmented } from '../../components/controls/widgets'
-import { barrelLabels, correctionLabels } from '../catalog/labels'
+import { t } from '../../translations'
 import type { BarrelFilter, CorrectionFilter } from '../catalog/types'
-import {
-  barrel,
-  barrelOptions,
-  correction,
-  correctionOptions,
-} from '../model'
+import { barrel, barrelOptions, correction, correctionOptions } from '../model'
 
 export const ProductionFilters = () => (
   <>
-    <Section title="Nearest lens filters">
+    <Section title={t.reference.filters}>
       <Segmented<CorrectionFilter>
-        name="Correction"
+        name={t.controls.correction}
         value={correction}
         options={correctionOptions}
-        render={(option) => correctionLabels[option]}
+        render={(option) => (option === 'any' ? t.filter.any : t.tier[option])}
       />
       <Segmented<BarrelFilter>
-        name="Barrel"
+        name={t.controls.barrel}
         value={barrel}
         options={barrelOptions}
-        render={(option) => barrelLabels[option]}
+        render={(option) =>
+          option === 'any' ? t.filter.any : t.barrel[option]
+        }
       />
     </Section>
   </>

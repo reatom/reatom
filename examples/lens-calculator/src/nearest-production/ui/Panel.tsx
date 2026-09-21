@@ -1,10 +1,11 @@
 import { panel } from '../../styles'
+import { t } from '../../translations'
 import { ProductionFilters } from './Filters'
 import { ProductionReference } from './Reference'
 
 export const ProductionPanel = () => (
   <aside
-    aria-label="Nearest production lens"
+    aria-label={t.reference.panelAria}
     css={`
       ${panel}
       display: grid;

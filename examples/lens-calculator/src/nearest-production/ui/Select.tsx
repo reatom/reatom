@@ -23,7 +23,9 @@ export const Select = <T extends string>({
     <select
       prop:value={() => value()}
       on:change={(event) => {
-        const next = options.find((option) => option === event.currentTarget.value)
+        const next = options.find(
+          (option) => option === event.currentTarget.value,
+        )
         if (next !== undefined) value.set(next)
       }}
       css={`

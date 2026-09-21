@@ -1,6 +1,6 @@
 import { designation, estimate } from '../model'
-import { formatSpecs } from '../optics'
 import { label, mono } from '../styles'
+import { changeLang, LANG_PREF, LANG_PREFS, t } from '../translations'
 
 const Wordmark = () => (
   <div
@@ -20,7 +20,7 @@ const Wordmark = () => (
         color: var(--ink);
       `}
     >
-      Prime
+      {t.header.wordmark}
     </span>
     <span
       css={`
@@ -30,7 +30,7 @@ const Wordmark = () => (
         color: var(--ink-faint);
       `}
     >
-      lens envelope estimator
+      {t.header.tagline}
     </span>
   </div>
 )
@@ -60,9 +60,7 @@ const Designation = () => (
         font-size: 0.625rem;
       `}
     >
-      {() =>
-        `${formatSpecs[estimate().spec.format].label} · ${estimate().mount.label}`
-      }
+      {() => `${t.format[estimate().spec.format]} · ${estimate().mount.label}`}
     </span>
     <span
       css={`
@@ -71,9 +69,54 @@ const Designation = () => (
         color: var(--ink-faint);
       `}
     >
-      first-order estimate · ±25 %
+      {t.header.estimateHint}
     </span>
   </div>
+)
+
+const LangSwitch = () => (
+  <label
+    css={`
+      display: grid;
+      gap: 0.25rem;
+      justify-items: end;
+    `}
+  >
+    <span
+      css={`
+        ${label}
+        font-size: 0.5625rem;
+      `}
+    >
+      {t.lang.label}
+    </span>
+    <select
+      aria-label={t.lang.label}
+      prop:value={LANG_PREF}
+      on:change={(event) => changeLang(event.currentTarget.value)}
+      css={`
+        appearance: none;
+        padding: 0.35rem 0.65rem;
+        border: 1px solid var(--hairline);
+        border-radius: 1px;
+        background: var(--paper-deep);
+        color: var(--ink);
+        font-family: var(--font-ui);
+        font-size: 0.75rem;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+
+        &:focus-visible {
+          outline: 1px solid var(--accent);
+          outline-offset: 1px;
+        }
+      `}
+    >
+      {LANG_PREFS.map((pref) => (
+        <option value={pref}>{t.lang[pref]}</option>
+      ))}
+    </select>
+  </label>
 )
 
 export const Header = () => (
@@ -89,6 +132,16 @@ export const Header = () => (
     `}
   >
     <Wordmark />
-    <Designation />
+    <div
+      css={`
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.75rem 1.5rem;
+      `}
+    >
+      <Designation />
+      <LangSwitch />
+    </div>
   </header>
 )

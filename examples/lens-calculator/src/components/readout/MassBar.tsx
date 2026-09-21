@@ -1,18 +1,27 @@
 import { estimate } from '../../model'
 import type { MassBreakdown } from '../../optics'
 import { label, mono } from '../../styles'
+import { t } from '../../translations'
 
 export const massParts: ReadonlyArray<{
   key: Exclude<keyof MassBreakdown, 'total'>
   name: string
   color: string
 }> = [
-  { key: 'glass', name: 'glass', color: 'var(--glass)' },
-  { key: 'barrel', name: 'barrel', color: 'rgba(228, 236, 243, 0.55)' },
-  { key: 'focus', name: 'focus drive', color: 'var(--accent)' },
-  { key: 'stabilizer', name: 'stabilizer', color: 'rgba(255, 179, 71, 0.45)' },
-  { key: 'aperture', name: 'iris', color: 'rgba(124, 199, 242, 0.45)' },
-  { key: 'mount', name: 'mount', color: 'rgba(228, 236, 243, 0.28)' },
+  { key: 'glass', name: t.readout.glass, color: 'var(--glass)' },
+  {
+    key: 'barrel',
+    name: t.readout.barrelMass,
+    color: 'rgba(228, 236, 243, 0.55)',
+  },
+  { key: 'focus', name: t.readout.focus, color: 'var(--accent)' },
+  {
+    key: 'stabilizer',
+    name: t.readout.stabilizer,
+    color: 'rgba(255, 179, 71, 0.45)',
+  },
+  { key: 'aperture', name: t.readout.iris, color: 'rgba(124, 199, 242, 0.45)' },
+  { key: 'mount', name: t.readout.mount, color: 'rgba(228, 236, 243, 0.28)' },
 ]
 
 export const MassBar = () => (
@@ -22,7 +31,7 @@ export const MassBar = () => (
       gap: 0.6rem;
     `}
   >
-    <span css={label}>Mass budget</span>
+    <span css={label}>{t.readout.massBudget}</span>
     <div
       css={`
         display: flex;

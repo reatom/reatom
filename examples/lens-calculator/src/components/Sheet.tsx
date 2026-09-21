@@ -1,5 +1,6 @@
 import { SHEET_HEIGHT, SHEET_WIDTH } from '../layout'
 import { blueprint } from '../model'
+import { t } from '../translations'
 import { annotation, FRAME_INNER } from './sheet/annotation'
 import { Defs } from './sheet/Defs'
 import { Drawing } from './sheet/Drawing'
@@ -7,17 +8,19 @@ import { Frame } from './sheet/Frame'
 import { TitleBlock } from './sheet/TitleBlock'
 
 const legendItems = [
-  { key: 'glass', color: 'var(--glass)', text: 'element', width: 92 },
-  { key: 'metal', color: 'var(--ink)', text: 'barrel section', width: 128 },
-  { key: 'iris', color: 'var(--accent)', text: 'iris · dimension', width: 140 },
-  { key: 'axial', color: 'var(--glass)', text: 'axial beam', width: 110 },
+  { key: 'glass', color: 'var(--glass)', text: t.sheet.legend.element },
+  { key: 'metal', color: 'var(--ink)', text: t.sheet.legend.barrel },
+  { key: 'iris', color: 'var(--accent)', text: t.sheet.legend.iris },
+  { key: 'axial', color: 'var(--glass)', text: t.sheet.legend.axial },
   {
     key: 'chief',
     color: 'var(--accent)',
-    text: 'corner beam · chief ray dashed',
-    width: 200,
+    text: t.sheet.legend.corner,
   },
-] as const
+].map((item) => ({
+  ...item,
+  width: Math.max(88, 36 + item.text.length * 6.2),
+}))
 
 const Legend = () => (
   <svg:g>
@@ -69,7 +72,7 @@ export const Sheet = () => (
     <svg:svg
       viewBox={`0 0 ${SHEET_WIDTH} ${SHEET_HEIGHT}`}
       role="img"
-      aria-label="Cross-section of the estimated lens"
+      aria-label={t.sheet.aria}
       css={`
         display: block;
         width: 100%;

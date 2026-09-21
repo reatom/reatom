@@ -2,6 +2,7 @@ import { action, computed } from '@reatom/core'
 
 import { buildBlueprint } from '../layout'
 import { estimateLens, findNearestReference, type LensSpec } from '../optics'
+import { t } from '../translations'
 import {
   autofocus,
   barrel,
@@ -103,7 +104,7 @@ export const designation = computed(
   'designation',
 ).extend((target) => ({
   documentTitle: computed(
-    () => `${target()} — Prime lens estimator`,
+    () => t.meta.documentTitle(target()),
     `${target.name}.documentTitle`,
   ),
 }))

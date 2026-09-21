@@ -6,16 +6,12 @@ import { GlobalStyles } from '../components/GlobalStyles'
 import { ApertureField, FocalField } from '../components/controls/fields'
 import { Section, Segmented } from '../components/controls/widgets'
 import { body, format } from '../model'
-import {
-  type Body,
-  bodies,
-  bodySpecs,
-  type Format,
-  formats,
-  formatSpecs,
-} from '../optics'
+import { type Body, bodies, type Format, formats } from '../optics'
 import { panel } from '../styles'
+import { applyDocumentLang, t } from '../translations'
 import { ProductionPanel } from './ui'
+
+applyDocumentLang()
 
 const Preview = () => (
   <div
@@ -42,7 +38,7 @@ const Preview = () => (
           color: var(--ink-faint);
         `}
       >
-        Isolated preview · same catalog the estimator loads on Find nearest
+        {t.preview.kicker}
       </p>
       <h1
         css={`
@@ -51,7 +47,7 @@ const Preview = () => (
           font-weight: 500;
         `}
       >
-        Nearest production lens
+        {t.preview.title}
       </h1>
     </header>
     <main
@@ -74,22 +70,22 @@ const Preview = () => (
           padding: 1.25rem;
         `}
       >
-        <Section title="Optics">
+        <Section title={t.controls.optics}>
           <FocalField />
           <ApertureField />
         </Section>
-        <Section title="System">
+        <Section title={t.controls.system}>
           <Segmented<Format>
-            name="Format"
+            name={t.controls.format}
             value={format}
             options={formats}
-            render={(option) => formatSpecs[option].label}
+            render={(option) => t.format[option]}
           />
           <Segmented<Body>
-            name="Body"
+            name={t.controls.body}
             value={body}
             options={bodies}
-            render={(option) => bodySpecs[option].label}
+            render={(option) => t.body[option]}
           />
         </Section>
       </aside>

@@ -1,26 +1,16 @@
-import {
-  autofocus,
-  barrel,
-  body,
-  format,
-  stabilized,
-  tier,
-} from '../model'
+import { autofocus, barrel, body, format, stabilized, tier } from '../model'
 import {
   type Barrel,
   barrels,
-  barrelSpecs,
-  bodies,
   type Body,
-  bodySpecs,
+  bodies,
   type Format,
   formats,
-  formatSpecs,
   type Tier,
   tiers,
-  tierSpecs,
 } from '../optics'
 import { panel } from '../styles'
+import { t } from '../translations'
 import {
   ApertureField,
   FocalField,
@@ -32,7 +22,7 @@ import { Section, Segmented, Switch } from './controls/widgets'
 
 export const Controls = () => (
   <aside
-    aria-label="Lens parameters"
+    aria-label={t.controls.aria}
     css={`
       ${panel}
       display: grid;
@@ -42,53 +32,53 @@ export const Controls = () => (
       animation: prime-rise 500ms 80ms ease-out backwards;
     `}
   >
-    <Section title="Presets">
+    <Section title={t.controls.presets}>
       <Presets />
     </Section>
 
-    <Section title="Optics">
+    <Section title={t.controls.optics}>
       <FocalField />
       <ApertureField />
       <IrisField />
       <VignettingField />
     </Section>
 
-    <Section title="System">
+    <Section title={t.controls.system}>
       <Segmented<Format>
-        name="Format"
+        name={t.controls.format}
         value={format}
         options={formats}
-        render={(option) => formatSpecs[option].label}
+        render={(option) => t.format[option]}
       />
       <Segmented<Body>
-        name="Body"
+        name={t.controls.body}
         value={body}
         options={bodies}
-        render={(option) => bodySpecs[option].label}
+        render={(option) => t.body[option]}
       />
       <Segmented<Tier>
-        name="Correction"
+        name={t.controls.correction}
         value={tier}
         options={tiers}
-        render={(option) => tierSpecs[option].label}
+        render={(option) => t.tier[option]}
       />
     </Section>
 
-    <Section title="Build">
+    <Section title={t.controls.build}>
       <Segmented<Barrel>
-        name="Barrel"
+        name={t.controls.barrel}
         value={barrel}
         options={barrels}
-        render={(option) => barrelSpecs[option].label}
+        render={(option) => t.barrel[option]}
       />
       <Switch
-        name="Autofocus"
-        note="motor, encoder and drive electronics"
+        name={t.controls.autofocus}
+        note={t.controls.autofocusNote}
         checked={autofocus}
       />
       <Switch
-        name="Stabilizer"
-        note="floating group, +3 mm Ø, +8 mm length"
+        name={t.controls.stabilizer}
+        note={t.controls.stabilizerNote}
         checked={stabilized}
       />
     </Section>
