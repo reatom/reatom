@@ -66,7 +66,8 @@ export const numberInput = `
 
 export const segmented = `
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.5rem), 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   gap: 1px;
   border: 1px solid var(--hairline);
   border-radius: 1px;
@@ -75,16 +76,17 @@ export const segmented = `
   & > button {
     appearance: none;
     min-width: 0;
-    padding: 0.45rem 0.3rem;
+    padding: 0.45rem 0.25rem;
     border: 0;
     background: var(--paper-deep);
     color: var(--ink-faint);
     font-family: var(--font-ui);
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 500;
     letter-spacing: var(--segment-tracking);
     line-height: 1.2;
-    overflow-wrap: break-word;
+    overflow-wrap: normal;
+    word-break: keep-all;
     text-transform: uppercase;
     cursor: pointer;
     transition:
