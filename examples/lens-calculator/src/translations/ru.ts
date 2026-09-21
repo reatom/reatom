@@ -60,7 +60,7 @@ export const vocab: Vocab = {
   barrel: {
     aluminium: 'Алюминий',
     magnesium: 'Магний',
-    polycarbonate: 'Поликарбонат',
+    polycarbonate: 'Пластик',
     brass: 'Латунь',
   },
   filter: {
