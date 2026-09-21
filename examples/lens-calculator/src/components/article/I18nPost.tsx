@@ -195,7 +195,10 @@ export const I18nPost = () => (
         <button
           type="button"
           on:click={() => demoCount.set((count) => count + 1)}
-          css={chip}
+          css={`
+            ${chip}
+            width: max-content;
+          `}
         >
           {t.i18nPost.demo.bump}
         </button>
