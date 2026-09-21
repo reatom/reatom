@@ -56,7 +56,7 @@ flowchart LR
 
 ## Language
 
-The UI and both articles follow the native-JS i18n pattern from [this DEV post](https://dev.to/artalar/building-a-lightning-fast-i18n-alternative-why-i-ditched-i18next-for-native-javascript-2o06): `t.key` on a typed object, dynamic `import()` of `en` or `ru`, `Intl` for units.
+The UI follows the native-JS i18n pattern from [this DEV post](https://dev.to/artalar/building-a-lightning-fast-i18n-alternative-why-i-ditched-i18next-for-native-javascript-2o06): `t.key` on a typed object, dynamic `import()` of `en` or `ru`.
 
 Language resolution:
 

@@ -103,12 +103,6 @@ export const LANG_PREF = parseLangPref(
 
 export const LANG = resolveLang(LANG_PREF, readBrowserLanguages())
 
-export const degree = new Intl.NumberFormat(LANG, {
-  style: 'unit',
-  unit: 'degree',
-  unitDisplay: 'long',
-})
-
 export const applyDocumentLang = (lang: Lang = LANG) => {
   document.documentElement.lang = lang
 }

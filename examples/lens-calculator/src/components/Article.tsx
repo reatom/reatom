@@ -1,10 +1,9 @@
 import { label, panel } from '../styles'
 import { t } from '../translations'
 import { prose } from './article/blocks'
-import { I18nPost } from './article/I18nPost'
 import { Notes } from './article/Notes'
 
-export const EnvelopeNotes = () => (
+export const Article = () => (
   <article
     css={`
       ${panel}
@@ -84,16 +83,4 @@ export const EnvelopeNotes = () => (
       </a>
     </footer>
   </article>
-)
-
-export const Article = () => (
-  <div
-    css={`
-      display: grid;
-      gap: 1.25rem;
-    `}
-  >
-    <EnvelopeNotes />
-    <I18nPost />
-  </div>
 )
