@@ -35,7 +35,7 @@ export const TitleCell = ({
       css={`
         ${annotation}
         font-size: 7px;
-        letter-spacing: 0.18em;
+        letter-spacing: var(--label-tracking);
         text-transform: uppercase;
         fill: var(--ink-faint);
       `}

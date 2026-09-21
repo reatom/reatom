@@ -49,13 +49,21 @@ export const FieldHead = ({
       display: flex;
       align-items: baseline;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 0.75rem;
     `}
   >
-    <span css={label}>{name}</span>
+    <span
+      css={`
+        ${label}
+        min-width: 0;
+      `}
+    >
+      {name}
+    </span>
     <span
       css={`
         ${mono}
+        flex: none;
         font-size: 0.9375rem;
         color: var(--ink);
       `}
@@ -146,7 +154,7 @@ export const chip = `
   font-family: var(--font-ui);
   font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.12em;
+  letter-spacing: var(--chip-tracking);
   text-transform: uppercase;
   cursor: pointer;
   transition:

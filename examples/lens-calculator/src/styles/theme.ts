@@ -18,6 +18,15 @@ export const globalStyles = `
     --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
     --font-ui: 'IBM Plex Sans Condensed', 'Helvetica Neue', Arial, sans-serif;
     color-scheme: dark;
+    --label-tracking: 0.22em;
+    --chip-tracking: 0.12em;
+    --segment-tracking: 0.08em;
+  }
+
+  html[lang='ru'] {
+    --label-tracking: 0.04em;
+    --chip-tracking: 0.04em;
+    --segment-tracking: 0.02em;
   }
 
   * {
