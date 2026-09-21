@@ -1,5 +1,3 @@
-import { degree } from './lang'
-
 export const vocab = {
   meta: {
     title: 'Prime — lens envelope estimator',
@@ -203,106 +201,10 @@ export const vocab = {
       p2: 'Filter threads jump in ISO steps (M49, M52, M67…). When the front element outgrows M112 the model drops the thread and assumes a rear drop-in, which is how 400 / 2.8s actually work. The readout starts with a short published-envelope hint; Find nearest loads the 2,901-lens catalog. Neither is a claim that the estimate equals that datasheet.',
     },
   },
-  i18nPost: {
-    kicker: 'From DEV.to',
-    title:
-      'Building a Lightning-Fast i18n Alternative: Why I Ditched i18next for Native JavaScript',
-    source: 'Original article',
-    implNote:
-      'This page uses that idea: translations are typed objects, only the active language is loaded, and Intl formats numbers. Language follows an explicit choice, then the browser language list (navigator.languages), then English. The choice lives in localStorage — not a cookie — so it is not sent with every request.',
-    crisis: {
-      title: 'The Performance Crisis in Modern i18n',
-      lead: "If you're using i18next with TypeScript, you've probably felt the pain. Despite performance improvements, the reality is sobering:",
-      bench: 'tested on Apple M1',
-      ts: 'TypeScript compilation: each 1,000 translation keys adds ~1 second to tsc build time',
-      ide: 'IDE responsiveness: type hints slow down by 0.3+ seconds with large dictionaries',
-      bundle:
-        'Bundle size: i18next weighs 41.6 kB (13.2 kB gzip) before you even add translations',
-      runtime:
-        'Runtime performance: custom DSL parsing becomes a bottleneck at scale',
-      social: 'Real developers are feeling this pain:',
-      quote1:
-        'We had to remove i18n typing entirely due to CI memory overflow with ~3k translations',
-      quote1By: 'Production developer',
-      quote2:
-        'Removing i18next improved our SSR performance by 3x without losing functionality',
-      quote2By: 'Performance engineer',
-      closer:
-        "But here's the thing: modern JavaScript has everything we need built-in.",
-    },
-    native: {
-      title: 'Why Go Native?',
-      lead: 'The Internationalization API has matured significantly. We have:',
-      number: 'Intl.NumberFormat for numbers, currencies, units',
-      date: 'Intl.DateTimeFormat for dates and times',
-      plural: 'Intl.PluralRules for pluralization logic',
-      relative: 'Intl.RelativeTimeFormat for “2 days ago” formatting',
-      closer: 'These APIs are zero-cost, tree-shakeable, and blazing fast.',
-    },
-    solution: {
-      title: 'The Solution: A 5-File i18n System',
-      lead: "Here's a complete internationalization system that's simpler, faster, and more maintainable than traditional libraries:",
-      lang: '1. Language detection & management',
-      loading: '2. Dynamic translation loading',
-      typed: '3. Type-safe translation files',
-      cookie: '4. Simple cookie utility',
-      usage: '5. Usage in components',
-    },
-    benefits: {
-      title: 'The Benefits',
-      types: 'Blazing fast types: direct object access, no complex mapping.',
-      runtime: 'Zero runtime overhead: no DSL parsing, no library weight.',
-      split: 'Automatic code splitting: only load translations you need.',
-      safety: 'Full type safety: TypeScript infers everything automatically.',
-      native:
-        'Native formatting: leverage browser APIs for numbers, dates, plurals.',
-      api: 'Simple API: t.key instead of t("key").',
-      ssr: 'SSR out of the box: no additional setup for SSR.',
-      agnostic: 'Framework agnostic: use with Svelte, React, Vue or jQuery.',
-    },
-    namespace: {
-      title: 'Namespace Support',
-      lead: 'Create subdirectories for different feature areas:',
-    },
-    plurals: {
-      title: 'Pluralization with Intl.PluralRules',
-      lead: 'For complex plural forms, integrate the native Intl.PluralRules API directly into your vocabulary:',
-      usage: 'Usage remains beautifully simple:',
-      closer:
-        'The beauty is that each language can define its own plural rules — Russian has different categories than English, and the Intl.PluralRules API handles all the complexity for you.',
-    },
-    ssr: {
-      title: 'Server-Side Rendering',
-      p1: 'One of the biggest advantages of this approach becomes apparent with Server-Side Rendering. It just works out of the box — no complex server configuration, no hydration mismatches, no locale detection headaches.',
-      p2: 'For serverless environments (Lambda, Vercel Functions, etc.), this solution is perfect as-is. Each request gets its own execution context, so the static imports work beautifully.',
-      p3: 'For stateful servers (Express, Fastify, etc.), you have a simple migration path. Convert the dot notation t.key to function calls t().key, then implement the t function using Node.js AsyncLocalStorage. That gives you per-request locale isolation without any global state pollution — exactly what you need for concurrent request handling.',
-    },
-    tradeoff: {
-      title: 'The Trade-off',
-      p1: "The main downside: translations live in code, making it harder for non-technical team members to edit them. This isn't always a problem — many teams prefer developer-controlled translations for better version control and review processes.",
-      p2: 'For teams that need non-technical editing, consider:',
-      gen: 'Build-time generation from external sources',
-      git: 'Git-based workflows with translation management tools',
-      hybrid: 'Hybrid approaches for different content types',
-      closer:
-        "This approach has transformed how I think about internationalization. Sometimes the best solution isn't the most popular one — it's the one that leverages what's already built into the platform.",
-      question:
-        "What's your experience with i18n performance? Have you found other lightweight alternatives?",
-    },
-    demo: {
-      title: 'Try the vocabulary',
-      lead: 'The greeting and temperature line are the live English or Russian object — same t.hi / t.temperature API as in the article.',
-      bump: 'Add a degree',
-    },
-  },
   preview: {
     kicker:
       'Isolated preview · same catalog the estimator loads on Find nearest',
     title: 'Nearest production lens',
-  },
-  demo: {
-    hi: 'Hello',
-    temperature: (n: number) => `Temperature is ${degree.format(n)}`,
   },
 }
 

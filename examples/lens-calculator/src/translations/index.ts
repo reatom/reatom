@@ -7,7 +7,6 @@ export {
   LANG_PREF,
   LANG_PREFS,
 } from './lang'
-export { I18N_ARTICLE_URL } from './samples'
 
 const vocabModule = {
   en: () => import('./en'),
