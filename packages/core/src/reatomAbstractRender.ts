@@ -1,4 +1,13 @@
-import { _enqueue, _read, atom, bind, computed, type Frame, top } from './core'
+import {
+  _enqueue,
+  _read,
+  atom,
+  bind,
+  computed,
+  type Frame,
+  ReatomError,
+  top,
+} from './core'
 import { type AbortSubscription, abortVar, variable } from './methods'
 import { _getPrevFrame } from './methods/context'
 import type { Unsubscribe } from './utils'
@@ -81,18 +90,42 @@ export let reatomAbstractRender = <Props, Result>({
   rerender: (param: { result: Exclude<Result, never> }) => any
   name: string
   abortOnUnmount: boolean
-}): AbstractRender<Props, Result> =>
+}): AbstractRender<Props, Result> => {
+  let renderer = reatomRenderSubscription(frame, name, abortOnUnmount)
+  let result: Result
+
+  return {
+    render(props) {
+      let failure: { error: unknown } | undefined
+      renderer.render(() => {
+        try {
+          result = adapterRender({ ...props })
+        } catch (error) {
+          failure = { error: error ?? new ReatomError('Unknown error') }
+        }
+      })
+      if (failure) throw failure.error
+      return { result }
+    },
+    mount() {
+      return renderer.mount(() => rerender({ result }))
+    },
+  }
+}
+
+let reatomRenderSubscription = (
+  frame: Frame,
+  name: string,
+  abortOnUnmount: boolean,
+) =>
   frame.run(() => {
-    let rendering = false
+    let rendering: undefined | (() => void)
 
     let changedVar = variable<boolean>()
 
-    let props = {} as Props
-    let result = undefined as Result
     let _props = atom(0, `_${name}.props`)
 
     let abortSubscription: AbortSubscription
-    let mounted = false
 
     let recheckAbort = (targetFrame: Frame) => {
       abortSubscription ??= abortVar.subscribe()
@@ -119,7 +152,7 @@ export let reatomAbstractRender = <Props, Result>({
 
       if (rendering) {
         recheckAbort(frame)
-        result = adapterRender(props)
+        rendering()
 
         return state + 1
       }
@@ -139,20 +172,17 @@ export let reatomAbstractRender = <Props, Result>({
       return state + 1
     }, `_${name}`)
 
-    let render = bind((nextProps: Props) => {
+    let render = bind((callback: () => void) => {
       try {
-        rendering = true
-        props = { ...nextProps }
+        rendering = callback
         _props.set((version) => version + 1)
         _render()
-        return { result }
       } finally {
-        rendering = false
+        rendering = undefined
       }
-    }, frame) as (props: Props) => { result: Result }
+    }, frame)
 
-    let mount = bind(() => {
-      mounted = true
+    let mount = bind((rerender: undefined | (() => void)) => {
       recheckAbort(_read(_render)!)
 
       let unsubscribe = _render.subscribe(() => {
@@ -163,24 +193,18 @@ export let reatomAbstractRender = <Props, Result>({
           )
         ) {
           changedVar.set(false)
-          rerender({ result })
+          rerender?.()
         }
       })
 
       return bind(() => {
-        mounted = false
+        rerender = undefined
         unsubscribe()
         if (abortOnUnmount) {
           abortSubscription.controller.abort('unmount')
         } else {
           abortSubscription?.unsubscribe()
         }
-        _enqueue(() => {
-          if (mounted) return
-
-          props = {} as Props
-          result = undefined as Result
-        }, 'cleanup')
       })
     }, frame)
 
