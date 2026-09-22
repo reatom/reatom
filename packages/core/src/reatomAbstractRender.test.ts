@@ -93,6 +93,34 @@ test('render rethrows the original exception and can retry', () => {
   notify()
 })
 
+test('adapter callbacks are called without a receiver', () => {
+  const state = atom(0, 'state')
+  const receivers: unknown[] = []
+  const renderer = reatomAbstractRender({
+    frame: top(),
+    render: function (this: unknown) {
+      receivers.push(this)
+      return state()
+    },
+    rerender: function (this: unknown) {
+      receivers.push(this)
+    },
+    name: 'CallbackReceiverRenderer',
+    abortOnUnmount: false,
+  })
+  const { render, mount } = renderer
+  render({})
+  const unmount = mount()
+  notify()
+  state.set(1)
+  notify()
+  unmount()
+  notify()
+
+  expect(receivers.length).toBeGreaterThanOrEqual(2)
+  expect(receivers.every((receiver) => receiver === undefined)).toBe(true)
+})
+
 test.each([null, undefined])('render normalizes a thrown %s', (failure) => {
   const renderer = reatomAbstractRender({
     frame: top(),

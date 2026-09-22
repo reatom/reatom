@@ -91,25 +91,45 @@ export let reatomAbstractRender = <Props, Result>({
   name: string
   abortOnUnmount: boolean
 }): AbstractRender<Props, Result> => {
-  let renderer = reatomRenderSubscription(frame, name, abortOnUnmount)
-  let result: Result
-
+  let renderer = new RenderAdapter(
+    reatomRenderSubscription(frame, name, abortOnUnmount),
+    adapterRender,
+    rerender,
+  )
   return {
-    render(props) {
-      let failure: { error: unknown } | undefined
-      renderer.render(() => {
-        try {
-          result = adapterRender({ ...props })
-        } catch (error) {
-          failure = { error: error ?? new ReatomError('Unknown error') }
-        }
-      })
-      if (failure) throw failure.error
-      return { result }
-    },
-    mount() {
-      return renderer.mount(() => rerender({ result }))
-    },
+    render: renderer.render.bind(renderer),
+    mount: renderer.mount.bind(renderer),
+  }
+}
+
+class RenderAdapter<Props, Result> {
+  result!: Result
+
+  constructor(
+    private subscription: ReturnType<typeof reatomRenderSubscription>,
+    private adapterRender: (props: Props) => Result,
+    private rerender: (param: { result: Result }) => unknown,
+  ) {}
+
+  render(props: Props) {
+    let failure: { error: unknown } | undefined
+    this.subscription.render(() => {
+      try {
+        let render = this.adapterRender
+        this.result = render({ ...props })
+      } catch (error) {
+        failure = { error: error ?? new ReatomError('Unknown error') }
+      }
+    })
+    if (failure) throw failure.error
+    return { result: this.result }
+  }
+
+  mount() {
+    return this.subscription.mount(() => {
+      let rerender = this.rerender
+      rerender({ result: this.result })
+    })
   }
 }
 
