@@ -202,7 +202,7 @@ export const app = computed(() => layoutRoute.render(), 'app')`,
         note: 'Nest routes under a parent layout, inheriting the composed path and params',
       },
       {
-        pattern: "search: z.object",
+        pattern: 'search: z.object',
         note: 'Validate and type search params with a schema',
       },
       {

@@ -5,7 +5,10 @@ import { reatomComponent } from './reatomComponent'
 
 type AutoTrackedComponent = (props: Rec) => ComponentChildren
 
-let trackedComponents = new WeakMap<AutoTrackedComponent, AutoTrackedComponent>()
+let trackedComponents = new WeakMap<
+  AutoTrackedComponent,
+  AutoTrackedComponent
+>()
 
 let hasMethod = (value: unknown, methodName: string): boolean =>
   typeof value === 'object' &&
