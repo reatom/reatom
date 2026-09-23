@@ -2,6 +2,7 @@ import { expectTypeOf, test } from 'test'
 
 import { action, atom } from '../core'
 import type { Unsubscribe } from '../utils'
+import type { MCPRegistration } from './withMCP'
 import { withMCP } from './withMCP'
 
 test('withMCP action type exposes registerMCP', () => {
@@ -11,7 +12,13 @@ test('withMCP action type exposes registerMCP', () => {
   ).extend(withMCP({}))
 
   expectTypeOf(addToCard).toHaveProperty('registerMCP')
-  expectTypeOf(addToCard.registerMCP).returns.toEqualTypeOf<Unsubscribe>()
+  expectTypeOf(addToCard.registerMCP).returns.toEqualTypeOf<MCPRegistration>()
+  expectTypeOf(addToCard.registerMCP).returns.toBeCallableWith()
+  expectTypeOf(addToCard.registerMCP).returns.returns.toEqualTypeOf<void>()
+  expectTypeOf(addToCard.registerMCP)
+    .returns.toHaveProperty('ready')
+    .toEqualTypeOf<Promise<void>>()
+  expectTypeOf<MCPRegistration>().toExtend<Unsubscribe>()
 })
 
 test('withMCP atom type does not expose registerMCP', () => {
