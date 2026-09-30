@@ -219,6 +219,37 @@ test(`value atom should be writable`, async () => {
   expect(field()).toBe(null)
 })
 
+test('value recomputes when the state returns to an earlier value', () => {
+  const textField = reatomField('120', { name: 'returningText' })
+  textField.change('140')
+  textField.set('120')
+  expect(textField.value()).toBe('120')
+
+  const numberField = reatomField<number, string>(120, {
+    name: 'returningNumber',
+    fromState: String,
+    toState: Number,
+  })
+  numberField.change('140')
+  numberField.set(120)
+  expect(numberField.value()).toBe('120')
+
+  const subscribedField = reatomField('120', { name: 'returningSubscribed' })
+  const unsubscribe = subscribedField.value.subscribe(() => {})
+  subscribedField.change('140')
+  subscribedField.set('120')
+  expect(subscribedField.value()).toBe('120')
+  unsubscribe()
+
+  const abortingField = reatomField(1, {
+    name: 'returningAborting',
+    fromState: String,
+    toState: (value: string) => (value === '-' ? throwAbort() : Number(value)),
+  })
+  abortingField.change('-')
+  expect(abortingField.value()).toBe('-')
+})
+
 test('toState abort', () => {
   const numberField = reatomField(0, {
     fromState: (state) => state.toString(),
