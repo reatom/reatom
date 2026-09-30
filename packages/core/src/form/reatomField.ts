@@ -164,6 +164,10 @@ export function withField<T extends Atom, State = AtomState<T>, Value = State>(
       } catch (error) {
         if (!isAbort(error)) throw error
       }
+      // Settle `value` against the new state now: its dependency snapshot otherwise
+      // still holds the previous state, and a later return to it would not recompute.
+      // An unchanged state keeps the raw value.
+      value()
       return newValue
     }, `${name}._change`)
 
