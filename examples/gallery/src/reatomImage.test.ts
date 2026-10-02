@@ -322,6 +322,7 @@ test('sizedImage upgrades monotonically and clears on deactivation', async () =>
     tabIndex = -1
     setAttribute() {}
     style = {}
+    getContext: (type: string) => unknown = () => null
   }
 
   class FakeBitmapRenderer {

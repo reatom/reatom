@@ -2,6 +2,7 @@ import {
   action,
   computed,
   isAbort,
+  peek,
   withAbort,
   withAsync,
   wrap,
@@ -17,6 +18,7 @@ import {
   primeLightboxPreload,
   resetLightboxPan,
 } from './lightboxNavigation'
+import { lightboxIsPanning } from './lightboxSession'
 import {
   lightboxImage,
   lightboxNavigationDirection,
@@ -56,19 +58,29 @@ export {
   wrapFolderNavigation,
 } from './lightboxState'
 
+const zoomEpsilon = 1e-9
+
+const applyLightboxZoom = (nextZoom: number) => {
+  const zoom = Math.abs(nextZoom - 1) < zoomEpsilon ? 1 : nextZoom
+  lightboxZoom.set(zoom)
+  if (zoom <= 1) {
+    lightboxIsPanning.set(false)
+    resetLightboxPan()
+  }
+}
+
 export const lightboxZoomIn = action(
-  () => lightboxZoom.set((zoom) => Math.min(zoom * 1.5, 10)),
+  () => applyLightboxZoom(Math.min(peek(lightboxZoom) * 1.5, 10)),
   'lightbox.zoomIn',
 )
 
 export const lightboxZoomOut = action(
-  () => lightboxZoom.set((zoom) => Math.max(zoom / 1.5, 0.1)),
+  () => applyLightboxZoom(Math.max(peek(lightboxZoom) / 1.5, 0.1)),
   'lightbox.zoomOut',
 )
 
 export const lightboxZoomReset = action(() => {
-  lightboxZoom.set(1)
-  resetLightboxPan()
+  applyLightboxZoom(1)
 }, 'lightbox.zoomReset')
 
 export const lightboxCounter = computed(() => {
@@ -174,6 +186,11 @@ export const handleLightboxKeyDown = action((event: KeyboardEvent) => {
       event.preventDefault()
       event.stopPropagation()
       lightboxZoomIn()
+      break
+    case 'Backspace':
+      event.preventDefault()
+      event.stopPropagation()
+      lightboxZoomReset()
       break
     case ' ':
       if (event.defaultPrevented) return

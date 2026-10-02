@@ -24,7 +24,10 @@ function readPanelLongEdge(): number {
   return Math.ceil(window.screen.width * readDevicePixelRatio())
 }
 
-export const viewportSize = reatomObservable(
+export const viewportSize = reatomObservable<{
+  width: number
+  height: number
+}>(
   () => ({
     initState: readViewportSize(),
     getState: readViewportSize,
@@ -53,7 +56,7 @@ export const viewportSize = reatomObservable(
   withMemo(),
 )
 
-export const devicePixelRatio = reatomObservable(
+export const devicePixelRatio = reatomObservable<number>(
   () => ({
     initState: readDevicePixelRatio(),
     getState: readDevicePixelRatio,
@@ -64,7 +67,9 @@ export const devicePixelRatio = reatomObservable(
       let mediaListener: (() => void) | null = null
 
       const armMediaQuery = () => {
-        mediaQuery?.removeEventListener('change', mediaListener ?? undefined)
+        if (mediaQuery && mediaListener) {
+          mediaQuery.removeEventListener('change', mediaListener)
+        }
         const dpr = window.devicePixelRatio || 1
         mediaQuery = window.matchMedia(`(resolution: ${dpr}dppx)`)
         mediaListener = () => {
@@ -93,7 +98,7 @@ export const devicePixelRatio = reatomObservable(
   'viewport.devicePixelRatio',
 )
 
-export const panelLongEdge = reatomObservable(
+export const panelLongEdge = reatomObservable<number>(
   () => ({
     initState: readPanelLongEdge(),
     getState: readPanelLongEdge,
@@ -113,7 +118,9 @@ export const panelLongEdge = reatomObservable(
       let mediaListener: (() => void) | null = null
 
       const armMediaQuery = () => {
-        mediaQuery?.removeEventListener('change', mediaListener ?? undefined)
+        if (mediaQuery && mediaListener) {
+          mediaQuery.removeEventListener('change', mediaListener)
+        }
         const dpr = window.devicePixelRatio || 1
         mediaQuery = window.matchMedia(`(resolution: ${dpr}dppx)`)
         mediaListener = () => {

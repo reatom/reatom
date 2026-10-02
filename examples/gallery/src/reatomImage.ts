@@ -1,4 +1,4 @@
-import type { Atom } from '@reatom/core'
+import type { Atom, Computed } from '@reatom/core'
 import {
   abortVar,
   action,
@@ -60,7 +60,7 @@ export type ReatomImageOptions = {
   readIgnoreExifOrientation?: () => boolean
   readDevelopRaw?: () => boolean
   previewLoadPriority?: Atom<PreviewLoadPriority>
-  thumbnailTargetSize?: Atom<number>
+  thumbnailTargetSize?: Computed<number>
   readDisplayTarget?: () => DisplayTargetSize | null
   readSizedImageActive?: () => boolean
   readBitmapDecodePriority?: () => BitmapDecodePriority

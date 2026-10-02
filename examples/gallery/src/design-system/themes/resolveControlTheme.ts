@@ -535,7 +535,7 @@ export const controlThemeToCssVars = (
     if (surface === 'viewer' && !includeViewer) continue
     for (const role of ['action', 'quiet', 'choice', 'switch'] as const) {
       const palette = theme[surface][role]
-      const prefix = `--ui-${surface}-${role}`
+      const prefix = `--ui-${surface}-${role}` as const
       for (const state of [
         'rest',
         'hover',

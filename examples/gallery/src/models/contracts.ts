@@ -19,7 +19,7 @@ export type ParsingProgressSnapshot = {
 export type GalleryImageDisplayModel = {
   stage: Computed<RawDisplayStage>
   source: Computed<{ url: string; orientationBaked: boolean } | null>
-  element: Computed<HTMLImageElement | null>
+  element: Computed<HTMLCanvasElement | HTMLImageElement | null>
   preloadUrl: Computed<string>
   isRawPipeline: Computed<boolean>
   sizeLabel: Computed<string>

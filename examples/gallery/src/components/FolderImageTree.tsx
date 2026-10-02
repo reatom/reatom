@@ -34,11 +34,7 @@ export const FolderImageTree = ({
           isFolderImagesInCurrentScope(folder) ? 'contents' : 'none'
         }
       >
-        {() =>
-          folder
-            .sortedImages()
-            .map((image) => renderImage(image, folder))
-        }
+        {() => folder.sortedImages().map((image) => renderImage(image, folder))}
       </div>
       {folder.children.map((child) => (
         <Folder folder={child} />
@@ -46,10 +42,14 @@ export const FolderImageTree = ({
     </div>
   )
 
-  return () => {
-    const tree = folderModelTree()
-    return tree ? <Folder folder={tree} /> : null
-  }
+  return (
+    <>
+      {() => {
+        const tree = folderModelTree()
+        return tree ? <Folder folder={tree} /> : null
+      }}
+    </>
+  )
 }
 
 export const PreviewBoundImage = ({

@@ -24,31 +24,35 @@ const loc = {
     canvas.findByRole('button', { name: 'Open photo1.jpg' }),
 } satisfies Record<string, Locator>
 
-const I = createMyself((I) => ({
-  seeEmptyState: async () => {
+const I = createMyself((I) => {
+  const seeEmptyState = async () => {
     await I.see(loc.galleryHeadingAppears)
     await I.see(loc.openFolderButtonAppears)
-  },
-  seeGalleryLoaded: async () => {
-    await I.see(loc.imageCountAppears)
-    await I.see(loc.resetButtonAppears)
-  },
-  resetOpenedFolder: async () => {
-    await I.click(loc.resetButtonAppears)
-    await waitForUpdate()
-    await I.seeEmptyState()
-  },
-  seeParsingProgress: async () => {
-    await I.see(loc.scanningTextAppears)
-    await I.see(loc.cancelButtonAppears)
-  },
-  openLightboxByClickingFirstImage: async () => {
-    const firstImage = await I.see(loc.firstImageButtonAppears)
-    firstImage.click()
-    await waitForUpdate()
-    await I.see(loc.lightboxCounterAppears)
-  },
-}))
+  }
+
+  return {
+    seeEmptyState,
+    seeGalleryLoaded: async () => {
+      await I.see(loc.imageCountAppears)
+      await I.see(loc.resetButtonAppears)
+    },
+    resetOpenedFolder: async () => {
+      await I.click(loc.resetButtonAppears)
+      await waitForUpdate()
+      await seeEmptyState()
+    },
+    seeParsingProgress: async () => {
+      await I.see(loc.scanningTextAppears)
+      await I.see(loc.cancelButtonAppears)
+    },
+    openLightboxByClickingFirstImage: async () => {
+      const firstImage = await I.see(loc.firstImageButtonAppears)
+      firstImage.click()
+      await waitForUpdate()
+      await I.see(loc.lightboxCounterAppears)
+    },
+  }
+})
 
 const meta: Meta = {
   title: 'Integration/Gallery',

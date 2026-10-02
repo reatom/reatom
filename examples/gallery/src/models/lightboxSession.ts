@@ -53,11 +53,11 @@ export const lightboxImageTransform = computed(() => {
     : `translate(${x}px, ${y}px) scale(${zoom})`
 }, 'lightbox._imageTransform')
 
-export const lightboxImageCursor = computed(
-  () =>
-    lightboxIsPanning() ? 'grabbing' : lightboxZoom() > 1 ? 'grab' : 'default',
-  'lightbox.imageCursor',
-)
+export const lightboxImageCursor = computed(() => {
+  if (lightboxIsPanning()) return 'grabbing'
+  if (!lightboxControlsVisible()) return 'none'
+  return lightboxZoom() > 1 ? 'grab' : 'default'
+}, 'lightbox.imageCursor')
 
 export const lightboxFullscreenButtonLabel = computed(
   () => (lightboxIsFullscreen() ? 'Exit fullscreen' : 'Enter fullscreen'),

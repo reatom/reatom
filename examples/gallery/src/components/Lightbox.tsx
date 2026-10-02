@@ -400,6 +400,7 @@ const LightboxContent = () => {
         &[data-controls-visible='false'] {
           --control-opacity: 0;
           --control-pointer: none;
+          cursor: none;
         }
         @media (prefers-reduced-motion: reduce) {
           --control-opacity: 1;
