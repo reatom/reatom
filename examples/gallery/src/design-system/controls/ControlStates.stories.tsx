@@ -78,7 +78,7 @@ export const CartoonLight: Story = {
   ),
   play: async () => {
     const unselected = await I.see(loc.unselectedAppears)
-    await expect(getComputedStyle(unselected).fontSize).toBe('12px')
+    await expect(getComputedStyle(unselected).fontSize).toBe('13px')
     await assertHoverChangesPaint(unselected)
     const selectedButton = await I.see(loc.selectedAppears)
     await assertHoverChangesPaint(selectedButton)

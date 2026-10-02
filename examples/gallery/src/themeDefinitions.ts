@@ -276,15 +276,16 @@ const THEMES = {
   },
   paper: {
     dark: {
-      '--font-ui': 'Arial, Helvetica, sans-serif',
+      '--font-ui':
+        'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       '--bg-primary': '#22272e',
       '--bg-secondary': '#2a313a',
       '--bg-tertiary': '#38424e',
       '--bg-elevated': '#303b47',
       '--surface-glass': '#2a313a',
       '--surface-strong': '#303b47',
-      '--accent': '#a3b6c4',
-      '--accent-hover': '#c0cdd5',
+      '--accent': '#94b4cf',
+      '--accent-hover': '#b3cadf',
       '--accent-soft': '#354453',
       '--accent-contrast': '#202c34',
       '--text-primary': '#f0f2f5',
@@ -303,7 +304,7 @@ const THEMES = {
       '--scrollbar-thumb': '#687b92',
       '--shadow': '#00000020',
       '--shadow-strong': '#00000040',
-      '--focus-ring': '#a3b6c4',
+      '--focus-ring': '#94b4cf',
       '--radius-xs': '2px',
       '--radius-sm': '4px',
       '--radius-md': '6px',
@@ -340,7 +341,8 @@ const THEMES = {
       '--control-transform': 'none',
     },
     light: {
-      '--font-ui': 'Arial, Helvetica, sans-serif',
+      '--font-ui':
+        'ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       '--bg-primary': '#f7f7f2',
       '--bg-secondary': '#ffffff',
       '--bg-tertiary': '#eaece6',

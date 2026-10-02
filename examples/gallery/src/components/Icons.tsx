@@ -282,6 +282,22 @@ export const ChevronLeftIcon = () => (
   </svg:svg>
 )
 
+export const SidebarIcon = () => (
+  <svg:svg
+    viewBox="0 0 24 24"
+    css={iconSizeCss}
+    fill="none"
+    stroke="currentColor"
+    attr:stroke-width="1.8"
+    attr:stroke-linecap="round"
+    attr:stroke-linejoin="round"
+    attr:aria-hidden="true"
+  >
+    <svg:rect x="4" y="5" width="16" height="14" rx="2" />
+    <svg:line x1="9.5" y1="5" x2="9.5" y2="19" />
+  </svg:svg>
+)
+
 export const CloseIcon = () => (
   <svg:svg
     viewBox="0 0 24 24"

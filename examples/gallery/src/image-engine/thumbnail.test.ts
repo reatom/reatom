@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import * as orientation from './orientation'
 import { loadThumbnailWithMeta, revokeThumbnail } from './thumbnail'
-import type { ImageMeta } from './types'
+import { DEFAULT_QUALITY, type ImageMeta } from './types'
 
 function stubThumbnailCanvas() {
   vi.stubGlobal(
@@ -195,5 +195,77 @@ describe('loadThumbnailWithMeta generated path', () => {
     ).rejects.toMatchObject({ name: 'AbortError' })
     expect(close).toHaveBeenCalledOnce()
     expect(createObjectURL).not.toHaveBeenCalled()
+  })
+
+  test('preserves alpha for alpha-capable formats and keeps jpeg otherwise', async () => {
+    const fillRect = vi.fn()
+    const drawImage = vi.fn()
+    const convertToBlob = vi.fn((_options: BlobPropertyBag) =>
+      Promise.resolve(new Blob(['thumb'], { type: 'image/jpeg' })),
+    )
+
+    vi.stubGlobal(
+      'OffscreenCanvas',
+      class {
+        width: number
+        height: number
+        constructor(width: number, height: number) {
+          this.width = width
+          this.height = height
+        }
+        getContext() {
+          return { fillStyle: '', fillRect, drawImage }
+        }
+        convertToBlob(options: BlobPropertyBag) {
+          return convertToBlob(options)
+        }
+      },
+    )
+    vi.stubGlobal('URL', {
+      createObjectURL: () => 'blob:thumbnail-test',
+      revokeObjectURL: () => undefined,
+    })
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(async () => ({
+        width: 200,
+        height: 100,
+        close: () => undefined,
+      })),
+    )
+
+    const pngMeta: ImageMeta = {
+      width: 200,
+      height: 100,
+      format: 'png',
+      isProgressive: false,
+      hasExifThumbnail: false,
+    }
+
+    const pngResult = await loadThumbnailWithMeta(new Blob(['png']), pngMeta)
+    expect(fillRect).not.toHaveBeenCalled()
+    expect(drawImage).toHaveBeenCalledOnce()
+    expect(convertToBlob).toHaveBeenCalledWith({
+      type: 'image/webp',
+      quality: DEFAULT_QUALITY,
+    })
+    revokeThumbnail(pngResult)
+
+    fillRect.mockClear()
+    drawImage.mockClear()
+    convertToBlob.mockClear()
+
+    const jpegMeta: ImageMeta = {
+      ...pngMeta,
+      format: 'jpeg',
+    }
+
+    const jpegResult = await loadThumbnailWithMeta(new Blob(['jpeg']), jpegMeta)
+    expect(fillRect).toHaveBeenCalledOnce()
+    expect(convertToBlob).toHaveBeenCalledWith({
+      type: 'image/jpeg',
+      quality: DEFAULT_QUALITY,
+    })
+    revokeThumbnail(jpegResult)
   })
 })

@@ -17,7 +17,7 @@ const loc = {
   nameSortButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Name' }),
   orderButtonAppears: (canvas) =>
-    canvas.findByRole('button', { name: /Asc|Desc/ }),
+    canvas.findByRole('button', { name: /Sort (ascending|descending)/ }),
   sizeSortButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Size' }),
 } satisfies Record<string, Locator>
@@ -41,13 +41,13 @@ const I = createMyself((I) => ({
     const orderBtn = await I.resolveLocator(
       loc.orderButtonAppears as DefiniteLocator,
     )
-    const initialText = orderBtn.textContent
+    const initialName = orderBtn.getAttribute('title')
     await I.click(loc.orderButtonAppears as DefiniteLocator)
     await waitForUpdate()
     const orderBtnAfter = await I.resolveLocator(
       loc.orderButtonAppears as DefiniteLocator,
     )
-    await expect(orderBtnAfter.textContent).not.toBe(initialText)
+    await expect(orderBtnAfter.getAttribute('title')).not.toBe(initialName)
   },
 }))
 

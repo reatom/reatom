@@ -1,4 +1,4 @@
-import { Button, ChoiceButton } from '../design-system'
+import { ChoiceButton, IconButton } from '../design-system'
 import { sortField, sortOrder, toggleSortOrder } from '../model'
 import type { SortField } from '../types'
 import { SortAscIcon, SortDescIcon } from './Icons'
@@ -20,22 +20,32 @@ export const SortPanel = () => (
       flex-wrap: wrap;
     `}
   >
-    {SORT_FIELD_OPTIONS.map((opt) => (
-      <ChoiceButton
-        label={opt.label}
-        selected={() => sortField() === opt.value}
-        onClick={() => sortField.set(opt.value)}
-      />
-    ))}
-    <Button
-      appearance="quiet"
-      size="sm"
-      label={() => (sortOrder() === 'asc' ? 'Asc' : 'Desc')}
+    <div
+      role="group"
+      aria-label="Sort by"
+      css={`
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+      `}
+    >
+      {SORT_FIELD_OPTIONS.map((opt) => (
+        <ChoiceButton
+          label={opt.label}
+          selected={() => sortField() === opt.value}
+          onClick={() => sortField.set(opt.value)}
+        />
+      ))}
+    </div>
+    <IconButton
+      label={() =>
+        sortOrder() === 'asc' ? 'Sort ascending' : 'Sort descending'
+      }
       onClick={toggleSortOrder}
-      css="min-width: 76px; gap: 5px;"
+      css="width: 28px; height: 28px;"
     >
       {() => (sortOrder() === 'asc' ? <SortAscIcon /> : <SortDescIcon />)}
-      <span>{() => (sortOrder() === 'asc' ? 'Asc' : 'Desc')}</span>
-    </Button>
+    </IconButton>
   </div>
 )

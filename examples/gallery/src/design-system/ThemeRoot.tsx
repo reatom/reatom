@@ -61,7 +61,7 @@ const supportsGlassRefraction = /Chrome\/|Chromium\//.test(navigator.userAgent)
 
 const themeBoundaryCss = `
   --sidebar-width: 240px;
-  --folder-toggle-size: 34px;
+  --folder-toggle-size: 32px;
   --folder-toggle-inset: 8px;
   --folder-header-rail-height: 40px;
   --header-inline-pad: 18px;
@@ -147,15 +147,13 @@ const themeBoundaryCss = `
     text-decoration: none;
   }
 
-  input, select, textarea {
+  :where(input, select, textarea) {
     font-family: inherit;
     font-size: inherit;
     outline: none;
   }
 
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible {
+  :where(input, select, textarea):focus-visible {
     box-shadow: 0 0 0 3px var(--focus-ring);
   }
 

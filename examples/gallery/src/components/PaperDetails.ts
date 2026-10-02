@@ -4,8 +4,8 @@ export const paperDetailsCss = `
     --paper-blush: #e8b4bc;
     --header-inline-pad: 24px;
     #gallery-toolbar {
-      min-height: 76px;
-      padding: 16px var(--header-inline-pad);
+      min-height: 64px;
+      padding: 12px var(--header-inline-pad);
       gap: 12px;
       overflow: visible;
       border-bottom: 1px solid var(--border);
@@ -14,21 +14,22 @@ export const paperDetailsCss = `
     #gallery-brand {
       gap: 10px;
       color: var(--text-primary);
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -.055em;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -.03em;
     }
     #gallery-brand > span:first-child {
-      width: 32px; height: 32px;
+      width: 28px; height: 28px;
       background: var(--accent);
       color: var(--accent-contrast);
       border: 0;
       border-radius: 50%;
       box-shadow: none;
     }
-    #gallery-toolbar input { box-shadow: none; }
-    #gallery-toolbar [data-ui='button'] { font-size: 12px; font-weight: 700; }
-    #gallery-toolbar input { border-radius: 24px; }
+    #gallery-toolbar input {
+      box-shadow: none;
+      border-radius: var(--radius-sm);
+    }
     --folder-header-rail-height: 48px;
     #gallery-pathbar {
       min-height: 48px;
@@ -47,26 +48,29 @@ export const paperDetailsCss = `
       content: 'Your folders';
       display: block;
       width: fit-content;
-      margin: 0 8px 22px;
-      padding-bottom: 8px;
-      border-bottom: 4px solid var(--paper-blush);
-      color: var(--text-primary);
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: -.025em;
+      margin: 0 10px 12px;
+      padding: 0;
+      border: 0;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
     }
     #gallery-folder-sidebar [role='treeitem'] {
-      min-height: 42px;
-      padding: 10px 8px;
-      border-radius: 3px;
+      min-height: 36px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
       gap: 8px;
+      font-weight: 500;
     }
     #gallery-folder-sidebar [role='treeitem'][aria-selected='true'] {
       background: var(--active-bg);
-      color: var(--accent);
-      box-shadow: inset 4px 0 var(--paper-blush);
-      font-weight: 700;
+      color: var(--text-primary);
+      box-shadow: inset 3px 0 var(--paper-blush);
+      font-weight: 600;
     }
+    #gallery-folder-divider { margin: 6px 10px 8px; }
     #gallery-folder-sidebar [role='treeitem'] > span:empty { display: none; }
     #gallery-folder-sidebar [role='treeitem'] > span:nth-child(3) {
       white-space: normal;
@@ -91,27 +95,30 @@ export const paperDetailsCss = `
       inset: auto;
       aspect-ratio: 1;
       border-radius: 2px;
+      outline: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
+      outline-offset: -1px;
     }
     [data-gap]:not([data-gap='none']) [data-caption] {
       position: static;
       margin: 0;
-      min-height: 62px;
-      padding: 14px 4px 18px;
+      min-height: 0;
+      padding: 8px 2px 0;
       color: var(--text-primary);
       background: var(--card-bg);
       text-shadow: none;
     }
     [data-gap]:not([data-gap='none']) [data-caption] > div:first-child {
-      color: var(--text-primary);
-      font-size: 13px;
-      font-weight: 800;
-      letter-spacing: -.015em;
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: normal;
     }
     [data-gap]:not([data-gap='none']) [data-caption] > div + div {
-      margin-top: 5px;
+      margin-top: 2px;
       font-size: 11px;
       color: var(--text-muted);
     }
+    [data-view-mode='grid'] { row-gap: calc(var(--gap) + 16px); }
     [data-gap][data-selected='true'] {
       outline: 2px solid var(--accent);
       outline-offset: 2px;

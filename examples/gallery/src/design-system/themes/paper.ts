@@ -1,20 +1,39 @@
 import type { ControlThemeOverrides } from '../themeTypes'
 
-const blushSelected = {
+const blushTintSelected = {
+  foreground: 'var(--text-primary)',
+  background: 'color-mix(in srgb, var(--paper-blush) 24%, transparent)',
+  border: 'var(--paper-blush)',
+  shadow: 'none',
+}
+
+const blushTintStates = {
+  selected: blushTintSelected,
+  selectedHover: {
+    ...blushTintSelected,
+    background: 'color-mix(in srgb, var(--paper-blush) 32%, transparent)',
+  },
+  selectedPress: {
+    ...blushTintSelected,
+    background: 'color-mix(in srgb, var(--paper-blush) 40%, transparent)',
+  },
+}
+
+const blushSolidSelected = {
   foreground: '#17232d',
   background: 'var(--paper-blush)',
   border: 'var(--paper-blush)',
   shadow: 'none',
 }
 
-const blushStates = {
-  selected: blushSelected,
+const blushSolidStates = {
+  selected: blushSolidSelected,
   selectedHover: {
-    ...blushSelected,
+    ...blushSolidSelected,
     background: 'color-mix(in srgb, var(--paper-blush) 78%, #17232d)',
   },
   selectedPress: {
-    ...blushSelected,
+    ...blushSolidSelected,
     background: 'color-mix(in srgb, var(--paper-blush) 64%, #17232d)',
   },
 }
@@ -38,7 +57,7 @@ const paperViewerPaint = {
     border: 'transparent',
     shadow: 'none',
   },
-  ...blushStates,
+  ...blushSolidStates,
 }
 
 const paperViewerRound = {
@@ -50,8 +69,8 @@ const paperViewerRound = {
 
 export const paperControlOverrides = {
   app: {
-    quiet: blushStates,
-    choice: blushStates,
+    quiet: blushTintStates,
+    choice: blushTintStates,
   },
   viewer: {
     action: paperViewerRound,
@@ -77,6 +96,6 @@ export const paperControlOverrides = {
       border: 'var(--border)',
       shadow: 'none',
     },
-    ...blushStates,
+    ...blushTintStates,
   },
 } satisfies ControlThemeOverrides

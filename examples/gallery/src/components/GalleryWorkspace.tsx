@@ -69,9 +69,13 @@ export const GalleryWorkspace = () => (
             <div
               css={`
                 transition: margin-left 0.3s ease;
-                margin-left: calc(
-                  var(--folder-toggle-size, 34px) +
-                    var(--folder-toggle-inset, 8px) + 8px
+                margin-left: max(
+                  0px,
+                  calc(
+                    var(--folder-toggle-size, 32px) +
+                      var(--folder-toggle-inset, 8px) +
+                      12px - var(--header-inline-pad, 18px)
+                  )
                 );
               `}
             >

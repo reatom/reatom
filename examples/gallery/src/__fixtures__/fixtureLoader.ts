@@ -254,8 +254,16 @@ export function buildFixtureFolderTree(
     const normalizedFolderPath = folderPath === '.' ? '' : folderPath
     const folder = getOrCreateFolder(root, folderMap, normalizedFolderPath)
     folder.images.push(createImageFromFixture(entry, normalizedFolderPath))
-    folder.imageCount += 1
-    root.imageCount += 1
+
+    let ancestorPath = normalizedFolderPath
+    while (true) {
+      const ancestor = folderMap.get(ancestorPath)
+      if (!ancestor) break
+      ancestor.imageCount += 1
+      const parentSeparator = ancestorPath.lastIndexOf('/')
+      if (parentSeparator === -1) break
+      ancestorPath = ancestorPath.slice(0, parentSeparator)
+    }
   }
 
   return root

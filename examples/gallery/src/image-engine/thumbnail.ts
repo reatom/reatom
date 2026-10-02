@@ -8,7 +8,12 @@ import {
 } from './orientation'
 import type { OrientedBitmap } from './resizeBitmap'
 import { decodeOrientedBitmap } from './resizeBitmap'
-import type { ImageMeta, ThumbnailOptions, ThumbnailResult } from './types'
+import type {
+  ImageFormat,
+  ImageMeta,
+  ThumbnailOptions,
+  ThumbnailResult,
+} from './types'
 import { DEFAULT_MAX_SIZE, DEFAULT_QUALITY } from './types'
 import { isRawImageFormat } from './types'
 
@@ -32,6 +37,15 @@ function isThumbnailAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError'
 }
 
+const ALPHA_CAPABLE_FORMATS: ReadonlySet<ImageFormat> = new Set([
+  'png',
+  'gif',
+  'webp',
+  'bmp',
+  'svg',
+  'avif',
+])
+
 async function bitmapToThumbnailResult(
   bitmap: ImageBitmap,
   maxSize: number,
@@ -39,6 +53,7 @@ async function bitmapToThumbnailResult(
   source: ThumbnailResult['source'],
   orientationBaked = false,
   signal?: AbortSignal,
+  preserveAlpha = false,
 ): Promise<ThumbnailResult> {
   if (signal?.aborted) {
     bitmap.close()
@@ -58,8 +73,10 @@ async function bitmapToThumbnailResult(
     throw new Error('Failed to get 2D canvas context')
   }
   try {
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, width, height)
+    if (!preserveAlpha) {
+      ctx.fillStyle = '#ffffff'
+      ctx.fillRect(0, 0, width, height)
+    }
     ctx.drawImage(bitmap, 0, 0, width, height)
   } finally {
     bitmap.close()
@@ -67,7 +84,8 @@ async function bitmapToThumbnailResult(
 
   throwIfThumbnailAborted(signal)
 
-  const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality })
+  const blobType = preserveAlpha ? 'image/webp' : 'image/jpeg'
+  const blob = await canvas.convertToBlob({ type: blobType, quality })
   throwIfThumbnailAborted(signal)
   const url = URL.createObjectURL(blob)
 
@@ -124,6 +142,8 @@ async function generateThumbnailFromBlob(
     throw createThumbnailAbortError(signal)
   }
 
+  const preserveAlpha = meta !== null && ALPHA_CAPABLE_FORMATS.has(meta.format)
+
   return bitmapToThumbnailResult(
     bitmap,
     maxSize,
@@ -131,6 +151,7 @@ async function generateThumbnailFromBlob(
     'generated',
     orientationBaked,
     signal,
+    preserveAlpha,
   )
 }
 

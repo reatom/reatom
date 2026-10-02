@@ -8,8 +8,8 @@ export const BreadcrumbNav = () => (
       display: flex;
       align-items: center;
       gap: 2px;
-      font-size: 13px;
-      padding: 6px 12px;
+      font-size: 14px;
+      padding: 6px 0;
       overflow-x: auto;
       white-space: nowrap;
       min-height: 32px;
@@ -34,7 +34,7 @@ export const BreadcrumbNav = () => (
 
         elements.push(
           isLast ? (
-            <span css="color: var(--accent); font-weight: 650;">
+            <span css="color: var(--text-primary); font-weight: 600;">
               {folder.name}
             </span>
           ) : (

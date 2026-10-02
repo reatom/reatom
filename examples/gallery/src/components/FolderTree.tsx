@@ -12,10 +12,10 @@ import { bindRefs, packAttr } from '../themeAttrs'
 import type { FolderNode } from '../types'
 import { BauhausSidebarPrint } from './BauhausArtwork'
 import {
-  ChevronLeftIcon,
   ChevronRightIcon,
   FolderIcon,
   FolderRootIcon,
+  SidebarIcon,
 } from './Icons'
 
 const folderTreeRootCss = `
@@ -64,17 +64,16 @@ const folderSidebarCss = `
 
 const folderToggleCss = `
   position: absolute;
-  top: calc((var(--folder-header-rail-height, 40px) - var(--folder-toggle-size, 34px)) / 2);
+  top: calc((var(--folder-header-rail-height, 40px) - var(--folder-toggle-size, 32px)) / 2);
   left: 8px;
   z-index: 10;
-  width: var(--folder-toggle-size, 34px);
-  height: var(--folder-toggle-size, 34px);
+  width: var(--folder-toggle-size, 32px);
+  height: var(--folder-toggle-size, 32px);
   isolation: isolate;
   &[data-ui='button'][data-ui-role][data-ui-surface] {
     --_bg: var(--bg-elevated);
     --_hover-bg: var(--bg-tertiary);
     --_press-bg: var(--bg-tertiary);
-    --_border: var(--border-strong);
     --_shadow: none;
     --_image: none;
   }
@@ -246,7 +245,9 @@ export const FolderTree = () => (
           <span css="font-size: 15px;">
             <FolderRootIcon />
           </span>
-          <span attr:data-folder-name={() => folderTree()?.name ?? 'All folders'}>
+          <span
+            attr:data-folder-name={() => folderTree()?.name ?? 'All folders'}
+          >
             All folders
           </span>
         </div>
@@ -278,9 +279,7 @@ export const FolderTree = () => (
       onClick={folderTreeSidebarVisible.toggle}
       css={folderToggleCss}
     >
-      {() =>
-        folderTreeSidebarVisible() ? <ChevronLeftIcon /> : <ChevronRightIcon />
-      }
+      <SidebarIcon />
     </IconButton>
   </div>
 )

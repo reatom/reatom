@@ -48,7 +48,8 @@ export const Toolbar = () => (
       display: flex;
       align-items: center;
       gap: calc(12px + var(--shadow-clearance, 0px));
-      padding: 10px calc(var(--header-inline-pad, 18px) + var(--shadow-clearance, 0px))
+      padding: 10px
+        calc(var(--header-inline-pad, 18px) + var(--shadow-clearance, 0px))
         calc(10px + var(--shadow-clearance, 0px)) var(--header-inline-pad, 18px);
       margin-right: calc(
         var(--chrome-end-inset, 0px) + var(--app-panel-inset, 0px)
@@ -291,16 +292,18 @@ export const Toolbar = () => (
       }}
       <Button
         appearance="quiet"
-        label="All"
+        label="Select all"
         onClick={() => selectAllImages()}
         bracket
       />
-      <Button
-        appearance="quiet"
-        label="Clear"
-        onClick={() => clearSelection()}
-        bracket
-      />
+      <span style:display={() => (selectedCount() > 0 ? 'contents' : 'none')}>
+        <Button
+          appearance="quiet"
+          label="Clear selection"
+          onClick={() => clearSelection()}
+          bracket
+        />
+      </span>
     </div>
 
     <div css="flex: 1;" />
@@ -318,7 +321,8 @@ export const Toolbar = () => (
           css={`
             position: absolute;
             left: 10px;
-            font-size: 13px;
+            display: inline-flex;
+            font-size: 16px;
             color: var(--text-muted);
             pointer-events: none;
           `}
@@ -332,7 +336,8 @@ export const Toolbar = () => (
           model:value={searchQuery}
           css={`
             width: 190px;
-            padding: 7px 11px 7px 32px;
+            height: 32px;
+            padding: 0 11px 0 32px;
             font-size: 13px;
             background: var(--input-bg);
             border: var(--border-width) var(--control-border-style)
@@ -364,7 +369,8 @@ export const Toolbar = () => (
       >
         {() => {
           const count = visibleIndexMap().size
-          return count > 0 ? `${count} images` : ''
+          if (count === 0) return ''
+          return count === 1 ? '1 image' : `${count} images`
         }}
       </span>
     </div>

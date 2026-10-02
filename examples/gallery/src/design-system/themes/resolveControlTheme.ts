@@ -42,7 +42,7 @@ const sharedGeometry = (
   paddingBlock,
   minHeight,
   gap: '6px',
-  iconSize: '1em',
+  iconSize: '16px',
 })
 
 const sharedTypography = (
@@ -105,7 +105,7 @@ const deriveAppAction = (vars: ThemeVariables): RolePalette => ({
   disabled: disabledPaint(vars),
   focus: sharedFocus(vars),
   geometry: sharedGeometry(vars, '13px', '7px', '32px'),
-  typography: sharedTypography(vars, '13px', '650'),
+  typography: sharedTypography(vars, '13px', '600'),
   motion: sharedMotion(),
 })
 
@@ -149,7 +149,7 @@ const deriveAppQuiet = (vars: ThemeVariables): RolePalette => ({
   disabled: disabledPaint(vars),
   focus: sharedFocus(vars),
   geometry: sharedGeometry(vars, '12px', '6px', '32px'),
-  typography: sharedTypography(vars, '13px', '650'),
+  typography: sharedTypography(vars, '13px', '600'),
   motion: sharedMotion(),
 })
 
@@ -192,8 +192,8 @@ const deriveAppChoice = (vars: ThemeVariables): RolePalette => ({
   ),
   disabled: disabledPaint(vars),
   focus: sharedFocus(vars),
-  geometry: sharedGeometry(vars, '12px', '6px', '30px'),
-  typography: sharedTypography(vars, '12px', '600'),
+  geometry: sharedGeometry(vars, '12px', '6px', '32px'),
+  typography: sharedTypography(vars, '13px', '600'),
   motion: sharedMotion(),
 })
 
