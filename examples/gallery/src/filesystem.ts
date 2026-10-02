@@ -90,6 +90,7 @@ export async function scanDirectoryRecursive(
             relativePath: currentPath
               ? `${currentPath}/${entry.name}`
               : entry.name,
+            rootName: rootHandle.name,
             fileHandle: entry,
           }
           folderNode.images.push(image)

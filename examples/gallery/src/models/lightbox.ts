@@ -116,10 +116,16 @@ export const resetLightboxOnFolderChange = action(() => {
   lightboxImage.set(null)
 }, 'lightbox.resetOnFolderChange')
 
-export const downloadLightboxImage = action(() => {
+export const downloadLightboxImage = action(async () => {
   const image = lightboxImage()
-  if (image) downloadPreparedGalleryImage(image)
-}, 'lightbox.downloadImage')
+  if (!image) return
+
+  try {
+    await wrap(downloadPreparedGalleryImage(image))
+  } catch (error: unknown) {
+    console.error('Failed to download image:', error)
+  }
+}, 'lightbox.downloadImage').extend(withAsync(), withAbort())
 
 export const copyLightboxImageAsJpeg = action(async () => {
   const image = lightboxImage()
@@ -138,6 +144,8 @@ export const toggleLightboxImageFavorite = action(() => {
 }, 'lightbox.toggleFavorite')
 
 export const handleLightboxKeyDown = action((event: KeyboardEvent) => {
+  if (event.ctrlKey || event.metaKey || event.altKey) return
+
   switch (event.key) {
     case 'Escape':
       event.stopPropagation()

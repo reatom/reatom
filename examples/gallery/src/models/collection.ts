@@ -164,7 +164,7 @@ export const visibleIndexMap = computed(() => {
 }, 'visibleIndexMap')
 
 export const selectedImages = computed(
-  () => currentImages().filter((node) => node.selected()),
+  () => visibleImages().filter((node) => node.selected()),
   'selectedImages',
 )
 
@@ -201,8 +201,8 @@ export const selectAllImages = action(() => {
 }, 'selectAllImages')
 
 export const clearSelection = action(() => {
-  for (const node of currentImages()) {
-    node.selected.set(false)
+  for (const node of imageModelById.values()) {
+    if (node.selected()) node.selected.set(false)
   }
 }, 'clearSelection')
 

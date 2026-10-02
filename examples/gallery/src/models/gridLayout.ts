@@ -53,17 +53,21 @@ export const imageGrid = atom<HTMLElement | null>(null, 'imageGrid').extend(
       `${target.name}._width`,
     )
 
+    const columnCount = computed(() => {
+      const configuredColumns = gridColumns()
+      if (configuredColumns !== 0) return configuredColumns
+
+      const gap = GRID_GAP_VALUES[gridGap()]
+      return Math.max(
+        1,
+        Math.floor((width() + gap) / (AUTO_COLUMN_MIN_SIZE + gap)),
+      )
+    }, `${target.name}._columnCount`)
+
     const itemSize = computed(() => {
       const gridWidth = width()
       const gap = GRID_GAP_VALUES[gridGap()]
-      const configuredColumns = gridColumns()
-      const columns =
-        configuredColumns === 0
-          ? Math.max(
-              1,
-              Math.floor((gridWidth + gap) / (AUTO_COLUMN_MIN_SIZE + gap)),
-            )
-          : configuredColumns
+      const columns = columnCount()
 
       return Math.max(0, Math.ceil((gridWidth - gap * (columns - 1)) / columns))
     }, `${target.name}._itemSize`)
@@ -78,11 +82,13 @@ export const imageGrid = atom<HTMLElement | null>(null, 'imageGrid').extend(
 
     return {
       width,
+      columnCount,
       itemSize,
       thumbnailTarget,
       ref: (element: HTMLElement) => {
         target.set(element)
-        return () => target.set(null)
+        return () =>
+          target.set((current) => (current === element ? null : current))
       },
     }
   },

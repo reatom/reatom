@@ -8,7 +8,7 @@ import {
   folderTreeSidebarVisible,
   reatomFolderTreeNodeUi,
 } from '../model'
-import { themeCss } from '../themeCss'
+import { bindRefs, packAttr } from '../themeAttrs'
 import type { FolderNode } from '../types'
 import { BauhausSidebarPrint } from './BauhausArtwork'
 import {
@@ -48,6 +48,18 @@ const folderSidebarCss = `
     margin-left: 0;
     opacity: 1;
   }
+  ${packAttr.is(
+    'polaroid',
+    `
+      [role='group'] {
+        padding-left: 0;
+        display: flow-root;
+      }
+      [role='group'] [role='group'] {
+        margin-left: 3px;
+      }
+    `,
+  )}
 `
 
 const folderToggleCss = `
@@ -122,16 +134,6 @@ const FolderTreeNode = ({
       aria-label={node.name}
       css={`
         padding-left: ${depth * 12}px;
-        ${themeCss(
-          'polaroid',
-          `
-            padding-left: 0;
-            display: flow-root;
-            & & {
-              margin-left: 3px;
-            }
-          `,
-        )}
       `}
     >
       <div
@@ -215,7 +217,7 @@ export const FolderTree = () => (
     <div
       id="gallery-folder-sidebar"
       data-open={folderTreeSidebarVisible}
-      ref={registerGlassSurface('panel')}
+      ref={bindRefs(registerGlassSurface('panel'), packAttr.inherit)}
       css={folderSidebarCss}
     >
       <div role="tree" aria-label="Folders">

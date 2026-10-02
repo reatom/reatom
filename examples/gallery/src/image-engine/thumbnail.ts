@@ -4,7 +4,10 @@ import { parseImageMeta } from './header'
 import {
   applyOrientationToImageBitmap,
   getOrientationFromExif,
+  resolveDisplayDimensions,
 } from './orientation'
+import type { OrientedBitmap } from './resizeBitmap'
+import { decodeOrientedBitmap } from './resizeBitmap'
 import type { ImageMeta, ThumbnailOptions, ThumbnailResult } from './types'
 import { DEFAULT_MAX_SIZE, DEFAULT_QUALITY } from './types'
 import { isRawImageFormat } from './types'
@@ -81,41 +84,44 @@ async function generateThumbnailFromBlob(
 ): Promise<ThumbnailResult> {
   throwIfThumbnailAborted(signal)
 
-  const resizeOpts: ImageBitmapOptions = { resizeQuality: 'medium' }
-  if (meta && (meta.width > maxSize || meta.height > maxSize)) {
-    const scale = Math.min(maxSize / meta.width, maxSize / meta.height)
-    resizeOpts.resizeWidth = Math.max(1, Math.round(meta.width * scale))
-    resizeOpts.resizeHeight = Math.max(1, Math.round(meta.height * scale))
+  let target: { width: number; height: number } | undefined
+  if (meta) {
+    const outputSize = resolveDisplayDimensions(
+      meta.width,
+      meta.height,
+      meta.exif,
+      ignoreExifOrientation,
+    )
+    if (outputSize.width > maxSize || outputSize.height > maxSize) {
+      const scale = Math.min(
+        maxSize / outputSize.width,
+        maxSize / outputSize.height,
+      )
+      target = {
+        width: Math.max(1, Math.round(outputSize.width * scale)),
+        height: Math.max(1, Math.round(outputSize.height * scale)),
+      }
+    }
   }
 
-  let bitmap: ImageBitmap
+  let decoded: OrientedBitmap
   try {
-    bitmap = await createImageBitmap(source, resizeOpts)
+    decoded = await decodeOrientedBitmap(source, meta, {
+      ignoreExifOrientation,
+      target,
+      signal,
+    })
   } catch (err) {
     if (isThumbnailAbortError(err)) throw err
+    if (signal?.aborted) throw createThumbnailAbortError(signal)
     throw new Error(
       `Failed to decode image: ${err instanceof Error ? err.message : String(err)}`,
     )
   }
+  const { bitmap, orientationBaked } = decoded
   if (signal?.aborted) {
     bitmap.close()
     throw createThumbnailAbortError(signal)
-  }
-
-  let orientationBaked = false
-  if (!ignoreExifOrientation) {
-    const orientation = getOrientationFromExif(meta?.exif)
-    const needsTransform =
-      orientation.state === 'valid' &&
-      (orientation.degrees !== 0 || orientation.mirrored)
-    if (needsTransform) {
-      bitmap = await applyOrientationToImageBitmap(bitmap, orientation)
-      if (signal?.aborted) {
-        bitmap.close()
-        throw createThumbnailAbortError(signal)
-      }
-      orientationBaked = true
-    }
   }
 
   return bitmapToThumbnailResult(

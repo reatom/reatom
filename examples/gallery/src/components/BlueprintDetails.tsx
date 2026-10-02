@@ -1,12 +1,13 @@
 import { selectedCount, viewMode, visibleIndexMap } from '../model'
-import { themeCss } from '../themeCss'
+import { packAttr } from '../themeAttrs'
 
 export const BlueprintFooter = () => (
   <footer
     aria-label="Blueprint status"
+    ref={packAttr.inherit}
     css={`
       display: none;
-      ${themeCss(
+      ${packAttr.is(
         'blueprint',
         `
           display: flex;

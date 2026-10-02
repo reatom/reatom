@@ -1,14 +1,12 @@
-import { abortVar, wrap } from '@reatom/core'
+import { wrap } from '@reatom/core'
 
-import { extractRawPreviewData } from './image-engine/formats/raw'
-import { developRawToJpegBlob } from './image-engine/formats/rawDevelop'
 import {
   type ImageMeta,
   isRawImageFormat,
   type RawImageFormat,
 } from './image-engine/types'
 import type { ImageModel } from './models/contracts'
-import { developRawFullSize } from './models/preferences'
+import { resolveRawExportBlob } from './rawExport'
 
 const JPEG_MIME = 'image/jpeg'
 const PNG_MIME = 'image/png'
@@ -67,30 +65,6 @@ function withMimeType(blob: Blob, type: string): Blob {
   return new Blob([blob], { type })
 }
 
-async function largestRawPreviewBlob(
-  fileBlob: Blob,
-  meta: ImageMeta & { format: RawImageFormat },
-): Promise<Blob | null> {
-  const cachedPreview = meta.embeddedPreview
-  const extractedPreview = await wrap(
-    extractRawPreviewData(fileBlob, meta.format),
-  )
-
-  if (cachedPreview?.blob && extractedPreview) {
-    const cachedArea =
-      cachedPreview.width !== undefined && cachedPreview.height !== undefined
-        ? cachedPreview.width * cachedPreview.height
-        : 0
-    const extractedArea = extractedPreview.width * extractedPreview.height
-
-    if (extractedArea > cachedArea) return extractedPreview.blob
-    return cachedPreview.blob
-  }
-
-  if (cachedPreview?.blob) return cachedPreview.blob
-  return extractedPreview?.blob ?? null
-}
-
 async function jpegBlobForClipboard(image: ImageModel): Promise<Blob> {
   const [fileBlob, meta] = await wrap(Promise.all([image(), image.meta()]))
 
@@ -99,22 +73,10 @@ async function jpegBlobForClipboard(image: ImageModel): Promise<Blob> {
   }
 
   if (isRawImageMeta(meta)) {
-    if (developRawFullSize()) {
-      const cachedDeveloped = await wrap(image.rawDeveloped())
-      if (cachedDeveloped) return cachedDeveloped.blob
-
-      const developed = await wrap(
-        developRawToJpegBlob(fileBlob, {
-          format: meta.format,
-          exif: meta.exif,
-          signal: abortVar.require().signal,
-        }),
-      )
-      if (developed) return developed.blob
-    }
-
-    const previewBlob = await wrap(largestRawPreviewBlob(fileBlob, meta))
-    if (previewBlob) return previewBlob
+    const rawExportBlob = await wrap(
+      resolveRawExportBlob(image, fileBlob, meta),
+    )
+    if (rawExportBlob) return rawExportBlob
   }
 
   return await wrap(rasterizeBlob(fileBlob, JPEG_MIME, JPEG_QUALITY))

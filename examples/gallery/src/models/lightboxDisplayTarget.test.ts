@@ -36,3 +36,26 @@ test('display target updates only after zoom input settles', async () => {
     stop()
   })
 })
+
+test('display target follows the new image immediately after navigation', async () => {
+  await context.start(async () => {
+    resetLightboxDisplayTargetDebouncer()
+    const landscape = { width: 1600, height: 900, zoom: 1 }
+    const portrait = { width: 900, height: 1600, zoom: 1 }
+    const immediateTarget = atom(landscape, 'test.navigationTarget')
+    const imageId = atom('landscape', 'test.navigationImageId')
+    const stop = createLightboxDisplayTargetDebouncer(
+      () => immediateTarget(),
+      () => imageId(),
+    )
+
+    await wrap(vi.advanceTimersByTimeAsync(0))
+    expect(lightboxDebouncedDisplayTarget()).toEqual(landscape)
+
+    immediateTarget.set(portrait)
+    imageId.set('portrait')
+    await wrap(vi.advanceTimersByTimeAsync(0))
+    expect(lightboxDebouncedDisplayTarget()).toEqual(portrait)
+    stop()
+  })
+})

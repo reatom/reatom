@@ -69,6 +69,46 @@ const themeBoundaryCss = `
   --app-panel-inset: 0px;
   --panel-end-gap: 0px;
 
+  &[data-theme-pack='glass'] {
+    --overlay-control-size: 30px;
+    --overlay-control-radius: 50%;
+    --overlay-control-backdrop: blur(8px) saturate(1.2);
+  }
+  &[data-theme-pack='glass'][data-glass-refraction='true'] {
+    --overlay-slot-filter: url(#glass-circleSmall) blur(1px) saturate(1.15);
+  }
+  &[data-theme-pack='bauhaus'] {
+    --overlay-control-size: 28px;
+  }
+  &[data-theme-pack='obsidian'] {
+    --overlay-control-size: 28px;
+    --overlay-control-radius: 2px;
+  }
+  &[data-theme-pack='cartoon'],
+  &[data-theme-pack='retroOs'],
+  &[data-theme-pack='minimal'] {
+    --overlay-control-radius: 0;
+  }
+  &[data-theme-pack='paper'] {
+    --overlay-control-radius: 50%;
+  }
+  @media (prefers-contrast: more), (forced-colors: active) {
+    &[data-theme-pack='glass'] {
+      --overlay-slot-bg: Canvas;
+      --overlay-slot-color: CanvasText;
+      --overlay-slot-border: CanvasText;
+      --overlay-slot-filter: none;
+      --overlay-control-backdrop: none;
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    &[data-theme-pack='glass'] {
+      --overlay-slot-bg: #2f2f2f;
+      --overlay-slot-filter: none;
+      --overlay-control-backdrop: none;
+    }
+  }
+
   &, *, *::before, *::after {
     box-sizing: border-box;
   }

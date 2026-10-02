@@ -1,12 +1,13 @@
 import { selectedCount } from '../model'
-import { themeCss } from '../themeCss'
+import { packAttr } from '../themeAttrs'
 
 export const ObsidianFooter = () => (
   <footer
     aria-label="Obsidian status"
+    ref={packAttr.inherit}
     css={`
       display: none;
-      ${themeCss(
+      ${packAttr.is(
         'obsidian',
         `
           display: flex;

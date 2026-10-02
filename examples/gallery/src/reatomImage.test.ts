@@ -3,6 +3,7 @@ import { expect, test, vi } from 'vitest'
 
 import type { ThumbnailResult } from './image-engine'
 import * as imageEngine from './image-engine'
+import * as orientation from './image-engine/orientation'
 import { reatomImage } from './reatomImage'
 
 class DecodeRejectingImage {
@@ -473,4 +474,109 @@ test('aborted full image keeps its decode slot until the browser settles', async
     expect(callsBeforeSettlement).toBe(1)
     expect(calls).toBe(2)
   })
+})
+
+test('dispose revokes object URLs that were never replaced', async () => {
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:full-image')
+  const revokeObjectURL = vi
+    .spyOn(URL, 'revokeObjectURL')
+    .mockImplementation(() => undefined)
+
+  try {
+    await context.start(async () => {
+      const image = reatomImage(makeJpegBlob(), 'leaky-urls')
+
+      const url = await wrap(image.fullImageUrl())
+      expect(url).toBe('blob:full-image')
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+
+      image.dispose()
+
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:full-image')
+      expect(image.fullImageUrl.data()).toBeUndefined()
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('sizedImage decodes again when the EXIF orientation preference changes', async () => {
+  class FakeCanvas {
+    width = 0
+    height = 0
+    setAttribute() {}
+    style = {}
+    getContext(type: string) {
+      return type === 'bitmaprenderer' ? { transferFromImageBitmap() {} } : null
+    }
+  }
+
+  const createImageBitmapMock = vi.fn(
+    async (
+      _source: unknown,
+      options?: { resizeWidth?: number; resizeHeight?: number },
+    ) => ({
+      width: options?.resizeWidth ?? 1200,
+      height: options?.resizeHeight ?? 800,
+      close() {},
+    }),
+  )
+  vi.stubGlobal('createImageBitmap', createImageBitmapMock)
+  vi.stubGlobal('document', { createElement: () => new FakeCanvas() })
+  vi.stubGlobal('window', {
+    innerWidth: 1920,
+    innerHeight: 1080,
+    devicePixelRatio: 1,
+    screen: { width: 1920 },
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    matchMedia: vi.fn(() => ({
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  })
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 6000,
+    height: 4000,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+    exif: { Orientation: '3' },
+  })
+  vi.spyOn(orientation, 'applyOrientationToImageBitmap').mockImplementation(
+    async (bitmap) => bitmap,
+  )
+
+  try {
+    await context.start(async () => {
+      const ignoreOrientation = atom(false, 'test.ignoreOrientation')
+      const image = reatomImage(makeJpegBlob(), 'orientation-toggle', {
+        readDisplayTarget: () => ({ width: 1200, height: 800, zoom: 1 }),
+        readSizedImageActive: () => true,
+        readIgnoreExifOrientation: () => ignoreOrientation(),
+      })
+
+      const orientedCanvas = await wrap(image.sizedImage())
+      expect(orientedCanvas).toBeTruthy()
+      const decodesBeforeToggle = createImageBitmapMock.mock.calls.length
+
+      ignoreOrientation.set(true)
+      const ignoringCanvas = await wrap(image.sizedImage())
+
+      expect(ignoringCanvas).toBeTruthy()
+      expect(ignoringCanvas).not.toBe(orientedCanvas)
+      expect(createImageBitmapMock.mock.calls.length).toBeGreaterThan(
+        decodesBeforeToggle,
+      )
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
 })

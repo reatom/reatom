@@ -1,8 +1,8 @@
-import { themeCss } from '../themeCss'
+import { packAttr } from '../themeAttrs'
 
 const emptyArtCss = `
   display: none;
-  ${themeCss(
+  ${packAttr.is(
     'bauhaus',
     `
       display: block;
@@ -109,7 +109,7 @@ const emptyArtCss = `
 
 const eyebrowCss = `
   display: none;
-  ${themeCss(
+  ${packAttr.is(
     'bauhaus',
     `
       display: block;
@@ -124,7 +124,7 @@ const eyebrowCss = `
 
 const sidebarPrintCss = `
   display: none;
-  ${themeCss(
+  ${packAttr.is(
     'bauhaus',
     `
       display: flex;
@@ -167,19 +167,21 @@ const printShapesCss = `
 
 export const BauhausEmptyArt = () => (
   <>
-    <div attr:aria-hidden="true" css={emptyArtCss}>
+    <div attr:aria-hidden="true" ref={packAttr.inherit} css={emptyArtCss}>
       <span />
       <span />
       <span />
       <span />
       <span>FORM / COLOR / LIGHT</span>
     </div>
-    <span css={eyebrowCss}>A space for seeing.</span>
+    <span ref={packAttr.inherit} css={eyebrowCss}>
+      A space for seeing.
+    </span>
   </>
 )
 
 export const BauhausSidebarPrint = () => (
-  <div attr:aria-hidden="true" css={sidebarPrintCss}>
+  <div attr:aria-hidden="true" ref={packAttr.inherit} css={sidebarPrintCss}>
     <div css={printShapesCss}>
       <span />
       <span />

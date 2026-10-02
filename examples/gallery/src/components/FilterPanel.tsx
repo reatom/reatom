@@ -11,7 +11,7 @@ import {
   setFilterSizeMinKb,
   toggleFilterType,
 } from '../model'
-import { themeCss } from '../themeCss'
+import { packAttr } from '../themeAttrs'
 import { fieldCss } from './fieldStyles'
 import { Panel } from './Panel'
 import { filterPanelWidth } from './panelLayout'
@@ -81,9 +81,10 @@ export const FilterPanel = () => (
         File Types
       </h3>
       <div
+        ref={packAttr.inherit}
         css={`
           margin-bottom: 16px;
-          ${themeCss(
+          ${packAttr.is(
             'glass',
             `
               display: grid;

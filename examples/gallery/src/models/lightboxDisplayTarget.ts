@@ -5,7 +5,8 @@ import {
   resolveDecodeTarget,
   shouldUpgradeDecodeTarget,
 } from '../image-engine/decodePolicy'
-import { getOrientationFromExif } from '../image-engine/orientation'
+import { resolveDisplayDimensions } from '../image-engine/orientation'
+import type { ExifData } from '../image-engine/types'
 import { lightboxZoom } from './lightboxState'
 import { devicePixelRatio, panelLongEdge, viewportSize } from './viewport'
 
@@ -81,17 +82,10 @@ export function resolveLightboxDisplayTargetForImage(
 export function resolveOrientedMetaDimensions(
   width: number,
   height: number,
-  exif: Parameters<typeof getOrientationFromExif>[0],
+  exif: ExifData | undefined,
+  ignoreExifOrientation = false,
 ): { width: number; height: number } {
-  const orientation = getOrientationFromExif(exif)
-  if (
-    orientation.state === 'valid' &&
-    orientation.value >= 5 &&
-    orientation.value <= 8
-  ) {
-    return { width: height, height: width }
-  }
-  return { width, height }
+  return resolveDisplayDimensions(width, height, exif, ignoreExifOrientation)
 }
 
 export function resolveSizedDecodeTarget(
@@ -132,10 +126,17 @@ export const resetLightboxDisplayTargetDebouncer = action(() => {
 
 export function createLightboxDisplayTargetDebouncer(
   readImmediateTarget: () => ReturnType<typeof computeDisplayTarget>,
+  readImageKey: () => unknown = () => undefined,
 ) {
+  let previousImageKey: unknown = undefined
+
   const syncDebouncedDisplayTarget = effect(async () => {
     const immediate = readImmediateTarget()
-    if (peek(debouncedDisplayTarget) === null) {
+    const imageKey = readImageKey()
+    const imageChanged = imageKey !== previousImageKey
+    previousImageKey = imageKey
+
+    if (imageChanged || peek(debouncedDisplayTarget) === null) {
       debouncedDisplayTarget.set(immediate)
     }
 

@@ -6,7 +6,7 @@ import {
   resolveReactiveBoolean,
 } from '../design-system/controls/shared'
 import { registerGlassSurface } from '../glassSurfaces'
-import { themeCss } from '../themeCss'
+import { bindRefs, modeAttr, packAttr } from '../themeAttrs'
 import { CloseIcon } from './Icons'
 import { panelMotionTransition } from './panelLayout'
 
@@ -52,7 +52,7 @@ const panelFrameCss = `
 
 const panelScrollCss = `
   display: contents;
-  ${themeCss(
+  ${packAttr.is(
     'glass',
     `
       display: block;
@@ -69,15 +69,17 @@ const panelHeaderCss = `
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
-  ${themeCss(
+  ${packAttr.is(
     'retroOs',
-    `
-      background: var(--retro-title);
-      padding: 3px;
-      margin: -15px -15px 20px;
-      gap: 8px;
-    `,
-    'light',
+    modeAttr.is(
+      'light',
+      `
+        background: var(--retro-title);
+        padding: 3px;
+        margin: -15px -15px 20px;
+        gap: 8px;
+      `,
+    ),
   )}
 `
 
@@ -106,8 +108,11 @@ export const Panel = ({
       ${css ?? ''}
     `}
   >
-    <div css={panelScrollCss}>
-      <div css={panelHeaderCss}>
+    <div ref={packAttr.inherit} css={panelScrollCss}>
+      <div
+        ref={bindRefs(packAttr.inherit, modeAttr.inherit)}
+        css={panelHeaderCss}
+      >
         {heading ?? (
           <h2
             css={`

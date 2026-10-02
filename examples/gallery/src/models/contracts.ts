@@ -21,7 +21,6 @@ export type GalleryImageDisplayModel = {
   source: Computed<{ url: string; orientationBaked: boolean } | null>
   element: Computed<HTMLImageElement | null>
   preloadUrl: Computed<string>
-  downloadUrl: Computed<string>
   isRawPipeline: Computed<boolean>
   sizeLabel: Computed<string>
   typeLabel: Computed<string>

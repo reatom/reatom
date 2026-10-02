@@ -63,7 +63,12 @@ function readImageDimensions(imageModel: ReatomImage): {
   const meta = imageModel.thumbnailMeta.data()
   if (!meta) return { width: 0, height: 0 }
 
-  return resolveOrientedMetaDimensions(meta.width, meta.height, meta.exif)
+  return resolveOrientedMetaDimensions(
+    meta.width,
+    meta.height,
+    meta.exif,
+    ignoreExifOrientation(),
+  )
 }
 
 export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
@@ -123,7 +128,9 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
 
   const selected = reatomBoolean(false, `${name}.selected`)
   const favorite = reatomBoolean(false, `${name}.favorite`).extend(
-    withLocalStorage(`gallery.favorite.${imageSource.relativePath}`),
+    withLocalStorage(
+      `gallery.favorite.${imageSource.rootName ?? ''}/${imageSource.relativePath}`,
+    ),
   )
 
   const visible = computed(
@@ -196,20 +203,6 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
     )
   }, `${name}.display.preloadUrl`)
 
-  const downloadUrl = computed(() => {
-    if (isRawPipeline()) {
-      return (
-        imageModel.developedImageUrl.data() ??
-        imageModel.embeddedPreviewUrl.data() ??
-        imageModel.thumbnail.data()?.url ??
-        ''
-      )
-    }
-    return (
-      imageModel.fullImageUrl.data() ?? imageModel.thumbnail.data()?.url ?? ''
-    )
-  }, `${name}.display.downloadUrl`)
-
   const sizeLabel = computed(() => {
     const fileInfo = imageModel.fileInfo.data()
     return fileInfo === null ? 'Size pending' : formatBytes(fileInfo.size)
@@ -251,7 +244,6 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
       source: displaySource,
       element: displayElement,
       preloadUrl,
-      downloadUrl,
       isRawPipeline,
       sizeLabel,
       typeLabel,

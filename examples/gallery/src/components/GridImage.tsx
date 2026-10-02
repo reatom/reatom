@@ -9,40 +9,15 @@ import {
   showFileSizes,
   showImageNames,
 } from '../model'
-import { themeCss } from '../themeCss'
 import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
 
 const overlayControlCss = `
   pointer-events: auto;
-  ${themeCss(
-    'glass',
-    `
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      -webkit-backdrop-filter: blur(8px) saturate(1.2);
-      backdrop-filter: blur(8px) saturate(1.2);
-    `,
-  )}
-  ${themeCss(
-    'bauhaus',
-    `
-      width: 28px;
-      height: 28px;
-    `,
-  )}
-  ${themeCss(
-    'obsidian',
-    `
-      border-radius: 2px;
-      width: 28px;
-      height: 28px;
-    `,
-  )}
-  ${themeCss('cartoon', 'border-radius: 0;')}
-  ${themeCss('retroOs', 'border-radius: 0;')}
-  ${themeCss('minimal', 'border-radius: 0;')}
-  ${themeCss('paper', 'border-radius: 50%;')}
+  width: var(--overlay-control-size);
+  height: var(--overlay-control-size);
+  border-radius: var(--overlay-control-radius);
+  -webkit-backdrop-filter: var(--overlay-control-backdrop, none);
+  backdrop-filter: var(--overlay-control-backdrop, none);
 `
 
 export const GridImage = ({ image }: { image: ImageModel }) => {
@@ -122,24 +97,12 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
           border-width: 0;
           border-radius: 0;
         }
-        :where([data-theme-pack='glass'][data-glass-refraction='true']) & [data-ui-slot='overlay'] {
-          backdrop-filter: url(#glass-circleSmall) blur(1px) saturate(1.15);
-        }
-        @media (prefers-contrast: more), (forced-colors: active) {
-          :where([data-theme-pack='glass']) & [data-ui-slot='overlay'] {
-            background: Canvas;
-            color: CanvasText;
-            border-color: CanvasText;
-            -webkit-backdrop-filter: none !important;
-            backdrop-filter: none !important;
-          }
-        }
-        @media (prefers-reduced-transparency: reduce) {
-          :where([data-theme-pack='glass']) & [data-ui-slot='overlay'] {
-            background: #2f2f2f;
-            -webkit-backdrop-filter: none;
-            backdrop-filter: none !important;
-          }
+        [data-ui-slot='overlay'] {
+          background: var(--overlay-slot-bg);
+          color: var(--overlay-slot-color);
+          border-color: var(--overlay-slot-border);
+          -webkit-backdrop-filter: var(--overlay-slot-filter, none);
+          backdrop-filter: var(--overlay-slot-filter, none);
         }
       `}
       on:click={() => openLightbox(image)}

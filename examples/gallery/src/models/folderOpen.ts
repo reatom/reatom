@@ -7,6 +7,8 @@ import {
 } from '../filesystem'
 import { resetGallerySession } from './collection'
 import {
+  currentFolder,
+  folderTree,
   parsingProgress,
   publishFolderScan,
   resetFolderState,
@@ -42,49 +44,48 @@ async function requestDirectoryPermission(
   return permission === 'granted'
 }
 
-export const openFolder = action(
-  async (sourceHandle?: FileSystemDirectoryHandle) => {
-    if (!isFileSystemAccessSupported()) return
+export const openFolder = action(async (handle: FileSystemDirectoryHandle) => {
+  if (!isFileSystemAccessSupported()) return
 
-    let handle: FileSystemDirectoryHandle
-    if (sourceHandle) {
-      handle = sourceHandle
-    } else {
-      try {
-        handle = await wrap(pickDirectory())
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
-          return
-        }
-        throw error
-      }
+  pendingFolderRestore.set(null)
+
+  resetGallerySession()
+  resetLightboxOnFolderChange()
+  folderTree.set(null)
+  currentFolder.set(null)
+
+  parsingProgress.set({ total: 0, current: 0 })
+
+  try {
+    const result = await wrap(
+      scanDirectoryRecursive(handle, {
+        onProgress: (snapshot) => parsingProgress.set(snapshot),
+      }),
+    )
+    publishFolderScan(result)
+    selectedFolderHandle.set(handle)
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      parsingProgress.set({ total: 0, current: 0 })
+      return
     }
+    throw error
+  }
+}, 'openFolder').extend(withAsync(), withAbort())
 
-    pendingFolderRestore.set(null)
+export const pickAndOpenFolder = action(async () => {
+  if (!isFileSystemAccessSupported()) return
 
-    resetGallerySession()
-    resetLightboxOnFolderChange()
+  let handle: FileSystemDirectoryHandle
+  try {
+    handle = await wrap(pickDirectory())
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return
+    throw error
+  }
 
-    parsingProgress.set({ total: 0, current: 0 })
-
-    try {
-      const result = await wrap(
-        scanDirectoryRecursive(handle, {
-          onProgress: (snapshot) => parsingProgress.set(snapshot),
-        }),
-      )
-      publishFolderScan(result)
-      selectedFolderHandle.set(handle)
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        parsingProgress.set({ total: 0, current: 0 })
-        return
-      }
-      throw error
-    }
-  },
-  'openFolder',
-).extend(withAsync(), withAbort())
+  await wrap(openFolder(handle))
+}, 'pickAndOpenFolder').extend(withAsync())
 
 export const restoreSelectedFolder = action(async () => {
   if (!isFileSystemAccessSupported()) return

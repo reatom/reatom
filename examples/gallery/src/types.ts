@@ -10,6 +10,7 @@ export type ImageFile = {
   name: string
   path: string
   relativePath: string
+  rootName?: string
   fileHandle: FileSystemFileHandle
   fileInfo?: ImageFileInfo
 }

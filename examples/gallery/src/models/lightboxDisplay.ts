@@ -63,8 +63,9 @@ export const lightboxDisplayTarget = computed(() => {
 }, 'lightbox.displayTarget')
 
 export const bindLightboxDisplayTargetDebouncer = () => {
-  return createLightboxDisplayTargetDebouncer(() =>
-    lightboxImmediateDisplayTarget(),
+  return createLightboxDisplayTargetDebouncer(
+    () => lightboxImmediateDisplayTarget(),
+    () => lightboxImage()?.id,
   )
 }
 

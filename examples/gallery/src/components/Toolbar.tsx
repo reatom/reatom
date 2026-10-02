@@ -4,7 +4,7 @@ import { isFileSystemAccessSupported } from '../filesystem'
 import {
   clearSelection,
   folderTree,
-  openFolder,
+  pickAndOpenFolder,
   resetOpenedFolder,
   searchQuery,
   selectAllImages,
@@ -14,7 +14,7 @@ import {
   themePack,
   visibleIndexMap,
 } from '../model'
-import { themeCss } from '../themeCss'
+import { packAttr } from '../themeAttrs'
 import {
   FilterIcon,
   GalleryMarkIcon,
@@ -112,61 +112,68 @@ export const Toolbar = () => (
           `}
         >
           <span
+            ref={packAttr.inherit}
             css={`
               display: none;
-              ${themeCss('polaroid', 'display: inline-flex;')}
+              ${packAttr.is('polaroid', 'display: inline-flex;')}
             `}
           >
             <InstantCameraIcon />
           </span>
           <span
+            ref={packAttr.inherit}
             css={`
               display: inline-flex;
-              ${themeCss('polaroid', 'display: none;')}
+              ${packAttr.is('polaroid', 'display: none;')}
             `}
           >
             <GalleryMarkIcon />
           </span>
         </span>
         <span
+          ref={packAttr.inherit}
           css={`
             display: none;
-            ${themeCss('polaroid', 'display: inline;')}
+            ${packAttr.is('polaroid', 'display: inline;')}
           `}
         >
           Instant
         </span>
         <span
+          ref={packAttr.inherit}
           css={`
             display: none;
-            ${themeCss('blueprint', 'display: inline;')}
+            ${packAttr.is('blueprint', 'display: inline;')}
           `}
         >
           Blueprint
         </span>
         <span
+          ref={packAttr.inherit}
           css={`
             display: none;
-            ${themeCss('obsidian', 'display: inline;')}
+            ${packAttr.is('obsidian', 'display: inline;')}
           `}
         >
           Obsidian
         </span>
         <span
+          ref={packAttr.inherit}
           css={`
             display: none;
-            ${themeCss('minimal', 'display: inline;')}
+            ${packAttr.is('minimal', 'display: inline;')}
           `}
         >
           Minimal
         </span>
         <span
+          ref={packAttr.inherit}
           css={`
             display: inline;
-            ${themeCss('polaroid', 'display: none;')}
-            ${themeCss('blueprint', 'display: none;')}
-            ${themeCss('obsidian', 'display: none;')}
-            ${themeCss('minimal', 'display: none;')}
+            ${packAttr.is('polaroid', 'display: none;')}
+            ${packAttr.is('blueprint', 'display: none;')}
+            ${packAttr.is('obsidian', 'display: none;')}
+            ${packAttr.is('minimal', 'display: none;')}
           `}
         >
           Gallery
@@ -175,7 +182,7 @@ export const Toolbar = () => (
 
       <Button
         label="Open"
-        onClick={() => openFolder()}
+        onClick={() => pickAndOpenFolder()}
         disabled={!isFileSystemAccessSupported()}
         bracket
         title={

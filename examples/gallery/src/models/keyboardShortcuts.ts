@@ -1,7 +1,7 @@
 import { action, effect, onEvent } from '@reatom/core'
 
 import { isNativeActivationTarget } from '../a11y'
-import { clearSelection, currentImages, selectAllImages } from './collection'
+import { clearSelection, selectAllImages, selectedImages } from './collection'
 import { closeLightbox, lightboxOpen, navigateLightbox } from './lightbox'
 import { filterPanelOpen, settingsPanelOpen } from './panels'
 import { cycleThemePack, toggleResolvedThemeMode } from './preferences'
@@ -16,9 +16,9 @@ import {
 } from './view'
 
 export const toggleFavoriteOnSelectedImages = action(() => {
-  for (const model of currentImages()) {
-    if (model.selected()) model.favorite.toggle()
-  }
+  const selected = selectedImages()
+  const shouldFavorite = !selected.every((model) => model.favorite())
+  for (const model of selected) model.favorite.set(shouldFavorite)
 }, 'keyboardShortcuts.toggleFavoriteOnSelected')
 
 export const handleKeyboardShortcut = action((event: KeyboardEvent) => {
@@ -26,6 +26,8 @@ export const handleKeyboardShortcut = action((event: KeyboardEvent) => {
     event.target instanceof HTMLElement ? event.target.tagName : undefined
   const isInputFocused =
     tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT'
+
+  const hasCommandModifier = event.ctrlKey || event.metaKey || event.altKey
 
   if (event.key === 'Escape') {
     if (lightboxOpen()) {
@@ -43,7 +45,7 @@ export const handleKeyboardShortcut = action((event: KeyboardEvent) => {
     return
   }
 
-  if (lightboxOpen()) {
+  if (lightboxOpen() && !hasCommandModifier) {
     if (event.key === 'ArrowLeft') {
       event.preventDefault()
       navigateLightbox(-1)
@@ -75,6 +77,8 @@ export const handleKeyboardShortcut = action((event: KeyboardEvent) => {
     selectAllImages()
     return
   }
+
+  if (hasCommandModifier) return
 
   if (!lightboxOpen() && (event.key === '-' || event.key === '_')) {
     event.preventDefault()

@@ -122,11 +122,15 @@ async function decodeImageFromUrl(
     const candidate = new Image()
     candidate.decoding = 'async'
     candidate.src = url
+    const decoding = candidate.decode()
     try {
-      await wrap(candidate.decode())
+      await wrap(decoding)
       image = candidate
     } catch (error) {
-      if (signal.aborted) throwAbort('image decode aborted')
+      if (signal.aborted) {
+        await decoding.catch(() => null)
+        throwAbort('image decode aborted')
+      }
       if (!isImageDecodeError(error)) throw error
       image = (await wrap(waitForImageLoad(candidate))) ? candidate : null
     }
@@ -158,6 +162,7 @@ async function resolveSizedImageSourceBlob(
   developRawEnabled: boolean,
   developMaxDimension: number | undefined,
   targetLongEdge: number,
+  ignoreOrientation: boolean,
   signal: AbortSignal,
 ): Promise<Blob> {
   if (!isRawImageMeta(metaState)) return fileBlob
@@ -178,7 +183,7 @@ async function resolveSizedImageSourceBlob(
   const developed = await developRawToJpegBlob(fileBlob, {
     format: metaState.format,
     exif: metaState.exif,
-    ignoreOrientation: false,
+    ignoreOrientation,
     maxDimension: developMaxDimension,
     signal,
   })
@@ -229,6 +234,7 @@ export function reatomImage(
     `${name}.thumbnail.ignoreOrientation`,
   )
   const sizedImageLongEdge = atom(0, `${name}.sizedImage.longEdge`)
+  const sizedImageSourceKey = atom('', `${name}.sizedImage.sourceKey`)
   const sizedImageArtifact = atom<HTMLCanvasElement | null>(
     null,
     `${name}.sizedImage.artifact`,
@@ -239,6 +245,20 @@ export function reatomImage(
     if (artifact) clearCanvasElement(artifact)
     sizedImageArtifact.set(null)
     sizedImageLongEdge.set(0)
+    sizedImageSourceKey.set('')
+  }
+
+  const objectUrls = new Set<string>()
+
+  const revokeObjectUrl = (url: string) => {
+    if (objectUrls.delete(url)) URL.revokeObjectURL(url)
+  }
+
+  const createTrackedObjectUrl = (blob: Blob) => {
+    const url = URL.createObjectURL(blob)
+    objectUrls.add(url)
+    abortVar.subscribe(() => revokeObjectUrl(url))
+    return url
   }
 
   const clearThumbnail = () => {
@@ -380,14 +400,14 @@ export function reatomImage(
       (await wrap(extractRawPreview(fileBlob, metaState.format)))
     if (!previewBlob) return null
 
-    const url = URL.createObjectURL(previewBlob)
-    abortVar.subscribe(() => URL.revokeObjectURL(url))
-    return url
+    return createTrackedObjectUrl(previewBlob)
   }, `${name}.embeddedPreviewUrl`).extend(withAsyncData())
 
   const rawDeveloped = computed(async (): Promise<RawDevelopResult | null> => {
     if (!developRawEnabled()) return null
 
+    const ignoreOrientation = ignoreExifOrientation()
+    const maxDimension = peek(() => options?.readDevelopMaxDimension?.())
     const [fileBlob, metaState] = await wrap(Promise.all([file(), meta()]))
     if (!isRawImageMeta(metaState)) return null
 
@@ -395,19 +415,37 @@ export function reatomImage(
       developRawToJpegBlob(fileBlob, {
         format: metaState.format,
         exif: metaState.exif,
-        ignoreOrientation: ignoreExifOrientation(),
-        maxDimension: options?.readDevelopMaxDimension?.(),
+        ignoreOrientation,
+        maxDimension,
         signal: abortVar.require().signal,
       }),
     )
   }, `${name}.rawDeveloped`).extend(withAsyncData())
 
+  const rawDevelopedFullSize = computed(
+    async (): Promise<RawDevelopResult | null> => {
+      if (!developRawEnabled()) return null
+
+      const ignoreOrientation = ignoreExifOrientation()
+      const [fileBlob, metaState] = await wrap(Promise.all([file(), meta()]))
+      if (!isRawImageMeta(metaState)) return null
+
+      return await wrap(
+        developRawToJpegBlob(fileBlob, {
+          format: metaState.format,
+          exif: metaState.exif,
+          ignoreOrientation,
+          signal: abortVar.require().signal,
+        }),
+      )
+    },
+    `${name}.rawDevelopedFullSize`,
+  ).extend(withAsyncData())
+
   const developedImageUrl = computed(async () => {
     const developed = await wrap(rawDeveloped())
     if (!developed) return null
-    const url = URL.createObjectURL(developed.blob)
-    abortVar.subscribe(() => URL.revokeObjectURL(url))
-    return url
+    return createTrackedObjectUrl(developed.blob)
   }, `${name}.developedImageUrl`).extend(withAsyncData())
 
   const rawEmbeddedPreviewImage = computed(async () => {
@@ -437,9 +475,7 @@ export function reatomImage(
     if (isRawImageMeta(metaState)) return null
 
     const blob = await wrap(file())
-    const url = URL.createObjectURL(blob)
-    abortVar.subscribe(() => URL.revokeObjectURL(url))
-    return url
+    return createTrackedObjectUrl(blob)
   }, `${name}.fullUrl`).extend(withAsyncData())
 
   const fullImage = computed(async () => {
@@ -467,6 +503,15 @@ export function reatomImage(
 
     const fileInfoState = fileInfo.data()
     const heicSupported = options.readHeicDecodeSupported?.() ?? null
+    const ignoreOrientation = ignoreExifOrientation()
+    const developRaw = developRawEnabled()
+    const developMaxDimension = options.readDevelopMaxDimension?.()
+    const preloadCount = options.readPreloadCount?.() ?? 0
+    const priority = peek(
+      () => options.readBitmapDecodePriority?.() ?? 'current',
+    )
+    const sourceKey = `${ignoreOrientation}:${developRaw}`
+
     const metaState = await wrap(thumbnailMeta())
     if (!metaState) return null
 
@@ -481,8 +526,8 @@ export function reatomImage(
       metaState.width,
       metaState.height,
       metaState.exif,
+      ignoreOrientation,
     )
-    const preloadCount = options.readPreloadCount?.() ?? 0
     const decodeTarget = resolveSizedDecodeTarget(
       oriented.width,
       oriented.height,
@@ -491,13 +536,22 @@ export function reatomImage(
       preloadCount,
     )
 
-    if (decodeTarget === 'original') return null
+    if (decodeTarget === 'original') {
+      try {
+        await wrap(fullImage())
+      } catch (error) {
+        if (abortVar.require().signal.aborted) throw error
+      }
+      clearSizedImage()
+      return null
+    }
 
     const nextLongEdge = longEdge(decodeTarget)
     const currentLongEdge = peek(sizedImageLongEdge)
     const existingArtifact = peek(sizedImageArtifact)
     if (
       existingArtifact &&
+      peek(sizedImageSourceKey) === sourceKey &&
       !shouldUpgradeSizedImage(currentLongEdge, decodeTarget)
     ) {
       return existingArtifact
@@ -506,7 +560,6 @@ export function reatomImage(
     const signal = abortVar.require().signal
     if (signal.aborted) throwAbort()
 
-    const priority = options.readBitmapDecodePriority?.() ?? 'current'
     const outputMegapixels = megapixels(decodeTarget.width, decodeTarget.height)
     const bitmapSlot = await wrap(
       acquireBitmapDecodeSlot(signal, priority, outputMegapixels),
@@ -519,9 +572,10 @@ export function reatomImage(
         resolveSizedImageSourceBlob(
           fileBlob,
           metaState,
-          developRawEnabled(),
-          options.readDevelopMaxDimension?.(),
+          developRaw,
+          developMaxDimension,
           nextLongEdge,
+          ignoreOrientation,
           signal,
         ),
       )
@@ -529,15 +583,23 @@ export function reatomImage(
       const sourceFromRawPipeline =
         isRawImageMeta(metaState) && sourceBlob !== fileBlob
 
-      const canvas = await wrap(
-        decodeBlobToCanvas(
-          sourceBlob,
-          decodeTarget,
-          metaState,
-          ignoreExifOrientation() || sourceFromRawPipeline,
-          signal,
-        ),
+      const canvasPromise = decodeBlobToCanvas(
+        sourceBlob,
+        decodeTarget,
+        sourceFromRawPipeline ? null : metaState,
+        ignoreOrientation,
+        signal,
       )
+      let canvas: HTMLCanvasElement
+      try {
+        canvas = await wrap(canvasPromise)
+      } catch (error) {
+        if (!signal.aborted) throw error
+
+        const lateCanvas = await canvasPromise.catch(() => null)
+        if (lateCanvas) clearCanvasElement(lateCanvas)
+        throw error
+      }
 
       if (signal.aborted) {
         clearCanvasElement(canvas)
@@ -550,6 +612,7 @@ export function reatomImage(
       }
 
       sizedImageLongEdge.set(nextLongEdge)
+      sizedImageSourceKey.set(sourceKey)
       sizedImageArtifact.set(canvas)
       abortVar.subscribe(() => {
         if (peek(sizedImageArtifact) !== canvas) {
@@ -569,8 +632,15 @@ export function reatomImage(
   const dispose = action(() => {
     clearThumbnail()
     clearSizedImage()
+    for (const url of [...objectUrls]) revokeObjectUrl(url)
     thumbnail.data.reset()
     sizedImage.data.reset()
+    embeddedPreviewUrl.data.reset()
+    developedImageUrl.data.reset()
+    fullImageUrl.data.reset()
+    rawEmbeddedPreviewImage.data.reset()
+    rawDevelopedImage.data.reset()
+    fullImage.data.reset()
   }, `${name}.dispose`)
 
   return file.extend(() => ({
@@ -580,6 +650,7 @@ export function reatomImage(
     thumbnail,
     embeddedPreviewUrl,
     rawDeveloped,
+    rawDevelopedFullSize,
     developedImageUrl,
     rawEmbeddedPreviewImage,
     rawDevelopedImage,

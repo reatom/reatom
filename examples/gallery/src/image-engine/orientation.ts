@@ -84,10 +84,10 @@ export function orientationDegrees(orientation: number): number {
     case 3:
     case 4:
       return 180
-    case 5:
     case 6:
-      return 90
     case 7:
+      return 90
+    case 5:
     case 8:
       return 270
     default:
@@ -110,6 +110,46 @@ export function orientationMirrored(orientation: number): boolean {
     default:
       return false
   }
+}
+
+export function orientationSwapsAxes(orientation: ParsedOrientation): boolean {
+  return (
+    orientation.state === 'valid' &&
+    (orientation.degrees === 90 || orientation.degrees === 270)
+  )
+}
+
+export function orientationNeedsTransform(
+  orientation: ParsedOrientation,
+): boolean {
+  return (
+    orientation.state === 'valid' &&
+    (orientation.degrees !== 0 || orientation.mirrored)
+  )
+}
+
+const INVERSE_ORIENTATION_VALUES: Record<number, number> = { 6: 8, 8: 6 }
+
+export function invertOrientation(
+  orientation: ParsedOrientation,
+): ParsedOrientation {
+  if (orientation.state !== 'valid') return orientation
+  const inverseValue =
+    INVERSE_ORIENTATION_VALUES[orientation.value] ?? orientation.value
+  return parseOrientationTagValue(String(inverseValue))
+}
+
+export function resolveDisplayDimensions(
+  width: number,
+  height: number,
+  exif: ExifData | undefined,
+  ignoreExifOrientation: boolean,
+): { width: number; height: number } {
+  if (ignoreExifOrientation) return { width, height }
+  if (!orientationSwapsAxes(getOrientationFromExif(exif))) {
+    return { width, height }
+  }
+  return { width: height, height: width }
 }
 
 export function resolveImageOrientationStyle(

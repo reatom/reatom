@@ -1,5 +1,5 @@
 import { gridColumns, gridGap, imageGrid, viewMode, visibleIndexMap } from '../model'
-import { themeCss } from '../themeCss'
+import { bindRefs, packAttr } from '../themeAttrs'
 import { GRID_GAP_VALUES } from '../types'
 import { FolderImageTree, PreviewBoundImage } from './FolderImageTree'
 import { GridImage } from './GridImage'
@@ -8,36 +8,38 @@ import { ImageList } from './ImageList'
 import { ImageTable } from './ImageTable'
 
 const gridEntryCss = `
-  ${themeCss(
+  ${packAttr.is(
     'bauhaus',
     `
-      --print-color: var(--bauhaus-red);
-      --print-shape: circle(50%);
-      &[data-mod3='1'] {
+      [data-mod3] {
+        --print-color: var(--bauhaus-red);
+        --print-shape: circle(50%);
+      }
+      [data-mod3='1'] {
         --print-color: var(--bauhaus-blue);
         --print-shape: inset(0);
       }
-      &[data-mod3='2'] {
+      [data-mod3='2'] {
         --print-color: var(--bauhaus-yellow);
         --print-shape: polygon(50% 0, 100% 100%, 0 100%);
       }
     `,
   )}
-  ${themeCss(
+  ${packAttr.is(
     'polaroid',
     `
-      &[data-mod5='1'] > [data-gap='medium'],
-      &[data-mod5='1'] > [data-gap='large'],
-      &[data-mod5='1'] > [data-gap='xl'] {
+      [data-mod5='1'] > [data-gap='medium'],
+      [data-mod5='1'] > [data-gap='large'],
+      [data-mod5='1'] > [data-gap='xl'] {
         transform: rotate(-0.55deg);
       }
-      &[data-mod5='3'] > [data-gap='medium'],
-      &[data-mod5='3'] > [data-gap='large'],
-      &[data-mod5='3'] > [data-gap='xl'] {
+      [data-mod5='3'] > [data-gap='medium'],
+      [data-mod5='3'] > [data-gap='large'],
+      [data-mod5='3'] > [data-gap='xl'] {
         transform: rotate(0.65deg);
       }
-      &[data-mod6='1'] > [data-gap]::before,
-      &[data-mod6='4'] > [data-gap]::before {
+      [data-mod6='1'] > [data-gap]::before,
+      [data-mod6='4'] > [data-gap]::before {
         content: '';
         position: absolute;
         top: 3px;
@@ -50,10 +52,10 @@ const gridEntryCss = `
         pointer-events: none;
         z-index: 3;
       }
-      &[data-mod6='1'] > [data-gap]::before {
+      [data-mod6='1'] > [data-gap]::before {
         transform: translateX(-50%) rotate(-4deg);
       }
-      &[data-mod6='4'] > [data-gap]::before {
+      [data-mod6='4'] > [data-gap]::before {
         transform: translateX(-50%) rotate(5deg);
       }
     `,
@@ -86,7 +88,7 @@ const NoImagesMessage = () => (
 
 export const ImageGrid = () => (
   <div
-    ref={imageGrid.ref}
+    ref={bindRefs(imageGrid.ref, packAttr.inherit)}
     attr:data-view-mode={viewMode}
     css:columns={() => {
       const mode = viewMode()
@@ -114,6 +116,7 @@ export const ImageGrid = () => (
         height: 100%;
         min-height: 0;
       }
+      ${gridEntryCss}
     `}
   >
     {() => (visibleIndexMap().size === 0 ? <NoImagesMessage /> : null)}
@@ -130,11 +133,7 @@ export const ImageGrid = () => (
           ) : (
             <FolderImageTree
               renderImage={(image, folder) => (
-                <PreviewBoundImage
-                  image={image}
-                  folder={folder}
-                  css={gridEntryCss}
-                >
+                <PreviewBoundImage image={image} folder={folder}>
                   <GridImage image={image} />
                 </PreviewBoundImage>
               )}

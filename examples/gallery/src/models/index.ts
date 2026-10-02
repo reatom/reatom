@@ -52,6 +52,7 @@ export {
 } from './folder'
 export {
   openFolder,
+  pickAndOpenFolder,
   pendingFolderRestore,
   queryDirectoryPermission,
   requestFolderRestore,

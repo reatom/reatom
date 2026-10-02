@@ -1,6 +1,6 @@
 import { Button } from '../design-system'
 import { isFileSystemAccessSupported } from '../filesystem'
-import { openFolder } from '../model'
+import { pickAndOpenFolder } from '../model'
 import { BauhausEmptyArt } from './BauhausArtwork'
 import { GalleryMarkIcon } from './Icons'
 
@@ -183,7 +183,7 @@ export const EmptyState = () => {
         )}
         <Button
           label="Open Folder"
-          onClick={() => openFolder()}
+          onClick={() => pickAndOpenFolder()}
           disabled={!fileSystemAccessSupported}
           size="lg"
           title={

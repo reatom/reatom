@@ -35,13 +35,15 @@ export const gridColumns = atom(4, 'gridColumns').extend(
   withLocalStorage('gallery.gridColumns'),
 )
 
+const readEffectiveGridColumns = () => gridColumns() || imageGrid.columnCount()
+
 export const decreaseGridColumns = action(
-  () => gridColumns.set((columns) => Math.max(columns - 1, 0)),
+  () => gridColumns.set(Math.max(readEffectiveGridColumns() - 1, 1)),
   'view.decreaseGridColumns',
 )
 
 export const increaseGridColumns = action(
-  () => gridColumns.set((columns) => Math.min(columns + 1, 100)),
+  () => gridColumns.set(Math.min(readEffectiveGridColumns() + 1, 100)),
   'view.increaseGridColumns',
 )
 
