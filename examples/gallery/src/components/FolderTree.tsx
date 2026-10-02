@@ -1,6 +1,7 @@
 import { keyboardActivate } from '../a11y'
 import { IconButton } from '../design-system'
 import { registerGlassSurface } from '../glassSurfaces'
+import { formatImageCount } from '../imageFormat'
 import {
   currentFolder,
   folderTree,
@@ -71,7 +72,7 @@ const folderToggleCss = `
   height: var(--folder-toggle-size, 32px);
   isolation: isolate;
   &[data-ui='button'][data-ui-role][data-ui-surface] {
-    --_bg: var(--bg-elevated);
+    --_bg: var(--folder-toggle-bg, var(--bg-elevated));
     --_hover-bg: var(--bg-tertiary);
     --_press-bg: var(--bg-tertiary);
     --_shadow: none;
@@ -137,6 +138,7 @@ const FolderTreeNode = ({
     >
       <div
         role="treeitem"
+        aria-label={`${node.name}, ${formatImageCount(node.imageCount)}`}
         aria-selected={isSelected}
         aria-expanded={hasChildren ? expanded : undefined}
         tabindex={0}

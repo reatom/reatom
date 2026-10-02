@@ -115,8 +115,17 @@ const overlay = {
 
 export const minimalControlOverrides = {
   app: {
-    quiet: underline,
-    choice: underline,
+    action: {
+      typography: { fontWeight: '500' },
+    },
+    quiet: {
+      ...underline,
+      typography: { fontWeight: '400' },
+    },
+    choice: {
+      ...underline,
+      typography: { fontWeight: '400' },
+    },
   },
   viewer: {
     action: viewer,

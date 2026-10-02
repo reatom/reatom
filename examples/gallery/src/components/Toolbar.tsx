@@ -12,7 +12,6 @@ import {
   setViewMode,
   viewMode,
   themePack,
-  visibleIndexMap,
 } from '../model'
 import { packAttr } from '../themeAttrs'
 import {
@@ -194,7 +193,7 @@ export const Toolbar = () => (
       />
 
       {() => {
-        if (folderTree() === null) return <span />
+        if (folderTree() === null) return null
         return (
           <Button
             appearance="quiet"
@@ -271,7 +270,7 @@ export const Toolbar = () => (
     >
       {() => {
         const count = selectedCount()
-        if (count === 0) return <span />
+        if (count === 0) return null
         return (
           <span
             css={`
@@ -359,20 +358,6 @@ export const Toolbar = () => (
           `}
         />
       </div>
-
-      <span
-        css={`
-          font-size: 12px;
-          color: var(--text-muted);
-          white-space: nowrap;
-        `}
-      >
-        {() => {
-          const count = visibleIndexMap().size
-          if (count === 0) return ''
-          return count === 1 ? '1 image' : `${count} images`
-        }}
-      </span>
     </div>
 
     <div

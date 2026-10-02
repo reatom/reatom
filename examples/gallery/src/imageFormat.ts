@@ -16,3 +16,8 @@ export const formatDimensions = (
   height: number,
   fallback: string,
 ): string => (width && height ? `${width} x ${height}` : fallback)
+
+export const formatImageCount = (count: number): string => {
+  if (count === 0) return ''
+  return count === 1 ? '1 image' : `${count} images`
+}

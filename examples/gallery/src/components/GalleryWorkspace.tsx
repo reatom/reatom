@@ -1,7 +1,9 @@
+import { formatImageCount } from '../imageFormat'
 import {
   bindBackgroundPreviewLoader,
   galleryContentMode,
   themePack,
+  visibleIndexMap,
 } from '../model'
 import { BreadcrumbNav } from './BreadcrumbNav'
 import { EmptyState } from './EmptyState'
@@ -68,6 +70,10 @@ export const GalleryWorkspace = () => (
           >
             <div
               css={`
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 0;
                 transition: margin-left 0.3s ease;
                 margin-left: max(
                   0px,
@@ -80,6 +86,18 @@ export const GalleryWorkspace = () => (
               `}
             >
               <BreadcrumbNav />
+              <span
+                id="gallery-folder-count"
+                css={`
+                  font-size: 12px;
+                  color: var(--text-muted);
+                  white-space: nowrap;
+                  font-variant-numeric: tabular-nums;
+                  flex-shrink: 0;
+                `}
+              >
+                {() => formatImageCount(visibleIndexMap().size)}
+              </span>
             </div>
             <div css="flex: 1;" />
             <SortPanel />
