@@ -535,6 +535,101 @@ Why this pattern works best:
 - **Inspectable** — attributes are visible in DevTools, debugging is trivial
 - **Testable** — query by semantic selectors (`[aria-current]`, `[disabled]`) instead of class names
 
+#### Custom state: `data-*`
+
+For state that has no native or ARIA attribute, use a `data-*` attribute on the **same** element. Data attributes do not inherit — the element with the rule carries the attribute.
+
+```css
+/* wrong: reaches up to an ancestor; this sheet now depends on DOM position */
+[data-theme-pack='polaroid'] & {
+  display: inline;
+}
+
+/* right: the state is on this element */
+&[data-theme-pack='polaroid'] {
+  display: inline;
+}
+```
+
+```tsx
+<article
+  data-layout={layout}
+  css={`
+    display: grid;
+    &[data-layout='list'] {
+      display: flex;
+      flex-direction: column;
+    }
+  `}
+/>
+```
+
+The runtime wraps the `css` string in `[data-reatom-style="_7"]{…}`. Native nesting resolves the inner rule to `[data-reatom-style="_7"][data-layout='list']` — specificity (0, 2, 0), so it wins over the base declaration. `data-*` values are stringified, including booleans: `false` gives `data-x="false"`, not a missing attribute.
+
+When the state lives on an ancestor (a theme root, a story wrapper), provide it with [`cssVar`](#inherited-state-cssvar-and-style-queries) instead of piercing with `[data-theme-pack] &`.
+
+Rule of thumb:
+
+- State changes a **value** (size, color, radius) → custom property; they inherit
+- State changes **what is rendered** → reactive child `{() => …}`
+- State changes **structure** (`::before`, `display`, decorations) → a `data-*` attribute when the state is on the same element, or [`cssVar`](#inherited-state-cssvar-and-style-queries) + `container()` when it comes from an ancestor
+
+#### Inherited state: `cssVar` and style queries
+
+When state lives on an ancestor (a theme root, a story wrapper) and changes descendant structure, provide it as an inherited custom property and query it with `@container style()`. The nearest provider wins. Descendants take no attributes or refs.
+
+```tsx
+import { css, cssVar } from '@reatom/jsx'
+
+export const pack = cssVar('theme-pack', [
+  'minimal',
+  'polaroid',
+  'retroOs',
+  'glass',
+])
+export const mode = cssVar('theme-mode', ['light', 'dark'])
+
+<div {...pack.provide(themePack)} {...mode.provide(() => resolveMode())}>
+  <span
+    css={css`
+      display: none;
+      ${pack.container('polaroid')} {
+        display: inline;
+      }
+    `}
+  />
+</div>
+```
+
+Compound conditions and negation stay plain CSS around `style()`:
+
+```tsx
+css`
+  @container ${pack.style('retroOs')} and ${mode.style('light')} {
+    background: navy;
+  }
+  @container not (${pack.style('polaroid')}) {
+    display: block;
+  }
+`
+```
+
+| Method                                  | Emits                                                                                                |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `pack.var()`                            | `var(--reatom-theme-pack)`                                                                           |
+| `pack.style('glass')`                   | `style(--reatom-theme-pack: glass)`                                                                  |
+| `pack.container('glass')`               | `@container style(--reatom-theme-pack: glass)`                                                       |
+| `pack.container('polaroid', 'glass')`   | `@container (style(--reatom-theme-pack: polaroid) or style(--reatom-theme-pack: glass))`             |
+| `pack.provide(source)`                  | `{ 'css:reatom-theme-pack': source }`                                                                |
+
+Gotchas:
+
+- A value outside the registered syntax computes to the initial value (the first value in the list). An element with no provider also gets that initial value, so a typo in a provider silently shows the default.
+- A `CSS.registerProperty` call for the same name elsewhere overrides the `@property` rule silently. The `--reatom-` prefix is what keeps names apart.
+- An element cannot query its own custom property with an unnamed `@container` style query. The query reads the nearest ancestor; its pseudo-elements do see the property. Style the provider element itself with its own attributes.
+- `--x: "polaroid"` (quoted) does not match `style(--x: polaroid)`.
+- Container style queries for custom properties: Chrome/Edge 111+, Safari 18+, Firefox 151+.
+
 ### Components
 
 Components are plain functions that return DOM elements. They are stateless, have no lifecycle, and are evaluated only once — at the moment of mounting.
@@ -851,6 +946,36 @@ const styles = css`
 ```
 
 > You can use this with the `css` or `style` props.
+
+### `cssVar`
+
+`cssVar(name, values)` returns a token for the inherited custom property `--reatom-${name}`. It builds names, query fragments, and a props object. Inheritance and `@container style()` stay native CSS. See [Inherited state: `cssVar` and style queries](#inherited-state-cssvar-and-style-queries).
+
+```tsx
+import { cssVar } from '@reatom/jsx'
+
+const pack = cssVar('theme-pack', ['minimal', 'polaroid'])
+
+pack.property // '--reatom-theme-pack'
+pack.var() // 'var(--reatom-theme-pack)'
+pack.style('polaroid') // 'style(--reatom-theme-pack: polaroid)'
+pack.container('polaroid') // '@container style(--reatom-theme-pack: polaroid)'
+pack.container('minimal', 'polaroid')
+// '@container (style(--reatom-theme-pack: minimal) or style(--reatom-theme-pack: polaroid))'
+pack.provide(themePack) // { 'css:reatom-theme-pack': themePack }
+```
+
+- `var()` — `var(--reatom-${name})`
+- `style(value)` — `style(--reatom-${name}: value)`, for `and` / `or` / `not` composition
+- `container(...values)` — one value emits `@container style(...)`; several emit `@container (style(...) or style(...))`
+- `provide(source)` — `{ ['css:reatom-' + name]: source }`. `source` is a static `Value | null | undefined`, an atom of that, or a getter `() => Value | null | undefined`
+
+Collision guards:
+
+- The custom property is always prefixed `--reatom-`.
+- Defining the same name again with the same values, in the same order, is allowed (HMR, duplicated modules). A different value list throws `ReatomError`: rename the token, or reload the page after changing its values.
+- `name` and every value must match `/^[a-zA-Z_][\w-]*$/` and must not be `initial`, `inherit`, `unset`, `revert`, `revert-layer`, or `default` (any case).
+- The first `provide()` of a token inserts `@property --reatom-${name} { syntax: 'a | b'; inherits: true; initial-value: a; }` into the same stylesheet the `css` prop uses.
 
 ### `<Bind>` component
 

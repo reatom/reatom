@@ -24,12 +24,13 @@ Use this map to open only the relevant parts of [REFERENCE.md](REFERENCE.md):
 | Props, children, bindings    | Reference → Props, Children, Models                   |
 | Inline and css-prop styles   | Reference → `style` props, `style:*`, CSS-in-JS       |
 | Class names                  | Reference → `class` or `className`, `reatomClassName` |
+| Conditional / theme styles   | Reference → Conditional Styles with Attributes, `cssVar` |
 | Components and lists         | Reference → Components                                |
 | Bulk prop binding            | Reference → `$spread`                                 |
 | SVG and raw markup           | Reference → SVG                                       |
 | Mount side effects           | Reference → `ref` props                               |
 | Errors, boundaries, jsxError | Error handling                                        |
-| Utilities                    | Utilities → `reatomClassName`, `css`, `<Bind>`        |
+| Utilities                    | Utilities → `reatomClassName`, `css`, `cssVar`, `<Bind>` |
 | TypeScript                   | TypeScript                                            |
 | SSR and keyed lists          | Limitations                                           |
 
@@ -47,5 +48,6 @@ Use this map to open only the relevant parts of [REFERENCE.md](REFERENCE.md):
 - Mount with `mount(root, <App />)`; call `unmount()` on teardown (including Vite HMR). Prefer `@reatom/vite` (`reatom()` plugin) so mount/route HMR dispose is automatic.
 - For dynamic lists, store elements in atoms or map inside reactive children — no keyed reconciliation.
 - Isolate UI failures with `<ErrorBoundary fallback={...}>` and lazy children `{() => <Child />}`; track globally via `jsxError` / `addCallHook(jsxError, ...)`.
+- Never write `[data-x] &` (or `:where(...) &`) in a `css` prop. State on the same element: bind `data-x={state}` and select `&[data-x='v']`. State from an ancestor: provide it with `cssVar(...).provide(state)` and query `${token.container('v')} { … }`. Prefer custom properties for value differences and reactive children for content differences; reserve selectors and style queries for structural differences.
 
 When [REFERENCE.md](REFERENCE.md) and local examples disagree, prefer the reference and fix the example if it is wrong.

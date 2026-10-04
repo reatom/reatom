@@ -56,6 +56,7 @@ export type { JSX, JSXElement }
 
 export { jsxError, type JsxErrorPayload, type JsxErrorPhase }
 export { DOM, stylesheet } from './global'
+export { cssVar, type CssVar } from './cssVar'
 export { reatomClassName } from './utils'
 export { instance } from '@reatom/core'
 

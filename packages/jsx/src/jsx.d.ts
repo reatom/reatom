@@ -38,7 +38,7 @@ type Primitive =
 
 type LinkedListJSXAtom = AtomLike<LinkedList<LLNode<Element>>> & {__reatomLinkedList: true}
 
-type AtomOrGetterMaybe<T = any> = T | AtomLike<T> | (() => T)
+export type AtomOrGetterMaybe<T = any> = T | AtomLike<T> | (() => T)
 
 // TODO write it manually to improve perf
 export type AttributesAtomMaybe<T extends Record<keyof any, any>> = {
