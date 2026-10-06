@@ -599,3 +599,83 @@ const askProfileSurvey = reatomFSM(
   },
 )
 */
+
+const setupPendingAggregation = (name: string) => {
+  const source = atom(0, `${name}.source`)
+
+  const resource = computed(async () => {
+    const value = source()
+    await wrap(sleep(5))
+    return value
+  }, `${name}.resource`).extend(withAsyncData())
+
+  // Reading `resource.data` restarts `resource` when `source` changes, and the
+  // same computation reads the `pending` counter that restart writes.
+  const loaded = computed(() => {
+    resource.data()
+    return source()
+  }, `${name}.loaded`)
+
+  const isPending = computed(() => {
+    loaded()
+    return resource.pending() > 0
+  }, `${name}.isPending`)
+
+  const existingReader = computed(() => isPending(), `${name}.existingReader`)
+  const lateReader = computed(() => isPending(), `${name}.lateReader`)
+
+  return { source, resource, existingReader, lateReader }
+}
+
+test('pending aggregation settles for a reader connected before the restart', async () => {
+  const { source, resource, existingReader, lateReader } =
+    setupPendingAggregation('pendingAggregationEarlyReader')
+
+  subscribe(existingReader)
+  await wrap(sleep(30))
+
+  subscribe(lateReader)
+  source.set(1)
+  await wrap(sleep(30))
+
+  expect(resource.pending()).toBe(0)
+  expect(existingReader()).toBe(false)
+  expect(lateReader()).toBe(false)
+})
+
+test('pending aggregation settles for a reader connected in the same pass as the restart', async () => {
+  const { source, resource, existingReader, lateReader } =
+    setupPendingAggregation('pendingAggregationLateReader')
+
+  subscribe(existingReader)
+  await wrap(sleep(30))
+
+  source.set(1)
+  const track = subscribe(lateReader)
+  await wrap(sleep(30))
+
+  expect(resource.pending()).toBe(0)
+  expect(track.mock.calls.flat()).toEqual([true, false])
+  expect(lateReader()).toBe(false)
+  expect(existingReader()).toBe(false)
+})
+
+test('pending aggregation keeps propagating after a restart observed by a late reader', async () => {
+  const { source, resource, existingReader, lateReader } =
+    setupPendingAggregation('pendingAggregationLaterChanges')
+
+  subscribe(existingReader)
+  await wrap(sleep(30))
+
+  source.set(1)
+  subscribe(lateReader)
+  await wrap(sleep(30))
+
+  source.set(2)
+  expect(resource.pending()).toBe(1)
+  await wrap(sleep(30))
+
+  expect(resource.pending()).toBe(0)
+  expect(lateReader()).toBe(false)
+  expect(existingReader()).toBe(false)
+})
