@@ -17,22 +17,22 @@ Use this skill when implementing or explaining `@reatom/jsx`. Treat [REFERENCE.m
 
 Use this map to open only the relevant parts of [REFERENCE.md](REFERENCE.md):
 
-| Topic                        | Section                                               |
-| ---------------------------- | ----------------------------------------------------- |
-| Install, tsconfig, Vite      | Installation, Framework compatibility                 |
-| Bootstrapping the app        | Example, Hot module replacement                       |
-| Props, children, bindings    | Reference → Props, Children, Models                   |
-| Inline and css-prop styles   | Reference → `style` props, `style:*`, CSS-in-JS       |
-| Class names                  | Reference → `class` or `className`, `reatomClassName` |
+| Topic                        | Section                                                  |
+| ---------------------------- | -------------------------------------------------------- |
+| Install, tsconfig, Vite      | Installation, Framework compatibility                    |
+| Bootstrapping the app        | Example, Hot module replacement                          |
+| Props, children, bindings    | Reference → Props, Children, Models                      |
+| Inline and css-prop styles   | Reference → `style` props, `style:*`, CSS-in-JS          |
+| Class names                  | Reference → `class` or `className`, `reatomClassName`    |
 | Conditional / theme styles   | Reference → Conditional Styles with Attributes, `cssVar` |
-| Components and lists         | Reference → Components                                |
-| Bulk prop binding            | Reference → `$spread`                                 |
-| SVG and raw markup           | Reference → SVG                                       |
-| Mount side effects           | Reference → `ref` props                               |
-| Errors, boundaries, jsxError | Error handling                                        |
+| Components and lists         | Reference → Components                                   |
+| Bulk prop binding            | Reference → `$spread`                                    |
+| SVG and raw markup           | Reference → SVG                                          |
+| Mount side effects           | Reference → `ref` props                                  |
+| Errors, boundaries, jsxError | Error handling                                           |
 | Utilities                    | Utilities → `reatomClassName`, `css`, `cssVar`, `<Bind>` |
-| TypeScript                   | TypeScript                                            |
-| SSR and keyed lists          | Limitations                                           |
+| TypeScript                   | TypeScript                                               |
+| SSR and keyed lists          | Limitations                                              |
 
 ## Implementation defaults
 

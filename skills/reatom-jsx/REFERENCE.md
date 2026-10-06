@@ -614,13 +614,13 @@ css`
 `
 ```
 
-| Method                                  | Emits                                                                                                |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `pack.var()`                            | `var(--reatom-theme-pack)`                                                                           |
-| `pack.style('glass')`                   | `style(--reatom-theme-pack: glass)`                                                                  |
-| `pack.container('glass')`               | `@container style(--reatom-theme-pack: glass)`                                                       |
-| `pack.container('polaroid', 'glass')`   | `@container (style(--reatom-theme-pack: polaroid) or style(--reatom-theme-pack: glass))`             |
-| `pack.provide(source)`                  | `{ 'css:reatom-theme-pack': source }`                                                                |
+| Method                                | Emits                                                                                    |
+| ------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `pack.var()`                          | `var(--reatom-theme-pack)`                                                               |
+| `pack.style('glass')`                 | `style(--reatom-theme-pack: glass)`                                                      |
+| `pack.container('glass')`             | `@container style(--reatom-theme-pack: glass)`                                           |
+| `pack.container('polaroid', 'glass')` | `@container (style(--reatom-theme-pack: polaroid) or style(--reatom-theme-pack: glass))` |
+| `pack.provide(source)`                | `{ 'css:reatom-theme-pack': source }`                                                    |
 
 Gotchas:
 
