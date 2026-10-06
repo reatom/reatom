@@ -436,7 +436,7 @@ Awaits the next atom update or action call inside an async action/effect. Resolv
 
 - `await wrap(take(someAtom))` — next state change
 - `await wrap(take(someAction))` — next call payload
-- Second arg is a filter: resolves only when it returns truthy. `throwAbort()` inside the filter cancels the wait if the action is aborted.
+- Second arg is a selector, not a filter: whatever it returns resolves the wait — `false` and `null` included — and if the current value already maps without throwing, `take` returns the result synchronously instead of a promise. Throw `throwAbort()` inside it to skip a value and keep waiting; `(x) => x !== null` never waits. Cancelling the wait when the action is aborted is `wrap`'s job, not the selector's.
 
 ```ts
 if (!formIsValid()) {

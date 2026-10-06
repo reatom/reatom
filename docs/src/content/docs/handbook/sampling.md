@@ -354,7 +354,7 @@ const formIsValid = atom(false, 'formIsValid')
 const submitForm = action(async () => {
   if (!formIsValid()) {
     // Wait until formIsValid becomes true.
-    // throwAbort() rejects the take if the action is aborted while waiting
+    // throwAbort() skips a value that is not ready yet, so take keeps waiting
     await wrap(take(formIsValid, (isValid) => isValid || throwAbort()))
   }
 
@@ -362,7 +362,9 @@ const submitForm = action(async () => {
 }, 'submitForm')
 ```
 
-The second argument to `take` is a filter function: the promise resolves only when the filter returns a truthy value. Here, `throwAbort()` ensures the wait is properly cancelled if the action is aborted — for example, if the user navigates away before the form becomes valid.
+The second argument to `take` is a selector, not a filter: whatever it returns is what `take` resolves with — `false` included. It is also called with the current value right away, and when that call returns without throwing, `take` returns the result synchronously instead of a promise. To keep waiting, the selector throws: here `throwAbort()` skips every `false`, so the wait ends on the first `true`. A predicate such as `(isValid) => isValid === true` would not wait at all — it would resolve with `false` on the spot.
+
+Cancelling the wait when the action itself is aborted — for example, if the user navigates away before the form becomes valid — is `wrap`'s job: the wrapped promise rejects with the action's abort error, whatever the selector does.
 
 <!-- TODO: document combining multiple `take` operations:
 - `race({ key: take(target1), ... })`: Waits for the first of several events to occur.
