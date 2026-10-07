@@ -1,4 +1,13 @@
-import { _enqueue, _read, atom, bind, computed, type Frame, top } from './core'
+import {
+  _enqueue,
+  _read,
+  atom,
+  bind,
+  computed,
+  type Frame,
+  ReatomError,
+  top,
+} from './core'
 import { type AbortSubscription, abortVar, variable } from './methods'
 import { _getPrevFrame } from './methods/context'
 import type { Unsubscribe } from './utils'
@@ -81,13 +90,60 @@ export let reatomAbstractRender = <Props, Result>({
   rerender: (param: { result: Exclude<Result, never> }) => any
   name: string
   abortOnUnmount: boolean
-}): AbstractRender<Props, Result> =>
+}): AbstractRender<Props, Result> => {
+  let renderer = new RenderAdapter(
+    reatomRenderSubscription(frame, name, abortOnUnmount),
+    adapterRender,
+    rerender,
+  )
+  return {
+    render: renderer.render.bind(renderer),
+    mount: renderer.mount.bind(renderer),
+  }
+}
+
+class RenderAdapter<Props, Result> {
+  result!: Result
+
+  constructor(
+    private subscription: ReturnType<typeof reatomRenderSubscription>,
+    private adapterRender: (props: Props) => Result,
+    private rerender: (param: { result: Result }) => unknown,
+  ) {}
+
+  render(props: Props) {
+    let failure: { error: unknown } | undefined
+    this.subscription.render(() => {
+      try {
+        let render = this.adapterRender
+        this.result = render({ ...props })
+      } catch (error) {
+        failure = { error: error ?? new ReatomError('Unknown error') }
+      }
+    })
+    if (failure) throw failure.error
+    return { result: this.result }
+  }
+
+  mount() {
+    return this.subscription.mount(() => {
+      let rerender = this.rerender
+      rerender({ result: this.result })
+    })
+  }
+}
+
+let reatomRenderSubscription = (
+  frame: Frame,
+  name: string,
+  abortOnUnmount: boolean,
+) =>
   frame.run(() => {
-    let rendering = false
+    let rendering: undefined | (() => void)
 
     let changedVar = variable<boolean>()
 
-    let _props = atom({} as Props, `_${name}.props`)
+    let _props = atom(0, `_${name}.props`)
 
     let abortSubscription: AbortSubscription
 
@@ -106,18 +162,19 @@ export let reatomAbstractRender = <Props, Result>({
       targetFrame['var#abort'] = abortSubscription.controller
     }
 
-    let _render = computed((state?: { result: Result }): { result: Result } => {
+    let _render = computed((state = 0): number => {
       let frame = top()
       let pubs = _getPrevFrame(frame)?.pubs ?? [null]
 
       _enqueue(() => (pubs.length = 1), 'cleanup')
 
-      let props = _props()
+      _props()
 
       if (rendering) {
         recheckAbort(frame)
+        rendering()
 
-        return { result: adapterRender(props) }
+        return state + 1
       }
 
       changedVar.set(true)
@@ -132,23 +189,23 @@ export let reatomAbstractRender = <Props, Result>({
         pubs[i]!.atom()
       }
 
-      return { result: state?.result as Result }
+      return state + 1
     }, `_${name}`)
 
-    let render = bind((props: Props) => {
+    let render = bind((callback: () => void) => {
       try {
-        rendering = true
-        _props.set({ ...props })
-        return _render()
+        rendering = callback
+        _props.set((version) => version + 1)
+        _render()
       } finally {
-        rendering = false
+        rendering = undefined
       }
-    }, frame) as (props: Props) => { result: Result }
+    }, frame)
 
-    let mount = bind(() => {
+    let mount = bind((rerender: undefined | (() => void)) => {
       recheckAbort(_read(_render)!)
 
-      let unsubscribe = _render.subscribe((state) => {
+      let unsubscribe = _render.subscribe(() => {
         let deps = 0
         if (
           changedVar.find((changed) =>
@@ -156,11 +213,12 @@ export let reatomAbstractRender = <Props, Result>({
           )
         ) {
           changedVar.set(false)
-          rerender(state)
+          rerender?.()
         }
       })
 
       return bind(() => {
+        rerender = undefined
         unsubscribe()
         if (abortOnUnmount) {
           abortSubscription.controller.abort('unmount')
