@@ -198,12 +198,13 @@ test('should track the list for a computed calling find inside batch', () => {
   const a = list.create('a')
   const hasA = computed(() => list.find((node) => node.id === 'a') !== null)
 
-  list.batch(() => {
-    expect(hasA()).toBe(true)
-  })
+  // the first evaluation of the connected computed runs inside the batch
+  const track = list.batch(() => subscribe(hasA))
+  expect(track).toHaveBeenLastCalledWith(true)
 
   list.remove(a)
-  expect(hasA()).toBe(false)
+  notify()
+  expect(track).toHaveBeenLastCalledWith(false)
 })
 
 test('should remove a single node', () => {
