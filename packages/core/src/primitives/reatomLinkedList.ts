@@ -683,7 +683,9 @@ export function reatomLinkedList<
   }, `${name}.clear`)
 
   const find = (cb: (node: LLNode<Node>) => boolean): null | LLNode<Node> => {
-    for (let { head } = linkedList(); head; head = head[LL_NEXT]) {
+    // read the atom anyway to keep the dependency of a calling computed
+    const committed = linkedList()
+    for (let { head } = STATE ?? committed; head; head = head[LL_NEXT]) {
       if (cb(head)) return head
     }
     return null
