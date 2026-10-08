@@ -63,6 +63,12 @@ export interface LinkedListAtom<
   Node extends Rec = Rec,
   Key extends keyof Node = never,
 > extends LinkedListLikeAtom<LinkedList<LLNode<Node>>> {
+  /**
+   * Applies all mutations of `cb` as one update. Inside `cb`, `find` walks the
+   * in-progress state. Mutators relink nodes in place, so `list()`, `array` and
+   * `map` mix the old and the new state until `cb` returns, and `reatomMap`
+   * throws.
+   */
   batch: Action<[cb: Fn]>
 
   create: Action<Params, LLNode<Node>>
@@ -683,7 +689,9 @@ export function reatomLinkedList<
   }, `${name}.clear`)
 
   const find = (cb: (node: LLNode<Node>) => boolean): null | LLNode<Node> => {
-    for (let { head } = linkedList(); head; head = head[LL_NEXT]) {
+    // read the atom anyway to keep the dependency of a calling computed
+    const committed = linkedList()
+    for (let { head } = STATE ?? committed; head; head = head[LL_NEXT]) {
       if (cb(head)) return head
     }
     return null

@@ -174,6 +174,39 @@ test('should correctly handle batching and cause tracking', () => {
   expect(callCause).toReturnWith('batch')
 })
 
+test('should find nodes from the in-progress state inside batch', () => {
+  const list = reatomLinkedList((id: string) => ({ id }))
+  const a = list.create('a')
+  const b = list.create('b')
+
+  list.batch(() => {
+    list.remove(a)
+    expect(list.find((node) => node.id === 'b')).toBe(b)
+    expect(list.find((node) => node === a)).toBeNull()
+
+    list.clear()
+    const c = list.create('c')
+    expect(list.find((node) => node === c)).toBe(c)
+    expect(list.find((node) => node === b)).toBeNull()
+  })
+
+  expect(list.array().map(({ id }) => id)).toEqual(['c'])
+})
+
+test('should track the list for a computed calling find inside batch', () => {
+  const list = reatomLinkedList((id: string) => ({ id }))
+  const a = list.create('a')
+  const hasA = computed(() => list.find((node) => node.id === 'a') !== null)
+
+  // the first evaluation of the connected computed runs inside the batch
+  const track = list.batch(() => subscribe(hasA))
+  expect(track).toHaveBeenLastCalledWith(true)
+
+  list.remove(a)
+  notify()
+  expect(track).toHaveBeenLastCalledWith(false)
+})
+
 test('should remove a single node', () => {
   const list = reatomLinkedList((n: number) => ({ n }))
 
