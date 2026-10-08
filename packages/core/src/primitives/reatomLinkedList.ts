@@ -64,9 +64,10 @@ export interface LinkedListAtom<
   Key extends keyof Node = never,
 > extends LinkedListLikeAtom<LinkedList<LLNode<Node>>> {
   /**
-   * Applies all mutations of `cb` as one update. Until `cb` returns, the atom
-   * state and the computeds (`array`, `map`, `reatomMap`) keep the state from
-   * before the batch, while `find` walks the in-progress state.
+   * Applies all mutations of `cb` as one update. Inside `cb`, `find` walks the
+   * in-progress state. Mutators relink nodes in place, so `list()`, `array` and
+   * `map` mix the old and the new state until `cb` returns, and `reatomMap`
+   * throws.
    */
   batch: Action<[cb: Fn]>
 
