@@ -120,7 +120,12 @@ export const SelectField = <T extends string>({
       >
         {() =>
           optionList().map((option) => (
-            <option value={option.value}>{option.label}</option>
+            <option
+              value={option.value}
+              prop:selected={() => value() === option.value}
+            >
+              {option.label}
+            </option>
           ))
         }
       </select>
