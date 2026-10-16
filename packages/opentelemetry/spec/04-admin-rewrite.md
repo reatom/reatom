@@ -208,16 +208,18 @@ Batches are sent at most every 100 ms and at most 256 KB each.
 
 The admin model is extended with `withMCP` ([12] in README) on its atoms and actions. That includes actions, so agents can do more than read. Tools, each accepting the calculator filter language:
 
-| Tool                                                       | Returns                                                                                |
-| ---------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `admin.summary`                                            | Sources, counts by trace, name and error, the time range                               |
-| `admin.listTraces({ filter, page, pageSize })`             | Root name, duration, span count, error count, route, and a cursor                      |
-| `admin.getTrace({ traceId, depth, cursor })`               | A summarized span tree with truncated values and child counts. Deeper pages via cursor |
-| `admin.search({ filter, cursor })`                         | Matching records, summarized                                                           |
-| `admin.getRecord({ id })`                                  | The full record, with cause ids resolved to names                                      |
-| `admin.getState({ path })`                                 | A subtree of the state tree                                                            |
-| `admin.setAtom`, `admin.callAction`                        | Dev control, same permissions as the UI                                                |
-| `admin.clear`, `admin.selectSource`, `admin.connectRemote` | Housekeeping                                                                           |
+| Tool                                                                            | Returns                                                                                                    |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `admin.summary`                                                                 | Sources, counts by trace, name and error, the time range                                                   |
+| `admin.listTraces({ filter, page, pageSize })`                                  | Root name, duration, span count, error count, route, and a cursor                                          |
+| `admin.getTrace({ traceId, depth, cursor })`                                    | A summarized span tree with truncated values and child counts. Deeper pages via cursor                     |
+| `admin.search({ filter, cursor })`                                              | Matching records, summarized                                                                               |
+| `admin.analyticsSummary({ filter, segment, range, limit })`                     | Totals, a UTC session trend, and breakdown rows. `filter.mode` is ignored; `segment` is include or exclude |
+| `admin.paths({ filter, segment, range, align, maxDepth, maxChildren, cursor })` | Summarized path nodes. `maxDepth` is 1–20 and `maxChildren` is 1–50. `filter.mode` is ignored              |
+| `admin.getRecord({ id })`                                                       | The full record, with cause ids resolved to names                                                          |
+| `admin.getState({ path })`                                                      | A subtree of the state tree                                                                                |
+| `admin.setAtom`, `admin.callAction`                                             | Dev control, same permissions as the UI                                                                    |
+| `admin.clear`, `admin.selectSource`, `admin.connectRemote`                      | Housekeeping                                                                                               |
 
 Every response is capped (default 20 KB), with `nextCursor` and a summary header, so a large trace never floods the agent's context (Д34). Custom attributes (`reatom.*`, `app.*`) are always included; the Maple MCP lacked this, which made it useless (Vlad). As of Maple HEAD 2026-10 its MCP returns custom attributes, but only in the cloud, not in local mode.
 
