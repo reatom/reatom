@@ -541,7 +541,7 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
   }
   const adoptArrivedSpans = (
     selected: AdminRecord | null,
-    expanded: ReadonlySet<AdminRecord>,
+    expandedInProgress: readonly AdminRecord[],
   ) => {
     const spans = new Map<string, AdminRecord>()
     for (const record of store.records()) {
@@ -549,7 +549,7 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
         spans.set(adminRecordSpanKey(record), record)
       }
     }
-    for (const node of expanded) {
+    for (const node of expandedInProgress) {
       if (!isInProgressRecord(node)) continue
       const span = spans.get(adminRecordSpanKey(node))
       if (!span) continue
@@ -570,10 +570,12 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
   }
   const ingest = action((incoming: readonly unknown[]) => {
     const selected = selectedRecord()
-    const expanded = new Set(gantt.expanded())
+    const expandedInProgress = inProgress().filter((record) =>
+      gantt.isExpanded(record),
+    )
     store.ingest(incoming)
     syncInProgress()
-    adoptArrivedSpans(selected, expanded)
+    adoptArrivedSpans(selected, expandedInProgress)
   }, `${PREFIX}.ingestBatch`)
   const stopInProgress = effect(() => {
     quickFiltered()

@@ -39,7 +39,7 @@ export interface GanttBar {
   width: number
 }
 
-export interface GanttOptions<Node> {
+export interface GanttOptions<Node, Key = Node> {
   /** Start time of a node. Instants and bars share this axis. */
   start: (node: Node) => number
   /** End time of a node. `undefined` makes it an instant (a zero-width bar). */
@@ -48,6 +48,16 @@ export interface GanttOptions<Node> {
   id?: (node: Node) => string | undefined
   /** Key of the parent node. A node whose parent is not in the source is a root. */
   parentId?: (node: Node) => string | undefined
+  /**
+   * Identity for the expand set and for resolving `selected`. Defaults to the
+   * node object. Pass a stable key when the source rebuilds node objects.
+   */
+  key?: (node: Node) => Key
+  /**
+   * Order of roots and of siblings in waterfall mode. Log mode always orders by
+   * start. Defaults to start order.
+   */
+  order?: (left: Node, right: Node) => number
   /** Initial mode. Defaults to `waterfall`. */
   mode?: GanttMode
   /**
@@ -60,7 +70,7 @@ export interface GanttOptions<Node> {
 export type GanttSource<Node> =
   Computed<ReadonlyArray<Node>> | LinkedListLikeAtom<LinkedList<Node & LLNode>>
 
-export interface Gantt<Node> {
+export interface Gantt<Node, Key = Node> {
   /** Current row sequence: the same node objects the source holds. */
   rows: Computed<ReadonlyArray<Node>>
   /**
@@ -70,8 +80,8 @@ export interface Gantt<Node> {
   virtual: VirtualAtom<Node>
 
   mode: Atom<GanttMode>
-  /** Nodes whose children are shown in waterfall mode. */
-  expanded: Atom<ReadonlySet<Node>>
+  /** Keys whose children are shown in waterfall mode. */
+  expanded: Atom<ReadonlySet<Key>>
   expand: Action<[node: Node], void>
   collapse: Action<[node: Node], void>
   toggle: Action<[node: Node], void>
@@ -79,7 +89,7 @@ export interface Gantt<Node> {
   expandAll: Action<[], void>
   collapseAll: Action<[], void>
   isExpanded: (node: Node) => boolean
-  /** Children of a node in start order, whether or not they are visible. */
+  /** Children of a node in waterfall order, whether or not they are visible. */
   children: (node: Node) => ReadonlyArray<Node>
   /** Tree depth of a visible row; `0` for roots and in log mode. */
   depth: (node: Node) => number
@@ -113,7 +123,7 @@ export interface Gantt<Node> {
   /** Scrolls the least distance that makes the row visible. */
   scrollToRow: Action<[node: Node], void>
 
-  selected: Atom<null | Node>
+  selected: Computed<null | Node>
   select: Action<[node: null | Node], void>
   /**
    * Moves the selection by `delta` rows and scrolls to it. Without a visible
@@ -173,8 +183,11 @@ export const barGeometry = (
  * @remarks
  *   The source is a `reatomLinkedList`, a `reatomMap` list, or any atom of an
  *   array, for example a computed of filtered records. Gantt keeps no copy of
- *   the nodes: `rows` and `virtual.items` hold the same objects, and the expand
- *   set and the selection are keyed by node identity.
+ *   the nodes: `rows` and `virtual.items` hold the same objects. Without `key`,
+ *   the expand set and the selection use node identity, and a selected node
+ *   stays selected after it leaves the source. With `key`, expansion stores
+ *   keys and `selected` resolves to the current node with that key, or `null`
+ *   once the key leaves the source.
  *
  *   `rows` is rebuilt on every source change: O(n) in log mode when the source is
  *   already in start order (the source array is reused), O(n log n) otherwise;
@@ -206,29 +219,34 @@ export const barGeometry = (
  *     return renderRow(row, gantt.depth(row), bar && bar.left * trackWidth)
  *   })
  */
-export function reatomGantt<Node extends LLNode>(
+export function reatomGantt<Node extends LLNode, Key = Node>(
   source: LinkedListLikeAtom<LinkedList<Node>>,
-  options: GanttOptions<Node>,
+  options: GanttOptions<Node, Key>,
   name?: string,
-): Gantt<Node>
+): Gantt<Node, Key>
 
-export function reatomGantt<Node>(
+export function reatomGantt<Node, Key = Node>(
   source: Computed<ReadonlyArray<Node>>,
-  options: GanttOptions<Node>,
+  options: GanttOptions<Node, Key>,
   name?: string,
-): Gantt<Node>
+): Gantt<Node, Key>
 
-export function reatomGantt<Node>(
+export function reatomGantt<Node, Key = Node>(
   source: GanttSource<Node>,
-  options: GanttOptions<Node>,
+  options: GanttOptions<Node, Key>,
   name: string = named('gantt'),
-): Gantt<Node> {
+): Gantt<Node, Key> {
   const {
     start: getStart,
     end: getEnd,
     id: getId,
     parentId: getParentId,
+    order: compareNodes,
   } = options
+  const keyOf: (node: Node) => Key =
+    options.key ?? ((node: Node) => node as unknown as Key)
+  const place = (list: ReadonlyArray<Node>): ReadonlyArray<Node> =>
+    compareNodes ? [...list].sort(compareNodes) : sortByStart(list, getStart)
 
   const nodes = computed(
     (): ReadonlyArray<Node> =>
@@ -239,13 +257,13 @@ export function reatomGantt<Node>(
   )
 
   const mode = atom<GanttMode>(options.mode ?? 'waterfall', `${name}.mode`)
-  const expanded = atom<ReadonlySet<Node>>(new Set<Node>(), `${name}.expanded`)
+  const expanded = atom<ReadonlySet<Key>>(new Set<Key>(), `${name}.expanded`)
 
   const tree = computed((): GanttTree<Node> => {
     const allNodes = nodes()
     const children = new Map<Node, ReadonlyArray<Node>>()
     if (!getId || !getParentId) {
-      return { roots: sortByStart(allNodes, getStart), children }
+      return { roots: place(allNodes), children }
     }
 
     const nodesById = new Map<string, Node>()
@@ -269,10 +287,10 @@ export function reatomGantt<Node>(
       else childLists.set(parent, [node])
     }
     for (const [parent, siblings] of childLists) {
-      children.set(parent, sortByStart(siblings, getStart))
+      children.set(parent, place(siblings))
     }
 
-    return { roots: sortByStart(roots, getStart), children }
+    return { roots: place(roots), children }
   }, `${name}.tree`)
 
   const layout = computed((): GanttLayout<Node> => {
@@ -285,7 +303,7 @@ export function reatomGantt<Node>(
     }
 
     const { roots, children } = tree()
-    const expandedNodes = expanded()
+    const expandedKeys = expanded()
     const rows: Array<Node> = []
     const depth = new Map<Node, number>()
     const rootIndexes: Array<number> = []
@@ -298,7 +316,7 @@ export function reatomGantt<Node>(
       if (level === 0) rootIndexes.push(rows.length)
       depth.set(node, level)
       rows.push(node)
-      const visibleChildren = expandedNodes.has(node)
+      const visibleChildren = expandedKeys.has(keyOf(node))
         ? children.get(node)
         : undefined
       if (visibleChildren) {
@@ -319,11 +337,12 @@ export function reatomGantt<Node>(
   )
 
   const updateExpanded = (node: Node, shouldExpand: boolean) => {
+    const key = keyOf(node)
     const current = expanded()
-    if (current.has(node) === shouldExpand) return
+    if (current.has(key) === shouldExpand) return
     const next = new Set(current)
-    if (shouldExpand) next.add(node)
-    else next.delete(node)
+    if (shouldExpand) next.add(key)
+    else next.delete(key)
     expanded.set(next)
   }
   const expand = action((node: Node) => {
@@ -333,15 +352,17 @@ export function reatomGantt<Node>(
     updateExpanded(node, false)
   }, `${name}.collapse`)
   const toggle = action((node: Node) => {
-    updateExpanded(node, !expanded().has(node))
+    updateExpanded(node, !expanded().has(keyOf(node)))
   }, `${name}.toggle`)
   const expandAll = action(() => {
-    expanded.set(new Set(tree().children.keys()))
+    expanded.set(
+      new Set([...tree().children.keys()].map((node) => keyOf(node))),
+    )
   }, `${name}.expandAll`)
   const collapseAll = action(() => {
-    expanded.set(new Set<Node>())
+    expanded.set(new Set<Key>())
   }, `${name}.collapseAll`)
-  const isExpanded = (node: Node) => expanded().has(node)
+  const isExpanded = (node: Node) => expanded().has(keyOf(node))
   const children = (node: Node) => tree().children.get(node) ?? NO_CHILDREN
   const depth = (node: Node) => layout().depth.get(node) ?? 0
 
@@ -395,6 +416,12 @@ export function reatomGantt<Node>(
 
   const rowIndexAt = (time: number): number => {
     const { rows: allRows, rootIndexes } = layout()
+    if (compareNodes && rootIndexes) {
+      for (const rowIndex of rootIndexes) {
+        if (getStart(allRows[rowIndex]!) >= time) return rowIndex
+      }
+      return allRows.length
+    }
     const searchCount = rootIndexes ? rootIndexes.length : allRows.length
     const rowIndexOf = (searchIndex: number) =>
       rootIndexes ? rootIndexes[searchIndex]! : searchIndex
@@ -417,9 +444,22 @@ export function reatomGantt<Node>(
     if (index !== -1) virtual.scrollToIndex(index, 'nearest')
   }, `${name}.scrollToRow`)
 
-  const selected = atom<null | Node>(null, `${name}.selected`)
+  const selectedNode = atom<null | Node>(null, `${name}._selectedNode`)
+  const nodesByKey =
+    options.key === undefined
+      ? null
+      : computed(() => {
+          const byKey = new Map<Key, Node>()
+          for (const node of nodes()) byKey.set(keyOf(node), node)
+          return byKey
+        }, `${name}.nodesByKey`)
+  const selected = computed((): null | Node => {
+    const stored = selectedNode()
+    if (stored === null || nodesByKey === null) return stored
+    return nodesByKey().get(keyOf(stored)) ?? null
+  }, `${name}.selected`)
   const select = action((node: null | Node) => {
-    selected.set(node)
+    selectedNode.set(node)
   }, `${name}.select`)
   const moveSelection = action((delta: number) => {
     const allRows = rows()
@@ -434,7 +474,7 @@ export function reatomGantt<Node>(
           : lastIndex
         : Math.max(0, Math.min(currentIndex + delta, lastIndex))
     const nextNode = allRows[nextIndex]!
-    selected.set(nextNode)
+    selectedNode.set(nextNode)
     scrollToRow(nextNode)
   }, `${name}.moveSelection`)
 

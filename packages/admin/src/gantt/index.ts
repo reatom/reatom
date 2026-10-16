@@ -4,6 +4,7 @@ export {
   adminRecordSpanKey,
   adminRecordTiming,
 } from './records'
+export { analyticsPathTiming } from './paths'
 export { barGeometry, reatomGantt } from './reatomGantt'
 export { reatomGanttRecordSelection } from './selection'
 export type {

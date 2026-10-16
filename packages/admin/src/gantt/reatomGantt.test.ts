@@ -412,3 +412,81 @@ describe('selection', () => {
     expect(gantt.selected()).toBe(nodes[5])
   })
 })
+
+describe('keys and order', () => {
+  const byId = {
+    ...timing,
+    key: (node: Span) => node.id,
+  }
+  const byLabel = (left: Span, right: Span) =>
+    left.id < right.id ? -1 : left.id > right.id ? 1 : 0
+
+  test('expansion survives a source rebuilt from new objects with the same keys', () => {
+    const source = atom([span('a', 0, 100), span('a1', 10, 40, 'a')])
+    const gantt = reatomGantt(source, byId)
+    gantt.expand(source()[0]!)
+    const rebuilt = [
+      span('a', 0, 100),
+      span('a1', 10, 40, 'a'),
+      span('a2', 50, 90, 'a'),
+    ]
+    source.set(rebuilt)
+    expect(gantt.isExpanded(rebuilt[0]!)).toBe(true)
+    expect([...gantt.expanded()]).toEqual(['a'])
+    expect(gantt.rows().map(({ id }) => id)).toEqual(['a', 'a1', 'a2'])
+  })
+
+  test('selected resolves to the rebuilt node and is null once the key disappears', () => {
+    const source = atom([span('a', 0), span('b', 1)])
+    const gantt = reatomGantt(source, { ...byId, mode: 'log' })
+    gantt.select(source()[0]!)
+    const rebuilt = [span('a', 0), span('b', 1)]
+    source.set(rebuilt)
+    expect(gantt.selected()).toBe(rebuilt[0])
+    source.set([span('b', 1)])
+    expect(gantt.selected()).toBeNull()
+  })
+
+  test('moveSelection after a rebuild uses the resolved node', () => {
+    const source = atom([span('a', 0), span('b', 1), span('c', 2)])
+    const gantt = reatomGantt(source, { ...byId, mode: 'log' })
+    gantt.select(source()[0]!)
+    const rebuilt = [span('a', 0), span('b', 1), span('c', 2)]
+    source.set(rebuilt)
+    gantt.moveSelection(1)
+    expect(gantt.selected()).toBe(rebuilt[1])
+  })
+
+  test('expandAll stores keys', () => {
+    const gantt = reatomGantt(atom(tree()), byId)
+    gantt.expandAll()
+    expect(gantt.expanded()).toEqual(new Set(['a', 'a1', 'b']))
+  })
+
+  test('order sorts roots and siblings in waterfall while log stays in start order', () => {
+    const nodes = [
+      span('b', 0, 10),
+      span('a', 5, 20),
+      span('a2', 6, 8, 'a'),
+      span('a1', 7, 9, 'a'),
+    ]
+    const gantt = reatomGantt(atom(nodes), { ...timing, order: byLabel })
+    expect(gantt.rows().map(({ id }) => id)).toEqual(['a', 'b'])
+    gantt.expandAll()
+    expect(gantt.rows().map(({ id }) => id)).toEqual(['a', 'a1', 'a2', 'b'])
+    gantt.mode.set('log')
+    expect(gantt.rows().map(({ id }) => id)).toEqual(['b', 'a', 'a2', 'a1'])
+  })
+
+  test('rowIndexAt with order follows the root row order', () => {
+    const nodes = [span('late', 100, 110), span('early', 0, 10)]
+    const gantt = reatomGantt(atom(nodes), {
+      ...timing,
+      order: (left, right) =>
+        left.id < right.id ? 1 : left.id > right.id ? -1 : 0,
+    })
+    expect(gantt.rows().map(({ id }) => id)).toEqual(['late', 'early'])
+    expect(gantt.rowIndexAt(50)).toBe(0)
+    expect(gantt.rowIndexAt(200)).toBe(2)
+  })
+})

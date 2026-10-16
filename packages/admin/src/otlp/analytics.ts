@@ -763,6 +763,22 @@ export function typicalAnalyticsPath(
   return [...follow('before').reverse(), root, ...follow('after')]
 }
 
+const pathDirectionRank = (direction: AnalyticsPathDirection) =>
+  direction === 'before' ? 0 : direction === 'after' ? 2 : 1
+
+/** Waterfall order: steps before the alignment point, then after; folded last. */
+export function compareAnalyticsPathNodes(
+  left: AnalyticsPathNode,
+  right: AnalyticsPathNode,
+): number {
+  const byDirection =
+    pathDirectionRank(left.direction) - pathDirectionRank(right.direction)
+  if (byDirection !== 0) return byDirection
+  if (left.folded !== right.folded) return left.folded ? 1 : -1
+  if (left.sessions !== right.sessions) return right.sessions - left.sessions
+  return compareText(left.label, right.label)
+}
+
 /** A real session that followed the whole path in the median time. */
 export function typicalAnalyticsSession(
   sessions: readonly AnalyticsSession[],
