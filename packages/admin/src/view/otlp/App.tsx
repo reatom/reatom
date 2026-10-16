@@ -37,6 +37,7 @@ import { ADMIN_HOST_Z_INDEX, keepAdminHostInView } from '../hostBox'
 import { bindAdminStylesheet } from '../stylesheet'
 import { importRecordFile } from '../../otlp/importRecords'
 import { adminSettings, bindAdminPalette } from '../settings'
+import { OtlpAnalyticsScreen, analystStatusWords } from './AnalyticsScreen'
 import { closeFrameCard, OtlpFrameCard } from './FrameCard'
 import { OtlpFilterBar } from './FilterBar'
 import { floatAdminHost, type FloatingWindowOptions } from './FloatingWindow'
@@ -354,7 +355,7 @@ export const OtlpApp = ({
         if (view === 'settings') return <SettingsScreen />
         if (view === 'state') return <OtlpStateView admin={admin} />
         if (view === 'graph') return <OtlpGraphView admin={admin} />
-        if (view === 'analytics') return <div data-testid="otlp-analytics" />
+        if (view === 'analytics') return <OtlpAnalyticsScreen admin={admin} />
         if (admin.timelineUnit() === 'paths') {
           return (
             <OtlpGanttChart
@@ -385,11 +386,7 @@ export const OtlpApp = ({
           const analyst =
             admin.view() === 'analytics' ||
             (admin.view() === 'timeline' && admin.timelineUnit() === 'paths')
-          if (analyst) {
-            const shown = admin.analytics.segment().length
-            const total = admin.analytics.sessions().length
-            return `${shown} of ${total} consented sessions`
-          }
+          if (analyst) return analystStatusWords(admin)
           const summary = admin.summary()
           return `${summary.visibleFrames} of ${summary.totalFrames}`
         }}

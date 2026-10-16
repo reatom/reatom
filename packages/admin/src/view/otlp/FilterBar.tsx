@@ -3,7 +3,13 @@ import { atom, peek } from '@reatom/core'
 import type { OtlpAdmin } from '../../otlp'
 import { hasActiveFilter } from '../../otlp'
 import type { AdminRecord, AdminRecordKind, AdminReatomKind } from '../../otlp'
-import { Button, Disclosure, SearchField, truncate, type } from '../design-system'
+import {
+  Button,
+  Disclosure,
+  SearchField,
+  truncate,
+  type,
+} from '../design-system'
 import { FilterCalculator } from './FilterCalculator'
 import { KindMark } from './KindMark'
 import type { RecordKindName } from './recordKind'
@@ -77,6 +83,61 @@ export const OtlpFilterBar = ({ admin }: { admin: OtlpAdmin }) => {
         shortcut=""
         testId="filter-value"
       />
+      {() => {
+        const scope = admin.analytics.scope()
+        if (scope === null) return null
+        return (
+          <span
+            data-testid="analytics-scope"
+            css={`
+              display: inline-flex;
+              align-items: center;
+              gap: var(--admin-space-4);
+            `}
+          >
+            <span>{scope.label}</span>
+            <Button
+              variant="ghost"
+              label="Remove session scope"
+              onClick={() => admin.analytics.clearScope()}
+            >
+              Remove session scope
+            </Button>
+          </span>
+        )
+      }}
+      {() =>
+        admin.view() === 'analytics' ||
+        (admin.view() === 'timeline' && admin.timelineUnit() === 'paths') ? (
+          <span
+            css={`
+              display: inline-flex;
+              gap: var(--admin-space-4);
+            `}
+          >
+            <Button
+              variant="ghost"
+              label="Include"
+              testId="analytics-segment-include"
+              pressed={() => admin.analytics.segmentMode() === 'include'}
+              disabled={() => !hasActiveFilter(admin.filter())}
+              onClick={() => admin.analytics.segmentMode.set('include')}
+            >
+              Include
+            </Button>
+            <Button
+              variant="ghost"
+              label="Exclude"
+              testId="analytics-segment-exclude"
+              pressed={() => admin.analytics.segmentMode() === 'exclude'}
+              disabled={() => !hasActiveFilter(admin.filter())}
+              onClick={() => admin.analytics.segmentMode.set('exclude')}
+            >
+              Exclude
+            </Button>
+          </span>
+        ) : null
+      }
       <Button
         variant="ghost"
         label="Errors"
