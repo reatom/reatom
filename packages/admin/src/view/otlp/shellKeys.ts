@@ -95,7 +95,8 @@ export function handleAdminShellKey(
   }
   event.preventDefault()
   if (pathsUnit) {
-    admin.cardOpen.setTrue()
+    if (paths.selected() === null) paths.moveSelection(1)
+    if (paths.selected() !== null) admin.cardOpen.setTrue()
     return
   }
   if (admin.selectedRecord() === null) admin.ganttSelection.move(1)
