@@ -1,26 +1,34 @@
 import { ADMIN_FRAME } from '../root'
 import type { OtlpAdmin } from '../otlp/chrome.ts'
 import {
+  analyticsSummaryTool,
   clearTool,
   connectRemoteTool,
   getRecordTool,
   getStateTool,
   getTraceTool,
   listTracesTool,
+  pathsTool,
   searchTool,
   summaryTool,
 } from './tools.ts'
 import type {
+  AdminMcpAnalyticsSummaryInput,
   AdminMcpConnectRemoteInput,
   AdminMcpGetRecordInput,
   AdminMcpGetStateInput,
   AdminMcpGetTraceInput,
   AdminMcpListTracesInput,
+  AdminMcpPathsInput,
   AdminMcpSearchInput,
 } from './types.ts'
 
 export { ADMIN_MCP_MAX_BYTES } from './types.ts'
 export type {
+  AdminMcpAnalyticsSummaryData,
+  AdminMcpAnalyticsSummaryInput,
+  AdminMcpAnalyticsTotals,
+  AdminMcpBreakdownRow,
   AdminMcpCause,
   AdminMcpConnectRemoteInput,
   AdminMcpFilter,
@@ -31,6 +39,9 @@ export type {
   AdminMcpListTracesInput,
   AdminMcpMiss,
   AdminMcpOk,
+  AdminMcpPathNode,
+  AdminMcpPathsData,
+  AdminMcpPathsInput,
   AdminMcpRecordData,
   AdminMcpRecordSummary,
   AdminMcpResult,
@@ -61,6 +72,10 @@ export function reatomOtlpMcp(admin: OtlpAdmin) {
       run(() => getTraceTool(admin, input)),
     search: (input: AdminMcpSearchInput = {}) =>
       run(() => searchTool(admin, input)),
+    analyticsSummary: (input: AdminMcpAnalyticsSummaryInput = {}) =>
+      run(() => analyticsSummaryTool(admin, input)),
+    paths: (input: AdminMcpPathsInput = {}) =>
+      run(() => pathsTool(admin, input)),
     getRecord: (input: AdminMcpGetRecordInput = {}) =>
       run(() => getRecordTool(admin, input)),
     getState: (input: AdminMcpGetStateInput = {}) =>

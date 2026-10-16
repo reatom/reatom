@@ -86,7 +86,32 @@ export type { ClickHouseCredentials } from './clickhouse.ts'
 export { reatomOtlpStore } from './ingest.ts'
 export { recordValues, recordValuesText } from './values.ts'
 export { ADMIN_MCP_MAX_BYTES, reatomOtlpMcp } from '../mcp/index.ts'
-export type { AdminMcpFilter, AdminMcpHeader, OtlpMcp } from '../mcp/index.ts'
+export type {
+  AdminMcpAnalyticsSummaryData,
+  AdminMcpAnalyticsSummaryInput,
+  AdminMcpAnalyticsTotals,
+  AdminMcpBreakdownRow,
+  AdminMcpFilter,
+  AdminMcpHeader,
+  AdminMcpPathNode,
+  AdminMcpPathsData,
+  AdminMcpPathsInput,
+  OtlpMcp,
+} from '../mcp/index.ts'
+export type {
+  AnalyticsBreakdownRow,
+  AnalyticsDimension,
+  AnalyticsPathNode,
+  AnalyticsSegmentMode,
+  AnalyticsSession,
+  AnalyticsTotals,
+  AnalyticsTrend,
+} from './analytics.ts'
+export type {
+  AnalyticsSessionScope,
+  OtlpAnalytics,
+  OtlpTimelineUnit,
+} from './analyticsModel.ts'
 export type {
   AdminLocalValues,
   AdminRecord,
