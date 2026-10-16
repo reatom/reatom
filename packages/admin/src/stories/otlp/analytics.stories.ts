@@ -118,7 +118,24 @@ export const PathsUnit: Story = {
       expect(
         root.querySelector('[data-testid="gantt-summary"]')?.textContent,
       ).toContain('aligned at /cart')
+      const alignAt = root.querySelector('select[aria-label="Align at"]')
+      expect(alignAt).toBeInstanceOf(HTMLSelectElement)
+      expect((alignAt as HTMLSelectElement).value).toBe('/cart')
     })
+
+    const name = root.querySelector('[data-testid="filter-name"]')
+    if (!(name instanceof HTMLInputElement)) {
+      throw new Error('Name filter missing')
+    }
+    name.value = 'no-such-record'
+    name.dispatchEvent(new Event('input', { bubbles: true }))
+    await waitFor(() => {
+      const alignAt = root.querySelector('select[aria-label="Align at"]')
+      expect(alignAt).toBeInstanceOf(HTMLSelectElement)
+      expect((alignAt as HTMLSelectElement).value).toBe('/cart')
+    })
+    name.value = ''
+    name.dispatchEvent(new Event('input', { bubbles: true }))
 
     const open = root.querySelector(
       '[data-testid="gantt-open-typical-session"]',
@@ -133,6 +150,26 @@ export const PathsUnit: Story = {
           .querySelector('[data-testid="gantt-mode-waterfall"]')
           ?.getAttribute('aria-pressed'),
       ).toBe('true')
+      expect(
+        root.querySelector('[data-testid="analytics-scope"]')?.textContent,
+      ).toContain('Typical session')
+      const recordLabels = [
+        ...root.querySelectorAll('[data-testid="gantt-row"][data-record-id]'),
+      ].map(
+        (row) =>
+          row.querySelector('[data-testid="gantt-row-label"]')?.textContent,
+      )
+      expect(recordLabels.filter((label) => label !== 'In progress')).toEqual([
+        'session.start',
+        'app.page_view',
+        'app.page.engagement',
+        'app.page_view',
+        'app.page.engagement',
+        'app.page_view',
+        'app.page.engagement',
+        'app.page_view',
+        'app.page.engagement',
+      ])
       const card = root.querySelector('[data-reatom-name="FrameCard"]')
       expect(card?.textContent).toContain('app.page_view')
       expect(card?.textContent).toContain('url.path')
