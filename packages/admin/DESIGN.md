@@ -43,7 +43,7 @@ Saved for this connection:
 - The migration area is `src/view/design-system`. Tokens in [`src/view/design-system/tokens.ts`](src/view/design-system/tokens.ts) and shared CSS in [`src/view/design-system/mixins.ts`](src/view/design-system/mixins.ts) are the token source, not UI contracts.
 - Verification runs. Structural contract checks, index checks, typecheck when types move, and the design-system stories for new or restyled kit pieces all run.
 - Craft after that migration adds only the entities the kit did not already cover: Drawer, Toast, Popover, Disclosure, Kbd, Inspector, the debugger-workspace layout, and the inspect-record, filter-records, and undoable-destructive-action patterns.
-- `GanttChart` stays product UI in `src/view/otlp`. It has one consumer and is typed to the admin record. It may compose kit components. It is not a kit entity.
+- `GanttChart` stays product UI in `src/view/otlp`. It is typed by a row adapter; two consumers, records and paths. It may compose kit components. It is not a kit entity.
 - Inspector in [`src/view/inspector`](src/view/inspector/Inspector.tsx) is the contracted value tree. Other views outside `src/view/design-system` stay unmanaged. Later cleanup removes the legacy admin modules. This setup does not document those other views.
 
 ## Design-system sources
@@ -87,7 +87,7 @@ Open gaps: [journal](design-system/gaps.md). Closed entries move in full to `des
 
 The Gantt UI composes this kit and keeps its own record, time-axis, and selection behavior.
 
-- View switches for Timeline, State, and Graph use Tabs. InspectorTabs is only the four sections of one record: Overview, Cause Chain, History, and JSON.
+- View switches for Timeline, State, Graph, and Analytics use Tabs. Timeline unit buttons are Waterfall, Log, and Paths. InspectorTabs is only the four sections of one record: Overview, Cause Chain, History, and JSON.
 - Overview shows that record's state or payload, then its params, in one column and without headings. The value trees start expanded, including nested collections. Attributes, causes, effects, and resource are not on Overview. Analytics event logs (`app.*`, `session.*`) show event attributes on Overview (R26 G5). Cause Chain keeps the cause graph and Open in Graph.
 - The wide frame card uses the debugger-workspace side pane, which is a SplitPane. Below 680px of shell width the same card is a Drawer. Do not use a viewport media query for that switch.
 - Name search and value search use SearchField. On/off filters use Button `variant="ghost"` with `pressed`. Advanced filter options use Disclosure, collapsed by default. Reset uses Button without `pressed`.

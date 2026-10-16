@@ -2,6 +2,7 @@ import { atom } from '@reatom/core'
 import { afterEach, expect, test, vi } from 'test'
 
 import { reatomOtlpAdmin } from '../../otlp'
+import { shopOtlpLogs } from '../../otlp/fixtures/analyticsRecords'
 import { ADMIN_FRAME } from '../../root'
 import { adminSettings } from '../settings'
 import { handleAdminShellKey } from './shellKeys'
@@ -113,5 +114,28 @@ test('i and c toggle display settings unless the field is editable', () => {
   ADMIN_FRAME.run(() => {
     settings.icons.setTrue()
     settings.colors.setTrue()
+  })
+})
+
+test('paths unit keys move and expand the path gantt', () => {
+  vi.stubGlobal('Element', DomElement)
+  const admin = reatomOtlpAdmin({
+    sourceId: 'keys-paths',
+    resource: { 'service.name': 'keys-paths' },
+  })
+  const helpOpen = ADMIN_FRAME.run(() => atom(false, '_test.shell.help.paths'))
+  ADMIN_FRAME.run(() => {
+    admin.ingest(shopOtlpLogs())
+    admin.showPaths()
+    admin.analytics.paths.collapseAll()
+    handleAdminShellKey(shell, key('j'), admin, helpOpen)
+    const selected = admin.analytics.paths.selected()
+    expect(selected?.label).toBe('All sessions')
+    handleAdminShellKey(shell, key('ArrowRight'), admin, helpOpen)
+    expect(
+      selected !== null && admin.analytics.paths.isExpanded(selected),
+    ).toBe(true)
+    handleAdminShellKey(shell, key('Enter'), admin, helpOpen)
+    expect(admin.cardOpen()).toBe(true)
   })
 })

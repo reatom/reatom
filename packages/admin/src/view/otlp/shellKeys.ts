@@ -55,25 +55,35 @@ export function handleAdminShellKey(
     admin.selectionForward()
     return
   }
+  const pathsUnit =
+    admin.view() === 'timeline' && admin.timelineUnit() === 'paths'
+  const paths = admin.analytics.paths
   if (event.key === 'ArrowDown' || event.key === 'j' || event.key === 'J') {
     event.preventDefault()
-    admin.ganttSelection.move(1)
+    if (pathsUnit) paths.moveSelection(1)
+    else admin.ganttSelection.move(1)
     return
   }
   if (event.key === 'ArrowUp' || event.key === 'k' || event.key === 'K') {
     event.preventDefault()
-    admin.ganttSelection.move(-1)
+    if (pathsUnit) paths.moveSelection(-1)
+    else admin.ganttSelection.move(-1)
     return
   }
-  const selected = admin.gantt.selected()
-  if (event.key === 'ArrowRight' && selected) {
+  if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+    if (pathsUnit) {
+      const selected = paths.selected()
+      if (!selected) return
+      event.preventDefault()
+      if (event.key === 'ArrowRight') paths.expand(selected)
+      else paths.collapse(selected)
+      return
+    }
+    const selected = admin.gantt.selected()
+    if (!selected) return
     event.preventDefault()
-    admin.gantt.expand(selected)
-    return
-  }
-  if (event.key === 'ArrowLeft' && selected) {
-    event.preventDefault()
-    admin.gantt.collapse(selected)
+    if (event.key === 'ArrowRight') admin.gantt.expand(selected)
+    else admin.gantt.collapse(selected)
     return
   }
   if (event.key !== 'Enter') return
@@ -84,6 +94,10 @@ export function handleAdminShellKey(
     return
   }
   event.preventDefault()
+  if (pathsUnit) {
+    admin.cardOpen.setTrue()
+    return
+  }
   if (admin.selectedRecord() === null) admin.ganttSelection.move(1)
   if (admin.selectedRecord() !== null) admin.cardOpen.setTrue()
 }

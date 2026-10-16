@@ -1,6 +1,6 @@
 import type { OtlpAdmin } from '../../otlp'
 import { SplitPane, tokens } from '../design-system'
-import { OtlpGanttChart } from './GanttChart'
+import { OtlpGanttChart, recordRowAdapter } from './GanttChart'
 import { OtlpInspector } from './Inspector'
 
 export interface OtlpTimelineScreenProps {
@@ -23,7 +23,7 @@ export const OtlpTimelineScreen = ({ admin }: OtlpTimelineScreenProps) => {
           <OtlpGanttChart
             gantt={admin.gantt}
             admin={admin}
-            selection={admin.ganttSelection}
+            adapter={recordRowAdapter(admin, admin.ganttSelection)}
           />
         }
         right={

@@ -32,7 +32,7 @@ export interface DebuggerWorkspaceProps {
    * Dialog name when the card is a drawer, and the side region name when it is
    * beside the view.
    */
-  inspectorLabel: string
+  inspectorLabel: string | (() => string)
   inspectorOpen: Atom<boolean>
   /** The owner sets `inspectorOpen` false and returns focus to the selected row. */
   onInspectorClose: () => void
@@ -75,6 +75,8 @@ export const DebuggerWorkspace = ({
     </main>
   )
 
+  const readLabel = () =>
+    typeof inspectorLabel === 'function' ? inspectorLabel() : inspectorLabel
   const placement = () => {
     if (!inspectorOpen() || inspector === null) return 'closed' as const
     return narrow() ? ('drawer' as const) : ('side' as const)
@@ -147,6 +149,7 @@ export const DebuggerWorkspace = ({
       >
         {() => {
           const mode = placement()
+          const label = readLabel()
           if (mode === 'side' && inspector) {
             return (
               <SplitPane
@@ -154,7 +157,7 @@ export const DebuggerWorkspace = ({
                 left={mainPane}
                 right={
                   <aside
-                    aria-label={inspectorLabel}
+                    aria-label={label}
                     css={`
                       height: 100%;
                       min-width: 0;
@@ -183,7 +186,7 @@ export const DebuggerWorkspace = ({
               {mode === 'drawer' && inspector ? (
                 <Drawer
                   open={inspectorOpen}
-                  label={inspectorLabel}
+                  label={label}
                   onClose={onInspectorClose}
                 >
                   {inspector()}

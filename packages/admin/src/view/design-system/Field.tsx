@@ -82,7 +82,9 @@ export const SearchField = ({
 export interface SelectFieldProps<T extends string> {
   value: Atom<T>
   label: string
-  options: Array<{ value: T; label: string }>
+  options:
+    | Array<{ value: T; label: string }>
+    | (() => Array<{ value: T; label: string }>)
 }
 
 export const SelectField = <T extends string>({
@@ -90,6 +92,7 @@ export const SelectField = <T extends string>({
   label,
   options,
 }: SelectFieldProps<T>) => {
+  const optionList = () => (typeof options === 'function' ? options() : options)
   return (
     <label
       css={`
@@ -115,9 +118,11 @@ export const SelectField = <T extends string>({
           border-radius: ${radius[6]};
         `}
       >
-        {options.map((option) => (
-          <option value={option.value}>{option.label}</option>
-        ))}
+        {() =>
+          optionList().map((option) => (
+            <option value={option.value}>{option.label}</option>
+          ))
+        }
       </select>
     </label>
   )

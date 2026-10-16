@@ -37,7 +37,7 @@ Import `SearchField`, `SelectField`, and `NumberField` from `src/view/design-sys
 ```
 
 - `SearchField` `value` is the string atom. `label` is the accessible name. `placeholder` is the hint in the empty field. `shortcut` is the visible chord inside the field, default `⌘K`; pass an empty string to hide it. `testId` sets `data-testid`.
-- `SelectField` `value` is the atom. `label` is the accessible name. `options` is `{ value, label }[]` in the order shown. The caller owns which values are legal.
+- `SelectField` `value` is the atom. `label` is the accessible name. `options` is `{ value, label }[]`, or a function that returns that list, in the order shown. The caller owns which values are legal.
 - `NumberField` `label` is the visible label and the accessible name. `value` reads a number or `''`. `onChange` receives the next number or `''` when the field is cleared. `min`, `step`, and `placeholder` follow the native number input. Invalid text is ignored.
 
 The search field shows a decorative search icon. Tokens come from [tokens.ts](../../src/view/design-system/tokens.ts).
