@@ -4,6 +4,11 @@ import { size, soft, tokens, type } from './tokens'
 export interface DataGridColumn<T> {
   id: string
   header: string
+  /**
+   * Full phrase when `header` is abbreviated. Shown as the column tooltip so a
+   * short label still says what the numbers mean.
+   */
+  title?: string
   width?: string
   render: (row: T) => Element
 }
@@ -58,7 +63,11 @@ export const DataGrid = <T,>({
         background: ${tokens.canvas};
       `}
       on:keydown={(event: KeyboardEvent) => {
-        if (event.key === 'ArrowDown' || event.key === 'j' || event.key === 'J') {
+        if (
+          event.key === 'ArrowDown' ||
+          event.key === 'j' ||
+          event.key === 'J'
+        ) {
           event.preventDefault()
           selectByOffset(1)
           return
@@ -98,7 +107,16 @@ export const DataGrid = <T,>({
         `}
       >
         {columns.map((column) => (
-          <div role="columnheader">{column.header}</div>
+          <div
+            role="columnheader"
+            title={column.title}
+            css={`
+              min-width: 0;
+              white-space: nowrap;
+            `}
+          >
+            {column.header}
+          </div>
         ))}
       </div>
       {() => {

@@ -129,7 +129,10 @@ export const OtlpAnalyticsScreen = ({ admin }: { admin: OtlpAdmin }) => (
           <div
             css={`
               display: grid;
-              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+              grid-template-columns: repeat(
+                auto-fit,
+                minmax(min(100%, 760px), 1fr)
+              );
               gap: var(--admin-space-12);
               min-width: 0;
             `}
@@ -215,25 +218,27 @@ const BreakdownGrid = ({
     {
       id: 'sessions',
       header: 'Sessions',
-      width: '72px',
+      width: '80px',
       render: (row) => <span>{String(row.sessions)}</span>,
     },
     {
       id: 'visitors',
       header: 'Visitors',
-      width: '72px',
+      width: '76px',
       render: (row) => <span>{String(row.visitors)}</span>,
     },
     {
       id: 'pageViews',
-      header: 'Page views',
-      width: '80px',
+      header: 'Views',
+      title: 'Page views',
+      width: '64px',
       render: (row) => <span>{String(row.pageViews)}</span>,
     },
     {
       id: 'engaged',
-      header: 'Engaged %',
-      width: '80px',
+      header: 'Engaged',
+      title: 'Engaged %',
+      width: '76px',
       render: (row) => (
         <span>
           {analyticsPercentText(
@@ -245,8 +250,9 @@ const BreakdownGrid = ({
     },
     {
       id: 'active',
-      header: 'Median active',
-      width: '96px',
+      header: 'Active',
+      title: 'Median active',
+      width: '72px',
       render: (row) => <span>{formatAxisOffset(row.activeMs.median)}</span>,
     },
     {
@@ -305,7 +311,13 @@ const BreakdownGrid = ({
         css={`
           height: 280px;
           min-height: 0;
+          overflow-x: auto;
+          overflow-y: hidden;
           border: 1px solid ${tokens.border1};
+          & > [role='grid'] {
+            height: 100%;
+            min-width: 720px;
+          }
         `}
       >
         <DataGrid
