@@ -1,4 +1,4 @@
-import { atom, computed, effect, wrap, type Atom } from '@reatom/core'
+import { atom, computed, effect, wrap } from '@reatom/core'
 
 import type { Gantt, GanttTime } from '../../gantt'
 import { ADMIN_GANTT_ROW_HEIGHT as ROW_HEIGHT } from '../../gantt'
@@ -132,7 +132,7 @@ export function recordRowAdapter(
     label: (row) => recordLabel(row),
     barKind: (row) => recordKindIcon(row, admin.mountLogIds()),
     barVariant: 'span',
-    status: (row) => recordStatusIcon(row),
+    status: (row) => recordStatusIcon(row) ?? undefined,
     duration: (row) => recordDuration(row),
     isError: (row) => recordHasError(row),
     isSelected: (row) => admin.selectedRecordId() === row.id,
@@ -832,7 +832,7 @@ export const OtlpGanttChart = <Node, Key = Node>({
     (row) =>
       adapter.barVariant === 'span' ? (
         <GanttRow
-          gantt={gantt as Gantt<AdminRecord>}
+          gantt={gantt as unknown as Gantt<AdminRecord>}
           admin={admin}
           adapter={adapter as GanttRowAdapter<AdminRecord>}
           row={row as AdminRecord}
@@ -841,7 +841,7 @@ export const OtlpGanttChart = <Node, Key = Node>({
         />
       ) : (
         <PathGanttRow
-          gantt={gantt as Gantt<AnalyticsPathNode, string>}
+          gantt={gantt as unknown as Gantt<AnalyticsPathNode, string>}
           adapter={adapter as GanttRowAdapter<AnalyticsPathNode>}
           row={row as AnalyticsPathNode}
           rowIndex={() => rowIndexes().get(row) ?? 0}
@@ -1003,39 +1003,37 @@ export const OtlpGanttChart = <Node, Key = Node>({
                 Paths
               </Button>
             </ToolbarGroup>
-            {() =>
-              admin.timelineUnit() === 'paths' ? (
-                <ToolbarGroup>
-                  <SelectField
-                    value={alignChoice}
-                    label="Align at"
-                    options={() => [
-                      { value: '', label: 'Session start' },
-                      ...admin.analytics.breakdowns().page.map((row) => ({
-                        value: row.key,
-                        label: row.key,
-                      })),
-                    ]}
-                  />
-                  <Button
-                    variant="secondary"
-                    label="Typical path"
-                    testId="gantt-typical-path"
-                    onClick={() => admin.analytics.expandTypicalPath()}
-                  >
-                    Typical path
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    label="Open typical session"
-                    testId="gantt-open-typical-session"
-                    onClick={() => admin.openTypicalSession()}
-                  >
-                    Open typical session
-                  </Button>
-                </ToolbarGroup>
-              ) : null
-            }
+            {adapter.barVariant === 'aggregate' ? (
+              <ToolbarGroup>
+                <SelectField
+                  value={alignChoice}
+                  label="Align at"
+                  options={() => [
+                    { value: '', label: 'Session start' },
+                    ...admin.analytics.breakdowns().page.map((row) => ({
+                      value: row.key,
+                      label: row.key,
+                    })),
+                  ]}
+                />
+                <Button
+                  variant="secondary"
+                  label="Typical path"
+                  testId="gantt-typical-path"
+                  onClick={() => admin.analytics.expandTypicalPath()}
+                >
+                  Typical path
+                </Button>
+                <Button
+                  variant="secondary"
+                  label="Open typical session"
+                  testId="gantt-open-typical-session"
+                  onClick={() => admin.openTypicalSession()}
+                >
+                  Open typical session
+                </Button>
+              </ToolbarGroup>
+            ) : null}
             <ToolbarSpacer />
             {adapter.live ? (
               <span>
