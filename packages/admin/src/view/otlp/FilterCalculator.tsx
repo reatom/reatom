@@ -37,7 +37,11 @@ const SAVED_STORAGE_KEY = '_Admin.filter.saved.v1'
 const MODE_KEYS: Array<{ mode: FilterMode; label: string; hint: string }> = [
   { mode: 'show', label: 'Show only', hint: 'Only matching records stay' },
   { mode: 'hide', label: 'Hide', hint: 'Matching records disappear' },
-  { mode: 'highlight', label: 'Highlight', hint: 'Matching records are marked' },
+  {
+    mode: 'highlight',
+    label: 'Highlight',
+    hint: 'Matching records are marked',
+  },
 ]
 
 let calculatorCounter = 0
@@ -85,13 +89,14 @@ export interface FilterCalculatorProps {
 }
 
 /**
- * Filter calculator: a display with the expression and its live result,
- * keypads for logic, targets, comparisons, and values seen in the records,
- * a per-clause breakdown, the match mode, and saved expressions.
+ * Filter calculator: a display with the expression and its live result, keypads
+ * for logic, targets, comparisons, and values seen in the records, a per-clause
+ * breakdown, the match mode, and saved expressions.
  */
 export const FilterCalculator = ({ admin, draft }: FilterCalculatorProps) => {
   const calculatorId = ++calculatorCounter
-  const name = (part: string) => `_Admin.filter.calculator.${calculatorId}.${part}`
+  const name = (part: string) =>
+    `_Admin.filter.calculator.${calculatorId}.${part}`
 
   const savedBase = atom<string[]>([], name('saved'))
   const saved = canPersistToLocalStorage()
@@ -99,7 +104,10 @@ export const FilterCalculator = ({ admin, draft }: FilterCalculatorProps) => {
     : savedBase
 
   const parsedDraft = computed(() => parseCalculator(draft()), name('parsed'))
-  const inputState = computed(() => calculatorInputState(draft()), name('inputState'))
+  const inputState = computed(
+    () => calculatorInputState(draft()),
+    name('inputState'),
+  )
   const isApplied = computed(
     () => draft().trim() === admin.filterCalculator().trim(),
     name('isApplied'),
@@ -340,7 +348,11 @@ export const FilterCalculator = ({ admin, draft }: FilterCalculatorProps) => {
           {() => {
             const parsed = parsedDraft()
             if (!parsed.ok) {
-              return <span role="alert" data-tone="error">{parsed.error}</span>
+              return (
+                <span role="alert" data-tone="error">
+                  {parsed.error}
+                </span>
+              )
             }
             const matched = draftMatchCount()
             if (matched === null) {
@@ -376,11 +388,31 @@ export const FilterCalculator = ({ admin, draft }: FilterCalculatorProps) => {
       >
         <span css={keyRowLabel}>Logic</span>
         <div role="group" aria-label="Logic keys" css={keyRow}>
-          <Key calculatorKey={{ kind: 'logic', value: 'AND' }} text="AND" hint="both sides match" />
-          <Key calculatorKey={{ kind: 'logic', value: 'OR' }} text="OR" hint="either side matches" />
-          <Key calculatorKey={{ kind: 'logic', value: 'NOT' }} text="NOT" hint="the next clause does not match" />
-          <Key calculatorKey={{ kind: 'paren', value: '(' }} text="(" hint="open a group" />
-          <Key calculatorKey={{ kind: 'paren', value: ')' }} text=")" hint="close the group" />
+          <Key
+            calculatorKey={{ kind: 'logic', value: 'AND' }}
+            text="AND"
+            hint="both sides match"
+          />
+          <Key
+            calculatorKey={{ kind: 'logic', value: 'OR' }}
+            text="OR"
+            hint="either side matches"
+          />
+          <Key
+            calculatorKey={{ kind: 'logic', value: 'NOT' }}
+            text="NOT"
+            hint="the next clause does not match"
+          />
+          <Key
+            calculatorKey={{ kind: 'paren', value: '(' }}
+            text="("
+            hint="open a group"
+          />
+          <Key
+            calculatorKey={{ kind: 'paren', value: ')' }}
+            text=")"
+            hint="close the group"
+          />
         </div>
 
         <span css={keyRowLabel}>Field</span>
@@ -495,27 +527,45 @@ export const FilterCalculator = ({ admin, draft }: FilterCalculatorProps) => {
           gap: var(--admin-space-8);
         `}
       >
-        <div
-          role="group"
-          aria-label="When a record matches"
-          css={`
-            display: flex;
-            gap: var(--admin-space-4);
-          `}
-        >
-          {MODE_KEYS.map((modeKey) => (
-            <Button
-              variant="ghost"
-              label={modeKey.label}
-              title={modeKey.hint}
-              pressed={() => {
-                const mode = admin.filterMode()
-                return mode === modeKey.mode || (mode === 'exclude' && modeKey.mode === 'hide')
-              }}
-              onClick={() => admin.filterMode.set(modeKey.mode)}
-            />
-          ))}
-        </div>
+        {() =>
+          admin.view() === 'analytics' ||
+          (admin.view() === 'timeline' && admin.timelineUnit() === 'paths') ? (
+            <p
+              css={`
+                margin: 0;
+                color: ${tokens.text2};
+              `}
+            >
+              Include and Exclude decide which sessions match. Show, Hide, and
+              Highlight apply to records only.
+            </p>
+          ) : (
+            <div
+              role="group"
+              aria-label="When a record matches"
+              css={`
+                display: flex;
+                gap: var(--admin-space-4);
+              `}
+            >
+              {MODE_KEYS.map((modeKey) => (
+                <Button
+                  variant="ghost"
+                  label={modeKey.label}
+                  title={modeKey.hint}
+                  pressed={() => {
+                    const mode = admin.filterMode()
+                    return (
+                      mode === modeKey.mode ||
+                      (mode === 'exclude' && modeKey.mode === 'hide')
+                    )
+                  }}
+                  onClick={() => admin.filterMode.set(modeKey.mode)}
+                />
+              ))}
+            </div>
+          )
+        }
         <span css="flex: 1;" />
         <Button
           variant="ghost"
@@ -592,7 +642,9 @@ export const FilterCalculator = ({ admin, draft }: FilterCalculatorProps) => {
                   <Button
                     variant="icon"
                     label={`Remove saved expression ${source}`}
-                    onClick={() => saved.set(saved().filter((entry) => entry !== source))}
+                    onClick={() =>
+                      saved.set(saved().filter((entry) => entry !== source))
+                    }
                   >
                     ×
                   </Button>
@@ -652,7 +704,9 @@ const BreakdownRow = ({
             color: ${node.kind === 'clause' ? tokens.text1 : tokens.accent};
           `}
         >
-          {node.kind === 'clause' ? node.label : `${node.label} · ${groupWords}`}
+          {node.kind === 'clause'
+            ? node.label
+            : `${node.label} · ${groupWords}`}
         </span>
         <span
           css={`

@@ -619,8 +619,9 @@ const HelpBody = () => (
       and the direction markers. Example: name:makeMove kind:action.
     </p>
     <p css="margin: 0;">
-      Paths and Analytics treat the filter as a session filter (session in when
-      any record matches; Exclude flips).
+      Paths and Analytics treat the filter as a session filter (a session is in
+      when any record matches; Exclude flips). Show, Hide, and Highlight do not
+      apply there, and filter.mode is ignored by the analytics tools.
     </p>
   </div>
 )
