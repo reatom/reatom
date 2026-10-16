@@ -1,20 +1,12 @@
 import type { OtlpAdmin } from '../../otlp'
 import {
-  ANALYTICS_MIN_SHARE_SESSIONS,
-  analyticsPathAncestry,
+  analyticsContinuationText,
+  analyticsShareText,
   typicalAnalyticsSession,
   type AnalyticsPathNode,
 } from '../../otlp/analytics'
 import { Button, scrollable, tokens, type } from '../design-system'
 import { formatAxisOffset } from './GanttChart'
-
-const percentFormat = new Intl.NumberFormat(undefined, {
-  style: 'percent',
-  maximumFractionDigits: 0,
-})
-
-const shareText = (share: number, denominator: number) =>
-  denominator < ANALYTICS_MIN_SHARE_SESSIONS ? '—' : percentFormat.format(share)
 
 const directionText = (node: AnalyticsPathNode) => {
   if (node.direction === 'before') return 'Before the alignment point'
@@ -47,10 +39,6 @@ export const PathStepCard = ({ admin }: { admin: OtlpAdmin }) => (
       if (node === null) {
         return <p css={quiet}>No step selected</p>
       }
-      const rootSessions =
-        node.share > 0 ? node.sessions / node.share : node.sessions
-      const parentSessions =
-        node.continuation > 0 ? node.sessions / node.continuation : 0
       const stopLabel = node.direction === 'before' ? 'Entries' : 'Exits'
       return (
         <div
@@ -87,12 +75,10 @@ export const PathStepCard = ({ admin }: { admin: OtlpAdmin }) => (
           >
             <dt css={factLabel}>Sessions</dt>
             <dd css={factValue}>
-              {`${node.sessions} (${shareText(node.share, rootSessions)})`}
+              {`${node.sessions} (${analyticsShareText(node)})`}
             </dd>
             <dt css={factLabel}>Continue %</dt>
-            <dd css={factValue}>
-              {shareText(node.continuation, parentSessions)}
-            </dd>
+            <dd css={factValue}>{analyticsContinuationText(node)}</dd>
             <dt css={factLabel}>{stopLabel}</dt>
             <dd css={factValue}>{String(node.stops)}</dd>
             <dt css={factLabel}>Median time from alignment point</dt>
@@ -133,12 +119,8 @@ export const PathStepCard = ({ admin }: { admin: OtlpAdmin }) => (
               label="Open typical session"
               testId="path-step-typical-session"
               onClick={() => {
-                const chain = analyticsPathAncestry(
-                  admin.analytics.pathNodes(),
-                  node,
-                )
                 admin.openTypicalSession(
-                  typicalAnalyticsSession(admin.analytics.segment(), chain),
+                  typicalAnalyticsSession(admin.analytics.segment(), [node]),
                 )
               }}
             >

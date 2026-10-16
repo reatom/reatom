@@ -19,6 +19,37 @@ export const ALL_SESSIONS_LABEL = 'All sessions'
  */
 export const ANALYTICS_MIN_SHARE_SESSIONS = 5
 
+const analyticsPercent = new Intl.NumberFormat(undefined, {
+  style: 'percent',
+  maximumFractionDigits: 0,
+})
+
+/** A share percent, or an em dash when the denominator is under the minimum. */
+export function analyticsPercentText(
+  share: number,
+  denominator: number,
+): string {
+  if (denominator < ANALYTICS_MIN_SHARE_SESSIONS) return '—'
+  return analyticsPercent.format(share)
+}
+
+/**
+ * Share of the root sessions. The denominator is rebuilt from `sessions /
+ * share`.
+ */
+export function analyticsShareText(node: AnalyticsPathNode): string {
+  const rootSessions =
+    node.share > 0 ? node.sessions / node.share : node.sessions
+  return analyticsPercentText(node.share, rootSessions)
+}
+
+/** Share of the parent sessions. A zero continuation has an empty denominator. */
+export function analyticsContinuationText(node: AnalyticsPathNode): string {
+  const parentSessions =
+    node.continuation > 0 ? node.sessions / node.continuation : 0
+  return analyticsPercentText(node.continuation, parentSessions)
+}
+
 const ANALYTICS_EVENT_NAMES: ReadonlySet<string> = new Set(
   Object.values(ANALYTICS_EVENTS),
 )
@@ -442,6 +473,13 @@ const TREND_STEPS_MS = [
   7 * 24 * 60 * 60_000,
 ]
 
+/**
+ * Dense buckets of session starts. A bucket starts at a multiple of `bucketMs`
+ * since the Unix epoch, so the grid is UTC rather than local midnight. The
+ * first step from one minute through seven days whose bucket count is at most
+ * `maxBuckets` is used. A wider span starts at `Math.ceil(span / maxBuckets)`
+ * milliseconds and grows until the UTC buckets fit.
+ */
 export function analyticsTrend(
   sessions: readonly AnalyticsSession[],
   maxBuckets = 48,
@@ -453,12 +491,24 @@ export function analyticsTrend(
     if (session.start < earliest) earliest = session.start
     if (session.start > latest) latest = session.start
   }
-  let bucketMs = TREND_STEPS_MS[TREND_STEPS_MS.length - 1]!
+  let bucketMs: number | undefined
   for (const step of TREND_STEPS_MS) {
     const count = Math.floor(latest / step) - Math.floor(earliest / step) + 1
     if (count <= maxBuckets) {
       bucketMs = step
       break
+    }
+  }
+  if (bucketMs === undefined) {
+    const span = Math.max(0, latest - earliest)
+    bucketMs = Math.max(1, Math.ceil(span / Math.max(1, maxBuckets)))
+    // Inclusive epoch buckets can be one past `span / bucketMs`.
+    while (
+      maxBuckets > 0 &&
+      Math.floor(latest / bucketMs) - Math.floor(earliest / bucketMs) + 1 >
+        maxBuckets
+    ) {
+      bucketMs += 1
     }
   }
   const first = Math.floor(earliest / bucketMs) * bucketMs
@@ -865,24 +915,6 @@ export function compareAnalyticsPathNodes(
   if (left.folded !== right.folded) return left.folded ? 1 : -1
   if (left.sessions !== right.sessions) return right.sessions - left.sessions
   return compareText(left.label, right.label)
-}
-
-/** Chain from the root to `node`, for `typicalAnalyticsSession`. */
-export function analyticsPathAncestry(
-  nodes: readonly AnalyticsPathNode[],
-  node: AnalyticsPathNode,
-): AnalyticsPathNode[] {
-  const byId = new Map(nodes.map((item) => [item.id, item]))
-  const chain: AnalyticsPathNode[] = []
-  const seen = new Set<string>()
-  let current: AnalyticsPathNode | undefined = node
-  while (current !== undefined && !seen.has(current.id)) {
-    seen.add(current.id)
-    chain.push(current)
-    current =
-      current.parentId === undefined ? undefined : byId.get(current.parentId)
-  }
-  return chain.reverse()
 }
 
 /** A real session that followed the whole path in the median time. */

@@ -7,7 +7,6 @@ import { ADMIN_FRAME } from '../root'
 import {
   ALL_SESSIONS_LABEL,
   analyticsBreakdown,
-  analyticsPathAncestry,
   type AnalyticsPathNode,
   analyticsPathTree,
   analyticsSegment,
@@ -72,13 +71,23 @@ describe('sessions', () => {
         },
         'cart-trace',
       ),
-      analyticsLog('app.page.engagement', T0, {
-        ...identity,
-        'app.engagement.visible_ms': '1200',
-        'app.engagement.active_ms': '1200',
-      }),
-      analyticsLog('app.page_view', T0, { ...identity, 'url.path': '/' }),
-      analyticsLog('session.start', T0, identity),
+      analyticsLog(
+        'app.page.engagement',
+        T0,
+        {
+          ...identity,
+          'app.engagement.visible_ms': '1200',
+          'app.engagement.active_ms': '1200',
+        },
+        'home-trace',
+      ),
+      analyticsLog(
+        'app.page_view',
+        T0,
+        { ...identity, 'url.path': '/' },
+        'home-trace',
+      ),
+      analyticsLog('session.start', T0, identity, 'tie:start'),
       analyticsLog(
         'app.page.engagement',
         T0 + 9 * SECOND,
@@ -117,19 +126,34 @@ describe('sessions', () => {
         'action-trace',
       )
     const records = [
-      analyticsLog('app.page_view', T0, { ...identity, 'url.path': '/cart' }),
+      analyticsLog(
+        'app.page_view',
+        T0,
+        { ...identity, 'url.path': '/cart' },
+        'cart-trace',
+      ),
       error(T0 + 100, 'TypeError'),
       error(T0 + 200, 'TypeError'),
       error(T0 + 300, 'RangeError'),
-      analyticsLog('exception.suppressed', T0 + 10 * SECOND, {
-        ...identity,
-        'exception.type': 'TypeError',
-        'app.exception.count': '12',
-      }),
-      analyticsLog('app.page_view', T0 + 10 * SECOND, {
-        ...identity,
-        'url.path': '/done',
-      }),
+      analyticsLog(
+        'exception.suppressed',
+        T0 + 10 * SECOND,
+        {
+          ...identity,
+          'exception.type': 'TypeError',
+          'app.exception.count': '12',
+        },
+        'cart-trace',
+      ),
+      analyticsLog(
+        'app.page_view',
+        T0 + 10 * SECOND,
+        {
+          ...identity,
+          'url.path': '/done',
+        },
+        'done-trace',
+      ),
     ]
 
     const [session] = analyticsSessions(records)
@@ -141,18 +165,38 @@ describe('sessions', () => {
   test('only analytics logs with a session id form sessions, and a session needs a page view', () => {
     const identity = { 'session.id': 's', 'app.visitor.id': 'v' }
     const tracerSpan: AdminRecord = {
-      ...analyticsLog('app.page_view', T0, identity),
+      ...analyticsLog('app.page_view', T0, identity, 'span-trace'),
       kind: 'span',
     }
     const records = [
       tracerSpan,
-      analyticsLog('reatom.log', T0, { ...identity, 'url.path': '/x' }),
-      analyticsLog('exception', T0, { 'exception.type': 'TypeError' }),
-      analyticsLog('session.start', T0, {
-        'session.id': 'no-views',
-        'app.visitor.id': 'v',
-      }),
-      analyticsLog('app.page_view', T0 + 1, { ...identity, 'url.path': '/' }),
+      analyticsLog(
+        'reatom.log',
+        T0,
+        { ...identity, 'url.path': '/x' },
+        'log-trace',
+      ),
+      analyticsLog(
+        'exception',
+        T0,
+        { 'exception.type': 'TypeError' },
+        'orphan-trace',
+      ),
+      analyticsLog(
+        'session.start',
+        T0,
+        {
+          'session.id': 'no-views',
+          'app.visitor.id': 'v',
+        },
+        'no-views:start',
+      ),
+      analyticsLog(
+        'app.page_view',
+        T0 + 1,
+        { ...identity, 'url.path': '/' },
+        'home-trace',
+      ),
     ]
 
     const sessions = analyticsSessions(records)
@@ -529,14 +573,6 @@ describe('path tree', () => {
         .map((node) => node.label),
     ).toEqual(['/', '/blog/:id', '+2 more'])
   })
-
-  test('analyticsPathAncestry walks from the root to the node', () => {
-    const nodes = analyticsPathTree(analyticsSessions(shopRecords()))
-    const cart = nodeAt(nodes, 'paths → / → /goods/:id → /cart')
-    expect(
-      analyticsPathAncestry(nodes, cart).map((node) => node.label),
-    ).toEqual([ALL_SESSIONS_LABEL, '/', '/goods/:id', '/cart'])
-  })
 })
 
 describe('trend and session selection', () => {
@@ -567,6 +603,20 @@ describe('trend and session selection', () => {
     )
     expect(wide.bucketMs).toBe(15 * 60_000)
     expect(wide.buckets.length).toBeLessThanOrEqual(10)
+    const epoch = analyticsTrend(
+      [
+        { ...sessions[0]!, start: 0 },
+        { ...sessions[1]!, start: 400 * 24 * 60 * 60 * 1000 },
+      ],
+      48,
+    )
+    const epochSpan = 400 * 24 * 60 * 60 * 1000
+    expect(epoch.bucketMs).toBeGreaterThanOrEqual(Math.ceil(epochSpan / 48))
+    expect(epoch.buckets.length).toBeLessThanOrEqual(48)
+    expect(epoch.buckets[0]?.start).toBe(0)
+    expect(
+      epoch.buckets.reduce((sum, bucket) => sum + bucket.sessions, 0),
+    ).toBe(2)
   })
 
   test('no active filter keeps every session in both modes', () => {
