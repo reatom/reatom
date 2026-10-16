@@ -436,6 +436,19 @@ describe('keys and order', () => {
     expect(gantt.rows().map(({ id }) => id)).toEqual(['a', 'a1', 'a2'])
   })
 
+  test('selected.set routes to select and a missing key can return', () => {
+    const source = atom([span('a', 0), span('b', 1)])
+    const gantt = reatomGantt(source, { ...byId, mode: 'log' })
+    gantt.selected.set(source()[1]!)
+    expect(gantt.selected()?.id).toBe('b')
+    gantt.selected.set(() => source()[0]!)
+    source.set([span('b', 1)])
+    expect(gantt.selected()).toBeNull()
+    const restored = [span('a', 0), span('b', 1)]
+    source.set(restored)
+    expect(gantt.selected()).toBe(restored[0])
+  })
+
   test('selected resolves to the rebuilt node and is null once the key disappears', () => {
     const source = atom([span('a', 0), span('b', 1)])
     const gantt = reatomGantt(source, { ...byId, mode: 'log' })

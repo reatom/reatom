@@ -123,7 +123,11 @@ export interface Gantt<Node, Key = Node> {
   /** Scrolls the least distance that makes the row visible. */
   scrollToRow: Action<[node: Node], void>
 
-  selected: Computed<null | Node>
+  /**
+   * The resolved selection. `.set` routes to `select`. With a `key`, a missing
+   * key reads as `null` and comes back if that key returns.
+   */
+  selected: Atom<null | Node>
   select: Action<[node: null | Node], void>
   /**
    * Moves the selection by `delta` rows and scrolls to it. Without a visible
@@ -457,10 +461,18 @@ export function reatomGantt<Node, Key = Node>(
     const stored = selectedNode()
     if (stored === null || nodesByKey === null) return stored
     return nodesByKey().get(keyOf(stored)) ?? null
-  }, `${name}.selected`)
+  }, `${name}.selected`) as Atom<null | Node>
   const select = action((node: null | Node) => {
     selectedNode.set(node)
   }, `${name}.select`)
+  selected.set = (update) => {
+    const next =
+      typeof update === 'function'
+        ? (update as (state: null | Node) => null | Node)(selected())
+        : update
+    select(next)
+    return selected()
+  }
   const moveSelection = action((delta: number) => {
     const allRows = rows()
     if (allRows.length === 0) return
