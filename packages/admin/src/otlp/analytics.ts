@@ -13,6 +13,12 @@ export const ENGAGED_PAGE_VIEWS = 2
 export const NO_SOURCE = '(none)'
 export const ALL_SESSIONS_LABEL = 'All sessions'
 
+/**
+ * Share and continuation percents render only when the denominator is at least
+ * this.
+ */
+export const ANALYTICS_MIN_SHARE_SESSIONS = 5
+
 const ANALYTICS_EVENT_NAMES: ReadonlySet<string> = new Set(
   Object.values(ANALYTICS_EVENTS),
 )
@@ -412,6 +418,63 @@ export function analyticsSessions(
   )
 }
 
+export interface AnalyticsSelection {
+  /** `undefined` means no active filter: keep every session in both modes. */
+  matchedRecords?: Iterable<AdminRecord>
+  mode?: AnalyticsSegmentMode
+  sessionIds?: ReadonlySet<string>
+  /** Half-open interval on session start, `[start, end)`. */
+  range?: { start: number; end: number }
+}
+
+export interface AnalyticsTrend {
+  bucketMs: number
+  buckets: Array<{ start: number; sessions: number }>
+}
+
+const TREND_STEPS_MS = [
+  60_000,
+  5 * 60_000,
+  15 * 60_000,
+  60 * 60_000,
+  6 * 60 * 60_000,
+  24 * 60 * 60_000,
+  7 * 24 * 60 * 60_000,
+]
+
+export function analyticsTrend(
+  sessions: readonly AnalyticsSession[],
+  maxBuckets = 48,
+): AnalyticsTrend {
+  if (sessions.length === 0) return { bucketMs: 60_000, buckets: [] }
+  let earliest = Infinity
+  let latest = -Infinity
+  for (const session of sessions) {
+    if (session.start < earliest) earliest = session.start
+    if (session.start > latest) latest = session.start
+  }
+  let bucketMs = TREND_STEPS_MS[TREND_STEPS_MS.length - 1]!
+  for (const step of TREND_STEPS_MS) {
+    const count = Math.floor(latest / step) - Math.floor(earliest / step) + 1
+    if (count <= maxBuckets) {
+      bucketMs = step
+      break
+    }
+  }
+  const first = Math.floor(earliest / bucketMs) * bucketMs
+  const last = Math.floor(latest / bucketMs) * bucketMs
+  const counts = new Map<number, number>()
+  for (const session of sessions) {
+    const bucketStart = Math.floor(session.start / bucketMs) * bucketMs
+    counts.set(bucketStart, (counts.get(bucketStart) ?? 0) + 1)
+  }
+  const buckets: AnalyticsTrend['buckets'] = []
+  for (let start = first; start <= last; start += bucketMs) {
+    buckets.push({ start, sessions: counts.get(start) ?? 0 })
+  }
+  return { bucketMs, buckets }
+}
+
 export function analyticsSegment(
   sessions: readonly AnalyticsSession[],
   matchedRecords: Iterable<AdminRecord>,
@@ -424,6 +487,31 @@ export function analyticsSegment(
     (session) =>
       session.recordIds.some((id) => matchedIds.has(id)) === keepMatched,
   )
+}
+
+export function selectAnalyticsSessions(
+  sessions: readonly AnalyticsSession[],
+  selection: AnalyticsSelection = {},
+): AnalyticsSession[] {
+  let picked: readonly AnalyticsSession[] = sessions
+  if (selection.matchedRecords !== undefined) {
+    picked = analyticsSegment(
+      picked,
+      selection.matchedRecords,
+      selection.mode ?? 'include',
+    )
+  }
+  if (selection.sessionIds) {
+    const sessionIds = selection.sessionIds
+    picked = picked.filter((session) => sessionIds.has(session.id))
+  }
+  if (selection.range) {
+    const { start, end } = selection.range
+    picked = picked.filter(
+      (session) => session.start >= start && session.start < end,
+    )
+  }
+  return [...picked]
 }
 
 export function analyticsTotals(
@@ -777,6 +865,24 @@ export function compareAnalyticsPathNodes(
   if (left.folded !== right.folded) return left.folded ? 1 : -1
   if (left.sessions !== right.sessions) return right.sessions - left.sessions
   return compareText(left.label, right.label)
+}
+
+/** Chain from the root to `node`, for `typicalAnalyticsSession`. */
+export function analyticsPathAncestry(
+  nodes: readonly AnalyticsPathNode[],
+  node: AnalyticsPathNode,
+): AnalyticsPathNode[] {
+  const byId = new Map(nodes.map((item) => [item.id, item]))
+  const chain: AnalyticsPathNode[] = []
+  const seen = new Set<string>()
+  let current: AnalyticsPathNode | undefined = node
+  while (current !== undefined && !seen.has(current.id)) {
+    seen.add(current.id)
+    chain.push(current)
+    current =
+      current.parentId === undefined ? undefined : byId.get(current.parentId)
+  }
+  return chain.reverse()
 }
 
 /** A real session that followed the whole path in the median time. */

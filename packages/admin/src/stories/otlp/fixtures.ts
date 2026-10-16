@@ -1,3 +1,5 @@
+import { shopOtlpLogs } from '../../otlp/fixtures/analyticsRecords'
+
 export const STORY_RESOURCE = {
   'service.name': 'reatom-admin-story',
   'service.instance.id': 'story',
@@ -188,3 +190,5 @@ export const STORY_SPANS_BATCH: unknown[] = [
   ...STORY_FIXTURE_BATCH,
   explodeRetrySpan,
 ]
+
+export const STORY_ANALYTICS_BATCH = shopOtlpLogs()
