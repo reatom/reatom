@@ -10,8 +10,11 @@ let drawerCounter = 0
 export interface DrawerProps {
   /** Atom that is true while the drawer is open. */
   open: () => boolean
-  /** Accessible name of the dialog. Also shown as the panel heading. */
-  label: string
+  /**
+   * Accessible name of the dialog. Also shown as the panel heading. A function
+   * is read as a reactive child, so the heading updates without remounting.
+   */
+  label: string | (() => string)
   /** Called for Escape, Dismiss, and Close. The owner sets `open` false. */
   onClose: () => void
   children?: Element | Array<Element | string | null>

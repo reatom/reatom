@@ -1,5 +1,5 @@
 ---
-sourcesHash: ef117b8be49a58fc1bcb30eb7da26c23388ec8b85ea713556f4897fec404d64a
+sourcesHash: bd43b57fcbea6854ad6f867d5ce681f5573194c8bf2eaaf50f727a2892be6359
 id: drawer
 description: >-
   Cover the bottom of the current shell with a dialog the person can dismiss.
@@ -38,7 +38,7 @@ Import `Drawer` from `src/view/design-system`.
 ```
 
 - `open` reads whether the dialog is shown. Pass the caller's atom.
-- `label` is the dialog name and the visible heading.
+- `label` is the dialog name and the visible heading. A string is static. A function is rendered as a reactive child, so the heading can follow the selection without remounting the dialog.
 - `onClose` runs for Escape, Dismiss, and Close. The caller sets `open` false.
 - `children` is the panel body.
 

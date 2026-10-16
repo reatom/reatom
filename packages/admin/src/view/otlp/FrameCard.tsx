@@ -42,9 +42,7 @@ function kindLabel(record: AdminRecord): string {
   return record.reatomKind ?? record.kind
 }
 
-function focusSelectedRow(recordId: string | null) {
-  if (recordId === null) return
-  const selector = `[data-record-id="${CSS.escape(recordId)}"]`
+function focusSelector(selector: string) {
   const hosts = document.querySelectorAll('[data-admin-host]')
   for (const host of hosts) {
     const row = host.shadowRoot?.querySelector(selector)
@@ -58,9 +56,21 @@ function focusSelectedRow(recordId: string | null) {
 }
 
 export function closeFrameCard(admin: OtlpAdmin) {
+  const paths = admin.view() === 'timeline' && admin.timelineUnit() === 'paths'
+  const pathId = paths ? (admin.analytics.paths.selected()?.id ?? null) : null
   const recordId = admin.selectedRecordId()
   admin.cardOpen.setFalse()
-  queueMicrotask(() => focusSelectedRow(recordId))
+  queueMicrotask(() => {
+    if (paths) {
+      if (pathId !== null) {
+        focusSelector(`[data-path-id="${CSS.escape(pathId)}"]`)
+      }
+      return
+    }
+    if (recordId !== null) {
+      focusSelector(`[data-record-id="${CSS.escape(recordId)}"]`)
+    }
+  })
 }
 
 let frameSerial = 0

@@ -1,5 +1,5 @@
 ---
-sourcesHash: ba49eb610eda1eb57c7174e1aa6a5458c21974239eb653a25b02cd9de9187839
+sourcesHash: 72dfdf63f5bea0aec66dc0fa9692b2a55793129e3f51cd26d3c03bc2af2091bf
 id: debugger-workspace
 description: >-
   Arrange the admin shell as a header, filters, a main view, a frame card,

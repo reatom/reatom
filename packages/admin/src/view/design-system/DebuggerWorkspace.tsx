@@ -149,7 +149,6 @@ export const DebuggerWorkspace = ({
       >
         {() => {
           const mode = placement()
-          const label = readLabel()
           if (mode === 'side' && inspector) {
             return (
               <SplitPane
@@ -157,7 +156,7 @@ export const DebuggerWorkspace = ({
                 left={mainPane}
                 right={
                   <aside
-                    aria-label={label}
+                    aria-label={readLabel}
                     css={`
                       height: 100%;
                       min-width: 0;
@@ -186,7 +185,7 @@ export const DebuggerWorkspace = ({
               {mode === 'drawer' && inspector ? (
                 <Drawer
                   open={inspectorOpen}
-                  label={label}
+                  label={readLabel}
                   onClose={onInspectorClose}
                 >
                   {inspector()}
