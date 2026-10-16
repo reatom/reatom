@@ -54,12 +54,18 @@ import {
 } from './ingest.ts'
 import type { AdminMcpFilter } from '../mcp/types.ts'
 import type { FilterMode } from '../types.ts'
+import {
+  reatomOtlpAnalytics,
+  type AnalyticsSession,
+  type OtlpTimelineUnit,
+} from './analyticsModel.ts'
 
 const PREFIX = '_Admin.otlp'
 
 export type OtlpAdminSource = 'live' | 'replay' | 'remote'
 
-export type OtlpAdminView = 'timeline' | 'state' | 'graph' | 'settings'
+export type OtlpAdminView =
+  'timeline' | 'state' | 'graph' | 'analytics' | 'settings'
 
 export interface OtlpAdminOptions extends OtlpStoreOptions {
   source?: OtlpAdminSource
@@ -175,6 +181,17 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     if (mode !== 'show') next.mode = mode
     return next
   }, `${PREFIX}.filter`)
+  const matchedRecords = computed(() => {
+    return filteredRecords(store, filter())
+  }, `${PREFIX}.matchedRecords`)
+  const analytics = reatomOtlpAnalytics(
+    { records: store.records, matchedRecords, filter },
+    `${PREFIX}.analytics`,
+  )
+  const timelineUnit = atom<OtlpTimelineUnit>(
+    'records',
+    `${PREFIX}.timelineUnit`,
+  )
   const resetFilter = action(() => {
     filterName.set('')
     filterQuery.set('')
@@ -183,6 +200,8 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     filterReatomKind.set(undefined)
     filterKind.set(undefined)
     filterMode.set('show')
+    analytics.clearScope()
+    analytics.segmentMode.set('include')
   }, `${PREFIX}.filter.reset`)
   const activitySplitRatio = atom(0.42, `${PREFIX}.activitySplit`)
   const stateSplitRatio = atom(0.42, `${PREFIX}.stateSplit`)
@@ -229,6 +248,8 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     resetSelection()
     remoteForm.reset()
     resetFilter()
+    analytics.align.set(undefined)
+    timelineUnit.set('records')
     if (source() === 'remote') source.set('live')
   }, `${PREFIX}.clear`)
 
@@ -251,17 +272,16 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     rememberSelection(record.id)
   }, `${PREFIX}.selectFrame`)
 
-  const matchedRecords = computed(() => {
-    return filteredRecords(store, filter())
-  }, `${PREFIX}.matchedRecords`)
-
   const visibleRecords = computed(() => {
     const current = filter()
-    return applyFilterMode(
+    const filtered = applyFilterMode(
       candidateRecords(store, current),
       matchedRecords(),
       current,
     )
+    const inScope = analytics.recordInScope()
+    if (inScope === null) return filtered
+    return filtered.filter(inScope)
   }, `${PREFIX}.visibleRecords`)
 
   const highlightedIds = computed(() => {
@@ -503,6 +523,30 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     return counts
   }, `${PREFIX}.spanCountByTrace`)
   const view = atom<OtlpAdminView>('timeline', `${PREFIX}.view`)
+  const showPaths = action((align?: string) => {
+    view.set('timeline')
+    timelineUnit.set('paths')
+    analytics.alignAt(align)
+  }, `${PREFIX}.showPaths`)
+  const showSessions = action(
+    (label: string, sessionIds: ReadonlySet<string>) => {
+      analytics.scopeTo(label, sessionIds)
+      view.set('timeline')
+      timelineUnit.set('records')
+      gantt.mode.set('waterfall')
+    },
+    `${PREFIX}.showSessions`,
+  )
+  const openTypicalSession = action((session?: AnalyticsSession) => {
+    const chosen = session ?? analytics.typicalSession()
+    if (!chosen) return
+    showSessions('Typical session', new Set([chosen.id]))
+    const pageViewId = chosen.visits[0]?.recordId
+    const pageView =
+      store.records().find((record) => record.id === pageViewId) ?? null
+    if (pageView) selectRecord(pageView)
+    cardOpen.setTrue()
+  }, `${PREFIX}.openTypicalSession`)
   const knownInProgress = new Set<string>()
   const syncInProgress = () => {
     const visible = quickFiltered()
@@ -642,6 +686,11 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     localValuesTrimmed: store.localValuesTrimmed,
     resetSelection,
     view,
+    analytics,
+    timelineUnit,
+    showPaths,
+    showSessions,
+    openTypicalSession,
     showAbortAndSuspense,
     abortSuspenseCount,
     hiddenAbortSuspenseCount,
