@@ -748,13 +748,13 @@ function matchCompare(
     case 'trace':
       return matchTextValue(record.traceId, raw, op === ':' ? '=' : op)
     case 'session':
-      return matchTextValue(
-        serializeUnknown(
-          record.resource['service.instance.id'] ??
-            record.attributes['session.id'],
-        ),
-        raw,
-        op,
+      return [
+        record.attributes['session.id'],
+        record.resource['service.instance.id'],
+      ].some(
+        (value) =>
+          value !== undefined &&
+          matchTextValue(serializeUnknown(value), raw, op),
       )
     case 'route':
       return matchRouteField(record, raw, op)

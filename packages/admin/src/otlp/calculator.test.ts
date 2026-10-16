@@ -445,3 +445,31 @@ test('payload and state matchers also see local value text', () => {
     true,
   )
 })
+
+test('session matches session.id or service.instance.id', () => {
+  const matches = (target: AdminRecord, query: string) => {
+    const parsed = parseCalculator(query)
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return false
+    return evaluateRecordExpression(target, parsed.expression, parsed.tags)
+  }
+  const both = record({
+    kind: 'log',
+    eventName: 'app.page_view',
+    name: 'app.page_view',
+    attributes: { 'session.id': 'sess' },
+    resource: { 'service.instance.id': 'inst' },
+  })
+  expect(matches(both, 'session:sess')).toBe(true)
+  expect(matches(both, 'session:inst')).toBe(true)
+
+  const analyticsLog = record({
+    kind: 'log',
+    eventName: 'app.page_view',
+    name: 'app.page_view',
+    attributes: { 'session.id': 'sess' },
+    resource: { 'service.name': 'shop-web' },
+  })
+  expect(matches(analyticsLog, 'session:sess')).toBe(true)
+  expect(matches(analyticsLog, 'session:inst')).toBe(false)
+})
