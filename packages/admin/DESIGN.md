@@ -43,7 +43,7 @@ Saved for this connection:
 - The migration area is `src/view/design-system`. Tokens in [`src/view/design-system/tokens.ts`](src/view/design-system/tokens.ts) and shared CSS in [`src/view/design-system/mixins.ts`](src/view/design-system/mixins.ts) are the token source, not UI contracts.
 - Verification runs. Structural contract checks, index checks, typecheck when types move, and the design-system stories for new or restyled kit pieces all run.
 - Craft after that migration adds only the entities the kit did not already cover: Drawer, Toast, Popover, Disclosure, Kbd, Inspector, the debugger-workspace layout, and the inspect-record, filter-records, and undoable-destructive-action patterns.
-- `GanttChart` stays product UI in `src/view/otlp`. It is typed by a row adapter; two consumers, records and paths. It may compose kit components. It is not a kit entity.
+- `GanttChart` stays product UI in `src/view/otlp`. A row adapter supplies `renderRow` and an optional `toolbar`. Records and paths are the two consumers. It may compose kit components. It is not a kit entity.
 - Inspector in [`src/view/inspector`](src/view/inspector/Inspector.tsx) is the contracted value tree. Other views outside `src/view/design-system` stay unmanaged. Later cleanup removes the legacy admin modules. This setup does not document those other views.
 
 ## Design-system sources

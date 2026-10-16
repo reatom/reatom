@@ -6,7 +6,8 @@ import type { GanttRecordSelection } from '../../gantt/selection'
 import type { AdminRecord, OtlpAdmin } from '../../otlp'
 import { recordHasError, recordLabel } from '../../otlp'
 import {
-  ANALYTICS_MIN_SHARE_SESSIONS,
+  analyticsContinuationText,
+  analyticsShareText,
   type AnalyticsPathNode,
 } from '../../otlp/analytics'
 import {
@@ -65,25 +66,21 @@ export interface GanttColumn<Node> {
   render: (node: Node) => Element | string
 }
 
+export interface GanttRowRenderContext {
+  rowIndex: () => number
+  onInspect?: () => void
+}
+
 export interface GanttRowAdapter<Node> {
   labelHeader: string
   ariaLabel: string
-  rowId: (node: Node) => string
-  label: (node: Node) => string
-  description?: (node: Node) => string
-  barKind: (node: Node) => string
-  barVariant: 'span' | 'aggregate'
-  status?: (node: Node) => string | undefined
-  duration: (node: Node) => string
-  isError?: (node: Node) => boolean
-  isSelected: (node: Node) => boolean
-  isHighlighted?: (node: Node) => boolean
   columns?: Array<GanttColumn<Node>>
   axisLabel: (time: GanttTime, fraction: number) => string
   summary: () => string
-  select: (node: Node) => void
   empty: () => Element
   live: boolean
+  renderRow: (row: Node, ctx: GanttRowRenderContext) => Element
+  toolbar?: () => Element | null
 }
 
 const columnPixels = (width: string) => {
@@ -105,13 +102,7 @@ const ganttSideWidth = <Node,>(adapter: GanttRowAdapter<Node>) =>
     0,
   )
 
-const shareLabel = (share: number, denominator: number) =>
-  denominator < ANALYTICS_MIN_SHARE_SESSIONS ? '—' : percentFormat.format(share)
-
-const percentFormat = new Intl.NumberFormat(undefined, {
-  style: 'percent',
-  maximumFractionDigits: 0,
-})
+const sessionCount = new Intl.NumberFormat(undefined)
 
 export interface OtlpGanttChartProps<Node, Key = Node> {
   gantt: Gantt<Node, Key>
@@ -128,15 +119,6 @@ export function recordRowAdapter(
   return {
     labelHeader: 'Span',
     ariaLabel: 'Timeline',
-    rowId: (row) => row.id,
-    label: (row) => recordLabel(row),
-    barKind: (row) => recordKindIcon(row, admin.mountLogIds()),
-    barVariant: 'span',
-    status: (row) => recordStatusIcon(row) ?? undefined,
-    duration: (row) => recordDuration(row),
-    isError: (row) => recordHasError(row),
-    isSelected: (row) => admin.selectedRecordId() === row.id,
-    isHighlighted: (row) => admin.highlightedIds().has(row.id),
     axisLabel: (time, fraction) =>
       formatAxisOffset((time.end - time.start) * fraction),
     summary: () => {
@@ -146,7 +128,18 @@ export function recordRowAdapter(
       const noun = rowCount === 1 ? 'row' : 'rows'
       return `${rowCount} ${noun} · ${formatAxisOffset(span)}`
     },
-    select: (row) => selection.select(row),
+    renderRow: (row, ctx) => (
+      <GanttRow
+        gantt={admin.gantt}
+        admin={admin}
+        row={row}
+        rowIndex={ctx.rowIndex}
+        onInspect={ctx.onInspect}
+        isSelected={() => admin.selectedRecordId() === row.id}
+        isHighlighted={() => admin.highlightedIds().has(row.id)}
+        onSelect={() => selection.select(row)}
+      />
+    ),
     empty: () => {
       const filtered = admin.records().length > 0
       return (
@@ -184,110 +177,104 @@ export function pathRowAdapter(
   admin: OtlpAdmin,
 ): GanttRowAdapter<AnalyticsPathNode> {
   const paths = admin.analytics.paths
+  const columns: Array<GanttColumn<AnalyticsPathNode>> = [
+    {
+      id: 'sessions',
+      header: 'Sessions',
+      width: '88px',
+      render: (node) => {
+        return (
+          <span
+            css={`
+              display: grid;
+              gap: 2px;
+              min-width: 0;
+            `}
+          >
+            <span>{String(node.sessions)}</span>
+            <span
+              css={`
+                display: block;
+                height: 4px;
+                background: ${tokens.surface3};
+                border-radius: var(--admin-radius-2);
+                overflow: hidden;
+              `}
+            >
+              <span
+                style:width={`${Math.max(0, Math.min(1, node.share)) * 100}%`}
+                css={`
+                  display: block;
+                  height: 100%;
+                  background: ${tokens.accent};
+                `}
+              />
+            </span>
+            <span
+              css={`
+                color: ${tokens.text3};
+              `}
+            >
+              {analyticsShareText(node)}
+            </span>
+          </span>
+        )
+      },
+    },
+    {
+      id: 'continue',
+      header: 'Continue %',
+      width: '72px',
+      render: (node) => analyticsContinuationText(node),
+    },
+    {
+      id: 'stops',
+      header: 'Exit or entry',
+      width: '96px',
+      render: (node) =>
+        node.direction === 'before'
+          ? `Entered here ${node.stops}`
+          : String(node.stops),
+    },
+    {
+      id: 'median',
+      header: 'Median on step',
+      width: '96px',
+      render: (node) => formatAxisOffset(node.durationMs.median),
+    },
+    {
+      id: 'errors',
+      header: 'Errors',
+      width: '56px',
+      render: (node) => String(node.sessionsWithErrors),
+    },
+  ]
+  const grid = `${LABEL_WIDTH}px ${columns.map((column) => column.width).join(' ')} minmax(0, 1fr)`
   return {
     labelHeader: 'Step',
     ariaLabel: 'Paths',
-    rowId: (node) => node.id,
-    label: (node) => node.label,
-    description: (node) =>
-      node.direction === 'before'
-        ? `${node.label}, before the alignment point`
-        : node.direction === 'after'
-          ? `${node.label}, after the alignment point`
-          : node.label,
-    barKind: () => 'path',
-    barVariant: 'aggregate',
-    duration: (node) => formatAxisOffset(node.durationMs.median),
-    isError: (node) => node.sessionsWithErrors > 0,
-    isSelected: (node) => paths.selected()?.id === node.id,
-    columns: [
-      {
-        id: 'sessions',
-        header: 'Sessions',
-        width: '88px',
-        render: (node) => {
-          const rootSessions =
-            node.share > 0 ? node.sessions / node.share : node.sessions
-          return (
-            <span
-              css={`
-                display: grid;
-                gap: 2px;
-                min-width: 0;
-              `}
-            >
-              <span>{String(node.sessions)}</span>
-              <span
-                css={`
-                  display: block;
-                  height: 4px;
-                  background: ${tokens.surface3};
-                  border-radius: var(--admin-radius-2);
-                  overflow: hidden;
-                `}
-              >
-                <span
-                  style:width={`${Math.max(0, Math.min(1, node.share)) * 100}%`}
-                  css={`
-                    display: block;
-                    height: 100%;
-                    background: ${tokens.accent};
-                  `}
-                />
-              </span>
-              <span
-                css={`
-                  color: ${tokens.text3};
-                `}
-              >
-                {shareLabel(node.share, rootSessions)}
-              </span>
-            </span>
-          )
-        },
-      },
-      {
-        id: 'continue',
-        header: 'Continue %',
-        width: '72px',
-        render: (node) => {
-          const parentSessions =
-            node.continuation > 0 ? node.sessions / node.continuation : 0
-          return shareLabel(node.continuation, parentSessions)
-        },
-      },
-      {
-        id: 'stops',
-        header: 'Exit here',
-        width: '96px',
-        render: (node) =>
-          node.direction === 'before'
-            ? `Entered here ${node.stops}`
-            : String(node.stops),
-      },
-      {
-        id: 'median',
-        header: 'Median on step',
-        width: '96px',
-        render: (node) => formatAxisOffset(node.durationMs.median),
-      },
-      {
-        id: 'errors',
-        header: 'Errors',
-        width: '56px',
-        render: (node) => String(node.sessionsWithErrors),
-      },
-    ],
+    columns,
     axisLabel: (time, fraction) =>
       formatAxisOffset(time.start + (time.end - time.start) * fraction),
     summary: () => {
       const shown = admin.analytics.pathNodes()[0]?.sessions ?? 0
       const total = admin.analytics.segment().length
       const align = admin.analytics.align()
-      if (align === undefined) return `Paths over ${shown} sessions`
-      return `Paths over ${shown} of ${total} sessions, aligned at ${align}, ${admin.analytics.leftOut()} without ${align} left out`
+      const shownText = sessionCount.format(shown)
+      if (align === undefined) return `Paths over ${shownText} sessions`
+      return `Paths over ${shownText} of ${sessionCount.format(total)} sessions, aligned at ${align}, ${sessionCount.format(admin.analytics.leftOut())} without ${align} left out`
     },
-    select: (node) => paths.select(node),
+    renderRow: (row, ctx) => (
+      <PathGanttRow
+        gantt={paths}
+        row={row}
+        rowIndex={ctx.rowIndex}
+        columns={columns}
+        grid={grid}
+        onInspect={ctx.onInspect}
+      />
+    ),
+    toolbar: () => <PathsToolbar admin={admin} />,
     empty: () => (
       <EmptyState
         title="No paths"
@@ -301,17 +288,21 @@ export function pathRowAdapter(
 const GanttRow = ({
   gantt,
   admin,
-  adapter,
   row,
   rowIndex,
   onInspect,
+  isSelected,
+  isHighlighted,
+  onSelect,
 }: {
   gantt: Gantt<AdminRecord>
   admin: OtlpAdmin
-  adapter: GanttRowAdapter<AdminRecord>
   row: AdminRecord
   rowIndex: () => number
   onInspect?: () => void
+  isSelected: () => boolean
+  isHighlighted: () => boolean
+  onSelect: () => void
 }) => {
   const label = recordLabel(row)
   const duration = recordDuration(row)
@@ -360,8 +351,8 @@ const GanttRow = ({
       aria-level={() => depth() + 1}
       aria-expanded={() => (hasChildren() ? expanded() : undefined)}
       aria-rowindex={rowIndex}
-      aria-selected={() => adapter.isSelected(row)}
-      data-highlighted={() => (adapter.isHighlighted?.(row) ? 'true' : 'false')}
+      aria-selected={isSelected}
+      data-highlighted={() => (isHighlighted() ? 'true' : 'false')}
       title={label}
       css={`
         box-sizing: border-box;
@@ -400,7 +391,7 @@ const GanttRow = ({
         }
       `}
       on:click={(event: MouseEvent) => {
-        adapter.select(row)
+        onSelect()
         onInspect?.()
         if (event.currentTarget instanceof HTMLElement) {
           event.currentTarget
@@ -594,19 +585,27 @@ const GanttRow = ({
   )
 }
 
+const pathDescription = (row: AnalyticsPathNode) => {
+  if (row.direction === 'before')
+    return `${row.label}, before the alignment point`
+  if (row.direction === 'after')
+    return `${row.label}, after the alignment point`
+  return row.label
+}
+
 const PathGanttRow = ({
   gantt,
-  adapter,
   row,
   rowIndex,
   columns,
+  grid,
   onInspect,
 }: {
   gantt: Gantt<AnalyticsPathNode, string>
-  adapter: GanttRowAdapter<AnalyticsPathNode>
   row: AnalyticsPathNode
   rowIndex: () => number
-  columns: string
+  columns: Array<GanttColumn<AnalyticsPathNode>>
+  grid: string
   onInspect?: () => void
 }) => {
   const depth = computed(() => gantt.depth(row), `_Admin.gantt.path.depth`)
@@ -618,25 +617,25 @@ const PathGanttRow = ({
     () => hasChildren() && gantt.isExpanded(row),
     `_Admin.gantt.path.expanded`,
   )
-  const label = adapter.label(row)
+  const label = row.label
   return (
     <div
       role="row"
       tabindex={-1}
       data-testid="gantt-row"
-      data-path-id={adapter.rowId(row)}
+      data-path-id={row.id}
       data-depth={() => String(depth())}
       aria-label={label}
-      aria-description={() => adapter.description?.(row) ?? label}
+      aria-description={() => pathDescription(row)}
       aria-level={() => depth() + 1}
       aria-expanded={() => (hasChildren() ? expanded() : undefined)}
       aria-rowindex={rowIndex}
-      aria-selected={() => adapter.isSelected(row)}
+      aria-selected={() => gantt.selected()?.id === row.id}
       title={label}
       css={`
         box-sizing: border-box;
         display: grid;
-        grid-template-columns: ${columns};
+        grid-template-columns: ${grid};
         align-items: center;
         height: ${ROW_HEIGHT}px;
         border-bottom: 1px solid ${tokens.border1};
@@ -656,7 +655,7 @@ const PathGanttRow = ({
         }
       `}
       on:click={(event: MouseEvent) => {
-        adapter.select(row)
+        gantt.select(row)
         onInspect?.()
         if (event.currentTarget instanceof HTMLElement) {
           event.currentTarget
@@ -730,13 +729,13 @@ const PathGanttRow = ({
           css={`
             min-width: 0;
             ${truncate}
-            color: ${adapter.isError?.(row) ? tokens.error : tokens.text1};
+            color: ${row.sessionsWithErrors > 0 ? tokens.error : tokens.text1};
           `}
         >
           {label}
         </span>
       </div>
-      {(adapter.columns ?? []).map((column) => (
+      {columns.map((column) => (
         <div
           data-gantt-column={column.id}
           css={`
@@ -785,6 +784,48 @@ const PathGanttRow = ({
   )
 }
 
+const PathsToolbar = ({ admin }: { admin: OtlpAdmin }) => (
+  <ToolbarGroup>
+    <SelectField
+      value={admin.analytics.alignChoice}
+      label="Align at"
+      options={() => {
+        const current = admin.analytics.alignChoice()
+        const options = [
+          { value: '', label: 'Session start' },
+          ...admin.analytics.breakdowns().page.map((row) => ({
+            value: row.key,
+            label: row.key,
+          })),
+        ]
+        if (
+          current !== '' &&
+          !options.some((option) => option.value === current)
+        ) {
+          options.push({ value: current, label: current })
+        }
+        return options
+      }}
+    />
+    <Button
+      variant="secondary"
+      label="Typical path"
+      testId="gantt-typical-path"
+      onClick={() => admin.analytics.expandTypicalPath()}
+    >
+      Typical path
+    </Button>
+    <Button
+      variant="secondary"
+      label="Open typical session"
+      testId="gantt-open-typical-session"
+      onClick={() => admin.openTypicalSession()}
+    >
+      Open typical session
+    </Button>
+  </ToolbarGroup>
+)
+
 export const OtlpGanttChart = <Node, Key = Node>({
   gantt,
   admin,
@@ -814,41 +855,12 @@ export const OtlpGanttChart = <Node, Key = Node>({
   }, `_Admin.gantt.rowIndexes.${uiId}`)
   const columns = ganttGridTemplate(adapter)
   const sideWidth = ganttSideWidth(adapter)
-  const alignChoice = atom<string>(
-    admin.analytics.align() ?? '',
-    `_Admin.gantt.align.${uiId}`,
-  )
-  effect(() => {
-    const next = admin.analytics.align() ?? ''
-    if (alignChoice() !== next) alignChoice.set(next)
-  }, `_Admin.gantt.align.sync.${uiId}`)
-  effect(() => {
-    if (admin.timelineUnit() !== 'paths') return
-    const choice = alignChoice()
-    const next = choice === '' ? undefined : choice
-    if (admin.analytics.align() !== next) admin.showPaths(next)
-  }, `_Admin.gantt.align.apply.${uiId}`)
   const rowElements = gantt.virtual.reatomMap(
     (row) =>
-      adapter.barVariant === 'span' ? (
-        <GanttRow
-          gantt={gantt as unknown as Gantt<AdminRecord>}
-          admin={admin}
-          adapter={adapter as GanttRowAdapter<AdminRecord>}
-          row={row as AdminRecord}
-          rowIndex={() => rowIndexes().get(row) ?? 0}
-          onInspect={onInspect}
-        />
-      ) : (
-        <PathGanttRow
-          gantt={gantt as unknown as Gantt<AnalyticsPathNode, string>}
-          adapter={adapter as GanttRowAdapter<AnalyticsPathNode>}
-          row={row as AnalyticsPathNode}
-          rowIndex={() => rowIndexes().get(row) ?? 0}
-          columns={columns}
-          onInspect={onInspect}
-        />
-      ),
+      adapter.renderRow(row, {
+        rowIndex: () => rowIndexes().get(row) ?? 0,
+        onInspect,
+      }),
     `_Admin.gantt.rowElements.${uiId}`,
   )
 
@@ -998,42 +1010,12 @@ export const OtlpGanttChart = <Node, Key = Node>({
                 label="Paths"
                 testId="gantt-mode-paths"
                 pressed={() => admin.timelineUnit() === 'paths'}
-                onClick={() => admin.showPaths(admin.analytics.align())}
+                onClick={() => admin.openPaths()}
               >
                 Paths
               </Button>
             </ToolbarGroup>
-            {adapter.barVariant === 'aggregate' ? (
-              <ToolbarGroup>
-                <SelectField
-                  value={alignChoice}
-                  label="Align at"
-                  options={() => [
-                    { value: '', label: 'Session start' },
-                    ...admin.analytics.breakdowns().page.map((row) => ({
-                      value: row.key,
-                      label: row.key,
-                    })),
-                  ]}
-                />
-                <Button
-                  variant="secondary"
-                  label="Typical path"
-                  testId="gantt-typical-path"
-                  onClick={() => admin.analytics.expandTypicalPath()}
-                >
-                  Typical path
-                </Button>
-                <Button
-                  variant="secondary"
-                  label="Open typical session"
-                  testId="gantt-open-typical-session"
-                  onClick={() => admin.openTypicalSession()}
-                >
-                  Open typical session
-                </Button>
-              </ToolbarGroup>
-            ) : null}
+            {adapter.toolbar?.() ?? null}
             <ToolbarSpacer />
             {adapter.live ? (
               <span>
