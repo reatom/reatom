@@ -22,6 +22,7 @@ import { kindColorVar, recordKindIcon } from './recordKind'
 import {
   frameValueView,
   overviewDataValue,
+  overviewEventAttributes,
   overviewParamsValue,
   recordFieldValue,
   type FrameValueTitle,
@@ -235,30 +236,36 @@ const Overview = ({
 }: {
   record: AdminRecord
   sources: ReturnType<typeof frameSources>
-}) => (
-  <div
-    css={`
-      display: grid;
-      gap: var(--admin-space-12);
-      min-width: 0;
-    `}
-  >
-    {recordHasError(record) ? (
-      <p
-        role="alert"
-        css={`
-          ${type.body}
-          margin: 0;
-          color: ${tokens.error};
-        `}
-      >
-        {record.error?.message ?? record.outcome ?? 'error'}
-      </p>
-    ) : null}
-    <FrameField value={sources.data} emptyLabel="" />
-    <ParamList value={sources.params} />
-  </div>
-)
+}) => {
+  const eventAttributes = overviewEventAttributes(record)
+  return (
+    <div
+      css={`
+        display: grid;
+        gap: var(--admin-space-12);
+        min-width: 0;
+      `}
+    >
+      {recordHasError(record) ? (
+        <p
+          role="alert"
+          css={`
+            ${type.body}
+            margin: 0;
+            color: ${tokens.error};
+          `}
+        >
+          {record.error?.message ?? record.outcome ?? 'error'}
+        </p>
+      ) : null}
+      {eventAttributes !== undefined ? (
+        <SnapshotField value={eventAttributes} emptyLabel="" />
+      ) : null}
+      <FrameField value={sources.data} emptyLabel="" />
+      <ParamList value={sources.params} />
+    </div>
+  )
+}
 
 const Causes = ({
   admin,

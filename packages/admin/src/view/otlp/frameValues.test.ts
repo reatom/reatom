@@ -5,6 +5,7 @@ import {
   frameValueView,
   overviewDataTitle,
   overviewDataValue,
+  overviewEventAttributes,
   overviewParamsValue,
   recordFieldValue,
 } from './frameValues'
@@ -89,4 +90,54 @@ test('overview and field values prefer live values over masked attributes', () =
   expect(overviewDataValue(write)).toBe(nextState)
   expect(recordFieldValue(write)).toBe(nextState)
   expect(JSON.stringify(action)).not.toContain('live-token')
+})
+
+test('analytics event logs expose their attributes on Overview', () => {
+  const pageView = record({
+    eventName: 'app.page_view',
+    attributes: {
+      'event.name': 'app.page_view',
+      'url.path': '/cart',
+      'session.id': 's1',
+    },
+  })
+  expect(overviewEventAttributes(pageView)).toEqual({
+    'url.path': '/cart',
+    'session.id': 's1',
+  })
+  expect(
+    overviewEventAttributes(
+      record({
+        eventName: 'session.start',
+        attributes: { 'event.name': 'session.start', 'session.id': 's1' },
+      }),
+    ),
+  ).toEqual({ 'session.id': 's1' })
+  expect(
+    overviewEventAttributes(
+      record({ kind: 'span', eventName: 'app.page_view' }),
+    ),
+  ).toBeUndefined()
+  expect(
+    overviewEventAttributes(
+      record({
+        eventName: 'exception',
+        attributes: {
+          'event.name': 'exception',
+          'exception.type': 'TypeError',
+        },
+      }),
+    ),
+  ).toBeUndefined()
+  expect(
+    overviewEventAttributes(
+      record({
+        eventName: 'reatom.atom.update',
+        attributes: {
+          'event.name': 'reatom.atom.update',
+          'reatom.name': 'board',
+        },
+      }),
+    ),
+  ).toBeUndefined()
 })

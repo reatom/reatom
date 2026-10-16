@@ -51,3 +51,19 @@ export function overviewDataValue(record: AdminRecord): unknown {
 export function overviewParamsValue(record: AdminRecord): unknown {
   return recordValues(record).params
 }
+
+const ANALYTICS_OVERVIEW_EVENT = /^(?:app|session)\./
+
+/**
+ * Event attributes for an analytics log, without `event.name`. Spans, exception
+ * logs, and `reatom.*` logs stay off Overview.
+ */
+export function overviewEventAttributes(
+  record: AdminRecord,
+): Record<string, unknown> | undefined {
+  if (record.kind !== 'log') return undefined
+  if (!ANALYTICS_OVERVIEW_EVENT.test(record.eventName ?? '')) return undefined
+  const attributes: Record<string, unknown> = { ...record.attributes }
+  delete attributes['event.name']
+  return attributes
+}

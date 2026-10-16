@@ -88,7 +88,7 @@ Open gaps: [journal](design-system/gaps.md). Closed entries move in full to `des
 The Gantt UI composes this kit and keeps its own record, time-axis, and selection behavior.
 
 - View switches for Timeline, State, and Graph use Tabs. InspectorTabs is only the four sections of one record: Overview, Cause Chain, History, and JSON.
-- Overview shows that record's state or payload, then its params, in one column and without headings. The value trees start expanded, including nested collections. Attributes, causes, effects, and resource are not on Overview. Cause Chain keeps the cause graph and Open in Graph.
+- Overview shows that record's state or payload, then its params, in one column and without headings. The value trees start expanded, including nested collections. Attributes, causes, effects, and resource are not on Overview. Analytics event logs (`app.*`, `session.*`) show event attributes on Overview (R26 G5). Cause Chain keeps the cause graph and Open in Graph.
 - The wide frame card uses the debugger-workspace side pane, which is a SplitPane. Below 680px of shell width the same card is a Drawer. Do not use a viewport media query for that switch.
 - Name search and value search use SearchField. On/off filters use Button `variant="ghost"` with `pressed`. Advanced filter options use Disclosure, collapsed by default. Reset uses Button without `pressed`.
 - A destructive clear uses Button `variant="danger"`, then Toast with an undo action. The toast does not restore records itself.
