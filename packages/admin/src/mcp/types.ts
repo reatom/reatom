@@ -203,10 +203,24 @@ export interface AdminMcpStateData {
 }
 
 export interface AdminMcpAnalyticsSummaryInput {
+  /**
+   * Calculator and chip predicates. `mode` (show, hide, highlight) is ignored:
+   * session membership uses `segment`.
+   */
   filter?: AdminMcpFilter
+  /**
+   * `include` keeps sessions that have a matching record. `exclude` drops them.
+   * With no match predicates every session stays, in both modes.
+   */
   segment?: AnalyticsSegmentMode
+  /** Half-open interval on session start, `[start, end)`. */
   range?: { start: number; end: number }
-  /** Breakdown rows per dimension. Defaults to 10 and clamps to 1–50. */
+  /**
+   * Breakdown rows per dimension. Defaults to 10 and clamps to 1–50.
+   * `header.truncated` is true when a breakdown had more rows than the returned
+   * cap, or when the trend was thinned or dropped so the JSON stays within 20
+   * KB. It does not mean another summary page exists.
+   */
   limit?: number
 }
 
@@ -241,11 +255,22 @@ export interface AdminMcpAnalyticsSummaryData {
 }
 
 export interface AdminMcpPathsInput {
+  /**
+   * Calculator and chip predicates. `mode` (show, hide, highlight) is ignored:
+   * session membership uses `segment`.
+   */
   filter?: AdminMcpFilter
+  /**
+   * `include` keeps sessions that have a matching record. `exclude` drops them.
+   * With no match predicates every session stays, in both modes.
+   */
   segment?: AnalyticsSegmentMode
+  /** Half-open interval on session start, `[start, end)`. */
   range?: { start: number; end: number }
   align?: string
+  /** Steps in each direction. Defaults to 8. Clamped to 1–20. NaN uses 8. */
   maxDepth?: number
+  /** Children per node before folding. Defaults to 6. Clamped to 1–50. */
   maxChildren?: number
   cursor?: string
 }

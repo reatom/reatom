@@ -17,6 +17,7 @@ import {
   type AnalyticsPathNode,
   type AnalyticsSession,
   type AnalyticsTotals,
+  type AnalyticsTrend,
 } from '../otlp/analytics.ts'
 import { localValuesOf, type AdminRecord } from '../otlp/ingest.ts'
 import type { OtlpStateNode } from '../otlp/bind.ts'
@@ -684,6 +685,16 @@ const clampBreakdownLimit = (limit: number | undefined) => {
   return Math.min(50, Math.max(1, Math.floor(requested)))
 }
 
+const clampPathLimit = (
+  value: number | undefined,
+  fallback: number,
+  min: number,
+  max: number,
+) => {
+  if (value === undefined || !Number.isFinite(value)) return fallback
+  return Math.min(max, Math.max(min, Math.floor(value)))
+}
+
 function analyticsCohort(
   admin: OtlpAdmin,
   filter: AdminMcpFilter | undefined,
@@ -765,9 +776,20 @@ export function analyticsSummaryTool(
     full[dimension] = analyticsBreakdown(cohort, dimension)
   }
   const headerBase = headerFromRecords(admin.records())
-  const build = (rowLimit: number) => {
+  type TrendDetail = 'full' | 'thin' | 'none'
+  const trendFor = (detail: TrendDetail): AnalyticsTrend => {
+    if (detail === 'none') return { bucketMs: trend.bucketMs, buckets: [] }
+    if (detail === 'thin') {
+      return {
+        bucketMs: trend.bucketMs * 2,
+        buckets: trend.buckets.filter((_, index) => index % 2 === 0),
+      }
+    }
+    return trend
+  }
+  const build = (rowLimit: number, detail: TrendDetail) => {
     const breakdowns = {} as Record<AnalyticsDimension, AdminMcpBreakdownRow[]>
-    let truncated = false
+    let truncated = detail !== 'full'
     for (const dimension of ANALYTICS_DIMENSIONS) {
       const rows = full[dimension]!
       if (rows.length > rowLimit) truncated = true
@@ -780,21 +802,21 @@ export function analyticsSummaryTool(
         sessions: cohort.length,
         totalSessions: admin.analytics.sessions().length,
         totals,
-        trend,
+        trend: trendFor(detail),
         breakdowns,
       },
     }
   }
   let cap = clampBreakdownLimit(input.limit)
-  let body = build(cap)
-  while (jsonUtf8Bytes(body) > ADMIN_MCP_MAX_BYTES && cap > 1) {
-    const next = Math.floor(cap / 2)
-    if (next < 1) break
-    cap = next
-    body = build(cap)
+  let detail: TrendDetail = 'full'
+  let body = build(cap, detail)
+  while (jsonUtf8Bytes(body) > ADMIN_MCP_MAX_BYTES) {
+    if (cap > 1) cap = Math.floor(cap / 2)
+    else if (detail === 'full') detail = 'thin'
+    else if (detail === 'thin') detail = 'none'
+    else return miss(headerBase, 'too-large')
+    body = build(cap, detail)
   }
-  if (jsonUtf8Bytes(body) > ADMIN_MCP_MAX_BYTES)
-    return miss(headerBase, 'too-large')
   return body
 }
 
@@ -813,8 +835,8 @@ export function pathsTool(
   )
   const nodes = analyticsPathTree(cohort, {
     align: input.align,
-    maxDepth: input.maxDepth,
-    maxChildren: input.maxChildren,
+    maxDepth: clampPathLimit(input.maxDepth, 8, 1, 20),
+    maxChildren: clampPathLimit(input.maxChildren, 6, 1, 50),
   })
   const typicalPath = typicalAnalyticsPath(nodes)
   const typicalSession = typicalAnalyticsSession(cohort, typicalPath)
