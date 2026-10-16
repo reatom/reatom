@@ -1,6 +1,6 @@
 import type { OtlpAdmin } from '../../otlp'
 import {
-  ANALYTICS_MIN_SHARE_SESSIONS,
+  analyticsPercentText,
   type AnalyticsBreakdownRow,
   type AnalyticsDimension,
 } from '../../otlp/analytics'
@@ -15,11 +15,6 @@ import {
 } from '../design-system'
 import { formatAxisOffset } from './GanttChart'
 
-const percentFormat = new Intl.NumberFormat(undefined, {
-  style: 'percent',
-  maximumFractionDigits: 0,
-})
-
 const TOP_ROWS = 10
 
 const DIMENSIONS: Array<{
@@ -32,9 +27,6 @@ const DIMENSIONS: Array<{
   { id: 'exit', title: 'Exit pages', paths: true },
   { id: 'source', title: 'Sources', paths: false },
 ]
-
-const rateText = (rate: number, denominator: number) =>
-  denominator < ANALYTICS_MIN_SHARE_SESSIONS ? '—' : percentFormat.format(rate)
 
 export function analystStatusWords(admin: OtlpAdmin): string {
   const shown = admin.analytics.segment().length
@@ -50,22 +42,12 @@ export function analystStatusWords(admin: OtlpAdmin): string {
   return `${shown} of ${total} consented sessions · ${source}${partial}`
 }
 
-const kpiValue = (id: string, text: string) => (
+const kpi = (id: string, title: string, text: string) => (
   <div data-testid={`analytics-kpi-${id}`}>
-    <div css={kpiLabel}>{kpiTitle(id)}</div>
+    <div css={kpiLabel}>{title}</div>
     <div css={kpiNumber}>{text}</div>
   </div>
 )
-
-const kpiTitle = (id: string) => {
-  if (id === 'visitors') return 'Visitors'
-  if (id === 'sessions') return 'Sessions'
-  if (id === 'pageViews') return 'Page views'
-  if (id === 'engaged') return 'Engaged'
-  if (id === 'bounce') return 'Bounce'
-  if (id === 'activeTime') return 'Median active'
-  return 'Errors'
-}
 
 export const OtlpAnalyticsScreen = ({ admin }: { admin: OtlpAdmin }) => (
   <section
@@ -98,7 +80,7 @@ export const OtlpAnalyticsScreen = ({ admin }: { admin: OtlpAdmin }) => (
       admin.analytics.sessions().length === 0 ? (
         <EmptyState
           title="No analytics sessions."
-          description="Analytics reads `connectWebAnalytics` records (`app.page_view` logs with `session.id`). Nothing is sent before consent."
+          description="Analytics reads connectWebAnalytics records (app.page_view logs with session.id). Nothing is sent before consent."
         />
       ) : (
         <div
@@ -120,19 +102,25 @@ export const OtlpAnalyticsScreen = ({ admin }: { admin: OtlpAdmin }) => (
               const sessions = totals.sessions
               return (
                 <>
-                  {kpiValue('visitors', String(totals.visitors))}
-                  {kpiValue('sessions', String(totals.sessions))}
-                  {kpiValue('pageViews', String(totals.pageViews))}
-                  {kpiValue(
+                  {kpi('visitors', 'Visitors', String(totals.visitors))}
+                  {kpi('sessions', 'Sessions', String(totals.sessions))}
+                  {kpi('pageViews', 'Page views', String(totals.pageViews))}
+                  {kpi(
                     'engaged',
-                    `${totals.engagedSessions} · ${rateText(totals.engagementRate, sessions)}`,
+                    'Engaged',
+                    `${totals.engagedSessions} · ${analyticsPercentText(totals.engagementRate, sessions)}`,
                   )}
-                  {kpiValue('bounce', rateText(totals.bounceRate, sessions))}
-                  {kpiValue(
+                  {kpi(
+                    'bounce',
+                    'Bounce',
+                    analyticsPercentText(totals.bounceRate, sessions),
+                  )}
+                  {kpi(
                     'activeTime',
+                    'Median active',
                     formatAxisOffset(totals.activeMsPerSession.median),
                   )}
-                  {kpiValue('errors', String(totals.sessionsWithErrors))}
+                  {kpi('errors', 'Errors', String(totals.sessionsWithErrors))}
                 </>
               )
             }}
@@ -248,7 +236,7 @@ const BreakdownGrid = ({
       width: '80px',
       render: (row) => (
         <span>
-          {rateText(
+          {analyticsPercentText(
             row.sessions === 0 ? 0 : row.engagedSessions / row.sessions,
             row.sessions,
           )}
@@ -289,6 +277,10 @@ const BreakdownGrid = ({
               admin.showSessions(
                 `${title}: ${row.key}`,
                 new Set(row.sessionIds),
+                {
+                  dimension,
+                  key: row.key,
+                },
               )
             }
           >
@@ -322,14 +314,14 @@ const BreakdownGrid = ({
           getRowId={(row) => row.key}
           selectedId={() => {
             const scope = admin.analytics.scope()
-            const prefix = `${title}: `
-            if (scope === null || !scope.label.startsWith(prefix)) return null
-            return scope.label.slice(prefix.length)
+            if (scope === null || scope.dimension !== dimension) return null
+            return scope.key ?? null
           }}
           onSelect={(row) =>
-            admin.analytics.scopeTo(
+            admin.analytics.scope.scopeTo(
               `${title}: ${row.key}`,
               new Set(row.sessionIds),
+              { dimension, key: row.key },
             )
           }
           empty={<span>No rows</span>}

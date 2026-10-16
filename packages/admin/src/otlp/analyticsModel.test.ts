@@ -45,11 +45,11 @@ test('a scope intersects the segment and limits visible records to those page tr
   const admin = setup()
   ADMIN_FRAME.run(() => {
     admin.filterCalculator.set('attr.url.path=/cart')
-    admin.analytics.scopeTo('picked', new Set(['s1', 's5', 's8']))
+    admin.analytics.scope.scopeTo('picked', new Set(['s1', 's5', 's8']))
     expect(sessionIds(admin)).toEqual(['s1', 's5'])
 
     admin.filterCalculator.set('')
-    admin.analytics.scopeTo('s1', new Set(['s1']))
+    admin.analytics.scope.scopeTo('s1', new Set(['s1']))
     const session = admin.analytics.sessions().find((item) => item.id === 's1')!
     const pageTrace = session.visits[0]!.traceId
     admin.ingest([
@@ -95,7 +95,13 @@ test('showPaths expands the typical path and alignment leaves sessions out', () 
       .map((node) => node.id)
     expect(admin.analytics.paths.expanded()).toEqual(new Set(nonLeafIds))
     const labels = admin.analytics.paths.rows().map((node) => node.label)
-    for (const label of ['All sessions', '/', '/goods/:id', '/cart', '/checkout']) {
+    for (const label of [
+      'All sessions',
+      '/',
+      '/goods/:id',
+      '/cart',
+      '/checkout',
+    ]) {
       expect(labels).toContain(label)
     }
 
@@ -140,11 +146,139 @@ test('openTypicalSession opens the first page view of s1', () => {
   })
 })
 
+test('exclude with an empty filter keeps every session', () => {
+  const admin = setup()
+  ADMIN_FRAME.run(() => {
+    admin.analytics.segmentMode.set('exclude')
+    expect(admin.analytics.segment()).toHaveLength(8)
+    expect(sessionIds(admin)).toEqual([
+      's1',
+      's2',
+      's3',
+      's4',
+      's5',
+      's6',
+      's7',
+      's8',
+    ])
+  })
+})
+
+test('an empty page-view trace does not match other empty-trace records', () => {
+  const admin = ADMIN_FRAME.run(() =>
+    reatomOtlpAdmin({
+      sourceId: 'empty-trace',
+      resource: { 'service.name': 'shop-web' },
+    }),
+  )
+  ADMIN_FRAME.run(() => {
+    admin.ingest([
+      {
+        eventName: 'session.start',
+        traceId: 's-empty:start',
+        spanId: 'start',
+        timeUnixNano: String(1_000_000n),
+        attributes: {
+          'event.name': 'session.start',
+          'session.id': 's-empty',
+          'app.visitor.id': 'v',
+        },
+      },
+      {
+        eventName: 'app.page_view',
+        traceId: '',
+        spanId: 'view',
+        timeUnixNano: String(2_000_000n),
+        attributes: {
+          'event.name': 'app.page_view',
+          'session.id': 's-empty',
+          'app.visitor.id': 'v',
+          'url.path': '/',
+        },
+      },
+      {
+        traceId: '',
+        spanId: 'stray',
+        name: 'stray span',
+        startTimeUnixNano: String(3_000_000n),
+      },
+    ])
+    admin.analytics.scope.scopeTo('empty', new Set(['s-empty']))
+    const allow = admin.analytics.recordInScope()
+    expect(allow).not.toBeNull()
+    const records = admin.records()
+    const pageView = records.find((record) => record.spanId === 'view')
+    const stray = records.find((record) => record.spanId === 'stray')
+    expect(pageView && allow?.(pageView)).toBe(true)
+    expect(stray && allow?.(stray)).toBe(false)
+  })
+})
+
+test('alignAt resets selection only when the alignment changes and fits the axis', () => {
+  const admin = setup()
+  ADMIN_FRAME.run(() => {
+    admin.showPaths()
+    const cart = admin.analytics
+      .pathNodes()
+      .find((node) => node.id === 'paths → / → /goods/:id → /cart')!
+    admin.analytics.paths.select(cart)
+    admin.analytics.paths.zoom(2)
+    expect(admin.analytics.paths.timeWindow()).not.toBeNull()
+    admin.showPaths()
+    expect(admin.analytics.paths.selected()?.id).toBe(cart.id)
+    expect(admin.analytics.paths.timeWindow()).not.toBeNull()
+    admin.showPaths('/cart')
+    expect(admin.analytics.align()).toBe('/cart')
+    expect(admin.analytics.alignChoice()).toBe('/cart')
+    expect(admin.analytics.paths.selected()).toBeNull()
+    expect(admin.analytics.paths.timeWindow()).toBeNull()
+  })
+})
+
+test('opening the paths unit twice keeps the selected step', () => {
+  const admin = setup()
+  ADMIN_FRAME.run(() => {
+    admin.showPaths()
+    const cart = admin.analytics
+      .pathNodes()
+      .find((node) => node.id === 'paths → / → /goods/:id → /cart')!
+    admin.analytics.paths.select(cart)
+    admin.timelineUnit.set('records')
+    admin.openPaths()
+    admin.timelineUnit.set('records')
+    admin.openPaths()
+    expect(admin.analytics.paths.selected()?.id).toBe(cart.id)
+    expect(admin.timelineUnit()).toBe('paths')
+  })
+})
+
+test('showSessions selects the first in-scope page view when the record leaves the scope', () => {
+  const admin = setup()
+  ADMIN_FRAME.run(() => {
+    const s1 = admin.analytics
+      .sessions()
+      .find((session) => session.id === 's1')!
+    const s2 = admin.analytics
+      .sessions()
+      .find((session) => session.id === 's2')!
+    const s2Record = admin
+      .records()
+      .find((record) => record.id === s2.visits[0]!.recordId)!
+    admin.selectRecord(s2Record)
+    admin.showSessions('only s1', new Set(['s1']))
+    expect(admin.selectedRecord()?.id).toBe(s1.visits[0]!.recordId)
+    admin.showSessions('s1 and s2', new Set(['s1', 's2']))
+    expect(admin.selectedRecord()?.id).toBe(s1.visits[0]!.recordId)
+    admin.showSessions('none', new Set())
+    expect(admin.selectedRecord()).toBeNull()
+  })
+})
+
 test('resetFilter clears the session scope and the segment mode', () => {
   const admin = setup()
   ADMIN_FRAME.run(() => {
     admin.analytics.segmentMode.set('exclude')
-    admin.analytics.scopeTo('picked', new Set(['s1']))
+    admin.analytics.scope.scopeTo('picked', new Set(['s1']))
     admin.filterCalculator.set('attr.url.path=/cart')
     admin.resetFilter()
     expect(admin.analytics.scope()).toBeNull()

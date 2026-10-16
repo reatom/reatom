@@ -1,11 +1,17 @@
-import { action, atom, computed } from '@reatom/core'
+import {
+  action,
+  atom,
+  computed,
+  withActions,
+  withChangeHook,
+} from '@reatom/core'
 
 import {
   ADMIN_GANTT_OVERSCAN,
   ADMIN_GANTT_ROW_HEIGHT,
   analyticsPathTiming,
   reatomGantt,
-} from '../gantt'
+} from '../gantt/index.ts'
 import {
   analyticsBreakdown,
   analyticsPathTree,
@@ -18,7 +24,6 @@ import {
   type AnalyticsBreakdownRow,
   type AnalyticsDimension,
   type AnalyticsSegmentMode,
-  type AnalyticsSession,
 } from './analytics.ts'
 import { hasActiveFilter } from './filter.ts'
 import type { AdminRecord } from './ingest.ts'
@@ -26,9 +31,16 @@ import type { AdminMcpFilter } from '../mcp/types.ts'
 
 export type OtlpTimelineUnit = 'records' | 'paths'
 
+export interface AnalyticsScopeFocus {
+  dimension: AnalyticsDimension
+  key: string
+}
+
 export interface AnalyticsSessionScope {
   label: string
   sessionIds: ReadonlySet<string>
+  dimension?: AnalyticsDimension
+  key?: string
 }
 
 export interface OtlpAnalyticsSource {
@@ -53,7 +65,27 @@ export function reatomOtlpAnalytics(source: OtlpAnalyticsSource, name: string) {
     'include',
     `${name}.segmentMode`,
   )
-  const scope = atom<AnalyticsSessionScope | null>(null, `${name}.scope`)
+  const scope = atom<AnalyticsSessionScope | null>(
+    null,
+    `${name}.scope`,
+  ).extend(
+    withActions((target) => ({
+      scopeTo(
+        label: string,
+        sessionIds: ReadonlySet<string>,
+        focus?: AnalyticsScopeFocus,
+      ) {
+        target.set({
+          label,
+          sessionIds,
+          ...(focus ?? {}),
+        })
+      },
+      clearScope() {
+        target.set(null)
+      },
+    })),
+  )
   const segment = computed(() => {
     const filter = source.filter()
     return selectAnalyticsSessions(sessions(), {
@@ -75,6 +107,7 @@ export function reatomOtlpAnalytics(source: OtlpAnalyticsSource, name: string) {
     return rows
   }, `${name}.breakdowns`)
   const align = atom<string | undefined>(undefined, `${name}.align`)
+  const alignChoice = atom('', `${name}.alignChoice`)
   const pathNodes = computed(
     () => analyticsPathTree(segment(), { align: align() }),
     `${name}.pathNodes`,
@@ -110,16 +143,24 @@ export function reatomOtlpAnalytics(source: OtlpAnalyticsSource, name: string) {
     paths.expanded.set(ids)
   }, `${name}.expandTypicalPath`)
   const alignAt = action((label?: string) => {
-    align.set(label)
-    paths.select(null)
-    expandTypicalPath()
+    const choice = label ?? ''
+    const next = choice === '' ? undefined : choice
+    const changed = align() !== next
+    if (changed) {
+      align.set(next)
+      paths.select(null)
+      paths.collapseAll()
+      paths.fit()
+    }
+    if (alignChoice() !== choice) alignChoice.set(choice)
+    if (changed || paths.expanded().size === 0) expandTypicalPath()
   }, `${name}.alignAt`)
-  const scopeTo = action((label: string, sessionIds: ReadonlySet<string>) => {
-    scope.set({ label, sessionIds })
-  }, `${name}.scopeTo`)
-  const clearScope = action(() => {
-    scope.set(null)
-  }, `${name}.clearScope`)
+  alignChoice.extend(
+    withChangeHook((choice) => {
+      const next = choice === '' ? undefined : choice
+      if (align() !== next) alignAt(choice === '' ? undefined : choice)
+    }),
+  )
   const recordInScope = computed(() => {
     const current = scope()
     if (current === null) return null
@@ -128,7 +169,9 @@ export function reatomOtlpAnalytics(source: OtlpAnalyticsSource, name: string) {
     for (const session of sessions()) {
       if (!current.sessionIds.has(session.id)) continue
       for (const id of session.recordIds) recordIds.add(id)
-      for (const visit of session.visits) pageTraces.add(visit.traceId)
+      for (const visit of session.visits) {
+        if (visit.traceId) pageTraces.add(visit.traceId)
+      }
     }
     return (record: AdminRecord) =>
       recordIds.has(record.id) || pageTraces.has(record.traceId)
@@ -143,6 +186,7 @@ export function reatomOtlpAnalytics(source: OtlpAnalyticsSource, name: string) {
     trend,
     breakdowns,
     align,
+    alignChoice,
     pathNodes,
     typicalPath,
     typicalSession,
@@ -150,11 +194,8 @@ export function reatomOtlpAnalytics(source: OtlpAnalyticsSource, name: string) {
     paths,
     expandTypicalPath,
     alignAt,
-    scopeTo,
-    clearScope,
     recordInScope,
   }
 }
 
 export type OtlpAnalytics = ReturnType<typeof reatomOtlpAnalytics>
-export type { AnalyticsSession }

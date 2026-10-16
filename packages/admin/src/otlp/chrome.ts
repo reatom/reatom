@@ -54,9 +54,10 @@ import {
 } from './ingest.ts'
 import type { AdminMcpFilter } from '../mcp/types.ts'
 import type { FilterMode } from '../types.ts'
+import type { AnalyticsSession } from './analytics.ts'
 import {
   reatomOtlpAnalytics,
-  type AnalyticsSession,
+  type AnalyticsScopeFocus,
   type OtlpTimelineUnit,
 } from './analyticsModel.ts'
 
@@ -200,7 +201,7 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     filterReatomKind.set(undefined)
     filterKind.set(undefined)
     filterMode.set('show')
-    analytics.clearScope()
+    analytics.scope.clearScope()
     analytics.segmentMode.set('include')
   }, `${PREFIX}.filter.reset`)
   const activitySplitRatio = atom(0.42, `${PREFIX}.activitySplit`)
@@ -528,12 +529,35 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     timelineUnit.set('paths')
     analytics.alignAt(align)
   }, `${PREFIX}.showPaths`)
+  const openPaths = action(() => {
+    view.set('timeline')
+    timelineUnit.set('paths')
+    if (analytics.paths.expanded().size === 0) analytics.expandTypicalPath()
+  }, `${PREFIX}.openPaths`)
   const showSessions = action(
-    (label: string, sessionIds: ReadonlySet<string>) => {
-      analytics.scopeTo(label, sessionIds)
+    (
+      label: string,
+      sessionIds: ReadonlySet<string>,
+      focus?: AnalyticsScopeFocus,
+    ) => {
+      analytics.scope.scopeTo(label, sessionIds, focus)
       view.set('timeline')
       timelineUnit.set('records')
       gantt.mode.set('waterfall')
+      const selected = selectedRecord()
+      const inScope = analytics.recordInScope()
+      if (selected !== null && inScope !== null && !inScope(selected)) {
+        const first = analytics
+          .sessions()
+          .find((session) => sessionIds.has(session.id))
+        const pageViewId = first?.visits[0]?.recordId
+        const pageView =
+          pageViewId === undefined
+            ? null
+            : (store.records().find((record) => record.id === pageViewId) ??
+              null)
+        selectRecord(pageView)
+      }
     },
     `${PREFIX}.showSessions`,
   )
@@ -689,6 +713,7 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     analytics,
     timelineUnit,
     showPaths,
+    openPaths,
     showSessions,
     openTypicalSession,
     showAbortAndSuspense,

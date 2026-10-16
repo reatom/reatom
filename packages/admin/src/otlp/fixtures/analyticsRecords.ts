@@ -9,7 +9,7 @@ export const analyticsLog = (
   eventName: string,
   start: number,
   attributes: Record<string, unknown>,
-  traceId = 'page-trace',
+  traceId: string,
 ): AdminRecord => {
   recordCount += 1
   return {
@@ -55,6 +55,7 @@ export const scriptedSession = (
         ...identity,
         ...startAttributes,
       },
+      `${sessionId}:start`,
     ),
   ]
   pages.forEach((page, index) => {
@@ -84,11 +85,16 @@ export const scriptedSession = (
       : (page.visibleSeconds ?? 0) * SECOND
     if (visibleMs === 0) return
     records.push(
-      analyticsLog('app.page.engagement', viewAt + visibleMs, {
-        ...identity,
-        'app.engagement.visible_ms': visibleMs,
-        'app.engagement.active_ms': Math.min(visibleMs, 5 * SECOND),
-      }),
+      analyticsLog(
+        'app.page.engagement',
+        viewAt + visibleMs,
+        {
+          ...identity,
+          'app.engagement.visible_ms': visibleMs,
+          'app.engagement.active_ms': Math.min(visibleMs, 5 * SECOND),
+        },
+        `${sessionId}:engagement:${index}`,
+      ),
     )
   })
   return records

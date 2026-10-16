@@ -99,7 +99,7 @@ export const OtlpFilterBar = ({ admin }: { admin: OtlpAdmin }) => {
             <Button
               variant="ghost"
               label="Remove session scope"
-              onClick={() => admin.analytics.clearScope()}
+              onClick={() => admin.analytics.scope.clearScope()}
             >
               Remove session scope
             </Button>
