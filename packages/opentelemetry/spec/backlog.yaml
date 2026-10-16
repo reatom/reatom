@@ -1,6 +1,6 @@
 version: 1
 product: '@reatom/opentelemetry'
-updated_at: '2026-10-14'
+updated_at: '2026-10-16'
 # 2026-10-14 reconciliation against the v2 tree. Research tasks (R*) were not
 # re-graded. Statuses below are implementation evidence from the package, not
 # a fresh reading of every acceptance bullet.
@@ -13,59 +13,364 @@ spec: packages/opentelemetry/spec/README.md
 # Admin tasks (AD-*) live in packages/admin/workflow/backlog.yaml
 
 tasks:
-  - { id: C0, title: Rebase onto origin/v1001 (visibilityAtom), priority: P0, role: implementer, status: done, blocked_by: [] }
-  - { id: BENCH, title: Move otel-bench (size.mjs, e2e, analytics prototype) into packages/opentelemetry/bench, priority: P0, role: implementer, status: open, blocked_by: [C0] }
-  - { id: C1, title: Spike variable propagation and benchmark one vs two variables, priority: P0, role: implementer, status: in_progress, blocked_by: [C0], spec: 01#c1 }
-  - { id: C2, title: withQueue and withAsyncQueue in core, priority: P1, role: implementer, status: open, blocked_by: [C0], owner_approval: true }
-  - { id: C3, title: Atom meta kind marker and named mount action in reatomAbstractRender, priority: P1, role: implementer, status: open, blocked_by: [C0], informed_by: [R3], owner_approval: true }
-  - { id: C4, title: Route trace boundary (prefer tracer extension) and pathless route detection, priority: P1, role: implementer, status: in_progress, blocked_by: [C1] }
-  - { id: C5, title: setupUrlAtomNavigation for Navigation API, priority: P2, role: implementer, status: open, blocked_by: [C0], owner_approval: true }
+  - id: C0
+    title: 'Rebase onto origin/v1001 (visibilityAtom)'
+    priority: P0
+    role: implementer
+    status: done
+    blocked_by: []
+  - id: BENCH
+    title: 'Move otel-bench (size.mjs, e2e, analytics prototype) into packages/opentelemetry/bench'
+    priority: P0
+    role: implementer
+    status: open
+    blocked_by: [C0]
+  - id: C1
+    title: 'Spike variable propagation and benchmark one vs two variables'
+    priority: P0
+    role: implementer
+    status: in_progress
+    blocked_by: [C0]
+    spec: 01#c1
+  - id: C2
+    title: 'withQueue and withAsyncQueue in core'
+    priority: P1
+    role: implementer
+    status: open
+    blocked_by: [C0]
+    owner_approval: true
+  - id: C3
+    title: 'Atom meta kind marker and named mount action in reatomAbstractRender'
+    priority: P1
+    role: implementer
+    status: open
+    blocked_by: [C0]
+    informed_by: [R3]
+    owner_approval: true
+  - id: C4
+    title: 'Route trace boundary (prefer tracer extension) and pathless route detection'
+    priority: P1
+    role: implementer
+    status: in_progress
+    blocked_by: [C1]
+  - id: C5
+    title: 'setupUrlAtomNavigation for Navigation API'
+    priority: P2
+    role: implementer
+    status: open
+    blocked_by: [C0]
+    owner_approval: true
 
-  - { id: R1, title: Frame to OTel mapping variants and route child vs link measured; owner picks, priority: P0, role: researcher, status: open, blocked_by: [OT-4], owner_decision: true }
-  - { id: R2, title: Semconv debate (two models), priority: P0, role: researcher, status: open, blocked_by: [] }
-  - { id: R3, title: Kinds review of core methods, priority: P0, role: researcher, status: open, blocked_by: [] }
-  - { id: R4, title: Computed new traceId brainstorm, priority: P1, role: researcher, status: open, blocked_by: [] }
-  - { id: R5, title: Sampling with backend and baggage, priority: P2, role: researcher, status: open, blocked_by: [] }
-  - { id: R6, title: OTLP gzip and CompressionStream, priority: P3, role: researcher, status: open, blocked_by: [] }
-  - { id: R7, title: Resource attribute defaults, priority: P0, role: researcher, status: open, blocked_by: [] }
-  - { id: R8, title: Client metrics best practice, priority: P3, role: researcher, status: open, blocked_by: [] }
-  - { id: R9, title: Web analytics priorities and engagement, priority: P1, role: researcher, status: open, blocked_by: [] }
-  - { id: R10, title: Identity and session practices, priority: P1, role: researcher, status: open, blocked_by: [] }
-  - { id: R11, title: Pre-consent legality and forbidden data, priority: P1, role: researcher, status: open, blocked_by: [] }
-  - { id: R12, title: web-vitals standard vs attribution, priority: P2, role: researcher, status: open, blocked_by: [] }
-  - { id: R21, title: Manual-only analytics facts and recipes, priority: P2, role: product-agent, status: open, blocked_by: [] }
-  - { id: R22, title: Error dedup, analytics sampling and rate-limit defaults, priority: P2, role: researcher, status: open, blocked_by: [] }
-  - { id: R23, title: Sub-processes and outgoing traceparent default, priority: P2, role: researcher, status: open, blocked_by: [] }
-  - { id: R24, title: Ready-made dashboards feasibility, priority: P3, role: researcher, status: open, blocked_by: [] }
-  - { id: R25, title: Automating incoming trace context, priority: P3, role: researcher, status: open, blocked_by: [] }
+  - id: R1
+    title: 'Frame to OTel mapping variants and route child vs link measured; owner picks'
+    priority: P0
+    role: researcher
+    status: open
+    blocked_by: [OT-4]
+    owner_decision: true
+  - id: R2
+    title: 'Semconv debate (two models)'
+    priority: P0
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R3
+    title: 'Kinds review of core methods'
+    priority: P0
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R4
+    title: 'Computed new traceId brainstorm'
+    priority: P1
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R5
+    title: 'Sampling with backend and baggage'
+    priority: P2
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R6
+    title: 'OTLP gzip and CompressionStream'
+    priority: P3
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R7
+    title: 'Resource attribute defaults'
+    priority: P0
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R8
+    title: 'Client metrics best practice'
+    priority: P3
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R9
+    title: 'Web analytics priorities and engagement'
+    priority: P1
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R10
+    title: 'Identity and session practices'
+    priority: P1
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R11
+    title: 'Pre-consent legality and forbidden data'
+    priority: P1
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R12
+    title: 'web-vitals standard vs attribution'
+    priority: P2
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R21
+    title: 'Manual-only analytics facts and recipes'
+    priority: P2
+    role: product-agent
+    status: open
+    blocked_by: []
+  - id: R22
+    title: 'Error dedup, analytics sampling and rate-limit defaults'
+    priority: P2
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R23
+    title: 'Sub-processes and outgoing traceparent default'
+    priority: P2
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R24
+    title: 'Ready-made dashboards feasibility'
+    priority: P3
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R25
+    title: 'Automating incoming trace context'
+    priority: P3
+    role: researcher
+    status: open
+    blocked_by: []
+  - id: R26
+    title: 'Analyst view totals and average path'
+    priority: P2
+    role: researcher
+    status: done
+    blocked_by: []
 
-  - { id: OT-1, title: Instance model, options atom, filter and extend, flat merge, priority: P0, role: implementer, status: done, blocked_by: [C1] }
-  - { id: OT-2, title: Context on traceVar, remove closure storage, priority: P0, role: implementer, status: done, blocked_by: [C1, OT-1] }
-  - { id: OT-3, title: Serializer with default redaction, capture on by default, priority: P0, role: implementer, status: done, blocked_by: [] }
-  - { id: OT-4, title: Logs pipeline and signal-generic payloads, priority: P0, role: implementer, status: done, blocked_by: [OT-1] }
-  - { id: OT-5, title: Mapping variant 2 with frame and cause ids, priority: P0, role: implementer, status: done, blocked_by: [OT-2, OT-4], informed_by: [R1] }
-  - { id: OT-6, title: Roots - session, action, atom, manual createTrace and parseTraceparent via traceVar, priority: P0, role: implementer, status: done, blocked_by: [OT-2], informed_by: [R4] }
-  - { id: OT-7, title: Route roots and withOTel boundary option, priority: P1, role: implementer, status: done, blocked_by: [OT-6, C4] }
-  - { id: OT-8, title: LOG, errors, abort, suspense, retries, pending on unload, priority: P1, role: implementer, status: done, blocked_by: [OT-5] }
-  - { id: SCHEMA-1, title: Freeze telemetry schema v1, priority: P0, role: reviewer, status: open, blocked_by: [R1, R2, R3, R7, OT-5, OT-6, OT-8] }
-  - { id: OT-9, title: Variant 3 links and detail option, priority: P1, role: implementer, status: in_progress, blocked_by: [OT-5] }
-  - { id: OT-10, title: Mount roots, priority: P2, role: implementer, status: open, blocked_by: [C3, OT-6] }
-  - { id: OT-11, title: traceparent and sampling, priority: P1, role: implementer, status: done, blocked_by: [OT-6], informed_by: [R5] }
-  - { id: OT-12, title: Queue on withAsyncQueue, online buffer, transport action, records sink, priority: P1, role: implementer, status: in_progress, blocked_by: [C2, OT-4] }
-  - { id: OT-13, title: checkSensitiveNames and reatomGDPR, priority: P2, role: implementer, status: done, blocked_by: [OT-3] }
-  - { id: OT-14, title: patch-fetch optional module, priority: P3, role: implementer, status: open, blocked_by: [OT-11] }
-  - { id: OT-15, title: README and docs-site recipes, priority: P2, role: implementer, status: in_progress, blocked_by: [OT-12] }
-  - { id: OT-16, title: Dev warnings - context loss, export failure, code location, priority: P1, role: implementer, status: in_progress, blocked_by: [OT-2, OT-12] }
-  - { id: OT-E2E, title: ClickHouse-backed e2e run, priority: P1, role: test-author, status: open, blocked_by: [OT-4] }
-  - { id: OT-EX, title: Production-close example on examples/react-search, priority: P1, role: implementer, status: in_progress, blocked_by: [OT-7, WA-1] }
+  - id: OT-1
+    title: 'Instance model, options atom, filter and extend, flat merge'
+    priority: P0
+    role: implementer
+    status: done
+    blocked_by: [C1]
+  - id: OT-2
+    title: 'Context on traceVar, remove closure storage'
+    priority: P0
+    role: implementer
+    status: done
+    blocked_by: [C1, OT-1]
+  - id: OT-3
+    title: 'Serializer with default redaction, capture on by default'
+    priority: P0
+    role: implementer
+    status: done
+    blocked_by: []
+  - id: OT-4
+    title: 'Logs pipeline and signal-generic payloads'
+    priority: P0
+    role: implementer
+    status: done
+    blocked_by: [OT-1]
+  - id: OT-5
+    title: 'Mapping variant 2 with frame and cause ids'
+    priority: P0
+    role: implementer
+    status: done
+    blocked_by: [OT-2, OT-4]
+    informed_by: [R1]
+  - id: OT-6
+    title: 'Roots - session, action, atom, manual createTrace and parseTraceparent via traceVar'
+    priority: P0
+    role: implementer
+    status: done
+    blocked_by: [OT-2]
+    informed_by: [R4]
+  - id: OT-7
+    title: 'Route roots and withOTel boundary option'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [OT-6, C4]
+  - id: OT-8
+    title: 'LOG, errors, abort, suspense, retries, pending on unload'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [OT-5]
+  - id: SCHEMA-1
+    title: 'Freeze telemetry schema v1'
+    priority: P0
+    role: reviewer
+    status: open
+    blocked_by: [R1, R2, R3, R7, OT-5, OT-6, OT-8]
+  - id: OT-9
+    title: 'Variant 3 links and detail option'
+    priority: P1
+    role: implementer
+    status: in_progress
+    blocked_by: [OT-5]
+  - id: OT-10
+    title: 'Mount roots'
+    priority: P2
+    role: implementer
+    status: open
+    blocked_by: [C3, OT-6]
+  - id: OT-11
+    title: 'traceparent and sampling'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [OT-6]
+    informed_by: [R5]
+  - id: OT-12
+    title: 'Queue on withAsyncQueue, online buffer, transport action, records sink'
+    priority: P1
+    role: implementer
+    status: in_progress
+    blocked_by: [C2, OT-4]
+  - id: OT-13
+    title: 'checkSensitiveNames and reatomGDPR'
+    priority: P2
+    role: implementer
+    status: done
+    blocked_by: [OT-3]
+  - id: OT-14
+    title: 'patch-fetch optional module'
+    priority: P3
+    role: implementer
+    status: open
+    blocked_by: [OT-11]
+  - id: OT-15
+    title: 'README and docs-site recipes'
+    priority: P2
+    role: implementer
+    status: in_progress
+    blocked_by: [OT-12]
+  - id: OT-16
+    title: 'Dev warnings - context loss, export failure, code location'
+    priority: P1
+    role: implementer
+    status: in_progress
+    blocked_by: [OT-2, OT-12]
+  - id: OT-E2E
+    title: 'ClickHouse-backed e2e run'
+    priority: P1
+    role: test-author
+    status: open
+    blocked_by: [OT-4]
+  - id: OT-EX
+    title: 'Production-close example on examples/react-search'
+    priority: P1
+    role: implementer
+    status: in_progress
+    blocked_by: [OT-7, WA-1]
 
-  - { id: WA-1, title: Analytics skeleton on instance pipelines and core atoms, priority: P1, role: implementer, status: done, blocked_by: [OT-4, OT-12, C0] }
-  - { id: WA-2, title: Page view watershed and trace context, priority: P1, role: implementer, status: done, blocked_by: [WA-1, OT-7] }
-  - { id: WA-3, title: Visitor, session, attribution, priority: P1, role: implementer, status: done, blocked_by: [WA-1], informed_by: [R10] }
-  - { id: WA-4, title: Consent gating and pre-consent mode, priority: P1, role: implementer, status: done, blocked_by: [OT-13], informed_by: [R11] }
-  - { id: WA-5, title: Errors with dedup and tracer overlap, priority: P1, role: implementer, status: done, blocked_by: [OT-8], informed_by: [R22] }
-  - { id: WA-6, title: Engagement visible and active, priority: P1, role: implementer, status: done, blocked_by: [WA-1], informed_by: [R9] }
-  - { id: WA-7, title: size-limit gate for tier 0, priority: P1, role: test-author, status: done, blocked_by: [WA-2, WA-3, WA-4, WA-5, WA-6] }
-  - { id: WA-8, title: Tier 1 modules incl. experiments and breadcrumbs, priority: P2, role: implementer, status: open, blocked_by: [WA-7], informed_by: [R12, R2] }
-  - { id: WA-9, title: Tier 2 modules - ecommerce, opt-in monkeypatch modules, priority: P3, role: implementer, status: open, blocked_by: [WA-7], informed_by: [R2] }
-  - { id: WA-10, title: Analytics docs, priority: P2, role: implementer, status: in_progress, blocked_by: [WA-7], informed_by: [R21] }
+  - id: WA-1
+    title: 'Analytics skeleton on instance pipelines and core atoms'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [OT-4, OT-12, C0]
+  - id: WA-2
+    title: 'Page view watershed and trace context'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [WA-1, OT-7]
+  - id: WA-3
+    title: 'Visitor, session, attribution'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [WA-1]
+    informed_by: [R10]
+  - id: WA-4
+    title: 'Consent gating and pre-consent mode'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [OT-13]
+    informed_by: [R11]
+  - id: WA-5
+    title: 'Errors with dedup and tracer overlap'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [OT-8]
+    informed_by: [R22]
+  - id: WA-6
+    title: 'Engagement visible and active'
+    priority: P1
+    role: implementer
+    status: done
+    blocked_by: [WA-1]
+    informed_by: [R9]
+  - id: WA-7
+    title: 'size-limit gate for tier 0'
+    priority: P1
+    role: test-author
+    status: done
+    blocked_by: [WA-2, WA-3, WA-4, WA-5, WA-6]
+  - id: WA-8
+    title: 'Tier 1 modules incl. experiments and breadcrumbs'
+    priority: P2
+    role: implementer
+    status: open
+    blocked_by: [WA-7]
+    informed_by: [R12, R2]
+  - id: WA-9
+    title: 'Tier 2 modules - ecommerce, opt-in monkeypatch modules'
+    priority: P3
+    role: implementer
+    status: open
+    blocked_by: [WA-7]
+    informed_by: [R2]
+  - id: WA-10
+    title: 'Analytics docs'
+    priority: P2
+    role: implementer
+    status: in_progress
+    blocked_by: [WA-7]
+    informed_by: [R21]
+  - id: WA-11
+    title: 'url.path on engagement and error analytics logs (G1)'
+    priority: P2
+    role: implementer
+    status: open
+    blocked_by: [WA-7]
+  - id: WA-12
+    title: 'Page title and referrer origin on analytics logs (G2)'
+    priority: P2
+    role: implementer
+    status: open
+    blocked_by: [WA-7]
+  - id: WA-13
+    title: 'reatom.kind=page_view on analytics page views (G3)'
+    priority: P2
+    role: implementer
+    status: open
+    blocked_by: [WA-7]

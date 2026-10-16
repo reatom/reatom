@@ -1,6 +1,6 @@
 version: 1
 product: '@reatom/admin'
-updated_at: '2026-07-06'
+updated_at: '2026-10-16'
 
 # Status values: open | in_progress | blocked | done | cancelled
 # Priority: P0 (infra) | P1 (core journeys) | P2 (secondary) | P3 (polish)
@@ -189,3 +189,45 @@ tasks:
       - navigateAdminRoute helper exported
     files:
       - packages/admin/src/testing/admin-navigation.ts
+
+  - id: AD-14
+    title: R26 phase 1 analyst views
+    priority: P2
+    role: implementer
+    status: done
+    blocked_by: []
+    acceptance:
+      - analytics totals, segment, paths, G4, and G5 unit tests pass
+      - MCP analytics summary and paths stay within 20 KB
+      - Storybook smoke journeys cover the Analytics tab and the Paths unit
+    files:
+      - packages/admin/src/otlp/analytics.ts
+      - packages/admin/src/otlp/analyticsModel.ts
+      - packages/admin/src/view/otlp/AnalyticsScreen.tsx
+      - packages/admin/src/view/otlp/GanttChart.tsx
+
+  - id: AD-15
+    title: 'R26 phase 2: ClickHouse range, SQL totals, sampled paths, badges, grouped by session (G6, Д15)'
+    priority: P2
+    role: implementer
+    status: open
+    blocked_by: [AD-14]
+    acceptance:
+      - ClickHouse range query and SQL totals
+      - sampled paths with sample-size badges
+      - grouped-by-session waterfall
+    files:
+      - packages/admin/src/otlp/clickhouse.ts
+
+  - id: AD-16
+    title: 'R26 phase 3: funnels, whiskers, step drivers'
+    priority: P3
+    role: implementer
+    status: open
+    blocked_by: [AD-14]
+    acceptance:
+      - funnel over the analyst segment
+      - p25–p75 whiskers on path steps
+      - step driver comparison against all sessions
+    files:
+      - packages/admin/src/otlp/analytics.ts

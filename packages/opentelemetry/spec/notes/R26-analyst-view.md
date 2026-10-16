@@ -316,3 +316,14 @@ flowchart LR
 23. Disco simplification: https://fluxicon.com/book/read/simplification/
 24. ClickHouse parametric aggregate functions (`windowFunnel`, `sequenceMatch`): https://clickhouse.com/docs/reference/functions/aggregate-functions/parametric-functions
 25. ClickHouse array functions (`arrayCompact`): https://clickhouse.com/docs/reference/functions/regular-functions/array-functions
+
+## Status
+
+Phase 1 shipped in `@reatom/admin` on 2026-10-16 ([AD-14](../../../admin/workflow/backlog.yaml)): the Paths unit, the Analytics tab, session segments, Gantt `key` and `order`, G4, G5, and the `analyticsSummary` and `paths` MCP tools.
+
+Two deviations from this note:
+
+- Clicking a breakdown row sets a removable session-scope chip. It does not add a calculator target. A `page:` target is an AD-15 follow-up.
+- Show sessions scopes the record Waterfall to those sessions. Grouping the Waterfall by session (Д15) is deferred to AD-15.
+
+Phase 2 is AD-15: ClickHouse range, SQL totals, sampled paths, badges, and grouped-by-session waterfall, including G6. Producer gaps G1–G3 are WA-11–WA-13. Phase 3 is AD-16: funnels, whiskers, and step drivers.

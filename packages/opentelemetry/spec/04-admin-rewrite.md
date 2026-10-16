@@ -76,7 +76,7 @@ flowchart LR
 - **Grouping:** by trace, session, route, or source, with badge counters (Д15).
 - **Modes:** `waterfall` (Network-like, Д25) and `log` (flat by time with optional indentation). The owner leans toward **only the Gantt, good enough to work as a logger** (Д3). There is no separate flat logger unless the design debate proves the Gantt log mode insufficient.
 
-It is fully testable without the DOM. Views subscribe to it.
+It is fully testable without the DOM. Views subscribe to it. A `key` identifies expanded and selected rows when the source rebuilds node objects, and an `order` sorts waterfall roots and siblings. Log mode stays in start order. The default key is the node itself.
 
 ## Views
 
@@ -121,9 +121,17 @@ The Gantt shows sequence, but not multi-cause diamonds of computeds. Research R1
 - Back and forward buttons over a selection history atom (Alt+← / Alt+→). No cascade panels or breadcrumbs.
 - **Open in editor:** the tracer's dev-only option `captureCodeLocation` records `code.file.path` / `code.line.number` once per target, at creation, from the stack. Admin opens `cursor://file/…`, `vscode://file/…` or a configurable scheme.
 
+### Paths unit (R26)
+
+The Timeline's third unit, beside Waterfall and Log. The same `reatomGantt` draws page sequences merged across consented sessions. Bars sit at the median offset from the alignment point, and the step card opens the sessions behind a step or one typical session. See [R26](notes/R26-analyst-view.md).
+
+### Analytics tab (R26)
+
+A fixed tab of totals, a session trend, and breakdowns for pages, entry pages, exit pages, and sources. A row sets a removable session scope. Paths and Analytics treat the filter as a session filter: a session is in when any of its records match, and Exclude flips that. See [R26](notes/R26-analyst-view.md).
+
 ### Other views (Д24, Д31, Д32)
 
-Timeline and the Filter studio are folded into the Gantt and the filter panel (Д32). An error list grouped by `exception.type + message` and a web-vitals panel are candidates. R19 decides after the Gantt is usable, and the owner answered "don't know" (Д31).
+Timeline and the Filter studio are folded into the Gantt and the filter panel (Д32). An error list grouped by `exception.type + message` and a web-vitals panel are candidates. R19 decides after the Gantt is usable, and the owner answered "don't know" (Д31). R26 answers part of Д31: totals, breakdowns, and paths for analytics records.
 
 ## Filters (Д1, Д26, Д28–Д30)
 
@@ -244,6 +252,9 @@ Export is JSON v2: normalized records plus source metadata, with a v1 importer. 
 | AD-11 | Perf gate: 100k records                                                                                         | AD-10                                          | Interaction stays responsive (expand, filter, scroll) within agreed budgets                                                |
 | AD-12 | a11y baseline; later the hotkeys epic                                                                           | AD-10                                          | Storybook a11y addon in CI (existing backlog task `a11y-enforcement`)                                                      |
 | AD-13 | Docs: connect in `setup.ts`, hosts, standalone for React Native, remote backends, MCP guide                     | all                                            | Docs-site pages                                                                                                            |
+| AD-14 | R26 phase 1 analyst views: totals, breakdowns, Paths, session scope, G4, G5, MCP                                | AD-3, AD-4                                     | Unit tests, MCP cap, and Storybook smoke journeys for the Analytics tab and the Paths unit                                 |
+| AD-15 | R26 phase 2: ClickHouse range, SQL totals, sampled paths, badges, grouped by session (G6, Д15)                  | AD-14                                          | Range query, exact totals, sample badges, and a session-grouped waterfall                                                  |
+| AD-16 | R26 phase 3: funnels, whiskers, step drivers                                                                    | AD-14                                          | Funnel over the segment, p25–p75 whiskers, and a step-versus-all comparison                                                |
 
 Update `packages/admin/workflow/backlog.yaml` with these IDs, and rewrite `TSD.md` after AD-1.
 

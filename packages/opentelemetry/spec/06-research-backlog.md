@@ -127,6 +127,7 @@ Every "don't know / figure it out / best practices / research" answer in the own
 
 **R19. Additional views (Д31).** After the Gantt is usable: is an error list grouped by signature, a web-vitals panel, or a network view needed?
 
+- Partly answered by R26: totals, breakdowns and paths for analytics records.
 - Fallback: none until asked.
 
 **R20. Remote backend queries and auth (Д12, Д43).** The ClickHouse exporter table schema and the HTTP interface auth; Tempo TraceQL search; the Jaeger query API; CORS realities; which auth modes to support first.
@@ -136,6 +137,7 @@ Every "don't know / figure it out / best practices / research" answer in the own
 **R26. Analyst view: totals and the average path (А2, А24, Д15, Д29, Д31).** The owner (2026-10-16): the admin needs total and average analytics over all sessions from `connectWebAnalytics`, ideally as Timeline tweaks, otherwise an Analytics screen, plus an average user path in the Timeline.
 
 - Output: [notes/R26-analyst-view.md](notes/R26-analyst-view.md): a Paths unit in the Timeline, a fixed Analytics tab, session-level filters, and a ClickHouse plan, with a headless prototype in `packages/admin/src/otlp/analytics.ts`.
+- Status: research done 2026-10-16. Phase 1 shipped in `packages/admin` (AD-14); phases 2–3 are AD-15, AD-16; producer gaps are WA-11–WA-13.
 - Fallback: the R24 SQL snippets for totals and the Records Timeline for single sessions.
 
 ## Owner items, not research

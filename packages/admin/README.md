@@ -114,6 +114,14 @@ const { admin, unmount } = createAdminApp(target, {
 - zoom and offset controls
 - focused bucket inspection
 - jumps back into selected frames
+- Paths unit: the median page sequence across consented sessions, aligned at a step
+
+### Analytics view
+
+- visitors, sessions, page views, engagement, bounce, and errors
+- trend of session starts
+- pages, entry pages, exit pages, and sources
+- a row scopes those sessions or opens Paths
 
 ### Cause graph workspace
 
