@@ -10,7 +10,9 @@ export default defineConfig({
     include: ['./src/**/*.test.tsx'],
     browser: {
       enabled: true,
-      provider: playwright(),
+      provider: playwright({
+        launchOptions: { args: ['--js-flags=--expose-gc'] },
+      }),
       headless: true,
       screenshotFailures: false,
       instances: [
