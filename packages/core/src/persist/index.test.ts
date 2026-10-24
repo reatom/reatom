@@ -4,7 +4,13 @@ import { wrap } from '..'
 import { action, atom, notify } from '../core'
 import { withComputed } from '../extensions'
 import { MAX_SAFE_TIMEOUT, noop, random, sleep } from '../utils'
-import { createMemStorage, type PersistRecord, reatomPersist } from './'
+import {
+  assertPersistRecord,
+  createMemStorage,
+  isPersistRecord,
+  type PersistRecord,
+  reatomPersist,
+} from './'
 
 const withSomePersist = reatomPersist(createMemStorage({ name: 'somePersist' }))
 
@@ -23,6 +29,15 @@ const createRecord = <State>(
 afterEach(() => vi.restoreAllMocks())
 
 describe('base', () => {
+  test('a record of an undefined snapshot stays valid after a JSON round trip', () => {
+    const record = JSON.parse(JSON.stringify(createRecord(undefined)))
+
+    expect(record).not.toHaveProperty('data')
+    expect(isPersistRecord(record)).toBe(true)
+    expect(() => assertPersistRecord(record)).not.toThrow()
+    expect(isPersistRecord({ id: 0, data: 1 })).toBe(false)
+  })
+
   test('snapshots do not expire by default', () => {
     const storage = createMemStorage({ name: 'persistForever' })
     const source = atom(0, 'persistForeverSource').extend(
