@@ -56,17 +56,14 @@ export const useAtom: {
   const frame = useFrame()
   const deps: any[] = [frame]
   if (isAtom(anAtom)) deps.push(anAtom)
+  else if (typeof anAtom === 'function') deps.push(...userDeps)
 
   const ref = React.useMemo(() => {
     const atomName = name ?? _getComponentDebugName(`useAtom#${typeof anAtom}`)
-    const depsAtom = atom<any[]>([], `${atomName}._depsAtom`)
     let theAtom = anAtom
     if (!isAtom(theAtom)) {
       if (typeof anAtom === 'function') {
-        theAtom = computed(() => {
-          depsAtom()
-          return ref.anAtom()
-        }, atomName)
+        theAtom = computed(() => ref.anAtom(), atomName)
       } else {
         theAtom = atom(anAtom, atomName)
       }
@@ -82,7 +79,6 @@ export const useAtom: {
 
     return {
       anAtom,
-      depsAtom,
       theAtom,
       update,
       sub: bind((theAtom as AtomLike).subscribe, frame),
@@ -90,17 +86,7 @@ export const useAtom: {
     }
   }, deps)
   ref.anAtom = anAtom
-  const { theAtom, depsAtom, update, sub, get } = ref
-
-  if (typeof anAtom === 'function' && !isAtom(anAtom)) {
-    const prevDeps = frame.run(depsAtom)
-    if (
-      userDeps.length !== prevDeps.length ||
-      userDeps.some((dep, i) => !Object.is(dep, prevDeps[i]))
-    ) {
-      frame.run(depsAtom.set, userDeps)
-    }
-  }
+  const { theAtom, update, sub, get } = ref
 
   return [
     subscribe ? useSyncExternalStore(sub, get, get) : get(),
