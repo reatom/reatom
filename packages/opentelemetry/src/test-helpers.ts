@@ -331,6 +331,8 @@ export const reatomTestTelemetry = (
   const needsTestDestination =
     input.endpoint === null && !input.transports?.length
   const capture = {} as ReatomOpentelemetryInput
+  // Export fixtures emit independent roots; warning tests opt into real defaults.
+  capture.warnContextLoss = false
   const delivery = {} as OTLPInput
   // Preserve lazy fetch/beacon getters exercised by teardown regression tests.
   for (const [key, descriptor] of Object.entries(

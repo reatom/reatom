@@ -373,6 +373,7 @@ test('installation and updates read each destination setting once and validate t
   const base = reatomOpentelemetry({
     name: 'destination-snapshot',
     serviceName: 'app',
+    warnContextLoss: false,
     roots: ['action'],
   })
   const otel = base.extend(
@@ -415,6 +416,7 @@ test('privileged fallback during export saturation still owns the bounded local 
   const otel = reatomOpentelemetry({
     name: 'saturated-local',
     serviceName: 'app',
+    warnContextLoss: false,
     roots: ['action'],
     maxActive: 1,
     localValues: true,

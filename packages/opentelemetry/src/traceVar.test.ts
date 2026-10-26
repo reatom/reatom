@@ -19,6 +19,8 @@ const setup = (options: SetupOptions = {}) => {
     name: 'traceVar',
     endpoint: 'https://collector.invalid',
     serviceName: 'trace-var',
+    // Explicit undefined preserves the library default instead of the fixture default.
+    warnContextLoss: undefined,
     retry: { maxRetries: 0 },
     fetch: async (_url, init) => {
       spans.push(...parseSpans(String(init?.body)))
@@ -72,6 +74,12 @@ test('await wrap(Promise.resolve()) keeps the child action on the parent trace',
 test.each([
   { mode: 'dev', env: undefined, warnContextLoss: undefined, warnings: 1 },
   { mode: 'prod', env: 'production', warnContextLoss: undefined, warnings: 0 },
+  {
+    mode: 'prod flag on',
+    env: 'production',
+    warnContextLoss: true,
+    warnings: 1,
+  },
   { mode: 'flag off', env: undefined, warnContextLoss: false, warnings: 0 },
 ] as const)(
   'unwrapped callback between two actions ($mode)',
@@ -112,3 +120,22 @@ test.each([
     }
   },
 )
+
+test('export fixtures skip unrelated context-loss diagnostics by default', async () => {
+  await withWarnSpy(async (warn) => {
+    const otel = reatomTestTelemetry({
+      name: 'quiet-fixture',
+      endpoint: null,
+    })
+    try {
+      context.start(() => {
+        action(() => 'first', 'quiet.first')()
+        action(() => 'second', 'quiet.second')()
+      })
+      await otel.flush()
+      expect(warn).not.toHaveBeenCalled()
+    } finally {
+      otel.dispose()
+    }
+  })
+})
