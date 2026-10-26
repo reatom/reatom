@@ -11,6 +11,7 @@ All kernel / cross-library benches live in this folder. Run from
 | `pnpm run bench_dynamic_ab`     | `bench_dynamic_ab.ts` | Reatom-only dynamic dependency lists         |
 | `pnpm run bench_dynamic_ab:mem` | same + `--expose-gc`  | + heap                                       |
 | `pnpm run bench_profile`        | `bench_profile.ts`    | Diamond hot loop for CPU profiling           |
+| `pnpm run bench_abort`          | `bench_abort.ts`      | `abortVar` listener detach                   |
 | `pnpm run bench_computed`       | `bench_computed.ts`   | Cross-library deep-computed comparison       |
 | `pnpm run bench_computed:mem`   | same + `--expose-gc`  | + GC-aware run                               |
 | `pnpm run bench_dynamic`        | `bench_dynamic.ts`    | Cross-library dynamic dependency comparison  |
@@ -137,6 +138,34 @@ bench/bench_profile.ts`.
 pnpm run bench_profile
 node --cpu-prof --import=tsx bench/bench_profile.ts
 ```
+
+---
+
+## `bench_abort.ts`
+
+Cost of `abortVar.subscribe` and its unsubscribe, alone and through the
+paths that detach one per call: `await wrap(promise)` and an async
+`withAbort` action. Reports the median and IQR of 10000 operations.
+
+`--module` loads the core sources of another checkout, so the same
+harness measures a base revision:
+
+```bash
+git worktree add --detach /tmp/reatom-base v1001
+pnpm run bench_abort
+pnpm run bench_abort --module /tmp/reatom-base/packages/core/src/index.ts
+```
+
+### Last results
+
+Apple M4 Pro, Node 24, 15 samples after 3 warmups (2026-10-26). `abort()`
+without a reason builds a DOMException per detach; a shared reason does not.
+
+| Scenario                     | default reason, ms | shared reason, ms |
+| ---------------------------- | -----------------: | ----------------: |
+| subscribe/unsubscribe        |              55.64 |             33.35 |
+| await wrap(resolved promise) |              68.15 |             39.10 |
+| await withAbort action       |             140.36 |             92.06 |
 
 ---
 
