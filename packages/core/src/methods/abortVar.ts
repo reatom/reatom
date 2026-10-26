@@ -10,6 +10,8 @@ import { isAbort, throwIfAborted, toAbortError } from '../utils'
 import { Variable } from './variable'
 import { wrap } from './wrap'
 
+let unsubscribeReason: AbortError | undefined
+
 /**
  * Version of abort controller with explicit name for better debugging.
  *
@@ -154,7 +156,13 @@ export class AbortVariable extends Variable<
 
     let listenerController = new AbortController()
 
-    let unsubscribe = () => listenerController.abort()
+    // `abort()` without a reason builds a DOMException with a stack trace.
+    // `listenerController` only detaches the listeners below and nobody reads
+    // its reason, so every unsubscribe shares one.
+    let unsubscribe = () =>
+      listenerController.abort(
+        (unsubscribeReason ??= toAbortError('unsubscribe')),
+      )
 
     let listener = bind(function listener(signal: AbortSignal) {
       unsubscribe()
