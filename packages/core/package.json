@@ -27,8 +27,7 @@
     "bench_dynamic": "tsx bench/bench_dynamic.ts",
     "bench_computed": "tsx bench/bench_computed.ts",
     "bench_computed:mem": "node --expose-gc --import=tsx bench/bench_computed.ts",
-    "bench_profile": "tsx bench/bench_profile.ts",
-    "bench_abort": "tsx bench/bench_abort.ts"
+    "bench_profile": "tsx bench/bench_profile.ts"
   },
   "tsdown": {
     "format": {

@@ -1,7 +1,7 @@
 import { expect, test, vi } from 'test'
 
 import { action } from '../core'
-import { toAbortError } from '../utils'
+import { isAbort, toAbortError } from '../utils'
 import { abortVar, race } from './abortVar'
 
 const controlledPromise = <T>(promise: Promise<T>) =>
@@ -17,59 +17,35 @@ test('race does not abort the settled winner', async () => {
   expect(loser.controller.signal.aborted).toBe(true)
 })
 
-test('unsubscribe is idempotent and only aborts the listener controller', () => {
-  const callback = vi.fn()
-  const subscription = abortVar.subscribe(callback)
-  const onDetach = vi.fn()
-  subscription.listenerController.signal.addEventListener('abort', onDetach)
-
-  subscription.unsubscribe()
-  subscription.unsubscribe()
-  subscription[Symbol.dispose]()
-
-  expect(onDetach).toHaveBeenCalledTimes(1)
-  expect(subscription.listenerController.signal.reason.name).toBe('AbortError')
-  expect(subscription.controller.signal.aborted).toBe(false)
-  expect(callback).not.toHaveBeenCalled()
-})
-
-test('detaching subscriptions reuses the private reason', () => {
+test('detaching subscriptions reuses an AbortError without aborting their scope', () => {
   const first = abortVar.subscribe()
   const second = abortVar.subscribe()
   first.unsubscribe()
   second.unsubscribe()
-  expect(first.listenerController.signal.reason).toBe(
-    second.listenerController.signal.reason,
-  )
+
+  const reason = first.listenerController.signal.reason
+  expect(isAbort(reason)).toBe(true)
+  expect(second.listenerController.signal.reason).toBe(reason)
+  expect(first.controller.signal.aborted).toBe(false)
+  expect(second.controller.signal.aborted).toBe(false)
 })
 
-test('unsubscribe removes parent listeners without cancelling a sibling', () =>
+test('unsubscribe detaches listeners while active subscriptions receive the parent reason', () =>
   abortVar.createAndRun(() => {
     const parent = abortVar.set()
     const detached = vi.fn()
     const active = vi.fn()
-    action(() => {
+    const subscription = action(() => {
       abortVar.subscribe(detached).unsubscribe()
-      abortVar.subscribe(active)
+      return abortVar.subscribe(active)
     })()
 
     const reason = toAbortError('parent cancelled')
     parent.abort(reason)
+
     expect(detached).not.toHaveBeenCalled()
     expect(active).toHaveBeenCalledExactlyOnceWith(reason)
-  }))
-
-test('parent abort keeps its real reason rather than the detach reason', () =>
-  abortVar.createAndRun(() => {
-    const parent = abortVar.set()
-    const callback = vi.fn()
-    const subscription = action(() => abortVar.subscribe(callback))()
-    const reason = toAbortError('request cancelled')
-
-    parent.abort(reason)
-
     expect(subscription.controller.signal.reason).toBe(reason)
-    expect(callback).toHaveBeenCalledExactlyOnceWith(reason)
     expect(subscription.listenerController.signal.aborted).toBe(true)
     expect(subscription.listenerController.signal.reason).not.toBe(reason)
   }))

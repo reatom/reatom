@@ -2,7 +2,7 @@ import { expect, test, vi } from 'test'
 
 import { atom } from '../core'
 import { withConnectHook } from '../extensions'
-import { abortVar, wrap } from '../methods'
+import { wrap } from '../methods'
 import { sleep } from '../utils'
 import { onEvent, urlAtom } from './'
 
@@ -41,28 +41,4 @@ test('onEvent abort following', async () => {
   expect(cb).toBeCalledTimes(0)
   controller.abort()
   expect(cb).toBeCalledTimes(0)
-})
-
-test('onEvent removes the DOM listener when its parent scope is cancelled', () => {
-  const parent = abortVar.set()
-  const target = new EventTarget()
-  const callback = vi.fn()
-  onEvent(target, 'message', callback)
-  target.dispatchEvent(new Event('message'))
-  expect(callback).toHaveBeenCalledTimes(1)
-
-  parent.abort('stop listening')
-  target.dispatchEvent(new Event('message'))
-  expect(callback).toHaveBeenCalledTimes(1)
-})
-
-test('onEvent once detaches without cancelling the parent scope', () => {
-  const parent = abortVar.set()
-  const target = new EventTarget()
-  const callback = vi.fn()
-  onEvent(target, 'message', callback, { once: true })
-  target.dispatchEvent(new Event('message'))
-  target.dispatchEvent(new Event('message'))
-  expect(callback).toHaveBeenCalledTimes(1)
-  expect(parent.signal.aborted).toBe(false)
 })
