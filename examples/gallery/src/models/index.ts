@@ -87,6 +87,7 @@ export {
   handleLightboxKeyDown,
   keepLightboxView,
   lightboxCounter,
+  lightboxCopyState,
   lightboxImage,
   lightboxNavigationDirection,
   lightboxOpen,

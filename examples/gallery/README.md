@@ -36,6 +36,8 @@ A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reat
 
 **Copy-as-JPEG** (`src/copyImage.ts`): JPEG originals as-is; RAW prefers developed JPEG when the setting is on, else largest embedded preview, else rasterize; other formats rasterize to JPEG (PNG clipboard fallback if `image/jpeg` is unsupported).
 
+The copy button copies the original image, shows a spinner while working, and confirms success with a checkmark for three seconds. For images with a long edge of 6,000 pixels or more, hovering or keyboard-focusing it reveals a matching **4K** copy button (up to 3,840 pixels on the long edge); touch devices show this option directly. Resizing preserves the aspect ratio and never enlarges smaller previews.
+
 **Filtering:** Toolbar type chips match these extensions (`src/models/filters.ts`), plus size range, subfolder scope, and filename search.
 
 ## 🚀 Getting Started

@@ -1,7 +1,7 @@
 import {
   action,
+  atom,
   computed,
-  isAbort,
   peek,
   withAbort,
   withAsync,
@@ -18,7 +18,10 @@ import {
   primeLightboxPreload,
   resetLightboxPan,
 } from './lightboxNavigation'
-import { lightboxIsPanning } from './lightboxSession'
+import {
+  lightboxIsPanning,
+  lightboxShowControlsFromPointer,
+} from './lightboxSession'
 import {
   lightboxImage,
   lightboxNavigationDirection,
@@ -139,17 +142,34 @@ export const downloadLightboxImage = action(async () => {
   }
 }, 'lightbox.downloadImage').extend(withAsync(), withAbort())
 
-export const copyLightboxImageAsJpeg = action(async () => {
+const copyImageTarget = atom<GalleryImageModel | null>(
+  null,
+  'lightbox.copyTarget',
+)
+
+export const copyLightboxImageAsJpeg = action(async (maxLongEdge?: number) => {
   const image = lightboxImage()
   if (!image) return
+  copyImageTarget.set(() => image)
 
   try {
-    await wrap(copyImageAsJpegToClipboard(image))
-  } catch (error: unknown) {
-    if (isAbort(error)) return
-    console.error('Failed to copy image as JPEG:', error)
+    await wrap(copyImageAsJpegToClipboard(image, maxLongEdge))
+  } finally {
+    lightboxShowControlsFromPointer()
   }
-}, 'lightbox.copyImageAsJpeg').extend(withAsync(), withAbort())
+}, 'lightbox.copyImageAsJpeg').extend(
+  withAsync({ status: true }),
+  withAbort('first-in-win'),
+)
+
+export const lightboxCopyState = computed(() => {
+  if (copyImageTarget() !== lightboxImage()) return 'idle'
+  const status = copyLightboxImageAsJpeg.status()
+  if (status.isPending) return 'pending'
+  if (status.isRejected) return 'error'
+  if (status.isFulfilled) return 'success'
+  return 'idle'
+}, 'lightbox.copyState')
 
 export const toggleLightboxImageFavorite = action(() => {
   lightboxImage()?.favorite.toggle()

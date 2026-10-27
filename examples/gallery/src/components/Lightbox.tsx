@@ -48,11 +48,11 @@ import {
   visibleImages,
   visibleIndexMap,
 } from '../model'
+import { CopyImageButton } from './CopyImageButton'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CloseIcon,
-  CopyJpegIcon,
   DownloadIcon,
   FitIcon,
   FullscreenIcon,
@@ -418,9 +418,15 @@ const LightboxContent = () => {
     >
       <div
         id="lightbox-toolbar"
+        attr:data-copy-pending={() => copyLightboxImageAsJpeg.pending() > 0}
         ref={registerGlassSurface('viewer')}
         css={`
           ${lightboxChromeCss}
+          &[data-copy-pending='true'],
+          &:has([data-copy-options-open='true']) {
+            opacity: 1;
+            pointer-events: auto;
+          }
           position: absolute;
           top: 0;
           left: 0;
@@ -465,13 +471,7 @@ const LightboxContent = () => {
           >
             <DownloadIcon />
           </IconButton>
-          <IconButton
-            {...lightboxActivation}
-            label="Copy as JPEG"
-            onClick={copyLightboxImageAsJpeg}
-          >
-            <CopyJpegIcon />
-          </IconButton>
+          <CopyImageButton />
           <IconButton
             {...lightboxActivation}
             label="Zoom out"
