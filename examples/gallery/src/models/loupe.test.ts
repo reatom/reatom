@@ -7,6 +7,7 @@ import {
   LOUPE_MARGIN,
   LOUPE_SHOW_DELAY_MS,
   hideLoupe,
+  bindLoupeDismiss,
   loupeImage,
   loupeOpen,
   loupePosition,
@@ -16,6 +17,7 @@ import {
 } from './loupe'
 
 test.beforeEach(() => clearStack())
+test.afterEach(() => vi.unstubAllGlobals())
 
 const LOUPE_WIDTH = 264
 const LOUPE_HEIGHT = 336
@@ -159,6 +161,41 @@ test('a pending hide is cancelled by entering another card', async () => {
       await wrap(vi.advanceTimersByTimeAsync(500))
       expect(loupeOpen()).toBe(true)
       expect(loupeImage()?.image.id).toBe('b')
+    })
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('leaving before the show delay cancels the pending show', async () => {
+  vi.useFakeTimers()
+  try {
+    await context.start(async () => {
+      const show = showLoupe(fakeImage('a'), fakeCard).catch(() => null)
+      hideLoupe()
+      await wrap(vi.advanceTimersByTimeAsync(500))
+      await wrap(show)
+      expect(loupeOpen()).toBe(false)
+      expect(loupeImage()).toBeNull()
+    })
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('binding teardown cancels delayed show and clears the loupe', async () => {
+  vi.stubGlobal('document', new EventTarget())
+  vi.useFakeTimers()
+  try {
+    await context.start(async () => {
+      const stop = bindLoupeDismiss()
+      const show = showLoupe(fakeImage('a'), fakeCard).catch(() => null)
+      stop()
+      await wrap(vi.advanceTimersByTimeAsync(500))
+      await wrap(show)
+      expect(loupeOpen()).toBe(false)
+      expect(loupeImage()).toBeNull()
+      expect(loupePosition()).toBeNull()
     })
   } finally {
     vi.useRealTimers()

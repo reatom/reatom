@@ -1,20 +1,16 @@
 import { abortVar, effect, isAbort, take, throwAbort, wrap } from '@reatom/core'
 
 import { yieldToBrowser } from '../yieldToBrowser'
-import {
-  collectAllGalleryImages,
-  folderModelTree,
-  type GalleryFolderModel,
-} from './collection'
+import { collectAllGalleryImages, folderModelTree } from './collection'
 import type { GalleryImageModel } from './contracts'
 
 export const bindBackgroundPreviewLoader = () => {
   const failed = new WeakSet<GalleryImageModel>()
-  let tree: GalleryFolderModel | null = null
-  let images: GalleryImageModel[] = []
-  let cursor = 0
-
+  const completed = new WeakSet<GalleryImageModel>()
   const loader = effect(async () => {
+    // Synchronous dependency binds the entire loop to this folder's lifetime.
+    const tree = folderModelTree()
+    const images = tree ? collectAllGalleryImages(tree) : []
     while (true) {
       abortVar.throwIfAborted()
       // Even immediately settled jobs must let input and rendering run.
@@ -22,12 +18,6 @@ export const bindBackgroundPreviewLoader = () => {
       const { candidate } = await wrap(
         take(
           () => {
-            const nextTree = folderModelTree()
-            if (nextTree !== tree) {
-              tree = nextTree
-              images = tree ? collectAllGalleryImages(tree) : []
-              cursor = 0
-            }
             if (
               images.some(
                 (image) =>
@@ -37,19 +27,18 @@ export const bindBackgroundPreviewLoader = () => {
             )
               return null
 
-            while (cursor < images.length) {
-              const image = images[cursor]!
-              // Never activate off-priority jobs just to inspect their state.
+            // Selection is pure: foreground images can lose demand before
+            // finishing and must remain eligible for a later background pass.
+            for (const image of images) {
+              if (completed.has(image) || failed.has(image)) continue
               if (
                 image.thumbnailLongEdge() > 0 ||
-                failed.has(image) ||
                 image.previewLoadPriority() === 'high'
-              ) {
-                cursor += 1
+              )
                 continue
+              if (image.previewLoadPriority() === 'off') {
+                return { candidate: image }
               }
-              if (image.previewLoadPriority() !== 'off') return null
-              return { candidate: image }
             }
             return null
           },
@@ -60,7 +49,10 @@ export const bindBackgroundPreviewLoader = () => {
 
       candidate.previewLoadPriority.set('background')
       try {
-        await wrap(candidate.thumbnail())
+        // A disconnected foreground subscriber may leave an aborted cached
+        // request. Background admission owns a fresh attempt for that image.
+        await wrap(candidate.thumbnail.retry())
+        completed.add(candidate)
       } catch (error) {
         if (!isAbort(error)) {
           failed.add(candidate)

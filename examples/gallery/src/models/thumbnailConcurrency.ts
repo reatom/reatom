@@ -11,7 +11,7 @@ type ThumbnailSlotLease = {
 }
 
 type ThumbnailQueueEntry = {
-  priority: ThumbnailSlotPriority
+  priority: () => ThumbnailSlotPriority
   cancelled: boolean
   grant: () => void
   cancel: (error: Error) => void
@@ -33,25 +33,27 @@ function createThumbnailAbortError(signal: AbortSignal): Error {
   return error
 }
 
-function enqueueThumbnailJob(entry: ThumbnailQueueEntry) {
-  const insertIndex = thumbnailQueue.findIndex(
-    (queued) => priorityRank[queued.priority] > priorityRank[entry.priority],
-  )
-  if (insertIndex === -1) {
-    thumbnailQueue.push(entry)
-    return
-  }
-  thumbnailQueue.splice(insertIndex, 0, entry)
-}
-
 function runNextThumbnailJob() {
   while (
     activeThumbnailJobs < maxParallelThumbnails &&
     thumbnailQueue.length > 0
   ) {
-    const entry = thumbnailQueue.shift()
-    if (!entry) return
-    if (entry.cancelled) continue
+    for (let index = thumbnailQueue.length - 1; index >= 0; index -= 1) {
+      if (thumbnailQueue[index]!.cancelled) thumbnailQueue.splice(index, 1)
+    }
+    if (thumbnailQueue.length === 0) return
+    // Sample demand at admission, so promotion never restarts a decode or
+    // needs a subscription for every queued image. Ties preserve FIFO order.
+    let nextIndex = 0
+    for (let index = 1; index < thumbnailQueue.length; index += 1) {
+      if (
+        priorityRank[thumbnailQueue[index]!.priority()] <
+        priorityRank[thumbnailQueue[nextIndex]!.priority()]
+      )
+        nextIndex = index
+    }
+    const [entry] = thumbnailQueue.splice(nextIndex, 1)
+    if (!entry || entry.cancelled) continue
 
     activeThumbnailJobs += 1
     entry.grant()
@@ -60,7 +62,7 @@ function runNextThumbnailJob() {
 
 export function acquireThumbnailSlot(
   signal: AbortSignal,
-  priority: ThumbnailSlotPriority = 'high',
+  priority: ThumbnailSlotPriority | (() => ThumbnailSlotPriority) = 'high',
 ): Promise<ThumbnailSlotLease> {
   return new Promise((resolve, reject) => {
     if (signal.aborted) {
@@ -92,7 +94,7 @@ export function acquireThumbnailSlot(
     }
 
     const entry: ThumbnailQueueEntry = {
-      priority,
+      priority: typeof priority === 'function' ? priority : () => priority,
       cancelled: false,
       grant: () => {
         granted = true
@@ -111,7 +113,7 @@ export function acquireThumbnailSlot(
     }
 
     signal.addEventListener('abort', abort, { once: true })
-    enqueueThumbnailJob(entry)
+    thumbnailQueue.push(entry)
     runNextThumbnailJob()
   })
 }

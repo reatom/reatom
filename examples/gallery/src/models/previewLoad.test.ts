@@ -263,3 +263,66 @@ test('1300 background images yield to browser frames instead of draining microta
     vi.restoreAllMocks()
   }
 })
+
+test('background revisits an unfinished foreground image after its demand disappears', async () => {
+  clearStack()
+  vi.useFakeTimers()
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  let finishBackground!: (value: ThumbnailResult) => void
+  const background = new Promise<ThumbnailResult>((resolve) => {
+    finishBackground = resolve
+  })
+  const artifact: ThumbnailResult = {
+    url: 'blob:revisited',
+    width: 192,
+    height: 128,
+    source: 'generated',
+  }
+  const load = vi
+    .spyOn(imageEngine, 'loadThumbnailWithMeta')
+    .mockRejectedValueOnce(new Error('foreground failed'))
+    .mockReturnValueOnce(background)
+    .mockResolvedValue(artifact)
+  vi.spyOn(imageEngine, 'revokeThumbnail').mockImplementation(() => {})
+  try {
+    await context.start(async () => {
+      loadGalleryState({
+        tree: {
+          ...mockFolderTree,
+          images: ['a-foreground', 'b-background'].map((name) =>
+            createMockImage({ name: `${name}.jpg` }),
+          ),
+          children: [],
+          imageCount: 2,
+        },
+      })
+      viewMode.setList()
+      const images = currentImages()
+      images[0]!.previewLoadPriority.set('high')
+      const stop = bindBackgroundPreviewLoader()
+      try {
+        await wrap(vi.advanceTimersByTimeAsync(20))
+        expect(load).toHaveBeenCalledTimes(2)
+        images[0]!.previewLoadPriority.set('off')
+        finishBackground(artifact)
+        await wrap(vi.advanceTimersByTimeAsync(40))
+        expect(images[0]!.thumbnailLongEdge()).toBeGreaterThan(0)
+        expect(load).toHaveBeenCalledTimes(3)
+      } finally {
+        stop()
+        finishBackground(artifact)
+        resetGallerySession()
+      }
+    })
+  } finally {
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+  }
+})

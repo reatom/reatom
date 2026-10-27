@@ -1,4 +1,11 @@
-import { action, atom, withAbort, withAsync, wrap } from '@reatom/core'
+import {
+  abortVar,
+  action,
+  atom,
+  withAbort,
+  withAsync,
+  wrap,
+} from '@reatom/core'
 
 import {
   isFileSystemAccessSupported,
@@ -44,34 +51,58 @@ async function requestDirectoryPermission(
   return permission === 'granted'
 }
 
-export const openFolder = action(async (handle: FileSystemDirectoryHandle) => {
-  if (!isFileSystemAccessSupported()) return
+// Permission checks and scans share one latest-intent owner. The picker has
+// its own scope so dismissing it cannot cancel an already running scan.
+export const openFolder = action(
+  async (
+    explicitHandle?: FileSystemDirectoryHandle,
+    intent: 'open' | 'picked' | 'restore' | 'request' = 'open',
+  ) => {
+    if (!isFileSystemAccessSupported()) return
+    if (intent === 'open') pickAndOpenFolder.abort()
 
-  pendingFolderRestore.set(null)
+    const handle =
+      explicitHandle ??
+      (intent === 'request'
+        ? (pendingFolderRestore() ?? selectedFolderHandle())
+        : selectedFolderHandle())
+    if (!handle) return
 
-  resetGallerySession()
-  resetLightboxOnFolderChange()
-  folderTree.set(null)
-  currentFolder.set(null)
-
-  parsingProgress.set({ total: 0, current: 0 })
-
-  try {
-    const result = await wrap(
-      scanDirectoryRecursive(handle, {
-        onProgress: (snapshot) => parsingProgress.set(snapshot),
-      }),
-    )
-    publishFolderScan(result)
-    selectedFolderHandle.set(handle)
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      parsingProgress.set({ total: 0, current: 0 })
-      return
+    if (intent === 'restore') {
+      const permission = await wrap(queryDirectoryPermission(handle))
+      if (permission !== true && permission !== 'granted') {
+        pendingFolderRestore.set(handle)
+        return
+      }
+    } else if (intent === 'request') {
+      if (!(await wrap(requestDirectoryPermission(handle)))) return
     }
-    throw error
-  }
-}, 'openFolder').extend(withAsync(), withAbort())
+
+    pendingFolderRestore.set(null)
+    resetGallerySession()
+    resetLightboxOnFolderChange()
+    folderTree.set(null)
+    currentFolder.set(null)
+    parsingProgress.set({ total: 0, current: 0 })
+
+    try {
+      const result = await wrap(
+        scanDirectoryRecursive(handle, {
+          onProgress: (snapshot) => parsingProgress.set(snapshot),
+        }),
+      )
+      publishFolderScan(result)
+      selectedFolderHandle.set(handle)
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        parsingProgress.set({ total: 0, current: 0 })
+        return
+      }
+      throw error
+    }
+  },
+  'openFolder',
+).extend(withAsync(), withAbort())
 
 export const pickAndOpenFolder = action(async () => {
   if (!isFileSystemAccessSupported()) return
@@ -83,40 +114,22 @@ export const pickAndOpenFolder = action(async () => {
     if (error instanceof DOMException && error.name === 'AbortError') return
     throw error
   }
+  // Once accepted, a scan outlives subsequent picker dialogs and their cancellation.
+  await wrap(abortVar.spawn(openFolder, handle, 'picked'))
+}, 'pickAndOpenFolder').extend(withAsync(), withAbort())
 
-  await wrap(openFolder(handle))
-}, 'pickAndOpenFolder').extend(withAsync())
+export const restoreSelectedFolder = action(
+  () => openFolder(undefined, 'restore'),
+  'restoreSelectedFolder',
+).extend(withAsync(), withAbort())
 
-export const restoreSelectedFolder = action(async () => {
-  if (!isFileSystemAccessSupported()) return
-
-  const handle = selectedFolderHandle()
-  if (handle === null) return
-
-  const permission = await wrap(queryDirectoryPermission(handle))
-  if (permission === true || permission === 'granted') {
-    pendingFolderRestore.set(null)
-    await wrap(openFolder(handle))
-    return
-  }
-
-  pendingFolderRestore.set(handle)
-}, 'restoreSelectedFolder').extend(withAsync(), withAbort())
-
-export const requestFolderRestore = action(async () => {
-  if (!isFileSystemAccessSupported()) return
-
-  const handle = pendingFolderRestore() ?? selectedFolderHandle()
-  if (handle === null) return
-
-  const hasPermission = await wrap(requestDirectoryPermission(handle))
-  if (!hasPermission) return
-
-  pendingFolderRestore.set(null)
-  await wrap(openFolder(handle))
-}, 'requestFolderRestore').extend(withAsync(), withAbort())
+export const requestFolderRestore = action(
+  () => openFolder(undefined, 'request'),
+  'requestFolderRestore',
+).extend(withAsync(), withAbort())
 
 export const resetOpenedFolder = action(() => {
+  pickAndOpenFolder.abort()
   openFolder.abort()
   restoreSelectedFolder.abort()
   requestFolderRestore.abort()

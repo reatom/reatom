@@ -3,6 +3,7 @@ import {
   abortVar,
   action,
   atom,
+  bind,
   computed,
   peek,
   take,
@@ -200,12 +201,27 @@ export function reatomImage(
   const ignoreExifOrientation = () =>
     options?.readIgnoreExifOrientation?.() ?? false
 
+  const activeProducers = new Set<AbortController>()
+  const requestedProducers = new Set<string>()
+  const trackProducer = (name: string) => {
+    requestedProducers.add(name)
+    const controller = abortVar.require()
+    activeProducers.add(controller)
+    return {
+      [Symbol.dispose]() {
+        activeProducers.delete(controller)
+      },
+    }
+  }
+
   const file = computed(async () => {
+    using producer = trackProducer('file')
     if (source instanceof Blob) return source
     return await wrap(source.getFile())
   }, `${name}.file`).extend(withAsyncData())
 
   const fileInfo = computed(async () => {
+    using producer = trackProducer('fileInfo')
     const blob = await wrap(file())
     return getBlobFileInfo(blob, options?.filename ?? name)
   }, `${name}.fileInfo`).extend(
@@ -213,6 +229,7 @@ export function reatomImage(
   )
 
   const thumbnailMeta = computed(async () => {
+    using producer = trackProducer('thumbnailMeta')
     const blob = await wrap(file())
     return await wrap(
       parseImagePreviewMeta(blob, { filename: options?.filename }),
@@ -220,6 +237,7 @@ export function reatomImage(
   }, `${name}.thumbnailMeta`).extend(withAsyncData())
 
   const meta = computed(async () => {
+    using producer = trackProducer('meta')
     const blob = await wrap(file())
     return await wrap(parseImageMeta(blob, { filename: options?.filename }))
   }, `${name}.meta`).extend(withAsyncData())
@@ -286,6 +304,7 @@ export function reatomImage(
   }
 
   const thumbnail = computed(async () => {
+    using producer = trackProducer('thumbnail')
     // Dependency tracking only covers reads before the first await, so every
     // reactive input must be captured synchronously here. Otherwise a late
     // thumbnail-target upgrade (e.g. the grid getting measured after mount)
@@ -293,8 +312,6 @@ export function reatomImage(
     const thumbnailTargetSize = options?.thumbnailTargetSize
     let requestedMaxSize = thumbnailTargetSize?.() ?? DEFAULT_MAX_SIZE
     const ignoreOrientation = ignoreExifOrientation()
-    const filePromise = file()
-    const thumbnailMetaPromise = thumbnailMeta()
     const previewLoadPriority = options?.previewLoadPriority
 
     // Shrink / same-bucket resize: keep the already-decoded thumbnail.
@@ -307,7 +324,11 @@ export function reatomImage(
     if (previewLoadPriority) {
       while (peek(previewLoadPriority) === 'off') {
         await wrap(
-          take(previewLoadPriority, (next) => next === 'off' && throwAbort()),
+          take(
+            previewLoadPriority,
+            (next) => (next !== 'off' ? next : throwAbort()),
+            'thumbnail.priority',
+          ),
         )
       }
     }
@@ -329,16 +350,34 @@ export function reatomImage(
     if (reusableAfterMeasure) return reusableAfterMeasure
 
     const signal = abortVar.require().signal
-    const slotPriority =
-      previewLoadPriority && peek(previewLoadPriority) === 'background'
-        ? 'background'
-        : 'high'
-    const thumbnailSlot = await wrap(acquireThumbnailSlot(signal, slotPriority))
+    const readSlotPriority = bind(() =>
+      previewLoadPriority && peek(previewLoadPriority) !== 'high'
+        ? ('background' as const)
+        : ('high' as const),
+    )
+    let thumbnailSlot = await wrap(
+      acquireThumbnailSlot(signal, readSlotPriority),
+    )
+    // Demand can disappear while queued. Return the unstarted lease and wait
+    // again rather than spending IO or decoder work on an off-priority image.
+    while (previewLoadPriority && peek(previewLoadPriority) === 'off') {
+      thumbnailSlot.release()
+      await wrap(
+        take(
+          previewLoadPriority,
+          (next) => (next !== 'off' ? next : throwAbort()),
+          'thumbnail.priority',
+        ),
+      )
+      thumbnailSlot = await wrap(acquireThumbnailSlot(signal, readSlotPriority))
+    }
     thumbnailSlot.start()
 
     try {
       const [fileState, metaState] = await wrap(
-        Promise.all([filePromise, thumbnailMetaPromise]),
+        // Source is immutable; option dependencies were captured before the
+        // first await. Start file IO only after measurement and queue admission.
+        Promise.all([file(), thumbnailMeta()]),
       )
       // Monotonic decode size: never regenerate a smaller thumbnail than we
       // already produced; upgrades only go larger.
@@ -392,6 +431,7 @@ export function reatomImage(
   }, `${name}.thumbnail`).extend(withAsyncData())
 
   const embeddedPreviewUrl = computed(async () => {
+    using producer = trackProducer('embeddedPreviewUrl')
     const [fileBlob, metaState] = await wrap(Promise.all([file(), meta()]))
     if (!isRawImageMeta(metaState)) return null
 
@@ -404,6 +444,7 @@ export function reatomImage(
   }, `${name}.embeddedPreviewUrl`).extend(withAsyncData())
 
   const rawDeveloped = computed(async (): Promise<RawDevelopResult | null> => {
+    using producer = trackProducer('rawDeveloped')
     if (!developRawEnabled()) return null
 
     const ignoreOrientation = ignoreExifOrientation()
@@ -424,6 +465,7 @@ export function reatomImage(
 
   const rawDevelopedFullSize = computed(
     async (): Promise<RawDevelopResult | null> => {
+      using producer = trackProducer('rawDevelopedFullSize')
       if (!developRawEnabled()) return null
 
       const ignoreOrientation = ignoreExifOrientation()
@@ -442,12 +484,14 @@ export function reatomImage(
   ).extend(withAsyncData())
 
   const developedImageUrl = computed(async () => {
+    using producer = trackProducer('developedImageUrl')
     const developed = await wrap(rawDeveloped())
     if (!developed) return null
     return createTrackedObjectUrl(developed.blob)
   }, `${name}.developedImageUrl`).extend(withAsyncData())
 
   const rawEmbeddedPreviewImage = computed(async () => {
+    using producer = trackProducer('rawEmbeddedPreviewImage')
     const metaState = await wrap(meta())
     if (!isRawImageMeta(metaState)) return null
 
@@ -458,6 +502,7 @@ export function reatomImage(
   }, `${name}.rawEmbeddedPreviewImage`).extend(withAsyncData())
 
   const rawDevelopedImage = computed(async () => {
+    using producer = trackProducer('rawDevelopedImage')
     if (!developRawEnabled()) return null
 
     const metaState = await wrap(meta())
@@ -470,6 +515,7 @@ export function reatomImage(
   }, `${name}.rawDevelopedImage`).extend(withAsyncData())
 
   const fullImageUrl = computed(async () => {
+    using producer = trackProducer('fullImageUrl')
     const metaState = await wrap(thumbnailMeta())
     if (isRawImageMeta(metaState)) return null
 
@@ -478,6 +524,7 @@ export function reatomImage(
   }, `${name}.fullUrl`).extend(withAsyncData())
 
   const fullImage = computed(async () => {
+    using producer = trackProducer('fullImage')
     const metaState = await wrap(thumbnailMeta())
     if (isRawImageMeta(metaState)) return null
 
@@ -488,6 +535,7 @@ export function reatomImage(
   }, `${name}.fullImage`).extend(withAsyncData())
 
   const sizedImage = computed(async () => {
+    using producer = trackProducer('sizedImage')
     if (!options?.readDisplayTarget || !options.readSizedImageActive) {
       return null
     }
@@ -629,17 +677,24 @@ export function reatomImage(
   )
 
   const dispose = action(() => {
+    // Track controllers at execution: reading query.pending here would itself
+    // activate lazy queries and start IO for images that were never requested.
+    for (const controller of activeProducers) controller.abort('image disposed')
     clearThumbnail()
     clearSizedImage()
     for (const url of [...objectUrls]) revokeObjectUrl(url)
-    thumbnail.data.reset()
-    sizedImage.data.reset()
-    embeddedPreviewUrl.data.reset()
-    developedImageUrl.data.reset()
-    fullImageUrl.data.reset()
-    rawEmbeddedPreviewImage.data.reset()
-    rawDevelopedImage.data.reset()
-    fullImage.data.reset()
+    if (requestedProducers.has('thumbnail')) thumbnail.data.reset()
+    if (requestedProducers.has('sizedImage')) sizedImage.data.reset()
+    if (requestedProducers.has('embeddedPreviewUrl'))
+      embeddedPreviewUrl.data.reset()
+    if (requestedProducers.has('developedImageUrl'))
+      developedImageUrl.data.reset()
+    if (requestedProducers.has('fullImageUrl')) fullImageUrl.data.reset()
+    if (requestedProducers.has('rawEmbeddedPreviewImage'))
+      rawEmbeddedPreviewImage.data.reset()
+    if (requestedProducers.has('rawDevelopedImage'))
+      rawDevelopedImage.data.reset()
+    if (requestedProducers.has('fullImage')) fullImage.data.reset()
   }, `${name}.dispose`)
 
   return file.extend(() => ({

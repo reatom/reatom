@@ -581,3 +581,240 @@ test('sizedImage decodes again when the EXIF orientation preference changes', as
     vi.restoreAllMocks()
   }
 })
+
+test('off-priority and unmeasured thumbnails defer file IO', async () => {
+  const getFile = vi.fn().mockResolvedValue(makeJpegBlob())
+  const parse = vi
+    .spyOn(imageEngine, 'parseImagePreviewMeta')
+    .mockResolvedValue({
+      width: 1200,
+      height: 800,
+      format: 'jpeg',
+      isProgressive: false,
+      hasExifThumbnail: false,
+    })
+  const load = vi
+    .spyOn(imageEngine, 'loadThumbnailWithMeta')
+    .mockResolvedValue({
+      url: 'blob:admitted',
+      width: 300,
+      height: 200,
+      source: 'generated',
+    })
+  try {
+    await context.start(async () => {
+      const priority = atom<'off' | 'high' | 'background'>('off')
+      const target = atom(0)
+      const image = reatomImage(
+        { getFile } as unknown as FileSystemFileHandle,
+        'admission',
+        {
+          previewLoadPriority: priority,
+          thumbnailTargetSize: target,
+        },
+      )
+      const result = image.thumbnail()
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(getFile).not.toHaveBeenCalled()
+      priority.set('high')
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(getFile).not.toHaveBeenCalled()
+      target.set(300)
+      await wrap(result)
+      expect(getFile).toHaveBeenCalledTimes(1)
+      expect(parse).toHaveBeenCalledTimes(1)
+      expect(load).toHaveBeenCalledTimes(1)
+      image.dispose()
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('dispose aborts an active thumbnail and disposes its late artifact', async () => {
+  let finish!: (result: ThumbnailResult) => void
+  let started!: () => void
+  const loading = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  let decodeSignal!: AbortSignal
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  vi.spyOn(imageEngine, 'loadThumbnailWithMeta').mockImplementation(
+    (_file, _meta, options) => {
+      decodeSignal = options!.signal!
+      started()
+      return new Promise<ThumbnailResult>((resolve) => {
+        finish = resolve
+      })
+    },
+  )
+  const revoke = vi
+    .spyOn(imageEngine, 'revokeThumbnail')
+    .mockImplementation(() => {})
+  try {
+    await context.start(async () => {
+      const image = reatomImage(makeJpegBlob(), 'disposed-active')
+      const result = image.thumbnail().catch(() => null)
+      await wrap(loading)
+      image.dispose()
+      expect(decodeSignal.aborted).toBe(true)
+      const artifact: ThumbnailResult = {
+        url: 'blob:late',
+        width: 300,
+        height: 200,
+        source: 'generated',
+      }
+      finish(artifact)
+      await wrap(result)
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(revoke).toHaveBeenCalledWith(artifact)
+      expect(image.thumbnail.data()).toBeUndefined()
+      expect(image.thumbnailLongEdge()).toBe(0)
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('queued thumbnails promote in their image context when leases release outside Reatom', async () => {
+  const { acquireThumbnailSlot, maxParallelThumbnails } =
+    await import('./models/thumbnailConcurrency')
+  const active = await Promise.all(
+    Array.from({ length: maxParallelThumbnails }, () =>
+      acquireThumbnailSlot(new AbortController().signal),
+    ),
+  )
+  active.forEach((lease) => lease.start())
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  const load = vi
+    .spyOn(imageEngine, 'loadThumbnailWithMeta')
+    .mockResolvedValue({
+      url: 'blob:queued',
+      width: 300,
+      height: 200,
+      source: 'generated',
+    })
+  vi.spyOn(imageEngine, 'revokeThumbnail').mockImplementation(() => {})
+  try {
+    await context.start(async () => {
+      const priority = atom<'off' | 'high' | 'background'>('background')
+      const first = reatomImage(new File(['a'], 'a.jpg'), 'queued-a', {
+        previewLoadPriority: atom<'off' | 'high' | 'background'>('background'),
+      })
+      const promoted = reatomImage(new File(['b'], 'b.jpg'), 'queued-b', {
+        previewLoadPriority: priority,
+      })
+      const firstResult = first.thumbnail()
+      const promotedResult = promoted.thumbnail()
+      priority.set('high')
+      expect(load).not.toHaveBeenCalled()
+      // Native decoder completion can release a lease outside any Reatom frame.
+      setTimeout(() => active[0]!.release(), 0)
+      await wrap(Promise.all([firstResult, promotedResult]))
+      expect(load.mock.calls.map(([file]) => (file as File).name)).toEqual([
+        'b.jpg',
+        'a.jpg',
+      ])
+      first.dispose()
+      promoted.dispose()
+    })
+  } finally {
+    active.forEach((lease) => lease.release())
+    vi.restoreAllMocks()
+  }
+})
+
+test('dispose aborts sized-image production and clears a canvas returned late', async () => {
+  const resize = await import('./image-engine/resizeBitmap')
+  let finish!: (canvas: HTMLCanvasElement) => void
+  let started!: () => void
+  const loading = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  let decodeSignal!: AbortSignal
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 6000,
+    height: 4000,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  vi.spyOn(resize, 'decodeBlobToCanvas').mockImplementation(
+    (_blob, _target, _meta, _ignore, signal) => {
+      decodeSignal = signal!
+      started()
+      return new Promise<HTMLCanvasElement>((resolve) => {
+        finish = resolve
+      })
+    },
+  )
+  try {
+    await context.start(async () => {
+      const image = reatomImage(makeJpegBlob(), 'disposed-sized', {
+        readDisplayTarget: () => ({ width: 1200, height: 800, zoom: 1 }),
+        readSizedImageActive: () => true,
+      })
+      const result = image.sizedImage().catch(() => null)
+      await wrap(loading)
+      image.dispose()
+      expect(decodeSignal.aborted).toBe(true)
+      const canvas = { width: 1200, height: 800 } as HTMLCanvasElement
+      finish(canvas)
+      await wrap(result)
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(canvas.width).toBe(0)
+      expect(canvas.height).toBe(0)
+      expect(image.sizedImage.data()).toBeUndefined()
+      expect(image.sizedImageArtifact()).toBeNull()
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('disposing an untouched image does not activate any lazy producer', async () => {
+  const getFile = vi.fn().mockResolvedValue(makeJpegBlob())
+  const previewMeta = vi.spyOn(imageEngine, 'parseImagePreviewMeta')
+  const meta = vi.spyOn(imageEngine, 'parseImageMeta')
+  const thumbnail = vi.spyOn(imageEngine, 'loadThumbnailWithMeta')
+  const decode = vi.fn()
+  vi.stubGlobal(
+    'Image',
+    class {
+      decode = decode
+    },
+  )
+  try {
+    await context.start(async () => {
+      const image = reatomImage(
+        { getFile } as unknown as FileSystemFileHandle,
+        'untouched',
+        {
+          readDisplayTarget: () => ({ width: 1200, height: 800, zoom: 1 }),
+          readSizedImageActive: () => true,
+        },
+      )
+      image.dispose()
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(getFile).not.toHaveBeenCalled()
+      expect(previewMeta).not.toHaveBeenCalled()
+      expect(meta).not.toHaveBeenCalled()
+      expect(thumbnail).not.toHaveBeenCalled()
+      expect(decode).not.toHaveBeenCalled()
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})

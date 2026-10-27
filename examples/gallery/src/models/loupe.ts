@@ -7,6 +7,7 @@ import {
   peek,
   sleep,
   wrap,
+  withAbort,
 } from '@reatom/core'
 
 import { quantizeThumbnailBucket } from '../image-engine/decodePolicy'
@@ -100,10 +101,6 @@ export const loupeImage = atom<{ image: ImageModel } | null>(
 )
 export const loupePosition = atom<LoupePosition | null>(null, 'loupe.position')
 
-// Guards pending sleeps: any newer show/hide bumps the epoch, so stale
-// timed state changes become no-ops instead of racing the latest intent.
-const loupeEpoch = atom(0, 'loupe.epoch')
-
 export const loupeDensityEnabled = computed(() => {
   const density = imageGrid.density()
   return density === 'tiny' || density === 'micro'
@@ -153,47 +150,45 @@ const openLoupe = (image: ImageModel, element: HTMLElement) => {
   loupeOpen.set(true)
 }
 
-export const showLoupe = action(
+// A single owner cancels both pending shows and the hide/fade sequence.
+const changeLoupe = action(
   async (
-    image: ImageModel,
-    element: HTMLElement,
-    options: { immediate?: boolean } = {},
+    next:
+      | { image: ImageModel; element: HTMLElement; immediate?: boolean }
+      | { immediate?: boolean },
   ) => {
-    const epoch = loupeEpoch.set((value) => value + 1)
-
-    if (options.immediate || peek(loupeImage) !== null) {
-      openLoupe(image, element)
+    if ('image' in next) {
+      if (!next.immediate && peek(loupeImage) === null) {
+        await wrap(sleep(LOUPE_SHOW_DELAY_MS))
+      }
+      openLoupe(next.image, next.element)
       return
     }
 
-    await wrap(sleep(LOUPE_SHOW_DELAY_MS))
-    if (peek(loupeEpoch) !== epoch) return
-    openLoupe(image, element)
+    if (peek(loupeOpen)) {
+      if (!next.immediate) await wrap(sleep(LOUPE_HIDE_DELAY_MS))
+      loupeOpen.set(false)
+    } else if (peek(loupeImage) === null) {
+      return
+    }
+    await wrap(sleep(LOUPE_FADE_MS))
+    loupeImage.set(null)
+    loupePosition.set(null)
   },
+  'loupe.change',
+).extend(withAbort())
+
+export const showLoupe = action(
+  (
+    image: ImageModel,
+    element: HTMLElement,
+    options: { immediate?: boolean } = {},
+  ) => changeLoupe({ image, element, ...options }),
   'loupe.show',
 )
 
 export const hideLoupe = action(
-  async (options: { immediate?: boolean } = {}) => {
-    const epoch = loupeEpoch.set((value) => value + 1)
-
-    if (peek(loupeOpen)) {
-      if (options.immediate) {
-        loupeOpen.set(false)
-      } else {
-        await wrap(sleep(LOUPE_HIDE_DELAY_MS))
-        if (peek(loupeEpoch) !== epoch) return
-        loupeOpen.set(false)
-      }
-    } else if (peek(loupeImage) === null) {
-      return
-    }
-
-    await wrap(sleep(LOUPE_FADE_MS))
-    if (peek(loupeEpoch) !== epoch || peek(loupeOpen)) return
-    loupeImage.set(null)
-    loupePosition.set(null)
-  },
+  (options: { immediate?: boolean } = {}) => changeLoupe(options),
   'loupe.hide',
 )
 
@@ -214,5 +209,9 @@ export const bindLoupeDismiss = () => {
   return () => {
     scrollDismiss.unsubscribe()
     contextDismiss.unsubscribe()
+    changeLoupe.abort()
+    loupeOpen.set(false)
+    loupeImage.set(null)
+    loupePosition.set(null)
   }
 }
