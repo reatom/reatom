@@ -131,7 +131,13 @@ async function decodeScaledJpegBitmap(
     })
     const { image } = await decoder.decode()
     try {
-      const bitmap = await videoFrameToStoredLayoutBitmap(image)
+      // Frames without an EXIF transform can go directly to a bitmap. Avoid
+      // copying millions of RGBA pixels through JS just to preserve orientation.
+      const bitmap = orientationNeedsTransform(
+        getOrientationFromExif(meta.exif),
+      )
+        ? await videoFrameToStoredLayoutBitmap(image)
+        : await createImageBitmap(image)
       if (
         bitmap.width !== decodeSize.width ||
         bitmap.height !== decodeSize.height

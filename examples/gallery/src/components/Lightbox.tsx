@@ -176,7 +176,7 @@ const LightboxImageFrame = ({
             // Subscribe to async data to keep the decode pipeline alive, but paint
             // from the artifact: disconnect wipes the canvas in place while
             // `.data()` can still hold that blank node until the next fulfill.
-            model.sizedImage.data()
+            const decodedImage = model.sizedImage.data()
             const sizedCanvas = model.sizedImageArtifact()
             if (
               sizedCanvas &&
@@ -220,10 +220,9 @@ const LightboxImageFrame = ({
               )
             }
 
-            const fullImage = model.fullImage.data()
-            if (fullImage) {
-              onImageElement(prepareFullImageElement(model, fullImage))
-              return fullImage
+            if (decodedImage instanceof HTMLImageElement) {
+              onImageElement(prepareFullImageElement(model, decodedImage))
+              return decodedImage
             }
 
             const rawDevelopedImage = model.rawDevelopedImage.data()

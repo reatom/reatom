@@ -561,7 +561,8 @@ export function reatomImage(
     const sourceKey = `${ignoreOrientation}:${developRaw}`
 
     const metaState = await wrap(thumbnailMeta())
-    if (!metaState) return null
+    // Native image decoding can support files our header parser cannot size.
+    if (!metaState) return wrap(fullImage())
 
     if (
       fileInfoState &&
@@ -586,7 +587,9 @@ export function reatomImage(
 
     if (decodeTarget === 'original') {
       try {
-        await wrap(fullImage())
+        const original = await wrap(fullImage())
+        clearSizedImage()
+        return original
       } catch (error) {
         if (abortVar.require().signal.aborted) throw error
       }

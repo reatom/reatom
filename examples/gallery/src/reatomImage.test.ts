@@ -304,14 +304,25 @@ test('thumbnail survives subscriber disconnect and is revoked on dispose', async
   })
 })
 
-test('sizedImage returns null when policy chooses original decode path', async () => {
+test('sizedImage uses native decoding when image metadata is unavailable', async () => {
+  class NativeImage {
+    src = ''
+    naturalWidth = 100
+    naturalHeight = 100
+    style = { imageOrientation: '', removeProperty() {} }
+    decode = vi.fn(async () => {})
+  }
+  vi.stubGlobal('Image', NativeImage)
   await context.start(async () => {
     const image = reatomImage(makeJpegBlob(), 'small-image', {
       readDisplayTarget: () => ({ width: 800, height: 600, zoom: 1 }),
       readSizedImageActive: () => true,
     })
 
-    await expect(image.sizedImage()).resolves.toBeNull()
+    const original = await wrap(image.sizedImage())
+    expect(original).toBeInstanceOf(NativeImage)
+    expect(original).toBe(image.fullImage.data())
+    image.dispose()
   })
 })
 
@@ -428,7 +439,7 @@ test('sizedImage upgrades monotonically and clears on deactivation', async () =>
     expect(peek(image.sizedImageArtifact)).toBe(upgradedCanvas)
     expect(upgradedCanvas!.width).toBeGreaterThan(0)
     finishOriginal()
-    expect(await wrap(originalRequest)).toBeNull()
+    expect(await wrap(originalRequest)).toBe(image.fullImage.data())
     expect(peek(image.sizedImageArtifact)).toBeNull()
     expect(image.fullImage.data()).toBeTruthy()
 

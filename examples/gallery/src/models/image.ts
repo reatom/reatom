@@ -205,9 +205,9 @@ export function reatomGalleryImage(imageSource: ImageFile): GalleryImageModel {
         ''
       )
     }
-    return (
-      imageModel.fullImage.data()?.src ?? imageModel.thumbnail.data()?.url ?? ''
-    )
+    // Lightbox preloading already runs sizedImage. A hidden full-resolution
+    // <img> competes with that decode and pins a second, much larger image.
+    return imageModel.thumbnail.data()?.url ?? ''
   }, `${name}.display.preloadUrl`)
 
   const sizeLabel = computed(() => {

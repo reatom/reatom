@@ -89,6 +89,18 @@ function stubScaledDecodeGlobals(options: { honorsSize: boolean }) {
       if (source instanceof FakeImageData) {
         return { width: source.width, height: source.height, close: () => {} }
       }
+      if (
+        source &&
+        typeof source === 'object' &&
+        'codedWidth' in source &&
+        'codedHeight' in source
+      ) {
+        return {
+          width: source.codedWidth,
+          height: source.codedHeight,
+          close: () => {},
+        }
+      }
       return {
         width: bitmapOptions?.resizeWidth ?? orientation6Meta.width,
         height: bitmapOptions?.resizeHeight ?? orientation6Meta.height,
@@ -287,6 +299,27 @@ describe('decodeOrientedBitmap', () => {
       ([source]) => source instanceof Blob && source.size > 1024,
     )
     expect(blobDecodeCall).toBeDefined()
+  })
+
+  test('unrotated scaled JPEG frames go straight to a bitmap without an RGBA copy', async () => {
+    const createBitmap = stubScaledDecodeGlobals({ honorsSize: true })
+    const result = await decodeOrientedBitmap(
+      sourceBlob(),
+      {
+        ...orientation6Meta,
+        exif: { Orientation: '1' },
+      },
+      { ignoreExifOrientation: false, target: { width: 300, height: 450 } },
+    )
+    const frame = createBitmap.mock.calls[0]![0] as {
+      codedWidth: number
+      copyTo: () => Promise<unknown>
+    }
+    expect(frame.codedWidth).toBe(300)
+    expect([result.bitmap.width, result.bitmap.height]).toEqual([300, 450])
+    expect(
+      createBitmap.mock.calls.some(([source]) => source instanceof ImageData),
+    ).toBe(false)
   })
 
   test('skips the probe for images without an orientation transform', async () => {

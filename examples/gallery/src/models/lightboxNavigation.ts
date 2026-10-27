@@ -12,6 +12,7 @@ import {
   lightboxNavigationDirection,
   lightboxPanX,
   lightboxPanY,
+  lightboxSizedImageWindowIds,
   lightboxZoom,
   wrapFolderNavigation,
 } from './lightboxState'
@@ -49,6 +50,11 @@ export const lightboxPreloadImageUrl = computed(() => {
 }, 'lightbox.preloadImageUrl')
 
 export const lightboxPreloadImageElement = computed(() => {
+  const current = lightboxImage()
+  if (!current || !lightboxSizedImageWindowIds().has(current.id)) return null
+  // Let the selected photo become sharp before speculative neighbor decoding
+  // competes for CPU and the bitmap budget.
+  if (current.sizedImage.pending() > 0) return null
   const preloadTarget = resolvePreloadTarget()
   if (!preloadTarget) return null
 
@@ -58,7 +64,9 @@ export const lightboxPreloadImageElement = computed(() => {
     return sizedCanvas
   }
 
-  return preloadTarget.fullImage.data() ?? preloadTarget.display.element()
+  // sizedImage owns the decode policy, including warming fullImage when the
+  // original is appropriate. Do not start a second full-size decode here.
+  return null
 }, 'lightbox.preloadImageElement')
 
 const primeLightboxPreload = action(() => {
