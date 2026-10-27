@@ -1,1 +1,7 @@
-npx --no -- commitlint --edit "$1"
+#!/usr/bin/env sh
+repo_root=$(git rev-parse --show-toplevel) || exit 1
+cd "$repo_root" || exit 1
+gui_node_path="/usr/local/bin:/opt/homebrew/bin"
+export PATH="$repo_root/node_modules/.bin:$gui_node_path:$PATH"
+node --experimental-strip-types ./tools/prepare-commit-msg.ts "$1" validate || exit $?
+commitlint --edit "$1"

@@ -4,25 +4,17 @@ import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 
 const SCOPE_MAP: Record<string, string> = {
-  core: 'packages/core/src/core/*',
-  async: 'packages/core/src/async/*',
-  extensions: 'packages/core/src/extensions/*',
-  form: 'packages/core/src/form/*',
-  methods: 'packages/core/src/methods/*',
-  persist: 'packages/core/src/persist/*',
-  primitives: 'packages/core/src/primitives/*',
-  routing: 'packages/core/src/routing/*',
-  web: 'packages/core/src/web/*',
-  jsx: 'packages/jsx/*',
-  lit: 'packages/lit/*',
-  preact: 'packages/preact/*',
-  react: 'packages/react/*',
-  'solid-js': 'packages/solid-js/*',
-  vue: 'packages/vue/*',
-  zod: 'packages/zod/*',
-  'eslint-plugin': 'packages/eslint-plugin/*',
-  docs: 'docs/*',
-  tools: 'tools/*',
+  core: 'packages/core/src/core/',
+  async: 'packages/core/src/async/',
+  extensions: 'packages/core/src/extensions/',
+  form: 'packages/core/src/form/',
+  methods: 'packages/core/src/methods/',
+  persist: 'packages/core/src/persist/',
+  primitives: 'packages/core/src/primitives/',
+  routing: 'packages/core/src/routing/',
+  web: 'packages/core/src/web/',
+  docs: 'docs/',
+  tools: 'tools/',
 }
 
 const EXAMPLES_DIRECTORY = 'examples'
@@ -30,78 +22,18 @@ const EXAMPLES_DIRECTORY = 'examples'
 const CONVENTIONAL_COMMIT_REGEX =
   /^(?<type>\w+)(?:\((?<scope>[^)]+)\))?(?<breaking>!)?\s*:\s*(?<description>.+)$/
 
-function matchesPattern(filePath: string, pattern: string): boolean {
-  const patternParts = pattern.split('/')
-  const fileParts = filePath.split('/')
-
-  let patternIdx = 0
-  let fileIdx = 0
-
-  while (patternIdx < patternParts.length && fileIdx < fileParts.length) {
-    const patternPart = patternParts[patternIdx]
-
-    if (patternPart === '*') {
-      patternIdx++
-      fileIdx++
-      continue
-    }
-
-    if (patternPart === '**') {
-      if (patternIdx === patternParts.length - 1) {
-        return true
-      }
-      const nextPattern = patternParts[patternIdx + 1]
-      while (fileIdx < fileParts.length && fileParts[fileIdx] !== nextPattern) {
-        fileIdx++
-      }
-      patternIdx++
-      continue
-    }
-
-    if (patternPart !== fileParts[fileIdx]) {
-      return false
-    }
-
-    patternIdx++
-    fileIdx++
-  }
-
-  if (patternParts[patternParts.length - 1] === '*') {
-    return fileIdx <= fileParts.length
-  }
-
-  return patternIdx >= patternParts.length - 1
-}
-
-function getPackageDirectoryScope(filePath: string): string | null {
-  const packageDirectoryMatch = /^packages\/([^/]+)\//.exec(filePath)
-  return packageDirectoryMatch?.[1] ?? null
-}
-
 function getScopesFromFiles(files: string[]): string[] {
-  const matchedScopes = new Set<string>()
-
-  for (const file of files) {
-    let matchedSpecificScope = false
-    for (const [scope, pattern] of Object.entries(SCOPE_MAP)) {
-      if (matchesPattern(file, pattern)) {
-        matchedScopes.add(scope)
-        matchedSpecificScope = true
-        break
-      }
-    }
-
-    if (matchedSpecificScope) {
-      continue
-    }
-
-    const packageDirectoryScope = getPackageDirectoryScope(file)
-    if (packageDirectoryScope) {
-      matchedScopes.add(packageDirectoryScope)
-    }
-  }
-
-  return Array.from(matchedScopes).sort()
+  return [
+    ...new Set(
+      files.flatMap((file) => {
+        const specific = Object.entries(SCOPE_MAP).find(([, prefix]) =>
+          file.startsWith(prefix),
+        )?.[0]
+        const scope = specific ?? /^packages\/([^/]+)\//.exec(file)?.[1]
+        return scope ? [scope] : []
+      }),
+    ),
+  ].sort()
 }
 
 function getExampleScopesFromFiles(files: string[]): string[] {
@@ -122,158 +54,49 @@ function getExampleScopesFromFiles(files: string[]): string[] {
   return Array.from(scopes).sort()
 }
 
-function isDocsOnlyCommit(files: string[]): boolean {
-  const docsPattern = SCOPE_MAP.docs
-  return (
-    files.length > 0 && files.every((file) => matchesPattern(file, docsPattern))
-  )
-}
-
-function getStagedFiles(): string[] {
-  const output = execSync('git diff --cached --name-only', {
-    encoding: 'utf-8',
-  })
-  return output
-    .trim()
-    .split('\n')
-    .filter((line) => line.length > 0)
-}
-
-function parseCommitMessage(message: string): {
-  type: string
-  scope: string | null
-  breaking: boolean
-  description: string
-} | null {
-  const match = message.match(CONVENTIONAL_COMMIT_REGEX)
-  if (!match?.groups) return null
-
-  const { type, scope, breaking, description } = match.groups
-  if (!type || !description) return null
-
-  return {
-    type,
-    scope: scope || null,
-    breaking: breaking === '!',
-    description,
-  }
-}
-
-function buildCommitMessage(
-  type: string,
-  scopes: string[],
-  breaking: boolean,
-  description: string,
-): string {
-  const scopePart = scopes.length > 0 ? `(${scopes.join(',')})` : ''
-  const breakingPart = breaking ? '!' : ''
-  return `${type}${scopePart}${breakingPart}: ${description}`
-}
-
-function getRepoRoot(): string {
-  return execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim()
-}
-
 function main() {
-  try {
-    process.chdir(getRepoRoot())
+  const [, , commitMsgFile, commitSource] = process.argv
+  if (!commitMsgFile || ['merge', 'squash', 'commit'].includes(commitSource))
+    return
 
-    const commitMsgFile = process.argv[2]
-    const commitSource = process.argv[3]
+  const original = fs.readFileSync(commitMsgFile, 'utf8')
+  const firstLine = original.split('\n')[0].trim()
+  if (!firstLine) return
 
-    if (!commitMsgFile) {
-      return
-    }
+  const parsed = CONVENTIONAL_COMMIT_REGEX.exec(firstLine)?.groups
+  // The final hook also sees Git-generated merge/revert messages.
+  if (commitSource === 'validate' && !parsed) return
+  const files = execSync('git diff --cached --name-only -z', {
+    encoding: 'utf8',
+  })
+    .split('\0')
+    .filter(Boolean)
+  if (!files.length) return
 
-    if (
-      commitSource === 'merge' ||
-      commitSource === 'squash' ||
-      commitSource === 'commit'
-    ) {
-      return
-    }
+  const exampleScopes = getExampleScopesFromFiles(files)
+  let header: string
+  if (exampleScopes.length) {
+    header = `docs(${exampleScopes.join(',')}): ${parsed?.description ?? firstLine}`
+  } else if (files.every((file) => file.startsWith(SCOPE_MAP.docs))) {
+    if (parsed) return
+    header = `docs: ${firstLine}`
+  } else {
+    if (!parsed || parsed.scope) return
+    const scopes = getScopesFromFiles(files)
+    if (!scopes.length) return
+    header = `${parsed.type}(${scopes.join(',')})${parsed.breaking ?? ''}: ${parsed.description}`
+  }
 
-    const originalMessage = fs.readFileSync(commitMsgFile, 'utf-8')
-    const firstLine = originalMessage.split('\n')[0]
-    if (!firstLine) {
-      return
-    }
-    const trimmedFirstLine = firstLine.trim()
-    const restOfMessage = originalMessage.split('\n').slice(1).join('\n')
-
-    const parsed = parseCommitMessage(trimmedFirstLine)
-    const stagedFiles = getStagedFiles()
-    if (stagedFiles.length === 0) {
-      return
-    }
-
-    const exampleScopes = getExampleScopesFromFiles(stagedFiles)
-    if (exampleScopes.length > 0) {
-      if (parsed?.scope) {
-        return
-      }
-
-      const newFirstLine = parsed
-        ? buildCommitMessage(
-            parsed.type,
-            exampleScopes,
-            parsed.breaking,
-            parsed.description,
-          )
-        : buildCommitMessage('docs', exampleScopes, false, trimmedFirstLine)
-      const newMessage = restOfMessage
-        ? `${newFirstLine}\n${restOfMessage}`
-        : newFirstLine
-      fs.writeFileSync(commitMsgFile, newMessage)
-      console.log(
-        `Commit message updated for example(s): ${exampleScopes.join(', ')}`,
-      )
-      return
-    }
-
-    const docsOnlyCommit = isDocsOnlyCommit(stagedFiles)
-    if (docsOnlyCommit) {
-      if (parsed?.scope) {
-        return
-      }
-
-      if (!parsed) {
-        const newFirstLine = `docs: ${trimmedFirstLine}`
-        const newMessage = restOfMessage
-          ? `${newFirstLine}\n${restOfMessage}`
-          : newFirstLine
-        fs.writeFileSync(commitMsgFile, newMessage)
-        console.log('Commit message updated for docs-only commit')
-      }
-
-      return
-    }
-
-    if (!parsed || parsed.scope) {
-      return
-    }
-
-    const detectedScopes = getScopesFromFiles(stagedFiles)
-    if (detectedScopes.length === 0) {
-      return
-    }
-
-    const newFirstLine = buildCommitMessage(
-      parsed.type,
-      detectedScopes,
-      parsed.breaking,
-      parsed.description,
-    )
-    const newMessage = restOfMessage
-      ? `${newFirstLine}\n${restOfMessage}`
-      : newFirstLine
-    fs.writeFileSync(commitMsgFile, newMessage)
-    console.log(
-      `Commit message updated with scope(s): ${detectedScopes.join(', ')}`,
-    )
-  } catch (error) {
-    console.error('prepare-commit-msg hook error (non-fatal):', error)
+  const updated = original.replace(/^[^\n]*/, header)
+  if (updated !== original) {
+    fs.writeFileSync(commitMsgFile, updated)
+    console.log(`Commit message updated: ${header}`)
   }
 }
 
-main()
+try {
+  main()
+} catch (error) {
+  console.error('Commit message hook failed:', error)
+  process.exitCode = 1
+}
