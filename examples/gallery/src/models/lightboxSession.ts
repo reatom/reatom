@@ -89,20 +89,12 @@ export const lightboxDisplayOrientationStyle = computed(() => {
   const model = lightboxImage()
   if (!model) return undefined
 
-  model.sizedImage.data()
-  const sizedCanvas = model.sizedImageArtifact()
-  const rawElement = model.rawDevelopedImage.data()
-  const orientationBaked =
-    (sizedCanvas !== null && sizedCanvas.width > 0 && sizedCanvas.height > 0) ||
-    (rawElement !== null && rawElement === model.rawDevelopedImage.data())
-
   return resolveImageOrientationStyle(
-    model.meta.data()?.exif,
+    // Orientation is available in the preview header; full EXIF may still load.
+    model.thumbnailMeta.data()?.exif,
     ignoreExifOrientation(),
-    orientationBaked
-      ? true
-      : model.thumbnail.data()?.orientationBaked ||
-          model.display.isRawPipeline(),
+    // This style belongs to the thumbnail, not another concurrently loaded stage.
+    model.thumbnail.data()?.orientationBaked,
   )
 }, 'lightbox.displayOrientationStyle')
 

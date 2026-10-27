@@ -1,6 +1,6 @@
 import { extractExifThumbnail } from './formats/jpeg'
 import { extractRawPreview } from './formats/raw'
-import { parseImageMeta } from './header'
+import { parseImageMeta, parseImagePreviewMeta } from './header'
 import {
   applyOrientationToImageBitmap,
   getOrientationFromExif,
@@ -175,9 +175,7 @@ async function tryEmbeddedJpegPreviewPath(
   quality: number,
   meta: ImageMeta | null,
   ignoreExifOrientation: boolean,
-  acceptSmallPreview = false,
   signal?: AbortSignal,
-  skipOrientationBake = false,
 ): Promise<ThumbnailResult | null> {
   if (!previewBlob) return null
 
@@ -190,8 +188,7 @@ async function tryEmbeddedJpegPreviewPath(
     }
     const { width, height } = bitmap
 
-    const enoughSize =
-      acceptSmallPreview || width >= maxSize || height >= maxSize
+    const enoughSize = width >= maxSize || height >= maxSize
 
     if (!enoughSize) {
       bitmap.close()
@@ -199,7 +196,7 @@ async function tryEmbeddedJpegPreviewPath(
     }
 
     let orientationBaked = false
-    if (!ignoreExifOrientation && !skipOrientationBake) {
+    if (!ignoreExifOrientation) {
       const orientation = getOrientationFromExif(meta?.exif)
       const needsTransform =
         orientation.state === 'valid' &&
@@ -246,7 +243,6 @@ async function tryExifPath(
     quality,
     meta,
     ignoreExifOrientation,
-    false,
     signal,
   )
 }
@@ -265,15 +261,24 @@ async function tryRawPreviewPath(
     meta?.embeddedPreview?.blob ??
     (await extractRawPreview(source, rawFormat, { minLongEdge: maxSize }))
   throwIfThumbnailAborted(signal)
-  return tryEmbeddedJpegPreviewPath(
+  if (!rawPreviewBlob) return null
+  const previewMeta = await parseImagePreviewMeta(rawPreviewBlob)
+  throwIfThumbnailAborted(signal)
+  const { bitmap, orientationBaked } = await decodeOrientedBitmap(
     rawPreviewBlob,
+    previewMeta,
+    {
+      ignoreExifOrientation,
+      signal,
+    },
+  )
+  return bitmapToThumbnailResult(
+    bitmap,
     maxSize,
     quality,
-    meta,
-    ignoreExifOrientation,
-    true,
+    'exif',
+    orientationBaked,
     signal,
-    true,
   )
 }
 

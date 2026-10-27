@@ -1,6 +1,10 @@
 import type { ExifData, RawImageFormat } from '../types'
 import { EXIF_READ_BYTES } from '../types'
-import { parseExifOrientationAtTiffBase, parseExifTagsAtTiffBase } from './exif'
+import {
+  findApp1ExifTiffBase,
+  parseExifOrientationAtTiffBase,
+  parseExifTagsAtTiffBase,
+} from './exif'
 import { isBrowserDecodableJpegFrame, parseJpegFrame } from './jpeg'
 import {
   canScanRawPreviewInWorker,
@@ -984,8 +988,79 @@ export async function extractRawPreviewData(
 
   if (!bestPreview) return null
 
+  const previewBlob = await readPreviewBlob(
+    blob,
+    bestPreview,
+    bestPreview.buffer,
+  )
+  const rawMeta = parseRawPreviewMeta(view, preferredFormat, blob.size)
+  const orientation = Number(rawMeta?.exif?.Orientation)
+  let orientedPreview = previewBlob
+  if (rawMeta && orientation >= 2 && orientation <= 8) {
+    const previewView = new DataView(
+      await previewBlob.slice(0, EXIF_READ_BYTES).arrayBuffer(),
+    )
+    const exifBase = findApp1ExifTiffBase(previewView)
+    const ownOrientation =
+      exifBase === null
+        ? null
+        : parseExifOrientationAtTiffBase(previewView, exifBase)
+    // Some cameras physically rotate their JPEG previews. Preserve those and
+    // any preview with its own explicit orientation (including Normal).
+    const alreadyRotated =
+      orientation >= 5 &&
+      (rawMeta.width - rawMeta.height) *
+        (bestPreview.width - bestPreview.height) <
+        0
+    if (ownOrientation === null && !alreadyRotated) {
+      // A minimal EXIF APP1 segment. Keep JPEG pixels unchanged and let native
+      // decoders apply the RAW orientation from the very first preview.
+      const app1 = new Uint8Array([
+        0xff,
+        0xe1,
+        0x00,
+        0x22,
+        0x45,
+        0x78,
+        0x69,
+        0x66,
+        0,
+        0,
+        0x49,
+        0x49,
+        0x2a,
+        0,
+        8,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0x12,
+        1,
+        3,
+        0,
+        1,
+        0,
+        0,
+        0,
+        orientation,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+      ])
+      orientedPreview = new Blob(
+        [previewBlob.slice(0, 2), app1, previewBlob.slice(2)],
+        { type: 'image/jpeg' },
+      )
+    }
+  }
   return {
-    blob: await readPreviewBlob(blob, bestPreview, bestPreview.buffer),
+    blob: orientedPreview,
     width: bestPreview.width,
     height: bestPreview.height,
   }

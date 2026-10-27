@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import { parseImageMeta } from '../header'
+import { parseImageMeta, parseImagePreviewMeta } from '../header'
 import {
   checkRawPreviewPresence,
   extractRawPreview,
@@ -20,6 +20,77 @@ const MAKE_TAG = 0x010f
 const JPEG_INTERCHANGE_FORMAT_TAG = 0x0201
 const JPEG_INTERCHANGE_FORMAT_LENGTH_TAG = 0x0202
 const DNG_VERSION_TAG = 0xc612
+
+test.each([
+  { orientation: 8, width: 1616, height: 1080, own: undefined, expected: '8' },
+  {
+    orientation: 6,
+    width: 1080,
+    height: 1616,
+    own: undefined,
+    expected: undefined,
+  },
+  { orientation: 8, width: 1616, height: 1080, own: 1, expected: '1' },
+  { orientation: 8, width: 1616, height: 1080, own: 6, expected: '6' },
+  { orientation: 3, width: 1616, height: 1080, own: undefined, expected: '3' },
+  { orientation: 2, width: 1616, height: 1080, own: undefined, expected: '2' },
+])(
+  'RAW preview orientation: $orientation, $width x $height, own=$own',
+  async ({ orientation, width, height, own, expected }) => {
+    let jpeg = jpegWithFrame(width, height, 600)
+    if (own !== undefined) {
+      const tiff = new Uint8Array(
+        buildTiffBuffer([
+          { tag: 0x112, type: TIFF_TYPE_SHORT, count: 1, value: own },
+        ]),
+      )
+      const app1 = new Uint8Array([
+        0xff,
+        0xe1,
+        0,
+        tiff.length + 8,
+        0x45,
+        0x78,
+        0x69,
+        0x66,
+        0,
+        0,
+        ...tiff,
+      ])
+      jpeg = new Uint8Array([...jpeg.slice(0, 2), ...app1, ...jpeg.slice(2)])
+    }
+    const raw = buildTiffBuffer(
+      [
+        { tag: IMAGE_WIDTH_TAG, type: TIFF_TYPE_LONG, count: 1, value: 4912 },
+        { tag: IMAGE_LENGTH_TAG, type: TIFF_TYPE_LONG, count: 1, value: 3264 },
+        { tag: 0x112, type: TIFF_TYPE_SHORT, count: 1, value: orientation },
+        { tag: MAKE_TAG, type: TIFF_TYPE_ASCII, count: 5, value: 'SONY' },
+        {
+          tag: JPEG_INTERCHANGE_FORMAT_TAG,
+          type: TIFF_TYPE_LONG,
+          count: 1,
+          value: 8 + 2 + 6 * 12 + 4 + 5,
+        },
+        {
+          tag: JPEG_INTERCHANGE_FORMAT_LENGTH_TAG,
+          type: TIFF_TYPE_LONG,
+          count: 1,
+          value: jpeg.length,
+        },
+      ],
+      jpeg,
+    )
+    const result = await extractRawPreviewData(new Blob([raw]), 'arw', {
+      minLongEdge: 300,
+    })
+    expect(result).not.toBeNull()
+    const meta = await parseImagePreviewMeta(result!.blob)
+    expect(meta?.exif?.Orientation).toBe(expected)
+    const output = new Uint8Array(await result!.blob.arrayBuffer())
+    const injected = own === undefined && expected !== undefined
+    expect(output.slice(injected ? 38 : 2)).toEqual(jpeg.slice(2))
+  },
+)
 
 type IfdTagInput = {
   tag: number

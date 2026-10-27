@@ -99,7 +99,7 @@ const prepareFullImageElement = (
   image.alt = model.source.name
   image.draggable = false
   const orientationStyle = resolveImageOrientationStyle(
-    model.meta.data()?.exif,
+    model.thumbnailMeta.data()?.exif,
     ignoreExifOrientation(),
   )
   if (orientationStyle) {
@@ -110,10 +110,18 @@ const prepareFullImageElement = (
   return image
 }
 
-const prepareRawImageElement = (image: HTMLImageElement, name: string) => {
-  image.alt = name
+const prepareRawImageElement = (
+  model: GalleryImageModel,
+  image: HTMLImageElement,
+  orientationBaked: boolean,
+) => {
+  image.alt = model.source.name
   image.draggable = false
-  const orientationStyle = lightboxDisplayOrientationStyle()
+  const orientationStyle = resolveImageOrientationStyle(
+    model.thumbnailMeta.data()?.exif,
+    ignoreExifOrientation(),
+    orientationBaked,
+  )
   if (orientationStyle) {
     image.style.imageOrientation = orientationStyle
   } else {
@@ -189,7 +197,7 @@ const LightboxImageFrame = ({
               const rawDevelopedImage = model.rawDevelopedImage.data()
               if (rawDevelopedImage) {
                 onImageElement(
-                  prepareRawImageElement(rawDevelopedImage, model.source.name),
+                  prepareRawImageElement(model, rawDevelopedImage, true),
                 )
                 return rawDevelopedImage
               }
@@ -197,7 +205,7 @@ const LightboxImageFrame = ({
               const rawEmbeddedPreview = model.rawEmbeddedPreviewImage.data()
               if (rawEmbeddedPreview) {
                 onImageElement(
-                  prepareRawImageElement(rawEmbeddedPreview, model.source.name),
+                  prepareRawImageElement(model, rawEmbeddedPreview, false),
                 )
                 return rawEmbeddedPreview
               }
@@ -221,7 +229,7 @@ const LightboxImageFrame = ({
             const rawDevelopedImage = model.rawDevelopedImage.data()
             if (rawDevelopedImage) {
               onImageElement(
-                prepareRawImageElement(rawDevelopedImage, model.source.name),
+                prepareRawImageElement(model, rawDevelopedImage, true),
               )
               return rawDevelopedImage
             }
@@ -229,7 +237,7 @@ const LightboxImageFrame = ({
             const rawEmbeddedPreview = model.rawEmbeddedPreviewImage.data()
             if (rawEmbeddedPreview) {
               onImageElement(
-                prepareRawImageElement(rawEmbeddedPreview, model.source.name),
+                prepareRawImageElement(model, rawEmbeddedPreview, false),
               )
               return rawEmbeddedPreview
             }
@@ -586,7 +594,12 @@ const LightboxContent = () => {
             css={`
               ${lightboxChromeCss}
               position: absolute;
-              right: max(16px, calc(16px + var(--shadow-clearance, 0px) + var(--lightbox-aside)));
+              right: max(
+                16px,
+                calc(
+                  16px + var(--shadow-clearance, 0px) + var(--lightbox-aside)
+                )
+              );
               bottom: 58px;
               display: grid;
               gap: 4px;

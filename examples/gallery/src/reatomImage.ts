@@ -492,20 +492,21 @@ export function reatomImage(
 
   const rawEmbeddedPreviewImage = computed(async () => {
     using producer = trackProducer('rawEmbeddedPreviewImage')
-    const metaState = await wrap(meta())
+    const ignoreOrientation = ignoreExifOrientation()
+    const metaState = await wrap(thumbnailMeta())
     if (!isRawImageMeta(metaState)) return null
 
     const url = await wrap(embeddedPreviewUrl())
     if (!url) return null
 
-    return decodeImageFromUrl(url, metaState, true)
+    return decodeImageFromUrl(url, metaState, ignoreOrientation)
   }, `${name}.rawEmbeddedPreviewImage`).extend(withAsyncData())
 
   const rawDevelopedImage = computed(async () => {
     using producer = trackProducer('rawDevelopedImage')
     if (!developRawEnabled()) return null
 
-    const metaState = await wrap(meta())
+    const metaState = await wrap(thumbnailMeta())
     if (!isRawImageMeta(metaState)) return null
 
     const url = await wrap(developedImageUrl())
@@ -627,13 +628,15 @@ export function reatomImage(
         ),
       )
 
-      const sourceFromRawPipeline =
+      const sourceMeta =
         isRawImageMeta(metaState) && sourceBlob !== fileBlob
+          ? await wrap(parseImagePreviewMeta(sourceBlob))
+          : metaState
 
       const canvasPromise = decodeBlobToCanvas(
         sourceBlob,
         decodeTarget,
-        sourceFromRawPipeline ? null : metaState,
+        sourceMeta,
         ignoreOrientation,
         signal,
       )
