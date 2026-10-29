@@ -181,13 +181,13 @@ export let reatomFactoryComponent = <Props extends Rec = {}>(
 
   const Component: Fn = reatomComponent(
     (props: Props) => {
-      const [, recreate] = React.useState(0)
+      const [, rerender] = React.useState(0)
       const box = React.useMemo(
         () => ({ instance: null as null | Instance }),
         deps.map((dep) => props[dep]),
       )
 
-      if (!box.instance || box.instance.controller.signal.aborted) {
+      if (!box.instance) {
         const initAction = action(init, `${Component.name}._init`).extend(
           withAbort(),
         )
@@ -202,13 +202,17 @@ export let reatomFactoryComponent = <Props extends Rec = {}>(
 
       const { instance } = box
 
+      // Only a remount (StrictMode, Activity) may discard an aborted instance:
+      // a hidden Activity rerender must keep it, or init would restart its
+      // effects with no committed cleanup to abort them.
       useEffect(() => {
         if (instance.controller.signal.aborted) {
-          recreate((s) => s + 1)
+          box.instance = null
+          rerender((s) => s + 1)
           return
         }
         return () => instance.abort()
-      }, [instance])
+      }, [box, instance])
 
       return instance.render(props)
     },
