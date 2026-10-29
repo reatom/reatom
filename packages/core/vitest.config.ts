@@ -9,6 +9,7 @@ export default defineConfig({
   },
 
   test: {
+    execArgv: ['--expose-gc'],
     sequence: { groupOrder: 10 },
     testTimeout: 5000,
     name: '@reatom/core',
