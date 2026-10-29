@@ -51,6 +51,18 @@ export default defineConfig({
 
 `@reatom/vite` also wires routing and `mount()` hot updates — see [Hot module replacement](#hot-module-replacement-vite).
 
+### Automatic runtime
+
+Toolchains in automatic mode need no `h` injection: TypeScript with
+`"jsx": "react-jsx"`, esbuild with `jsx: 'automatic'`, or a per-file
+`/** @jsxImportSource @reatom/jsx */` pragma. They import `jsx`, `jsxs`,
+`jsxDEV` and `Fragment` from `@reatom/jsx/jsx-runtime`, and `createElement`
+from `@reatom/jsx` for a `key` placed after a spread.
+
+A component's `children` prop is `undefined` without children, the child
+itself for one child, and an array for several. An explicit `children` prop
+passes through unchanged. Classic `h` passes children as a rest array.
+
 ## Framework compatibility
 
 You can integrate `@reatom/jsx` into existing React or other JSX projects.

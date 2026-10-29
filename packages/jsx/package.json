@@ -46,7 +46,9 @@
     "csstype": "catalog:"
   },
   "devDependencies": {
+    "@typescript/typescript6": "^6.0.2",
     "@vitest/browser-playwright": "catalog:",
+    "esbuild": "^0.28.0",
     "playwright": "catalog:",
     "tsdown": "catalog:",
     "vitest": "catalog:"
