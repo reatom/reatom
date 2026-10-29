@@ -43,6 +43,7 @@ export const syncUserName = action(async () => {
 
 ```tsx
 // ~/features/user/index.tsx
+import { notify } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 
 // user component
@@ -52,8 +53,11 @@ const User = reatomComponent(() => {
 
   const name = currentUser.name()
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     currentUser.name.set(e.currentTarget.value)
+    // propagate the update synchronously to keep the input caret in place
+    notify()
+  }
 
   const handleSubmit = () => syncUserName()
 
