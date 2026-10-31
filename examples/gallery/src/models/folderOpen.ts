@@ -16,7 +16,6 @@ import { resetGallerySession } from './collection'
 import {
   currentFolder,
   folderTree,
-  parsingProgress,
   publishFolderScan,
   resetFolderState,
   selectedFolderHandle,
@@ -83,19 +82,17 @@ export const openFolder = action(
     resetLightboxOnFolderChange()
     folderTree.set(null)
     currentFolder.set(null)
-    parsingProgress.set({ total: 0, current: 0 })
 
     try {
       const result = await wrap(
         scanDirectoryRecursive(handle, {
-          onProgress: (snapshot) => parsingProgress.set(snapshot),
+          onBatch: publishFolderScan,
         }),
       )
       publishFolderScan(result)
       selectedFolderHandle.set(handle)
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        parsingProgress.set({ total: 0, current: 0 })
         return
       }
       throw error

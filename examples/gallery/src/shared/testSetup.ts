@@ -10,7 +10,6 @@ import {
   lightboxPanX,
   lightboxPanY,
   lightboxZoom,
-  parsingProgress,
   resetGallerySession,
   showLightboxScrubber,
   slideshowPlaying,
@@ -55,10 +54,6 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
     : undefined
   folderTree.set(tree)
   currentFolder.set(currentFolderNode ?? tree)
-  parsingProgress.set({
-    total: tree.imageCount,
-    current: tree.imageCount,
-  })
   currentImages()
   clearSelection()
   lightboxOpen.setFalse()
@@ -85,10 +80,6 @@ export function loadEmptyState(): void {
   resetGallerySession()
   folderTree.set(null)
   currentFolder.set(null)
-  parsingProgress.set({
-    total: 0,
-    current: 0,
-  })
   currentImages()
   clearSelection()
   lightboxOpen.setFalse()
@@ -103,13 +94,4 @@ export function loadEmptyState(): void {
   viewMode.setGrid()
   filterPanelOpen.set(false)
   settingsPanelOpen.set(false)
-}
-
-export type ParsingProgress = {
-  total: number
-  current: number
-}
-
-export function loadParsingState(progress: ParsingProgress): void {
-  parsingProgress.set(progress)
 }

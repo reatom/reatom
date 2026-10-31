@@ -15,9 +15,6 @@ const loc = {
   resetButtonAppears: (canvas) =>
     canvas.findByRole('button', { name: /^Reset$/ }),
   imageCountAppears: (canvas) => canvas.findByText(/\d+ images/),
-  scanningTextAppears: (canvas) => canvas.findByText('Scanning folder...'),
-  cancelButtonAppears: (canvas) =>
-    canvas.findByRole('button', { name: 'Cancel' }),
   lightboxCounterAppears: (canvas) =>
     canvas.findByRole('button', { name: 'Close preview' }),
   firstImageButtonAppears: (canvas) =>
@@ -40,10 +37,6 @@ const I = createMyself((I) => {
       await I.click(loc.resetButtonAppears)
       await waitForUpdate()
       await seeEmptyState()
-    },
-    seeParsingProgress: async () => {
-      await I.see(loc.scanningTextAppears)
-      await I.see(loc.cancelButtonAppears)
     },
     openLightboxByClickingFirstImage: async () => {
       const firstImage = await I.see(loc.firstImageButtonAppears)

@@ -1,11 +1,10 @@
 import {
-  folderModelTree,
   isFolderImagesInCurrentScope,
   tableMinWidth,
   tablePreviewWidth,
   visibleExifColumnNames,
 } from '../model'
-import { mapFolderImages } from './FolderImageTree'
+import { reatomFolderImageRows } from './FolderImageTree'
 import { ImageTableFilters } from './ImageTableFilters'
 import { ImageTableRow } from './ImageTableRow'
 
@@ -40,138 +39,135 @@ const tableHeaderCellCss = `
   text-overflow: ellipsis;
 `
 
-export const ImageTable = () => (
-  <div
-    css={`
-      grid-column: 1 / -1;
-      display: flex;
-      flex: 1 1 auto;
-      flex-direction: column;
-      max-width: 100%;
-      min-height: 0;
-      min-width: 0;
-      overflow: hidden;
-      border: var(--border-width) var(--border-style) var(--card-border);
-      border-radius: var(--radius-md);
-      background-color: var(--card-bg);
-      background-image: var(--card-bg-image);
-      background-size: var(--surface-bg-size);
-      box-shadow: var(--glow);
-    `}
-  >
-    <ImageTableFilters />
-
+export const ImageTable = () => {
+  const { rows, bind } = reatomFolderImageRows()
+  return (
     <div
       css={`
+        grid-column: 1 / -1;
+        display: flex;
         flex: 1 1 auto;
+        flex-direction: column;
         max-width: 100%;
         min-height: 0;
         min-width: 0;
-        overflow: auto;
+        overflow: hidden;
+        border: var(--border-width) var(--border-style) var(--card-border);
+        border-radius: var(--radius-md);
+        background-color: var(--card-bg);
+        background-image: var(--card-bg-image);
+        background-size: var(--surface-bg-size);
+        box-shadow: var(--glow);
       `}
     >
-      <table
-        css:min-table-width={() => `${tableMinWidth()}px`}
-        css:preview-column-width={() =>
-          `${tablePreviewWidth() + previewColumnPadding}px`
-        }
+      <ImageTableFilters />
+
+      <div
         css={`
-          width: 100%;
-          min-width: max(100%, var(--min-table-width));
-          border-collapse: collapse;
-          table-layout: fixed;
+          flex: 1 1 auto;
+          max-width: 100%;
+          min-height: 0;
+          min-width: 0;
+          overflow: auto;
         `}
       >
-        <colgroup>
-          <col
-            css={`
-              width: ${selectColumnWidth}px;
-            `}
-          />
-          <col css="width: var(--preview-column-width);" />
-          <col
-            css={`
-              width: ${fileColumnWidth}px;
-            `}
-          />
-          <col
-            css={`
-              width: ${sizeColumnWidth}px;
-            `}
-          />
-          <col
-            css={`
-              width: ${dimensionsColumnWidth}px;
-            `}
-          />
-          <col
-            css={`
-              width: ${modifiedColumnWidth}px;
-            `}
-          />
-          <col
-            css={`
-              width: ${formatColumnWidth}px;
-            `}
-          />
-          <col
-            css={`
-              width: ${exifThumbColumnWidth}px;
-            `}
-          />
-          {() =>
-            visibleExifColumnNames().map(() => (
-              <col
-                css={`
-                  width: ${exifColumnWidth}px;
-                `}
-              />
-            ))
+        <table
+          css:min-table-width={() => `${tableMinWidth()}px`}
+          css:preview-column-width={() =>
+            `${tablePreviewWidth() + previewColumnPadding}px`
           }
-          <col
-            css={`
-              width: ${favoriteColumnWidth}px;
-            `}
-          />
-        </colgroup>
-        <thead>
-          <tr>
-            <th css={tableHeaderCellCss}>Select</th>
-            <th css={tableHeaderCellCss}>Preview</th>
-            <th css={tableHeaderCellCss}>File</th>
-            <th css={tableHeaderCellCss}>Size</th>
-            <th css={tableHeaderCellCss}>Dimensions</th>
-            <th css={tableHeaderCellCss}>Modified</th>
-            <th css={tableHeaderCellCss}>Format</th>
-            <th css={tableHeaderCellCss}>EXIF thumb</th>
+          css={`
+            width: 100%;
+            min-width: max(100%, var(--min-table-width));
+            border-collapse: collapse;
+            table-layout: fixed;
+          `}
+        >
+          <colgroup>
+            <col
+              css={`
+                width: ${selectColumnWidth}px;
+              `}
+            />
+            <col css="width: var(--preview-column-width);" />
+            <col
+              css={`
+                width: ${fileColumnWidth}px;
+              `}
+            />
+            <col
+              css={`
+                width: ${sizeColumnWidth}px;
+              `}
+            />
+            <col
+              css={`
+                width: ${dimensionsColumnWidth}px;
+              `}
+            />
+            <col
+              css={`
+                width: ${modifiedColumnWidth}px;
+              `}
+            />
+            <col
+              css={`
+                width: ${formatColumnWidth}px;
+              `}
+            />
+            <col
+              css={`
+                width: ${exifThumbColumnWidth}px;
+              `}
+            />
             {() =>
-              visibleExifColumnNames().map((columnName) => (
-                <th css={tableHeaderCellCss} title={columnName}>
-                  {columnName}
-                </th>
+              visibleExifColumnNames().map(() => (
+                <col
+                  css={`
+                    width: ${exifColumnWidth}px;
+                  `}
+                />
               ))
             }
-            <th css={tableHeaderCellCss}>Favorite</th>
-          </tr>
-        </thead>
-        <tbody>
-          {() => {
-            const tree = folderModelTree()
-            const exifColumns = visibleExifColumnNames()
-            return tree
-              ? mapFolderImages(tree, (image, folder) => (
-                  <ImageTableRow
-                    image={image}
-                    exifColumns={exifColumns}
-                    visible={() =>
-                      isFolderImagesInCurrentScope(folder) && image.visible()
-                    }
-                  />
+            <col
+              css={`
+                width: ${favoriteColumnWidth}px;
+              `}
+            />
+          </colgroup>
+          <thead>
+            <tr>
+              <th css={tableHeaderCellCss}>Select</th>
+              <th css={tableHeaderCellCss}>Preview</th>
+              <th css={tableHeaderCellCss}>File</th>
+              <th css={tableHeaderCellCss}>Size</th>
+              <th css={tableHeaderCellCss}>Dimensions</th>
+              <th css={tableHeaderCellCss}>Modified</th>
+              <th css={tableHeaderCellCss}>Format</th>
+              <th css={tableHeaderCellCss}>EXIF thumb</th>
+              {() =>
+                visibleExifColumnNames().map((columnName) => (
+                  <th css={tableHeaderCellCss} title={columnName}>
+                    {columnName}
+                  </th>
                 ))
-              : null
-          }}
-        </tbody>
-      </table>
+              }
+              <th css={tableHeaderCellCss}>Favorite</th>
+            </tr>
+          </thead>
+          <tbody ref={bind}>
+            {rows.reatomMap(({ image, folder }) => (
+              <ImageTableRow
+                image={image}
+                exifColumns={visibleExifColumnNames}
+                visible={() =>
+                  isFolderImagesInCurrentScope(folder) && image.visible()
+                }
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-)
+  )
+}

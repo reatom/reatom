@@ -11,11 +11,6 @@ export type FolderScanResult = {
   tree: FolderNode
 }
 
-export type ParsingProgressSnapshot = {
-  total: number
-  current: number
-}
-
 export type GalleryImageDisplayModel = {
   stage: Computed<RawDisplayStage>
   source: Computed<{ url: string; orientationBaked: boolean } | null>

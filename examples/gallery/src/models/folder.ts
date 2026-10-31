@@ -1,7 +1,6 @@
 import { action, atom, withIndexedDb } from '@reatom/core'
 
 import type { FolderNode } from '../types'
-import type { ParsingProgressSnapshot } from './contracts'
 import { resetFolderTreeUi } from './navigation'
 
 export const folderTree = atom<FolderNode | null>(null, 'folderTree')
@@ -29,28 +28,30 @@ export async function hasPersistedSelectedFolderHandle(): Promise<boolean> {
   }
 }
 
-export const parsingProgress = atom<ParsingProgressSnapshot>(
-  {
-    total: 0,
-    current: 0,
-  },
-  'parsingProgress',
-)
-
 export const resetFolderState = action(() => {
   resetFolderTreeUi()
   folderTree.set(null)
   currentFolder.set(null)
-  parsingProgress.set({ total: 0, current: 0 })
   selectedFolderHandle.set(null)
 }, 'folder.resetState')
 
 export const publishFolderScan = action((result: { tree: FolderNode }) => {
-  resetFolderTreeUi()
+  if (folderTree() === null) {
+    resetFolderTreeUi()
+    currentFolder.set(result.tree)
+  } else {
+    const selected = currentFolder()
+    if (selected) {
+      const next = selected.path
+        .split('/')
+        .filter(Boolean)
+        .reduce<FolderNode | undefined>(
+          (folder, name) =>
+            folder?.children.find((child) => child.name === name),
+          result.tree,
+        )
+      currentFolder.set(next ?? result.tree)
+    }
+  }
   folderTree.set(result.tree)
-  currentFolder.set(result.tree)
-  parsingProgress.set({
-    total: result.tree.imageCount,
-    current: result.tree.imageCount,
-  })
 }, 'folder.publishScan')

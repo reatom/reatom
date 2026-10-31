@@ -189,7 +189,7 @@ Should be included in the context of worked agent!
    - `currentImageIndex` atom - Index in lightbox slideshow
    - `theme` atom - UI theme preference
    - `uiPreferences` atom - Various UI settings
-   - `parsingProgress` atom - Current parsing status and progress
+   - `openFolder.pending()` - Folder scan activity
 
 2. **Actions**
    - `openFolder` - Trigger directory picker
@@ -232,7 +232,7 @@ Should be included in the context of worked agent!
    - `FilterPanel` - Filter controls
    - `SortPanel` - Sort options
    - `ImageInfoPanel` - Image metadata display
-   - `ProgressBar` - Parsing progress indicator
+   - Inline loading indicator beside the image count
    - `ThemeToggle` - Light/dark mode switch
    - `BreadcrumbNav` - Folder path navigation
 
@@ -252,7 +252,7 @@ Should be included in the context of worked agent!
 
 - [ ] **Step 4**: Create folder parsing logic with progress → `src/parsing.ts`
   - Depends on: Step 3
-  - Acceptance: Async folder parsing function that updates parsingProgress atom, handles large folders with chunked processing
+  - Acceptance: Async folder parsing function that publishes accumulated folder snapshots, handles large folders with chunked processing
 
 - [ ] **Step 5**: Build main App component and layout → `src/App.tsx`
   - Depends on: Step 2
@@ -298,9 +298,9 @@ Should be included in the context of worked agent!
   - Depends on: Step 2
   - Acceptance: Panel showing metadata for selected/current image (size, dimensions, EXIF data)
 
-- [ ] **Step 16**: Create ProgressBar component → `src/components/ProgressBar.tsx`
+- [ ] **Step 16**: Show scan activity beside the image count → `src/components/GalleryWorkspace.tsx`
   - Depends on: Step 2
-  - Acceptance: Progress bar showing parsing status with file count, percentage, and cancel button
+  - Acceptance: Small loading indicator beside the accumulated image count while scanning
 
 - [ ] **Step 18**: Implement theme system → `src/components/ThemeToggle.tsx` + `src/theme.ts`
   - Depends on: Step 2

@@ -176,9 +176,12 @@ async function tryEmbeddedJpegPreviewPath(
   meta: ImageMeta | null,
   ignoreExifOrientation: boolean,
   signal?: AbortSignal,
+  onPreview?: ThumbnailOptions['onPreview'],
 ): Promise<ThumbnailResult | null> {
   if (!previewBlob) return null
 
+  let result: ThumbnailResult
+  let enoughSize: boolean
   try {
     throwIfThumbnailAborted(signal)
     let bitmap = await createImageBitmap(previewBlob)
@@ -188,9 +191,9 @@ async function tryEmbeddedJpegPreviewPath(
     }
     const { width, height } = bitmap
 
-    const enoughSize = width >= maxSize || height >= maxSize
+    enoughSize = width >= maxSize || height >= maxSize
 
-    if (!enoughSize) {
+    if (!enoughSize && !onPreview) {
       bitmap.close()
       return null
     }
@@ -211,7 +214,7 @@ async function tryEmbeddedJpegPreviewPath(
       }
     }
 
-    return bitmapToThumbnailResult(
+    result = await bitmapToThumbnailResult(
       bitmap,
       maxSize,
       quality,
@@ -223,6 +226,16 @@ async function tryEmbeddedJpegPreviewPath(
     if (isThumbnailAbortError(error)) throw error
     return null
   }
+  if (enoughSize) return result
+
+  // The callback owns the cheap preview while the larger decode continues.
+  try {
+    onPreview!(result)
+  } catch (error) {
+    revokeThumbnail(result)
+    throw error
+  }
+  return null
 }
 
 async function tryExifPath(
@@ -232,6 +245,7 @@ async function tryExifPath(
   meta: ImageMeta | null,
   ignoreExifOrientation: boolean,
   signal?: AbortSignal,
+  onPreview?: ThumbnailOptions['onPreview'],
 ): Promise<ThumbnailResult | null> {
   throwIfThumbnailAborted(signal)
   const exifBlob =
@@ -244,6 +258,7 @@ async function tryExifPath(
     meta,
     ignoreExifOrientation,
     signal,
+    onPreview,
   )
 }
 
@@ -316,6 +331,7 @@ export async function loadThumbnailWithMeta(
       meta,
       ignoreExifOrientation,
       signal,
+      options?.onPreview,
     )
     if (exifResult) return exifResult
   }

@@ -8,7 +8,7 @@ export const hiddenExifColumns = atom(
   'imageTable.hiddenExifColumns',
 )
 
-export const exifColumnNames = computed(() => {
+export const exifColumnNames = computed((previous: string[] = []) => {
   const columnNames = new Set<string>()
 
   for (const image of currentImages()) {
@@ -22,14 +22,22 @@ export const exifColumnNames = computed(() => {
     }
   }
 
-  return [...columnNames].sort((left, right) => left.localeCompare(right))
+  const next = [...columnNames].sort((left, right) => left.localeCompare(right))
+  return next.length === previous.length &&
+    next.every((name, index) => name === previous[index])
+    ? previous
+    : next
 }, 'imageTable.exifColumnNames')
 
-export const visibleExifColumnNames = computed(() => {
+export const visibleExifColumnNames = computed((previous: string[] = []) => {
   const hiddenColumns = hiddenExifColumns()
-  return exifColumnNames().filter(
+  const next = exifColumnNames().filter(
     (columnName) => !hiddenColumns.has(columnName),
   )
+  return next.length === previous.length &&
+    next.every((name, index) => name === previous[index])
+    ? previous
+    : next
 }, 'imageTable.visibleExifColumnNames')
 
 export const showAllExifColumns = action(() => {

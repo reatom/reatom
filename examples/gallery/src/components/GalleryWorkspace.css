@@ -1,0 +1,5 @@
+@keyframes gallery-folder-scan {
+  to {
+    transform: rotate(360deg);
+  }
+}

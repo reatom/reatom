@@ -58,6 +58,11 @@ export type ThumbnailOptions = {
   maxSize?: number
   quality?: number
   signal?: AbortSignal
+  /**
+   * Receives an undersized embedded preview before the full decode finishes.
+   * The receiver owns the preview URL and must revoke it when no longer used.
+   */
+  onPreview?: (preview: ThumbnailResult) => void
 }
 
 export type ThumbnailSource = 'exif' | 'generated'

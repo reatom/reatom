@@ -1,11 +1,11 @@
-import { abortVar, throwAbort, wrap } from '@reatom/core'
+import { abortVar, rAF, take, throwAbort, wrap } from '@reatom/core'
 
-import type { ParsingProgressSnapshot } from './models/contracts'
+import type { FolderScanResult } from './models/contracts'
 import type { FolderNode, ImageFile } from './types'
 import { IMAGE_EXTENSIONS } from './types'
-import { yieldToBrowser } from './yieldToBrowser'
 
-const DIRECTORY_SCAN_YIELD_INTERVAL = 250
+const DIRECTORY_SCAN_BUDGET_MS = 16
+const DIRECTORY_SCAN_BATCH_IMAGES = 64
 
 export function isFileSystemAccessSupported(): boolean {
   return 'showDirectoryPicker' in globalThis
@@ -36,50 +36,64 @@ function isDirectoryHandle(
 }
 
 export type ScanDirectoryOptions = {
-  onProgress?: (snapshot: ParsingProgressSnapshot) => void
+  onBatch?: (result: FolderScanResult) => void
 }
 
 export async function scanDirectoryRecursive(
   rootHandle: FileSystemDirectoryHandle,
   options?: ScanDirectoryOptions,
-): Promise<{ tree: FolderNode }> {
-  let progress: ParsingProgressSnapshot = { total: 0, current: 0 }
-  let indexedImages = 0
+): Promise<FolderScanResult> {
+  let batchImages = 0
+  let firstImagePublished = false
+  let batchStarted = performance.now()
+  const dirtyFolders = new Set<FolderNode>()
+  const snapshots = new WeakMap<FolderNode, FolderNode>()
 
-  const reportProgress = (
-    next:
-      | ParsingProgressSnapshot
-      | ((state: ParsingProgressSnapshot) => ParsingProgressSnapshot),
-  ) => {
-    progress = typeof next === 'function' ? next(progress) : next
-    options?.onProgress?.(progress)
-  }
-
-  reportProgress({ total: 0, current: 0 })
-  abortVar.subscribe(() => reportProgress({ total: 0, current: 0 }))
-
-  async function walkTree(
-    dirHandle: FileSystemDirectoryHandle,
-    currentPath: string,
-  ): Promise<FolderNode> {
-    const folderNode: FolderNode = {
-      name: dirHandle.name,
-      path: currentPath,
-      handle: dirHandle,
+  function createFolder(
+    handle: FileSystemDirectoryHandle,
+    path: string,
+  ): FolderNode {
+    const folder: FolderNode = {
+      name: handle.name,
+      path,
+      handle,
       images: [],
       children: [],
       imageCount: 0,
     }
-    let imageCount = 0
-    const subdirectoryHandles: FileSystemDirectoryHandle[] = []
-    let scannedEntries = 0
+    dirtyFolders.add(folder)
+    return folder
+  }
 
-    const iterator = dirHandle.values()
+  // Published arrays must stay immutable; unchanged branches keep their models.
+  function snapshot(folder: FolderNode): FolderNode {
+    const cached = snapshots.get(folder)
+    if (cached && !dirtyFolders.has(folder)) return cached
+    const next = {
+      ...folder,
+      images: [...folder.images],
+      children: folder.children.map(snapshot),
+    }
+    snapshots.set(folder, next)
+    dirtyFolders.delete(folder)
+    return next
+  }
+
+  const root = createFolder(rootHandle, '')
+
+  async function walkTree(
+    folderNode: FolderNode,
+    ancestors: FolderNode[],
+  ): Promise<void> {
+    const currentPath = folderNode.path
+    const branch = [...ancestors, folderNode]
+    const subdirectoryHandles: FileSystemDirectoryHandle[] = []
+
+    const iterator = folderNode.handle.values()
     while (true) {
       if (abortVar.require().signal.aborted) throwAbort()
       const { value: entry, done } = await wrap(iterator.next())
       if (done) break
-      scannedEntries++
       if (isFileHandle(entry)) {
         const extension = getFileExtension(entry.name)
         if (IMAGE_EXTENSIONS.includes(extension)) {
@@ -94,14 +108,31 @@ export async function scanDirectoryRecursive(
             fileHandle: entry,
           }
           folderNode.images.push(image)
-          imageCount++
+          batchImages++
+          for (const folder of branch) {
+            folder.imageCount++
+            dirtyFolders.add(folder)
+          }
         }
       } else if (isDirectoryHandle(entry)) {
         subdirectoryHandles.push(entry)
       }
 
-      if (scannedEntries % DIRECTORY_SCAN_YIELD_INTERVAL === 0) {
-        await wrap(yieldToBrowser())
+      if (
+        (!firstImagePublished && root.imageCount > 0) ||
+        batchImages >= DIRECTORY_SCAN_BATCH_IMAGES ||
+        performance.now() - batchStarted >= DIRECTORY_SCAN_BUDGET_MS
+      ) {
+        options?.onBatch?.({ tree: snapshot(root) })
+        firstImagePublished = root.imageCount > 0
+        batchImages = 0
+        // Start the first preview immediately and bound downstream model/DOM work
+        // even when directory iteration itself is cheap. A single rAF resumes
+        // in a pre-paint microtask; the second leaves a frame for layout/paint
+        // and concurrent thumbnail work before the next scanning burst.
+        await wrap(take(rAF, 'renderBatch'))
+        const frame = await wrap(take(rAF, 'resumeScan'))
+        batchStarted = frame.timestamp
       }
     }
 
@@ -109,26 +140,14 @@ export async function scanDirectoryRecursive(
       const childPath = currentPath
         ? `${currentPath}/${subDirHandle.name}`
         : subDirHandle.name
-      const childNode = await wrap(walkTree(subDirHandle, childPath))
+      const childNode = createFolder(subDirHandle, childPath)
       folderNode.children.push(childNode)
-      imageCount += childNode.imageCount
+      for (const folder of branch) dirtyFolders.add(folder)
+      await wrap(walkTree(childNode, branch))
     }
-
-    folderNode.imageCount = imageCount
-    indexedImages += folderNode.images.length
-
-    reportProgress({
-      total: Math.max(progress.total, indexedImages, 1),
-      current: indexedImages,
-    })
-
-    return folderNode
   }
 
-  const walkRoot = await wrap(walkTree(rootHandle, ''))
-  reportProgress({ total: walkRoot.imageCount, current: walkRoot.imageCount })
+  await wrap(walkTree(root, []))
 
-  return { tree: walkRoot }
+  return { tree: snapshot(root) }
 }
-
-export const parseDirectoryRecursive = scanDirectoryRecursive

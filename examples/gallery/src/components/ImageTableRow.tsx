@@ -1,3 +1,5 @@
+import { computed } from '@reatom/core'
+
 import { focusableRowAttrs } from '../a11y'
 import { formatExifDisplayValue } from '../image-engine/exifDisplay'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
@@ -27,31 +29,32 @@ export const ImageTableRow = ({
   visible,
 }: {
   image: ImageModel
-  exifColumns: string[]
+  exifColumns: () => string[]
   visible: () => boolean
 }) => {
-  const displayThumbnail = () => {
-    if (image.previewLoadPriority() === 'off') return null
-
-    const thumbnail = image.thumbnail.data()
-    if (!thumbnail) return null
-
-    const orientationStyle = resolveImageOrientationStyle(
-      image.meta.data()?.exif,
-      ignoreExifOrientation(),
-      thumbnail.orientationBaked || image.display.isRawPipeline(),
-    )
-    return (
+  const hasThumbnail = computed(
+    () =>
+      image.previewLoadPriority() !== 'off' && Boolean(image.thumbnail.data()),
+    `tableImage.${image.id}.hasThumbnail`,
+  )
+  const displayThumbnail = () =>
+    hasThumbnail() ? (
       <img
-        src={thumbnail.url}
-        alt={image.name}
+        src={() => image.thumbnail.data()?.url ?? ''}
+        alt={image.source.name}
         loading="lazy"
-        style:image-orientation={orientationStyle}
+        style:image-orientation={() =>
+          resolveImageOrientationStyle(
+            image.meta.data()?.exif,
+            ignoreExifOrientation(),
+            image.thumbnail.data()?.orientationBaked ||
+              image.display.isRawPipeline(),
+          )
+        }
       />
-    )
-  }
+    ) : null
 
-  const openLabel = `Open ${image.name}`
+  const openLabel = `Open ${image.source.name}`
 
   return (
     <tr
@@ -118,7 +121,7 @@ export const ImageTableRow = ({
               text-overflow: ellipsis;
             `}
           >
-            {image.name}
+            {image.source.name}
           </div>
           <div
             css={`
@@ -140,16 +143,18 @@ export const ImageTableRow = ({
       <td css={tableCellCss}>
         {() => (image.meta.data()?.hasExifThumbnail ? 'yes' : 'no')}
       </td>
-      {exifColumns.map((columnName) => (
-        <td css={tableCellCss}>
-          {() => {
-            const exif = image.meta.data()?.exif
-            if (!exif) return ''
-            const raw = exif[columnName] ?? ''
-            return formatExifDisplayValue(columnName, raw, exif)
-          }}
-        </td>
-      ))}
+      {() =>
+        exifColumns().map((columnName) => (
+          <td css={tableCellCss}>
+            {() => {
+              const exif = image.meta.data()?.exif
+              if (!exif) return ''
+              const raw = exif[columnName] ?? ''
+              return formatExifDisplayValue(columnName, raw, exif)
+            }}
+          </td>
+        ))
+      }
       <td css={tableCellCss}>
         <ImageFavoriteButton image={image} css="width: 30px; height: 30px;" />
       </td>

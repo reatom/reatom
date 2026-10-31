@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 
 import * as orientation from './orientation'
 import { loadThumbnailWithMeta, revokeThumbnail } from './thumbnail'
-import { DEFAULT_QUALITY, type ImageMeta } from './types'
+import { DEFAULT_QUALITY, type ImageMeta, type ThumbnailResult } from './types'
 
 function stubThumbnailCanvas() {
   vi.stubGlobal(
@@ -267,5 +267,90 @@ describe('loadThumbnailWithMeta generated path', () => {
       quality: DEFAULT_QUALITY,
     })
     revokeThumbnail(jpegResult)
+  })
+})
+
+describe('progressive embedded JPEG previews', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  test('delivers a small embedded preview before the full decode resolves', async () => {
+    stubThumbnailCanvas()
+    vi.stubGlobal('ImageDecoder', undefined)
+    const embedded = new Blob(['embedded'], { type: 'image/jpeg' })
+    let finishDecode!: (bitmap: ImageBitmap) => void
+    const fullDecode = new Promise<ImageBitmap>((resolve) => {
+      finishDecode = resolve
+    })
+    const smallBitmap = { width: 160, height: 80, close: vi.fn() }
+    const largeBitmap = { width: 400, height: 200, close: vi.fn() }
+    const decode = vi.fn((blob: Blob) =>
+      blob === embedded ? Promise.resolve(smallBitmap) : fullDecode,
+    )
+    vi.stubGlobal('createImageBitmap', decode)
+    const preview = vi.fn<(value: ThumbnailResult) => void>()
+    const meta: ImageMeta = {
+      width: 4000,
+      height: 2000,
+      format: 'jpeg',
+      isProgressive: false,
+      hasExifThumbnail: true,
+      embeddedPreview: { blob: embedded },
+    }
+    let settled = false
+    const thumbnail = loadThumbnailWithMeta(new Blob(['main']), meta, {
+      maxSize: 400,
+      onPreview: preview,
+    }).then((value) => {
+      settled = true
+      return value
+    })
+    await vi.waitFor(() => expect(decode).toHaveBeenCalledTimes(2))
+    expect(settled).toBe(false)
+    expect(preview).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ source: 'exif', width: 160, height: 80 }),
+    )
+    expect(smallBitmap.close).toHaveBeenCalledOnce()
+
+    finishDecode(largeBitmap as unknown as ImageBitmap)
+    expect(await thumbnail).toMatchObject({
+      source: 'generated',
+      width: 400,
+      height: 200,
+    })
+    expect(preview).toHaveBeenCalledTimes(1)
+    expect(largeBitmap.close).toHaveBeenCalledOnce()
+  })
+
+  test('revokes the preview when its receiver throws', async () => {
+    stubThumbnailCanvas()
+    const revoke = vi.spyOn(URL, 'revokeObjectURL')
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn(async () => ({
+        width: 160,
+        height: 80,
+        close: vi.fn(),
+      })),
+    )
+    const meta: ImageMeta = {
+      width: 4000,
+      height: 2000,
+      format: 'jpeg',
+      isProgressive: false,
+      hasExifThumbnail: true,
+      embeddedPreview: { blob: new Blob(['embedded']) },
+    }
+    await expect(
+      loadThumbnailWithMeta(new Blob(['main']), meta, {
+        maxSize: 400,
+        onPreview: () => {
+          throw new Error('preview receiver failed')
+        },
+      }),
+    ).rejects.toThrow('preview receiver failed')
+    expect(revoke).toHaveBeenCalledExactlyOnceWith('blob:thumbnail-test')
   })
 })

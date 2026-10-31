@@ -93,7 +93,7 @@ flowchart TB
 sequenceDiagram
   participant U as User
   participant M as model.openFolder
-  participant FS as filesystem.parseDirectoryRecursive
+  participant FS as filesystem.scanDirectoryRecursive
   participant L as imagesList linked list
   participant I as reatomImage
   participant E as image-engine
@@ -396,7 +396,7 @@ flowchart LR
 2. Batch rename (needs `readwrite` permission on directory).
 3. Batch EXIF strip/tag (only with write pipeline + confirmations).
 
-Use `action` + `withAbort` pattern from `openFolder` for cancellable batch jobs; surface progress in `ProgressBar.tsx`.
+Use `action` + `withAbort` pattern from `openFolder` for cancellable batch jobs; surface activity beside `gallery-folder-count` in `GalleryWorkspace.tsx`.
 
 ---
 
@@ -1306,7 +1306,7 @@ Minimal TODO policy: only §9.2 GitHub issue list and §9 gallery follow-ups rem
 
 Tracing `vacation.jpg` illustrates how nomacs concepts map to gallery code without Qt.
 
-1. **User** clicks Open Folder; `openFolder` action runs `pickDirectory()` then `parseDirectoryRecursive`.
+1. **User** clicks Open Folder; `openFolder` action runs `pickDirectory()` then `scanDirectoryRecursive`.
 2. Walker finds `photos/vacation.jpg`, pushes `{ fileHandle, folder }` into flat pool; `getFile()` later supplies `size`, `lastModified` for `ImageFile` record with stable `id`.
 3. `imagesList` effect creates `reatomImage(fileHandle, 'image#…', { filename, readIgnoreExifOrientation })`.
 4. **`file` computed** resolves `File` blob via `getFile()`.

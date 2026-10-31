@@ -387,6 +387,30 @@ export function reatomImage(
         maxSize,
         ignoreExifOrientation: ignoreOrientation,
         signal,
+        // bind lets an already-aborted producer dispose a late preview; wrap
+        // would throw before the callback could release the transferred URL.
+        onPreview: bind((preview: ThumbnailResult) => {
+          if (signal.aborted) {
+            revokeThumbnail(preview)
+            return
+          }
+          const previous = peek(thumbnailArtifact)
+          if (previous === preview) return
+          const previewSize = Math.max(preview.width, preview.height)
+          if (
+            previous &&
+            peek(thumbnailIgnoreOrientation) === ignoreOrientation &&
+            peek(thumbnailLongEdge) >= previewSize
+          ) {
+            revokeThumbnail(preview)
+            return
+          }
+          thumbnailArtifact.set(preview)
+          thumbnailIgnoreOrientation.set(ignoreOrientation)
+          thumbnailLongEdge.set(previewSize)
+          thumbnail.data.set(preview)
+          if (previous) revokeThumbnail(previous)
+        }),
       }
       const thumbnailPromise = loadThumbnailWithMeta(
         fileState,

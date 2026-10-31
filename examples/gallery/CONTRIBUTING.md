@@ -150,7 +150,6 @@ src/
     ├── ImageGrid.stories.tsx
     ├── ImageInfoPanel.stories.tsx
     ├── Lightbox.stories.tsx
-    ├── ProgressBar.stories.tsx
     ├── SettingsPanel.stories.tsx
     ├── SortPanel.stories.tsx
     ├── ThemeToggle.stories.tsx
@@ -158,7 +157,7 @@ src/
     └── ...
 ```
 
-**Integration stories** (`src/App.stories.tsx`) render the full `App` component. They test complete user journeys including folder loading, lightbox flow, and parsing progress. State is prepared via `loadGalleryState`, `loadEmptyState`, or `loadParsingState` from `shared/testSetup`. Use `fixtureFolderTree` from `__fixtures__/mockData` when stories need real image bytes (see `GalleryWithFixtures`).
+**Integration stories** (`src/App.stories.tsx`) render the full `App` component. They test complete user journeys including folder loading, lightbox flow, and progressive folder scanning. State is prepared via `loadGalleryState` or `loadEmptyState` from `shared/testSetup`. Use `fixtureFolderTree` from `__fixtures__/mockData` when stories need real image bytes (see `GalleryWithFixtures`).
 
 **Fixture tiers:** add golden parser tests against `tier-a` by default (`*.fixtures-a.test.ts`). Use `tier-b` for stress/corrupt cases and `tier-c` for RAW preview extraction. Run `pnpm fixtures:fetch` after editing `manifest.json` upstream URLs.
 
@@ -268,7 +267,7 @@ This allows stories to use JSX that compiles to Reatom's `h` and `hf` instead of
 
 #### Loading State in Stories
 
-Integration and component stories prepare the model before rendering via `loadGalleryState`, `loadEmptyState`, or `loadParsingState` from `shared/testSetup`:
+Integration and component stories prepare the model before rendering via `loadGalleryState` or `loadEmptyState` from `shared/testSetup`:
 
 ```typescript
 render: () => {

@@ -1,10 +1,10 @@
+import { action, effect, reatomLinkedList } from '@reatom/core'
 import type { JSX } from '@reatom/jsx'
 
 import {
   folderModelTree,
   type GalleryFolderModel,
   type ImageModel,
-  isFolderBranchInCurrentScope,
   isFolderImagesInCurrentScope,
   visibleIndexMap,
 } from '../model'
@@ -17,37 +17,72 @@ export const mapFolderImages = <T,>(
   ...folder.children.flatMap((child) => mapFolderImages(child, mapImage)),
 ]
 
+/** Keep mounted image rows while folder snapshots and sort order change. */
+export const reatomFolderImageRows = () => {
+  const rows = reatomLinkedList(
+    (image: ImageModel, folder: GalleryFolderModel) => ({ image, folder }),
+    'gallery.imageRows',
+  )
+  const byImage = new Map<ImageModel, ReturnType<typeof rows.create>>()
+  const sync = action(
+    (next: Array<{ image: ImageModel; folder: GalleryFolderModel }>) => {
+      const present = new Set(next.map(({ image }) => image))
+      rows.batch(() => {
+        for (const [image, row] of byImage) {
+          if (present.has(image)) continue
+          rows.remove(row)
+          byImage.delete(image)
+        }
+        let previous: ReturnType<typeof rows.create> | null = null
+        for (const { image, folder } of next) {
+          let row = byImage.get(image)
+          if (!row) {
+            row = rows.insertMany([{ image, folder }], previous)[0]!
+            byImage.set(image, row)
+          } else if (row[rows.LL_PREV] !== previous) {
+            rows.move(row, previous)
+          }
+          previous = row
+        }
+      })
+    },
+    'gallery.syncImageRows',
+  )
+
+  return {
+    rows,
+    bind: () => {
+      const watcher = effect(() => {
+        const tree = folderModelTree()
+        sync(
+          tree
+            ? mapFolderImages(tree, (image, folder) => ({ image, folder }))
+            : [],
+        )
+      }, 'gallery.bindImageRows')
+      return () => watcher.unsubscribe()
+    },
+  }
+}
+
 export const FolderImageTree = ({
   renderImage,
 }: {
   renderImage: (image: ImageModel, folder: GalleryFolderModel) => JSX.Element
 }) => {
-  const Folder = ({ folder }: { folder: GalleryFolderModel }) => (
-    <div
-      style:display={() =>
-        isFolderBranchInCurrentScope(folder) ? 'contents' : 'none'
-      }
-    >
-      <div
-        style:display={() =>
-          isFolderImagesInCurrentScope(folder) ? 'contents' : 'none'
-        }
-      >
-        {() => folder.sortedImages().map((image) => renderImage(image, folder))}
-      </div>
-      {folder.children.map((child) => (
-        <Folder folder={child} />
+  const { rows, bind } = reatomFolderImageRows()
+  return (
+    <div style:display="contents" ref={bind}>
+      {rows.reatomMap(({ image, folder }) => (
+        <div
+          style:display={() =>
+            isFolderImagesInCurrentScope(folder) ? 'contents' : 'none'
+          }
+        >
+          {renderImage(image, folder)}
+        </div>
       ))}
     </div>
-  )
-
-  return (
-    <>
-      {() => {
-        const tree = folderModelTree()
-        return tree ? <Folder folder={tree} /> : null
-      }}
-    </>
   )
 }
 

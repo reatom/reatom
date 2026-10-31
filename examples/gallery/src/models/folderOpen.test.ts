@@ -74,7 +74,7 @@ test('opening a folder clears the previous gallery while scanning', () =>
 
     expect(folderTree()).toBeNull()
     expect(currentFolder()).toBeNull()
-    expect(galleryContentMode()).toBe('parsing')
+    expect(galleryContentMode()).toBe('gallery')
     expect(currentImages()).toEqual([])
 
     await wrap(scan)
@@ -147,7 +147,7 @@ test('reset cancels a pending picker before it can publish a folder', () =>
     expect(filesystem.scanDirectoryRecursive).not.toHaveBeenCalled()
   }))
 
-test('picker scans expose parsing status and the existing cancel action', () =>
+test('picker scans keep the gallery open and remain cancellable', () =>
   context.start(async () => {
     filesystem.pickDirectory.mockResolvedValue(createMockDirHandle('picked'))
     filesystem.scanDirectoryRecursive.mockImplementation(
@@ -155,7 +155,7 @@ test('picker scans expose parsing status and the existing cancel action', () =>
     )
     const pick = pickAndOpenFolder().catch(() => null)
     await wrap(sleep(5))
-    expect(galleryContentMode()).toBe('parsing')
+    expect(galleryContentMode()).toBe('gallery')
     expect(openFolder.pending()).toBe(1)
     openFolder.abort()
     await wrap(pick)

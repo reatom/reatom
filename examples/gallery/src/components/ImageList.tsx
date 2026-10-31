@@ -1,3 +1,5 @@
+import { computed } from '@reatom/core'
+
 import { focusableCardAttrs } from '../a11y'
 import type { ImageModel } from '../model'
 import { listPreviewHeight, listPreviewWidth, openLightbox } from '../model'
@@ -5,16 +7,21 @@ import { FolderImageTree, VisibleImageSlot } from './FolderImageTree'
 import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
 
 const ListImage = ({ image }: { image: ImageModel }) => {
-  const displayThumbnail = () => {
-    if (image.previewLoadPriority() === 'off') return null
-
-    const thumbnail = image.thumbnail.data()
-    return thumbnail ? (
-      <img src={thumbnail.url} alt={image.name} loading="lazy" />
+  const hasThumbnail = computed(
+    () =>
+      image.previewLoadPriority() !== 'off' && Boolean(image.thumbnail.data()),
+    `listImage.${image.id}.hasThumbnail`,
+  )
+  const displayThumbnail = () =>
+    hasThumbnail() ? (
+      <img
+        src={() => image.thumbnail.data()?.url ?? ''}
+        alt={image.source.name}
+        loading="lazy"
+      />
     ) : null
-  }
 
-  const openLabel = () => `Open ${image.name}`
+  const openLabel = () => `Open ${image.source.name}`
 
   return (
     <div
@@ -85,7 +92,7 @@ const ListImage = ({ image }: { image: ImageModel }) => {
             text-overflow: ellipsis;
           `}
         >
-          {image.name}
+          {image.source.name}
         </div>
         <div
           css={`

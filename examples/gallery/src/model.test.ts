@@ -1,9 +1,8 @@
-import { action, clearStack, context, withAbort, wrap } from '@reatom/core'
+import { clearStack, context, wrap } from '@reatom/core'
 import { expect, test, vi } from 'vitest'
 
 import { createMockDirHandle } from './__fixtures__/fixtureLoader'
 import { createMockImage, mockFolderTree } from './__fixtures__/mockData'
-import { scanDirectoryRecursive } from './filesystem'
 import {
   bindLightboxSizedImageWindowSync,
   clearSelection,
@@ -39,6 +38,7 @@ import {
   wrapFolderNavigation,
 } from './model'
 import { lightboxSizedImageWindowIds } from './models/lightboxState'
+import { reatomFolderTreeNodeUi } from './models/navigation'
 import { loadGalleryState } from './shared/testSetup'
 import type { FolderNode, ImageFile } from './types'
 
@@ -58,6 +58,7 @@ test.beforeEach(() => {
 
 test.afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 test('imagesList sorts each folder by name ascending', () =>
@@ -229,39 +230,140 @@ test('imagesList is scoped to the selected folder', async () =>
     expect(paths).toEqual(['subfolder', 'subfolder'])
   }))
 
-test('scanDirectoryRecursive yields while indexing large folders', async () => {
-  const requestAnimationFrame = vi.fn((callback: FrameRequestCallback) => {
-    callback(performance.now())
-    return 1
+test('opening a folder publishes immutable image batches before each frame', () => {
+  let now = 0
+  const frames: FrameRequestCallback[] = []
+  vi.spyOn(performance, 'now').mockImplementation(() => now)
+  vi.stubGlobal('showDirectoryPicker', vi.fn())
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    frames.push(callback)
+    return frames.length
   })
-  vi.stubGlobal('requestAnimationFrame', requestAnimationFrame)
 
-  const fileHandles = Array.from(
-    { length: 401 },
-    (_, index) =>
-      createMockImage({
-        id: `scan-${index}`,
-        name: `image-${index}.jpg`,
-        path: '',
-      }).fileHandle,
+  function directory(name: string, entries: FileSystemHandle[]) {
+    return Object.assign(createMockDirHandle(name), {
+      values: async function* () {
+        for (const entry of entries) {
+          now += 8
+          yield entry
+        }
+      },
+    })
+  }
+
+  const child = directory(
+    'child',
+    Array.from(
+      { length: 4 },
+      (_, index) => createMockImage({ name: `child-${index}.jpg` }).fileHandle,
+    ),
   )
-  const rootHandle = Object.assign(createMockDirHandle('Root'), {
-    values: async function* () {
-      for (const fileHandle of fileHandles) {
-        yield fileHandle
-      }
-    },
+  const root = directory('Root', [
+    createMockImage({ name: 'root.jpg' }).fileHandle,
+    child,
+  ])
+
+  return context.start(async () => {
+    includeSubfolders.setTrue()
+    const scan = openFolder(root)
+    await wrap(vi.waitFor(() => expect(frames).toHaveLength(1)))
+
+    const first = folderTree()!
+    expect(openFolder.pending()).toBe(1)
+    expect(galleryContentMode()).toBe('gallery')
+    expect(currentImages().map((image) => image.source.name)).toEqual([
+      'root.jpg',
+    ])
+    expect(first.imageCount).toBe(1)
+
+    frames.shift()!(now)
+    await wrap(vi.waitFor(() => expect(frames).toHaveLength(1)))
+    expect(folderTree()).toBe(first)
+    frames.shift()!(now)
+    await wrap(vi.waitFor(wrap(() => expect(folderTree()?.imageCount).toBe(2))))
+    const second = folderTree()!
+    const secondChild = second.children[0]!
+    currentFolder.set(secondChild)
+    const selectedImage = currentImages()[0]!
+    selectImage(selectedImage)
+    const childUi = reatomFolderTreeNodeUi('child')
+    childUi.expanded.setTrue()
+    expect(currentImages()).toHaveLength(1)
+
+    frames.shift()!(now)
+    await wrap(vi.waitFor(() => expect(frames).toHaveLength(1)))
+    frames.shift()!(now)
+    await wrap(vi.waitFor(wrap(() => expect(folderTree()?.imageCount).toBe(4))))
+    expect(openFolder.pending()).toBe(1)
+    expect(currentFolder()).toBe(folderTree()!.children[0])
+    expect(currentImages()).toHaveLength(3)
+    expect(currentImages()[0]).toBe(selectedImage)
+    expect(selectedImage.selected()).toBe(true)
+    expect(reatomFolderTreeNodeUi('child')).toBe(childUi)
+    expect(childUi.expanded()).toBe(true)
+    expect(first.children).toEqual([])
+    expect(first.imageCount).toBe(1)
+    expect(secondChild.images).toHaveLength(1)
+    expect(second.imageCount).toBe(2)
+
+    // The final sub-frame remainder is published, preserving the All selection.
+    currentFolder.set(null)
+    frames.shift()!(now)
+    await wrap(vi.waitFor(() => expect(frames).toHaveLength(1)))
+    frames.shift()!(now)
+    await wrap(scan)
+    expect(currentFolder()).toBeNull()
+    expect(folderTree()?.imageCount).toBe(5)
+    expect(currentImages()).toHaveLength(5)
+    expect(openFolder.pending()).toBe(0)
   })
-  const scan = action(
-    async () => await wrap(scanDirectoryRecursive(rootHandle)),
-    'test.scanDirectoryRecursive',
-  ).extend(withAbort())
-
-  const result = await context.start(() => scan())
-
-  expect(result.tree.images).toHaveLength(fileHandles.length)
-  expect(requestAnimationFrame).toHaveBeenCalled()
 })
+
+test.each(['reset', 'replace'] as const)(
+  '%s stops a progressive scan while it waits for a frame',
+  (intent) => {
+    let now = 0
+    const frames: FrameRequestCallback[] = []
+    vi.spyOn(performance, 'now').mockImplementation(() => now)
+    vi.stubGlobal('showDirectoryPicker', vi.fn())
+    vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+      frames.push(callback)
+      return frames.length
+    })
+    const visited = vi.fn()
+    const root = Object.assign(createMockDirHandle('Root'), {
+      values: async function* () {
+        for (let index = 0; index < 3; index++) {
+          visited()
+          now += 16
+          yield createMockImage({ name: `image-${index}.jpg` }).fileHandle
+        }
+      },
+    })
+
+    return context.start(async () => {
+      const scan = openFolder(root).catch(() => null)
+      await wrap(vi.waitFor(() => expect(frames).toHaveLength(1)))
+      expect(currentImages()).toHaveLength(1)
+
+      if (intent === 'reset') {
+        resetOpenedFolder()
+      } else {
+        await wrap(openFolder(createMockDirHandle('Replacement')))
+      }
+      frames.shift()!(now)
+      await wrap(scan)
+      expect(visited).toHaveBeenCalledTimes(1)
+      expect(folderTree()?.name ?? null).toBe(
+        intent === 'reset' ? null : 'Replacement',
+      )
+      expect(currentImages()).toEqual([])
+      expect(galleryContentMode()).toBe(
+        intent === 'reset' ? 'empty' : 'gallery',
+      )
+    })
+  },
+)
 
 test('selectImage toggles selection', () =>
   context.start(() => {

@@ -1,7 +1,10 @@
+import './GalleryWorkspace.css'
+
 import { formatImageCount } from '../imageFormat'
 import {
   bindBackgroundPreviewLoader,
   galleryContentMode,
+  openFolder,
   themePack,
   visibleIndexMap,
 } from '../model'
@@ -11,7 +14,6 @@ import { FolderTree } from './FolderTree'
 import { ImageGrid } from './ImageGrid'
 import { packChromeEndInset, shellEndInset } from './panelLayout'
 import { filterPanelOpen, settingsPanelOpen } from './panelState'
-import { ProgressBar } from './ProgressBar'
 import { SortPanel } from './SortPanel'
 
 export const GalleryWorkspace = () => (
@@ -89,6 +91,9 @@ export const GalleryWorkspace = () => (
               <span
                 id="gallery-folder-count"
                 css={`
+                  display: inline-flex;
+                  align-items: center;
+                  gap: 6px;
                   font-size: 12px;
                   color: var(--text-muted);
                   white-space: nowrap;
@@ -96,7 +101,28 @@ export const GalleryWorkspace = () => (
                   flex-shrink: 0;
                 `}
               >
-                {() => formatImageCount(visibleIndexMap().size)}
+                {() => formatImageCount(visibleIndexMap().size) || '0 images'}
+                {() =>
+                  openFolder.pending() > 0 ? (
+                    <span
+                      role="status"
+                      aria-label="Scanning folder"
+                      title="Scanning folder"
+                      css={`
+                        width: 12px;
+                        height: 12px;
+                        flex-shrink: 0;
+                        border: 2px solid currentColor;
+                        border-right-color: transparent;
+                        border-radius: 50%;
+                        animation: gallery-folder-scan 0.8s linear infinite;
+                        @media (prefers-reduced-motion: reduce) {
+                          animation: none;
+                        }
+                      `}
+                    />
+                  ) : null
+                }
               </span>
             </div>
             <div css="flex: 1;" />
@@ -129,7 +155,6 @@ export const GalleryWorkspace = () => (
         {() => {
           const mode = galleryContentMode()
           if (mode === 'empty') return <EmptyState />
-          if (mode === 'parsing') return <ProgressBar />
           return <ImageGrid />
         }}
       </main>

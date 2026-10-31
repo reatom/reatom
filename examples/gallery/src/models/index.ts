@@ -18,11 +18,7 @@ export {
   visibleImages,
   visibleIndexMap,
 } from './collection'
-export type {
-  GalleryImageModel,
-  ImageModel,
-  ParsingProgressSnapshot,
-} from './contracts'
+export type { GalleryImageModel, ImageModel } from './contracts'
 export {
   activeFilterCount,
   clearFilterTypes,
@@ -46,7 +42,6 @@ export {
   currentFolder,
   folderTree,
   hasPersistedSelectedFolderHandle,
-  parsingProgress,
   publishFolderScan,
   resetFolderState,
   selectedFolderHandle,

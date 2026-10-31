@@ -1,3 +1,5 @@
+import { computed } from '@reatom/core'
+
 import { focusableCardAttrs } from '../a11y'
 import { resolveImageOrientationStyle } from '../image-engine/orientation'
 import { splitFileNameForTruncation } from '../imageFormat'
@@ -31,27 +33,27 @@ const overlayControlCss = `
 export const GridImage = ({ image }: { image: ImageModel }) => {
   const imageName = () => image.source.name
 
-  const displayImage = () => {
-    if (image.previewLoadPriority() === 'off') return null
-
-    const thumbnail = image.thumbnail.data()
-    if (!thumbnail) return null
-
-    const orientationStyle = resolveImageOrientationStyle(
-      image.thumbnailMeta.data()?.exif,
-      ignoreExifOrientation(),
-      thumbnail.orientationBaked || image.display.isRawPipeline(),
-    )
-
-    return (
+  const hasThumbnail = computed(
+    () =>
+      image.previewLoadPriority() !== 'off' && Boolean(image.thumbnail.data()),
+    `gridImage.${image.id}.hasThumbnail`,
+  )
+  const displayImage = () =>
+    hasThumbnail() ? (
       <img
-        src={thumbnail.url}
+        src={() => image.thumbnail.data()?.url ?? ''}
         alt={imageName()}
         loading="lazy"
-        style:image-orientation={orientationStyle}
+        style:image-orientation={() =>
+          resolveImageOrientationStyle(
+            image.thumbnailMeta.data()?.exif,
+            ignoreExifOrientation(),
+            image.thumbnail.data()?.orientationBaked ||
+              image.display.isRawPipeline(),
+          )
+        }
       />
-    )
-  }
+    ) : null
 
   const openLabel = () => `Open ${imageName()}`
 

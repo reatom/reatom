@@ -1,7 +1,10 @@
+import { computed } from '@reatom/core'
+
 import {
   bindLoupeDismiss,
   gridColumns,
   imageGrid,
+  openFolder,
   viewMode,
   visibleIndexMap,
 } from '../model'
@@ -90,6 +93,11 @@ const NoImagesMessage = () => (
   </div>
 )
 
+const hasVisibleImages = computed(
+  () => visibleIndexMap().size > 0,
+  'gallery.hasVisibleImages',
+)
+
 export const ImageGrid = () => (
   <div
     ref={(element) => {
@@ -131,9 +139,13 @@ export const ImageGrid = () => (
       ${gridEntryCss}
     `}
   >
-    {() => (visibleIndexMap().size === 0 ? <NoImagesMessage /> : null)}
+    {() =>
+      !hasVisibleImages() && openFolder.pending() === 0 ? (
+        <NoImagesMessage />
+      ) : null
+    }
     {() => {
-      if (visibleIndexMap().size === 0) return null
+      if (!hasVisibleImages()) return null
 
       const mode = viewMode()
       if (mode === 'table') return <ImageTable />

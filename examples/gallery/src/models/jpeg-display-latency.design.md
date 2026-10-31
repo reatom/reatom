@@ -22,3 +22,25 @@ diagnostic runs, not a guaranteed latency bound. The file still needs entropy
 decoding, unlike a RAW file with a small embedded JPEG. Tests cover returning the
 policy-selected original, preserving orientation, native unrotated frame transfer,
 and deferring neighbor decoding without starting a duplicate original.
+
+## Progressive gallery thumbnails
+
+2026-10-31: A representative 16 MB, 7319×7150 JPEG contains a 160×156
+embedded preview. The gallery rejected that preview because it was smaller
+than the requested thumbnail, leaving the card empty until a full decode
+finished. In a local Chromium scan of 1200 handles using this photo, the first
+image appeared at about 1.2 seconds. File access and card mounting started
+within the first frame; browser lazy loading added only a few milliseconds
+once the thumbnail was ready.
+
+The engine now delivers an undersized embedded preview through optional
+`onPreview`, while its promise still resolves to the requested final thumbnail.
+Returning only the small image would lose the resolution upgrade; lowering all
+decode concurrency had mixed latency results and reduced throughput. The
+callback keeps existing promise consumers compatible. It transfers URL
+ownership to the model, which publishes the preview while pending and revokes
+it on replacement or disposal. Late aborted callbacks release their URL.
+
+With this path, the first image loaded at about 140–210 ms in diagnostic
+scans. The preview and resolution upgrade retain the same image DOM node. These individual runs demonstrate the avoided decode wait, not a latency
+guarantee. JPEGs without an embedded preview still require source decoding.

@@ -1,12 +1,14 @@
 import { clearStack, context, peek, wrap } from '@reatom/core'
 import { expect, test, vi } from 'vitest'
 
+import { createMockDirHandle } from '../__fixtures__/fixtureLoader'
 import { createMockImage, mockFolderTree } from '../__fixtures__/mockData'
 import type { ThumbnailResult } from '../image-engine'
 import * as imageEngine from '../image-engine'
 import { loadGalleryState } from '../shared/testSetup'
 import * as collection from './collection'
 import { currentImages, resetGallerySession, visibleImages } from './collection'
+import { openFolder, resetOpenedFolder } from './folderOpen'
 import { bindBackgroundPreviewLoader } from './previewLoad'
 import { maxParallelThumbnails } from './thumbnailConcurrency'
 import { viewMode } from './view'
@@ -323,6 +325,90 @@ test('background revisits an unfinished foreground image after its demand disapp
     })
   } finally {
     vi.useRealTimers()
+    vi.restoreAllMocks()
+  }
+})
+
+test('progressive scans decode multiple previews in parallel before enumeration completes', async () => {
+  clearStack()
+  vi.useFakeTimers()
+  let now = 0
+  vi.spyOn(performance, 'now').mockImplementation(() => now)
+  vi.stubGlobal('showDirectoryPicker', vi.fn())
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) =>
+    setTimeout(() => callback(now), 16),
+  )
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  const finishes: Array<(result: ThumbnailResult) => void> = []
+  const load = vi
+    .spyOn(imageEngine, 'loadThumbnailWithMeta')
+    .mockImplementation(
+      () => new Promise<ThumbnailResult>((resolve) => finishes.push(resolve)),
+    )
+  vi.spyOn(imageEngine, 'revokeThumbnail').mockImplementation(() => {})
+  let resumeEnumeration!: () => void
+  const enumerationGate = new Promise<void>((resolve) => {
+    resumeEnumeration = resolve
+  })
+  const root = Object.assign(createMockDirHandle('Progressive'), {
+    values: async function* () {
+      for (let index = 0; index < 4; index++) {
+        now += 20
+        yield createMockImage({ name: `${index}.jpg` }).fileHandle
+      }
+      await enumerationGate
+      now += 20
+      yield createMockImage({ name: 'last.jpg' }).fileHandle
+    },
+  })
+  const artifact: ThumbnailResult = {
+    url: 'blob:early-preview',
+    width: 192,
+    height: 128,
+    source: 'generated',
+  }
+  try {
+    await context.start(async () => {
+      viewMode.setList()
+      const stop = visibleImages.subscribe()
+      const scan = openFolder(root)
+      try {
+        await wrap(vi.advanceTimersByTimeAsync(200))
+        expect(openFolder.pending()).toBe(1)
+        expect(visibleImages()).toHaveLength(4)
+        // Decoders overlap: no job has resolved, yet multiple jobs have started.
+        expect(load.mock.calls.length).toBeGreaterThanOrEqual(2)
+        const first = visibleImages()[0]!
+        finishes[0]!(artifact)
+        await wrap(vi.advanceTimersByTimeAsync(0))
+        expect(first.thumbnail.data()?.url).toBe(artifact.url)
+        expect(visibleImages()[1]!.thumbnail.pending()).toBe(1)
+        expect(openFolder.pending()).toBe(1)
+
+        resumeEnumeration()
+        await wrap(vi.advanceTimersByTimeAsync(100))
+        await wrap(scan)
+        expect(visibleImages()).toHaveLength(5)
+        expect(visibleImages()[0]).toBe(first)
+        expect(first.thumbnail.data()?.url).toBe(artifact.url)
+      } finally {
+        resumeEnumeration()
+        stop()
+        resetOpenedFolder()
+        for (const finish of finishes) finish(artifact)
+        await wrap(scan.catch(() => null))
+        await wrap(vi.advanceTimersByTimeAsync(0))
+      }
+    })
+  } finally {
+    vi.useRealTimers()
+    vi.unstubAllGlobals()
     vi.restoreAllMocks()
   }
 })
