@@ -52,7 +52,7 @@ export const createLogBatched = ({
   debounce?: number
   getTimeStamp?: () => string
   limit?: number
-  log?: typeof console.log
+  log?: (...data: any[]) => void
   domain?: string
   shouldGroup?: boolean
   shouldLogGraph?: boolean
