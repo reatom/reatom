@@ -371,29 +371,29 @@ importers:
   packages/framework:
     dependencies:
       '@reatom/async':
-        specifier: workspace:^
-        version: link:../async
+        specifier: ^3.16.10
+        version: 3.16.10
       '@reatom/core':
-        specifier: workspace:^
-        version: link:../core
+        specifier: ^3.10.3
+        version: 3.10.3
       '@reatom/effects':
-        specifier: workspace:^
-        version: link:../effects
+        specifier: ^3.11.3
+        version: 3.11.3
       '@reatom/hooks':
-        specifier: workspace:^
-        version: link:../hooks
+        specifier: ^3.6.1
+        version: 3.6.1
       '@reatom/lens':
-        specifier: workspace:^
-        version: link:../lens
+        specifier: ^3.12.0
+        version: 3.12.0
       '@reatom/logger':
-        specifier: workspace:^
-        version: link:../logger
+        specifier: ^3.8.4
+        version: 3.8.4
       '@reatom/primitives':
-        specifier: workspace:^
-        version: link:../primitives
+        specifier: ^3.11.0
+        version: 3.11.0
       '@reatom/utils':
-        specifier: workspace:^
-        version: link:../utils
+        specifier: ^3.11.3
+        version: 3.11.3
 
   packages/hooks:
     dependencies:
@@ -2249,11 +2249,38 @@ packages:
   '@polka/url@1.0.0-next.29':
     resolution: {integrity: sha512-wwQAWhWSuHaag8c4q/KN/vCoeOJYshAIvMQwD4GpSb3OiZklFfvAgmj0VCBBImRpuF/aFgIRzllXlVX93Jevww==}
 
+  '@reatom/async@3.16.10':
+    resolution: {integrity: sha512-HxZwS7EydTcBKoKd3Z2VIi0O8YjJrkYWLSH0wxEPUhZcuWILjyuYSFBSAq4wFFkvQlbh9L7g6T4hr7lhQDhkbA==}
+
   '@reatom/core-v2@3.1.4':
     resolution: {integrity: sha512-BCzyyTt2mm1PlwOyezYBzF4To3x4WzDTIDzNes2BJ8bWmvZfXT1FHIFjBR0uMSPQQ3bFienNK4ntHQy2CXcowA==}
 
   '@reatom/core@3.10.1':
     resolution: {integrity: sha512-A5vx+akCGkc+YCYhqPaAnR46uvqe70pQ2JB82JCLgOrj+YmnStIGkiaiWG43wn30qUjatXjejJmGkqQbjtri+A==}
+
+  '@reatom/core@3.10.3':
+    resolution: {integrity: sha512-uctBfmL/ZNvHWRX92Y+VQZON37fXNja4FM1fzevX7RYOWy6R7evx42VM6K4kuOaIci7bVWPhPZzHWeAu0J2lHQ==}
+
+  '@reatom/effects@3.11.3':
+    resolution: {integrity: sha512-0qxr7m6e+GrOvt0pESONl4aRZxGjsU1HWXIsDR2Ghw0mNGjuStnEDUZnO+MVbKOArMIAvZ8ZoMrQWqXEBfOrVg==}
+
+  '@reatom/hooks@3.6.1':
+    resolution: {integrity: sha512-1q8qXAOkQlDKc/Y94alPHWqMnXvJhCG4Rr9hQxPMPG1Qf3WpeKm7Zdxs4v3DC2Kcw6oG6djVk3i5duIjPygGWA==}
+
+  '@reatom/lens@3.12.0':
+    resolution: {integrity: sha512-YsEnYYHi58ePDscXomnbDPC9NSggfJQHvhcpqEAmvZuHH4nbsUpoQj2W69nSQyUDH/+X+TxURvsGUOHaXMl9pQ==}
+
+  '@reatom/logger@3.8.4':
+    resolution: {integrity: sha512-MOz8Td1eZV+kU4QpkZXAdO9qFtGjqpm40crIlMNweDtOH7GgUmV2oKgOXRORQzYbeGHVMlQHG4J5iPeEQdM7KA==}
+
+  '@reatom/persist@3.4.3':
+    resolution: {integrity: sha512-NsJNZEATjaXKGjxlPQ95KD3LmEVD4SY01HSJmDujACOYECFUMrVBD3p+SPV2+2PJEfVXAVapFvqxwPCq3RlajA==}
+
+  '@reatom/primitives@3.11.0':
+    resolution: {integrity: sha512-b+jtK7qpQxSP83mYQXpPRMlFyg+C9WPv4sZDWSmm00mwmwetW0KbltftkWiwQjQM1TLwpDLZ6R7DX7fcTraIgg==}
+
+  '@reatom/utils@3.11.3':
+    resolution: {integrity: sha512-H2FQf9xra7Twf0PxS6L0DtuRRC79NfHRB3V/YhnhPHyUE/UFscXrin/I2eGj3FEKcgOfC2BWnzCOrkXjKWgECQ==}
 
   '@rollup/plugin-alias@3.1.9':
     resolution: {integrity: sha512-QI5fsEvm9bDzt32k39wpOwZhVzRcL5ydcffUHMyLVaVaLeC70I8TJZ17F1z1eMoLu4E/UOcH9BWVkKpIKdrfiw==}
@@ -8803,11 +8830,60 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
+  '@reatom/async@3.16.10':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/hooks': 3.6.1
+      '@reatom/persist': 3.4.3
+      '@reatom/primitives': 3.11.0
+      '@reatom/utils': 3.11.3
+
   '@reatom/core-v2@3.1.4':
     dependencies:
       '@reatom/core': 3.10.1
 
   '@reatom/core@3.10.1': {}
+
+  '@reatom/core@3.10.3': {}
+
+  '@reatom/effects@3.11.3':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/hooks@3.6.1':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/lens@3.12.0':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/effects': 3.11.3
+      '@reatom/hooks': 3.6.1
+      '@reatom/primitives': 3.11.0
+      '@reatom/utils': 3.11.3
+
+  '@reatom/logger@3.8.4':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/persist@3.4.3':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/hooks': 3.6.1
+      '@reatom/lens': 3.12.0
+      '@reatom/utils': 3.11.3
+
+  '@reatom/primitives@3.11.0':
+    dependencies:
+      '@reatom/core': 3.10.3
+      '@reatom/utils': 3.11.3
+
+  '@reatom/utils@3.11.3': {}
 
   '@rollup/plugin-alias@3.1.9(rollup@2.79.2)':
     dependencies:
