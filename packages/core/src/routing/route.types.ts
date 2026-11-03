@@ -422,14 +422,17 @@ export interface RouteMixin<
     >,
     Payload = LoaderParams,
   >(
-    options: RouteOptions<
-      SubPath,
-      SubParamsInput,
-      SubSearchInput,
-      SubParamsOutput,
-      SubSearchOutput,
-      LoaderParams,
-      Payload
+    options: Omit<
+      RouteOptions<
+        SubPath,
+        SubParamsInput,
+        SubSearchInput,
+        SubParamsOutput,
+        SubSearchOutput,
+        LoaderParams,
+        Payload
+      >,
+      'params'
     > & {
       params: StandardSchemaV1<SubParamsInput, SubParamsOutput>
       search: Codec<SubSearchInput, SubSearchOutput>
@@ -540,14 +543,17 @@ export interface RouteMixin<
     >,
     Payload = LoaderParams,
   >(
-    options: RouteOptions<
-      SubPath,
-      SubParamsInput,
-      SubSearchInput,
-      SubParamsOutput,
-      SubSearchOutput,
-      LoaderParams,
-      Payload
+    options: Omit<
+      RouteOptions<
+        SubPath,
+        SubParamsInput,
+        SubSearchInput,
+        SubParamsOutput,
+        SubSearchOutput,
+        LoaderParams,
+        Payload
+      >,
+      'params'
     > & {
       params: StandardSchemaV1<SubParamsInput, SubParamsOutput>
     },

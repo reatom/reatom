@@ -1,5 +1,5 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec'
-import { beforeEach, describe, expect, test, vi } from 'test'
+import { beforeEach, describe, expect, expectTypeOf, test, vi } from 'test'
 
 import { urlAtom } from '../web/url'
 import { reatomRoute } from './route'
@@ -162,6 +162,36 @@ describe('callable Standard Schema', () => {
     expect(urlAtom().pathname).toBe('/items/7')
     expect(() => route.go({ id: 'new' })).toThrow('Invalid params')
   })
+})
+
+test('callable schema type: inferred state matches runtime', () => {
+  // ArkType's `Type` is callable and returns the output or an errors array
+  type Errors = Array<{ message: string }>
+  const call = vi.fn((): Errors => [])
+  const schema: StandardSchemaV1<{ id: string }, { id: number }> &
+    ((data: unknown) => { id: number } | Errors) = Object.assign(call, {
+    '~standard': {
+      version: 1 as const,
+      vendor: 'test',
+      validate: (v: any) =>
+        /^\d+$/.test(v?.id) ? { value: { id: Number(v.id) } } : { issues },
+    },
+  })
+  const parent = reatomRoute('docs/:docId')
+  const child = parent.reatomRoute({ path: 'items/:id', params: schema })
+
+  expectTypeOf(child()).toEqualTypeOf<{ docId: string; id: number } | null>()
+  expectTypeOf(child.go)
+    .parameter(0)
+    .toMatchObjectType<{ docId: string; id: string }>()
+
+  child.go({ docId: 'd1', id: '42' })
+  expect(child()).toEqual({ docId: 'd1', id: 42 })
+
+  urlAtom.go('/docs/d1/items/x')
+  expect(child()).toBeNull()
+
+  expect(call).not.toHaveBeenCalled()
 })
 
 describe('non-schema params forms', () => {

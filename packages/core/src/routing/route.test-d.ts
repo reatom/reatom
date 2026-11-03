@@ -36,6 +36,12 @@ const routes = () => {
     decode: (input: { page?: string }) => ({ page: Number(input.page ?? 1) }),
     encode: (output: { page: number }) => ({ page: String(output.page) }),
   }
+  // ArkType's `Type` is callable and returns the output or an errors array
+  const callableId = null as unknown as StandardSchemaV1<
+    { id: string },
+    { id: number }
+  > &
+    ((data: unknown) => { id: number } | Array<{ message: string }>)
   const callback = (params: { docId: string; id: string }) => ({
     cb: params.id,
   })
@@ -92,6 +98,19 @@ const routes = () => {
       search: pageCodec,
     }),
     topSchemaNone: reatomRoute({ path: 'x/:id', params: ssId }),
+    callableNone: doc.reatomRoute({ path: 'x/:id', params: callableId }),
+    callableCodec: doc.reatomRoute({
+      path: 'x/:id',
+      params: callableId,
+      search: pageCodec,
+    }),
+    callableLoader: doc.reatomRoute({
+      path: 'x/:id',
+      params: callableId,
+      async loader(params) {
+        return params.id + 1
+      },
+    }),
     topCallbackCodec: reatomRoute({
       path: 'x/:id',
       params: (params: { id: string }) => ({ cb: params.id }),
@@ -200,6 +219,31 @@ test('no params: state includes parent params', () => {
     id: string
     tab?: string
   }>()
+})
+
+test('callable Standard Schema types infer from ~standard', () => {
+  type None = Routes['callableNone']
+  expectTypeOf<State<None>>().toEqualTypeOf<{
+    docId: string
+    id: number
+  } | null>()
+  expectTypeOf<GoArg<None>>().toEqualTypeOf<{ docId: string; id: string }>()
+
+  type WithCodec = Routes['callableCodec']
+  expectTypeOf<State<WithCodec>>().toEqualTypeOf<{
+    docId: string
+    id: number
+    page: number
+  } | null>()
+  expectTypeOf<GoArg<WithCodec>>().toEqualTypeOf<{
+    docId: string
+    id: string
+    page: number
+  }>()
+
+  expectTypeOf<LoaderData<Routes['callableLoader']>>().toEqualTypeOf<
+    number | undefined
+  >()
 })
 
 test('other params and search combinations keep their types', () => {
