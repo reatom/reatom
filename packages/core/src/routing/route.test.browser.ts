@@ -999,3 +999,61 @@ test('loader should not cached without params', async () => {
   await wrap(Promise.resolve())
   expect(childRouteLoader).toHaveBeenCalledTimes(2)
 })
+
+test('failed go keeps urlAtom and route state', async () => {
+  const itemRoute = reatomRoute({
+    path: 'zitems/:id',
+    params: z.object({ id: z.string().refine((id) => id !== 'new') }),
+  })
+  const tabRoute = itemRoute.reatomRoute({
+    path: ':tab',
+    params: z.object({ tab: z.enum(['info', 'edit']) }),
+  })
+
+  tabRoute.go({ id: '7', tab: 'info' })
+  await wrap(sleep())
+  const url = urlAtom()
+  const item = itemRoute()
+  const tab = tabRoute()
+  expect(tab).toEqual({ id: '7', tab: 'info' })
+
+  expect(() => tabRoute.go.relative({ tab: 'nope' as 'info' })).toThrow(
+    'Invalid params',
+  )
+  expect(urlAtom).not.toThrow()
+
+  expect(() => itemRoute.go({ id: 'new' })).toThrow('Invalid params')
+  expect(urlAtom).not.toThrow()
+
+  expect(urlAtom()).toBe(url)
+  expect(itemRoute()).toBe(item)
+  expect(tabRoute()).toBe(tab)
+})
+
+test('failed go keeps cached params', async () => {
+  const dialogRoute = reatomRoute({
+    params: ({ open }: { open: boolean }) => ({ open }),
+  })
+  const itemRoute = dialogRoute.reatomRoute({
+    path: 'zitems/:id',
+    params: z.object({ id: z.string().refine((id) => id !== 'new') }),
+  })
+  const tabRoute = itemRoute.reatomRoute({
+    params: ({ tab }: { tab: string }) => (tab ? { tab } : null),
+  })
+
+  tabRoute.go({ open: true, id: '7', tab: 'info' })
+  await wrap(sleep())
+  const dialogCached = dialogRoute.cachedParams()
+  const tabCached = tabRoute.cachedParams()
+  expect(dialogCached).toEqual({ open: true, id: '7', tab: 'info' })
+  expect(tabCached).toEqual({ open: true, id: '7', tab: 'info' })
+
+  expect(() => tabRoute.go({ open: false, id: 'new', tab: 'edit' })).toThrow(
+    'Invalid params',
+  )
+
+  expect(dialogRoute.cachedParams()).toBe(dialogCached)
+  expect(tabRoute.cachedParams()).toBe(tabCached)
+  expect(tabRoute()).toEqual({ tab: 'info' })
+})
