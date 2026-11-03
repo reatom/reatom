@@ -558,9 +558,9 @@ export interface RouteMixin<
     Plain<NestedParamsOutput<Params, SubParamsOutput>>,
     Plain<SubSearchOutput>,
     Payload,
-    Plain<GoParams & SubParamsOutput>,
+    Plain<GoParams & SubParamsInput>,
     Plain<SubSearchInput>,
-    Plain<SubParamsOutput>,
+    Plain<SubParamsInput>,
     Plain<SubSearchInput>
   >
 

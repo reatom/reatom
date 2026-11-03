@@ -1,3 +1,4 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { beforeEach, expect, expectTypeOf, test, vi } from 'test'
 import { z } from 'zod'
 
@@ -205,6 +206,27 @@ test('route typed params', () => {
   expect(() => catalogRoute.go({ id: '42' })).toThrow()
 
   expect(catalogRoute.go({ id: 42 }).pathname).toBe('/catalog/42')
+})
+
+test('Standard Schema params: go validates the schema input', () => {
+  const params: StandardSchemaV1<{ id: string }, { id: number }> = {
+    '~standard': {
+      version: 1,
+      vendor: 'test',
+      validate: (value: any) =>
+        typeof value?.id === 'string' && /^\d+$/.test(value.id)
+          ? { value: { id: Number(value.id) } }
+          : { issues: [{ message: 'expected digits' }] },
+    },
+  }
+  const route = reatomRoute({ path: 'ss-items/:id', params })
+
+  route.go({ id: '42' })
+  expect(urlAtom().pathname).toBe('/ss-items/42')
+  expect(route()).toEqual({ id: 42 })
+
+  // @ts-expect-error the schema output is not a valid go() argument
+  expect(() => route.go({ id: 42 })).toThrow('Invalid params')
 })
 
 test('route default loader', async () => {

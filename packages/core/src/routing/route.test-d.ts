@@ -91,6 +91,7 @@ const routes = () => {
       params: ssId,
       search: pageCodec,
     }),
+    topSchemaNone: reatomRoute({ path: 'x/:id', params: ssId }),
     topCallbackCodec: reatomRoute({
       path: 'x/:id',
       params: (params: { id: string }) => ({ cb: params.id }),
@@ -150,6 +151,35 @@ test('Standard Schema params with a search codec: go takes codec output', () => 
   expectTypeOf<GoArg<Top>>().toEqualTypeOf<{ id: string; page: number }>()
 })
 
+test('Standard Schema params: go takes the schema input', () => {
+  type SchemaNone = Routes['schemaNone']
+  expectTypeOf<State<SchemaNone>>().toEqualTypeOf<{
+    docId: string
+    id: number
+  } | null>()
+  expectTypeOf<GoArg<SchemaNone>>().toEqualTypeOf<{
+    docId: string
+    id: string
+  }>()
+  expectTypeOf<RelativeArg<SchemaNone>>().toEqualTypeOf<{ id: string }>()
+
+  type SchemaSchema = Routes['schemaSchema']
+  expectTypeOf<State<SchemaSchema>>().toEqualTypeOf<{
+    docId: string
+    id: number
+    tab?: 'a'
+  } | null>()
+  expectTypeOf<GoArg<SchemaSchema>>().toEqualTypeOf<{
+    docId: string
+    id: string
+    tab?: string
+  }>()
+
+  type Top = Routes['topSchemaNone']
+  expectTypeOf<State<Top>>().toEqualTypeOf<{ id: number } | null>()
+  expectTypeOf<GoArg<Top>>().toEqualTypeOf<{ id: string }>()
+})
+
 test('other params and search combinations keep their types', () => {
   type NoneNone = Routes['noneNone']
   expectTypeOf<State<NoneNone>>().toEqualTypeOf<{ id: string } | null>()
@@ -163,28 +193,6 @@ test('other params and search combinations keep their types', () => {
   expectTypeOf<GoArg<NoneSchema>>().toEqualTypeOf<{
     docId: string
     id: string
-    tab?: string
-  }>()
-
-  type SchemaNone = Routes['schemaNone']
-  expectTypeOf<State<SchemaNone>>().toEqualTypeOf<{
-    docId: string
-    id: number
-  } | null>()
-  expectTypeOf<GoArg<SchemaNone>>().toEqualTypeOf<{
-    docId: string
-    id: number
-  }>()
-
-  type SchemaSchema = Routes['schemaSchema']
-  expectTypeOf<State<SchemaSchema>>().toEqualTypeOf<{
-    docId: string
-    id: number
-    tab?: 'a'
-  } | null>()
-  expectTypeOf<GoArg<SchemaSchema>>().toEqualTypeOf<{
-    docId: string
-    id: number
     tab?: string
   }>()
 
