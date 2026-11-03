@@ -1,3 +1,4 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { describe, expect, test, vi } from 'test'
 import { z } from 'zod'
 
@@ -603,6 +604,47 @@ describe(`standard schema validation`, () => {
       error: 'min',
       validating: undefined,
     })
+  })
+
+  // Effect's `Schema.toStandardSchemaV1` returns a function with `~standard`
+  const callableMin100 = () => {
+    const call = vi.fn(() => undefined)
+    const schema: StandardSchemaV1<number> = Object.assign(call, {
+      '~standard': {
+        version: 1 as const,
+        vendor: 'test',
+        validate: (value: unknown) =>
+          typeof value === 'number' && value >= 100
+            ? { value }
+            : { issues: [{ message: 'min' }] },
+      },
+    })
+    return { schema, call }
+  }
+
+  test('callable schema as the validate option', () => {
+    const { schema, call } = callableMin100()
+    const field = reatomField(123, { name: 'field', validate: schema })
+
+    field.validation.trigger()
+    notify()
+    expect(field.validation().error).toBeUndefined()
+
+    field.change(50)
+    field.validation.trigger()
+    notify()
+    expect(field.validation().error).toBe('min')
+    expect(call).not.toHaveBeenCalled()
+  })
+
+  test('callable schema returned from a validate callback', () => {
+    const { schema, call } = callableMin100()
+    const field = reatomField(50, { name: 'field', validate: () => schema })
+
+    field.validation.trigger()
+    notify()
+    expect(field.validation().error).toBe('min')
+    expect(call).not.toHaveBeenCalled()
   })
 })
 
