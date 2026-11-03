@@ -372,8 +372,8 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
       )
     }
 
-    const getUrl = (url: URL, params: void | Rec = {}): URL => {
-      const newUrl = new URL(getPath(params), url)
+    const getUrl = (url: URL, path: string): URL => {
+      const newUrl = new URL(path, url)
       const isPathlessRelativeNavigation = hasNoExplicitPath
 
       if (
@@ -514,12 +514,14 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     )
 
     const go = action((params: any, replace = false) => {
+      // validate and encode outside the updater: a throw there leaves the error in urlAtom
+      const path = getPath(params)
       return urlAtom.set((url) => {
         cachedParams?.set(params)
         if (cachedParams !== parentCachedParams) {
           setAllParentCachedParams(parent, params, cachedParams)
         }
-        return getUrl(url, params)
+        return getUrl(url, path)
       }, replace)
     }, `${name}.go`).extend((target) => ({
       relative: action((relParams: any, replace = false) => {
