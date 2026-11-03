@@ -180,13 +180,18 @@ test('Standard Schema params: go takes the schema input', () => {
   expectTypeOf<GoArg<Top>>().toEqualTypeOf<{ id: string }>()
 })
 
-test('other params and search combinations keep their types', () => {
+test('no params: state includes parent params', () => {
   type NoneNone = Routes['noneNone']
-  expectTypeOf<State<NoneNone>>().toEqualTypeOf<{ id: string } | null>()
+  expectTypeOf<State<NoneNone>>().toEqualTypeOf<{
+    docId: string
+    id: string
+  } | null>()
   expectTypeOf<GoArg<NoneNone>>().toEqualTypeOf<{ docId: string; id: string }>()
+  expectTypeOf<RelativeArg<NoneNone>>().toEqualTypeOf<{ id: string }>()
 
   type NoneSchema = Routes['noneSchema']
   expectTypeOf<State<NoneSchema>>().toEqualTypeOf<{
+    docId: string
     id: string
     tab?: 'a'
   } | null>()
@@ -195,7 +200,9 @@ test('other params and search combinations keep their types', () => {
     id: string
     tab?: string
   }>()
+})
 
+test('other params and search combinations keep their types', () => {
   type CodecNone = Routes['codecNone']
   expectTypeOf<State<CodecNone>>().toEqualTypeOf<{
     docId: string

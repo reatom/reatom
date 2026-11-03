@@ -564,6 +564,38 @@ export interface RouteMixin<
     Plain<SubSearchInput>
   >
 
+  /** Create a sub-route without `params`. */
+  reatomRoute<
+    SubPath extends string = '',
+    SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
+    SubSearchInput extends Partial<Rec<string>> = {},
+    SubParamsOutput extends Rec = SubParamsInput,
+    SubSearchOutput extends Rec = SubSearchInput,
+    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    Payload = LoaderParams,
+  >(
+    options: RouteOptions<
+      SubPath,
+      Params & SubParamsInput,
+      SubSearchInput,
+      SubParamsOutput,
+      SubSearchOutput,
+      LoaderParams,
+      Payload
+    > & { params?: undefined },
+    name?: string,
+  ): RouteAtom<
+    TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+    // @ts-expect-error TODO
+    Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+    Plain<SubSearchOutput>,
+    Payload,
+    Plain<GoParams & SubParamsInput>,
+    Plain<SubSearchInput>,
+    Plain<SubParamsInput>,
+    Plain<SubSearchInput>
+  >
+
   reatomRoute<
     SubPath extends string = '',
     SubParamsInput extends PathKeys<SubPath> = PathParams<SubPath>,
