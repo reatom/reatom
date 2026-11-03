@@ -253,10 +253,15 @@ test('back navigation with omitted false search param', async () => {
 
   expect(open()).toBe(true)
   expect(urlAtom().search).toBe('?open=1')
+  // `sync` pushes the history entry in a timeout; going back earlier pops
+  // whatever entry came before this test
+  await wrap(vi.waitFor(() => expect(location.search).toBe('?open=1')))
 
+  const popstate = new Promise((resolve) =>
+    window.addEventListener('popstate', resolve, { once: true }),
+  )
   history.back()
-
-  await wrap(sleep())
+  await wrap(popstate)
 
   expect(open()).toBe(false)
   expect(urlAtom().search).toBe('')
