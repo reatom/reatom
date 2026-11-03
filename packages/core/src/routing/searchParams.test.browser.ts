@@ -5,6 +5,7 @@ import { atom } from '../core/atom'
 import { wrap } from '../methods'
 import { reatomBoolean } from '../primitives/reatomBoolean'
 import { sleep } from '../utils'
+import { onEvent } from '../web/onEvent'
 import { urlAtom } from '../web/url'
 import { searchParamsAtom, withSearchParams } from './searchParams'
 
@@ -257,9 +258,7 @@ test('back navigation with omitted false search param', async () => {
   // whatever entry came before this test
   await wrap(vi.waitFor(() => expect(location.search).toBe('?open=1')))
 
-  const popstate = new Promise((resolve) =>
-    window.addEventListener('popstate', resolve, { once: true }),
-  )
+  const popstate = onEvent(window, 'popstate')
   history.back()
   await wrap(popstate)
 
