@@ -4,6 +4,8 @@ import {
   abortVar,
   identity,
   isDeepEqual,
+  isObject,
+  isStandardSchema,
   noop,
   type Rec,
   withAsyncData,
@@ -38,13 +40,12 @@ function assertPromise<T>(value: T): asserts value is Exclude<T, Promise<any>> {
   }
 }
 
-const isStandardSchema = (
-  v: unknown,
-): v is StandardSchemaV1<unknown, unknown> =>
-  v !== null && typeof v === 'object' && '~standard' in v
-
+// A schema may be callable, so `~standard` decides before `typeof`.
 const isCodec = (v: unknown): v is Codec<any, any> =>
-  typeof v === 'object' && v !== null && 'decode' in v && 'encode' in v
+  (isObject(v) || isStandardSchema(v)) && 'decode' in v && 'encode' in v
+
+const isParamsCallback = (v: unknown): v is (params: never) => unknown =>
+  typeof v === 'function' && !isStandardSchema(v)
 
 const validate = (schema: StandardSchemaV1<any>, params: any, name: string) => {
   const validation = schema['~standard'].validate(params)
@@ -66,7 +67,7 @@ const validateParams = <Input, Output>(
   params: Input,
   name: string,
 ): Output | null => {
-  return typeof validator === 'function'
+  return isParamsCallback(validator)
     ? validator(params)
     : validate(validator, params, name)
 }
@@ -238,6 +239,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     } = options
 
     const paramsIsCodec = isCodec(paramsSchema)
+    const paramsIsCallback = isParamsCallback(paramsSchema)
     const searchIsCodec = isCodec(searchSchema)
 
     const layout = optionLayout ?? optionExactRender === false
@@ -270,10 +272,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
     const ownPathParamNames = getPathParamNames(ownSegments)
 
     let parentCachedParams = getParentCachedParams(parent)
-    let cachedParams =
-      typeof paramsSchema === 'function'
-        ? atom(null, `${name}._cachedParams`)
-        : parentCachedParams
+    let cachedParams = paramsIsCallback
+      ? atom(null, `${name}._cachedParams`)
+      : parentCachedParams
 
     const validatePathParams = (routeParams: Rec): Rec => {
       if (!paramsSchema) return routeParams
@@ -441,8 +442,9 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
           params = { ...parentParams, ...params }
         }
 
-        const cachedParamsState =
-          typeof paramsSchema === 'function' ? (cachedParams?.() ?? null) : null
+        const cachedParamsState = paramsIsCallback
+          ? (cachedParams?.() ?? null)
+          : null
         if (cachedParamsState) {
           params = { ...cachedParamsState, ...params }
         }
@@ -453,7 +455,7 @@ const createRouteFactory = (parent: RouteAtom | UrlAtom) => {
         try {
           if (!paramsSchema) {
             resultParams = params
-          } else if (typeof paramsSchema === 'function') {
+          } else if (paramsIsCallback) {
             const validatedParams = validateParams(
               paramsSchema,
               params as any,

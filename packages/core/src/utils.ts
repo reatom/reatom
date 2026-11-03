@@ -1,3 +1,5 @@
+import type { StandardSchemaV1 } from '@standard-schema/spec'
+
 import { _createGlobal } from './core/globalStore'
 import type { SetTimeout } from './setTimeout'
 
@@ -278,6 +280,17 @@ export const isRec = (thing: unknown): thing is Record<string, unknown> => {
   const proto = Reflect.getPrototypeOf(thing)
   return !proto || !Reflect.getPrototypeOf(proto)
 }
+
+/**
+ * Type guard for a {@link https://standardschema.dev | Standard Schema}. The
+ * spec only requires the `~standard` property, so callable schemas (Effect's
+ * `Schema.toStandardSchemaV1`, ArkType types) pass too. Check this before
+ * `typeof thing === 'function'` when a value can be a schema or a callback.
+ */
+export const isStandardSchema = (thing: unknown): thing is StandardSchemaV1 =>
+  (typeof thing === 'object' || typeof thing === 'function') &&
+  thing !== null &&
+  '~standard' in thing
 
 // TODO infer `b` too
 // export const is: {
