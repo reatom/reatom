@@ -81,9 +81,82 @@ export let reatomAbstractRender = <Props, Result>({
   rerender: (param: { result: Exclude<Result, never> }) => any
   name: string
   abortOnUnmount: boolean
-}): AbstractRender<Props, Result> =>
+}): AbstractRender<Props, Result> => {
+  let session: RenderSession<Props, Result> = { render: null, rerender: null }
+  let owner: RenderOwner<Props, Result> = {
+    render: adapterRender,
+    rerender,
+    rendered: null,
+    session,
+    graph: reatomRenderGraph(frame, name, abortOnUnmount, session),
+  }
+  // Bound functions keep the owner out of closure contexts which a minifier
+  // could merge with the graph callbacks, so frames never reach it.
+  return {
+    render: (ownerRender<Props, Result>).bind(null, owner),
+    mount: (ownerMount<Props, Result>).bind(null, owner),
+  }
+}
+
+/**
+ * Adapter values which the reactive graph can reach. They are armed by the
+ * owner and wiped by the scheduled cleanup after unmount.
+ */
+interface RenderSession<Props, Result> {
+  render: null | ((props: Props) => Result)
+  rerender: null | (() => void)
+}
+
+/** Renderer-owned state, retained only by the adapter holding the renderer. */
+interface RenderOwner<Props, Result> {
+  render: (props: Props) => Result
+  rerender: (param: { result: Result }) => unknown
+  rendered: null | { result: Result }
+  session: RenderSession<Props, Result>
+  graph: RenderGraph<Props, Result>
+}
+
+type RenderGraph<Props, Result> = ReturnType<
+  typeof reatomRenderGraph<Props, Result>
+>
+
+function ownerRender<Props, Result>(
+  owner: RenderOwner<Props, Result>,
+  props: Props,
+): { result: Result } {
+  owner.session.render = owner.render
+  let { result } = owner.graph.render(props)
+  owner.rendered = { result }
+  return owner.rendered
+}
+
+function ownerRerender<Props, Result>(owner: RenderOwner<Props, Result>) {
+  let { rerender, rendered } = owner
+  if (rendered) rerender(rendered)
+}
+
+function ownerMount<Props, Result>(
+  owner: RenderOwner<Props, Result>,
+): Unsubscribe {
+  owner.session.render = owner.render
+  owner.session.rerender = (ownerRerender<Props, Result>).bind(null, owner)
+  return owner.graph.mount()
+}
+
+let reatomRenderGraph = <Props, Result>(
+  frame: Frame,
+  name: string,
+  abortOnUnmount: boolean,
+  session: RenderSession<Props, Result>,
+) =>
   frame.run(() => {
     let rendering = false
+
+    let mounts = 0
+
+    let cleanupVersion = 0
+
+    let dataFrames = new Set<Frame>()
 
     let changedVar = variable<boolean>()
 
@@ -117,6 +190,7 @@ export let reatomAbstractRender = <Props, Result>({
       if (rendering) {
         recheckAbort(frame)
 
+        let adapterRender = session.render!
         return { result: adapterRender(props) }
       }
 
@@ -135,6 +209,48 @@ export let reatomAbstractRender = <Props, Result>({
       return { result: state?.result as Result }
     }, `_${name}`)
 
+    let getCurrentDataFrames = () =>
+      [_read(_render), _read(_props)].filter((dataFrame) => !!dataFrame)
+
+    // Causal links (`pubs[0]`) of long-lived atoms written during a render keep
+    // these frames reachable, so their props, result and error are wiped.
+    let releaseDataFrame = (dataFrame: Frame) => {
+      dataFrame.state = undefined
+      dataFrame.error = null
+    }
+
+    // Frames are copied by renders, reads and subscriptions, and the copies
+    // may be captured by subscription closures or abort reasons stacks.
+    let rememberDataFrames = () => {
+      for (let dataFrame of getCurrentDataFrames()) dataFrames.add(dataFrame)
+    }
+
+    let releaseStaleDataFrames = () => {
+      let currentDataFrames = getCurrentDataFrames()
+      for (let dataFrame of dataFrames) {
+        if (!currentDataFrames.includes(dataFrame)) releaseDataFrame(dataFrame)
+      }
+      dataFrames = new Set(currentDataFrames)
+    }
+
+    let release = () => {
+      session.render = null
+      session.rerender = null
+      rememberDataFrames()
+      dataFrames.forEach(releaseDataFrame)
+      dataFrames.clear()
+    }
+
+    // Scheduled instead of immediate to survive synchronous remounts
+    // (`StrictMode`, `Activity`); a mount in between cancels it.
+    let scheduleCleanup = () => {
+      let scheduledVersion = ++cleanupVersion
+      _enqueue(() => {
+        let isCancelled = scheduledVersion !== cleanupVersion || mounts !== 0
+        if (!isCancelled) release()
+      }, 'cleanup')
+    }
+
     let render = bind((props: Props) => {
       try {
         rendering = true
@@ -142,13 +258,20 @@ export let reatomAbstractRender = <Props, Result>({
         return _render()
       } finally {
         rendering = false
+        releaseStaleDataFrames()
+        // an abandoned render never gets an unmount
+        if (mounts === 0) scheduleCleanup()
       }
     }, frame) as (props: Props) => { result: Result }
 
     let mount = bind(() => {
+      mounts++
+      cleanupVersion++
+
       recheckAbort(_read(_render)!)
 
-      let unsubscribe = _render.subscribe((state) => {
+      let unsubscribe = _render.subscribe(() => {
+        rememberDataFrames()
         let deps = 0
         if (
           changedVar.find((changed) =>
@@ -156,17 +279,26 @@ export let reatomAbstractRender = <Props, Result>({
           )
         ) {
           changedVar.set(false)
-          rerender(state)
+          session.rerender?.()
         }
       })
 
+      rememberDataFrames()
+
+      let isUnmounted = false
+
       return bind(() => {
+        if (isUnmounted) return
+        isUnmounted = true
+        mounts--
+        rememberDataFrames()
         unsubscribe()
         if (abortOnUnmount) {
           abortSubscription.controller.abort('unmount')
         } else {
           abortSubscription?.unsubscribe()
         }
+        if (mounts === 0) scheduleCleanup()
       })
     }, frame)
 
