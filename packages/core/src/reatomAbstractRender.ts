@@ -146,7 +146,10 @@ export let reatomAbstractRender = <Props, Result>({
     }, frame) as (props: Props) => { result: Result }
 
     let mount = bind(() => {
+      let aborted = abortSubscription?.controller.signal.aborted
       recheckAbort(_read(_render)!)
+      // Remount must recreate handlers captured in an aborted render frame.
+      if (aborted) rerender(_read(_render)!.state)
 
       let unsubscribe = _render.subscribe((state) => {
         let deps = 0
