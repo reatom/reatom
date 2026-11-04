@@ -428,14 +428,14 @@ const runValidation = <State, Value = State>({
 
   try {
     // Standard Schemas can be callable, so `~standard` decides first.
-    if (!validateFn || isStandardSchema(validateFn)) {
-      const task = validateFn?.['~standard'].validate(state)
+    if (isStandardSchema(validateFn)) {
+      const task = validateFn['~standard'].validate(state)
 
       promise =
         task instanceof Promise
           ? task.then(wrap(transformStandardSchemaResult))
           : transformStandardSchemaResult(task)
-    } else {
+    } else if (validateFn) {
       const transformResult = (result: FieldValidateOptionResult<State>) => {
         if (!result) return []
 
@@ -468,6 +468,9 @@ const runValidation = <State, Value = State>({
         task instanceof Promise
           ? task.then(wrap(transformResult))
           : transformResult(task)
+    } else {
+      // a form `schema` validates fields that have no `validate`
+      promise = [] as FieldError[]
     }
   } catch (error) {
     // TODO: abort error might get here, should to handle it properly
