@@ -17,6 +17,7 @@ import {
   isAbort,
   isCausedBy,
   isDeepEqual,
+  isStandardSchema,
   peek,
   reatomArray,
   reatomBoolean,
@@ -426,11 +427,19 @@ const runValidation = <State, Value = State>({
   }
 
   try {
-    if (typeof validateFn == 'function') {
+    // Standard Schemas can be callable, so `~standard` decides first.
+    if (isStandardSchema(validateFn)) {
+      const task = validateFn['~standard'].validate(state)
+
+      promise =
+        task instanceof Promise
+          ? task.then(wrap(transformStandardSchemaResult))
+          : transformStandardSchemaResult(task)
+    } else if (validateFn) {
       const transformResult = (result: FieldValidateOptionResult<State>) => {
         if (!result) return []
 
-        if (typeof result === 'object' && '~standard' in result) {
+        if (isStandardSchema(result)) {
           let validatonResult = result['~standard'].validate(state)
           return validatonResult instanceof Promise
             ? validatonResult.then(wrap(transformStandardSchemaResult))
@@ -460,12 +469,8 @@ const runValidation = <State, Value = State>({
           ? task.then(wrap(transformResult))
           : transformResult(task)
     } else {
-      const task = validateFn?.['~standard'].validate(state)
-
-      promise =
-        task instanceof Promise
-          ? task.then(wrap(transformStandardSchemaResult))
-          : transformStandardSchemaResult(task)
+      // a form `schema` validates fields that have no `validate`
+      promise = [] as FieldError[]
     }
   } catch (error) {
     // TODO: abort error might get here, should to handle it properly
@@ -722,7 +727,10 @@ export const withBaseField =
           if (!shouldValidate)
             return validationTarget.merge({ triggered: true })
 
-          if (typeof validateFn !== 'function') {
+          if (
+            typeof validateFn !== 'function' ||
+            isStandardSchema(validateFn)
+          ) {
             const state = target()
             const propsToMerge = runValidation({
               validateFn,
