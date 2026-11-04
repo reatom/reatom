@@ -727,7 +727,10 @@ export const withBaseField =
           if (!shouldValidate)
             return validationTarget.merge({ triggered: true })
 
-          if (typeof validateFn !== 'function') {
+          if (
+            typeof validateFn !== 'function' ||
+            isStandardSchema(validateFn)
+          ) {
             const state = target()
             const propsToMerge = runValidation({
               validateFn,
