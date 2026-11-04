@@ -86,8 +86,9 @@ Let's examine how to use this loading model in a component.
 
 Now let's connect our reactive model to the UI using `reatomComponent`. This is a regular React component enhanced with computed capabilities - it automatically tracks atom dependencies and triggers re-renders only when subscribed atoms change, ensuring optimal performance. You can call atoms directly as functions and use their actions just like regular functions - no hooks required, no restrictions on conditional logic or loops. At the same time, you can use regular React hooks, accept props, and do anything you would normally do in a React component.
 
-```tsx title="src/Results.tsx" /page.next|page.prev|(?:page|ready|data|search)()|search.set(.+)/
+```tsx title="src/Results.tsx" /page.next|page.prev|(?:page|ready|data|search)()|search.set(.+)|notify/
 import React from 'react'
+import { notify } from '@reatom/core'
 import { reatomComponent } from '@reatom/react'
 import { search, page, listResource } from './model'
 
@@ -95,7 +96,10 @@ const Filters = reatomComponent(() => (
   <div>
     <input
       value={search()}
-      onChange={(e) => search.set(e.target.value)}
+      onChange={(e) => {
+        search.set(e.target.value)
+        notify()
+      }}
       placeholder="Search..."
     />
     <div>
@@ -118,6 +122,8 @@ const List = reatomComponent(() => (
   </section>
 ))
 ```
+
+Note the `notify()` call after `search.set`. Reatom batches updates and notifies subscribers in a microtask, so for React the update is asynchronous and the caret of a controlled text input would jump to the end on every keystroke. `notify()` propagates the update synchronously. Read more in the [controlled inputs](/reference/react#controlled-inputs) section of the React adapter docs.
 
 ## Conclusion
 
