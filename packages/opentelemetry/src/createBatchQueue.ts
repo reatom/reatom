@@ -125,14 +125,6 @@ export const createBatchQueue = <T>(
       if (waiter.pending.size === 0) waiter.finish()
     }
   }
-  const schedulePump = () => {
-    if (pumpScheduled || disposed) return
-    pumpScheduled = true
-    queueMicrotask(() => {
-      pumpScheduled = false
-      pump()
-    })
-  }
   const take = (selected: Entry[]): BatchLease<T> => {
     for (const entry of selected) entry.state = 'inFlight'
     inFlight += selected.length
@@ -167,20 +159,19 @@ export const createBatchQueue = <T>(
         inFlight -= selected.length
         slot = undefined
         for (const entry of selected) settle(entry)
-        schedulePump()
+        if (!pumpScheduled && !disposed) {
+          pumpScheduled = true
+          queueMicrotask(() => {
+            pumpScheduled = false
+            pump()
+          })
+        }
         changed()
       },
     }
     slot = lease
     changed()
     return lease
-  }
-  const isPaused = () => {
-    try {
-      return input.pauseWhile?.() === true
-    } catch {
-      return false
-    }
   }
   const pump = () => {
     if (disposed) return
@@ -189,11 +180,13 @@ export const createBatchQueue = <T>(
       clearTimer()
       return
     }
-    if (isPaused()) {
-      draining = false
-      clearTimer()
-      return
-    }
+    try {
+      if (input.pauseWhile?.() === true) {
+        draining = false
+        clearTimer()
+        return
+      }
+    } catch {}
     const flushDemand = [...waiters].some((waiter) =>
       [...waiter.pending].some((entry) => entry.state === 'queued'),
     )

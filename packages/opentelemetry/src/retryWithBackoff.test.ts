@@ -389,3 +389,30 @@ test('an already-expired deadline throws before any send', async () => {
   ).rejects.toThrow(ExportTimeoutError)
   expect(send).not.toHaveBeenCalled()
 })
+
+test('explicit retryable status set replaces the OTLP default', async () => {
+  const send = vi
+    .fn()
+    .mockResolvedValueOnce(new Response('retry', { status: 408 }))
+    .mockResolvedValueOnce(new Response('ok', { status: 202 }))
+  expect(
+    (
+      await retryWithBackoff({
+        send,
+        retryableStatuses: new Set([408]),
+        sleep: async () => {},
+      })
+    ).status,
+  ).toBe(202)
+  expect(send).toHaveBeenCalledTimes(2)
+  const nonRetry = vi.fn(async () => new Response('throttled', { status: 429 }))
+  expect(
+    (
+      await retryWithBackoff({
+        send: nonRetry,
+        retryableStatuses: new Set([408]),
+      })
+    ).status,
+  ).toBe(429)
+  expect(nonRetry).toHaveBeenCalledTimes(1)
+})

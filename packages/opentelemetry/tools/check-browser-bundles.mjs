@@ -20,6 +20,10 @@ const names = {
   'browser-console': 'withBrowserConsoleMonkeypatch',
   'web-vitals': 'withWebVitals',
   'browser-performance': 'withBrowserPerformance',
+  'browser-errors': 'withBrowserErrors',
+  'browser-actions': 'withBrowserActions',
+  'browser-csp': 'withBrowserCsp',
+  'browser-metadata': 'withBrowserMetadata',
   faro: 'faroTransport, logMeasurement',
 }
 const plugins = Object.keys(names)
@@ -27,6 +31,14 @@ const cases = {
   root: {
     imports: `export { reatomOpentelemetry } from './src/index.ts'`,
     allowed: [],
+  },
+  browser: {
+    imports: `export { reatomOpentelemetry } from './src/browser/index.ts'`,
+    allowed: [],
+  },
+  'faro-client': {
+    imports: `export { withFaro } from './src/faro/client.ts'`,
+    allowed: ['faro', 'otlp'],
   },
 }
 for (const [plugin, exported] of Object.entries(names)) {
@@ -48,6 +60,36 @@ cases['root+all'] = {
   allowed: plugins,
 }
 const reports = []
+// Capability markers survive published shared-chunk renaming. Compare every
+// package consumer with its source equivalent, including legitimate overlap
+// (e.g. the Faro mapper understands browser measurement names).
+const capabilityMarkers = [
+  'attributes source must be a reader',
+  'app.page_view',
+  'utm_source',
+  'reatom.console',
+  'Browser console capture stopped',
+  'http.request.duration',
+  'Value is not a ByteString',
+  'browser.performance.navigation',
+  'browser.performance.resource',
+  'exception.fingerprint',
+  'exception.escaped',
+  'browser.user_action',
+  'data-faro-user-action-name',
+  'rage_click',
+  'securitypolicyviolation',
+  'originalPolicy',
+  'effectiveDirective',
+  'browser.viewport.width',
+  'Windows NT',
+  'Idempotency-Key',
+  'faro.user.action',
+  'resourceSpans',
+  'resourceLogs',
+  'navigation_entry_id',
+]
+const sourceMarkers = new Map()
 const outputDir = process.argv[2] && resolve(process.argv[2])
 if (outputDir) await mkdir(outputDir, { recursive: true })
 for (const mode of ['source', 'package']) {
@@ -87,19 +129,44 @@ for (const mode of ['source', 'package']) {
       )
       assert.equal(
         present,
-        allowed.includes(plugin),
-        `${name}: ${plugin} isolation`,
+        // Published entries may reexport an implementation from a shared
+        // chunk, so its original directory need not contribute bytes. Source
+        // checks require presence; both modes reject an unexpected directory.
+        mode === 'source'
+          ? allowed.includes(plugin)
+          : present && allowed.includes(plugin),
+        `${mode}:${name}: ${plugin} isolation`,
       )
     }
     if (mode === 'source' && !allowed.includes('otlp')) {
       const exportRuntime =
-        /src\/(?:buildSpan|buildLogRecord|buildExportPayload|toOtlpValue|retryWithBackoff|createBatchQueue|createExportWorker|sendTraces|parseExportResponse|flushWithBeacon|selectUnloadBatch|unloadBudget)\.ts$/
+        /src\/(?:buildSpan|buildLogRecord|buildExportPayload|toOtlpValue|createBatchQueue|createExportWorker|sendTraces|parseExportResponse|flushWithBeacon|selectUnloadBatch|unloadBudget)\.ts$/
       assert.deepEqual(
         contributed.filter((file) => exportRuntime.test(file)),
         [],
         `${name}: capture graph excludes wire/export runtime`,
       )
     }
+    if (
+      mode === 'source' &&
+      !allowed.includes('otlp') &&
+      !allowed.includes('faro')
+    )
+      assert.equal(
+        contributed.some((file) => file.endsWith('/retryWithBackoff.ts')),
+        false,
+        `${name}: capture excludes transport retry runtime`,
+      )
+    if (mode === 'source' && name === 'browser')
+      assert.deepEqual(
+        contributed.filter((file) =>
+          /src\/(?:withOTel|causes|instanceLogHooks|roots\/route)\.ts$/.test(
+            file,
+          ),
+        ),
+        [],
+        'browser: excludes automatic Reatom instrumentation',
+      )
     const includesVitals = contributed.some((file) =>
       /node_modules\/.*web-vitals\//.test(file),
     )
@@ -109,7 +176,18 @@ for (const mode of ['source', 'package']) {
       `${name}: optional upstream web-vitals runtime`,
     )
     const code = result.outputFiles[0].contents
-    if (name === 'root') {
+    const bundledText = new TextDecoder().decode(code)
+    const markers = capabilityMarkers.filter((marker) =>
+      bundledText.includes(marker),
+    )
+    if (mode === 'source') sourceMarkers.set(name, markers)
+    else
+      assert.deepEqual(
+        markers,
+        sourceMarkers.get(name),
+        `${name}: published capability isolation matches source`,
+      )
+    if (name === 'root' || name === 'browser') {
       const bundled = new TextDecoder().decode(code)
       for (const wireField of [
         'resourceSpans',
@@ -125,6 +203,12 @@ for (const mode of ['source', 'package']) {
           `${mode}: base excludes ${wireField}`,
         )
     }
+    if (name === 'browser')
+      assert.equal(
+        new TextDecoder().decode(code).includes('reatom.cause.ids'),
+        false,
+        `${mode}: browser excludes automatic Reatom causal instrumentation`,
+      )
     reports.push({
       entry: `${mode}:${name}`,
       bytes: code.length,

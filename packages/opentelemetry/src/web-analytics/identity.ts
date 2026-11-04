@@ -55,6 +55,8 @@ export type StoredVisitor = {
 }
 
 export type StoredSession = {
+  /** Remote delivery decision persisted for the complete session lifetime. */
+  sampled?: boolean
   id: string
   startedAt: number
   lastActivity: number

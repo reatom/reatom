@@ -1,6 +1,7 @@
 import type { Reservation } from './createBatchQueue.ts'
 import type { CapturedRecord } from './records.ts'
-import type { ReatomOpentelemetry } from './reatomOpentelemetry.ts'
+import { INSTANCE_DISPOSED, OTLP_ALREADY_INSTALLED } from './diag.ts'
+import type { BrowserTelemetry } from './captureEngine.ts'
 
 export type DeliveryItem = {
   record: CapturedRecord
@@ -32,34 +33,32 @@ export interface CaptureHost {
 }
 
 type ExporterSlot = { host: CaptureHost; binding?: ExporterBinding }
-const exporters = new WeakMap<ReatomOpentelemetry, ExporterSlot>()
+const exporters = new WeakMap<BrowserTelemetry, ExporterSlot>()
 
 export const installCaptureHost = (
-  instance: ReatomOpentelemetry,
+  instance: BrowserTelemetry,
   host: CaptureHost,
 ): void => {
   exporters.set(instance, { host })
 }
 
 export const bindExporter = (
-  instance: ReatomOpentelemetry,
+  instance: BrowserTelemetry,
   binding: ExporterBinding,
 ): CaptureHost => {
   const slot = exporters.get(instance)
-  if (!slot || instance.disposed())
-    throw new Error('[@reatom/opentelemetry] capture instance is disposed')
-  if (slot.binding)
-    throw new Error('[@reatom/opentelemetry] OTLP is already installed')
+  if (!slot || instance.disposed()) throw new Error(INSTANCE_DISPOSED)
+  if (slot.binding) throw new Error(OTLP_ALREADY_INSTALLED)
   slot.binding = binding
   return slot.host
 }
 
-export const exporterOf = (instance: ReatomOpentelemetry) =>
+export const exporterOf = (instance: BrowserTelemetry) =>
   exporters.get(instance)?.binding
 
 /** Roll back only an installation that never completed native composition. */
 export const unbindExporter = (
-  instance: ReatomOpentelemetry,
+  instance: BrowserTelemetry,
   binding: ExporterBinding,
 ) => {
   const slot = exporters.get(instance)

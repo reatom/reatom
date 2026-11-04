@@ -7,10 +7,10 @@ import {
   type Ext,
 } from '@reatom/core'
 
-import type { ReatomOpentelemetry } from '../reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from '../captureEngine.ts'
 import { assertFeature, preflightConsent, bindConsent } from '../feature.ts'
 import { browserCaptureOf } from '../browserCapture.ts'
-import { suppressTracing } from '../observation.ts'
+import { internalName } from '../internalName.ts'
 
 export const DEFAULT_GDPR_CATEGORIES = {
   diagnostics: false,
@@ -137,7 +137,7 @@ export const reatomGDPR = <
 export const withGDPR =
   <Categories extends Record<string, boolean> = GdprCategories>(
     options: ReatomGDPROptions<Categories> | ReatomGDPR<Categories> = {},
-  ): Ext<ReatomOpentelemetry, { gdpr: ReatomGDPR<Categories> }> =>
+  ): Ext<BrowserTelemetry, { gdpr: ReatomGDPR<Categories> }> =>
   (otel) => {
     assertFeature(otel, 'gdpr')
     preflightConsent(otel)
@@ -146,15 +146,25 @@ export const withGDPR =
       ? Object.keys(options.fields)
       : Object.keys(options.categories ?? DEFAULT_GDPR_CATEGORIES)
     const denied = Object.fromEntries(offered.map((key) => [key, false]))
-    return suppressTracing(() => {
-      otel.set((state) => ({ ...state, consent: denied }))
-      const gdpr = shared ? options : reatomGDPR(options)
-      const unbind = bindConsent(
-        otel,
-        () => gdpr.snapshot()?.categories ?? denied,
-        (notify) => gdpr.snapshot.subscribe(() => notify()),
-      )
-      browserCaptureOf(otel)?.attach(unbind, 'gdpr')
-      return { gdpr }
-    })
+    otel.set((state) => ({ ...state, consent: denied }))
+    const created = shared
+      ? options
+      : reatomGDPR({
+          ...options,
+          name: internalName(otel.instanceName, options.name ?? 'gdpr'),
+          persist:
+            options.persist === false
+              ? false
+              : typeof options.persist === 'string'
+                ? options.persist
+                : persistKeyOf(options.name ?? 'consent', true),
+        })
+    const gdpr = created
+    const unbind = bindConsent(
+      otel,
+      () => gdpr.snapshot()?.categories ?? denied,
+      (notify) => gdpr.snapshot.subscribe(() => notify()),
+    )
+    browserCaptureOf(otel)?.attach(unbind, 'gdpr')
+    return { gdpr }
   }

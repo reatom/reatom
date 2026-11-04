@@ -1,7 +1,11 @@
 import type { BooleanAtom, Ext } from '@reatom/core'
 import { assertFeature, featureControl } from '../feature.ts'
-import type { ReatomOpentelemetry } from '../reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from '../captureEngine.ts'
 import { browserCaptureOf, type BrowserCapture } from '../browserCapture.ts'
+import {
+  startBrowserActivity,
+  browserActionAttributes,
+} from '../browserActivity.ts'
 import { isObserving } from '../observation.ts'
 export type BrowserNetworkOptions = {
   ignoreUrl?: (url: URL) => boolean
@@ -11,6 +15,7 @@ type Sub = {
   capture: BrowserCapture
   options: BrowserNetworkOptions
   active: boolean
+  activities: Set<() => void>
   pending: Set<NonNullable<ReturnType<BrowserCapture['span']>>>
 }
 type Patch = { subscribers: Set<Sub>; restore(): void }
@@ -28,23 +33,8 @@ const propagates = (sub: Sub, url: URL) => {
     return false
   }
 }
-const ignored = (sub: Sub, url: URL) => {
-  try {
-    return sub.options.ignoreUrl?.(new URL(url.href)) === true
-  } catch {
-    return true
-  }
-}
-const cleanUrl = (raw: string) => {
-  const url = new URL(raw, document.baseURI)
-  url.search = ''
-  url.hash = ''
-  url.username = ''
-  url.password = ''
-  return url
-}
 const installBrowserNetwork = (
-  otel: ReatomOpentelemetry,
+  otel: BrowserTelemetry,
   options: BrowserNetworkOptions = {},
 ) => {
   const sink = browserCaptureOf(otel)
@@ -62,35 +52,67 @@ const installBrowserNetwork = (
       } catch {
         return []
       }
+      const publicUrl = new URL(url.href, document.baseURI)
+      publicUrl.search = ''
+      publicUrl.hash = ''
+      publicUrl.username = ''
+      publicUrl.password = ''
       return [...subscribers].flatMap((sub) => {
         const capture = sub.capture
+        let skip = false
+        try {
+          skip = sub.options.ignoreUrl?.(new URL(url.href)) === true
+        } catch {
+          skip = true
+        }
         if (
           !sub.active ||
-          ignored(sub, url) ||
-          !capture?.enabled('traces') ||
+          skip ||
+          (!capture?.enabled('traces') && !capture?.enabled('logs')) ||
           capture.isTransportUrl(raw) ||
           !sub.active
         )
           return []
         const startTimeMs = Date.now()
         const snapshot = capture.snapshot()
+        const actionAttributes = browserActionAttributes(capture)
         if (!sub.active) return []
-        const span = capture.span({
-          name: method,
-          kind: 'client',
-          startTimeMs,
-          attributes: {
-            'http.request.method': method,
-            'url.full': cleanUrl(url.href).href,
-          },
-          snapshot,
-        })
+        const stopActivity = startBrowserActivity(capture)
+        const endActivity = () => {
+          sub.activities.delete(endActivity)
+          stopActivity()
+        }
+        sub.activities.add(endActivity)
+        if (!sub.active) {
+          endActivity()
+          return []
+        }
+        let span: ReturnType<BrowserCapture['span']>
+        try {
+          span = capture.enabled('traces')
+            ? capture.span({
+                name: method,
+                kind: 'client',
+                startTimeMs,
+                attributes: {
+                  ...actionAttributes,
+                  'http.request.method': method,
+                  'url.full': publicUrl.href,
+                },
+                snapshot,
+              })
+            : undefined
+        } catch {
+          endActivity()
+          return []
+        }
         if (!sub.active) {
           span?.cancel()
+          endActivity()
           return []
         }
         if (span) sub.pending.add(span)
-        return span ? [{ sub, span, url, startTimeMs, method }] : []
+        return [{ sub, span, url, startTimeMs, method, endActivity }]
       })
     }
     const finish = (
@@ -100,9 +122,10 @@ const installBrowserNetwork = (
     ) => {
       const now = Date.now()
       for (const item of started) {
-        item.sub.pending.delete(item.span)
+        item.endActivity()
+        if (item.span) item.sub.pending.delete(item.span)
         if (item.sub.active)
-          item.span.finish({
+          item.span?.finish({
             endTimeMs: now,
             name: item.method,
             error: error || status >= 400,
@@ -112,7 +135,7 @@ const installBrowserNetwork = (
               'http.request.duration': now - item.startTimeMs,
             },
           })
-        else item.span.cancel()
+        else item.span?.cancel()
       }
     }
     const NativeRequest = globalThis.Request
@@ -133,9 +156,11 @@ const installBrowserNetwork = (
       let started: ReturnType<typeof start> = []
       try {
         started = start(request.url, request.method)
-        const propagate = started.find(({ sub, url }) => propagates(sub, url))
+        const propagate = started.find(
+          ({ sub, span, url }) => span && propagates(sub, url),
+        )
         if (propagate && !request.headers.has('traceparent'))
-          request.headers.set('traceparent', propagate.span.traceparent)
+          request.headers.set('traceparent', propagate.span!.traceparent)
       } catch {}
       let result: Promise<Response>
       try {
@@ -268,9 +293,10 @@ const installBrowserNetwork = (
         if (settled) return
         settled = true
         cleanup()
-        for (const { sub, span } of started) {
-          sub.pending.delete(span)
-          span.cancel()
+        for (const { sub, span, endActivity } of started) {
+          endActivity()
+          if (span) sub.pending.delete(span)
+          span?.cancel()
         }
       }
       if (entry) entry.cancel = cancel
@@ -285,11 +311,13 @@ const installBrowserNetwork = (
       this.addEventListener('loadend', ended, true)
       try {
         if (entry && !entry.traceparent) {
-          const item = started.find(({ sub, url }) => propagates(sub, url))
+          const item = started.find(
+            ({ sub, span, url }) => span && propagates(sub, url),
+          )
           if (item)
             Reflect.apply(nativeHeader, this, [
               'traceparent',
-              item.span.traceparent,
+              item.span!.traceparent,
             ])
         }
         return Reflect.apply(nativeSend, this, [body])
@@ -317,11 +345,19 @@ const installBrowserNetwork = (
       },
     }
   }
-  const sub: Sub = { capture: sink, options, active: true, pending: new Set() }
+  const sub: Sub = {
+    capture: sink,
+    options,
+    active: true,
+    pending: new Set(),
+    activities: new Set(),
+  }
   patch.subscribers.add(sub)
   const dispose = () => {
     if (!sub.active) return
     sub.active = false
+    for (const stop of sub.activities) stop()
+    sub.activities.clear()
     for (const pending of sub.pending) pending.cancel()
     sub.pending.clear()
     patch.subscribers.delete(sub)
@@ -340,7 +376,7 @@ const installBrowserNetwork = (
 export const withBrowserNetworkMonkeypatch =
   (
     options: BrowserNetworkOptions = {},
-  ): Ext<ReatomOpentelemetry, { browserNetwork: BooleanAtom }> =>
+  ): Ext<BrowserTelemetry, { browserNetwork: BooleanAtom }> =>
   (otel) => {
     assertFeature(otel, 'browserNetwork')
     return {

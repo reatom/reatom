@@ -1,0 +1,28 @@
+{
+  "name": "reatom-browser-sdk-consumer-bench",
+  "version": "1.0.0",
+  "description": "Reproducible browser telemetry SDK consumer bundle measurements",
+  "main": "index.js",
+  "scripts": {
+    "measure": "node measure.mjs",
+    "smoke": "node smoke.mjs",
+    "report": "node report.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@grafana/faro-transport-otlp-http": "2.13.0",
+    "@grafana/faro-web-sdk": "2.13.0",
+    "@grafana/faro-web-tracing": "2.13.0",
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api-logs": "0.223.0",
+    "@opentelemetry/browser-instrumentation": "0.9.0",
+    "@opentelemetry/browser-sdk": "0.6.0",
+    "esbuild": "0.28.2",
+    "idb-keyval": "6.2.4",
+    "web-vitals": "6.2.3"
+  },
+  "private": true
+}

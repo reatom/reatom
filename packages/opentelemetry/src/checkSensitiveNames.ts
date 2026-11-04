@@ -10,8 +10,9 @@ import {
 
 import { tracerSignalEnabled } from './consentPolicy.ts'
 import { isDevelopment } from './devWarnings.ts'
+import { OTEL } from './diag.ts'
 import { observe } from './observation.ts'
-import type { ReatomOpentelemetry } from './reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from './captureEngine.ts'
 
 const SENSITIVE_NAME =
   /pass(word)?|secret|token|auth|cookie|session|crypto|card|cvv|iban|ssn/i
@@ -32,7 +33,7 @@ const matchesName = (name: string, patterns: readonly RegExp[]): boolean => {
   return false
 }
 
-const capturesValues = (otel: ReatomOpentelemetry): boolean => {
+const capturesValues = (otel: BrowserTelemetry): boolean => {
   const options = observe(() => otel())
   if (!options) return false
   const tracesOpen = tracerSignalEnabled(options, 'traces')
@@ -43,7 +44,7 @@ const capturesValues = (otel: ReatomOpentelemetry): boolean => {
   return typeof serialize !== 'function'
 }
 
-const admits = (otel: ReatomOpentelemetry, target: AtomLike): boolean => {
+const admits = (otel: BrowserTelemetry, target: AtomLike): boolean => {
   const options = observe(() => otel())
   const filter = options?.filter
   if (typeof filter !== 'function') return true
@@ -54,7 +55,7 @@ export interface CheckSensitiveNamesOptions {
   patterns?: RegExp | readonly RegExp[]
 }
 
-const installed = new WeakMap<ReatomOpentelemetry, Unsubscribe>()
+const installed = new WeakMap<BrowserTelemetry, Unsubscribe>()
 
 /**
  * DEV helper: warn once per atom or action name that looks sensitive while the
@@ -64,7 +65,7 @@ const installed = new WeakMap<ReatomOpentelemetry, Unsubscribe>()
  * created.
  */
 export const checkSensitiveNames = (
-  otel: ReatomOpentelemetry,
+  otel: BrowserTelemetry,
   options?: CheckSensitiveNamesOptions,
 ): Unsubscribe => {
   if (!isDevelopment()) return () => {}
@@ -81,9 +82,7 @@ export const checkSensitiveNames = (
     const name = target.name
     if (warned.has(name) || !matchesName(name, patterns)) return target
     warned.add(name)
-    console.warn(
-      `[@reatom/opentelemetry] checkSensitiveNames: "${name}" matches a sensitive pattern while values are captured. Set captureValues: false or a custom serialize, or rename the target.`,
-    )
+    console.warn(`${OTEL}checkSensitiveNames: "${name}"`)
     return target
   }
 

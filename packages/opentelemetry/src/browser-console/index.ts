@@ -1,19 +1,25 @@
 import type { BooleanAtom, Ext } from '@reatom/core'
 import { assertFeature, featureControl } from '../feature.ts'
-import type { ReatomOpentelemetry } from '../reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from '../captureEngine.ts'
 import { browserCaptureOf, type BrowserCapture } from '../browserCapture.ts'
+import { markBrowserErrorReported } from '../reportedBrowserErrors.ts'
 import { isObserving, observe } from '../observation.ts'
 export type ConsoleLevel = 'debug' | 'info' | 'log' | 'warn' | 'error'
-export type BrowserConsoleOptions = { levels?: readonly ConsoleLevel[] }
+export type BrowserConsoleOptions = {
+  levels?: readonly ConsoleLevel[]
+  errorsAsExceptions?: boolean
+}
 type Subscriber = {
   capture: BrowserCapture
   levels: readonly ConsoleLevel[]
   active: boolean
+  errorsAsExceptions: boolean
+  otel: BrowserTelemetry
 }
 type Patch = { subscribers: Set<Subscriber>; restore: () => void }
 const key = Symbol.for('@reatom/opentelemetry/browser-console')
 const installBrowserConsole = (
-  otel: ReatomOpentelemetry,
+  otel: BrowserTelemetry,
   options: BrowserConsoleOptions = {},
 ) => {
   const capture = browserCaptureOf(otel)
@@ -40,8 +46,14 @@ const installBrowserConsole = (
                 continue
               try {
                 const value = {
-                  capture: (key: string, value: unknown) =>
-                    sink.capture(key, value),
+                  capture: (key: string, value: unknown) => {
+                    if (!sub.active)
+                      throw new Error('Browser console capture stopped')
+                    const result = sink.capture(key, value)
+                    if (!sub.active)
+                      throw new Error('Browser console capture stopped')
+                    return result
+                  },
                 }
                 const errors = args.filter(
                   (arg): arg is Error => arg instanceof Error,
@@ -50,7 +62,7 @@ const installBrowserConsole = (
                   string,
                   Exclude<ReturnType<typeof value.capture>, undefined>
                 > = { 'console.level': level }
-                if (errors[0] && sink.capture('enabled', true) !== undefined) {
+                if (errors[0] && value.capture('enabled', true) !== undefined) {
                   attributes['exception.type'] = value.capture(
                     'name',
                     errors[0].name,
@@ -66,9 +78,20 @@ const installBrowserConsole = (
                 }
                 const body = value.capture('arguments', args)
                 const snapshot = sink.snapshot()
-                if (!sub.active) continue
+                if (!sub.active || !sink.enabled('logs') || !sub.active)
+                  continue
+                const exception = level === 'error' && sub.errorsAsExceptions
+                if (exception && !markBrowserErrorReported(sub.otel, errors[0]))
+                  continue
+                if (exception) {
+                  attributes['exception.type'] ??= 'Error'
+                  if (!errors.length && body !== undefined)
+                    attributes['exception.message'] = body
+                  attributes['exception.fatal'] = false
+                  attributes['exception.source'] = 'console'
+                }
                 sink.log({
-                  eventName: 'reatom.console',
+                  eventName: exception ? 'exception' : 'reatom.console',
                   timeMs: Date.now(),
                   severityNumber:
                     level === 'error'
@@ -102,6 +125,8 @@ const installBrowserConsole = (
   }
   const subscriber = {
     active: true,
+    errorsAsExceptions: options.errorsAsExceptions ?? false,
+    otel,
     capture,
     levels: options.levels ?? (['warn', 'error'] as const),
   }
@@ -127,7 +152,7 @@ const installBrowserConsole = (
 export const withBrowserConsoleMonkeypatch =
   (
     options: BrowserConsoleOptions = {},
-  ): Ext<ReatomOpentelemetry, { browserConsole: BooleanAtom }> =>
+  ): Ext<BrowserTelemetry, { browserConsole: BooleanAtom }> =>
   (otel) => {
     assertFeature(otel, 'browserConsole')
     return {

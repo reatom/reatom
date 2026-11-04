@@ -1,0 +1,43 @@
+services:
+  alloy:
+    image: grafana/alloy:v1.21.3@sha256:8ab871206bd2d8f89277f53abffee5f452a293980788d52f85fa183a87a505a4
+    pull_policy: never
+    command:
+      [
+        run,
+        --disable-reporting,
+        --server.http.listen-addr=0.0.0.0:12345,
+        /etc/alloy/config.alloy,
+      ]
+    volumes: [./config.alloy:/etc/alloy/config.alloy:ro]
+    networks: [suite]
+  loki:
+    image: grafana/loki:3.7.8@sha256:1107dd5274e0ada47e42472b7a7e71f3b2a2fe878878108f3e2f9e51528f0193
+    pull_policy: never
+    command: [-config.file=/etc/loki/config.yaml]
+    volumes: [./loki.yaml:/etc/loki/config.yaml:ro]
+    networks: [suite]
+  tempo:
+    image: grafana/tempo:3.1.0@sha256:3076b8dcdfb32fd6bc5ccef85e7b7313e6199b9cb84366257fc17ecb696db5fd
+    pull_policy: never
+    command: [-config.file=/etc/tempo/config.yaml]
+    volumes: [./tempo.yaml:/etc/tempo/config.yaml:ro]
+    networks: [suite]
+  runner:
+    image: ${FARO_RUNNER_IMAGE:?Prepare collector runner first}
+    pull_policy: never
+    init: true
+    shm_size: 1gb
+    working_dir: /suite
+    command: [node, /suite/runner.mjs]
+    environment:
+      HOME: /tmp
+      FARO_RUN_ID: ${FARO_RUN_ID:?Unique run ID required}
+    volumes:
+      - .:/suite:ro
+      - ${FARO_APPS:?Prepared apps required}:/apps:ro
+      - ${FARO_ARTIFACTS:?Fresh artifacts required}:/artifacts
+    networks: [suite]
+networks:
+  suite:
+    internal: true

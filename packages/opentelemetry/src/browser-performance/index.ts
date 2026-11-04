@@ -1,10 +1,19 @@
+import { mintIdentityId } from '../ids.ts'
 import type { BooleanAtom, Ext } from '@reatom/core'
 import { assertFeature, featureControl } from '../feature.ts'
 import { browserCaptureOf, type CaptureSnapshot } from '../browserCapture.ts'
-import type { ReatomOpentelemetry } from '../reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from '../captureEngine.ts'
+import { navigationEntryId } from '../browserNavigationId.ts'
 import type { OtlpAttrValue } from '../toOtlpValue.ts'
 
 export interface BrowserPerformanceOptions {
+  /** Native performance events or legacy measurements (default). */
+  format?: 'measurements' | 'events'
+  /**
+   * Previous document join ID supplied by the host; this collector never writes
+   * storage.
+   */
+  previousNavigationId?: string
   /** Observe document navigation timings (default true). */
   navigation?: boolean
   /**
@@ -12,6 +21,8 @@ export interface BrowserPerformanceOptions {
    * spans.
    */
   resources?: boolean
+  /** Restrict resource initiators; undefined retains all resources. */
+  resourceInitiators?: readonly string[]
   /**
    * Skip URLs, including opaque async custom transport destinations. Receives
    * the full URL before sanitization.
@@ -42,7 +53,7 @@ const safeUrl = (
  * observation.
  */
 const installBrowserPerformance = (
-  otel: ReatomOpentelemetry,
+  otel: BrowserTelemetry,
   documentSnapshot: CaptureSnapshot,
   options: BrowserPerformanceOptions = {},
 ): { dispose(): void } => {
@@ -82,6 +93,12 @@ const installBrowserPerformance = (
           if (!active) return
           if (!url) continue
           const timing = entry as PerformanceResourceTiming
+          if (
+            type === 'resource' &&
+            options.resourceInitiators &&
+            !options.resourceInitiators.includes(timing.initiatorType)
+          )
+            continue
           const values: Record<string, number> = {}
           const add = (name: string, value: number) => {
             if (Number.isFinite(value) && value >= 0) values[name] = value
@@ -122,9 +139,100 @@ const installBrowserPerformance = (
           if (!Object.keys(values).length || !Number.isFinite(entry.startTime))
             continue
           if (!active) return
+          if (options.format === 'events') {
+            delete attributes['measurement.type']
+            delete attributes['measurement.values']
+            delete attributes['measurement.units']
+            attributes['performance.navigation_entry_id'] =
+              navigationEntryId(document)
+            if (type === 'navigation')
+              attributes['performance.previous_navigation_entry_id'] =
+                options.previousNavigationId?.slice(0, 256) ?? 'unknown'
+            if (type === 'resource')
+              attributes['performance.resource_entry_id'] = mintIdentityId()
+            const metrics: Record<string, number> = {
+              duration: timing.duration,
+              tcp_handshake_time: timing.connectEnd - timing.connectStart,
+              dns_lookup_time:
+                timing.domainLookupEnd - timing.domainLookupStart,
+              tls_negotiation_time:
+                timing.secureConnectionStart > 0
+                  ? timing.connectEnd - timing.secureConnectionStart
+                  : 0,
+              redirect_time: timing.redirectEnd - timing.redirectStart,
+              request_time: timing.responseStart - timing.requestStart,
+              response_time: timing.responseEnd - timing.responseStart,
+              fetch_time: timing.responseEnd - timing.fetchStart,
+              service_worker_time:
+                timing.workerStart > 0
+                  ? timing.fetchStart - timing.workerStart
+                  : 0,
+              decoded_body_size: timing.decodedBodySize,
+              encoded_body_size: timing.encodedBodySize,
+              transfer_size: timing.transferSize,
+              ttfb: timing.responseStart - timing.requestStart,
+            }
+            const status = (
+              timing as PerformanceResourceTiming & { responseStatus?: number }
+            ).responseStatus
+            if (status !== undefined) metrics.response_status = status
+            attributes['performance.cache_hit_status'] =
+              timing.transferSize === 0 && timing.decodedBodySize > 0
+                ? 'cache'
+                : status === 304 ||
+                    (status === undefined &&
+                      timing.encodedBodySize > 0 &&
+                      timing.transferSize < timing.encodedBodySize)
+                  ? 'conditionalFetch'
+                  : 'fullLoad'
+            attributes['performance.protocol'] = timing.nextHopProtocol
+            attributes['performance.visibility_state'] =
+              document.visibilityState
+            attributes['performance.http_host'] = new URL(url).host
+            const blocking = (
+              timing as PerformanceResourceTiming & {
+                renderBlockingStatus?: string
+              }
+            ).renderBlockingStatus
+            if (blocking !== undefined)
+              attributes['performance.render_blocking_status'] = blocking
+            if (type === 'navigation') {
+              const nav = entry as PerformanceNavigationTiming
+              Object.assign(metrics, {
+                page_load_time: nav.domComplete - nav.fetchStart,
+                dom_processing_time: nav.domComplete - nav.domInteractive,
+                dom_content_load_handler_time:
+                  nav.domContentLoadedEventEnd - nav.domContentLoadedEventStart,
+                on_load_time: nav.loadEventEnd - nav.loadEventStart,
+                ttfb: Math.max(
+                  nav.responseStart -
+                    ((
+                      nav as PerformanceNavigationTiming & {
+                        activationStart?: number
+                      }
+                    ).activationStart ?? 0),
+                  0,
+                ),
+              })
+              const parserStart = performance.timing?.domLoading
+                ? performance.timing.domLoading - performance.timeOrigin
+                : undefined
+              if (parserStart !== undefined)
+                metrics.document_parsing_time = nav.domInteractive - parserStart
+            }
+            for (const [key, value] of Object.entries(metrics))
+              if (Number.isFinite(value))
+                attributes[`performance.${key}`] = Math.max(0, value)
+          }
           capture.log({
-            eventName: 'measurement',
-            timeMs: performance.timeOrigin + entry.startTime,
+            eventName:
+              options.format === 'events'
+                ? `browser.performance.${type}`
+                : 'measurement',
+            timeMs: Math.min(
+              Date.now(),
+              Date.now() - (performance.now() - entry.startTime),
+            ),
             attributes,
             snapshot,
           })
@@ -143,7 +251,7 @@ const installBrowserPerformance = (
 export const withBrowserPerformance =
   (
     options: BrowserPerformanceOptions = {},
-  ): Ext<ReatomOpentelemetry, { browserPerformance: BooleanAtom }> =>
+  ): Ext<BrowserTelemetry, { browserPerformance: BooleanAtom }> =>
   (otel) => {
     assertFeature(otel, 'browserPerformance')
     const snapshot = browserCaptureOf(otel)!.snapshot()

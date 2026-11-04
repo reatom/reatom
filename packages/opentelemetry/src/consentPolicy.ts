@@ -48,7 +48,7 @@ export const preserveTracerConsent = <
   if (!keepConsent && !keepSignals) return next
   return {
     ...next,
-    ...(keepConsent ? { consent: current.consent } : null),
-    ...(keepSignals ? { signals: current.signals } : null),
+    ...(keepConsent && { consent: current.consent }),
+    ...(keepSignals && { signals: current.signals }),
   }
 }

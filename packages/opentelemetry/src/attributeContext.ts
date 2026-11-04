@@ -1,11 +1,11 @@
 import { byteLengthOf, copyBytes } from './byteIntrinsics.ts'
 /** Owned common attributes. The optional extension supplies the app reader. */
-import type { ReatomOpentelemetry } from './reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from './captureEngine.ts'
 import type { OtlpAttrValue } from './toOtlpValue.ts'
 export type TelemetryAttributeSource = () => Readonly<
   Record<string, OtlpAttrValue>
 > | null
-const sources = new WeakMap<ReatomOpentelemetry, TelemetryAttributeSource>()
+const sources = new WeakMap<BrowserTelemetry, TelemetryAttributeSource>()
 export const snapshotAttributes = (
   input: unknown,
 ): Record<string, OtlpAttrValue> => {
@@ -80,7 +80,7 @@ export const snapshotAttributes = (
     }
   }
 }
-export const readAttributeSource = (otel: ReatomOpentelemetry) => {
+export const readAttributeSource = (otel: BrowserTelemetry) => {
   const source = sources.get(otel)
   if (!source) return {}
   try {
@@ -90,7 +90,7 @@ export const readAttributeSource = (otel: ReatomOpentelemetry) => {
   }
 }
 export const installAttributeSource = (
-  otel: ReatomOpentelemetry,
+  otel: BrowserTelemetry,
   read: TelemetryAttributeSource,
 ) => {
   sources.set(otel, read)

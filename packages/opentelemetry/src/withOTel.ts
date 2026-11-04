@@ -27,6 +27,7 @@ import type { SpanInput, SpanKind } from './buildSpan.ts'
 import { MAX_RECORD_BYTES, REATOM_NAME_DUP_MAX_UTF8 } from './captureLimits.ts'
 import {
   type CaptureValuesOptions,
+  type ValueCaptureFactory,
   createValueCapture,
 } from './captureValues.ts'
 import { parameterNames } from './serialize.ts'
@@ -40,6 +41,8 @@ import {
 } from './causes.ts'
 import type { Reservation } from './createBatchQueue.ts'
 import { errorData, exceptionType } from './errorMetadata.ts'
+import { setBounded } from './boundedMap.ts'
+import { internalName, isInternalName, isInternalUnit } from './internalName.ts'
 import { isObserving, observe } from './observation.ts'
 import { createContextLossWarner } from './devWarnings.ts'
 import {
@@ -91,8 +94,7 @@ export interface WithOTelOptions {
   importance?: 'low' | 'normal'
 }
 
-export const isInstrumentationInternalName = (name: string): boolean =>
-  name.startsWith('otel.') || name.startsWith('analytics.')
+export { isInternalName as isInstrumentationInternalName } from './internalName.ts'
 
 const assignDefined = (
   target: WithOTelOptions,
@@ -172,22 +174,13 @@ const budgetLink = (parent: TracePair): OtlpSpanLink => ({
 
 const TRACED_PRIVATE_KINDS = new Set(['route', 'render', 'mount'])
 
-const metaKind = (target: AtomLike): string | undefined => {
+const isTracedPrivateKind = (target: AtomLike): boolean => {
   const kind = (target.__reatom as { kind?: unknown }).kind
-  return typeof kind === 'string' ? kind : undefined
+  return (
+    (typeof kind === 'string' && TRACED_PRIVATE_KINDS.has(kind)) ||
+    isRouteAtom(target)
+  )
 }
-
-const isTracedPrivateKind = (target: AtomLike): boolean =>
-  TRACED_PRIVATE_KINDS.has(metaKind(target) ?? '') || isRouteAtom(target)
-
-const computedDependencyLink = (cause: TracedCause): OtlpSpanLink => ({
-  traceId: cause.traceId,
-  spanId: cause.spanId,
-  attributes: {
-    'reatom.link.reason': COMPUTED_DEPENDENCY_LINK_REASON,
-    'reatom.frame.id': cause.frameId,
-  },
-})
 
 export interface RouteRootsAdapter {
   pageTrace: () => TracePair | undefined
@@ -197,14 +190,6 @@ export interface RouteRootsAdapter {
   closePendingRouteSpan: () => void
   discover: (target: AtomLike) => void
   afterAction: (name: string) => void
-}
-
-const callbackOf = (target: AtomLike | undefined): unknown => {
-  if (!target) return
-  const middlewares = (
-    target as { __reatom?: { middlewares?: readonly unknown[] } }
-  ).__reatom?.middlewares
-  return middlewares?.[0]
 }
 
 const captureNames = (
@@ -218,6 +203,7 @@ const captureNames = (
 
 export interface CreateWithOTelInput {
   captureValues?: CaptureValuesOptions | (() => CaptureValuesOptions)
+  valueCapture?: ValueCaptureFactory
   /** Consent or another instance policy. Per-target capture cannot override it. */
   captureBlocked?: () => boolean
   /**
@@ -309,15 +295,6 @@ const inReactiveFrame = (): boolean => {
   }
 }
 
-const freezeContext = (pair: {
-  traceId: string
-  spanId: string
-}): SpanContext =>
-  Object.freeze({
-    traceId: pair.traceId,
-    spanId: pair.spanId,
-  }) as SpanContext
-
 /** Actions use the existing middleware; context lives on `traceVar` frames. */
 export const createWithOTel = ({
   reserveSpan,
@@ -325,7 +302,8 @@ export const createWithOTel = ({
   fallbackTrace,
   isActive,
   captureValues = false,
-  traceVar = variable<TracePair>('otel.trace'),
+  valueCapture = createValueCapture,
+  traceVar = variable<TracePair>(internalName('trace')),
   roots,
   warnContextLoss,
   spanBudget,
@@ -380,7 +358,7 @@ export const createWithOTel = ({
       options.serialize !== undefined ||
       !!configured
     if (!enabled) return undefined
-    return createValueCapture(redact, { names })
+    return valueCapture(redact, { names })
   }
 
   const keepLocal = (settings: WithOTelOptions): boolean => {
@@ -403,12 +381,8 @@ export const createWithOTel = ({
     if (!parentId || !target) return
     let byTarget = attemptsByParent.get(parentId)
     if (!byTarget) {
-      if (attemptsByParent.size >= 1024) {
-        const oldest = attemptsByParent.keys().next().value
-        if (oldest !== undefined) attemptsByParent.delete(oldest)
-      }
       byTarget = new WeakMap()
-      attemptsByParent.set(parentId, byTarget)
+      setBounded(attemptsByParent, parentId, byTarget, 1024)
     }
     const n = (byTarget.get(target) ?? 0) + 1
     byTarget.set(target, n)
@@ -427,24 +401,13 @@ export const createWithOTel = ({
   >()
   const continuations = new Map<string, TracePair>()
 
-  const evictOldestTrace = (book: Map<string, unknown>) => {
-    if (book.size < TRACE_BOOK_LIMIT) return
-    const oldest = book.keys().next().value
-    if (oldest !== undefined) book.delete(oldest)
-  }
-
-  const budgetLimits = () => {
-    const raw = spanBudget?.()
-    return {
-      maxSpansPerTrace: raw?.maxSpansPerTrace ?? DEFAULT_MAX_SPANS_PER_TRACE,
-      maxTraceMs: raw?.maxTraceMs ?? DEFAULT_MAX_TRACE_MS,
-    }
-  }
-
   const overBudget = (traceId: string, startMs: number) => {
     const ledger = traceLedger.get(traceId)
     if (!ledger) return false
-    const { maxSpansPerTrace, maxTraceMs } = budgetLimits()
+    const raw = spanBudget?.()
+    const maxSpansPerTrace =
+      raw?.maxSpansPerTrace ?? DEFAULT_MAX_SPANS_PER_TRACE
+    const maxTraceMs = raw?.maxTraceMs ?? DEFAULT_MAX_TRACE_MS
     if (
       Number.isFinite(maxSpansPerTrace) &&
       ledger.spanCount >= maxSpansPerTrace
@@ -462,13 +425,16 @@ export const createWithOTel = ({
       existing.spanCount += 1
       return
     }
-    evictOldestTrace(traceLedger)
-    traceLedger.set(traceId, { spanCount: 1, startedAtMs: startMs })
+    setBounded(
+      traceLedger,
+      traceId,
+      { spanCount: 1, startedAtMs: startMs },
+      TRACE_BOOK_LIMIT,
+    )
   }
 
   const rememberContinuation = (fromTraceId: string, context: TracePair) => {
-    if (!continuations.has(fromTraceId)) evictOldestTrace(continuations)
-    continuations.set(fromTraceId, context)
+    setBounded(continuations, fromTraceId, context, TRACE_BOOK_LIMIT)
   }
 
   const placeSpan = (
@@ -690,7 +656,12 @@ export const createWithOTel = ({
       const startPerfMs = performance.now()
       const recordedName = options.name ?? name
       const capture = targetCapture(options, captureNames(recordedName, target))
-      const paramNames = parameterNames(callbackOf(target))
+      const paramNames = parameterNames(
+        (
+          target as
+            { __reatom?: { middlewares?: readonly unknown[] } } | undefined
+        )?.__reatom?.middlewares?.[0],
+      )
       const captured = (
         key: string,
         value: unknown,
@@ -753,39 +724,17 @@ export const createWithOTel = ({
           },
           status,
           values: {
-            ...(attributes?.params === undefined
-              ? {}
-              : { params: attributes.params }),
-            ...(attributes?.payload === undefined
-              ? {}
-              : { payload: attributes.payload }),
-            ...(exceptionMessage === undefined ? {} : { exceptionMessage }),
+            ...(attributes?.params !== undefined && {
+              params: attributes.params,
+            }),
+            ...(attributes?.payload !== undefined && {
+              payload: attributes.payload,
+            }),
+            ...(exceptionMessage !== undefined && { exceptionMessage }),
           },
-          ...(links ? { links } : {}),
-          ...(local ? { local } : {}),
+          ...(links && { links }),
+          ...(local && { local }),
         })
-      const exceptionAttributes = (error: unknown) => {
-        const attributes: Record<string, OtlpAttrValue> = {
-          'exception.type': exceptionType(error),
-        }
-        if (!capture) return attributes
-        const rawMessage =
-          error instanceof Error ? errorData(error, 'message') : error
-        if (rawMessage !== undefined) {
-          attributes['exception.message'] = captured(
-            'exception.message',
-            rawMessage,
-          )
-        }
-        const stack = errorData(error, 'stack')
-        if (typeof stack === 'string') {
-          attributes['exception.stacktrace'] = captured(
-            'exception.stacktrace',
-            stack,
-          )
-        }
-        return attributes
-      }
       const liveLocal = (local: LocalValues) =>
         keepLocal(options) ? local : undefined
       const emitExceptionLog = (
@@ -806,32 +755,11 @@ export const createWithOTel = ({
           spanId: ctx.spanId as LogRecordInput['spanId'],
           timeMs: nowMs(),
           attributes: recordAttributes,
-          ...(attributes['exception.message'] === undefined
-            ? {}
-            : {
-                values: { exceptionMessage: attributes['exception.message'] },
-              }),
-          ...(local ? { local } : {}),
+          ...(attributes['exception.message'] !== undefined && {
+            values: { exceptionMessage: attributes['exception.message'] },
+          }),
+          ...(local && { local }),
         })
-      }
-      const queueErr = (error: unknown) => {
-        const attributes = exceptionAttributes(error)
-        const message = (exceptionMessage = attributes['exception.message'])
-        if (typeof error === 'object' && error !== null) {
-          recordedExceptions.add(error)
-        }
-        emitExceptionLog(attributes, liveLocal({ error }))
-        queueWith(
-          before,
-          {
-            code: 'error',
-            ...(typeof message === 'string' ? { message } : {}),
-          },
-          { 'reatom.outcome': 'error' },
-          undefined,
-          liveLocal({ params, error }),
-          { error },
-        )
       }
       const emitErr = (error: unknown) => {
         if (error instanceof Promise) {
@@ -861,7 +789,44 @@ export const createWithOTel = ({
             liveLocal({ params, error }),
             { error },
           )
-        } else queueErr(error)
+        } else {
+          const attributes: Record<string, OtlpAttrValue> = {
+            'exception.type': exceptionType(error),
+          }
+          if (capture) {
+            const rawMessage =
+              error instanceof Error ? errorData(error, 'message') : error
+            if (rawMessage !== undefined) {
+              attributes['exception.message'] = captured(
+                'exception.message',
+                rawMessage,
+              )
+            }
+            const stack = errorData(error, 'stack')
+            if (typeof stack === 'string') {
+              attributes['exception.stacktrace'] = captured(
+                'exception.stacktrace',
+                stack,
+              )
+            }
+          }
+          const message = (exceptionMessage = attributes['exception.message'])
+          if (typeof error === 'object' && error !== null) {
+            recordedExceptions.add(error)
+          }
+          emitExceptionLog(attributes, liveLocal({ error }))
+          queueWith(
+            before,
+            {
+              code: 'error',
+              ...(typeof message === 'string' && { message }),
+            },
+            { 'reatom.outcome': 'error' },
+            undefined,
+            liveLocal({ params, error }),
+            { error },
+          )
+        }
       }
       const success = (value: unknown) =>
         queueWith(
@@ -972,11 +937,6 @@ export const createWithOTel = ({
     }
   }
 
-  const begin = (...args: Parameters<typeof observeSpan>) => {
-    if (!isActive()) return
-    return observeSpan(...args)
-  }
-
   const invoke = <Result>(
     name: string,
     options: WithOTelOptions,
@@ -986,7 +946,10 @@ export const createWithOTel = ({
     target?: AtomLike,
   ): Result => {
     if (!isActive() || isObserving() || isUntracedRoot()) return callback()
-    const finish = begin(name, options, params, root, target)
+    if (isInternalName(name) || (target && isInternalUnit(target))) {
+      return callback()
+    }
+    const finish = observeSpan(name, options, params, root, target)
     let result: Result
     try {
       result = callback()
@@ -996,8 +959,7 @@ export const createWithOTel = ({
     }
     const followed = finish?.({ ok: true, value: result })
     roots?.afterAction(name)
-    if (followed !== undefined) return followed as Result
-    return result
+    return followed !== undefined ? (followed as Result) : result
   }
 
   const captureUpdateBody = (
@@ -1033,17 +995,22 @@ export const createWithOTel = ({
         return
       }
       const nowMs = Date.now()
-      const dependencyLinks = others.map(computedDependencyLink)
+      const dependencyLinks = others.map((cause) => ({
+        traceId: cause.traceId,
+        spanId: cause.spanId,
+        attributes: {
+          'reatom.link.reason': COMPUTED_DEPENDENCY_LINK_REASON,
+          'reatom.frame.id': cause.frameId,
+        },
+      }))
       const placed = placeSpan(primary, dependencyLinks, 'dependency', nowMs)
       const ctx = placed.context ?? createChildContext(placed.parent)
       if (placed.freshRoot) noteSpan(ctx.traceId, nowMs)
       reservation.commit({
         ...ctx,
-        ...(placed.parent
-          ? {
-              parentSpanId: placed.parent.spanId as SpanInput['parentSpanId'],
-            }
-          : {}),
+        ...(placed.parent && {
+          parentSpanId: placed.parent.spanId as SpanInput['parentSpanId'],
+        }),
         name: parsed.spanName,
         startTimeMs: nowMs,
         endTimeMs: nowMs,
@@ -1057,7 +1024,7 @@ export const createWithOTel = ({
           ...readCallAttributes(settings, { params: [], state, prevState }),
         },
         links: placed.links,
-        ...(keepLocal(settings) ? { local: { state } } : {}),
+        ...(keepLocal(settings) && { local: { state } }),
       })
     })
   }
@@ -1139,7 +1106,7 @@ export const createWithOTel = ({
         'reatom.kind': kind,
         'reatom.frame.id': causes.assign(frame),
         'reatom.cause.ids': causes.causeIds(frame),
-        ...(parentReason ? { 'reatom.parent.reason': parentReason } : {}),
+        ...(parentReason && { 'reatom.parent.reason': parentReason }),
         ...readCallAttributes(settings, { params, state, prevState }),
       }
       if (
@@ -1156,7 +1123,7 @@ export const createWithOTel = ({
         timeMs: Date.now(),
         body,
         attributes,
-        ...(local ? { local } : {}),
+        ...(local && { local }),
       })
     })
   }
@@ -1222,7 +1189,7 @@ export const createWithOTel = ({
     options: WithOTelOptions,
     enabled: boolean,
   ): Target => {
-    if (!enabled) {
+    if (!enabled || isInternalUnit(target)) {
       rememberRoute(target)
       return target
     }
@@ -1283,7 +1250,7 @@ export const createWithOTel = ({
     reserveLog && autoUpdates
       ? (target) => {
           if (isObserving()) return target
-          if (isInstrumentationInternalName(target.name)) return target
+          if (isInternalUnit(target)) return target
           if (isAction(target) || !target.__reatom.reactive) {
             return target
           }
@@ -1312,7 +1279,10 @@ export const createWithOTel = ({
     ): Result => {
       if (!isActive()) return callback()
       if (pair === undefined) return isolate(callback)
-      const ctx = freezeContext(pair)
+      const ctx = Object.freeze({
+        traceId: pair.traceId,
+        spanId: pair.spanId,
+      }) as SpanContext
       if (inReactiveFrame()) {
         const frame = top()
         const slot = traceVar.name

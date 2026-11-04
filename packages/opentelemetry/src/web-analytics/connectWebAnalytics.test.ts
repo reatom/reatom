@@ -315,8 +315,8 @@ test('spec 03.16: explicit urlAtom without catchLinks/sync off warns once in dev
       .flat()
       .map((arg) => String(arg))
       .join('\n')
-    expect(rendered).toMatch(/catchLinks/)
-    expect(rendered).toMatch(/sync/)
+    expect(rendered).toMatch(/urlAtom/)
+    expect(rendered).toMatch(/without routes/)
   })
 })
 

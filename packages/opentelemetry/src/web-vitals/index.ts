@@ -2,9 +2,10 @@ import type { BooleanAtom, Ext } from '@reatom/core'
 import { assertFeature, featureControl } from '../feature.ts'
 import { onCLS, onFCP, onINP, onLCP, onTTFB } from 'web-vitals'
 import type { Metric } from 'web-vitals'
+import { navigationEntryId } from '../browserNavigationId.ts'
 
 import { browserCaptureOf, type CaptureSnapshot } from '../browserCapture.ts'
-import type { ReatomOpentelemetry } from '../reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from '../captureEngine.ts'
 
 type Measurement = Pick<
   Metric,
@@ -54,7 +55,7 @@ const observeDocument = (): DocumentObserver => {
  * end.
  */
 const installWebVitals = (
-  otel: ReatomOpentelemetry,
+  otel: BrowserTelemetry,
   snapshot: CaptureSnapshot,
 ): { dispose(): void } => {
   const capture = browserCaptureOf(otel)
@@ -78,6 +79,7 @@ const installWebVitals = (
           delta: metric.delta,
         },
         'measurement.unit': metric.name === 'CLS' ? '1' : 'ms',
+        'performance.navigation_entry_id': navigationEntryId(document),
         'web_vital.name': metric.name,
         'web_vital.id': metric.id,
         'web_vital.rating': metric.rating,
@@ -113,7 +115,7 @@ const installWebVitals = (
 
 /** Eager optional capture controlled by its assigned requested-enable atom. */
 export const withWebVitals =
-  (): Ext<ReatomOpentelemetry, { webVitals: BooleanAtom }> => (otel) => {
+  (): Ext<BrowserTelemetry, { webVitals: BooleanAtom }> => (otel) => {
     assertFeature(otel, 'webVitals')
     const snapshot = browserCaptureOf(otel)!.snapshot()
     return {

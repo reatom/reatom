@@ -1,0 +1,14 @@
+node_modules/
+entries/
+dist/
+metafiles/
+results.json
+results.csv
+
+build.log
+smoke.log
+
+REPORT.md
+
+exploratory-build.log
+exploratory-smoke.log

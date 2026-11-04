@@ -132,12 +132,6 @@ export interface CreateRouteRootMachineInput {
   commitSpan: (span: RouteSpanCommit) => void
 }
 
-const scanRegistry = (known: Set<RouteLike>) => {
-  for (const route of Object.values(urlAtom.routes)) {
-    if (isRouteAtom(route)) known.add(route)
-  }
-}
-
 export const createRouteRootMachine = ({
   isActive,
   isEnabled,
@@ -248,7 +242,9 @@ export const createRouteRootMachine = ({
     syncing = true
     try {
       start()
-      scanRegistry(known)
+      for (const route of Object.values(urlAtom.routes)) {
+        if (isRouteAtom(route)) known.add(route)
+      }
       const bounding: RouteLike[] = []
       const overlays: RouteLike[] = []
       for (const route of known) {

@@ -36,14 +36,6 @@ export const readFrameId = (frame: Frame): string | undefined => {
 
 const isRootFrame = (frame: Frame): boolean => frame === frame.root.frame
 
-const pushCauseId = (ids: string[], seen: Set<string>, cause: Frame | null) => {
-  if (!cause || isRootFrame(cause)) return
-  const id = readFrameId(cause)
-  if (id === undefined || seen.has(id)) return
-  seen.add(id)
-  ids.push(id)
-}
-
 const MAX_UNINSTRUMENTED_CAUSE_DEPTH = 16
 const MAX_UNINSTRUMENTED_CAUSE_FRAMES = 16
 
@@ -151,7 +143,13 @@ export const collectCauseIds = (
 ): string[] => {
   const ids: string[] = []
   const seenIds = new Set<string>()
-  visitCauses(frame, changed, (cause) => pushCauseId(ids, seenIds, cause))
+  visitCauses(frame, changed, (cause) => {
+    if (!cause || isRootFrame(cause)) return
+    const id = readFrameId(cause)
+    if (id === undefined || seenIds.has(id)) return
+    seenIds.add(id)
+    ids.push(id)
+  })
   return ids
 }
 
@@ -219,16 +217,6 @@ export const createCauseStore = () => {
   let traces = new WeakMap<Frame, TracedCause>()
   let cleanupQueued = false
 
-  const queueCleanup = () => {
-    if (cleanupQueued) return
-    cleanupQueued = true
-    _enqueue(() => {
-      changed = new WeakSet()
-      traces = new WeakMap()
-      cleanupQueued = false
-    }, 'cleanup')
-  }
-
   return {
     assign(frame: Frame): string {
       const existing = readFrameId(frame)
@@ -239,7 +227,14 @@ export const createCauseStore = () => {
     },
     markChanged(frame: Frame, trace?: TracePair) {
       changed.add(frame)
-      queueCleanup()
+      if (!cleanupQueued) {
+        cleanupQueued = true
+        _enqueue(() => {
+          changed = new WeakSet()
+          traces = new WeakMap()
+          cleanupQueued = false
+        }, 'cleanup')
+      }
       if (!trace) return
       const frameId = readFrameId(frame)
       if (frameId === undefined) return

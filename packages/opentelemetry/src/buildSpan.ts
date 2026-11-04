@@ -77,9 +77,6 @@ const msToNano = (ms: number): string => {
   return (BigInt(truncMs) * 1_000_000n + BigInt(fracNs)).toString()
 }
 
-const spanAttributeKey = (key: string) =>
-  key === 'params' || key === 'payload' ? `reatom.${key}` : key
-
 const toSpanAttributes = (
   name: string,
   attributes: SpanInput['attributes'],
@@ -90,7 +87,8 @@ const toSpanAttributes = (
   const merge = (source: Record<string, OtlpAttrValue> | undefined) => {
     if (!source) return
     for (const [key, value] of Object.entries(source))
-      remapped[spanAttributeKey(key)] = value
+      remapped[key === 'params' || key === 'payload' ? `reatom.${key}` : key] =
+        value
   }
   merge(attributes)
   merge(extraAttributes)

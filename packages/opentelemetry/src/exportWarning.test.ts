@@ -57,7 +57,7 @@ test('CORS fetch rejection warns once, drops the batch, and does not throw into 
 
       expect(fetchMock.mock.calls.length).toBeGreaterThan(1)
       expect(warn).toHaveBeenCalledTimes(1)
-      expect(joinedWarn(warn.mock.calls[0])).toContain('OTLP export')
+      expect(joinedWarn(warn.mock.calls[0])).toContain('export failed')
       expect(otel.otlp.stats().dropped).toBeGreaterThan(0)
       expect(hasDroppedReason(otel.otlp.stats().droppedByReason)).toBe(true)
       expect(unhandled).toEqual([])
@@ -77,7 +77,7 @@ test('HTTP 401 export warns once with a status reason and increments dropped', a
     await expect(context.start(() => otel.flush())).resolves.toBeUndefined()
 
     expect(warn).toHaveBeenCalledTimes(1)
-    expect(joinedWarn(warn.mock.calls[0])).toContain('OTLP export')
+    expect(joinedWarn(warn.mock.calls[0])).toContain('export failed')
     expect(joinedWarn(warn.mock.calls[0])).toMatch(/401/)
     expect(otel.otlp.stats().dropped).toBeGreaterThan(0)
     expect(hasDroppedReason(otel.otlp.stats().droppedByReason)).toBe(true)

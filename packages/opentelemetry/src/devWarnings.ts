@@ -1,5 +1,7 @@
 import { top, type AtomLike } from '@reatom/core'
 
+import { OTEL } from './diag.ts'
+
 const readNodeEnv = (): string | undefined =>
   (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
     ?.NODE_ENV
@@ -58,9 +60,7 @@ export const createContextLossWarner = (enabled: () => boolean) => {
       !warnedTargets.has(target)
     ) {
       warnedTargets.add(target)
-      console.warn(
-        `[@reatom/opentelemetry] warnContextLoss: "${name}" started fallback trace outside Reatom; check wrap`,
-      )
+      console.warn(`${OTEL}"${name}" missing wrap`)
     }
     hadFallbackThisTask = true
     lastFallbackTarget = target

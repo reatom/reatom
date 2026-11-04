@@ -26,7 +26,7 @@ test('analytics extension retains its budget and excludes only the core peer', (
     (entry) => entry.name === 'web-analytics (optional extension)',
   )
   expect(analytics).toBeDefined()
-  expect(analytics!.limit).toBe('4.5 KB')
+  expect(analytics!.limit).toBe('6.3 KB')
   expect(analytics!.ignore).toEqual(['@reatom/core'])
 })
 
@@ -35,7 +35,7 @@ test('F-17 / WA-8: combined tracer+analytics measurement has no ignored tracer c
     (entry) => entry.name === 'web-analytics (tracer + analytics)',
   )
   expect(combined).toBeDefined()
-  expect(combined!.limit).toBe('19 KB')
+  expect(combined!.limit).toBe('21 KB')
   expect(combined!.ignore).toEqual(['@reatom/core'])
   expect(combined!.path).toEqual([
     'dist/index.js',

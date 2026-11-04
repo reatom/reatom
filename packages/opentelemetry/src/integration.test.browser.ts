@@ -154,7 +154,14 @@ test('ordinary native export preserves application results and passes real CORS 
     expect(BigInt(span.endTimeUnixNano)).toBeGreaterThanOrEqual(
       BigInt(span.startTimeUnixNano),
     )
-    expect(span.attributes).toEqual([])
+    expect(span.attributes.map(({ key }) => key).sort()).toEqual([
+      'reatom.cause.ids',
+      'reatom.frame.id',
+      'reatom.kind',
+      'reatom.name',
+      'reatom.outcome',
+      'reatom.parent.reason',
+    ])
   }
   expect(record.body).not.toContain('private-result')
   expect(adapter.otlp.stats()).toMatchObject({

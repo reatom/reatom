@@ -1,9 +1,12 @@
-import { action, context, log } from '@reatom/core'
+import { action, context } from '@reatom/core'
 import { afterEach, beforeEach, expect, inject, test } from 'vitest'
 import { commands } from 'vitest/browser'
 
 import type { CollectorState } from '../browser-test-server.ts'
-import type { ReatomOpentelemetry } from './reatomOpentelemetry.ts'
+import {
+  reatomOpentelemetry,
+  type ReatomOpentelemetry,
+} from './reatomOpentelemetry.ts'
 import { reatomTestTelemetry } from './test-helpers.ts'
 
 type V2Adapter = ReatomOpentelemetry & {
@@ -100,35 +103,43 @@ afterEach(async () => {
   }
 })
 
-test('endpoint: null makes no OTLP posts and fills records', async () => {
-  const adapter = setup('devtools-only', { endpoint: null })
-  expect(emit(['browser.null.first', 'browser.null.second'])).toEqual([0, 1])
-  expect(adapter.otlp.stats()).toMatchObject({
-    queued: 2,
-    exported: 0,
-    dropped: 0,
+test('local capture without an exporter makes no OTLP posts and fills records', async () => {
+  const adapter = reatomOpentelemetry({
+    name: 'browser-local-only',
+    serviceName: 'browser-local-only',
+    filter: (target) => target.name.startsWith('browser.'),
+    captureValues: false,
   })
-  await adapter.flush()
-  unload()
-  await adapter.flush()
+  try {
+    expect(emit(['browser.null.first', 'browser.null.second'])).toEqual([0, 1])
+    expect(adapter.stats()).toMatchObject({
+      captured: 2,
+      retained: 2,
+      dropped: 0,
+    })
+    await adapter.flush()
+    unload()
+    await adapter.flush()
 
-  const state = await control('state')
-  expect(state).toMatchObject({
-    options: 0,
-    posts: 0,
-    acceptedPosts: 0,
-    held: 0,
-  })
-  expect(state.requests).toEqual([])
-  expect(state.records).toEqual([])
-  expect(recordsOf(adapter)).toHaveLength(2)
-  expect(adapter.otlp.stats()).toMatchObject({
-    exported: 0,
-    dropped: 0,
-    droppedByReason: { export: 0, oversized: 0, timeout: 0, capacity: 0 },
-    queued: 0,
-    inFlight: 0,
-  })
+    const state = await control('state')
+    expect(state).toMatchObject({
+      options: 0,
+      posts: 0,
+      acceptedPosts: 0,
+      held: 0,
+    })
+    expect(state.requests).toEqual([])
+    expect(state.records).toEqual([])
+    expect(recordsOf(adapter)).toHaveLength(2)
+    expect(adapter.stats()).toMatchObject({
+      active: 0,
+      captured: 2,
+      dropped: 0,
+    })
+    expect('otlp' in adapter).toBe(false)
+  } finally {
+    adapter.dispose()
+  }
 })
 
 test('default path does not patch fetch', async () => {
@@ -162,7 +173,7 @@ test('mixed logs and traces keepalive stays within the 60 KiB envelope', async (
   const bulky = '界'.repeat(4200)
   const traceNames = Array.from(
     { length: 4 },
-    (_, index) => `browser.mixed.trace.${index}.` + bulky,
+    (_, index) => `browser.mixed.trace.${index}.` + '界'.repeat(1500),
   )
   const logBodies = Array.from(
     { length: 4 },
@@ -188,9 +199,8 @@ test('mixed logs and traces keepalive stays within the 60 KiB envelope', async (
 
   const adapter = setup('mixed')
   expect(emit(traceNames)).toEqual([0, 1, 2, 3])
-  context.start(() => {
-    for (const body of logBodies) log(body)
-  })
+  for (const body of logBodies)
+    adapter.log('browser.mixed.log', { message: body })
   expect(adapter.otlp.stats()).toMatchObject({ dropped: 0, inFlight: 0 })
   unload()
   await adapter.flush()

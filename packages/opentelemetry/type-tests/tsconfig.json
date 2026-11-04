@@ -8,7 +8,8 @@
     "./faro.ts",
     "./browser-metrics.ts",
     "./native-extensions.ts",
-    "./otlp.ts"
+    "./otlp.ts",
+    "./browser.ts"
   ],
   "compilerOptions": {
     "noEmit": true

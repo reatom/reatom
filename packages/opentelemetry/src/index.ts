@@ -12,6 +12,9 @@ export type {
 } from './records.ts'
 export type { LocalValues, LocalValuesMode } from './localValues.ts'
 export type {
+  BrowserTelemetry,
+  ManualSpan,
+  StartSpanOptions,
   ReatomOpentelemetry,
   ReatomOpentelemetryInput,
   OtelOptions,

@@ -2,7 +2,7 @@
   "name": "@reatom/opentelemetry",
   "type": "module",
   "version": "1000.15.2",
-  "description": "OpenTelemetry tracing integration for Reatom",
+  "description": "Modular browser observability, local debugging, and Reatom tracing",
   "private": false,
   "sideEffects": false,
   "exports": {
@@ -46,6 +46,31 @@
       "require": "./dist/browser-performance/index.cjs",
       "default": "./dist/browser-performance/index.js"
     },
+    "./browser-errors": {
+      "types": "./dist/browser-errors/index.d.ts",
+      "require": "./dist/browser-errors/index.cjs",
+      "default": "./dist/browser-errors/index.js"
+    },
+    "./browser-actions": {
+      "types": "./dist/browser-actions/index.d.ts",
+      "require": "./dist/browser-actions/index.cjs",
+      "default": "./dist/browser-actions/index.js"
+    },
+    "./browser-csp": {
+      "types": "./dist/browser-csp/index.d.ts",
+      "require": "./dist/browser-csp/index.cjs",
+      "default": "./dist/browser-csp/index.js"
+    },
+    "./browser-metadata": {
+      "types": "./dist/browser-metadata/index.d.ts",
+      "require": "./dist/browser-metadata/index.cjs",
+      "default": "./dist/browser-metadata/index.js"
+    },
+    "./faro/client": {
+      "types": "./dist/faro/client.d.ts",
+      "require": "./dist/faro/client.cjs",
+      "default": "./dist/faro/client.js"
+    },
     "./attributes": {
       "types": "./dist/attributes/index.d.ts",
       "require": "./dist/attributes/index.cjs",
@@ -55,6 +80,16 @@
       "types": "./dist/otlp/index.d.ts",
       "require": "./dist/otlp/index.cjs",
       "default": "./dist/otlp/index.js"
+    },
+    "./strict-capture": {
+      "types": "./dist/strict-capture/index.d.ts",
+      "require": "./dist/strict-capture/index.cjs",
+      "default": "./dist/strict-capture/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "require": "./dist/browser/index.cjs",
+      "default": "./dist/browser/index.js"
     }
   },
   "main": "dist/index.cjs",
@@ -74,6 +109,7 @@
     "test:e2e:collector": "node e2e/collector/run.mjs",
     "test:e2e:collector:oracle": "node --test e2e/collector/*.test.mjs",
     "test:e2e:clickhouse": "node e2e/collector/run-clickhouse.mjs",
+    "test:e2e:faro": "node e2e/faro/run.mjs",
     "size": "size-limit --config .size-limit.json",
     "test:bundles": "pnpm run build && node tools/check-browser-bundles.mjs"
   },
@@ -87,8 +123,15 @@
       "src/browser-console/index.ts",
       "src/web-vitals/index.ts",
       "src/browser-performance/index.ts",
+      "src/browser-errors/index.ts",
+      "src/browser-actions/index.ts",
+      "src/browser-csp/index.ts",
+      "src/browser-metadata/index.ts",
+      "src/faro/client.ts",
       "src/attributes/index.ts",
-      "src/otlp/index.ts"
+      "src/otlp/index.ts",
+      "src/strict-capture/index.ts",
+      "src/browser/index.ts"
     ],
     "format": [
       "esm",
@@ -131,7 +174,8 @@
   ],
   "files": [
     "/dist",
-    "/API.md"
+    "/API.md",
+    "/MIGRATION.md"
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "catalog:",

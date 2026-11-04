@@ -411,7 +411,7 @@ test('persistent HTTP error after retries surfaces an export failure warning', a
     await flushPromise
 
     expect(warnSpy).toHaveBeenCalled()
-    expect(String(warnSpy.mock.calls[0]?.[0])).toContain('OTLP export')
+    expect(String(warnSpy.mock.calls[0]?.[0])).toContain('export failed')
   } finally {
     warnSpy.mockRestore()
     vi.useRealTimers()
@@ -562,7 +562,7 @@ test('beacon delivery failure surfaces an export warning', async () => {
 
     expect(sendBeacon).toHaveBeenCalled()
     expect(warnSpy).toHaveBeenCalled()
-    expect(String(warnSpy.mock.calls[0]?.[0])).toContain('OTLP export')
+    expect(String(warnSpy.mock.calls[0]?.[0])).toContain('export failed')
   } finally {
     warnSpy.mockRestore()
     restore()

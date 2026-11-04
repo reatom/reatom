@@ -1,4 +1,7 @@
+import { atom } from '@reatom/core'
 import { expect, test } from 'vitest'
+
+import { withAttributes } from './attributes/index.ts'
 
 import { browserCaptureOf, setBrowserMetadata } from './browserCapture.ts'
 import { reatomTestTelemetry } from './test-helpers.ts'
@@ -141,5 +144,109 @@ test('span completion releases reservations when capture or record-building call
   expect(recovered).toBeTruthy()
   recovered.finish({ endTimeMs: 6 })
   expect(otel.otlp.stats().active).toBe(0)
+  otel.dispose()
+})
+
+test('metadata providers compose and detach without hiding independent providers', () => {
+  const otel = reatomTestTelemetry({ name: 'metadata-compose', endpoint: null })
+  const first = setBrowserMetadata(otel, () => ({
+    'session.id': 'session',
+    'view.name': 'first',
+  }))
+  const broken = setBrowserMetadata(otel, () => {
+    throw new Error('provider')
+  })
+  const last = setBrowserMetadata(otel, () => ({
+    'browser.name': 'Browser',
+    'view.name': 'last',
+  }))
+  const capture = browserCaptureOf(otel)!
+  expect(capture.snapshot().attributes).toMatchObject({
+    'session.id': 'session',
+    'browser.name': 'Browser',
+    'view.name': 'last',
+  })
+  last()
+  expect(capture.snapshot().attributes).toMatchObject({
+    'session.id': 'session',
+    'view.name': 'first',
+  })
+  first()
+  broken()
+  expect(capture.snapshot().attributes['session.id']).toBeUndefined()
+  otel.dispose()
+})
+
+test('pending browser capture preserves its session sampling decision across rotation and configuration changes', async () => {
+  const sent: unknown[] = []
+  const otel = reatomTestTelemetry({
+    name: 'capture-sampling-snapshot',
+    endpoint: null,
+    keepRecords: true,
+    sampling: { by: 'session', ratio: 0 },
+    transports: [
+      async (batch) => {
+        sent.push(batch)
+        return { accepted: batch.itemCount, rejected: 0 }
+      },
+    ],
+  })
+  let session = 'first'
+  setBrowserMetadata(otel, () => ({ 'session.id': session }))
+  const capture = browserCaptureOf(otel)!
+  const snapshot = capture.snapshot()
+  const pending = capture.span({
+    name: 'sampled.old',
+    startTimeMs: 1,
+    snapshot,
+  })!
+  session = 'second'
+  otel.set((current) => ({ ...current, sampling: { by: 'trace', ratio: 1 } }))
+  pending.finish({ endTimeMs: 2, error: true })
+  capture.log({ eventName: 'sampled.old-log', timeMs: 2, snapshot })
+  capture.log({ eventName: 'sampled.new', timeMs: 3 })
+  await otel.flush()
+  const wire = JSON.stringify(sent)
+  expect(wire).not.toContain('sampled.old')
+  expect(wire).toContain('sampled.new')
+  expect(JSON.stringify(otel.records())).toContain('sampled.old')
+  otel.dispose()
+})
+
+test('composed browser providers do not restore a cleared principal', () => {
+  const user = atom<Record<string, string> | null>(
+    { 'user.id': 'before' },
+    'capture.user',
+  )
+  const otel = reatomTestTelemetry({
+    name: 'capture-logout',
+    endpoint: null,
+  }).extend(withAttributes(user))
+  setBrowserMetadata(otel, () => ({ 'session.id': 'session' }))
+  setBrowserMetadata(otel, () => ({ 'browser.name': 'Browser' }))
+  const capture = browserCaptureOf(otel)!
+  expect(capture.snapshot().attributes['user.id']).toBe('before')
+  user.set(null)
+  const anonymous = capture.snapshot()
+  expect(anonymous.attributes['user.id']).toBeUndefined()
+  expect(anonymous.attributes['session.id']).toBe('session')
+  expect(anonymous.attributes['browser.name']).toBe('Browser')
+  otel.dispose()
+})
+
+test('fallback trace identity rotates with RUM sessions while prior snapshots remain immutable', () => {
+  const otel = reatomTestTelemetry({
+    name: 'capture-session-trace',
+    endpoint: null,
+  })
+  let session = 'first'
+  setBrowserMetadata(otel, () => ({ 'session.id': session }))
+  const capture = browserCaptureOf(otel)!
+  const before = capture.snapshot()
+  const firstTrace = before.context.traceId
+  session = 'second'
+  const after = capture.snapshot()
+  expect(after.context.traceId).not.toBe(firstTrace)
+  expect(before.context.traceId).toBe(firstTrace)
   otel.dispose()
 })

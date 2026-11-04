@@ -1,0 +1,10 @@
+{
+  "name": "reatom-faro-e2e-reference",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@grafana/faro-web-sdk": "2.13.0",
+    "@grafana/faro-web-tracing": "2.13.0",
+    "esbuild": "0.25.12"
+  }
+}

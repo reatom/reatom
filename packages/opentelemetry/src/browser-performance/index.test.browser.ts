@@ -135,3 +135,51 @@ test('Chromium excludes async custom transport resources without the network con
     otel.dispose()
   }
 })
+
+test('native event format shares navigation join IDs with resource entries and emits Faro metric sources', async () => {
+  const otel = reatomTestTelemetry({
+    name: 'performance-events',
+    endpoint: null,
+  }).extend(withBrowserPerformance({ format: 'events' }))
+  try {
+    await fetch(`/@vite/client?native-event=${Date.now()}`)
+    const events = () =>
+      otel
+        .records()
+        .filter((record: any) =>
+          record.eventName?.startsWith('browser.performance.'),
+        ) as any[]
+    await expect
+      .poll(() =>
+        events().some(
+          (record) =>
+            record.eventName === 'browser.performance.resource' &&
+            record.attributes['url.full'] === `${location.origin}/@vite/client`,
+        ),
+      )
+      .toBe(true)
+    const navigation = events().find(
+      (record) => record.eventName === 'browser.performance.navigation',
+    )!
+    const resource = events().find(
+      (record) =>
+        record.eventName === 'browser.performance.resource' &&
+        record.attributes['url.full'] === `${location.origin}/@vite/client`,
+    )!
+    expect(resource.attributes['performance.navigation_entry_id']).toBe(
+      navigation.attributes['performance.navigation_entry_id'],
+    )
+    expect(typeof resource.attributes['performance.resource_entry_id']).toBe(
+      'string',
+    )
+    expect(
+      resource.attributes['performance.fetch_time'],
+    ).toBeGreaterThanOrEqual(0)
+    expect(
+      navigation.attributes['performance.page_load_time'],
+    ).toBeGreaterThanOrEqual(0)
+    expect(resource.attributes['measurement.type']).toBeUndefined()
+  } finally {
+    otel.dispose()
+  }
+})

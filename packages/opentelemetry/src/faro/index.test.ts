@@ -38,12 +38,12 @@ test('real captured queue maps measurements, analytics, exceptions and ordinary 
       logMeasurement(otel, {
         type: 'checkout',
         values: { duration: 12.5 },
-        context: { 'session.id': 'one', 'url.full': 'https://shop.test/a' },
+        context: { 'session.id': 'one', 'page.url': 'https://shop.test/a' },
       })
       otel.log('session.start', { 'session.id': 'two' })
       otel.log('app.page_view', {
         'session.id': 'two',
-        'url.full': 'https://shop.test/b',
+        'page.url': 'https://shop.test/b',
       })
       otel.log('exception', {
         'exception.type': 'TypeError',
@@ -73,7 +73,7 @@ test('real captured queue maps measurements, analytics, exceptions and ordinary 
       'Content-Type': 'application/json',
     })
     expect(bodies.flatMap((b) => b.events ?? []).map((e) => e.name)).toEqual(
-      expect.arrayContaining(['session_start', 'view_changed']),
+      expect.arrayContaining(['session_start', 'app.page_view']),
     )
     expect(bodies.flatMap((b) => b.exceptions ?? [])[0]).toMatchObject({
       type: 'TypeError',
@@ -145,7 +145,7 @@ test('transport-only pagehide uses keepalive even with beacon configured', async
   }
 })
 
-test('Faro 202 succeeds, OTLP 200 fails and abort stops delivery', async () => {
+test('Faro successful 2xx succeeds and abort stops delivery', async () => {
   const abort = new AbortController()
   const fetch = vi.fn(async () => new Response('{}', { status: 200 }))
   const transport = faroTransport({
@@ -181,7 +181,7 @@ test('Faro 202 succeeds, OTLP 200 fails and abort stops delivery', async () => {
     abort: abort.signal,
     itemCount: 1,
   }
-  expect(await transport(batch)).toMatchObject({ accepted: 0, rejected: 1 })
+  expect(await transport(batch)).toMatchObject({ accepted: 1, rejected: 0 })
   abort.abort()
   expect(await transport(batch)).toMatchObject({ accepted: 0, rejected: 1 })
   expect(fetch).toHaveBeenCalledTimes(1)
@@ -193,10 +193,10 @@ test('captured metadata never changes to the last page or session in the flush',
     context.start(() => {
       otel.log('business.first', {
         'session.id': 'a',
-        'url.full': '/first',
+        'page.url': '/first',
         'app.visitor.id': 'visitor',
       })
-      otel.log('business.second', { 'session.id': 'b', 'url.full': '/second' })
+      otel.log('business.second', { 'session.id': 'b', 'page.url': '/second' })
       otel.log('reatom.update', { 'reatom.name': 'counter' })
     })
     await otel.flush()
@@ -226,7 +226,7 @@ test('captured metadata never changes to the last page or session in the flush',
   }
 })
 
-test('invalid Faro sessions reject and expired deadlines never fetch', async () => {
+test('invalid Faro sessions remain accepted and expired deadlines never fetch', async () => {
   const fetch = vi.fn(
     async () =>
       new Response('ok', {
@@ -267,9 +267,8 @@ test('invalid Faro sessions reject and expired deadlines never fetch', async () 
     itemCount: 1,
   }
   expect(await transport(batch)).toMatchObject({
-    accepted: 0,
-    rejected: 1,
-    errorMessage: expect.stringContaining('session invalid'),
+    accepted: 1,
+    rejected: 0,
   })
   expect(await transport({ ...batch, deadline: Date.now() - 1 })).toMatchObject(
     { accepted: 0, rejected: 1 },
@@ -357,7 +356,7 @@ test('receiver measurement fixture matches the official Faro envelope shape', as
                 spanId: '0123456789abcdef',
                 attributes: [
                   attr('session.id', 'session-a'),
-                  attr('url.full', 'https://shop.test/a'),
+                  attr('page.url', 'https://shop.test/a'),
                   attr('measurement.type', 'checkout'),
                   {
                     key: 'measurement.values',
@@ -389,10 +388,7 @@ test('receiver measurement fixture matches the official Faro envelope shape', as
   ).toEqual({ accepted: 1, rejected: 0 })
 })
 
-test.each([
-  [503, {}],
-  [202, { 'X-Faro-Session-Status': 'invalid' }],
-] as const)(
+test.each([[503, {}]] as const)(
   'secondary Faro HTTP %s failure warns while OTLP primary controls accounting',
   async (status, headers) => {
     await withWarnSpy(async (warn) => {
@@ -423,9 +419,7 @@ test.each([
         expect(secondaryFetch).toHaveBeenCalled()
         expect(
           warn.mock.calls.some((call) =>
-            String(call[0]).includes(
-              'Additional transport reported delivery failure',
-            ),
+            String(call[0]).includes('extra transport failed'),
           ),
         ).toBe(true)
         expect(otel.otlp.stats().exported).toBeGreaterThan(0)
@@ -453,7 +447,7 @@ test('all unload metadata envelopes start before any response resolves', async (
     traceId: 'a',
     spanId: 'b',
     severityNumber: 9,
-    attributes: [{ key: 'url.full', value: { stringValue: page } }],
+    attributes: [{ key: 'page.url', value: { stringValue: page } }],
   })
   const pending = transport({
     signal: 'logs',
@@ -744,4 +738,402 @@ test('manual captured user.id reaches Faro metadata and event attributes without
   } finally {
     otel.dispose()
   }
+})
+
+const directBatch = (
+  fields: Record<string, OtlpAttrValue> = {},
+  keepalive = false,
+) => ({
+  signal: 'logs' as const,
+  payload: {
+    resourceLogs: [
+      {
+        resource: { attributes: [] },
+        scopeLogs: [
+          {
+            scope: { version: 'test' },
+            logRecords: [
+              {
+                eventName: 'exception',
+                timeUnixNano: '1000000',
+                traceId: 'a',
+                spanId: 'b',
+                severityNumber: 17,
+                attributes: toOtlpAttributes(fields),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  keepalive,
+  abort: new AbortController().signal,
+  itemCount: 1,
+})
+
+test('native exception fields and document-only page metadata survive conversion', async () => {
+  let body: any
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch: async (_url, init) => {
+      body = JSON.parse(String(init?.body))
+      return new Response(null, { status: 204 })
+    },
+  })
+  await transport(
+    directBatch({
+      'url.full': 'https://api.test/resource',
+      'exception.stacktrace':
+        'Error: bad\n at checkout (https://shop.test/app.js:12:3)',
+      'exception.fatal': false,
+      'exception.fingerprint': 'stable',
+    }),
+  )
+  expect(body.meta.page).toBeUndefined()
+  expect(body.exceptions[0]).toMatchObject({
+    fatal: false,
+    fingerprint: 'stable',
+    stacktrace: {
+      frames: [
+        {
+          filename: 'https://shop.test/app.js',
+          function: 'checkout',
+          lineno: 12,
+          colno: 3,
+        },
+      ],
+    },
+  })
+})
+
+test('accepted invalid session invokes captured-id hook once without retransmission', async () => {
+  const onSessionInvalid = vi.fn(() => {
+    throw new Error('hook failed')
+  })
+  const fetch = vi.fn(
+    async () =>
+      new Response('ok', {
+        status: 202,
+        headers: { 'X-Faro-Session-Status': 'invalid' },
+      }),
+  )
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch,
+    onSessionInvalid,
+  })
+  expect(await transport(directBatch({ 'session.id': 'captured' }))).toEqual({
+    accepted: 1,
+    rejected: 0,
+  })
+  expect(onSessionInvalid).toHaveBeenCalledExactlyOnceWith('captured')
+  expect(fetch).toHaveBeenCalledTimes(1)
+})
+
+test.each([408, 425, 429, 500, 502, 503, 504])(
+  'transient %s retries with stable exact-envelope idempotency',
+  async (status) => {
+    const requests: RequestInit[] = []
+    const fetch = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      requests.push(init!)
+      return requests.length === 1
+        ? new Response('retry', { status, headers: { 'Retry-After': '1' } })
+        : new Response('ok', { status: 202 })
+    })
+    const transport = faroTransport({
+      endpoint: 'https://faro.test/collect',
+      fetch,
+    })
+    vi.useFakeTimers()
+    try {
+      const pending = transport(directBatch())
+      await vi.advanceTimersByTimeAsync(1000)
+      expect(await pending).toEqual({ accepted: 1, rejected: 0 })
+      expect(requests).toHaveLength(2)
+      expect(requests[0]!.headers).toEqual(requests[1]!.headers)
+      expect(
+        (requests[0]!.headers as Record<string, string>)['Idempotency-Key'],
+      ).toEqual(expect.any(String))
+      expect(requests[0]!.body).toBe(requests[1]!.body)
+    } finally {
+      vi.useRealTimers()
+    }
+  },
+)
+
+test('network failures have three total attempts; keepalive has one', async () => {
+  const fetch = vi.fn(async () => {
+    throw new TypeError('network')
+  })
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch,
+  })
+  vi.useFakeTimers()
+  try {
+    const pending = transport(directBatch())
+    await vi.runAllTimersAsync()
+    expect(await pending).toMatchObject({ accepted: 0, rejected: 1 })
+    expect(fetch).toHaveBeenCalledTimes(3)
+    fetch.mockClear()
+    await transport(directBatch({}, true))
+    expect(fetch).toHaveBeenCalledTimes(1)
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('retry backoff is abortable and releases discarded bodies', async () => {
+  const cancel = vi.fn()
+  const controller = new AbortController()
+  const fetch = vi.fn(
+    async () =>
+      new Response(new ReadableStream({ cancel }), {
+        status: 503,
+        headers: { 'Retry-After': '60' },
+      }),
+  )
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch,
+  })
+  const pending = transport({ ...directBatch(), abort: controller.signal })
+  await vi.waitFor(() => expect(cancel).toHaveBeenCalledTimes(1))
+  controller.abort()
+  expect(await pending).toMatchObject({ accepted: 0, rejected: 1 })
+  expect(fetch).toHaveBeenCalledTimes(1)
+})
+
+test('Retry-After beyond shared deadline does not schedule another fetch', async () => {
+  const fetch = vi.fn(
+    async () =>
+      new Response('retry', {
+        status: 503,
+        headers: { 'Retry-After': '60' },
+      }),
+  )
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch,
+  })
+  expect(
+    await transport({ ...directBatch(), deadline: Date.now() + 1000 }),
+  ).toMatchObject({ accepted: 0, rejected: 1 })
+  expect(fetch).toHaveBeenCalledTimes(1)
+})
+
+test('permanent failures do not retry and attempts validates at construction', async () => {
+  const fetch = vi.fn(async () => new Response('bad', { status: 400 }))
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch,
+  })
+  expect(await transport(directBatch())).toMatchObject({
+    accepted: 0,
+    rejected: 1,
+  })
+  expect(fetch).toHaveBeenCalledTimes(1)
+  for (const attempts of [0, -1, NaN, Infinity, 1.2, 11])
+    expect(() =>
+      faroTransport({ endpoint: 'https://faro.test/collect', attempts }),
+    ).toThrow(RangeError)
+})
+
+test('explicit native app, view and browser metadata project approved attributes', async () => {
+  let body: any
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch: async (_url, init) => {
+      body = JSON.parse(String(init?.body))
+      return new Response('ok', { status: 202 })
+    },
+  })
+  await transport(
+    directBatch({
+      'page.url': 'https://shop.test/document',
+      'url.full': 'https://api.test/resource',
+      'view.name': 'checkout',
+      'browser.name': 'Chrome',
+      'browser.version': '130',
+      'browser.os': 'Linux',
+      'browser.mobile': false,
+      'browser.language': 'en-US',
+      'browser.brands': [{ brand: 'Chromium', version: '130', ignored: 'x' }],
+      'user_agent.original': 'test agent',
+      'browser.viewport.width': 1280,
+      'browser.viewport.height': 720,
+      'service.bundle.id': 'bundle',
+      'service.git.hash': 'commit',
+      'service.installation.id': 'install',
+    }),
+  )
+  expect(body.meta).toMatchObject({
+    page: { url: 'https://shop.test/document' },
+    view: { name: 'checkout' },
+    app: { bundleId: 'bundle', gitHash: 'commit', installationId: 'install' },
+    browser: {
+      name: 'Chrome',
+      version: '130',
+      os: 'Linux',
+      mobile: false,
+      language: 'en-US',
+      brands: [{ brand: 'Chromium', version: '130' }],
+      userAgent: 'test agent',
+      viewportWidth: '1280',
+      viewportHeight: '720',
+    },
+  })
+})
+
+test('canonical browser native events flow through transport with captured metadata', async () => {
+  const bodies: any[] = []
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch: async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)))
+      return new Response('ok', { status: 202 })
+    },
+  })
+  for (const eventName of [
+    'browser.performance.navigation',
+    'browser.performance.resource',
+    'browser.user_action',
+    'browser.frustration.dead_click',
+    'securitypolicyviolation',
+  ]) {
+    const batch = directBatch({
+      'session.id': 'captured-session',
+      'user.id': 'captured-user',
+      'page.url': 'https://shop.test/document',
+      'view.name': 'checkout',
+      'url.full': 'https://api.test/resource',
+      'performance.navigation_entry_id': 'document-nav',
+      'performance.duration': 1.7,
+      'action.id': 'action',
+      'action.name': 'submit',
+    })
+    batch.payload.resourceLogs[0]!.scopeLogs[0]!.logRecords[0]!.eventName =
+      eventName
+    expect(await transport(batch)).toEqual({ accepted: 1, rejected: 0 })
+  }
+  expect(bodies.map((body) => body.events[0].name)).toEqual([
+    'faro.performance.navigation',
+    'faro.performance.resource',
+    'faro.user.action',
+    'faro.frustration.dead_click',
+    'securitypolicyviolation',
+  ])
+  for (const body of bodies)
+    expect(body.meta).toMatchObject({
+      user: { id: 'captured-user' },
+      session: { id: 'captured-session' },
+      page: { url: 'https://shop.test/document' },
+      view: { name: 'checkout' },
+    })
+  expect(bodies[1].events[0].attributes).toMatchObject({
+    faroNavigationId: 'document-nav',
+    duration: '2',
+  })
+  expect(bodies[2].events[0].action).toEqual({ id: 'action', name: 'submit' })
+})
+
+test('web-vitals joins canonical document navigation ID in native context', async () => {
+  const { otel, requests } = setup()
+  try {
+    logMeasurement(otel, {
+      type: 'web-vitals',
+      values: { lcp: 12 },
+      context: { 'performance.navigation_entry_id': 'document-nav' },
+    })
+    await otel.flush()
+    expect(
+      requests.find((request) => request.body.measurements)?.body
+        .measurements[0].context.navigation_entry_id,
+    ).toBe('document-nav')
+  } finally {
+    otel.dispose()
+  }
+})
+
+test('captured actions correlate every Faro payload kind with native completion and vital exclusions', async () => {
+  const bodies: any[] = []
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch: async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)))
+      return new Response('ok', { status: 202 })
+    },
+  })
+  const records = [
+    ['exception', {}],
+    ['reatom.log', {}],
+    ['business.event', {}],
+    [
+      'measurement',
+      { 'measurement.type': 'custom', 'measurement.values': { duration: 1 } },
+    ],
+    [
+      'measurement',
+      { 'measurement.type': 'web-vitals', 'measurement.values': { lcp: 1 } },
+    ],
+    ['browser.user_action', {}],
+  ] as const
+  for (const [eventName, extra] of records) {
+    const batch = directBatch({
+      'action.id': 'captured-action',
+      'action.name': 'checkout',
+      ...extra,
+    })
+    batch.payload.resourceLogs[0]!.scopeLogs[0]!.logRecords[0]!.eventName =
+      eventName
+    expect(await transport(batch)).toEqual({ accepted: 1, rejected: 0 })
+  }
+  for (const [index, kind] of [
+    'exceptions',
+    'logs',
+    'events',
+    'measurements',
+  ].entries())
+    expect(bodies[index][kind][0].action).toEqual({
+      parentId: 'captured-action',
+      name: 'checkout',
+    })
+  expect(bodies[4].measurements[0].action).toBeUndefined()
+  expect(bodies[5].events[0]).toMatchObject({
+    name: 'faro.user.action',
+    action: { id: 'captured-action', name: 'checkout' },
+  })
+  expect(bodies[5].events[0].action).toEqual({
+    id: 'captured-action',
+    name: 'checkout',
+  })
+})
+
+test('action correlation requires a complete captured action and ignores resource defaults', async () => {
+  const bodies: any[] = []
+  const transport = faroTransport({
+    endpoint: 'https://faro.test/collect',
+    fetch: async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)))
+      return new Response('ok', { status: 202 })
+    },
+  })
+  for (const fields of [
+    {},
+    { 'action.id': 'partial' },
+    { 'action.name': 'partial' },
+  ]) {
+    const batch = directBatch(fields)
+    batch.payload.resourceLogs[0]!.resource.attributes = toOtlpAttributes({
+      'action.id': 'resource-action',
+      'action.name': 'resource-name',
+    }) as never
+    await transport(batch)
+  }
+  expect(bodies.map((body) => body.exceptions[0].action)).toEqual([
+    undefined,
+    undefined,
+    undefined,
+  ])
 })

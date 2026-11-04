@@ -2,6 +2,7 @@ import { action, bind, context } from '@reatom/core'
 import { expect, test } from 'vitest'
 
 import { type ReatomOpentelemetryInput } from './reatomOpentelemetry.ts'
+import { strictValueCapture } from './strict-capture/index.ts'
 import { resourceAttributesVar } from './resourceAttributesVar.ts'
 import {
   parseLogRecords,
@@ -55,6 +56,41 @@ const setup = (options: Partial<ReatomOpentelemetryInput> = {}) => {
 
 test('params and payload share one capture budget through the real factory', async () => {
   const { bodies, run, otel } = setup()
+  const input = ['a', 'b', 'c'].map((value) => value.repeat(2_000))
+  const output = ['x', 'y', 'z'].map((value) => value.repeat(2_000))
+  let calls = 0
+  try {
+    const target = run(() =>
+      action((...params: string[]) => {
+        calls++
+        expect(params).toEqual(input)
+        return output
+      }, 'capture-budgets.shared-budget'),
+    )
+    expect(run(() => target(...input))).toBe(output)
+    expect(calls).toBe(1)
+    await otel.flush()
+    const spans = bodies.flatMap(parseSpans)
+    expect(spans.map((span) => span.name)).toEqual([
+      'capture-budgets.shared-budget',
+    ])
+    const params = JSON.parse(String(spans[0]!.attributes['reatom.params']))
+    const payload = JSON.parse(String(spans[0]!.attributes['reatom.payload']))
+    expect(params).toEqual(input)
+    expect(JSON.stringify(payload)).toContain('[Truncated]')
+    expect(payload).not.toEqual(output)
+    expect(otel.otlp.stats()).toMatchObject({
+      exported: 1,
+      dropped: 0,
+      active: 0,
+    })
+  } finally {
+    otel.dispose()
+  }
+})
+
+test('strict valueCapture keeps a byte-exact shared params/payload budget', async () => {
+  const { bodies, run, otel } = setup({ valueCapture: strictValueCapture })
   const input = ['a', 'b', 'c'].map((value) => value.repeat(2_000))
   const output = ['x', 'y', 'z'].map((value) => value.repeat(2_000))
   let calls = 0

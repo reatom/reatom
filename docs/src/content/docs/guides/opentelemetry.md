@@ -1058,7 +1058,7 @@ See [Figure 8](#page-views-and-navigation-sources) for how the navigation source
 
 #### Common mistake
 
-Calling `pageView()` on every location change in `'popstate'` mode: back and forward are then counted twice, once by the listener and once by the effect. The `POP` guard prevents it. Second mistake: choosing `navigation: 'urlAtom'` here; reading `urlAtom` turns on link interception in an app that does not own it (dev warning names `urlAtom.catchLinks.set(false)` and `urlAtom.sync.set(() => () => {})`).
+Calling `pageView()` on every location change in `'popstate'` mode: back and forward are then counted twice, once by the listener and once by the effect. The `POP` guard prevents it. Second mistake: choosing `navigation: 'urlAtom'` here; reading `urlAtom` turns on link interception in an app that does not own it (dev warns `urlAtom navigation without routes`).
 
 ### E5. A consent banner with reatomGDPR
 
@@ -1797,17 +1797,23 @@ Built-in OTLP/Faro destinations are excluded. Custom transport requests after an
 
 Vitals emit `measurement` logs with `measurement.type = web-vitals`, lowercase values such as `{ lcp: 1200, delta: 1200 }`, unit `ms` (`1` for CLS), and `web_vital.name`, `id`, `rating`, `navigation_type`, `delta`. One collector registers five upstream callbacks per document, with weak subscribers and five cached primitive measurements. Disposal stops reports for the instance; upstream observers may live until document end.
 
-Performance emits `browser-navigation` / `browser-resource` measurement types. Values include duration, DNS/connect/request/response times, transfer/encoded/decoded sizes, plus completed navigation milestones. Missing/unfinished milestones are omitted; each callback processes at most 100 entries. Disposal disconnects the native observers. See the [schema reference](../../../../../packages/opentelemetry/API.md#navigation-and-resources) for exact names and units.
+By default, performance emits `browser-navigation` / `browser-resource` measurement types; `format: 'events'` selects native navigation/resource events instead. Values include duration, DNS/connect/request/response times, transfer/encoded/decoded sizes, plus completed navigation milestones. Missing/unfinished milestones are omitted; each callback processes at most 100 entries. Disposal disconnects the native observers. See the [schema reference](../../../../../packages/opentelemetry/API.md#navigation-and-resources) for exact names and units.
 
 ### Send to your backend
 
 Native OTLP appends `/v1/traces` and `/v1/logs`. Extra `Transport` destinations work with that endpoint or without `withOTLP`. A transport receives the batch payload/body, signal, item count, abort, deadline and keepalive flag, and returns accepted/rejected counts.
 
-Use `withOTLP({ endpoint: null, transports: [faroTransport({ endpoint: receiverUrl })] })` to send to a Faro receiver. The optional `/faro` entry supplies `faroTransport({ endpoint, headers?, fetch? })` for an exact absolute Faro collection URL and `logMeasurement` for finite numeric log-derived measurements. It maps captured events, console logs, exceptions, traces and measurements, grouping envelopes by captured app/user/session/page metadata. Vitals retain lowercase values and Faro `id`/`rating`/`navigation_type` aliases; performance uses this package's custom schema. Existing dashboards may need panels for that schema. Exception stack text is context, without automatic structured frames or symbolication.
+Use `withFaro({ endpoint: receiverUrl })` from `/faro/client` to send to an existing self-hosted Faro receiver. It composes the shared delivery worker; delivery options/stats remain `.otlp`. Lower-level `faroTransport({ endpoint, headers?, fetch?, attempts?, onSessionInvalid? })` from `/faro` still works through `withOTLP({ endpoint: null, transports: [...] })`. The exact collection URL gets no suffix. Collectors are separate imports; choose the root constructor for automatic Reatom activity or `/browser` for explicit spans and browser-only collection.
 
-The [package README](../../../../../packages/opentelemetry/README.md#self-hosted-faro-receiver) has a self-hosted Alloy → Loki/Tempo recipe based on the receiver documentation; it has not been validated against a running receiver here. Managed Grafana Cloud Frontend Observability has not been verified. The bridge requires HTTP 202, rejects an invalid session response, and leaves rotation to the application. It does not implement managed session lifecycle parity.
+The bridge maps native events, logs, measurements, structured exception stack frames, traces and captured app/user/view/page/session/browser metadata. `withBrowserPerformance({ format: 'events' })` supplies native navigation/resource performance events and navigation joins; default format remains measurements. Web Vitals keep their lowercase measurement values and context aliases. No source-map symbolication service is included. See the [migration recipes](../../../../../packages/opentelemetry/MIGRATION.md).
 
-Native OTLP defaults to three retries (four total attempts); standalone/custom/Faro transports own their retries, and Faro makes one attempt per envelope. The first destination controls queue accounting; additional destinations are best effort without independent retry queues. Offline holds are in memory and resume on `online`; reload loses unsent data. Unload keepalive/beacon is best effort under shared byte limits. Accepted beacon bytes do not prove receipt.
+The [real-backend suite](../../../../../packages/opentelemetry/e2e/faro/README.md) verifies the unchanged native Alloy receiver with Loki/Tempo queries and direct OTLP. All 2xx responses succeed. An accepted invalid-session response triggers stale-safe analytics rotation through `withFaro`; accepted records are neither dropped nor resent. Faro defaults to three total attempts for network/transient HTTP failures, preserving body and UUID idempotency key. Alloy does not deduplicate that key, so duplicates remain possible. Managed Grafana Cloud's private UI has not been verified.
+
+Native OTLP defaults to three retries (four total attempts). The first destination controls queue accounting; additional destinations are best effort without independent retry queues. Offline holds are in memory and resume on `online`; reload loses unsent data. Unload keepalive/beacon is best effort under shared byte limits, including the 60 KiB Faro converted-envelope limit. Accepted beacon bytes do not prove receipt.
+
+Standalone `withBrowserErrors` captures errors/rejections independently of analytics; prefer analytics `errors: false` alongside it. `withBrowserActions` captures explicitly named DOM actions and optional rage/dead/error clicks without DOM text extraction. `withBrowserCsp` adds bounded violations with policy/sample details off by default. `withBrowserMetadata` adds optional browser/viewport/document metadata without storage; explicit attributes remain caller-owned privacy input. Console Error-to-exception capture is opt-in with `errorsAsExceptions: true`.
+
+Sessions default to 30-minute idle and four-hour absolute lifetime. Set `sessionTimeout: 15 * 60_000`, `sessionMaxLifetime: 4 * 60 * 60_000`, `persistSession: false` and `persistVisitor: false` for the in-memory Faro-style profile. `analytics.setView(name?)` and `rotateSession(expectedId?)` support explicit views and stale-safe rotation. Session sampling is persisted/rotation-stable when enabled and gates remote RUM export using initiating metadata; it does not rewrite upstream W3C sampled flags.
 
 ## 13. Limits and sharp edges
 
@@ -1815,7 +1821,7 @@ Native OTLP defaults to three retries (four total attempts); standalone/custom/F
 
 Trace continuations begin after 1000 spans or 60 seconds by default, linked to the previous trace. `Infinity` disables either limit. The accepted `roots: ['mount']` flag does not implement mount/render capture. General browser collectors do not repair missing `wrap` context, isolate a widget's native requests, or guarantee complete browser measurements after late attachment.
 
-The package currently has no replay, source-map upload/symbolication service, error-grouping UI, arbitrary DOM named actions, frustration/rage-click/scroll/form analytics, CSP or long-task collector, experiment/e-commerce schema, automatic title/referrer/viewport enrichment, automatic login/logout identity linking, native OTLP metrics, durable offline storage, managed Faro session parity, cross-tab/worker trace propagation, or automatic mount/render profiling. Cross-tab session storage synchronization is separate from trace propagation. These are current boundaries, not release promises.
+Replay, source-map services, error-grouping UI, automatic scroll/form analytics, long tasks, experiment/e-commerce schemas, automatic title/referrer enrichment, automatic login linking, native OTLP metrics, durable offline storage, verified managed Cloud UI integration, cross-tab/worker trace propagation and mount/render profiling are outside the implemented surface. The browser entry uses explicit parents/snapshots across asynchronous boundaries; it is not a global OpenTelemetry API facade or Zone provider. See [the complete API](../../../../../packages/opentelemetry/API.md#current-boundaries).
 
 The [API reference](../../../../../packages/opentelemetry/API.md) lists the complete public surface, including capture, serialization, resources, per-target settings, transport contracts, consent, local values and helper types. [Reatom admin](../../../../../packages/admin/README.md) documents the local records workflow and its current APIs.
 
@@ -1852,7 +1858,7 @@ The [API reference](../../../../../packages/opentelemetry/API.md) lists the comp
 
 **Cause ids** — `reatom.frame.id` and `reatom.cause.ids` on Reatom activity records; enough to follow the Reatom cause graph in OTLP.
 
-**`withWebAnalytics`** — Native optional extension adding a requested-enable analytics atom with readonly session/page/visitor/attribution/focus children and a page-view action.
+**`withWebAnalytics`** — Native optional extension adding a requested-enable analytics atom, readonly session/page/visitor/attribution/focus children, and page-view, view-name and session-rotation actions.
 
 **Computed** — Derived Reatom state; uses an existing trace or app-session context.
 

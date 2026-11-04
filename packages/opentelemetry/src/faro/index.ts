@@ -1,8 +1,11 @@
+import { nativeEvent } from './events.ts'
+import { stackFrames } from './stacktrace.ts'
+import { retryWithBackoff } from '../retryWithBackoff.ts'
 import { markTelemetryUrl } from '../browserCapture.ts'
 import type { OtlpLogRecord } from '../buildLogRecord.ts'
 import type { OtlpSpan } from '../buildSpan.ts'
 import { suppressTracing } from '../observation.ts'
-import type { ReatomOpentelemetry } from '../reatomOpentelemetry.ts'
+import type { BrowserTelemetry } from '../captureEngine.ts'
 import type { Transport } from '../sendTraces.ts'
 import type { OtlpAnyValue, OtlpAttrValue } from '../toOtlpValue.ts'
 
@@ -49,6 +52,9 @@ const meta = (fields: Fields, version: string, userFields: Fields): Fields => {
       ['version', 'service.version'],
       ['environment', 'deployment.environment.name'],
       ['release', 'service.release'],
+      ['bundleId', 'service.bundle.id'],
+      ['gitHash', 'service.git.hash'],
+      ['installationId', 'service.installation.id'],
     ].flatMap(([key, attr]) => {
       const value =
         text(fields, attr!) ??
@@ -85,19 +91,65 @@ const meta = (fields: Fields, version: string, userFields: Fields): Fields => {
   )
     user.roles = roles.join(',')
   const id = text(fields, 'session.id')
-  const url = text(fields, 'page.url') ?? text(fields, 'url.full')
+  const url = text(fields, 'page.url')
   const pageId = text(fields, 'page.id')
+  const view = text(fields, 'view.name')
+  const browser: Fields = {}
+  for (const [attribute, key] of [
+    ['browser.name', 'name'],
+    ['browser.version', 'version'],
+    ['browser.os', 'os'],
+    ['browser.language', 'language'],
+    ['user_agent.original', 'userAgent'],
+  ] as const) {
+    const value = text(fields, attribute)
+    if (value !== undefined) browser[key] = value
+  }
+  if (typeof fields['browser.mobile'] === 'boolean')
+    browser.mobile = fields['browser.mobile']
+  for (const [attribute, key] of [
+    ['browser.viewport.width', 'viewportWidth'],
+    ['browser.viewport.height', 'viewportHeight'],
+  ] as const) {
+    const value = fields[attribute]
+    if (
+      (typeof value === 'number' && Number.isFinite(value) && value >= 0) ||
+      typeof value === 'string'
+    )
+      browser[key] = String(value)
+  }
+  const brands = fields['browser.brands']
+  if (typeof brands === 'string') browser.brands = brands
+  else if (Array.isArray(brands)) {
+    const valid = brands.slice(0, 32).flatMap((brand) => {
+      if (!brand || typeof brand !== 'object') return []
+      const item = brand as Fields
+      const name = text(item, 'brand'),
+        version = text(item, 'version')
+      return name === undefined && version === undefined
+        ? []
+        : [
+            {
+              ...(name !== undefined && { brand: name }),
+              ...(version !== undefined && { version }),
+            },
+          ]
+    })
+    if (valid.length) browser.brands = valid
+  }
   return {
     sdk: {
       name: '@reatom/opentelemetry',
       version: text(fields, 'telemetry.sdk.version') ?? version,
     },
     app,
-    ...(Object.keys(user).length ? { user } : {}),
-    ...(id ? { session: { id } } : {}),
-    ...(url || pageId
-      ? { page: { ...(url ? { url } : {}), ...(pageId ? { id: pageId } : {}) } }
-      : {}),
+    ...(view !== undefined && { view: { name: view } }),
+    ...(Object.keys(browser).length > 0 && { browser }),
+    ...(Object.keys(user).length && { user }),
+    ...(id && { session: { id } }),
+    ...((url || pageId) && {
+      page: { ...(url && { url }), ...(pageId && { id: pageId }) },
+    }),
   }
 }
 const measurementValues = (value: unknown): value is Record<string, number> =>
@@ -115,7 +167,7 @@ const measurementValues = (value: unknown): value is Record<string, number> =>
  * category consent and explicit attribute privacy.
  */
 export const logMeasurement = (
-  otel: Pick<ReatomOpentelemetry, 'log'>,
+  otel: Pick<BrowserTelemetry, 'log'>,
   input: {
     type: string
     values: Record<string, number>
@@ -123,17 +175,13 @@ export const logMeasurement = (
   },
 ): void => {
   if (!input.type.trim() || !measurementValues(input.values))
-    throw new TypeError(
-      'Measurement requires a nonempty type and named finite numeric values',
-    )
+    throw new TypeError('Measurement needs a type and numeric values')
   if (
     input.context &&
     ('measurement.type' in input.context ||
       'measurement.values' in input.context)
   )
-    throw new TypeError(
-      'Measurement context cannot override measurement fields',
-    )
+    throw new TypeError('Measurement context overrides reserved fields')
   otel.log('measurement', {
     'measurement.type': input.type,
     'measurement.values': input.values,
@@ -146,13 +194,23 @@ export interface FaroTransportOptions {
   endpoint: string
   headers?: Record<string, string>
   fetch?: typeof globalThis.fetch
+  /** Total attempts per envelope, including the initial request. Default: 3. */
+  attempts?: number
+  /**
+   * Called after acceptance; rotate only if this captured session is still
+   * current.
+   */
+  onSessionInvalid?: (capturedSessionId: string) => void
 }
 
 /**
- * Faro receiver bridge. One attempt per envelope; does not install
+ * Faro receiver bridge. Bounded retries per exact envelope; does not install
  * instrumentation.
  */
 export const faroTransport = (options: FaroTransportOptions): Transport => {
+  const attempts = options.attempts ?? 3
+  if (!Number.isSafeInteger(attempts) || attempts < 1 || attempts > 10)
+    throw new RangeError('Faro attempts must be an integer between 1 and 10')
   const url = new URL(options.endpoint)
   if (!['http:', 'https:'].includes(url.protocol))
     throw new TypeError('Faro endpoint must be HTTP(S)')
@@ -203,9 +261,20 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
               scope.scope.version,
               attributes(log.attributes),
             )
+            const captured = attributes(log.attributes)
+            const actionId = text(captured, 'action.id')
+            const actionName = text(captured, 'action.name')
+            const actionExcluded =
+              eventName === 'measurement' &&
+              fields['measurement.type'] === 'web-vitals'
             const common = {
               timestamp: timestamp(log.timeUnixNano),
               trace: trace(log),
+              ...(!actionExcluded &&
+                actionId !== undefined &&
+                actionName !== undefined && {
+                  action: { parentId: actionId, name: actionName },
+                }),
             }
             const context = strings(fields)
             let kind: string
@@ -219,6 +288,12 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
               delete context['measurement.type']
               delete context['measurement.values']
               if (fields['measurement.type'] === 'web-vitals') {
+                const navigationId = text(
+                  fields,
+                  'performance.navigation_entry_id',
+                )
+                if (navigationId !== undefined)
+                  context.navigation_entry_id = navigationId
                 for (const key of ['id', 'rating', 'navigation_type']) {
                   const value = text(fields, `web_vital.${key}`)
                   if (value !== undefined) context[key] ??= value
@@ -232,8 +307,19 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
               }
             } else if (eventName === 'exception') {
               kind = 'exceptions'
+              const frames = stackFrames(
+                fields['exception.stacktrace.frames'],
+                fields['exception.stacktrace'],
+              )
               item = {
                 ...common,
+                ...(frames.length > 0 && { stacktrace: { frames } }),
+                ...(typeof fields['exception.fatal'] === 'boolean' && {
+                  fatal: fields['exception.fatal'],
+                }),
+                ...(text(fields, 'exception.fingerprint') !== undefined && {
+                  fingerprint: fields['exception.fingerprint'],
+                }),
                 type: text(fields, 'exception.type') ?? 'Error',
                 value: text(fields, 'exception.message') ?? 'Exception',
                 context,
@@ -263,13 +349,7 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
               kind = 'events'
               item = {
                 ...common,
-                name:
-                  eventName === 'session.start'
-                    ? 'session_start'
-                    : eventName === 'app.page_view'
-                      ? 'view_changed'
-                      : eventName,
-                attributes: context,
+                ...nativeEvent(eventName, fields, context),
               }
             }
             ;((body[kind] ??= []) as Fields[]).push(item)
@@ -304,6 +384,7 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
     const requests = [...envelopes.values()].map(({ body, count }) => ({
       body: JSON.stringify(body),
       count,
+      idempotencyKey: globalThis.crypto.randomUUID(),
       session: (body.meta.session as { id: string } | undefined)?.id,
     }))
     // Conversion can grow the OTLP envelope; refuse the whole unload batch before sending.
@@ -312,7 +393,7 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
       0,
     )
     if (batch.keepalive && inflightKeepaliveBytes + bytes > 60 * 1024)
-      throw new RangeError('Faro unload payload exceeds keepalive budget')
+      throw new RangeError('Faro keepalive budget exceeded')
     if (batch.keepalive) inflightKeepaliveBytes += bytes
     try {
       let accepted = 0
@@ -326,33 +407,49 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
           const headers: Record<string, string> = {}
           for (const [key, value] of Object.entries(options.headers ?? {}))
             if (
-              !['content-type', 'x-faro-session-id'].includes(key.toLowerCase())
+              ![
+                'content-type',
+                'x-faro-session-id',
+                'idempotency-key',
+              ].includes(key.toLowerCase())
             )
               headers[key] = value
           headers['Content-Type'] = 'application/json'
+          headers['Idempotency-Key'] = request.idempotencyKey
           if (request.session) headers['x-faro-session-id'] = request.session
           markTelemetryUrl(options.endpoint)
-          const response = await suppressTracing(() =>
-            (options.fetch ?? globalThis.fetch)(options.endpoint, {
-              method: 'POST',
-              headers,
-              body: request.body,
-              signal,
-              keepalive: batch.keepalive,
-            }),
-          )
-          if (response.status !== 202) {
-            await response.body?.cancel()
+          const response = await retryWithBackoff({
+            maxRetries: batch.keepalive ? 0 : attempts - 1,
+            retryableStatuses: new Set([408, 425, 429, 500, 502, 503, 504]),
+            signal,
+            deadline: batch.deadline,
+            send: () =>
+              suppressTracing(() =>
+                (options.fetch ?? globalThis.fetch)(options.endpoint, {
+                  method: 'POST',
+                  headers,
+                  body: request.body,
+                  signal,
+                  keepalive: batch.keepalive,
+                }),
+              ),
+          })
+          await response.body?.cancel()
+          if (response.status < 200 || response.status >= 300) {
             errorMessage = `Faro HTTP ${response.status}`
             rejected += request.count
             return
           }
-          await response.body?.cancel()
-          if (response.headers.get('X-Faro-Session-Status') === 'invalid') {
-            rejected += request.count
-            errorMessage =
-              'Faro session invalid; application must rotate session'
-            return
+          if (
+            response.headers.get('X-Faro-Session-Status') === 'invalid' &&
+            request.session
+          ) {
+            // Callback errors cannot turn an accepted envelope into a retransmission.
+            try {
+              options.onSessionInvalid?.(request.session)
+            } catch {
+              /* application hook */
+            }
           }
           accepted += request.count
         } catch (error) {
@@ -367,7 +464,7 @@ export const faroTransport = (options: FaroTransportOptions): Transport => {
       // navigation may destroy this document as soon as the first request starts.
       if (batch.keepalive) await Promise.all(requests.map(send))
       else for (const request of requests) await send(request)
-      return { accepted, rejected, ...(errorMessage ? { errorMessage } : {}) }
+      return { accepted, rejected, ...(errorMessage && { errorMessage }) }
     } finally {
       if (batch.keepalive) inflightKeepaliveBytes -= bytes
     }

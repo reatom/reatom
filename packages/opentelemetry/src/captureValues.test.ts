@@ -3,6 +3,7 @@ import { Buffer } from 'node:buffer'
 import { expect, test } from 'vitest'
 
 import { createValueCapture } from './captureValues.ts'
+import { strictValueCapture } from './strict-capture/index.ts'
 import type { OtlpAttrValue } from './toOtlpValue.ts'
 import { toOtlpValue } from './toOtlpValue.ts'
 test('preserves int64 values without converting unbounded bigints', () => {
@@ -103,7 +104,21 @@ test('does not call toJSON, coercion, iterator, constructor or function name acc
   expect(calls).toBe(0)
   expect(encoded).toContain('visible')
   expect(encoded).not.toContain('application hook')
-  expect(opaque).toEqual({ '@map': [['private', 'hidden']] })
+  expect(opaque).toBe('[Map]')
+})
+
+test('strict capture encodes maps without calling patched iterators', () => {
+  let calls = 0
+  const unexpected = () => {
+    calls++
+    throw new Error('application hook')
+  }
+  const map = new Map([['private', 'hidden']])
+  Object.defineProperty(map, Symbol.iterator, { get: unexpected })
+  expect(strictValueCapture().capture('map', map)).toEqual({
+    '@map': [['private', 'hidden']],
+  })
+  expect(calls).toBe(0)
 })
 
 test('owns nested object, array and byte snapshots before application mutation', () => {
@@ -174,6 +189,12 @@ test('preserves primitives and safely normalizes unsupported scalar values', () 
     '-Infinity',
   ])
   expect(session.capture('value', 42n)).toBe(42n)
+  expect(session.capture('value', new Date(0))).toBe('[Date]')
+  expect(session.capture('value', new Set([1]))).toBe('[Set]')
+})
+
+test('strict capture formats dates and set entries', () => {
+  const session = strictValueCapture()
   expect(session.capture('value', new Date(0))).toBe('1970-01-01T00:00:00.000Z')
   expect(session.capture('value', new Set([1]))).toEqual({ '@set': [1] })
 })
@@ -266,7 +287,7 @@ test('shares the entry budget between params and payload and stops before getter
 test.each(['a', 'Ж', '😀', '\u0000', '"\\\n', '\ud800'])(
   'bounds escaped UTF-8 strings across repeated captures: %j',
   (unit: string) => {
-    const session = createValueCapture()
+    const session = strictValueCapture()
     const outputs: OtlpAttrValue[] = []
     let total = 0
     let exhausted: unknown
@@ -303,7 +324,7 @@ test('bounds wide escaped keys, containers, markers and byte base64 together', (
       new Uint8Array(600),
     ]),
   )
-  const session = createValueCapture((_, value) => {
+  const session = strictValueCapture((_, value) => {
     calls++
     return value
   })
@@ -319,7 +340,7 @@ test('bounds wide escaped keys, containers, markers and byte base64 together', (
 })
 
 test('payload cannot reset the byte budget consumed by params', () => {
-  const session = createValueCapture()
+  const session = strictValueCapture()
   const params = session.capture('params', Array(3).fill('a'.repeat(2000)))
   const payload = session.capture('payload', Array(3).fill('b'.repeat(2000)))
 
@@ -330,6 +351,15 @@ test('payload cannot reset the byte budget consumed by params', () => {
     representationBytes('params', params) +
       representationBytes('payload', payload),
   ).toBeLessThanOrEqual(8192)
+})
+
+test('lean payload cannot reset the approximate size budget consumed by params', () => {
+  const session = createValueCapture()
+  const params = session.capture('params', Array(3).fill('a'.repeat(2000)))
+  const payload = session.capture('payload', Array(3).fill('b'.repeat(2000)))
+
+  expect(params).toEqual(Array(3).fill('a'.repeat(2000)))
+  expect(JSON.stringify(payload)).toContain('[Truncated]')
 })
 
 test('preserves boundary-length strings and never cuts a surrogate pair', () => {
@@ -427,8 +457,20 @@ test('redacts root and child keys before normalization and owns transformed valu
   ).not.toContain('private')
 })
 
-test('redaction expansion still obeys byte and string budgets', () => {
+test('lean redaction expansion still obeys the string cap', () => {
   const session = createValueCapture((key, value) =>
+    key === 'expand' ? '\u0000'.repeat(100_000) : value,
+  )
+  const result = session.capture('params', { expand: 1, public: 'visible' })
+  const expanded = (result as { expand: string }).expand
+
+  expect(typeof expanded).toBe('string')
+  expect(expanded.length).toBeLessThanOrEqual(2048)
+  expect(expanded).toMatch(/\[Truncated\]$/)
+})
+
+test('strict redaction expansion still obeys byte and string budgets', () => {
+  const session = strictValueCapture((key, value) =>
     key === 'expand' ? '\u0000'.repeat(100_000) : value,
   )
   const result = session.capture('params', { expand: 1, public: 'visible' })

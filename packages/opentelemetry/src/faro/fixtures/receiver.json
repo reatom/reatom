@@ -18,7 +18,7 @@
         "service.name": "shop",
         "service.version": "1",
         "session.id": "session-a",
-        "url.full": "https://shop.test/a"
+        "page.url": "https://shop.test/a"
       }
     }
   ]

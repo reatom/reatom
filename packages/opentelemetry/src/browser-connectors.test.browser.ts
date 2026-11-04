@@ -4,6 +4,7 @@ import { withBrowserConsoleMonkeypatch } from './browser-console/index.ts'
 import { withBrowserNetworkMonkeypatch } from './browser-network/index.ts'
 import type { ReatomOpentelemetry } from './reatomOpentelemetry.ts'
 import { reatomTestTelemetry } from './test-helpers.ts'
+import { strictValueCapture } from './strict-capture/index.ts'
 
 const applyNetwork = (
   otel: ReatomOpentelemetry,
@@ -49,9 +50,13 @@ test('real fetch and XHR preserve responses and record sanitized CLIENT spans', 
   otel.dispose()
 })
 
-test('console duplicate extension preflight delivers once, toggles, scrubs payload, and restores originals', () => {
+test('console duplicate extension preflight delivers once, toggles, applies strict capture, and restores originals', () => {
   const native = console.warn
-  const otel = reatomTestTelemetry({ name: 'native-console', endpoint: null })
+  const otel = reatomTestTelemetry({
+    name: 'native-console',
+    endpoint: null,
+    valueCapture: strictValueCapture,
+  })
   const control = applyConsole(otel)
   expect(() => applyConsole(otel)).toThrow()
   control.setFalse()

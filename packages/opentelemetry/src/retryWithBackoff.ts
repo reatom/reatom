@@ -2,6 +2,7 @@ import { isAbort, random } from '@reatom/core'
 
 export interface RetryWithBackoffInput {
   send: () => Promise<Response>
+  retryableStatuses?: ReadonlySet<number>
   maxRetries?: number
   baseDelayMs?: number
   maxDelayMs?: number
@@ -84,6 +85,7 @@ const wait = (
 export const retryWithBackoff = async ({
   send,
   maxRetries = 3,
+  retryableStatuses = RETRYABLE_STATUS,
   baseDelayMs = 1000,
   maxDelayMs = 30_000,
   sleep,
@@ -113,7 +115,7 @@ export const retryWithBackoff = async ({
     }
     if (
       response &&
-      (!RETRYABLE_STATUS.has(response.status) || attempt >= maxRetries)
+      (!retryableStatuses.has(response.status) || attempt >= maxRetries)
     ) {
       return response // Ownership of this final body passes to the caller.
     }

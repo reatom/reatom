@@ -1,7 +1,8 @@
 import { action, atom, bind, context } from '@reatom/core'
 import { expect, test } from 'vitest'
 
-import { resolveSampling, TraceSampler } from './sampling.ts'
+import { browserCaptureOf, setBrowserMetadata } from './browserCapture.ts'
+import { createTraceSampler, resolveSampling } from './sampling.ts'
 import { parseSpans, reatomTestTelemetry } from './test-helpers.ts'
 
 const SAMPLED_PARENT = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
@@ -221,7 +222,7 @@ test("errors: 'always' (default) keeps the erroring action tree of an unsampled 
 })
 
 test('TraceSampler.decisions stays capped at 1024 and evicts the oldest id', () => {
-  const sampler = new TraceSampler(
+  const sampler = createTraceSampler(
     () => resolveSampling({ ratio: 1 }),
     () => 'b'.repeat(32),
   )
@@ -237,3 +238,80 @@ test('TraceSampler.decisions stays capped at 1024 and evicts the oldest id', () 
   expect(sampler.of(pinned)).toEqual({ sampled: true, remote: false })
   expect(sampler.decisionCount()).toBe(1024)
 })
+
+test('session sampling gates public logs and browser diagnostics while keeping local records', async () => {
+  const { otel, bodies } = start({
+    sampling: { by: 'session', ratio: 0 },
+    keepRecords: true,
+  })
+  try {
+    setBrowserMetadata(otel, () => ({ 'session.id': 'captured-session' }))
+    const browser = browserCaptureOf(otel)!
+    const pending = browser.span({ name: 'sampled.browser', startTimeMs: 1 })!
+    otel.log('sampled.public')
+    browser.log({ eventName: 'sampled.diagnostic', timeMs: 1 })
+    pending.finish({ endTimeMs: 2, error: true })
+    await otel.flush()
+    expect(bodies.join('')).not.toContain('sampled.')
+    expect(JSON.stringify(otel.records())).toContain('sampled.public')
+    expect(JSON.stringify(otel.records())).toContain('sampled.diagnostic')
+    expect(JSON.stringify(otel.records())).toContain('sampled.browser')
+  } finally {
+    otel.dispose()
+  }
+})
+
+test('session decisions rotate even when the explicit trace id stays the same', () => {
+  let session = 'one'
+  const sampler = createTraceSampler(
+    () => resolveSampling({ by: 'session', ratio: 0.5 }),
+    () => session,
+    (id) => id === 'two',
+  )
+  expect(sampler.of('same-trace').sampled).toBe(false)
+  session = 'two'
+  expect(sampler.of('same-trace').sampled).toBe(true)
+  expect(sampler.of('same-trace', 'one').sampled).toBe(false)
+  sampler.remote('remote-trace', false)
+  expect(sampler.of('remote-trace', 'two')).toEqual({
+    sampled: false,
+    remote: true,
+  })
+})
+
+for (const sampled of [false, true]) {
+  test(`async rejection retains capture-time session admission (${sampled}) after rotation and sampling change`, async () => {
+    const { otel, bodies, run } = start({
+      sampling: { by: 'session', ratio: sampled ? 1 : 0 },
+      warnContextLoss: false,
+      keepRecords: true,
+    })
+    let session = 'old-session'
+    setBrowserMetadata(otel, () => ({ 'session.id': session }))
+    let reject!: (reason: unknown) => void
+    const pending = new Promise<void>((_resolve, rejectPromise) => {
+      reject = rejectPromise
+    })
+    const failure = new Error('session rejection')
+    const command = run(() => action(() => pending, 'samp.session-reject'))
+    try {
+      const observed = run(() => command())
+      const rejection = observed.catch((error) => error)
+      session = 'new-session'
+      otel.set((options) => ({
+        ...options,
+        sampling: { by: 'trace', ratio: sampled ? 0 : 1 },
+      }))
+      reject(failure)
+      expect(await rejection).toBe(failure)
+      await otel.flush()
+      expect(JSON.stringify(otel.records())).toContain('old-session')
+      const wire = bodies.join('')
+      expect(wire.includes('old-session')).toBe(sampled)
+      expect(wire.includes('exception')).toBe(sampled)
+    } finally {
+      reject(failure)
+      otel.dispose()
+    }
+  })
+}

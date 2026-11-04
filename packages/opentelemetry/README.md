@@ -9,9 +9,12 @@ independent imports.
 **Unreleased:** this package is not published to npm. In this monorepo use
 `"@reatom/opentelemetry": "workspace:*"` and one shared `@reatom/core` dependency.
 
+- [Faro migration and backend choices](./MIGRATION.md): self-hosted Faro, generic OTLP and local inspection recipes.
 - [API reference](./API.md): every instance, target, analytics and connector option, privacy boundary, transport and helper.
 - [Worked guide](../../docs/src/content/docs/guides/opentelemetry.md): eighteen scenarios covering routing, consent, widgets, async work, SSR and debugging. The docs-site guide remains a draft.
 - [Collector E2E guide](./e2e/collector/README.md): local receiver setup and ClickHouse queries.
+
+The `/browser` entry uses the same `reatomOpentelemetry` constructor with explicit spans and optional browser collectors. It excludes automatic Reatom action/route/log instrumentation. Use the root entry when you want that instrumentation. Both share canonical records, local values, consent, sampling, budgets and exporters.
 
 ## Quick start
 
@@ -89,17 +92,22 @@ Optional factories are inert until applied through native `.extend`. Applied
 collectors start eagerly, even without UI/Admin subscribers. Import only the
 features you use; the root never imports these optional entries.
 
-| Import suffix          | Extension and added member                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `/otlp`                | `withOTLP(input)` → `otel.otlp`: optional export settings, delivery stats and transport action                     |
-| `/web-analytics`       | `withWebAnalytics(options?)` → `otel.analytics`: page views, sessions, engagement, attribution and window errors   |
-| `/gdpr`                | `withGDPR(optionsOrForm?)` → `otel.gdpr`: submitted consent form; standalone `reatomGDPR` is also exported         |
-| `/attributes`          | `withAttributes(source)` → readonly `otel.attributes`: common user/tenant/domain attributes from app state         |
-| `/browser-network`     | `withBrowserNetworkMonkeypatch(options?)` → `otel.browserNetwork`: fetch/XHR CLIENT spans and optional propagation |
-| `/browser-console`     | `withBrowserConsoleMonkeypatch(options?)` → `otel.browserConsole`: console logs, default warn/error                |
-| `/web-vitals`          | `withWebVitals()` → `otel.webVitals`: CLS, FCP, INP, LCP and TTFB                                                  |
-| `/browser-performance` | `withBrowserPerformance(options?)` → `otel.browserPerformance`: native navigation/resource timing measurements     |
-| `/faro`                | `faroTransport`, `logMeasurement`: receiver transport and log-derived measurements                                 |
+| Import suffix          | Extension and added member                                                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `/otlp`                | `withOTLP(input)` → `otel.otlp`: optional export settings, delivery stats and transport action                                |
+| `/web-analytics`       | `withWebAnalytics(options?)` → `otel.analytics`: page views, sessions, engagement, attribution and window errors              |
+| `/gdpr`                | `withGDPR(optionsOrForm?)` → `otel.gdpr`: submitted consent form; standalone `reatomGDPR` is also exported                    |
+| `/attributes`          | `withAttributes(source)` → readonly `otel.attributes`: common user/tenant/domain attributes from app state                    |
+| `/browser-network`     | `withBrowserNetworkMonkeypatch(options?)` → `otel.browserNetwork`: fetch/XHR CLIENT spans and optional propagation            |
+| `/browser-console`     | `withBrowserConsoleMonkeypatch(options?)` → `otel.browserConsole`: console logs, default warn/error                           |
+| `/web-vitals`          | `withWebVitals()` → `otel.webVitals`: CLS, FCP, INP, LCP and TTFB                                                             |
+| `/browser-performance` | `withBrowserPerformance(options?)` → `otel.browserPerformance`: navigation/resource timing measurements or native Faro events |
+| `/browser-errors`      | `withBrowserErrors(options?)` → `otel.browserErrors`: standalone uncaught errors/rejections                                   |
+| `/browser-actions`     | `withBrowserActions(options?)` → `otel.browserActions`: explicitly named DOM actions and rage/dead/error clicks               |
+| `/browser-csp`         | `withBrowserCsp(options?)` → `otel.browserCsp`: bounded CSP violation reports                                                 |
+| `/browser-metadata`    | `withBrowserMetadata(options?)` → `otel.browserMetadata`: optional document/browser enrichment, no storage                    |
+| `/faro/client`         | `withFaro(input)` → `otel.otlp`: Faro delivery through the shared exporter                                                    |
+| `/faro`                | `faroTransport`, `logMeasurement`: receiver transport and log-derived measurements                                            |
 
 ```ts
 import { withOTLP } from '@reatom/opentelemetry/otlp'
@@ -222,8 +230,12 @@ login/logout changes. Returning `null` affects future captures; it does not eras
 queued history or revoke export permission. Analytics visitor/session identifiers
 stay separate from known-user identity. See [attribute timing and Faro mapping](./API.md#common-attributes).
 
-Automatic values are bounded/redacted snapshots. Disable with `captureValues:
-false` or customize per target. Explicit common/domain/manual attributes require
+Automatic values are bounded/redacted snapshots from the lean serializer
+(sensitive keys and names; Map/Set/Date/URL become class markers). Disable with
+`captureValues: false`, customize per target, or pass
+`valueCapture: strictValueCapture` from `@reatom/opentelemetry/strict-capture`
+for in-string PII scrubbing and structured Map/Date/URL encoding. Explicit
+common/domain/manual attributes require
 caller-owned privacy and category policy; `otel.log` and `logMeasurement` obey the
 logs signal but do not supply that policy. `localValues` is a separate,
 default-off debugging channel of raw live references beside retained records,
@@ -236,21 +248,16 @@ Use a receiver that speaks the Faro JSON protocol alongside an OTLP backend or
 as your only export destination:
 
 ```ts
-import { withOTLP } from '@reatom/opentelemetry/otlp'
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { faroTransport, logMeasurement } from '@reatom/opentelemetry/faro'
+import { reatomOpentelemetry } from '@reatom/opentelemetry/browser'
+import { withFaro } from '@reatom/opentelemetry/faro/client'
+import { logMeasurement } from '@reatom/opentelemetry/faro'
 
 const otel = reatomOpentelemetry({
   name: 'shop.faro',
   serviceName: 'shop-web',
   serviceVersion: '1.0.0',
   environment: 'development',
-}).extend(
-  withOTLP({
-    endpoint: null,
-    transports: [faroTransport({ endpoint: 'http://localhost:12347/collect' })],
-  }),
-)
+}).extend(withFaro({ endpoint: 'http://localhost:12347/collect' }))
 
 // Invoke only when your measurement's category policy allows it.
 logMeasurement(otel, {
@@ -263,8 +270,7 @@ logMeasurement(otel, {
 The endpoint is an exact absolute collection URL; no suffix is appended.
 Measurements are logs with finite numeric values, not OTLP metrics or Prometheus
 instruments. The bridge groups captured app/user/session/page metadata and maps events,
-logs, measurements, exceptions and traces. HTTP 202 is required; invalid session
-responses require application-owned rotation. The
+logs, measurements, structured exception frames and traces. Every 2xx response is accepted. An accepted response with `X-Faro-Session-Status: invalid` triggers stale-safe analytics session rotation through `withFaro`, without resending accepted records. The
 [protocol and delivery reference](./API.md#faro-receiver-integration) covers
 headers, deadlines, unload limits and custom schemas.
 
@@ -297,41 +303,27 @@ otelcol.exporter.otlp "tempo" {
 ```
 
 Configure your production ingress, HTTPS, origin and access controls. This recipe
-follows [Alloy's receiver documentation](https://grafana.com/docs/alloy/latest/reference/components/faro/faro.receiver/)
-and has not been validated against a running receiver here. Managed Grafana Cloud
-Frontend Observability is unverified; this bridge does not implement its session
-lifecycle. Custom measurement schemas may need custom panels.
+follows [Alloy's receiver documentation](https://grafana.com/docs/alloy/latest/reference/components/faro/faro.receiver/). The [real-backend suite](./e2e/faro/README.md) validates the unchanged native Alloy receiver with Loki and Tempo, including retry, native events and exception frames. Managed Grafana Cloud Frontend Observability and its private UI have not been verified. Native performance events are opt-in; custom measurement schemas may need custom panels.
 
 Other backends use `withOTLP`, the `/otlp` entry's `otlpTransport`, or a custom `Transport`. With
 multiple destinations, the first controls queue accounting; additional
 transports are best effort without independent retries. Native endpoint exports
-retry up to three times. Queues are in memory, including offline holds; unload
+retry up to three times (four total attempts); Faro defaults to three total attempts per envelope, preserving body and idempotency key. The Alloy receiver does not deduplicate that key, so duplicate receipt remains possible. Queues are in memory, including offline holds; unload
 and beacon are best effort. See [delivery](./API.md#delivery-and-transports).
 
 ## Bundle cost
 
-Measured **2026-10-24**, built package entries, esbuild minified ES2022 and
-Node gzip/Brotli defaults, with only `@reatom/core` external:
+Measured **2026-11-01** with the [consumer benchmark](./bench/browser-sdk/README.md): pinned dependencies, esbuild 0.28.2, minified ES2022, all dependencies including core bundled, gzip level 9. These are standalone download sizes in bytes; they do not measure runtime speed or prove identical semantics.
 
-| Selected imports     | minified bytes | gzip bytes | Brotli bytes |
-| -------------------- | -------------: | ---------: | -----------: |
-| Local capture root   |         51,403 |     18,910 |       17,255 |
-| Root + OTLP exporter |         73,864 |     26,741 |       24,161 |
+| Profile / transport  | Reatom browser | Faro 2.13.0 | OTel browser |
+| -------------------- | -------------: | ----------: | -----------: |
+| RUM / Faro           |         44,480 |      43,798 |  Unsupported |
+| RUM / OTLP           |         40,886 |      47,109 |       28,411 |
+| RUM + network / OTLP |         42,744 |      75,147 |       40,648 |
 
-Local capture and export are separate import graphs. The root does not include
-the OTLP worker, protocol encoding, retry or unload delivery; `/otlp` adds those
-capabilities. Optional entry bundles are not additive costs: shared code changes
-the combined bundle.
+For an existing Reatom app, marginal gzip for RUM/Faro is 38,842 bytes versus Faro's 43,505, calculated as `gzip(app + SDK) - gzip(app)`. The standalone RUM/Faro bundle is larger. These results do not support a universal smallest-SDK claim. Root-entry profiles also retain automatic Reatom capture and cost more; full actions/CSP/metadata profiles have different coverage. The harness records 81 bundles, duplicate-build equality, browser graph exclusions, smoke checks and input hashes.
 
-Reproduce with `pnpm --filter @reatom/opentelemetry test:bundles`. The check builds
-40 source/dist graphs using esbuild minified ES2022, with only `@reatom/core`
-external, and reports raw/gzip/Brotli bytes. These are download sizes, not runtime
-speed measurements. Separate size-limit checks use their configured method and
-unchanged budgets; a passing import-graph check does not imply every size budget
-passes. The current separate size-limit checks exceed the root, GDPR, analytics and
-combined caps; Faro remains within its cap. Those configured checks use a
-different method from this esbuild table. Historical pre-split measurements are preserved in the
-[design investigation](./design/size-reduction.md).
+Reproduce consumer measurements from `bench/browser-sdk`. `pnpm --filter @reatom/opentelemetry test:bundles` separately checks 60 source/dist import graphs with core externalized. `pnpm --filter @reatom/opentelemetry size` runs the 12 separate Brotli size gates. Its budgets were explicitly expanded for added capabilities (root 16 KB, GDPR 1.1 KB, analytics 6.3 KB, combined 21 KB, Faro 4.5 KB); passing those gates is not a consumer-size win. Optional entry costs are not additive because shared code changes combined bundles. Historical measurements remain in the [design investigation](./design/size-reduction.md).
 
 ## Verification and boundaries
 

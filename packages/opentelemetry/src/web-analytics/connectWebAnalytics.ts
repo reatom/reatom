@@ -1,5 +1,11 @@
+import { internalsOf } from '../instanceInternals.ts'
 import { assertFeature, featureControl } from '../feature.ts'
-import { effectiveConsentOf, setBrowserMetadata } from '../browserCapture.ts'
+import { resolveSampling, sampleSessionRatio } from '../sampling.ts'
+import {
+  effectiveConsentOf,
+  setBrowserMetadata,
+  setBrowserSessionSampling,
+} from '../browserCapture.ts'
 import {
   abortVar,
   action,
@@ -16,17 +22,18 @@ import {
   type Atom,
 } from '@reatom/core'
 
-import { suppressTracing } from '../observation.ts'
+import { internalName } from '../internalName.ts'
+import { EMAIL_SCRUB } from '../scrubEmail.ts'
 import { isDevelopment } from '../devWarnings.ts'
+import { OTEL } from '../diag.ts'
 import { exceptionType } from '../errorMetadata.ts'
-import type { ReatomOpentelemetry } from '../reatomOpentelemetry.ts'
 import {
-  countRateLimitDrop,
-  currentTraceOf,
-  recordedExceptionsOf,
-  resetRateLimitDrops,
-  runInTraceOf,
-} from '../reatomOpentelemetry.ts'
+  markBrowserErrorReported,
+  hasStandaloneBrowserErrors,
+} from '../reportedBrowserErrors.ts'
+import {
+  type BrowserTelemetry,
+} from '../captureEngine.ts'
 import type { SpanContext } from '../traceContext.ts'
 import type { OtlpAttrValue } from '../toOtlpValue.ts'
 import {
@@ -76,6 +83,7 @@ export type AnalyticsSession = {
 export type AnalyticsPage = {
   path?: string
   url?: string
+  name?: string
 }
 
 type BooleanReader = {
@@ -113,11 +121,15 @@ export interface WebAnalyticsOptions {
   autoPageViews?: boolean
   errors?: boolean
   persistVisitor?: boolean
+  /** Persist session identity and sampling decision. Default true. */
+  persistSession?: boolean
   captureQuery?: boolean
   captureErrorDetails?: boolean
   navigation?: NavigationSource
   storageKey?: string
   sessionTimeout?: number
+  /** Absolute session lifetime in milliseconds. Default four hours. */
+  sessionMaxLifetime?: number
   perTab?: boolean
   rotateAtMidnight?: boolean
   attributionParams?: string[]
@@ -143,65 +155,88 @@ export interface WebAnalytics extends BooleanAtom {
   attribution: ReadonlyChild<Attribution>
   focus: ReadonlyChild<boolean>
   pageView: Action<[attributes?: Record<string, OtlpAttrValue>], void>
+  setView: Action<[name?: string], void>
+  rotateSession: Action<[expectedId?: string], void>
 }
 
+const toPublicSession = (session: StoredSession): AnalyticsSession => ({
+  id: session.id,
+  start: session.startedAt,
+  previousId: session.previousId,
+})
+
 type AnalyticsState = {
-  visitorAtom: Atom<string | undefined>
-  sessionAtom: Atom<AnalyticsSession>
+  visitorStateAtom: Atom<StoredVisitor | undefined>
+  sessionStateAtom: Atom<StoredSession | undefined>
+  memorySessionAtom: Atom<AnalyticsSession>
   pageAtom: Atom<AnalyticsPage>
-  attributionAtom: Atom<Attribution>
   focusAtom: Atom<boolean>
 }
 
 export const withWebAnalytics =
   (
     options: WebAnalyticsOptions = {},
-  ): Ext<ReatomOpentelemetry, { analytics: WebAnalytics }> =>
+  ): Ext<BrowserTelemetry, { analytics: WebAnalytics }> =>
   (otel) => {
     assertFeature(otel, 'analytics')
-    return suppressTracing(() => {
-      const prefix = `${otel.name}.analytics`
-      const state: AnalyticsState = {
-        visitorAtom: atom<string | undefined>(
-          undefined,
-          `${prefix}.visitorState`,
-        ),
-        sessionAtom: atom<AnalyticsSession>({}, `${prefix}.sessionState`),
-        pageAtom: atom<AnalyticsPage>({}, `${prefix}.pageState`),
-        attributionAtom: atom<Attribution>({}, `${prefix}.attributionState`),
-        focusAtom: atom(false, `${prefix}.focusState`),
-      }
-      let active: ReturnType<typeof installWebAnalytics> | undefined
-      let installGeneration = 0
-      const control = featureControl(otel, 'analytics', () => {
-        const generation = ++installGeneration
-        const installed = installWebAnalytics(otel, options, state)
-        if (generation === installGeneration) active = installed
-        return {
-          dispose() {
-            installed.dispose()
-            if (active === installed) active = undefined
-          },
-        }
-      })
+    const prefix = internalName(otel.instanceName, 'analytics')
+    const state: AnalyticsState = {
+      visitorStateAtom: atom<StoredVisitor | undefined>(
+        undefined,
+        `${prefix}.visitorStored`,
+      ),
+      sessionStateAtom: atom<StoredSession | undefined>(
+        undefined,
+        `${prefix}.sessionStored`,
+      ),
+      memorySessionAtom: atom<AnalyticsSession>({}, `${prefix}.sessionMemory`),
+      pageAtom: atom<AnalyticsPage>({}, `${prefix}.pageState`),
+      focusAtom: atom(false, `${prefix}.focusState`),
+    }
+    let active: ReturnType<typeof installWebAnalytics> | undefined
+    let installGeneration = 0
+    const control = featureControl(otel, 'analytics', () => {
+      const generation = ++installGeneration
+      const installed = installWebAnalytics(otel, options, state)
+      if (generation === installGeneration) active = installed
       return {
-        analytics: Object.assign(control, {
-          visitor: computed(() => state.visitorAtom(), `${prefix}.visitor`),
-          session: computed(() => state.sessionAtom(), `${prefix}.session`),
-          page: computed(() => state.pageAtom(), `${prefix}.page`),
-          attribution: computed(
-            () => state.attributionAtom(),
-            `${prefix}.attribution`,
-          ),
-          focus: computed(() => state.focusAtom(), `${prefix}.focus`),
-          pageView: action(
-            (attributes?: Record<string, OtlpAttrValue>) =>
-              active?.pageView(attributes),
-            `${prefix}.pageView`,
-          ),
-        }),
+        dispose() {
+          installed.dispose()
+          if (active === installed) active = undefined
+        },
       }
     })
+    return {
+      analytics: Object.assign(control, {
+        visitor: computed(
+          () => state.visitorStateAtom()?.id,
+          `${prefix}.visitor`,
+        ),
+        session: computed(() => {
+          const stored = state.sessionStateAtom()
+          return stored ? toPublicSession(stored) : state.memorySessionAtom()
+        }, `${prefix}.session`),
+        page: computed(() => state.pageAtom(), `${prefix}.page`),
+        attribution: computed(
+          () => state.visitorStateAtom()?.lastTouch ?? {},
+          `${prefix}.attribution`,
+        ),
+        focus: computed(() => state.focusAtom(), `${prefix}.focus`),
+        setView: action(
+          (name?: string) => active?.setView(name),
+          `${prefix}.setView`,
+        ),
+        rotateSession: action(
+          (expectedId?: string) => active?.rotateSession(expectedId),
+          `${prefix}.rotateSession`,
+        ),
+        pageView: action(
+          (attributes?: Record<string, OtlpAttrValue>) =>
+            active?.pageView(attributes),
+          `${prefix}.pageView`,
+        ),
+      }),
+    }
   }
 
 const readNavigationTarget = (): EventTarget | undefined => {
@@ -213,15 +248,6 @@ const readNavigationTarget = (): EventTarget | undefined => {
     return navigation as EventTarget
   }
   return undefined
-}
-
-const resolveNavigation = (
-  explicit: NavigationSource | undefined,
-): NavigationSource => {
-  if (explicit) return explicit
-  if (Object.keys(urlAtom.routes).length > 0) return 'urlAtom'
-  if (readNavigationTarget()) return 'navigation-api'
-  return 'popstate'
 }
 
 const ACTIVE_IDLE_MS = 5_000
@@ -238,7 +264,6 @@ const DEFAULT_ERRORS_PER_MIN = 10
 const DEFAULT_EVENTS_PER_MIN = 60
 const EXCEPTION_EVENT = 'exception'
 const EXCEPTION_SUPPRESSED_EVENT = 'exception.suppressed'
-const EMAIL_SCRUB = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g
 const PHONE_SCRUB =
   /(?<![\dA-Fa-f])(?:\+|00)?(?:\d[\s().\-]?){10,15}\d(?![\dA-Fa-f])/g
 
@@ -270,20 +295,6 @@ const errorFromWindowEvent = (event: Event, type: string): unknown => {
     return new Error(errorEvent.message)
   }
   return undefined
-}
-
-const warnAnalyticsNoWindow = () => {
-  if (!isDevelopment()) return
-  console.warn(
-    '[@reatom/opentelemetry] withWebAnalytics: window is undefined; analytics is a no-op',
-  )
-}
-
-const warnAnalyticsUrlAtomCatchLinks = () => {
-  if (!isDevelopment()) return
-  console.warn(
-    "[@reatom/opentelemetry] withWebAnalytics: navigation is 'urlAtom' without Reatom routes. urlAtom.catchLinks defaults to true and urlAtom.sync writes history. Call urlAtom.catchLinks.set(false) and urlAtom.sync.set(() => () => {}) to observe the URL without intercepting clicks.",
-  )
 }
 
 type TracePair = { traceId: string; spanId: string }
@@ -319,42 +330,44 @@ const readPageViewAttributes = (
 }
 
 const installWebAnalytics = (
-  otel: ReatomOpentelemetry,
+  otel: BrowserTelemetry,
   options: WebAnalyticsOptions,
   {
-    visitorAtom,
-    sessionAtom,
+    visitorStateAtom,
+    sessionStateAtom,
+    memorySessionAtom,
     pageAtom,
-    attributionAtom,
     focusAtom,
   }: AnalyticsState,
 ) => {
   const instanceName = otel.instanceName
-  const prefix = `${otel.name}.analytics`
+  const prefix = internalName(otel.instanceName, 'analytics')
   const stops: Array<() => void> = []
   let analyticsDisposed = false
   let analyticsAbort: AbortController | undefined
   let openedPageViews = 0
   let consentedPageViews = 0
   let consentListenersReady = false
-  let flushPageEngagement = (_reason: 'hide' | 'navigation' | 'consent') => {}
-  let resetRamEngagement = (_restartClock: boolean) => {}
   let analyticsPageContext: TracePair | undefined
+  const engagement = {
+    runningSinceMs: undefined as number | undefined,
+    lastInputAtMs: Date.now(),
+    accumulatedVisibleMs: 0,
+    accumulatedActiveMs: 0,
+  }
   const errorWindows = new Map<string, SignatureWindow>()
   const eventWindows = new Map<string, number[]>()
-  const prunePageWindows = (oldPageKey: string) => {
-    const prefix = `${oldPageKey}\0`
-    deletePrefixedKeys(errorWindows, prefix)
-    deletePrefixedKeys(eventWindows, prefix)
-  }
   const errorsPerMin = options.rateLimit?.errorsPerMin ?? DEFAULT_ERRORS_PER_MIN
   const eventsPerMin = options.rateLimit?.eventsPerMin ?? DEFAULT_EVENTS_PER_MIN
   const eventsByName = options.rateLimit?.byName ?? {}
   const errorSampleRatio = options.errorSampling ?? 1
-  const recordedExceptions = recordedExceptionsOf(otel)
+  const internals = internalsOf(otel)
+  const recordedExceptions = internals?.recordedExceptions
   const storageKeyName = options.storageKey ?? instanceName
   const persistVisitor = options.persistVisitor !== false
+  const persistSession = options.persistSession !== false
   const sessionTimeout = options.sessionTimeout ?? DEFAULT_SESSION_TIMEOUT_MS
+  const sessionMaxLifetime = options.sessionMaxLifetime ?? 4 * 60 * 60 * 1000
   const perTab = options.perTab === true
   const rotateAtMidnight = options.rotateAtMidnight === true
   const attributionParams = options.attributionParams ?? [
@@ -364,13 +377,13 @@ const installWebAnalytics = (
   const sessionKey = sessionStorageKey(storageKeyName)
   let documentInbound = true
   let identityStorageListening = false
-  let visitorState: StoredVisitor | undefined
-  let sessionState: StoredSession | undefined
   const cleanup = () => {
     if (analyticsDisposed) return
     analyticsDisposed = true
     try {
       analyticsAbort?.abort()
+    } catch {
+      /* Aborting an install scope can throw the abort reason. */
     } finally {
       analyticsAbort = undefined
       while (stops.length) {
@@ -380,7 +393,10 @@ const installWebAnalytics = (
           /* Finish releasing the remaining owned resources. */
         }
       }
-      resetRateLimitDrops(otel)
+      if (internals) {
+        internals.rateLimitDrops.count = 0
+        internals.invalidateStats()
+      }
     }
   }
   try {
@@ -404,8 +420,10 @@ const installWebAnalytics = (
       setBrowserMetadata(otel, () => {
         if (!consentSource.allowed()) return {}
         const attrs: Record<string, OtlpAttrValue> = {}
-        const id = sessionAtom().id
+        const id = sessionStateAtom()?.id ?? memorySessionAtom().id
         if (id) attrs['session.id'] = id
+        const view = pageAtom().name
+        if (view !== undefined) attrs['view.name'] = view
         if (typeof location !== 'undefined') {
           attrs['url.full'] = location.origin + location.pathname
           attrs['url.path'] = location.pathname
@@ -416,52 +434,26 @@ const installWebAnalytics = (
       }),
     )
 
+    stops.push(
+      setBrowserSessionSampling(otel, () => {
+        if (!consentSource.allowed()) return
+        const session = sessionStateAtom()
+        if (session && typeof session.sampled === 'boolean')
+          return { id: session.id, sampled: session.sampled }
+        return undefined
+      }),
+    )
+
     const pageKey = () => pageAtom().path ?? ''
 
     const identityAttributes = (): Record<string, OtlpAttrValue> => {
       const attributes: Record<string, OtlpAttrValue> = {}
-      const sessionId = sessionAtom().id
-      const visitorId = visitorAtom()
+      const sessionId = sessionStateAtom()?.id ?? memorySessionAtom().id
+      const visitorId = visitorStateAtom()?.id
       if (typeof sessionId === 'string') attributes['session.id'] = sessionId
       if (typeof visitorId === 'string')
         attributes['app.visitor.id'] = visitorId
       return attributes
-    }
-
-    const persistIdentity = () => {
-      if (!consentSource.allowed()) return
-      if (persistVisitor && visitorState) {
-        writeStorageJson(webStorage('local'), visitorKey, visitorState)
-      }
-      if (sessionState) {
-        writeStorageJson(
-          webStorage(perTab ? 'session' : 'local'),
-          sessionKey,
-          sessionState,
-        )
-      }
-    }
-
-    const publishIdentity = () => {
-      visitorAtom.set(visitorState?.id)
-      attributionAtom.set(visitorState?.lastTouch ?? {})
-      sessionAtom.set(
-        sessionState
-          ? {
-              id: sessionState.id,
-              start: sessionState.startedAt,
-              previousId: sessionState.previousId,
-            }
-          : {},
-      )
-    }
-
-    const ensureMemorySession = () => {
-      if (sessionAtom().id) return
-      sessionAtom.set({
-        id: mintIdentityId(),
-        start: Date.now(),
-      })
     }
 
     const attachIdentityStorage = () => {
@@ -479,15 +471,13 @@ const installWebAnalytics = (
           } catch {
             return
           }
-          if (storageEvent.key === sessionKey && !perTab) {
+          if (storageEvent.key === sessionKey && persistSession && !perTab) {
             if (!isStoredSession(parsed)) return
-            sessionState = parsed
-            publishIdentity()
+            sessionStateAtom.set(parsed)
           }
           if (storageEvent.key === visitorKey && persistVisitor) {
             if (!isStoredVisitor(parsed)) return
-            visitorState = parsed
-            publishIdentity()
+            visitorStateAtom.set(parsed)
           }
         }),
       )
@@ -511,29 +501,13 @@ const installWebAnalytics = (
       const consented = consentedAnalyticsAttributes(attributes)
       if (!consented) return
       const emit = () => otel.log(eventName, consented)
-      if (!currentTraceOf(otel) && analyticsPageContext) {
-        runInTraceOf(otel, analyticsPageContext as SpanContext, emit)
+      if (!internals?.currentTrace() && analyticsPageContext) {
+        internals
+          ? internals.runInTrace(analyticsPageContext as SpanContext, emit)
+          : emit()
         return
       }
       emit()
-    }
-
-    const admitNamedEvent = (eventName: string) => {
-      const limit =
-        eventName in eventsByName ? eventsByName[eventName]! : eventsPerMin
-      if (limit === 0) return true
-      const now = Date.now()
-      const key = `${pageKey()}\0${eventName}`
-      const sentAt = eventWindows.get(key) ?? []
-      pruneRateWindow(sentAt, now)
-      if (sentAt.length >= limit) {
-        countRateLimitDrop(otel)
-        eventWindows.set(key, sentAt)
-        return false
-      }
-      sentAt.push(now)
-      eventWindows.set(key, sentAt)
-      return true
     }
 
     const logAnalytics = (
@@ -542,120 +516,180 @@ const installWebAnalytics = (
     ) => {
       const consented = consentedAnalyticsAttributes(attributes)
       if (!consented) return
-      if (!admitNamedEvent(eventName)) return
+      const limit =
+        eventName in eventsByName ? eventsByName[eventName]! : eventsPerMin
+      if (limit !== 0) {
+        const now = Date.now()
+        const key = `${pageKey()}\0${eventName}`
+        const sentAt = eventWindows.get(key) ?? []
+        pruneRateWindow(sentAt, now)
+        if (sentAt.length >= limit) {
+          if (internals) {
+            internals.rateLimitDrops.count++
+            internals.invalidateStats()
+          }
+          eventWindows.set(key, sentAt)
+          return
+        }
+        sentAt.push(now)
+        eventWindows.set(key, sentAt)
+      }
       otel.log(eventName, consented)
-    }
-
-    const emitSessionStart = (
-      session: StoredSession,
-      visitor: StoredVisitor,
-    ) => {
-      const attributes: Record<string, OtlpAttrValue> = {
-        ...attributionPairAttributes(visitor.firstTouch, visitor.lastTouch),
-      }
-      if (session.previousId) {
-        attributes['session.previous_id'] = session.previousId
-      }
-      logAnalytics('session.start', attributes)
     }
 
     const mintSession = (
       now: number,
       campaign: string,
       previousId?: string,
-    ): StoredSession => ({
-      id: mintIdentityId(),
-      startedAt: now,
-      lastActivity: now,
-      previousId,
-      campaign,
-      pageViews: 0,
-      events: 0,
-      engagedMs: 0,
-    })
-
-    const syncIdentity = (input: { inbound: boolean; pageView?: boolean }) => {
-      if (!consentSource.allowed()) return
-      const now = Date.now()
-      const href =
-        hasWindow() && typeof window.location?.href === 'string'
-          ? window.location.href
-          : ''
-      const url = href ? new URL(href) : undefined
-      const nextFingerprint = url
-        ? campaignFingerprint(url, attributionParams)
-        : ''
-      const nextCampaign = url ? readCampaign(url, attributionParams) : {}
-      const referrer =
-        typeof document !== 'undefined' ? document.referrer || '' : ''
-      const origin = hasWindow() ? window.location.origin : ''
-      const inbound = input.inbound && !isSameOriginReferrer(referrer, origin)
-
-      if (persistVisitor && !visitorState) {
-        const storedVisitor = readStorageJson<unknown>(
-          webStorage('local'),
-          visitorKey,
-        )
-        if (isStoredVisitor(storedVisitor)) visitorState = storedVisitor
-      }
-      if (visitorState && shouldExpireVisitor(visitorState.createdAt, now)) {
-        visitorState = undefined
-      }
-      if (!visitorState) {
-        visitorState = {
-          id: mintIdentityId(),
-          createdAt: now,
-          lastSeen: now,
-          firstTouch: nextCampaign,
-          lastTouch: nextCampaign,
-        }
-      } else {
-        visitorState.lastSeen = now
-        const lastFingerprint = fingerprintFromAttribution(
-          visitorState.lastTouch,
-          attributionParams,
-        )
-        if (shouldRotateCampaign(inbound, lastFingerprint, nextFingerprint)) {
-          visitorState.lastTouch = nextCampaign
-        } else if (inbound && hasAttributionValues(nextCampaign)) {
-          visitorState.lastTouch = {
-            ...visitorState.lastTouch,
-            ...nextCampaign,
-          }
-        }
-      }
-
-      if (!sessionState) {
-        const storedSession = readStorageJson<unknown>(
-          webStorage(perTab ? 'session' : 'local'),
-          sessionKey,
-        )
-        if (isStoredSession(storedSession)) sessionState = storedSession
-      }
-
-      let sessionIsNew = false
-      if (!sessionState) {
-        sessionState = mintSession(now, nextFingerprint)
-        sessionIsNew = true
-      } else if (
-        shouldRotateIdle(sessionState.lastActivity, now, sessionTimeout) ||
-        shouldRotateMidnight(sessionState.startedAt, now, rotateAtMidnight) ||
-        shouldRotateCampaign(inbound, sessionState.campaign, nextFingerprint)
-      ) {
-        sessionState = mintSession(now, nextFingerprint, sessionState.id)
-        sessionIsNew = true
-      } else {
-        sessionState.lastActivity = now
-      }
-
-      if (input.pageView && sessionState) sessionState.pageViews++
-
-      publishIdentity()
-      persistIdentity()
-      if (sessionIsNew && visitorState) {
-        emitSessionStart(sessionState, visitorState)
+    ): StoredSession => {
+      const id = mintIdentityId()
+      return {
+        id,
+        sampled: sampleSessionRatio(id, resolveSampling(otel().sampling).ratio),
+        startedAt: now,
+        lastActivity: now,
+        previousId,
+        campaign,
+        pageViews: 0,
+        events: 0,
+        engagedMs: 0,
       }
     }
+
+    const syncIdentity = action(
+      (input: { inbound: boolean; pageView?: boolean }) => {
+        if (!consentSource.allowed()) return
+        const now = Date.now()
+        const href =
+          hasWindow() && typeof window.location?.href === 'string'
+            ? window.location.href
+            : ''
+        const url = href ? new URL(href) : undefined
+        const nextFingerprint = url
+          ? campaignFingerprint(url, attributionParams)
+          : ''
+        const nextCampaign = url ? readCampaign(url, attributionParams) : {}
+        const referrer =
+          typeof document !== 'undefined' ? document.referrer || '' : ''
+        const origin = hasWindow() ? window.location.origin : ''
+        const inbound = input.inbound && !isSameOriginReferrer(referrer, origin)
+
+        let visitorState = visitorStateAtom()
+        if (persistVisitor && !visitorState) {
+          const storedVisitor = readStorageJson<unknown>(
+            webStorage('local'),
+            visitorKey,
+          )
+          if (isStoredVisitor(storedVisitor)) visitorState = storedVisitor
+        }
+        if (visitorState && shouldExpireVisitor(visitorState.createdAt, now)) {
+          visitorState = undefined
+        }
+        if (!visitorState) {
+          visitorState = {
+            id: mintIdentityId(),
+            createdAt: now,
+            lastSeen: now,
+            firstTouch: nextCampaign,
+            lastTouch: nextCampaign,
+          }
+        } else {
+          let lastTouch = visitorState.lastTouch
+          const lastFingerprint = fingerprintFromAttribution(
+            lastTouch,
+            attributionParams,
+          )
+          if (shouldRotateCampaign(inbound, lastFingerprint, nextFingerprint)) {
+            lastTouch = nextCampaign
+          } else if (inbound && hasAttributionValues(nextCampaign)) {
+            lastTouch = {
+              ...lastTouch,
+              ...nextCampaign,
+            }
+          }
+          visitorState = {
+            ...visitorState,
+            lastSeen: now,
+            lastTouch,
+          }
+        }
+
+        let sessionState = sessionStateAtom()
+        if (!sessionState && persistSession) {
+          const storedSession = readStorageJson<unknown>(
+            webStorage(perTab ? 'session' : 'local'),
+            sessionKey,
+          )
+          if (isStoredSession(storedSession)) sessionState = storedSession
+        }
+
+        let sessionIsNew = false
+        if (!sessionState) {
+          sessionState = mintSession(now, nextFingerprint)
+          sessionIsNew = true
+        } else if (
+          shouldRotateIdle(sessionState.lastActivity, now, sessionTimeout) ||
+          now - sessionState.startedAt >= sessionMaxLifetime ||
+          shouldRotateMidnight(sessionState.startedAt, now, rotateAtMidnight) ||
+          shouldRotateCampaign(inbound, sessionState.campaign, nextFingerprint)
+        ) {
+          sessionState = mintSession(now, nextFingerprint, sessionState.id)
+          sessionIsNew = true
+        } else {
+          sessionState = {
+            ...sessionState,
+            lastActivity: now,
+            pageViews: input.pageView
+              ? sessionState.pageViews + 1
+              : sessionState.pageViews,
+          }
+        }
+
+        if (input.pageView && sessionIsNew) {
+          sessionState = {
+            ...sessionState,
+            pageViews: sessionState.pageViews + 1,
+          }
+        }
+
+        if (typeof sessionState.sampled !== 'boolean') {
+          sessionState = {
+            ...sessionState,
+            sampled: sampleSessionRatio(
+              sessionState.id,
+              resolveSampling(otel().sampling).ratio,
+            ),
+          }
+        }
+        visitorStateAtom.set(visitorState)
+        sessionStateAtom.set(sessionState)
+        if (consentSource.allowed()) {
+          if (persistVisitor && visitorState) {
+            writeStorageJson(webStorage('local'), visitorKey, visitorState)
+          }
+          if (sessionState && persistSession) {
+            writeStorageJson(
+              webStorage(perTab ? 'session' : 'local'),
+              sessionKey,
+              sessionState,
+            )
+          }
+        }
+        if (sessionIsNew && visitorState) {
+          const attributes: Record<string, OtlpAttrValue> = {
+            ...attributionPairAttributes(
+              visitorState.firstTouch,
+              visitorState.lastTouch,
+            ),
+          }
+          if (sessionState.previousId) {
+            attributes['session.previous_id'] = sessionState.previousId
+          }
+          logAnalytics('session.start', attributes)
+        }
+      },
+      `${prefix}.syncIdentity`,
+    )
 
     const flushExceptionSummaries = () => {
       if (!consentSource.allowed()) return
@@ -673,6 +707,7 @@ const installWebAnalytics = (
     }
 
     const captureWindowException = (error: unknown) => {
+      if (hasStandaloneBrowserErrors(otel)) return
       if (
         typeof error === 'object' &&
         error !== null &&
@@ -708,10 +743,14 @@ const installWebAnalytics = (
       pruneRateWindow(bucket.sentAt, now)
       if (errorsPerMin !== 0 && bucket.sentAt.length >= errorsPerMin) {
         bucket.dropped++
-        countRateLimitDrop(otel)
+        if (internals) {
+          internals.rateLimitDrops.count++
+          internals.invalidateStats()
+        }
         errorWindows.set(key, bucket)
         return
       }
+      if (!markBrowserErrorReported(otel, error, now)) return
       bucket.sentAt.push(now)
       bucket.sent++
       errorWindows.set(key, bucket)
@@ -736,14 +775,14 @@ const installWebAnalytics = (
       rememberRecordedPageView(instanceName, page.path ?? '')
       syncIdentity({ inbound: documentInbound, pageView: true })
       documentInbound = false
-      if (!currentTraceOf(otel) && !otel.pageTrace()) {
+      if (!internals?.currentTrace() && !otel.pageTrace()) {
         const path = page.path ?? '/'
         otel.traceVar.set(otel.createTrace({ name: `page_view ${path}` }))
       }
-      analyticsPageContext = currentTraceOf(otel) ?? otel.pageTrace()
+      analyticsPageContext = internals?.currentTrace() ?? otel.pageTrace()
       const isFirstConsentedView = consentedPageViews === 0
       logAnalytics('app.page_view', {
-        ...lastTouchPageAttributes(visitorState?.lastTouch),
+        ...lastTouchPageAttributes(visitorStateAtom()?.lastTouch),
         ...readPageViewAttributes(
           options.captureQuery === true,
           attributionParams,
@@ -756,19 +795,6 @@ const installWebAnalytics = (
       }
     }
 
-    const onAnalyticsConsentGranted = () => {
-      attachIdentityStorage()
-      if (!consentListenersReady) return
-      if (openedPageViews > 0 && consentedPageViews === 0) {
-        emitConsentedPageView()
-        return
-      }
-      resetRamEngagement(true)
-      if (consentedPageViews === 0) {
-        syncIdentity({ inbound: documentInbound })
-      }
-    }
-
     const pageView = action((attributes?: Record<string, OtlpAttrValue>) => {
       if (analyticsDisposed) return
       const currentPath = readPage().path ?? ''
@@ -776,97 +802,155 @@ const installWebAnalytics = (
         openedPageViews === 0 &&
         hasRecordedPageView(instanceName, currentPath)
       ) {
-        pageAtom.set(readPage())
+        pageAtom.set({ ...readPage(), name: pageAtom().name })
         openedPageViews++
         consentedPageViews++
-        analyticsPageContext = currentTraceOf(otel) ?? otel.pageTrace()
+        analyticsPageContext = internals?.currentTrace() ?? otel.pageTrace()
         return
       }
       if (openedPageViews > 0) {
         const previousPage = pageKey()
         flushPageEngagement('navigation')
         flushExceptionSummaries()
-        if (previousPage !== currentPath) prunePageWindows(previousPage)
+        if (previousPage !== currentPath) {
+          const prefix = `${previousPage}\0`
+          deletePrefixedKeys(errorWindows, prefix)
+          deletePrefixedKeys(eventWindows, prefix)
+        }
       }
       openedPageViews++
-      pageAtom.set(readPage())
+      pageAtom.set({ ...readPage(), name: pageAtom().name })
       emitConsentedPageView(attributes)
     }, `${prefix}.pageView`)
 
     const dispose = action(cleanup, `${prefix}.dispose`)
 
-    const model = { pageView, dispose }
+    const rotateSession = action((expectedId?: string) => {
+      if (analyticsDisposed || !consentSource.allowed()) return
+      const previous = sessionStateAtom()
+      if (expectedId !== undefined && previous?.id !== expectedId) return
+      const next = mintSession(
+        Date.now(),
+        previous?.campaign ?? '',
+        previous?.id,
+      )
+      sessionStateAtom.set(next)
+      if (persistSession)
+        writeStorageJson(
+          webStorage(perTab ? 'session' : 'local'),
+          sessionKey,
+          next,
+        )
+      analyticsPageContext = undefined
+      logAnalytics(
+        'session.start',
+        previous ? { 'session.previous_id': previous.id } : {},
+      )
+    }, `${prefix}.rotateSession`)
+
+    const setView = action((name?: string) => {
+      if (analyticsDisposed) return
+      const next = name?.slice(0, 256) || undefined
+      const previous = pageAtom().name
+      if (previous === next) return
+      pageAtom.set((page) => ({ ...page, name: next }))
+      if (!consentSource.allowed()) return
+      syncIdentity({ inbound: false })
+      logAnalytics('app.view_change', {
+        fromView: previous ?? '',
+        toView: next ?? '',
+      })
+    }, `${prefix}.setView`)
+
+    const model = { pageView, rotateSession, setView, dispose }
 
     if (!hasWindow()) {
-      warnAnalyticsNoWindow()
+      if (isDevelopment()) {
+        console.warn(OTEL + 'no window')
+      }
       return model
     }
 
-    if (!consentSource.allowed()) ensureMemorySession()
+    if (
+      !consentSource.allowed() &&
+      !sessionStateAtom()?.id &&
+      !memorySessionAtom().id
+    ) {
+      memorySessionAtom.set({
+        id: mintIdentityId(),
+        start: Date.now(),
+      })
+    }
 
-    const navigation = resolveNavigation(options.navigation)
+    const navigation =
+      options.navigation ??
+      (Object.keys(urlAtom.routes).length > 0
+        ? 'urlAtom'
+        : readNavigationTarget()
+          ? 'navigation-api'
+          : 'popstate')
     if (
       navigation === 'urlAtom' &&
       urlAtom.catchLinks() &&
-      Object.keys(urlAtom.routes).length === 0
+      Object.keys(urlAtom.routes).length === 0 &&
+      isDevelopment()
     ) {
-      warnAnalyticsUrlAtomCatchLinks()
+      console.warn(OTEL + 'urlAtom navigation without routes')
+    }
+
+    const addElapsedEngagement = (now = Date.now()) => {
+      if (engagement.runningSinceMs === undefined) return
+      const elapsedMs = Math.max(0, now - engagement.runningSinceMs)
+      engagement.accumulatedVisibleMs += elapsedMs
+      const activeWindowEndMs = engagement.lastInputAtMs + ACTIVE_IDLE_MS
+      const overlapStartMs = Math.max(
+        engagement.runningSinceMs,
+        engagement.lastInputAtMs,
+      )
+      const overlapEndMs = Math.min(now, activeWindowEndMs)
+      const overlapMs = overlapEndMs - overlapStartMs
+      if (overlapMs > 0) engagement.accumulatedActiveMs += overlapMs
+      engagement.runningSinceMs = undefined
+    }
+
+    const startEngagementClock = (now = Date.now()) => {
+      if (engagement.runningSinceMs !== undefined) return
+      if (document.visibilityState !== 'visible' || !readDocumentHasFocus()) {
+        return
+      }
+      engagement.runningSinceMs = now
+    }
+
+    const resetRamEngagement = (restartClock: boolean) => {
+      addElapsedEngagement()
+      engagement.accumulatedVisibleMs = 0
+      engagement.accumulatedActiveMs = 0
+      if (restartClock) startEngagementClock()
+    }
+
+    const flushPageEngagement = (reason: 'hide' | 'navigation' | 'consent') => {
+      addElapsedEngagement()
+      if (!consentSource.allowed()) {
+        if (reason === 'navigation') resetRamEngagement(true)
+        return
+      }
+      const visibleMs = engagement.accumulatedVisibleMs
+      const activeMs = engagement.accumulatedActiveMs
+      engagement.accumulatedVisibleMs = 0
+      engagement.accumulatedActiveMs = 0
+      if (reason === 'navigation' || reason === 'consent') {
+        startEngagementClock()
+      }
+      if (visibleMs === 0 && activeMs === 0) return
+      syncIdentity({ inbound: false })
+      logAnalytics(ENGAGEMENT_EVENT, {
+        [VISIBLE_MS_ATTR]: visibleMs,
+        [ACTIVE_MS_ATTR]: activeMs,
+      })
     }
 
     analyticsAbort = abortVar.createAndRun(() => {
       analyticsAbort = abortVar.require()
-      let runningSinceMs: number | undefined
-      let lastInputAtMs = Date.now()
-      let accumulatedVisibleMs = 0
-      let accumulatedActiveMs = 0
-
-      const addElapsedEngagement = (now = Date.now()) => {
-        if (runningSinceMs === undefined) return
-        const elapsedMs = Math.max(0, now - runningSinceMs)
-        accumulatedVisibleMs += elapsedMs
-        const activeWindowEndMs = lastInputAtMs + ACTIVE_IDLE_MS
-        const overlapStartMs = Math.max(runningSinceMs, lastInputAtMs)
-        const overlapEndMs = Math.min(now, activeWindowEndMs)
-        const overlapMs = overlapEndMs - overlapStartMs
-        if (overlapMs > 0) accumulatedActiveMs += overlapMs
-        runningSinceMs = undefined
-      }
-
-      const startEngagementClock = (now = Date.now()) => {
-        if (runningSinceMs !== undefined) return
-        if (document.visibilityState !== 'visible' || !readDocumentHasFocus()) {
-          return
-        }
-        runningSinceMs = now
-      }
-
-      resetRamEngagement = (restartClock) => {
-        addElapsedEngagement()
-        accumulatedVisibleMs = 0
-        accumulatedActiveMs = 0
-        if (restartClock) startEngagementClock()
-      }
-
-      flushPageEngagement = (reason) => {
-        addElapsedEngagement()
-        if (!consentSource.allowed()) {
-          if (reason === 'navigation') resetRamEngagement(true)
-          return
-        }
-        const visibleMs = accumulatedVisibleMs
-        const activeMs = accumulatedActiveMs
-        accumulatedVisibleMs = 0
-        accumulatedActiveMs = 0
-        if (reason === 'navigation' || reason === 'consent') {
-          startEngagementClock()
-        }
-        if (visibleMs === 0 && activeMs === 0) return
-        syncIdentity({ inbound: false })
-        logAnalytics(ENGAGEMENT_EVENT, {
-          [VISIBLE_MS_ATTR]: visibleMs,
-          [ACTIVE_MS_ATTR]: activeMs,
-        })
-      }
 
       focusAtom.set(readDocumentHasFocus())
       startEngagementClock()
@@ -880,7 +964,16 @@ const installWebAnalytics = (
               if (consentListenersReady) resetRamEngagement(true)
               return
             }
-            onAnalyticsConsentGranted()
+            attachIdentityStorage()
+            if (!consentListenersReady) return
+            if (openedPageViews > 0 && consentedPageViews === 0) {
+              emitConsentedPageView()
+              return
+            }
+            resetRamEngagement(true)
+            if (consentedPageViews === 0) {
+              syncIdentity({ inbound: documentInbound })
+            }
           }),
         )
       }
@@ -893,6 +986,7 @@ const installWebAnalytics = (
             flushExceptionSummaries()
             return
           }
+          if (consentSource.allowed()) syncIdentity({ inbound: false })
           addElapsedEngagement()
           startEngagementClock()
         }),
@@ -901,7 +995,8 @@ const installWebAnalytics = (
       stops.push(
         onEvent(window, 'focus', () => {
           addElapsedEngagement()
-          lastInputAtMs = Date.now()
+          if (consentSource.allowed()) syncIdentity({ inbound: false })
+          engagement.lastInputAtMs = Date.now()
           focusAtom.set(true)
           startEngagementClock()
         }),
@@ -914,8 +1009,9 @@ const installWebAnalytics = (
       )
 
       const markEngagementInput = () => {
+        if (consentSource.allowed()) syncIdentity({ inbound: false })
         addElapsedEngagement()
-        lastInputAtMs = Date.now()
+        engagement.lastInputAtMs = Date.now()
         startEngagementClock()
       }
       for (const type of INPUT_EVENT_TYPES) {

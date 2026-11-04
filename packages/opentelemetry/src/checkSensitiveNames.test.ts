@@ -36,6 +36,20 @@ test('the package root exports checkSensitiveNames', () => {
   expect('reatomGDPR' in pkg).toBe(false)
 })
 
+test('checkSensitiveNames warns in the test env', async () => {
+  expect(process.env.NODE_ENV).not.toBe('production')
+  const otel = start()
+  await withWarnSpy((warn) => {
+    context.start(() => {
+      const stop = checkSensitiveNames(otel)
+      cleanups.push(stop)
+      atom('', 'user.password')
+      expect(sensitiveWarnings(warn)).toHaveLength(1)
+      expect(sensitiveWarnings(warn)[0]).toContain('user.password')
+    })
+  })
+})
+
 test('F-05: warns once per suspicious name when values are captured', async () => {
   const otel = start()
   await withWarnSpy((warn) => {

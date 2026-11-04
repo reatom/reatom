@@ -10,6 +10,7 @@ import {
 import { afterEach, expect, test, vi } from 'vitest'
 
 import { createValueCapture } from './captureValues.ts'
+import { strictValueCapture } from './strict-capture/index.ts'
 import { type ReatomGDPR, withGDPR } from './gdpr/reatomGDPR.ts'
 import {
   installDomStubs,
@@ -138,22 +139,12 @@ test('a transforming redact hook still applies name redaction', () => {
   ).toEqual(['wrapped:ada', '[redacted]'])
 })
 
-test('contact strings are scrubbed and the author key over-match stays on keys only', () => {
+test('author key over-match stays on keys only and names redact roots', () => {
   const capture = createValueCapture()
   expect(capture.capture('author', 'Ada')).toBe('[redacted]')
   expect(capture.capture('headphones', 'ok')).toBe('ok')
   expect(capture.capture('note', 'mail ada@example.com please')).toBe(
-    'mail [email] please',
-  )
-  expect(capture.capture('note', 'call +1 (415) 555-2671 today')).toBe(
-    'call [phone] today',
-  )
-  expect(capture.capture('note', 'id f45580836486a8')).toBe('id f45580836486a8')
-  expect(
-    capture.capture('note', 'id 550e8400-e29b-41d4-a716-446655440000'),
-  ).toBe('id 550e8400-e29b-41d4-a716-446655440000')
-  expect(capture.capture('note', 'at 192.168.0.1 on 2024-01-15')).toBe(
-    'at 192.168.0.1 on 2024-01-15',
+    'mail ada@example.com please',
   )
   expect(
     createValueCapture(undefined, { names: ['issueAuthor'] }).capture(
@@ -174,6 +165,24 @@ test('contact strings are scrubbed and the author key over-match stays on keys o
       ['id', 'password'],
     ),
   ).toEqual(['user-public-id', '[redacted]'])
+  expect(capture.capture('email', 'ada@example.com')).toBe('[redacted]')
+})
+
+test('strict capture scrubs contact strings inside values', () => {
+  const capture = strictValueCapture()
+  expect(capture.capture('note', 'mail ada@example.com please')).toBe(
+    'mail [email] please',
+  )
+  expect(capture.capture('note', 'call +1 (415) 555-2671 today')).toBe(
+    'call [phone] today',
+  )
+  expect(capture.capture('note', 'id f45580836486a8')).toBe('id f45580836486a8')
+  expect(
+    capture.capture('note', 'id 550e8400-e29b-41d4-a716-446655440000'),
+  ).toBe('id 550e8400-e29b-41d4-a716-446655440000')
+  expect(capture.capture('note', 'at 192.168.0.1 on 2024-01-15')).toBe(
+    'at 192.168.0.1 on 2024-01-15',
+  )
   expect(capture.capture('email', 'ada@example.com')).toBe('[redacted]')
 })
 

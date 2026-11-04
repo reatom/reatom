@@ -2,6 +2,7 @@ import { atom, context } from '@reatom/core'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import { reatomTestTelemetry } from '../test-helpers.ts'
+import { browserCaptureOf } from '../browserCapture.ts'
 import {} from './connectWebAnalytics.ts'
 import {
   campaignFingerprint,
@@ -925,4 +926,194 @@ test('WA-3: crypto.randomUUID fallback is UUID v4', () => {
       '00010203-0405-4607-8809-0a0b0c0d0e0f',
     )
   })
+})
+
+test('explicit session rotation ignores a delayed invalid response for an older session', () => {
+  installShopWindow()
+  const fixture = remember(
+    createAnalytics({ ...OPTIONS, autoPageViews: false }),
+  )
+  fixture.pageView()
+  const first = fixture.session().id!
+  fixture.analytics.rotateSession(first)
+  const second = fixture.session().id!
+  expect(second).not.toBe(first)
+  expect(fixture.session().previousId).toBe(first)
+  fixture.analytics.rotateSession(first)
+  expect(fixture.session().id).toBe(second)
+  fixture.analytics.setView('checkout')
+  expect(fixture.page().name).toBe('checkout')
+})
+
+test('absolute lifetime rotates an active session even before the idle timeout', () => {
+  installShopWindow()
+  const clock = installClock()
+  const fixture = remember(
+    createAnalytics({
+      ...OPTIONS,
+      autoPageViews: false,
+      sessionMaxLifetime: 100,
+    }),
+  )
+  fixture.pageView()
+  const first = fixture.session().id
+  clock.advance(100)
+  fixture.pageView()
+  expect(fixture.session().id).not.toBe(first)
+})
+
+test('persisted session keeps its delivery sampling decision when configuration changes', () => {
+  const browser = installShopWindow()
+  const first = remember(
+    createAnalytics({
+      ...OPTIONS,
+      autoPageViews: false,
+      sampling: { by: 'session', ratio: 0 },
+    }),
+  )
+  first.pageView()
+  const id = first.session().id
+  expect(
+    JSON.parse(browser.localStorage.getItem(sessionStorageKey('shop'))!)
+      .sampled,
+  ).toBe(false)
+  first.dispose()
+  const second = remember(
+    createAnalytics({
+      ...OPTIONS,
+      name: 'shop-resume',
+      storageKey: 'shop',
+      autoPageViews: false,
+      sampling: { by: 'session', ratio: 1 },
+    }),
+  )
+  second.pageView()
+  expect(second.session().id).toBe(id)
+  expect(
+    JSON.parse(browser.localStorage.getItem(sessionStorageKey('shop'))!)
+      .sampled,
+  ).toBe(false)
+})
+
+test('volatile sessions never read or write session storage and still expire and rotate', () => {
+  const browser = installShopWindow()
+  const clock = installClock()
+  const localRead = vi.spyOn(browser.localStorage, 'getItem')
+  const localWrite = vi.spyOn(browser.localStorage, 'setItem')
+  const sessionRead = vi.spyOn(browser.sessionStorage, 'getItem')
+  const sessionWrite = vi.spyOn(browser.sessionStorage, 'setItem')
+  const fixture = remember(
+    createAnalytics({
+      ...OPTIONS,
+      autoPageViews: false,
+      persistSession: false,
+      persistVisitor: true,
+      sessionMaxLifetime: 100,
+      sampling: { by: 'session', ratio: 0 },
+    }),
+  )
+  fixture.pageView()
+  const first = fixture.session().id!
+  clock.advance(100)
+  fixture.pageView()
+  const second = fixture.session().id!
+  expect(second).not.toBe(first)
+  fixture.analytics.rotateSession(second)
+  const third = fixture.session().id
+  expect(third).not.toBe(second)
+  const remote = {
+    id: 'other-tab',
+    startedAt: clock.now(),
+    lastActivity: clock.now(),
+    sampled: true,
+  }
+  browser.fireStorage(sessionStorageKey('shop'), JSON.stringify(remote))
+  expect(fixture.session().id).toBe(third)
+  expect(
+    localRead.mock.calls.some(([key]) => key === sessionStorageKey('shop')),
+  ).toBe(false)
+  expect(
+    localWrite.mock.calls.some(([key]) => key === sessionStorageKey('shop')),
+  ).toBe(false)
+  expect(sessionRead).not.toHaveBeenCalled()
+  expect(sessionWrite).not.toHaveBeenCalled()
+  expect(
+    localWrite.mock.calls.some(([key]) => key === visitorStorageKey('shop')),
+  ).toBe(true)
+})
+
+test('default absolute session lifetime is four hours', () => {
+  installShopWindow()
+  const clock = installClock()
+  const fixture = remember(
+    createAnalytics({
+      ...OPTIONS,
+      autoPageViews: false,
+      sessionTimeout: 24 * 60 * 60 * 1000,
+    }),
+  )
+  fixture.pageView()
+  const first = fixture.session().id
+  clock.advance(4 * 60 * 60 * 1000 - 1)
+  fixture.pageView()
+  expect(fixture.session().id).toBe(first)
+  clock.advance(1)
+  fixture.pageView()
+  expect(fixture.session().id).not.toBe(first)
+})
+
+test('setView captures native transitions, ignores noops, bounds names and survives navigation', () => {
+  const browser = installShopWindow()
+  const fixture = remember(
+    createAnalytics({ ...OPTIONS, autoPageViews: false }),
+  )
+  const capture = browserCaptureOf(fixture.otel)!
+  fixture.analytics.setView('home')
+  expect(capture.snapshot().attributes['view.name']).toBe('home')
+  fixture.analytics.setView('home')
+  fixture.analytics.setView('checkout')
+  browser.setHref('https://shop.test/checkout')
+  fixture.pageView()
+  expect(fixture.page().name).toBe('checkout')
+  const snapshot = capture.snapshot()
+  fixture.analytics.setView()
+  expect(snapshot.attributes['view.name']).toBe('checkout')
+  expect(capture.snapshot().attributes['view.name']).toBeUndefined()
+  const changes = collectNamed(readRecords(fixture.otel), 'app.view_change')
+  expect(
+    changes.map(({ attributes }) => [attributes.fromView, attributes.toView]),
+  ).toEqual([
+    ['', 'home'],
+    ['home', 'checkout'],
+    ['checkout', ''],
+  ])
+  expect(changes[0]!.attributes['view.name']).toBe('home')
+  expect(changes[1]!.attributes['view.name']).toBe('checkout')
+  expect(changes[2]!.attributes['view.name']).toBeUndefined()
+  fixture.analytics.setView('x'.repeat(300))
+  expect(fixture.page().name).toHaveLength(256)
+})
+
+test('setView respects feature disposal and consent without losing a local view snapshot', () => {
+  installShopWindow()
+  const consent = atom(false, 'view.consent')
+  const fixture = remember(
+    createAnalytics({ ...OPTIONS, autoPageViews: false, consent }),
+  )
+  fixture.analytics.setView('private')
+  expect(fixture.page().name).toBe('private')
+  expect(
+    collectNamed(readRecords(fixture.otel), 'app.view_change'),
+  ).toHaveLength(0)
+  consent.set(true)
+  fixture.analytics.setView('public')
+  expect(
+    collectNamed(readRecords(fixture.otel), 'app.view_change'),
+  ).toHaveLength(1)
+  fixture.analytics.setFalse()
+  fixture.analytics.setView('disabled')
+  expect(fixture.page().name).toBe('public')
+  fixture.dispose()
+  fixture.analytics.setView('disposed')
+  expect(fixture.page().name).toBe('public')
 })

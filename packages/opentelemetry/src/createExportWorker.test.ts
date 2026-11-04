@@ -145,7 +145,7 @@ test('a second send while the slot is occupied throws without stealing the lease
   try {
     worker.send(first as never)
     expect(() => worker.send(second as never)).toThrow(
-      'OTLP transport slot is already occupied',
+      'OTLP transport slot occupied',
     )
     // Occupied is not quarantined: a healthy in-flight export reads false.
     expect(worker.isQuarantined()).toBe(false)

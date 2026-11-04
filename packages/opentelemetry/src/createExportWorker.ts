@@ -46,7 +46,7 @@ export const createExportWorker = <T>(input: ExportWorkerInput<T>) => {
         lease.release(dropped('disposed', lease.items.length))
         return
       }
-      if (current) throw new Error('OTLP transport slot is already occupied')
+      if (current) throw new Error('OTLP transport slot occupied')
       const controller = new AbortController()
       const deadline = Date.now() + input.exportTimeoutMs
       let excluded = 0
@@ -55,7 +55,7 @@ export const createExportWorker = <T>(input: ExportWorkerInput<T>) => {
         beaconAccepted: 0,
         droppedByReason: {
           [reason]: lease.items.length - excluded,
-          ...(excluded ? { oversized: excluded } : {}),
+          ...(excluded && { oversized: excluded }),
         },
       })
       let terminal: 'timeout' | 'disposed' | undefined

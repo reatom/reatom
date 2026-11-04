@@ -296,7 +296,7 @@ test('persistent HTTP failure warns once with the reason and the dropped-span co
     expect(warnSpy).toHaveBeenCalledTimes(1)
     const joined = warnSpy.mock.calls[0]!.map((a) => String(a)).join(' ')
     // Prefix and reason for triage, dropped count for scale correlation.
-    expect(joined).toContain('OTLP export')
+    expect(joined).toContain('export failed')
     expect(joined).toMatch(/7/)
     expect(joined.toLowerCase()).toContain('span')
   })
