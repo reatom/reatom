@@ -1111,6 +1111,34 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
  */
 export let hf = () => {}
 
+/**
+ * Automatic JSX runtime (`"jsx": "react-jsx"`, `"jsxImportSource":
+ * "@reatom/jsx"). Children are passed through props unchanged. A single
+ * component child is a scalar, unlike classic `h`'s rest-children array.
+ */
+export let jsx = (type: any, props: Rec, key?: unknown): JSX.Element => {
+  // A key in props came from a later spread and must win over an earlier key.
+  if (key !== undefined) props = { key, ...props }
+  // `h` handles fragments before reading props.children.
+  return type === hf ? h(type, {}, props?.children) : h(type, props)
+}
+
+export let jsxs = jsx
+
+/** The development transform also supplies source/self metadata, unused here. */
+export let jsxDEV = (
+  type: any,
+  props: Rec,
+  key?: unknown,
+  _isStaticChildren?: boolean,
+  _source?: unknown,
+  _self?: unknown,
+): JSX.Element => jsx(type, props, key)
+
+// Compilers fall back to createElement for a key that follows a spread.
+export let createElement = h
+export let Fragment = hf
+
 export let mount = (
   target: Element,
   child: Element,
