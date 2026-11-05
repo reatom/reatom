@@ -4,6 +4,7 @@ import {
   clearStack,
   context,
   rAF,
+  sleep,
   take,
   top,
   wrap,
@@ -204,6 +205,60 @@ describe('useAtom', () => {
       expect(
         document.querySelector('[data-testid="result"]')?.textContent,
       ).toBe('15')
+    }))
+
+  test('deps change inside a transition does not restart the transition', () =>
+    context.start(async () => {
+      const itemsAtom = atom(['a', 'b'], 'items')
+      let itemRenders = 0
+      let setIndex: (index: number) => void = () => {}
+
+      const Item = ({ index }: { index: number }) => {
+        itemRenders++
+        const [value] = useAtom(() => itemsAtom()[index], [index])
+        return <div data-testid="item">{value}</div>
+      }
+
+      const Slow = () => {
+        const end = performance.now() + 2
+        while (performance.now() < end);
+        return null
+      }
+
+      const App = () => {
+        const [index, set] = React.useState(0)
+        setIndex = set
+        return (
+          <>
+            <Item index={index} />
+            {Array.from({ length: 100 }, (_, i) => (
+              <Slow key={`${index}-${i}`} />
+            ))}
+          </>
+        )
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root')!)
+      root.render(
+        <reatomContext.Provider value={top()}>
+          <App />
+        </reatomContext.Provider>,
+      )
+      await wrap(tick())
+
+      itemRenders = 0
+      React.startTransition(() => setIndex(1))
+      for (let i = 0; i < 100; i++) {
+        await wrap(sleep(20))
+        if (document.querySelector('[data-testid="item"]')?.textContent === 'b')
+          break
+      }
+
+      const text = document.querySelector('[data-testid="item"]')?.textContent
+      root.unmount()
+
+      expect(text).toBe('b')
+      expect(itemRenders).toBeLessThan(5)
     }))
 
   test('subscribe: false prevents re-renders', () =>
