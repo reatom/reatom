@@ -34,10 +34,11 @@ export interface PersistRecord<Snapshot = unknown> {
 }
 
 export let isPersistRecord = (value: unknown): value is PersistRecord => {
+  // `data` is not checked: a record of an `undefined` snapshot has no `data`
+  // key after a JSON round trip, and it is still a valid record.
   return (
     typeof value === 'object' &&
     value !== null &&
-    'data' in value &&
     'id' in value &&
     'timestamp' in value &&
     'version' in value &&
