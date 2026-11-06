@@ -89,6 +89,7 @@ Before validating API usage, extension options, or documentation claims, also lo
    - Flag a component that calls `.subscribe()` / `.unsubscribe()` on an already module-level `effect`: the effect self-subscribed at creation, so the component subscription is redundant and the original self-subscription leaks (the effect never disconnects on unmount).
    - Prefer `reatomObservable` to bridge external push sources (`ResizeObserver`, `IntersectionObserver`, `matchMedia`, sockets) into a connection-driven atom, instead of an `effect` that wires the observer and writes a sibling result atom.
    - Use `withConnectHook` for lazy external subscriptions/polling that do not depend on the hook target; verify cleanup and abort behavior.
+   - Repeated re-evaluation (`retryComputed`, `.retry()`, `reset`, polling loops) must leave the dependency graph stable. Flag retry-driven models whose tests never assert link invariants: after N re-evaluations a dependency's `subs` count is unchanged, and after the last unsubscribe `isConnected(dependency)` is `false`. A dependency that stays connected keeps its `withConnectHook` effects (timers, sockets, polling) alive with no subscriber left.
    - Do not use `withChangeHook` to synchronize atoms with other atoms; prefer `computed` or `withComputed`.
 
 6. Routing:
@@ -687,6 +688,51 @@ export const startSlideshowSession = action(() => {
 
 Why: a connect hook runs when its target gets subscribers. If the nested effect reads that same target (directly or through a computed), connect/subscribe can feed back forever. Either attach the hook to a different scope anchor, use `peek` for gate checks only, or start the effect from route loader / init action / component mount instead.
 
+### Retry Loop Without A Link Invariant Test
+
+Problem:
+
+```ts
+export const feed = computed(async () => {
+  const lang = language()
+  return await wrap(api.feed(lang))
+}, 'feed').extend(withAsyncData())
+
+export const startFeedPolling = action(() => {
+  effect(async () => {
+    while (true) {
+      await wrap(sleep(5000))
+      feed.retry()
+    }
+  }, 'feed.poll')
+}, 'feed.startPolling')
+```
+
+Fix (pin the graph invariants in a test):
+
+```ts
+import { _read, isConnected, sleep } from '@reatom/core'
+
+test('feed.retry links language once and releases it on unsubscribe', async () => {
+  const stop = feed.data.subscribe(noop)
+  await sleep(0)
+  const linked = _read(language)?.subs.length
+
+  for (let i = 0; i < 3; i++) {
+    feed.retry()
+    await sleep(0)
+  }
+
+  expect(_read(language)?.subs.length).toBe(linked)
+
+  stop()
+  await sleep(0)
+  expect(isConnected(language)).toBe(false)
+})
+```
+
+Why: `reset` and `retryComputed` (which `.retry()` of an async computed is built on) drop the target's `pubs` without unlinking the target from each publisher's `subs`, then relink on re-evaluation. Every retry adds one more entry, and after the last unsubscribe the publisher stays connected, so its `withConnectHook` effects outlive every subscriber (reatom/reatom#1352). Retry-driven models are where this compounds, so their tests should pin both invariants: no link growth across retries, publisher disconnected after the last unsubscribe. The test keeps its value after the core fix as a regression guard for custom extensions that touch `pubs`.
+
 ### Object URL Leaked As A Plain String
 
 Problem:
@@ -729,6 +775,7 @@ Why: `URL.createObjectURL` allocates a resource. Tie revocation to the owning co
 - `reatomMap()().set(k, v)` / `reatomArray()().push(x)` -> use the primitive's actions; in-place mutation skips invalidation.
 - Synchronous assertion after `.set(...)` expecting a subscriber to have fired -> await a microtask; notifications are queued.
 - Shared state between tests -> `context.reset()` in `beforeEach` or scope with `context.start`.
+- Retry/polling model without a link test -> assert `_read(dep)?.subs.length` is stable across retries and `isConnected(dep)` is `false` after the last unsubscribe.
 - `status.isPending()` -> `status.isPending`; status flags are properties.
 - `status.error` -> `target.error()`; errors stay on the async target atom.
 - `async loader(params, search)` -> `async loader({ q, userId })`; loaders receive one merged params/search object.
@@ -836,5 +883,6 @@ If no findings remain, say so directly and list residual risks, especially untes
 - Did you check `.extend(...)` ordering (async before cache), `retry`/`status` option requirements, and key collisions in extensions?
 - Did you check write syntax (`.set` vs positional call), in-place mutation of collection primitives, and reliance on ephemeral action call lists?
 - Did you check timing assumptions: queued notifications, unsubscribed computed revalidation, and test context isolation via `context.reset()`?
+- Did you check that retry-driven re-evaluation (`retryComputed`, `.retry()`, polling) is covered by a link invariant test: no `subs` growth across retries, dependencies disconnected after the last unsubscribe?
 - Did you verify the examples are copyable and do not hide key imports?
 - Did you avoid approving without at least considering tests or examples that exercise the Reatom behavior?
