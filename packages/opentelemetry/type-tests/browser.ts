@@ -1,8 +1,10 @@
-import { reatomOpentelemetry } from '../src/browser/index.ts'
-import { withBrowserErrors } from '../src/browser-errors/index.ts'
-import { withAttributes } from '../src/attributes/index.ts'
-import { withFaro } from '../src/faro/client.ts'
-import { withOTLP } from '../src/otlp/index.ts'
+import {
+  reatomBrowserTelemetry as reatomOpentelemetry,
+  withBrowserErrors,
+  withAttributes,
+  withFaro,
+  withOTLP,
+} from '../src/index.ts'
 
 const browser = reatomOpentelemetry({ name: 'browser', serviceName: 'web' })
 const span = browser.startSpan({ name: 'checkout' })
@@ -27,7 +29,7 @@ browser
 reatomOpentelemetry({ name: 'otlp', serviceName: 'web' }).extend(
   withOTLP({ endpoint: 'https://collector.test' }),
 )
-// @ts-expect-error Automatic Reatom middleware belongs to the full root entry.
+// @ts-expect-error Automatic Reatom middleware requires reatomOpentelemetry.
 browser.withOTel()
 reatomOpentelemetry({
   name: 'browser-route',

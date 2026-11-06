@@ -3,7 +3,7 @@ import { wrap } from '@reatom/core'
 import type {
   GdprConsentSnapshot,
   ReatomGDPR,
-} from '@reatom/opentelemetry/gdpr'
+} from '@reatom/opentelemetry'
 import { reatomComponent } from '@reatom/react'
 
 import { consent } from '../../setup'

@@ -29,35 +29,55 @@ const names = {
 const plugins = Object.keys(names)
 const cases = {
   root: {
+    imports: `export { reatomTelemetry, attributes } from './src/index.ts'`,
+    allowed: [],
+  },
+  reatom: {
     imports: `export { reatomOpentelemetry } from './src/index.ts'`,
     allowed: [],
   },
   browser: {
-    imports: `export { reatomOpentelemetry } from './src/browser/index.ts'`,
+    imports: `export { reatomBrowserTelemetry } from './src/index.ts'`,
     allowed: [],
   },
   'faro-client': {
-    imports: `export { withFaro } from './src/faro/client.ts'`,
+    imports: `export { withFaro } from './src/index.ts'`,
     allowed: ['faro', 'otlp'],
   },
 }
 for (const [plugin, exported] of Object.entries(names)) {
   const label = plugin === 'web-analytics' ? 'analytics' : plugin
-  const imports = `export { ${exported} } from './src/${plugin}/index.ts'`
+  const imports = `export { ${exported} } from './src/index.ts'`
   cases[label] = { imports, allowed: [plugin] }
-  cases[`root+${label}`] = {
-    imports: `${cases.root.imports}; ${imports}`,
+  cases[`reatom+${label}`] = {
+    imports: `${cases.reatom.imports}; ${imports}`,
     allowed: [plugin],
   }
 }
-cases['root+all'] = {
+cases['reatom+all'] = {
   imports: [
-    cases.root.imports,
+    cases.reatom.imports,
     ...plugins.map(
-      (plugin) => `export { ${names[plugin]} } from './src/${plugin}/index.ts'`,
+      (plugin) => `export { ${names[plugin]} } from './src/index.ts'`,
     ),
   ].join('; '),
   allowed: plugins,
+}
+cases['kernel+production'] = {
+  imports: `${cases.root.imports};
+    export { reatomRecordSink } from './src/index.ts';
+    export { withActionSpans, withActionTracing } from './src/index.ts';
+    export { captureAttributes } from './src/index.ts';
+    export { combineSinks } from './src/index.ts'`,
+  allowed: [],
+}
+cases['kernel+otlp'] = {
+  imports: `${cases.root.imports}; export { reatomOTLPSink } from './src/index.ts'`,
+  allowed: ['otlp'],
+}
+cases['kernel+faro'] = {
+  imports: `${cases.root.imports}; export { reatomFaroSink } from './src/index.ts'`,
+  allowed: ['otlp', 'faro'],
 }
 const reports = []
 // Capability markers survive published shared-chunk renaming. Compare every
@@ -187,7 +207,7 @@ for (const mode of ['source', 'package']) {
         sourceMarkers.get(name),
         `${name}: published capability isolation matches source`,
       )
-    if (name === 'root' || name === 'browser') {
+    if (name === 'root' || name === 'reatom' || name === 'browser') {
       const bundled = new TextDecoder().decode(code)
       for (const wireField of [
         'resourceSpans',
@@ -209,6 +229,23 @@ for (const mode of ['source', 'package']) {
         false,
         `${mode}: browser excludes automatic Reatom causal instrumentation`,
       )
+    if (name === 'root' || name === 'kernel+production') {
+      const limit = name === 'root' ? 3000 : 5000
+      assert.ok(
+        brotliCompressSync(code).length <= limit,
+        `${mode}:${name}: ${limit} byte Brotli budget`,
+      )
+      if (mode === 'source')
+        assert.deepEqual(
+          contributed.filter((file) =>
+            /src\/(?:captureEngine|withOTel|causes|sampling|instanceRegistry|roots\/route)\.ts$/.test(
+              file,
+            ),
+          ),
+          [],
+          `${name}: optional reactive/debug runtime must not enter the kernel`,
+        )
+    }
     reports.push({
       entry: `${mode}:${name}`,
       bytes: code.length,

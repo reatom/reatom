@@ -1,5 +1,4 @@
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { withGDPR } from '@reatom/opentelemetry/gdpr'
+import { reatomOpentelemetry, withGDPR } from '@reatom/opentelemetry'
 
 export const otel = reatomOpentelemetry({
   name: 'shop',

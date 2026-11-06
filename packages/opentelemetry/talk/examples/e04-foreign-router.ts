@@ -1,6 +1,5 @@
 import { atom } from '@reatom/core'
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { withWebAnalytics } from '@reatom/opentelemetry/web-analytics'
+import { reatomOpentelemetry, withWebAnalytics } from '@reatom/opentelemetry'
 
 type HistoryAction = 'POP' | 'PUSH' | 'REPLACE'
 

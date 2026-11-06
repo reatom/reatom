@@ -3,14 +3,12 @@ import {
   reatomOpentelemetry,
   type CapturedRecord,
   type CaptureStats,
-} from '../src/index.ts'
-import {
   withOTLP,
   type OTLPOptions,
   type TransportBatch,
   type TransportResult,
   type TelemetryStats,
-} from '../src/otlp/index.ts'
+} from '../src/index.ts'
 
 export function optionalExporter() {
   const base = reatomOpentelemetry({

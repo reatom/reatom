@@ -1,3 +1,4 @@
+import { copyOwnPromiseProperties } from './copyOwnPromiseProperties.ts'
 import { utf8Length } from './utf8Length.ts'
 import type { ObservationSnapshot } from './captureSnapshot.ts'
 import type {
@@ -153,18 +154,6 @@ type ParentReason =
   | 'session'
   | 'root'
   | 'budget'
-
-// `then` stays the derived promise's own, so callers still observe it.
-const copyOwnPromiseProperties = (
-  source: Promise<unknown>,
-  target: Promise<unknown>,
-) => {
-  for (const key of Reflect.ownKeys(source)) {
-    if (key === 'then') continue
-    const descriptor = Object.getOwnPropertyDescriptor(source, key)
-    if (descriptor) Object.defineProperty(target, key, descriptor)
-  }
-}
 
 const budgetLink = (parent: TracePair): OtlpSpanLink => ({
   traceId: parent.traceId,

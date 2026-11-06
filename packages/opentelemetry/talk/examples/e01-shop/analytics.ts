@@ -1,4 +1,4 @@
-import { withWebAnalytics } from '@reatom/opentelemetry/web-analytics'
+import { withWebAnalytics } from '@reatom/opentelemetry'
 
 import { otel } from './setup'
 import './routes'

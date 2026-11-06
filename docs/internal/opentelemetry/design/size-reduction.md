@@ -8,7 +8,7 @@
 > measurements, probes, source-unchanged statements and recommendations below
 > describe the earlier design/review stage, not the current implementation.
 > They do not establish a threefold reduction or passing size budgets. See
-> [the current API](../API.md) and reproduce current graphs with test:bundles.
+> [the current API](../../../src/content/docs/guides/opentelemetry/api.md) and reproduce current graphs with test:bundles.
 
 Design investigation, 2026-10-24. Author request: “Run Astra to figure out how to reduce the size of the package by a few times! What we can simplify? Which abstractions we can introduce? Which Reatom’s primitive we can reuse?” This document proposes work; it does not describe shipped changes. No production source, tests, package metadata, or unrelated dirty files were modified for this investigation.
 
@@ -233,6 +233,6 @@ Rejected: a new plugin registry (duplicates `.extend`); connectLogger as the cap
 
 Status: measurement and design complete; one isolated traversal prototype verified; production implementation and canonical-record/extension type/runtime proofs pending. No user feature has been removed.
 
-Follow-up: [Code style before the size refactor](./code-style.md) reviews maintainability separately from bundle size, with concrete source locations and a small implementation order.
+Follow-up: [Code style before the size refactor](code-style.md) reviews maintainability separately from bundle size, with concrete source locations and a small implementation order.
 
-Clarification follow-up: [Compact source and retained runtime code](./source-compactness.md) measures narrow reusable functions, diagnostic shortening and allocation-reducing idioms.
+Clarification follow-up: [Compact source and retained runtime code](source-compactness.md) measures narrow reusable functions, diagnostic shortening and allocation-reducing idioms.

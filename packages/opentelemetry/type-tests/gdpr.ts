@@ -1,8 +1,12 @@
 /** Consent form fields are drafts; only the submitted snapshot is permission. */
 import { atom } from '@reatom/core'
-import { reatomGDPR, withGDPR, type ReatomGDPR } from '../src/gdpr/index.ts'
-import { reatomOpentelemetry } from '../src/index.ts'
-import { withWebAnalytics } from '../src/web-analytics/index.ts'
+import {
+  reatomGDPR,
+  withGDPR,
+  type ReatomGDPR,
+  reatomOpentelemetry,
+  withWebAnalytics,
+} from '../src/index.ts'
 
 const createOtel = () =>
   reatomOpentelemetry({ name: 'shop', serviceName: 'shop-web' })

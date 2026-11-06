@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest'
 
-import * as pkg from './index.ts'
+import * as pkg from './reatom/index.ts'
 import {
   formatServerTimingTraceparent,
   readServerTimingTraceparent,

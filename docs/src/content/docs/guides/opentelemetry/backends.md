@@ -1,12 +1,16 @@
-# Replace a Faro client, keep the self-hosted backend
+---
+title: OTLP and Faro backends
+description: Send traces and logs to an OTLP collector or a self-hosted Faro receiver.
+sidebar:
+  label: Backends
+---
 
-This unreleased workspace package can send browser signals to the existing Faro
-JSON collection endpoint. Keep Alloy's native `faro.receiver`, Loki and Tempo.
-The replacement is a signal/protocol integration; it does not promise source
-compatibility with Faro's JavaScript API or its managed Cloud UI.
+Send browser signals to an OTLP collector or a self-hosted Faro endpoint backed
+by Alloy's `faro.receiver`, Loki and Tempo. Use the same capture configuration
+with either delivery extension.
 
-Use `@reatom/opentelemetry/browser` for explicit spans and browser collectors.
-Use `@reatom/opentelemetry` when you also want automatic Reatom actions, state,
+Use `reatomBrowserTelemetry` for manual spans and browser collectors, or
+`reatomOpentelemetry` for automatic Reatom actions, state,
 routes and core logs. Both use the same canonical capture engine, consent,
 sampling, retention, local inspection and exporters. Optional collectors start
 only when applied with `.extend(...)`.
@@ -14,16 +18,18 @@ only when applied with `.extend(...)`.
 ## Self-hosted Faro
 
 ```ts
-import { reatomOpentelemetry } from '@reatom/opentelemetry/browser'
-import { withFaro } from '@reatom/opentelemetry/faro/client'
-import { withWebAnalytics } from '@reatom/opentelemetry/web-analytics'
-import { withBrowserErrors } from '@reatom/opentelemetry/browser-errors'
-import { withBrowserConsoleMonkeypatch } from '@reatom/opentelemetry/browser-console'
-import { withBrowserNetworkMonkeypatch } from '@reatom/opentelemetry/browser-network'
-import { withBrowserPerformance } from '@reatom/opentelemetry/browser-performance'
-import { withWebVitals } from '@reatom/opentelemetry/web-vitals'
+import {
+  reatomBrowserTelemetry,
+  withFaro,
+  withWebAnalytics,
+  withBrowserErrors,
+  withBrowserConsoleMonkeypatch,
+  withBrowserNetworkMonkeypatch,
+  withBrowserPerformance,
+  withWebVitals,
+} from '@reatom/opentelemetry'
 
-const otel = reatomOpentelemetry({
+const otel = reatomBrowserTelemetry({
   name: 'shop.rum',
   serviceName: 'shop-web',
   serviceVersion: '1.0.0',
@@ -82,9 +88,11 @@ converted-envelope limit. This is neither durable offline nor exactly-once deliv
 Optional additions are independent:
 
 ```ts
-import { withBrowserActions } from '@reatom/opentelemetry/browser-actions'
-import { withBrowserCsp } from '@reatom/opentelemetry/browser-csp'
-import { withBrowserMetadata } from '@reatom/opentelemetry/browser-metadata'
+import {
+  withBrowserActions,
+  withBrowserCsp,
+  withBrowserMetadata,
+} from '@reatom/opentelemetry'
 
 otel.extend(
   withBrowserActions(),
@@ -109,11 +117,13 @@ upstream W3C sampled flags remain independent.
 Replace the Faro extension with the OTLP exporter; keep the collectors:
 
 ```ts
-import { reatomOpentelemetry } from '@reatom/opentelemetry/browser'
-import { withOTLP } from '@reatom/opentelemetry/otlp'
-import { withBrowserErrors } from '@reatom/opentelemetry/browser-errors'
+import {
+  reatomBrowserTelemetry,
+  withOTLP,
+  withBrowserErrors,
+} from '@reatom/opentelemetry'
 
-const otel = reatomOpentelemetry({
+const otel = reatomBrowserTelemetry({
   name: 'shop.otlp',
   serviceName: 'shop-web',
 }).extend(
@@ -133,9 +143,9 @@ multiple transports are configured; additional destinations are best effort.
 Leave off both delivery extensions for local-only capture:
 
 ```ts
-import { reatomOpentelemetry } from '@reatom/opentelemetry/browser'
+import { reatomBrowserTelemetry } from '@reatom/opentelemetry'
 
-const otel = reatomOpentelemetry({
+const otel = reatomBrowserTelemetry({
   name: 'shop.local',
   serviceName: 'shop-web',
 })
@@ -146,10 +156,10 @@ otel.clearRecords()
 ```
 
 Canonical records are retained by default, up to 1000; export is independent of
-retention. For automatic Reatom records from the full root entry, `localValues: true` enables a default-off WeakMap side channel for raw params/payload/state/error references; read them with `localValuesOf(record)`. Manual spans do not supply those automatic raw values.
+retention. For automatic Reatom records from the `reatomOpentelemetry` factory, `localValues: true` enables a default-off WeakMap side channel for raw params/payload/state/error references; read them with `localValuesOf(record)`. Manual spans do not supply those automatic raw values.
 A caller holding a record can still read its raw references after SDK history
 clear/eviction; release held records when inspection ends. Automatic values use
-bounded key redaction by default. Opt into `/strict-capture` for in-string PII
+bounded key redaction by default. Pass `strictValueCapture` for in-string PII
 scrubbing; explicit manual/domain attributes remain caller-owned.
 
 ## Explicit spans and async boundaries
@@ -182,18 +192,10 @@ policy. Automatic Reatom async instrumentation uses the normal `wrap` rules.
 manual/browser operations at flush time with `reatom.finish.reason: 'flush'` and no synthetic status, and `dispose` cancels them. Active-operation
 admission defaults to 1000, separately from local retention and delivery queues.
 
-## Verified surface and remaining boundaries
+## Backend compatibility
 
-The [real-backend suite](./e2e/faro/README.md) compares official Faro, automatic
-Reatom, the browser entry and direct OTLP through actual Loki/Tempo queries.
-It checks native records, structured exception frames, parent/child traces,
-retry/offline controls and bundle hashes. It does not validate Grafana Cloud's
-private UI, every dashboard, every browser timing variant or real CSP blocking.
-
-Replay, source-map services, error-grouping UI, native metrics, durable offline
-storage and implicit global async context are outside this implementation.
-See [API boundaries](./API.md#current-boundaries) and the
-[consumer benchmark](./bench/browser-sdk/README.md). Whole-bundle and app-marginal
-sizes vary by profile; this replacement is not universally smaller than Faro or
-OTel. Existing custom-measurement dashboards may need panel changes; choose
-native performance events explicitly when those joins matter.
+The Faro integration targets the self-hosted Alloy receiver, Loki and Tempo.
+It does not provide the Grafana Cloud frontend UI, replay or source-map
+symbolication. Custom measurement dashboards may need panel changes; choose
+`withBrowserPerformance({ format: 'events' })` for native performance events.
+See [supported capabilities](/guides/opentelemetry/api/#current-boundaries).

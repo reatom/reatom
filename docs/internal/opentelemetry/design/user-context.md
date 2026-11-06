@@ -9,12 +9,12 @@
 > and document vitals/navigation extension-application identity across toggles.
 > Source null affects future capture, not queued history or consent revocation.
 > Faro projects captured standard `user.*` into `meta.user` and grouping without
-> resource fallback or visitor/session promotion. See [API.md](../API.md#common-attributes)
+> resource fallback or visitor/session promotion. See [API.md](../../../src/content/docs/guides/opentelemetry/api.md#common-attributes)
 > for the implemented contract and [atom-extensions.md](atom-extensions.md) for
 > the final native SDK/consent lifecycle. The connector proposals, deferred checks,
 > audit counts and design-only constraints below are preserved as historical evidence.
 
-Design-only analysis, 2026-10-24. The author asked: “Run the analytic with the api design skill to think how to fit the user thing to our SDK and what we could cover else with this.” This follows [`reatom-api-design`](../../../skills/reatom-api-design/SKILL.md) and [`reatom`](../../../skills/reatom/SKILL.md). Proposed APIs below are neither implemented nor approved by this document.
+Design-only analysis, 2026-10-24. The author asked: “Run the analytic with the api design skill to think how to fit the user thing to our SDK and what we could cover else with this.” This follows [`reatom-api-design`](../../../../skills/reatom-api-design/SKILL.md) and [`reatom`](../../../../skills/reatom/SKILL.md). Proposed APIs below are neither implemented nor approved by this document.
 
 Repository baseline: `ba81ae7b4553cfef9b231e02b43813152aae6cff`. Sources were read from the working tree; unrelated dirty files were left alone. Faro comparison: checkout `/tmp/faro-sdk-audit-v2.13.0`, tag `v2.13.0`, commit `d681775e9902fc8a393cd75dfc7690819c9ec6bc`. Historical specifications are not evidence of current APIs.
 

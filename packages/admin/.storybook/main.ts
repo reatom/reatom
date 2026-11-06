@@ -61,18 +61,7 @@ const config: StorybookConfig = {
           '@reatom/admin': resolve(dir, '../src/index.ts'),
           '@reatom/core': resolve(dir, '../../core/src'),
           '@reatom/jsx': resolve(dir, '../../jsx/src'),
-          '@reatom/opentelemetry/gdpr': resolve(
-            dir,
-            '../../opentelemetry/src/gdpr/index.ts',
-          ),
-          '@reatom/opentelemetry/web-analytics': resolve(
-            dir,
-            '../../opentelemetry/src/web-analytics/index.ts',
-          ),
-          '@reatom/opentelemetry': resolve(
-            dir,
-            '../../opentelemetry/src/index.ts',
-          ),
+          '@reatom/opentelemetry': resolve(dir, '../../opentelemetry/src/index.ts'),
           test: resolve(dir, '../src/test.ts'),
           'chat-app': resolve(dir, '../../../examples/chat/src'),
         },

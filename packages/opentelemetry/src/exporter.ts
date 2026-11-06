@@ -1,7 +1,12 @@
 import type { Reservation } from './createBatchQueue.ts'
 import type { CapturedRecord } from './records.ts'
 import { INSTANCE_DISPOSED, OTLP_ALREADY_INSTALLED } from './diag.ts'
-import type { BrowserTelemetry } from './captureEngine.ts'
+
+/** Shared by a rich capture instance and a standalone delivery sink. */
+export interface ExportTarget {
+  readonly instanceName: string
+  disposed(): boolean
+}
 
 export type DeliveryItem = {
   record: CapturedRecord
@@ -33,17 +38,17 @@ export interface CaptureHost {
 }
 
 type ExporterSlot = { host: CaptureHost; binding?: ExporterBinding }
-const exporters = new WeakMap<BrowserTelemetry, ExporterSlot>()
+const exporters = new WeakMap<ExportTarget, ExporterSlot>()
 
 export const installCaptureHost = (
-  instance: BrowserTelemetry,
+  instance: ExportTarget,
   host: CaptureHost,
 ): void => {
   exporters.set(instance, { host })
 }
 
 export const bindExporter = (
-  instance: BrowserTelemetry,
+  instance: ExportTarget,
   binding: ExporterBinding,
 ): CaptureHost => {
   const slot = exporters.get(instance)
@@ -53,12 +58,12 @@ export const bindExporter = (
   return slot.host
 }
 
-export const exporterOf = (instance: BrowserTelemetry) =>
+export const exporterOf = (instance: ExportTarget) =>
   exporters.get(instance)?.binding
 
 /** Roll back only an installation that never completed native composition. */
 export const unbindExporter = (
-  instance: BrowserTelemetry,
+  instance: ExportTarget,
   binding: ExporterBinding,
 ) => {
   const slot = exporters.get(instance)

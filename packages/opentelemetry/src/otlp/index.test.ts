@@ -1,6 +1,6 @@
 import { action, context, wrap } from '@reatom/core'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { reatomOpentelemetry } from '../index.ts'
+import { reatomOpentelemetry } from '../reatom/index.ts'
 import { withOTLP, type TransportBatch } from './index.ts'
 
 beforeEach(() => context.reset())

@@ -8,9 +8,9 @@
 > measurements, probes, source-unchanged statements and recommendations below
 > describe the earlier design/review stage, not the current implementation.
 > They do not establish a threefold reduction or passing size budgets. See
-> [the current API](../API.md) and reproduce current graphs with test:bundles.
+> [the current API](../../../src/content/docs/guides/opentelemetry/api.md) and reproduce current graphs with test:bundles.
 
-Astra second follow-up, 2026-10-24. This addresses the clarified request: reusable functions for repeated code, shorter diagnostics, and APIs that express the same logic with less code and no unnecessary runtime work. The earlier [style review](./code-style.md) addressed maintainability more broadly. Production files remain unchanged.
+Astra second follow-up, 2026-10-24. This addresses the clarified request: reusable functions for repeated code, shorter diagnostics, and APIs that express the same logic with less code and no unnecessary runtime work. The earlier [style review](code-style.md) addressed maintainability more broadly. Production files remain unchanged.
 
 ## Concrete result
 

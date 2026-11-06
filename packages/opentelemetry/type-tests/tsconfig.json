@@ -9,7 +9,9 @@
     "./browser-metrics.ts",
     "./native-extensions.ts",
     "./otlp.ts",
-    "./browser.ts"
+    "./browser.ts",
+    "./kernel.ts",
+    "../examples/browser.ts"
   ],
   "compilerOptions": {
     "noEmit": true

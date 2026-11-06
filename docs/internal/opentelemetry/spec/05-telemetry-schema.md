@@ -15,7 +15,7 @@ Naming follows OpenTelemetry semantic conventions wherever a convention exists *
 
 Do not treat planned rows as ingest fixtures. Do not invent `reatom.state.prev`. Do not emit `reatom.async.pending`.
 
-Wire examples: [`success-span.json`](examples/success-span.json), [`route-watershed.json`](examples/route-watershed.json), [`modal-same-trace.json`](examples/modal-same-trace.json), [`exception.json`](examples/exception.json), [`log-outside-trace.json`](examples/log-outside-trace.json), [`atom-update.json`](examples/atom-update.json), [`diamond-links.json`](examples/diamond-links.json).
+Wire examples: [`success-span.json`](../../../../packages/opentelemetry/spec/examples/success-span.json), [`route-watershed.json`](../../../../packages/opentelemetry/spec/examples/route-watershed.json), [`modal-same-trace.json`](../../../../packages/opentelemetry/spec/examples/modal-same-trace.json), [`exception.json`](../../../../packages/opentelemetry/spec/examples/exception.json), [`log-outside-trace.json`](../../../../packages/opentelemetry/spec/examples/log-outside-trace.json), [`atom-update.json`](../../../../packages/opentelemetry/spec/examples/atom-update.json), [`diamond-links.json`](../../../../packages/opentelemetry/spec/examples/diamond-links.json).
 
 ## Mapping defaults (R1)
 
@@ -39,7 +39,7 @@ flowchart TD
 | Id                     | When                                           | Spans                                                                                                   | Updates                                                                            |
 | ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | **2** (default)        | `detail: 'events'`                             | Action call (async ends on promise settle). `span: true` on an atom/computed is the per-target override | Atom / computed updates are log records on the **current action span context**     |
-| **3** (default add-on) | computed with causes from **different traces** | Short span; parent = primary (triggering) cause; one link per other trace                               | Single-cause stays a log ([`diamond-links.json`](examples/diamond-links.json))     |
+| **3** (default add-on) | computed with causes from **different traces** | Short span; parent = primary (triggering) cause; one link per other trace                               | Single-cause stays a log ([`diamond-links.json`](../../../../packages/opentelemetry/spec/examples/diamond-links.json))     |
 | 1                      | `detail: 'spans'` (local debug)                | Every action, atom write, computed recompute                                                            | Diamonds cannot be expressed                                                       |
 | 4                      | `detail: 'summary'` (**planned**)              | Action spans only                                                                                       | Planned attrs `reatom.updates.count` / `reatom.updates.names`; **not on the wire** |
 
@@ -136,14 +136,14 @@ Severity: INFO (9) for everything, ERROR (17) for `exception`. No levels API (Т
 
 ### Exceptions are logs only (R2 pick C)
 
-`exception` is an OTLP **log record** with span context. Span status is still `ERROR` with the message. There is **no default span-event duplicate**. `exception.escaped` is not emitted. [`exception.json`](examples/exception.json): `span.events` has no `exception`; the log has `eventName` + `event.name` = `exception`.
+`exception` is an OTLP **log record** with span context. Span status is still `ERROR` with the message. There is **no default span-event duplicate**. `exception.escaped` is not emitted. [`exception.json`](../../../../packages/opentelemetry/spec/examples/exception.json): `span.events` has no `exception`; the log has `eventName` + `event.name` = `exception`.
 
 ## Route watershed (C4)
 
 A **page** is a change in the set of **bounding** matched routes (`boundary !== false`, default on route atoms).
 
-- Bounding-set change → `createTrace` named `route <leaf>`, short root span until bounding loaders settle. The **trace** does not end; later actions under `route: 'child'` keep that `traceId`. F-03 dumps carry `reatom.name` / `reatom.kind` / `reatom.outcome` only — **not** `url.path` or `reatom.route.pattern` ([`route-watershed.json`](examples/route-watershed.json)).
-- `withOTel({ boundary: false })` → short child span `route <name>` on the current page trace, **no new `traceId`** ([`modal-same-trace.json`](examples/modal-same-trace.json)).
+- Bounding-set change → `createTrace` named `route <leaf>`, short root span until bounding loaders settle. The **trace** does not end; later actions under `route: 'child'` keep that `traceId`. F-03 dumps carry `reatom.name` / `reatom.kind` / `reatom.outcome` only — **not** `url.path` or `reatom.route.pattern` ([`route-watershed.json`](../../../../packages/opentelemetry/spec/examples/route-watershed.json)).
+- `withOTel({ boundary: false })` → short child span `route <name>` on the current page trace, **no new `traceId`** ([`modal-same-trace.json`](../../../../packages/opentelemetry/spec/examples/modal-same-trace.json)).
 - `route: 'link'` → each later top-level action mints a trace and links to the page span with `reatom.link.reason = route.page`. Loader-invoked work stays on the route `traceId`.
 - Same bounding set, new params (`/users/1` → `/users/2`) does not cut.
 - `roots: []` emits no automatic route / mount / action / atom roots. `app.session` still exists.
@@ -193,7 +193,7 @@ Keep `app.visitor.id` (do not replace with `enduser.pseudo.id`). Residual `app.*
 
 ## Examples
 
-Action span, capture on ([`success-span.json`](examples/success-span.json) shape):
+Action span, capture on ([`success-span.json`](../../../../packages/opentelemetry/spec/examples/success-span.json) shape):
 
 ```json
 {
@@ -213,7 +213,7 @@ Action span, capture on ([`success-span.json`](examples/success-span.json) shape
 }
 ```
 
-Atom update on the action span, not a span and not a span event ([`atom-update.json`](examples/atom-update.json)):
+Atom update on the action span, not a span and not a span event ([`atom-update.json`](../../../../packages/opentelemetry/spec/examples/atom-update.json)):
 
 ```json
 {
@@ -235,7 +235,7 @@ Atom update on the action span, not a span and not a span event ([`atom-update.j
 }
 ```
 
-Variant-3 diamond: short `reatom.kind = computed` span on the primary cause, link `reatom.link.reason = computed.dependency` to the other trace ([`diamond-links.json`](examples/diamond-links.json)).
+Variant-3 diamond: short `reatom.kind = computed` span on the primary cause, link `reatom.link.reason = computed.dependency` to the other trace ([`diamond-links.json`](../../../../packages/opentelemetry/spec/examples/diamond-links.json)).
 
 ## Freeze checklist
 

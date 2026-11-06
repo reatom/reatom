@@ -1,6 +1,5 @@
 import { action, atom, withAsync, wrap } from '@reatom/core'
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { withWebAnalytics } from '@reatom/opentelemetry/web-analytics'
+import { reatomOpentelemetry, withWebAnalytics } from '@reatom/opentelemetry'
 
 export const otel = reatomOpentelemetry({
   name: 'crm',

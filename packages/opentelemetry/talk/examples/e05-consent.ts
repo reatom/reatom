@@ -1,7 +1,9 @@
 import { action, wrap } from '@reatom/core'
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { withGDPR } from '@reatom/opentelemetry/gdpr'
-import { withWebAnalytics } from '@reatom/opentelemetry/web-analytics'
+import {
+  reatomOpentelemetry,
+  withGDPR,
+  withWebAnalytics,
+} from '@reatom/opentelemetry'
 
 export const otel = reatomOpentelemetry({
   name: 'shop',

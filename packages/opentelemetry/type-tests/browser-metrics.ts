@@ -1,13 +1,15 @@
 import type { BooleanAtom } from '@reatom/core'
-import { withBrowserNetworkMonkeypatch } from '../src/browser-network/index.ts'
-import { withBrowserConsoleMonkeypatch } from '../src/browser-console/index.ts'
-import type { ReatomOpentelemetry } from '../src/index.ts'
-import { withBrowserPerformance } from '../src/browser-performance/index.ts'
-import { withWebVitals } from '../src/web-vitals/index.ts'
-import * as network from '../src/browser-network/index.ts'
-import * as consoleCapture from '../src/browser-console/index.ts'
-import * as performanceCapture from '../src/browser-performance/index.ts'
-import * as vitals from '../src/web-vitals/index.ts'
+import {
+  withBrowserNetworkMonkeypatch,
+  withBrowserConsoleMonkeypatch,
+  type ReatomOpentelemetry,
+  withBrowserPerformance,
+  withWebVitals,
+} from '../src/index.ts'
+import * as network from '../src/index.ts'
+import * as consoleCapture from '../src/index.ts'
+import * as performanceCapture from '../src/index.ts'
+import * as vitals from '../src/index.ts'
 
 declare function expectNever<Check extends never>(_check?: Check): void
 

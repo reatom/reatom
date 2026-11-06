@@ -1,6 +1,20 @@
 [
   {
-    "name": "opentelemetry",
+    "name": "kernel",
+    "path": "dist/index.js",
+    "import": "{ reatomTelemetry, attributes }",
+    "ignore": ["@reatom/core"],
+    "limit": "3 KB"
+  },
+  {
+    "name": "kernel (actions + capture + history + sinks)",
+    "path": "dist/index.js",
+    "import": "{ reatomTelemetry, attributes, withActionSpans, withActionTracing, captureAttributes, reatomRecordSink, combineSinks }",
+    "ignore": ["@reatom/core"],
+    "limit": "5 KB"
+  },
+  {
+    "name": "reatom (full reactive instrumentation)",
     "path": "dist/index.js",
     "import": "{ reatomOpentelemetry, checkSensitiveNames }",
     "ignore": ["@reatom/core"],
@@ -8,80 +22,77 @@
   },
   {
     "name": "gdpr",
-    "path": "dist/gdpr/index.js",
+    "path": "dist/index.js",
     "import": "{ withGDPR, reatomGDPR, DEFAULT_GDPR_CATEGORIES }",
     "ignore": ["@reatom/core"],
     "limit": "1.1 KB"
   },
   {
     "name": "web-analytics (optional extension)",
-    "path": "dist/web-analytics/index.js",
+    "path": "dist/index.js",
     "import": "{ withWebAnalytics }",
     "ignore": ["@reatom/core"],
     "limit": "6.3 KB"
   },
   {
     "name": "web-analytics (tracer + analytics)",
-    "path": ["dist/index.js", "dist/web-analytics/index.js"],
-    "import": {
-      "./dist/index.js": "{ reatomOpentelemetry, checkSensitiveNames }",
-      "./dist/web-analytics/index.js": "{ withWebAnalytics }"
-    },
+    "path": "dist/index.js",
+    "import": "{ withWebAnalytics, reatomOpentelemetry, checkSensitiveNames }",
     "ignore": ["@reatom/core"],
     "limit": "21 KB"
   },
   {
     "name": "faro (optional receiver bridge)",
-    "path": "dist/faro/index.js",
+    "path": "dist/index.js",
     "import": "{ faroTransport, logMeasurement }",
     "ignore": ["@reatom/core"],
     "limit": "4.5 KB"
   },
   {
     "name": "strict-capture (optional serializer)",
-    "path": "dist/strict-capture/index.js",
+    "path": "dist/index.js",
     "import": "{ strictValueCapture }",
     "ignore": ["@reatom/core"],
     "limit": "3 KB"
   },
   {
     "name": "browser (manual capture and local records)",
-    "path": "dist/browser/index.js",
-    "import": "{ reatomOpentelemetry }",
+    "path": "dist/index.js",
+    "import": "{ reatomBrowserTelemetry }",
     "ignore": ["@reatom/core"],
     "limit": "11 KB"
   },
   {
     "name": "faro client (delivery and receiver bridge)",
-    "path": "dist/faro/client.js",
+    "path": "dist/index.js",
     "import": "{ withFaro }",
     "ignore": ["@reatom/core"],
     "limit": "12 KB"
   },
   {
     "name": "browser errors",
-    "path": "dist/browser-errors/index.js",
+    "path": "dist/index.js",
     "import": "{ withBrowserErrors }",
     "ignore": ["@reatom/core"],
     "limit": "2.2 KB"
   },
   {
     "name": "browser actions",
-    "path": "dist/browser-actions/index.js",
+    "path": "dist/index.js",
     "import": "{ withBrowserActions }",
     "ignore": ["@reatom/core"],
     "limit": "3.4 KB"
   },
   {
     "name": "browser CSP",
-    "path": "dist/browser-csp/index.js",
+    "path": "dist/index.js",
     "import": "{ withBrowserCsp }",
     "ignore": ["@reatom/core"],
     "limit": "1.6 KB"
   },
   {
     "name": "browser metadata",
-    "path": "dist/browser-metadata/index.js",
+    "path": "dist/index.js",
     "import": "{ withBrowserMetadata }",
     "ignore": ["@reatom/core"],
     "limit": "1.6 KB"

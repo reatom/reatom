@@ -1,8 +1,7 @@
 /* global URLSearchParams, location, window, __APP__ */
 
 import { action, bind, wrap } from '@reatom/core'
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { withOTLP } from '@reatom/opentelemetry/otlp'
+import { reatomOpentelemetry, withOTLP } from '@reatom/opentelemetry'
 
 const params = new URLSearchParams(location.search)
 const traced = params.get('mode') !== 'raw'

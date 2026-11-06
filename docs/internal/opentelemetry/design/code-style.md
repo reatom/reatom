@@ -8,9 +8,9 @@
 > measurements, probes, source-unchanged statements and recommendations below
 > describe the earlier design/review stage, not the current implementation.
 > They do not establish a threefold reduction or passing size budgets. See
-> [the current API](../API.md) and reproduce current graphs with test:bundles.
+> [the current API](../../../src/content/docs/guides/opentelemetry/api.md) and reproduce current graphs with test:bundles.
 
-Astra follow-up review, 2026-10-24. Companion to [size-reduction.md](./size-reduction.md). Source inspection only; no production changes or new test execution. Recommendations concern cognitive overhead and correctness review, not measured bundle savings.
+Astra follow-up review, 2026-10-24. Companion to [size-reduction.md](size-reduction.md). Source inspection only; no production changes or new test execution. Recommendations concern cognitive overhead and correctness review, not measured bundle savings.
 
 ## Direction
 

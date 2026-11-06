@@ -19,4 +19,4 @@ VITE_OTEL_ENDPOINT=https://collector.example.com pnpm --filter reatom-react-sear
 Use `otel()` and `otel.set(...)` for live SDK settings; `otel.records`,
 `otel.stats` and `otel.disposed` are readonly observables. Root stats describe capture; delivery counters belong to `otel.otlp.stats()` only when export is attached. Feature enablement
 (`otel.analytics.setFalse()` / `.setTrue()`) is independent of consent and does
-not grant permission. See the [telemetry API reference](../../packages/opentelemetry/API.md).
+not grant permission. See the [telemetry API reference](https://www.reatom.dev/guides/opentelemetry/api/).

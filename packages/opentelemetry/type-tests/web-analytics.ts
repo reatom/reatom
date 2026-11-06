@@ -2,9 +2,8 @@
 import type { BooleanAtom, Computed } from '@reatom/core'
 
 import * as root from '../src/index.ts'
-import { reatomOpentelemetry } from '../src/index.ts'
-import * as webAnalytics from '../src/web-analytics/index.ts'
 import {
+  reatomOpentelemetry,
   withWebAnalytics,
   type AnalyticsPage,
   type AnalyticsSession,
@@ -12,16 +11,14 @@ import {
   type NavigationSource,
   type WebAnalytics,
   type WebAnalyticsOptions,
-} from '../src/web-analytics/index.ts'
+} from '../src/index.ts'
+import * as webAnalytics from '../src/index.ts'
 
 declare function expectNever<Check extends never>(_check?: Check): void
 
-export function optionalAnalyticsExportsStaySeparate() {
+export function analyticsExportsKeepImplementationPrivate() {
   expectNever(
-    null as unknown as Extract<
-      keyof typeof root,
-      'withWebAnalytics' | 'connectWebAnalytics'
-    >,
+    null as unknown as Extract<keyof typeof root, 'connectWebAnalytics'>,
   )
   expectNever(
     null as unknown as Extract<

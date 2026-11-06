@@ -164,9 +164,8 @@ export interface ReatomOpentelemetryInput extends OtelOptions {
   serialize?: Serialize
   /**
    * Factory for automatic params, payload and update snapshots. Defaults to the
-   * lean serializer. Pass `strictValueCapture` from
-   * `@reatom/opentelemetry/strict-capture` for in-string PII scrubbing,
-   * URL/Date/Map/Set encoding and byte-exact budgets.
+   * lean serializer. Pass `strictValueCapture` from `@reatom/opentelemetry` for
+   * in-string PII scrubbing, URL/Date/Map/Set encoding and byte-exact budgets.
    */
   valueCapture?: ValueCaptureFactory
   /** Maximum locally retained records. Default 1000. */

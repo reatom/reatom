@@ -1,22 +1,33 @@
-# OpenTelemetry API reference
+---
+title: OpenTelemetry API
+description: Capture, analytics, consent, browser collectors and delivery API reference.
+sidebar:
+  label: API reference
+---
 
-This reference describes the **unreleased workspace package**. Start with the
-[README](./README.md) for setup and optional imports, or the
-[worked guide](../../docs/src/content/docs/guides/opentelemetry.md) for eighteen
-application scenarios. Use one shared `@reatom/core` peer dependency.
+Import all factories, extensions and types from `@reatom/opentelemetry`.
+
+| Factory                  | Use it for                                                                                    |
+| ------------------------ | --------------------------------------------------------------------------------------------- |
+| `reatomOpentelemetry`    | Automatic action spans, reactive updates and causal debugging                                 |
+| `reatomBrowserTelemetry` | Manual spans and browser collectors without Reatom model instrumentation                      |
+| `reatomTelemetry`        | [Lightweight tracing](/guides/opentelemetry/kernel/) with explicit capture and sink ownership |
+
+Start with the [application guide](/guides/opentelemetry/) or configure an
+[OTLP/Faro backend](/guides/opentelemetry/backends/).
 
 ## Instance creation
 
 `reatomOpentelemetry(input)` returns a genuine `Atom<OtelOptions>` with native
 `.extend`, `.set`, hooks and subscriptions. Read live settings with `otel()` and
 update with `otel.set(current => ({ ...current, keepRecords: false }))`.
-There is no `.options` alias. Native `.name` is `otel.<name>`; `.instanceName`
+Native `.name` is `otel.<name>`; `.instanceName`
 retains the raw construction name used for registry identity and analytics storage.
 
 Install before application model definitions; earlier targets need explicit
 `.extend(otel.withOTel())`. Normal `await wrap(promise)` and externally called
 `wrap(callback)` rules apply. This is not a general OpenTelemetry provider or
-zone patch for other SDKs. The root imports no optional browser collectors.
+zone patch for other SDKs. Browser collectors start only when their extensions are applied.
 
 The factory owns one local capture runtime across Reatom roots. An optional exporter owns its shared delivery queues. Readonly
 `records` preserves isolated-root views and a default/Admin aggregate view; do
@@ -24,7 +35,7 @@ not treat a context boundary as an independent queue or delivery lifecycle.
 Distinct instances have their own runtimes. Same-name construction disposes the
 previous instance and its installed features.
 
-The root SDK captures locally; it has no endpoint, transport, retry or delivery
+`reatomOpentelemetry` captures locally; it has no endpoint, transport, retry or delivery
 queue configuration. Apply [withOTLP](#delivery-and-transports) to export.
 
 | Constructor input                                     | Default and behavior                                                                                                                               |
@@ -36,7 +47,7 @@ queue configuration. Apply [withOTLP](#delivery-and-transports) to export.
 | `skipGlobalExtension`                                 | `false`; observe future actions/updates automatically. Explicit `withOTel` works with true. Fixed at construction.                                 |
 | `extend(target, withOTel)`                            | Construction hook for future model definitions, distinct from native `otel.extend(...)`.                                                           |
 | `serialize(value, key)`                               | Fixed automatic-value transform replacing instance redact; sensitive-key masking still follows.                                                    |
-| `valueCapture`                                        | Capture factory for automatic snapshots. Defaults to the lean serializer. Pass `strictValueCapture` from `@reatom/opentelemetry/strict-capture`.   |
+| `valueCapture`                                        | Capture factory for automatic snapshots. Defaults to the lean serializer. Pass `strictValueCapture` from `@reatom/opentelemetry`.                  |
 | `version`                                             | Scope version, default `''`, separate from serviceVersion. Captured with each record.                                                              |
 | Live settings below                                   | Also accepted as initial constructor settings.                                                                                                     |
 
@@ -44,11 +55,11 @@ A random `service.instance.id`, SDK metadata and available low-entropy browser
 hints enter the construction resource; no raw user agent is collected. Recreate
 the SDK to change fixed inputs.
 
-### Browser entry and explicit spans
+### Browser factory and explicit spans
 
-`import { reatomOpentelemetry } from '@reatom/opentelemetry/browser'` creates the same capture engine without automatic Reatom middleware, route roots or core-log hooks. `BrowserTelemetryInput` omits `filter`, `roots`, `route`, `warnContextLoss`, `maxSpansPerTrace`, `maxTraceMs`, `extend` and `skipGlobalExtension`; it has no `withOTel` member. Collectors and exporters are independent imports available to both entries.
+`reatomBrowserTelemetry(input)` creates the same capture engine without automatic Reatom middleware, route roots or core-log hooks. `BrowserTelemetryInput` omits `filter`, `roots`, `route`, `warnContextLoss`, `maxSpansPerTrace`, `maxTraceMs`, `extend` and `skipGlobalExtension`; it has no `withOTel` member. Collectors and exporters are independent imports available to both factories.
 
-Both entries expose:
+Both factories expose:
 
 ```ts
 startSpan(options: {
@@ -64,7 +75,7 @@ snapshot(): CaptureSnapshot
 
 `ManualSpan` has readonly `context` and W3C `traceparent`, `finish({ endTimeMs?, name?, attributes?, error? }?)` and `cancel()`. `finish` is idempotent; cancel releases admission without emitting the span. Missing permission, disabled traces, disposal or the `maxActive` bound can deny admission (`undefined`). A blank name, invalid parent ids or nonfinite start time throw. Valid uppercase parent ids are normalized in an owned copy.
 
-A handle does not establish ambient context across a promise or `await`. Pass its `context` as an explicit child `parent`; pass `otel.snapshot()` to retain initiating metadata/resource/sampling across a callback. Snapshots retain their capture-root policy: finishing from another root cannot grant or revoke the initiating root's permission. `flush()` finishes unfinished manual/browser operations at flush time with `reatom.finish.reason: 'flush'` and no synthetic status; `dispose()` cancels them. See [migration examples](./MIGRATION.md#explicit-spans-and-async-boundaries).
+A handle does not establish ambient context across a promise or `await`. Pass its `context` as an explicit child `parent`; pass `otel.snapshot()` to retain initiating metadata/resource/sampling across a callback. Snapshots retain their capture-root policy: finishing from another root cannot grant or revoke the initiating root's permission. `flush()` finishes unfinished manual/browser operations at flush time with `reatom.finish.reason: 'flush'` and no synthetic status; `dispose()` cancels them. See [span examples](/guides/opentelemetry/backends/#explicit-spans-and-async-boundaries).
 
 ### Live settings
 
@@ -159,8 +170,7 @@ URL are class markers (`[Map]`, `[Date]`, `[URL]`) with no fields walked.
 Pass a compatible factory to opt into a different implementation:
 
 ```ts
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { strictValueCapture } from '@reatom/opentelemetry/strict-capture'
+import { reatomOpentelemetry, strictValueCapture } from '@reatom/opentelemetry'
 
 const otel = reatomOpentelemetry({
   name: 'shop',
@@ -195,7 +205,7 @@ These are safe owned canonical snapshots, not OTLP AnyValue envelopes or
 nanosecond strings. Automatic values retain typed snapshots; only OTLP formats
 wire text and protocol enums. Local snapshot/admission budgets and the exporter's
 16 KiB encoded-record budget are separate. A record retained locally does not
-prove wire admission or remote receipt. [Admin](../admin/README.md) consumes these
+prove wire admission or remote receipt. [Admin](https://github.com/reatom/reatom/blob/v1001/packages/admin/README.md) consumes these
 records directly and retains OTLP file/replay import separately. Its JSON
 export serializes bigint as decimal strings and bytes as numeric arrays without
 changing the captured values.
@@ -209,7 +219,7 @@ debugging and account for object retention. The side channel is a WeakMap keyed 
 
 ## Common attributes
 
-Import `withAttributes(source)` from `@reatom/opentelemetry/attributes` and apply
+Import `withAttributes(source)` from `@reatom/opentelemetry` and apply
 it to the SDK. It adds readonly `.attributes`, a projection of the **app-owned**
 synchronous computed/reader. The reader returns `Readonly<Record<string,
 OtlpAttrValue>> | null`; async readers, undefined results, functions/methods and
@@ -218,8 +228,7 @@ express absence. There is no second mutable user/auth store in the SDK.
 
 ```ts
 import { atom, computed, action, wrap } from '@reatom/core'
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { withAttributes } from '@reatom/opentelemetry/attributes'
+import { reatomOpentelemetry, withAttributes } from '@reatom/opentelemetry'
 
 const userId = atom<string | null>(null, 'auth.userId')
 const source = computed(() => {
@@ -256,7 +265,7 @@ across feature toggles; resources snapshot at observer delivery. See
 
 ## Web analytics
 
-Import `withWebAnalytics(options?)` from `@reatom/opentelemetry/web-analytics` and
+Import `withWebAnalytics(options?)` from `@reatom/opentelemetry` and
 apply through `otel.extend(...)`. It adds `.analytics`, a native requested-enable
 boolean atom with readonly `.visitor`, `.session`, `.page`, `.attribution`, `.focus`
 children and a `.pageView(attributes?)` action. The feature writes to its parent's canonical capture stream; delivery uses an
@@ -334,12 +343,12 @@ and installation on a disposed SDK throw before side effects. Each feature owns
 its cleanup and rolls back its own failed setup; earlier extensions in the same
 `.extend(...)` call remain applied if a later one fails. `dispose()` is terminal,
 sets feature requests false and prevents re-enabling. HMR should dispose the old
-SDK and construct a fresh one. There are no public `connect*` compatibility aliases.
+SDK and construct a fresh one.
 
 ## Browser connectors
 
-Each collector has its own explicit optional import and native extension factory;
-there is no root barrel export or plugin registry. Missing browser APIs make
+Each collector is a named export from `@reatom/opentelemetry`. Unused
+collectors are removed by tree-shaking. Missing browser APIs make
 capture a no-op. Diagnostics and signal gates control admission/export separately
 from the requested-enable switch. Analytics permission is unnecessary for
 identity-free diagnostic collection, and does not itself enable diagnostics.
@@ -352,7 +361,7 @@ signal settings apply independently to each subscriber.
 ### Network
 
 `withBrowserNetworkMonkeypatch({ propagateTraceparent?, ignoreUrl? })` from
-`@reatom/opentelemetry/browser-network` explicitly wraps native `fetch` and XHR.
+`@reatom/opentelemetry` explicitly wraps native `fetch` and XHR.
 It emits CLIENT spans with method, sanitized `url.full`, response status,
 `http.request.duration` in ms and error status for native failures/HTTP errors.
 Fetch ends when the response becomes available; XHR ends at completion. Neither
@@ -371,7 +380,7 @@ and userinfo, so make their decisions deliberately.
 ### Console
 
 `withBrowserConsoleMonkeypatch({ levels?, errorsAsExceptions? })` from
-`@reatom/opentelemetry/browser-console` wraps console methods while preserving
+`@reatom/opentelemetry` wraps console methods while preserving
 native calls. Defaults to `['warn', 'error']`; available levels are `debug`, `info`,
 `log`, `warn`, `error`. Emits `reatom.console` logs with `console.level`, severity,
 bounded/redacted arguments, and captured Error details when capture is enabled.
@@ -379,8 +388,8 @@ bounded/redacted arguments, and captured Error details when capture is enabled.
 
 ### Web Vitals
 
-`withWebVitals()` from `@reatom/opentelemetry/web-vitals` uses the official
-`web-vitals` **6.2.3** dependency, reachable only through this entry. It records
+`withWebVitals()` from `@reatom/opentelemetry` uses the official
+`web-vitals` **6.2.3** dependency, included only when this extension is used. It records
 CLS, FCP, INP, LCP and TTFB as `measurement` logs of type `web-vitals`:
 
 - `measurement.values`: lowercase name plus `delta`, e.g. `{ lcp: 1200, delta: 1200 }`.
@@ -398,7 +407,7 @@ those joins. Later login/grants do not backfill identity into that snapshot.
 ### Navigation and resources
 
 `withBrowserPerformance({ navigation?, resources?, ignoreUrl?, format? })` from
-`@reatom/opentelemetry/browser-performance` observes native PerformanceObserver
+`@reatom/opentelemetry` observes native PerformanceObserver
 entries, both categories enabled by default. Default `format: 'measurements'` emits measurement types
 `browser-navigation` and `browser-resource`, with `measurement.values`:
 
@@ -419,12 +428,12 @@ HTTP spans instead snapshot metadata at request start. `format: 'events'` emits 
 
 ### Errors, actions, CSP and metadata
 
-| Entry / extension                                    | Options and behavior                                                                                                                                                                                                                                                                                                                                                             |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/browser-errors`: `withBrowserErrors(options?)`     | `details: true`, `maxPerMinute: 20`, `dedupeMs: 1000`, optional `fingerprint(error)` returning a string or undefined. Captures uncaught errors and unhandled rejections without analytics. Details follow instance capture policy. It takes priority over analytics' legacy errors so shared deduplication does not lose stacks. Prefer analytics `errors: false` when using it. |
-| `/browser-actions`: `withBrowserActions(options?)`   | `attribute: 'data-faro-user-action-name'`, `initialActivityTimeout: 100` ms (clamped 1–1000), `frustration: true`. Captures only explicitly named native DOM actions, with DOM/resource activity validation and no extraction of text/HTML. Waits for observed network activity to settle, capped at 10 seconds; emits rage/dead/error-click signals when enabled.               |
-| `/browser-csp`: `withBrowserCsp(options?)`           | `details: false`, `maxPerMinute: 20`. Captures CSP violation events; URL credentials/query/hash are removed. Policy/sample text is opt-in and follows capture policy.                                                                                                                                                                                                            |
-| `/browser-metadata`: `withBrowserMetadata(options?)` | `pageUrl: false`, optional `bundleId`, `gitHash`, `installationId`, `attributes`. Adds browser/OS/language/viewport/brands and bounded user-agent metadata, plus explicit document URL only when requested. No persistent storage or visitor id. Explicit attributes override defaults and remain caller-owned privacy input.                                                    |
+| Entry / extension               | Options and behavior                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `withBrowserErrors(options?)`   | `details: true`, `maxPerMinute: 20`, `dedupeMs: 1000`, optional `fingerprint(error)` returning a string or undefined. Captures uncaught errors and unhandled rejections without analytics. Details follow instance capture policy. It takes priority over analytics' legacy errors so shared deduplication does not lose stacks. Prefer analytics `errors: false` when using it. |
+| `withBrowserActions(options?)`  | `attribute: 'data-faro-user-action-name'`, `initialActivityTimeout: 100` ms (clamped 1–1000), `frustration: true`. Captures only explicitly named native DOM actions, with DOM/resource activity validation and no extraction of text/HTML. Waits for observed network activity to settle, capped at 10 seconds; emits rage/dead/error-click signals when enabled.               |
+| `withBrowserCsp(options?)`      | `details: false`, `maxPerMinute: 20`. Captures CSP violation events; URL credentials/query/hash are removed. Policy/sample text is opt-in and follows capture policy.                                                                                                                                                                                                            |
+| `withBrowserMetadata(options?)` | `pageUrl: false`, optional `bundleId`, `gitHash`, `installationId`, `attributes`. Adds browser/OS/language/viewport/brands and bounded user-agent metadata, plus explicit document URL only when requested. No persistent storage or visitor id. Explicit attributes override defaults and remain caller-owned privacy input.                                                    |
 
 Named DOM actions produce their own Faro `action: { id, name }`; related ordinary logs carry action parent id/name. Web Vitals are excluded from action correlation. Metadata emits structured brand objects in Faro. All four collectors support synchronous disable and terminal parent disposal; user callbacks cannot re-enable a disposed collector.
 
@@ -439,11 +448,13 @@ or use a logger that the console connector does not capture. Console collection
 has no URL exclusion option.
 
 ```ts
-import { withOTLP } from '@reatom/opentelemetry/otlp'
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { type Transport } from '@reatom/opentelemetry/otlp'
-import { withBrowserNetworkMonkeypatch } from '@reatom/opentelemetry/browser-network'
-import { withBrowserPerformance } from '@reatom/opentelemetry/browser-performance'
+import {
+  withOTLP,
+  reatomOpentelemetry,
+  type Transport,
+  withBrowserNetworkMonkeypatch,
+  withBrowserPerformance,
+} from '@reatom/opentelemetry'
 
 const collector = new URL('https://telemetry.example/ingest')
 const ignoreCollector = (url: URL) =>
@@ -481,15 +492,14 @@ protocol, authentication, deadline and retry policy.
 ## Delivery and transports
 
 Import `withOTLP`, `otlpTransport` and transport types from
-`@reatom/opentelemetry/otlp`. `withOTLP(input)` adds `.otlp`, a native config atom
+`@reatom/opentelemetry`. `withOTLP(input)` adds `.otlp`, a native config atom
 with readonly delivery `.stats` and a `.transport(batch)` action. The root has no
 transport member. Factories are inert until applied; parent disposal terminates
 export. Installation does not replay records captured before attachment, so apply
 it before the work you want to export.
 
 ```ts
-import { reatomOpentelemetry } from '@reatom/opentelemetry'
-import { withOTLP } from '@reatom/opentelemetry/otlp'
+import { reatomOpentelemetry, withOTLP } from '@reatom/opentelemetry'
 
 const otel = reatomOpentelemetry({
   name: 'shop.export',
@@ -540,9 +550,9 @@ records. A successful flush is not a durable offline or end-to-end delivery prom
 
 ### Faro receiver integration
 
-Prefer `otel.extend(withFaro({ endpoint, ...options }))` from `@reatom/opentelemetry/faro/client`. It composes the shared `withOTLP` delivery worker with `faroTransport`; settings/stats remain on `.otlp`, and collectors remain separate imports. `FaroInput` includes transport options below plus `batchInterval`, `maxBatchSize`, `maxQueueSize` and `exportTimeoutMs`. It automatically calls installed `analytics.rotateSession(capturedId)` on accepted invalid-session responses, then your optional hook.
+Prefer `otel.extend(withFaro({ endpoint, ...options }))` from `@reatom/opentelemetry`. It composes the shared `withOTLP` delivery worker with `faroTransport`; settings/stats remain on `.otlp`, and collectors remain independent extensions. `FaroInput` includes transport options below plus `batchInterval`, `maxBatchSize`, `maxQueueSize` and `exportTimeoutMs`. It automatically calls installed `analytics.rotateSession(capturedId)` on accepted invalid-session responses, then your optional hook.
 
-The lower-level equivalent is `withOTLP({ endpoint: null, transports: [faroTransport(options)] })`. Import `faroTransport` and `logMeasurement` from `/faro`. `faroTransport({ endpoint, headers?, fetch?, attempts?, onSessionInvalid? })` accepts an exact absolute HTTP(S) collection URL with no OTLP suffix. JSON Content-Type, captured `x-faro-session-id` and UUID `Idempotency-Key` are fixed; other headers and fetch are injectable. It installs no instrumentation.
+The lower-level equivalent is `withOTLP({ endpoint: null, transports: [faroTransport(options)] })`. Import `faroTransport` and `logMeasurement`. `faroTransport({ endpoint, headers?, fetch?, attempts?, onSessionInvalid? })` accepts an exact absolute HTTP(S) collection URL with no OTLP suffix. JSON Content-Type, captured `x-faro-session-id` and UUID `Idempotency-Key` are fixed; other headers and fetch are injectable. It installs no instrumentation.
 
 Envelopes group captured app/user/session/page/view/browser metadata, including known-user identity. `session.start` maps to `session_start`, page/view changes to `view_changed`; ordinary `reatom.*` records map to logs. Native performance events use `format: 'events'`. Measurements preserve trace links; Web Vitals use lowercase names and `id`/`rating`/`navigation_type` context aliases. Exceptions include parsed structured stack frames where available; no source-map service or automatic symbolication is included. Span errors are not duplicated as exception events. Explicit document `page.url` is used for page metadata, rather than a resource URL. App metadata also supports namespace/release/bundle/git/installation fields.
 
@@ -550,7 +560,7 @@ Faro user metadata comes only from captured record attributes, never resource fa
 
 All **2xx** responses succeed. `X-Faro-Session-Status: invalid` on success calls `onSessionInvalid(capturedSessionId)` after acceptance; it does not drop or resend accepted records. Low-level transport callers own rotation; `withFaro` supplies stale-safe analytics rotation. Default `attempts: 3` includes the initial request. Network failures and HTTP 408/425/429/500/502/503/504 retry with Retry-After support, the same serialized body and the same UUID key. The Alloy receiver does not deduplicate that key; this is not exactly-once delivery. Abort/deadline/unload remain best effort. Converted unload envelopes share a 60 KiB in-flight Faro byte budget, and all unload envelopes start before responses are awaited.
 
-The [self-hosted suite](./e2e/faro/README.md) validates native Alloy → Loki/Tempo and direct OTLP through actual backend queries. Managed Grafana Cloud Frontend Observability and its private UI have not been verified. Analytics supports invalid-session rotation and configurable idle/absolute lifetimes; this does not promise complete managed-session parity or source compatibility with Faro's JavaScript API.
+The Faro integration supports the self-hosted Alloy receiver with Loki and Tempo. Analytics supports invalid-session rotation and configurable idle/absolute lifetimes. The integration does not provide the Grafana Cloud frontend UI or source compatibility with the Faro JavaScript SDK.
 
 `logMeasurement(otel, { type, values, context? })` validates nonempty type/name
 keys and finite numeric values. `context` cannot override `measurement.type` or
@@ -561,7 +571,7 @@ Use stable names/units and bounded context values.
 
 ## Consent form
 
-Import `withGDPR` and standalone `reatomGDPR` from `@reatom/opentelemetry/gdpr`.
+Import `withGDPR` and standalone `reatomGDPR` from `@reatom/opentelemetry`.
 `otel.extend(withGDPR(optionsOrForm?))` adds `.gdpr`. Apply it **first**, before
 collectors or any capture; late installation rejects. The initial denied offered
 categories are established before consent-form construction; the caller must
@@ -595,9 +605,9 @@ a choice, not a visitor identity; it is not a banner UI or identifier-erasure AP
 - `readServerTimingTraceparent()`: reads `traceparent` from the first navigation entry's Server-Timing description, or `undefined`. Parse and guard before setting a frame parent.
 - `formatServerTimingTraceparent(header)`: produces `traceparent;desc="..."` for a server response. Pass a valid traceparent value. Cross-origin timing visibility needs the server's timing policy.
 - Root exported types: `ReatomOpentelemetry`, `ReatomOpentelemetryInput`, `BrowserTelemetry`, `StartSpanOptions`, `ManualSpan`, `OtelOptions`, `SpanKind`, `OtlpAttrValue`, `LocalValues`, `LocalValuesMode`, `CaptureStats`, `CapturedRecord`, `CapturedSpan`, `CapturedLog`, `CapturedLink`, `CapturedAttributes`, `CapturedValues`, `CheckSensitiveNamesOptions`.
-- `/otlp` exports `OTLP`, `OTLPInput`, `OTLPOptions`, `TelemetryStats`, `Transport`, `TransportBatch`, `TransportResult`.
+- Delivery types: `OTLP`, `OTLPInput`, `OTLPOptions`, `TelemetryStats`, `Transport`, `TransportBatch`, `TransportResult`.
 - Analytics types: `WebAnalytics`, `WebAnalyticsOptions`, `AnalyticsPage`, `AnalyticsSession`, `Attribution`, `NavigationSource`.
-- `/attributes` exports `TelemetryAttributeSource`. Other optional entries export `BrowserNetworkOptions`, `BrowserConsoleOptions`, `ConsoleLevel`, `BrowserPerformanceOptions`, `BrowserErrorsOptions`, `BrowserActionsOptions`, `BrowserCspOptions`, `BrowserMetadataOptions`, `FaroTransportOptions`; `/faro/client` exports `FaroInput`; `/browser` exports `BrowserTelemetry`, `BrowserTelemetryInput`, `BrowserTelemetryOptions`, `StartSpanOptions`, `ManualSpan`, `CaptureSnapshot`, `TraceContext`; GDPR exports `DEFAULT_GDPR_CATEGORIES`, `GdprCategories`, `GdprConsentSnapshot`, `ReatomGDPR`, `ReatomGDPROptions`.
+- Attribute types: `TelemetryAttributeSource`. Collector types: `BrowserNetworkOptions`, `BrowserConsoleOptions`, `ConsoleLevel`, `BrowserPerformanceOptions`, `BrowserErrorsOptions`, `BrowserActionsOptions`, `BrowserCspOptions`, `BrowserMetadataOptions`, `FaroTransportOptions`; Faro: `FaroInput`; browser capture: `BrowserTelemetry`, `BrowserTelemetryInput`, `BrowserTelemetryOptions`, `StartSpanOptions`, `ManualSpan`, `CaptureSnapshot`, `TraceContext`; GDPR exports `DEFAULT_GDPR_CATEGORIES`, `GdprCategories`, `GdprConsentSnapshot`, `ReatomGDPR`, `ReatomGDPROptions`.
 
 ## Current boundaries
 
@@ -605,11 +615,11 @@ The package has no session replay, source-map upload/symbolication service,
 error-grouping UI, automatic scroll/form analytics, long-task collector,
 experiment/e-commerce schema, automatic title/referrer enrichment,
 automatic login/logout identity stitching, native OTLP metrics, durable offline
-storage, verified managed Grafana Cloud UI integration, cross-tab/worker trace
+storage, managed Grafana Cloud frontend UI integration, cross-tab/worker trace
 propagation, or automatic mount/render profiling. Explicitly named DOM actions,
 rage/dead/error clicks, CSP reporting and optional browser/viewport metadata are
 available through independent collectors. Session storage synchronization across
-tabs is distinct from trace propagation. The browser entry supplies explicit spans,
+tabs is distinct from trace propagation. The browser factory supplies explicit spans,
 not a global OpenTelemetry API provider or implicit promise/Zone context.
 `withAttributes` and scoped attributes can carry app-owned user/tenant metadata;
-the application still owns authentication, identity lifecycle and policy. These are current boundaries, not a roadmap.
+the application still owns authentication, identity lifecycle and policy.

@@ -1,11 +1,13 @@
-## 1000.15.2 (2026-04-27)
+# Changelog
 
-### Feat
+## 1000.15.2
 
-- **opentelemetry**: initial release. Action tracing through public Reatom
-  middleware, explicit `startTrace` / `withContext` boundaries, metadata-only
-  defaults and opt-in value capture. Batched OTLP/HTTP JSON export supports
-  retry/backoff and partial success. Unload uses bounded keepalive fetch by
-  default, with optional `navigator.sendBeacon`. No changes to `@reatom/core`,
-  reactive spans, automatic dependency links or implicit async trace context.
-  Ships traces only, without an SDK dependency, metrics or offline buffering.
+- Automatic Reatom action spans, reactive update logs and causal relationships.
+- Browser collectors for network, console, errors, Web Vitals, performance,
+  named user actions, CSP violations and document metadata.
+- Consent forms, page/session analytics and application-owned user attributes.
+- OTLP/HTTP and Faro delivery with batching, retry and bounded queues.
+- Canonical local records for inspection alongside remote export.
+- Lightweight tracing with explicit action instrumentation, value capture and
+  independent sinks.
+- One tree-shakeable package entry for all factories, extensions and types.

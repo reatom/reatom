@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { reatomOpentelemetry } from '../index.ts'
+import { reatomOpentelemetry } from '../reatom/index.ts'
 import { withFaro } from './client.ts'
 
 test('Faro client composes delivery without browser collectors', async () => {

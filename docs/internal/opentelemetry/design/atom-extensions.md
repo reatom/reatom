@@ -3,7 +3,7 @@
 > **Implemented status — 2026-10-24.** The native configuration atom and optional
 > `withWebAnalytics`, `withBrowserConsoleMonkeypatch`, `withBrowserNetworkMonkeypatch`,
 > `withWebVitals`, `withBrowserPerformance`, `withAttributes`, and `withGDPR` are
-> implemented and migrated. The current contracts are in [API.md](../API.md);
+> implemented and migrated. The current contracts are in [API.md](../../../src/content/docs/guides/opentelemetry/api.md);
 > the audit, proposals and deferred-work wording below are historical evidence.
 > The final surface has no `.options`/public `connect*` aliases; readonly records,
 > stats and disposal state are genuine computeds, and commands are native actions.

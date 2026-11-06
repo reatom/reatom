@@ -1,7 +1,11 @@
-import { reatomOpentelemetry, type ReatomOpentelemetry } from '../src/index.ts'
-import { withFaro } from '../src/faro/client.ts'
-import type { Transport } from '../src/otlp/index.ts'
-import { faroTransport, logMeasurement } from '../src/faro/index.ts'
+import {
+  reatomOpentelemetry,
+  type ReatomOpentelemetry,
+  withFaro,
+  type Transport,
+  faroTransport,
+  logMeasurement,
+} from '../src/index.ts'
 
 declare const otel: ReatomOpentelemetry
 const transport: Transport = faroTransport({

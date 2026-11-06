@@ -8,12 +8,13 @@ import {
   type Computed,
 } from '@reatom/core'
 import * as root from '../src/index.ts'
-import * as attributes from '../src/attributes/index.ts'
-import { reatomOpentelemetry, type OtlpAttrValue } from '../src/index.ts'
+import * as attributes from '../src/index.ts'
 import {
+  reatomOpentelemetry,
+  type OtlpAttrValue,
   withAttributes,
   type TelemetryAttributeSource,
-} from '../src/attributes/index.ts'
+} from '../src/index.ts'
 
 declare function expectNever<Check extends never>(_check?: Check): void
 
@@ -91,14 +92,6 @@ export function nativeRoot() {
   expectNever(
     null as unknown as Extract<
       keyof typeof root,
-      | 'withGDPR'
-      | 'reatomGDPR'
-      | 'withWebAnalytics'
-      | 'withAttributes'
-      | 'withWebVitals'
-      | 'withBrowserPerformance'
-      | 'withBrowserConsoleMonkeypatch'
-      | 'withBrowserNetworkMonkeypatch'
       | 'connectWebAnalytics'
       | 'connectAttributes'
       | 'connectWebVitals'

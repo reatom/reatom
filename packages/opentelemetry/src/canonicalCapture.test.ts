@@ -1,7 +1,7 @@
 import { utf8Length } from './utf8Length.ts'
 import { action, atom, context, wrap } from '@reatom/core'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { reatomOpentelemetry } from './index.ts'
+import { reatomOpentelemetry } from './reatom/index.ts'
 import { withAttributes } from './attributes/index.ts'
 
 beforeEach(() => context.reset())

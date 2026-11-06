@@ -147,8 +147,8 @@ const sliceString = (text: string): string => {
  * Lean session that shares a traversal and approximate size budget across
  * params and payload. Class instances including Map, Set, Date and URL become a
  * constructor-name marker; they are not walked. Pass `strictValueCapture` from
- * `@reatom/opentelemetry/strict-capture` for PII scrubbing, URL/Date
- * formatting, Map/Set encoding and byte-exact budgets.
+ * `@reatom/opentelemetry` for PII scrubbing, URL/Date formatting, Map/Set
+ * encoding and byte-exact budgets.
  */
 export const createValueCapture: ValueCaptureFactory = (redact, context) => {
   let bytes = MAX_BYTES

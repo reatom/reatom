@@ -3,9 +3,7 @@
   "compilerOptions": {
     "noEmit": true,
     "paths": {
-      "@reatom/opentelemetry": ["../src/index.ts"],
-      "@reatom/opentelemetry/web-analytics": ["../src/web-analytics/index.ts"],
-      "@reatom/opentelemetry/gdpr": ["../src/gdpr/index.ts"]
+      "@reatom/opentelemetry": ["../src/index.ts"]
     }
   },
   "include": ["./examples/**/*.ts"]

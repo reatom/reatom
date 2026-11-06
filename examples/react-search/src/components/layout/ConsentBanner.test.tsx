@@ -1,6 +1,6 @@
 import { MantineProvider } from '@mantine/core'
 import { context, notify, top, wrap } from '@reatom/core'
-import { reatomGDPR } from '@reatom/opentelemetry/gdpr'
+import { reatomGDPR } from '@reatom/opentelemetry'
 import { reatomContext } from '@reatom/react'
 import ReactDOM from 'react-dom/client'
 import { afterEach, expect, test } from 'vitest'

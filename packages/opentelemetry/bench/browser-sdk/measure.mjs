@@ -114,7 +114,7 @@ for (const transport of ['local', 'faro', 'otlp']) {
  cases.push({ name: 'faro-manual-' + transport, tier: 'manual log + span', transport, note: 'Faro native manual log + tracing bridge, auto instrumentation disabled. Local transport stores batches in memory.', code: faroImport + `import { BaseTransport } from '@grafana/faro-web-sdk'; import { TracingInstrumentation } from '@grafana/faro-web-tracing'; import { OtlpHttpTransport } from '@grafana/faro-transport-otlp-http'; import { trace } from '@opentelemetry/api';` + setup + `const sdk = initializeFaro({ app: { name: 'bundle-bench' }, metas: [], sessionTracking: { enabled: false }, instrumentations: [new TracingInstrumentation({ instrumentations: [] })], ${transport === 'faro' ? "url: 'https://collector.example/collect'" : 'transports'} }); sdk.api.pushLog(['manual']); trace.getTracer('bundle-bench').startSpan('manual').end(); globalThis.__bundleBench = sdk;` });
 }
 const sdk = new URL('../../src/', import.meta.url).pathname;
-const reatom = (entry) => sdk + (entry === '.' ? 'index.ts' : entry + '/index.ts');
+const reatom = () => sdk + 'index.ts';
 const app = `import { atom, action, computed } from '@reatom/core'; const count = atom(0, 'counter'); const increment = action(() => count.set(count() + 1), 'increment'); const doubled = computed(() => count() * 2, 'doubled'); globalThis.__app = { count, increment, doubled };`;
 const modules = {
  errors: ['browser-errors','withBrowserErrors','{}'],
@@ -135,7 +135,7 @@ for (const transport of ['local','otlp','faro']) {
   const extensions = [];
   if (transport !== 'local') {
    const method = transport === 'otlp' ? 'withOTLP' : 'withFaro';
-   imports += `import { ${method} } from ${JSON.stringify(sdk + (transport === 'otlp' ? 'otlp/index.ts' : 'faro/client.ts'))};`;
+   imports += `import { ${method} } from ${JSON.stringify(reatom())};`;
    extensions.push(`${method}({ ${transport === 'otlp' ? "endpoint: 'https://collector.example'" : "endpoint: 'https://collector.example/collect'"} })`);
   }
   for (const key of selected) {
@@ -149,15 +149,15 @@ for (const transport of ['local','otlp','faro']) {
   cases.push({ ...base, name: base.name + '-app', code: app + code, note: base.note + ' Whole existing Reatom app plus SDK compressed together.' });
  }
 }
-// A static browser entry shares records/exporters but excludes automatic Reatom instrumentation.
+// The browser factory shares records/exporters but tree-shakes automatic Reatom instrumentation.
 // Keep root profiles above unchanged: they intentionally retain extra native behavior.
 for (const root of [...cases].filter(item => item.name.startsWith('reatom-'))) {
   const code = root.code
     .replace("import { action as benchAction } from '@reatom/core'; ", '')
-    .replace(JSON.stringify(reatom('.')), JSON.stringify(reatom('browser')))
+    .replace('import { reatomOpentelemetry }', 'import { reatomBrowserTelemetry as reatomOpentelemetry }')
     .replace("benchAction(() => {}, 'manual').extend(sdk.withOTel())();", "sdk.startSpan({ name: 'manual' }).finish();");
   cases.push({ ...root, name: root.name.replace('reatom-', 'reatom-browser-'), code,
-    note: 'Current static browser source entry, manual log/startSpan, shared canonical records/sampling/export. All dependencies including core bundled. Automatic Reatom action/route/LOG instrumentation excluded.' });
+    note: 'Current root-imported browser factory, manual log/startSpan, shared canonical records/sampling/export. All dependencies including core bundled. Automatic Reatom action/route/LOG instrumentation excluded.' });
 }
 const faroNetwork = cases.find(c => c.name === 'faro-rum-network-otlp');
 cases.push({ ...faroNetwork, name: 'faro-rum-network-faro', transport: 'Faro', code: faroNetwork.code.replace("app: { name:", "url: 'https://collector.example/collect', app: { name:").replace(/, transports: \[new OtlpHttpTransport\(.*?\)\]/, '') });
@@ -169,7 +169,7 @@ await mkdir('dist', { recursive: true });
 await mkdir('metafiles', { recursive: true });
 const assertBrowserGraph = (name, metafile) => {
   const forbidden = ['withOTel.ts', 'causes.ts', 'roots/route.ts', 'instanceLogHooks.ts', 'reatomOpentelemetry.ts'];
-  const paths = Object.keys(metafile.inputs).map(path => path.replaceAll('\\', '/'));
+  const paths = Object.values(metafile.outputs).flatMap(output => Object.entries(output.inputs).filter(([, input]) => input.bytesInOutput > 0).map(([path]) => path.replaceAll('\\', '/')));
   const found = paths.filter(path => forbidden.some(module => path.endsWith('/src/' + module)));
   if (found.length) throw new Error(`Browser profile ${name} includes automatic Reatom instrumentation: ${found.join(', ')}`);
   return { passed: true, forbiddenSourceModules: forbidden, includesAutomaticLogHooks: false };

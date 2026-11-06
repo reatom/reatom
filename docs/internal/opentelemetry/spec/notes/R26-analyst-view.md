@@ -4,7 +4,7 @@
 - Owner input (2026-10-16): the analyst checks data only from `connectWebAnalytics`. The admin **needs** total (average) analytics over all users' sessions. Ideal: tweaks of the Timeline, because unification is a core Reatom idea; otherwise a new "Analytics" screen. The owner's guess: a separate screen for all data, plus an average user path in the Timeline. "Maybe you can figure out something else."
 - Question: which surfaces, data units and definitions give an analyst totals, breakdowns and an average path, while keeping one filter language, one Gantt and one frame card?
 - Fallback: until phase 1 ships, totals come from the R24 SQL snippets and single sessions from the Records Timeline.
-- Prototype: [`analytics.ts`](../../../admin/src/otlp/analytics.ts) and [`analytics.test.ts`](../../../admin/src/otlp/analytics.test.ts), 20 tests, including a round trip from the real `connectWebAnalytics` through admin ingest.
+- Prototype: [`analytics.ts`](../../../../../packages/admin/src/otlp/analytics.ts) and [`analytics.test.ts`](../../../../../packages/admin/src/otlp/analytics.test.ts), 20 tests, including a round trip from the real `connectWebAnalytics` through admin ingest.
 
 Two earlier agent passes (Timeline-only, then a revision for totals) proposed a totals strip, a Sessions mode, an Analytics screen and ClickHouse `GROUP BY`. Neither defined the average path. This note replaces both.
 
@@ -319,7 +319,7 @@ flowchart LR
 
 ## Status
 
-Phase 1 shipped in `@reatom/admin` on 2026-10-16 ([AD-14](../../../admin/workflow/backlog.yaml)): the Paths unit, the Analytics tab, session segments, Gantt `key` and `order`, G4, G5, and the `analyticsSummary` and `paths` MCP tools. The tools take `segment`, `range`, and, for paths, `cursor`. The note's `depth` argument shipped as `maxDepth`.
+Phase 1 shipped in `@reatom/admin` on 2026-10-16 ([AD-14](../../../../../packages/admin/workflow/backlog.yaml)): the Paths unit, the Analytics tab, session segments, Gantt `key` and `order`, G4, G5, and the `analyticsSummary` and `paths` MCP tools. The tools take `segment`, `range`, and, for paths, `cursor`. The note's `depth` argument shipped as `maxDepth`.
 
 Two deviations from this note:
 

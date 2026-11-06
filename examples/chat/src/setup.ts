@@ -5,10 +5,10 @@ import { log, wrap } from '@reatom/core'
 import {
   reatomOpentelemetry,
   type ReatomOpentelemetry,
+  withGDPR,
+  withOTLP,
+  withWebAnalytics,
 } from '@reatom/opentelemetry'
-import { withGDPR } from '@reatom/opentelemetry/gdpr'
-import { withOTLP } from '@reatom/opentelemetry/otlp'
-import { withWebAnalytics } from '@reatom/opentelemetry/web-analytics'
 
 const collectorEndpoint = import.meta.env.VITE_OTEL_ENDPOINT || null
 

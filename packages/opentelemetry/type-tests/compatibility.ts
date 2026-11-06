@@ -2,8 +2,7 @@
 import type { AtomLike, Ext, GenericExt } from '@reatom/core'
 import { action, atom, computed, withParams } from '@reatom/core'
 
-import type { ReatomOpentelemetry } from '../src/index.ts'
-import { reatomOpentelemetry } from '../src/index.ts'
+import { type ReatomOpentelemetry, reatomOpentelemetry } from '../src/index.ts'
 
 type Equal<Left, Right> =
   (<Value>() => Value extends Left ? 1 : 2) extends <

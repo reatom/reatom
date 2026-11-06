@@ -7,89 +7,14 @@
   "sideEffects": false,
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.cjs",
-      "default": "./dist/index.js"
-    },
-    "./gdpr": {
-      "types": "./dist/gdpr/index.d.ts",
-      "require": "./dist/gdpr/index.cjs",
-      "default": "./dist/gdpr/index.js"
-    },
-    "./web-analytics": {
-      "types": "./dist/web-analytics/index.d.ts",
-      "require": "./dist/web-analytics/index.cjs",
-      "default": "./dist/web-analytics/index.js"
-    },
-    "./faro": {
-      "types": "./dist/faro/index.d.ts",
-      "require": "./dist/faro/index.cjs",
-      "default": "./dist/faro/index.js"
-    },
-    "./browser-network": {
-      "types": "./dist/browser-network/index.d.ts",
-      "require": "./dist/browser-network/index.cjs",
-      "default": "./dist/browser-network/index.js"
-    },
-    "./browser-console": {
-      "types": "./dist/browser-console/index.d.ts",
-      "require": "./dist/browser-console/index.cjs",
-      "default": "./dist/browser-console/index.js"
-    },
-    "./web-vitals": {
-      "types": "./dist/web-vitals/index.d.ts",
-      "require": "./dist/web-vitals/index.cjs",
-      "default": "./dist/web-vitals/index.js"
-    },
-    "./browser-performance": {
-      "types": "./dist/browser-performance/index.d.ts",
-      "require": "./dist/browser-performance/index.cjs",
-      "default": "./dist/browser-performance/index.js"
-    },
-    "./browser-errors": {
-      "types": "./dist/browser-errors/index.d.ts",
-      "require": "./dist/browser-errors/index.cjs",
-      "default": "./dist/browser-errors/index.js"
-    },
-    "./browser-actions": {
-      "types": "./dist/browser-actions/index.d.ts",
-      "require": "./dist/browser-actions/index.cjs",
-      "default": "./dist/browser-actions/index.js"
-    },
-    "./browser-csp": {
-      "types": "./dist/browser-csp/index.d.ts",
-      "require": "./dist/browser-csp/index.cjs",
-      "default": "./dist/browser-csp/index.js"
-    },
-    "./browser-metadata": {
-      "types": "./dist/browser-metadata/index.d.ts",
-      "require": "./dist/browser-metadata/index.cjs",
-      "default": "./dist/browser-metadata/index.js"
-    },
-    "./faro/client": {
-      "types": "./dist/faro/client.d.ts",
-      "require": "./dist/faro/client.cjs",
-      "default": "./dist/faro/client.js"
-    },
-    "./attributes": {
-      "types": "./dist/attributes/index.d.ts",
-      "require": "./dist/attributes/index.cjs",
-      "default": "./dist/attributes/index.js"
-    },
-    "./otlp": {
-      "types": "./dist/otlp/index.d.ts",
-      "require": "./dist/otlp/index.cjs",
-      "default": "./dist/otlp/index.js"
-    },
-    "./strict-capture": {
-      "types": "./dist/strict-capture/index.d.ts",
-      "require": "./dist/strict-capture/index.cjs",
-      "default": "./dist/strict-capture/index.js"
-    },
-    "./browser": {
-      "types": "./dist/browser/index.d.ts",
-      "require": "./dist/browser/index.cjs",
-      "default": "./dist/browser/index.js"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "main": "dist/index.cjs",
@@ -111,33 +36,19 @@
     "test:e2e:clickhouse": "node e2e/collector/run-clickhouse.mjs",
     "test:e2e:faro": "node e2e/faro/run.mjs",
     "size": "size-limit --config .size-limit.json",
-    "test:bundles": "pnpm run build && node tools/check-browser-bundles.mjs"
+    "test:bundles": "pnpm run build && node tools/check-browser-bundles.mjs",
+    "size:example": "node tools/measure-example.mjs"
   },
   "tsdown": {
     "entry": [
-      "src/index.ts",
-      "src/gdpr/index.ts",
-      "src/web-analytics/index.ts",
-      "src/faro/index.ts",
-      "src/browser-network/index.ts",
-      "src/browser-console/index.ts",
-      "src/web-vitals/index.ts",
-      "src/browser-performance/index.ts",
-      "src/browser-errors/index.ts",
-      "src/browser-actions/index.ts",
-      "src/browser-csp/index.ts",
-      "src/browser-metadata/index.ts",
-      "src/faro/client.ts",
-      "src/attributes/index.ts",
-      "src/otlp/index.ts",
-      "src/strict-capture/index.ts",
-      "src/browser/index.ts"
+      "src/index.ts"
     ],
     "format": [
       "esm",
       "cjs"
     ],
-    "fixedExtension": false
+    "fixedExtension": false,
+    "unbundle": true
   },
   "peerDependencies": {
     "@reatom/core": "workspace:^"
@@ -165,7 +76,7 @@
   "bugs": {
     "url": "https://github.com/reatom/reatom/issues"
   },
-  "homepage": "https://www.reatom.dev/package/opentelemetry",
+  "homepage": "https://www.reatom.dev/guides/opentelemetry/",
   "keywords": [
     "reactive",
     "reactivity",
@@ -173,9 +84,7 @@
     "reatom"
   ],
   "files": [
-    "/dist",
-    "/API.md",
-    "/MIGRATION.md"
+    "/dist"
   ],
   "devDependencies": {
     "@size-limit/preset-small-lib": "catalog:",

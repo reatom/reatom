@@ -71,7 +71,7 @@ rechecked because splitting metadata and adding Faro wrappers can grow payloads.
 Live Alloy/Loki/Tempo validation and managed Cloud lifecycle support remain
 unverified. This transport converts records without installing collectors.
 Browser instrumentation uses the separate explicit connectors described in the
-[API reference](../API.md#browser-connectors); replay and managed session
+[API reference](../../../src/content/docs/guides/opentelemetry/api.md#browser-connectors); replay and managed session
 lifecycle parity are not provided.
 
 Schema fixture: `src/faro/fixtures/receiver.json`, checked by the direct transport

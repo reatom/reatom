@@ -2,7 +2,7 @@ import { action, atom, context } from '@reatom/core'
 import { afterEach, expect, test, vi } from 'vitest'
 
 import { checkSensitiveNames } from './checkSensitiveNames.ts'
-import * as pkg from './index.ts'
+import * as pkg from './reatom/index.ts'
 import { reatomTestTelemetry, withWarnSpy } from './test-helpers.ts'
 
 const cleanups: Array<() => void> = []
@@ -31,7 +31,7 @@ const sensitiveWarnings = (warn: { mock: { calls: unknown[][] } }) =>
     .map((args) => String(args[0] ?? ''))
     .filter((message) => message.includes('checkSensitiveNames'))
 
-test('the package root exports checkSensitiveNames', () => {
+test('the reactive instrumentation entry exports checkSensitiveNames', () => {
   expect(typeof pkg.checkSensitiveNames).toBe('function')
   expect('reatomGDPR' in pkg).toBe(false)
 })

@@ -37,14 +37,10 @@ test('F-17 / WA-8: combined tracer+analytics measurement has no ignored tracer c
   expect(combined).toBeDefined()
   expect(combined!.limit).toBe('21 KB')
   expect(combined!.ignore).toEqual(['@reatom/core'])
-  expect(combined!.path).toEqual([
-    'dist/index.js',
-    'dist/web-analytics/index.js',
-  ])
-  expect(combined!.import).toEqual({
-    './dist/index.js': '{ reatomOpentelemetry, checkSensitiveNames }',
-    './dist/web-analytics/index.js': '{ withWebAnalytics }',
-  })
+  expect(combined!.path).toBe('dist/index.js')
+  expect(combined!.import).toBe(
+    '{ withWebAnalytics, reatomOpentelemetry, checkSensitiveNames }',
+  )
 })
 
 test('tracer factory does not import web-analytics', () => {
