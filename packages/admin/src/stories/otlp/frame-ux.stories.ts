@@ -391,3 +391,53 @@ export const LiveCapturePreservesCopySelection: Story = {
     selection.removeAllRanges()
   },
 }
+
+export const StructurallyEqualChanges: Story = {
+  name: 'Equal atom and computed states warn until disabled in Settings',
+  render: () =>
+    renderLocalRecords(
+      (['atom', 'computed'] as const).flatMap((kind, group) =>
+        [0, 1, 2].map((step) => ({
+          raw: {
+            eventName: `reatom.${kind}.update`,
+            traceId: 'equal-state-trace',
+            spanId: String(group * 3 + step + 1),
+            timeUnixNano: ms(group * 30 + step * 10),
+            body: { nested: [step === 2 ? 2 : 1] },
+            attributes: {
+              'reatom.name': `equal.${kind}.set`,
+              'reatom.kind': kind,
+              'reatom.frame.id': String(group * 3 + step + 1),
+              'reatom.cause.ids': [],
+            },
+          },
+          values: { state: { nested: [step === 2 ? 2 : 1] } },
+        })),
+      ),
+    ),
+  play: async () => {
+    const root = getAdminRoot()
+    const message =
+      'Captured state is structurally equal to the previous captured state'
+    const grid = await I.see(role('grid', 'Causal records').within(root).wait())
+    await I.seeNumberOfElements(role('note', message).within(grid).all(), 2)
+    const atomRows = (await I.resolveLocator(
+      role('row', 'equal.atom.set').within(grid).all(),
+    )) as HTMLElement[]
+    await I.dontSee(role('note', message).within(atomRows[0]!))
+    await I.dontSee(role('note', message).within(atomRows[2]!))
+    await I.click(role('note', message).within(atomRows[1]!))
+    await I.see(text(message).within(frameCard(root)).wait())
+    await I.click(role('tab', 'Settings').within(root))
+    const toggle = role('switch', 'Structurally equal changes').within(root)
+    await I.seeAttribute(toggle, 'aria-checked', 'true')
+    await I.click(toggle)
+    await I.seeAttribute(toggle, 'aria-checked', 'false')
+    await I.click(role('tab', 'Timeline').within(root))
+    await I.dontSee(role('note', message).within(root))
+    await I.click(role('tab', 'Settings').within(root))
+    await I.click(toggle)
+    await I.click(role('tab', 'Timeline').within(root))
+    await I.see(role('note', message).within(frameCard(root)).wait())
+  },
+}

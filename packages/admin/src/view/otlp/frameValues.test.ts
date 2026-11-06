@@ -2,6 +2,7 @@ import { expect, test } from 'test'
 
 import { LOCAL_VALUES, type AdminRecord } from '../../otlp'
 import {
+  equalStateRecordIds,
   eventOverviewError,
   frameValueView,
   overviewDataTitle,
@@ -436,4 +437,77 @@ test('event overview labels analytics exceptions and groups leftover keys', () =
       ],
     },
   ])
+})
+
+test('equal-state warnings compare consecutive states per source, model and kind', () => {
+  const update = (
+    id: string,
+    start: number,
+    state: unknown,
+    patch: Partial<AdminRecord> = {},
+  ) =>
+    record({
+      id,
+      start,
+      atomName: 'value',
+      reatomKind: 'atom',
+      eventName: 'reatom.atom.update',
+      [LOCAL_VALUES]: { state },
+      ...patch,
+    })
+  const records = [
+    update('first', 1, { nested: [1] }),
+    update('equal', 2, { nested: [1] }),
+    update('changed', 3, { nested: [2] }),
+    update('other-source', 4, { nested: [2] }, { sourceId: 'remote' }),
+    update('other-model', 5, { nested: [2] }, { atomName: 'other' }),
+    update('computed-first', 6, { nested: [2] }, { reatomKind: 'computed' }),
+    update('computed-equal', 7, { nested: [2] }, { reatomKind: 'computed' }),
+    update(
+      'action',
+      8,
+      { nested: [2] },
+      { reatomKind: 'action', eventName: undefined },
+    ),
+  ]
+  expect([...equalStateRecordIds(records.reverse())]).toEqual([
+    'equal',
+    'computed-equal',
+  ])
+})
+
+test('equal-state warnings handle undefined, cycles, collections and missing captures', () => {
+  const cycle: { self?: unknown } = {}
+  cycle.self = cycle
+  const other: { self?: unknown } = {}
+  other.self = other
+  const states = [
+    undefined,
+    undefined,
+    cycle,
+    other,
+    new Map([['a', [1]]]),
+    new Map([['a', [1]]]),
+  ]
+  const records = states.map((state, i) => stateRecord(state))
+  records.forEach((entry, i) => {
+    entry.id = String(i)
+    entry.start = i
+    entry[LOCAL_VALUES] = { state: states[i] }
+  })
+  expect([...equalStateRecordIds(records)]).toEqual(['1', '3', '5'])
+  const missing = record({
+    id: 'missing',
+    start: 6,
+    atomName: 'board',
+    reatomKind: 'atom',
+    eventName: 'reatom.atom.update',
+  })
+  expect([
+    ...equalStateRecordIds([
+      ...records,
+      missing,
+      { ...records[5]!, id: 'after-missing', start: 7 },
+    ]),
+  ]).toEqual(['1', '3', '5'])
 })

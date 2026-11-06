@@ -29,6 +29,7 @@ import {
   type,
   visuallyHidden,
 } from '../design-system'
+import { EqualStateWarning } from './EqualStateWarning'
 import { KindMark } from './KindMark'
 import {
   recordKindIcon,
@@ -470,6 +471,7 @@ const GanttRow = ({
             )
           }
           {() => <KindMark kind={kindName()} />}
+          <EqualStateWarning admin={admin} record={() => row} />
           <span
             data-testid="gantt-row-label"
             css={`

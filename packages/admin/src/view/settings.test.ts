@@ -14,6 +14,7 @@ const COLORS_KEY = '_Admin.settings.colors.v1'
 const GRAPH_CONTINUATIONS_KEY = '_Admin.settings.graphContinuations.v1'
 const SCHEME_KEY = '_Admin.settings.scheme.v1'
 const ACCENT_KEY = '_Admin.settings.accent.v1'
+const EQUAL_STATE_WARNINGS_KEY = '_Admin.settings.equalStateWarnings.v1'
 const CORNER_KEY = '_Admin.settings.corner.v1'
 
 afterEach(() => {
@@ -21,6 +22,7 @@ afterEach(() => {
   if (!canPersistToLocalStorage()) return
   localStorage.removeItem(ICONS_KEY)
   localStorage.removeItem(COLORS_KEY)
+  localStorage.removeItem(EQUAL_STATE_WARNINGS_KEY)
   localStorage.removeItem(GRAPH_CONTINUATIONS_KEY)
   localStorage.removeItem(SCHEME_KEY)
   localStorage.removeItem(ACCENT_KEY)
@@ -31,12 +33,15 @@ test('display settings default to on and toggle', () => {
   const settings = adminSettings()
   ADMIN_FRAME.run(() => {
     expect(settings.icons()).toBe(true)
+    expect(settings.equalStateWarnings()).toBe(true)
     expect(settings.colors()).toBe(true)
     expect(settings.graphContinuations()).toBe(true)
     settings.icons.toggle()
+    settings.equalStateWarnings.toggle()
     settings.colors.setFalse()
     settings.graphContinuations.toggle()
     expect(settings.icons()).toBe(false)
+    expect(settings.equalStateWarnings()).toBe(false)
     expect(settings.colors()).toBe(false)
     expect(settings.graphContinuations()).toBe(false)
   })
@@ -47,16 +52,21 @@ test('display settings survive an admin frame reset', () => {
   const settings = adminSettings()
   ADMIN_FRAME.run(() => {
     settings.icons.setFalse()
+    settings.equalStateWarnings.setFalse()
     settings.colors.setFalse()
     settings.graphContinuations.setFalse()
   })
   expect(localStorage.getItem(ICONS_KEY)).toContain('false')
+  expect(localStorage.getItem(EQUAL_STATE_WARNINGS_KEY)).toContain('false')
   expect(localStorage.getItem(COLORS_KEY)).toContain('false')
   expect(localStorage.getItem(GRAPH_CONTINUATIONS_KEY)).toContain('false')
 
   resetAdminFrame()
 
   expect(ADMIN_FRAME.run(() => adminSettings().icons())).toBe(false)
+  expect(ADMIN_FRAME.run(() => adminSettings().equalStateWarnings())).toBe(
+    false,
+  )
   expect(ADMIN_FRAME.run(() => adminSettings().colors())).toBe(false)
   expect(ADMIN_FRAME.run(() => adminSettings().graphContinuations())).toBe(
     false,

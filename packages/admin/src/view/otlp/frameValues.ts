@@ -1,3 +1,5 @@
+import { isDeepEqual } from '@reatom/core'
+
 import { stringifyJson } from '../../serialize'
 
 import type { AdminRecord } from '../../otlp'
@@ -261,4 +263,41 @@ export function overviewEventSections(
     if (!entries || entries.length === 0) return []
     return [{ title, entries }]
   })
+}
+
+/** Compare captured states in time order, independently of the current filter. */
+export function equalStateRecordIds(
+  records: readonly AdminRecord[],
+): Set<string> {
+  const previous = new Map<string, OverviewValues>()
+  const equal = new Set<string>()
+  for (const record of [...records].sort((a, b) => a.start - b.start)) {
+    if (
+      !isStateWrite(record) ||
+      (record.reatomKind !== 'atom' && record.reatomKind !== 'computed')
+    )
+      continue
+    const key = JSON.stringify([
+      record.sourceId,
+      record.atomName,
+      record.reatomKind,
+    ])
+    const before = previous.get(key)
+    const current = overviewValues(record)
+    if (
+      recordHasError(record) ||
+      (record.kind === 'span' && record.end === undefined)
+    ) {
+      continue
+    }
+    previous.set(key, current)
+    if (!before?.hasData || !current.hasData) continue
+    // A hostile getter/proxy in a live value must not break the debugger.
+    try {
+      if (isDeepEqual(before.data, current.data)) equal.add(record.id)
+    } catch {
+      // An unreadable value cannot establish structural equality.
+    }
+  }
+  return equal
 }

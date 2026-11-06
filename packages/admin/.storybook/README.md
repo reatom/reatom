@@ -383,3 +383,8 @@ The named `session-journey-wide` and `session-journey-narrow` baselines use
 `matchElementScreenshot` on the Admin root after accessible assertions. Native
 select options inside the shadow root use Storybook `userEvent.selectOptions`
 after an actor lookup: Kahraman's `selectOption` looks for options globally.
+
+`StructurallyEqualChanges` in `src/stories/otlp/frame-ux.stories.ts` checks
+warnings for consecutive captured atom/computed states, changed-state exclusions,
+the Overview explanation, and the Display switch. Its independent update names
+end in `.set` so mount-log filtering keeps every fixture row visible.

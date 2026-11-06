@@ -22,6 +22,7 @@ import { Inspector, ParamList } from '../inspector'
 import { EventOverview } from './EventOverview'
 import { CausalRelationships } from './CausalRelationships'
 import { SnapshotInspector } from './SnapshotInspector'
+import { EqualStateWarning } from './EqualStateWarning'
 import { KindMark } from './KindMark'
 import { kindColorVar, recordKindIcon } from './recordKind'
 import {
@@ -206,7 +207,7 @@ export const OtlpFrameCard = ({ admin }: { admin: OtlpAdmin }) => {
                 return (
                   <Inspector value={admin.selectedRecord} defaultExpanded />
                 )
-              return <Overview record={record} sources={sources} />
+              return <Overview admin={admin} record={record} sources={sources} />
             }}
           </div>
         )
@@ -255,11 +256,13 @@ const SnapshotField = ({
 }
 
 const Overview = ({
+  admin,
   record,
   sources,
 }: {
   record: AdminRecord
   sources: ReturnType<typeof frameSources>
+  admin: OtlpAdmin
 }) => {
   if (isEventLog(record)) return <EventOverview record={record} />
   return (
@@ -282,6 +285,7 @@ const Overview = ({
           {record.error?.message ?? record.outcome ?? 'error'}
         </p>
       ) : null}
+      <EqualStateWarning admin={admin} record={() => record} detail />
       <FrameField value={sources.data} present={sources.hasData} />
       <ParamList value={sources.params} />
     </div>

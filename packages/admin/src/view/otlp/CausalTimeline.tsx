@@ -23,6 +23,7 @@ import {
 } from '../design-system'
 import { CausalContinuations } from './CausalContinuations'
 import { formatAxisOffset } from './GanttChart'
+import { EqualStateWarning } from './EqualStateWarning'
 import { KindMark } from './KindMark'
 import { recordKindIcon, recordRowDescription } from './recordKind'
 
@@ -597,6 +598,7 @@ export function CausalTimeline({ admin }: { admin: OtlpAdmin }) {
           `}
         >
           {() => <KindMark kind={recordKindIcon(row.record(), mountIds())} />}
+          <EqualStateWarning admin={admin} record={row.record} />
           <span
             title={() => recordLabel(row.record())}
             css={`

@@ -401,6 +401,13 @@ function settingsSections(settings: AdminSettings): Array<SettingsSection> {
           checked: settings.colors,
         },
         {
+          id: 'equal-state-warnings',
+          label: 'Structurally equal changes',
+          description:
+            'Warn when consecutive captured atom or computed states are structurally equal',
+          checked: settings.equalStateWarnings,
+        },
+        {
           id: 'graph-continuations',
           label: 'Graph continuations',
           description:

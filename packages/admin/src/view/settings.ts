@@ -27,6 +27,7 @@ import { ADMIN_FRAME } from '../root'
 const ICONS_KEY = '_Admin.settings.icons.v1'
 const COLORS_KEY = '_Admin.settings.colors.v1'
 const GRAPH_CONTINUATIONS_KEY = '_Admin.settings.graphContinuations.v1'
+const EQUAL_STATE_WARNINGS_KEY = '_Admin.settings.equalStateWarnings.v1'
 const CORNER_KEY = '_Admin.settings.corner.v1'
 
 /** Corner of the viewport where the admin panel docks. */
@@ -67,6 +68,8 @@ export interface AdminSettings {
   icons: BooleanAtom
   /** Kind colors on bars, row bands, and chips. Default on. */
   colors: BooleanAtom
+  /** Warn about structurally equal captured atom/computed updates. Default on. */
+  equalStateWarnings: BooleanAtom
   /** Offscreen graph navigation strip above the timeline. Default on. */
   graphContinuations: BooleanAtom
   /**
@@ -96,6 +99,10 @@ let settingsModel: AdminSettings | null = null
 function createAdminSettings(): AdminSettings {
   const icons = reatomBoolean(true, '_Admin.settings.icons')
   const colors = reatomBoolean(true, '_Admin.settings.colors')
+  const equalStateWarnings = reatomBoolean(
+    true,
+    '_Admin.settings.equalStateWarnings',
+  )
   const graphContinuations = reatomBoolean(
     true,
     '_Admin.settings.graphContinuations',
@@ -112,6 +119,7 @@ function createAdminSettings(): AdminSettings {
   if (canPersistToLocalStorage()) {
     icons.extend(withLocalStorage(ICONS_KEY))
     colors.extend(withLocalStorage(COLORS_KEY))
+    equalStateWarnings.extend(withLocalStorage(EQUAL_STATE_WARNINGS_KEY))
     graphContinuations.extend(withLocalStorage(GRAPH_CONTINUATIONS_KEY))
     scheme.extend(withLocalStorage(SCHEME_KEY))
     accent.extend(withLocalStorage(ACCENT_KEY))
@@ -155,6 +163,7 @@ function createAdminSettings(): AdminSettings {
     icons,
     colors,
     graphContinuations,
+    equalStateWarnings,
     scheme,
     accent,
     resolvedScheme,
@@ -220,6 +229,7 @@ export function resetAdminSettings(): void {
     settings.icons.setTrue()
     settings.colors.setTrue()
     settings.graphContinuations.setTrue()
+    settings.equalStateWarnings.setTrue()
     settings.scheme.reset()
     settings.accent.set(DEFAULT_ACCENT)
     settings.corner.set('bottom-right')
