@@ -17,35 +17,33 @@ type RelativeArg<R> = R extends {
   : never
 type LoaderData<R> = R extends { loader: { data: () => infer D } } ? D : never
 
+const ssId = null as unknown as StandardSchemaV1<{ id: string }, { id: number }>
+const ssTab = null as unknown as StandardSchemaV1<
+  { tab?: string },
+  { tab?: 'a' }
+>
+const idCodec = {
+  decode: (input: { id: string }) => ({ id: Number(input.id) }),
+  encode: (output: { id: number }) => ({ id: String(output.id) }),
+}
+const pageCodec = {
+  decode: (input: { page?: string }) => ({ page: Number(input.page ?? 1) }),
+  encode: (output: { page: number }) => ({ page: String(output.page) }),
+}
+// ArkType's `Type` is callable and returns the output or an errors array
+const callableId = null as unknown as StandardSchemaV1<
+  { id: string },
+  { id: number }
+> &
+  ((data: unknown) => { id: number } | Array<{ message: string }>)
+const callback = (params: { docId: string; id: string }) => ({
+  cb: params.id,
+})
+const topCallback = (params: { id: string }) => ({ cb: params.id })
+
 // Never called: route creation registers routes in `urlAtom.routes`, and only
 // the inferred types matter here.
 const routes = () => {
-  const ssId = null as unknown as StandardSchemaV1<
-    { id: string },
-    { id: number }
-  >
-  const ssTab = null as unknown as StandardSchemaV1<
-    { tab?: string },
-    { tab?: 'a' }
-  >
-  const idCodec = {
-    decode: (input: { id: string }) => ({ id: Number(input.id) }),
-    encode: (output: { id: number }) => ({ id: String(output.id) }),
-  }
-  const pageCodec = {
-    decode: (input: { page?: string }) => ({ page: Number(input.page ?? 1) }),
-    encode: (output: { page: number }) => ({ page: String(output.page) }),
-  }
-  // ArkType's `Type` is callable and returns the output or an errors array
-  const callableId = null as unknown as StandardSchemaV1<
-    { id: string },
-    { id: number }
-  > &
-    ((data: unknown) => { id: number } | Array<{ message: string }>)
-  const callback = (params: { docId: string; id: string }) => ({
-    cb: params.id,
-  })
-
   const doc = reatomRoute({ path: 'docs/:docId' })
 
   return {
@@ -113,7 +111,7 @@ const routes = () => {
     }),
     topCallbackCodec: reatomRoute({
       path: 'x/:id',
-      params: (params: { id: string }) => ({ cb: params.id }),
+      params: topCallback,
       search: pageCodec,
     }),
   }
