@@ -492,7 +492,7 @@ export interface RouteMixin<
     SubSearchInput extends Partial<Rec<string>> = {},
     SubParamsOutput extends Rec = SubParamsInput,
     SubSearchOutput extends Rec = SubSearchInput,
-    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    LoaderParams = Plain<SubParamsOutput & SubSearchOutput>,
     Payload = LoaderParams,
   >(
     options: RouteOptions<
@@ -608,7 +608,7 @@ export interface RouteMixin<
     SubSearchInput extends Partial<Rec<string>> = {},
     SubParamsOutput extends Rec = SubParamsInput,
     SubSearchOutput extends Rec = SubSearchInput,
-    LoaderParams = Plain<Params & SubParamsOutput & SubSearchOutput>,
+    LoaderParams = Plain<SubParamsOutput & SubSearchOutput>,
     Payload = LoaderParams,
   >(
     options: RouteOptions<
