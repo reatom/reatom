@@ -96,6 +96,30 @@ const routes = () => {
       search: pageCodec,
     }),
     topSchemaNone: reatomRoute({ path: 'x/:id', params: ssId }),
+    topSchemaSchema: reatomRoute({
+      path: 'x/:id',
+      params: ssId,
+      search: ssTab,
+    }),
+    topNoneNone: reatomRoute({ path: 'x/:id' }),
+    topNoneSchema: reatomRoute({ path: 'x/:id', search: ssTab }),
+    topCodecNone: reatomRoute({ path: 'x/:id', params: idCodec }),
+    topCodecSchema: reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      search: ssTab,
+    }),
+    topCodecCodec: reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      search: pageCodec,
+    }),
+    topCallbackNone: reatomRoute({ path: 'x/:id', params: topCallback }),
+    topCallbackSchema: reatomRoute({
+      path: 'x/:id',
+      params: topCallback,
+      search: ssTab,
+    }),
     callableNone: doc.reatomRoute({ path: 'x/:id', params: callableId }),
     callableCodec: doc.reatomRoute({
       path: 'x/:id',
@@ -340,4 +364,296 @@ test('other params and search combinations keep their types', () => {
     id: string
     page: number
   }>()
+})
+
+// What `render`'s `self` shares with the route it renders. `render` runs only
+// on a match, so the state is not null. The conditional drops the `Shape`
+// alias, which would make `toEqualTypeOf` compare `RouteSelf` with `RouteAtom`
+// as alias arguments rather than compare the fields.
+type Shape<R> = R extends unknown
+  ? {
+      state: NonNullable<State<R>>
+      go: GoArg<R>
+      relative: RelativeArg<R>
+      pattern: R extends { pattern: infer P } ? P : never
+      loader: LoaderData<R>
+    }
+  : never
+
+test('render self matches the route: Standard Schema params', () => {
+  // Never called, see `routes`
+  return () => {
+    const doc = reatomRoute({ path: 'docs/:docId' })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: ssId,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['schemaNone']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: ssId,
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['schemaSchema']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: ssId,
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['schemaCodec']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: ssId,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topSchemaNone']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: ssId,
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topSchemaSchema']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: ssId,
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topSchemaCodec']>
+        >()
+        return {}
+      },
+    })
+  }
+})
+
+test('render self matches the route: params codec', () => {
+  // Never called, see `routes`
+  return () => {
+    const doc = reatomRoute({ path: 'docs/:docId' })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['codecNone']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['codecSchema']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['codecCodec']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topCodecNone']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topCodecSchema']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: idCodec,
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topCodecCodec']>
+        >()
+        return {}
+      },
+    })
+  }
+})
+
+test('render self matches the route: params callback', () => {
+  // Never called, see `routes`
+  return () => {
+    const doc = reatomRoute({ path: 'docs/:docId' })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: callback,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['callbackNone']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: callback,
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['callbackSchema']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      params: callback,
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['callbackCodec']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: topCallback,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topCallbackNone']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: topCallback,
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topCallbackSchema']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      params: topCallback,
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topCallbackCodec']>
+        >()
+        return {}
+      },
+    })
+  }
+})
+
+test('render self matches the route: no params', () => {
+  // Never called, see `routes`
+  return () => {
+    const doc = reatomRoute({ path: 'docs/:docId' })
+    doc.reatomRoute({
+      path: 'x/:id',
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['noneNone']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['noneSchema']>
+        >()
+        return {}
+      },
+    })
+    doc.reatomRoute({
+      path: 'x/:id',
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['noneCodec']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topNoneNone']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      search: ssTab,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topNoneSchema']>
+        >()
+        return {}
+      },
+    })
+    reatomRoute({
+      path: 'x/:id',
+      search: pageCodec,
+      render: (self) => {
+        expectTypeOf<Shape<typeof self>>().toEqualTypeOf<
+          Shape<Routes['topNoneCodec']>
+        >()
+        return {}
+      },
+    })
+  }
 })
