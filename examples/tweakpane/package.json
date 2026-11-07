@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@reatom/core": "1001.*.*",
-    "@reatom/react": "1001.*.*",
+    "@reatom/core": "https://pkg.pr.new/@reatom/core@ad31b80",
+    "@reatom/react": "https://pkg.pr.new/@reatom/react@ad31b80",
     "@tweakpane/plugin-essentials": "^0.2.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
