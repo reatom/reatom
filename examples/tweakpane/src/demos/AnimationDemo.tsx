@@ -16,6 +16,7 @@ import {
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { hotWrap } from '../hotWrap'
+
 import {
   reatomPaneTab,
   withBinding,
@@ -225,6 +226,10 @@ export const AnimationDemo = reatomFactoryComponent(() => {
     time.reset()
   }, 'reset').extend(withButton({ title: 'Reset All' }))
 
+  // Init, not render: only the init frame is aborted on unmount.
+  const onTogglePause = hotWrap(togglePause)
+  const onReset = hotWrap(reset)
+
   return () => (
     <section>
       <h3>Animation Demo</h3>
@@ -246,10 +251,8 @@ export const AnimationDemo = reatomFactoryComponent(() => {
       />
 
       <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <button onClick={hotWrap(togglePause)}>
-          {paused() ? 'Resume' : 'Pause'}
-        </button>
-        <button onClick={hotWrap(reset)}>Reset All</button>
+        <button onClick={onTogglePause}>{paused() ? 'Resume' : 'Pause'}</button>
+        <button onClick={onReset}>Reset All</button>
       </div>
 
       <p style={{ marginTop: '1rem', fontSize: '0.85rem', color: '#666' }}>
