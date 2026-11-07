@@ -91,20 +91,23 @@ export let reatomAbstractRender = <Props, Result>({
 
     let abortSubscription: AbortSubscription
 
-    let recheckAbort = (targetFrame: Frame) => {
-      abortSubscription ??= abortVar.subscribe()
-      // Related to react remounts of `StrictMode` and `Activity`.
-      if (abortSubscription.controller.signal.aborted) {
-        abortSubscription.unsubscribe()
-        abortVar.set()
-        abortSubscription = abortVar.subscribe()
-      }
+    // Runs in `targetFrame`: `abortVar.set` and `abortVar.subscribe` write to
+    // `top()`, and `mount` is called from the parent frame.
+    let recheckAbort = (targetFrame: Frame) =>
+      targetFrame.run(() => {
+        abortSubscription ??= abortVar.subscribe()
+        // Related to react remounts of `StrictMode` and `Activity`.
+        if (abortSubscription.controller.signal.aborted) {
+          abortSubscription.unsubscribe()
+          abortVar.set()
+          abortSubscription = abortVar.subscribe()
+        }
 
-      // TODO: sure?
-      abortSubscription.controller.spawned = true
+        // TODO: sure?
+        abortSubscription.controller.spawned = true
 
-      targetFrame['var#abort'] = abortSubscription.controller
-    }
+        targetFrame['var#abort'] = abortSubscription.controller
+      })
 
     let _render = computed((state?: { result: Result }): { result: Result } => {
       let frame = top()
