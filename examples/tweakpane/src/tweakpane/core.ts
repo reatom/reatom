@@ -2,6 +2,7 @@ import {
   type AtomLike,
   effect,
   type Ext,
+  isConnected,
   named,
   peek,
   withChangeHook,
@@ -39,7 +40,9 @@ export const withEffect =
         const { unsubscribe } = effect(() => effectFn(target))
         return unsubscribe
       }),
-      withChangeHook(() => void peek(() => effectFn(target))),
+      withChangeHook(() => {
+        if (isConnected(target)) peek(() => effectFn(target))
+      }),
     )
 
 /**
