@@ -1,4 +1,13 @@
-import { action, atom, effect, peek, withConnectHook, wrap } from '@reatom/core'
+import {
+  action,
+  atom,
+  computed,
+  effect,
+  memo,
+  peek,
+  reatomObservable,
+  wrap,
+} from '@reatom/core'
 import { reatomFactoryComponent } from '@reatom/react'
 import {
   AmbientLight,
@@ -19,32 +28,33 @@ export const ThreeDemo = reatomFactoryComponent(() => {
   const threeFolder = reatomPaneFolder({ title: 'Three.js' })
 
   const containerAtom = atom<HTMLElement | null>(null, 'container').extend(
-    (target) => {
-      const size = atom({ width: 0, height: 0 }, `${target.name}._size`).extend(
-        withConnectHook((sizeTarget) => {
-          const container = target()
-          let observer: ResizeObserver | null = null
-          if (container) {
-            observer = new ResizeObserver(
-              wrap(() => {
-                sizeTarget.set({
-                  width: container.clientWidth,
-                  height: container.clientHeight,
-                })
-              }),
-            )
-            observer.observe(container)
-          }
-
-          return () => observer?.disconnect()
-        }),
-      )
-
-      return {
-        size,
-        ref: action((node: HTMLElement | null) => void target.set(node)),
-      }
-    },
+    (target) => ({
+      // One observer per container node: a new node replaces it, and the last
+      // subscriber leaving disconnects it.
+      size: computed(() => {
+        const source = memo(() => {
+          const node = target()
+          if (!node) return null
+          const read = () => ({
+            width: node.clientWidth,
+            height: node.clientHeight,
+          })
+          return reatomObservable(
+            {
+              initState: read(),
+              subscribe: (set) => {
+                const observer = new ResizeObserver(wrap(() => set(read())))
+                observer.observe(node)
+                return () => observer.disconnect()
+              },
+            },
+            `${target.name}._observedSize`,
+          )
+        })
+        return source ? source() : { width: 0, height: 0 }
+      }, `${target.name}._size`),
+      ref: action((node: HTMLElement | null) => void target.set(node)),
+    }),
   )
 
   const sceneAtom = reatomInstance(
