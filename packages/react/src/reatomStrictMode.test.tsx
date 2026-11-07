@@ -1,4 +1,5 @@
 import {
+  abortVar,
   atom,
   clearStack,
   context,
@@ -159,5 +160,46 @@ describe('StrictMode input sync', () => {
       )
 
       reactRoot.unmount()
+    }))
+})
+
+describe('StrictMode abortOnUnmount', () => {
+  test('reatomComponent aborts its own controller, not the root one', () =>
+    context.start(async () => {
+      const rootController = abortVar.get()
+      const countAtom = atom(0, 'abortOnUnmountCount')
+      let renderController: ReturnType<typeof abortVar.get>
+
+      const Counter = reatomComponent(
+        () => {
+          renderController = abortVar.get()
+          return <button>{countAtom()}</button>
+        },
+        { name: 'AbortOnUnmountCounter', abortOnUnmount: true },
+      )
+
+      const reactRoot = ReactDOM.createRoot(getRootElement())
+      reactRoot.render(
+        <React.StrictMode>
+          <reatomContext.Provider value={top()}>
+            <Counter />
+          </reatomContext.Provider>
+        </React.StrictMode>,
+      )
+      await wrap(tick())
+
+      countAtom.set(1)
+      await wrap(tick())
+      expect(getRootElement().textContent).toBe('1')
+      expect(renderController).toBeDefined()
+      expect(renderController).not.toBe(rootController)
+      expect(renderController!.signal.aborted).toBe(false)
+
+      reactRoot.unmount()
+      await wrap(tick())
+
+      expect(renderController!.signal.aborted).toBe(true)
+      expect(abortVar.get()?.signal.aborted ?? false).toBe(false)
+      expect(() => wrap(() => countAtom.set(2))()).not.toThrow()
     }))
 })
