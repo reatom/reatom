@@ -18,32 +18,34 @@ import { reatomPaneFolder, withBinding, withEffect } from '../tweakpane'
 export const ThreeDemo = reatomFactoryComponent(() => {
   const threeFolder = reatomPaneFolder({ title: 'Three.js' })
 
-  const containerAtom = atom<HTMLElement | null>(null, 'container').extend((target) => {
-    const size = atom({ width: 0, height: 0 }, `${target.name}._size`).extend(
-      withConnectHook((sizeTarget) => {
-        const container = target()
-        let observer: ResizeObserver | null = null
-        if (container) {
-          observer = new ResizeObserver(
-            wrap(() => {
-              sizeTarget.set({
-                width: container.clientWidth,
-                height: container.clientHeight,
-              })
-            }),
-          )
-          observer.observe(container)
-        }
+  const containerAtom = atom<HTMLElement | null>(null, 'container').extend(
+    (target) => {
+      const size = atom({ width: 0, height: 0 }, `${target.name}._size`).extend(
+        withConnectHook((sizeTarget) => {
+          const container = target()
+          let observer: ResizeObserver | null = null
+          if (container) {
+            observer = new ResizeObserver(
+              wrap(() => {
+                sizeTarget.set({
+                  width: container.clientWidth,
+                  height: container.clientHeight,
+                })
+              }),
+            )
+            observer.observe(container)
+          }
 
-        return () => observer?.disconnect()
-      }),
-    )
+          return () => observer?.disconnect()
+        }),
+      )
 
-    return {
-      size,
-      ref: action((node: HTMLElement | null) => void target.set(node)),
-    }
-  })
+      return {
+        size,
+        ref: action((node: HTMLElement | null) => void target.set(node)),
+      }
+    },
+  )
 
   const sceneAtom = reatomInstance(
     () => new Scene(),
@@ -225,7 +227,7 @@ export const ThreeDemo = reatomFactoryComponent(() => {
       </p>
       <div
         ref={wrap(containerAtom.ref)}
-        id='three-container'
+        id="three-container"
         style={{
           flex: 1,
           minHeight: '320px',

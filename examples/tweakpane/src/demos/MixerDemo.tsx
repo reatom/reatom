@@ -24,7 +24,8 @@ export const MixerDemo = reatomFactoryComponent(() => {
   // Folders
   const mainFolder = reatomPaneFolder({ title: 'Audio Mixer' }).extend(
     withEffect((folder) => {
-      peek(folder).title = `Audio Mixer (${status()}, ${isAdvanced() ? 'Advanced' : 'Simple'})`
+      peek(folder).title =
+        `Audio Mixer (${status()}, ${isAdvanced() ? 'Advanced' : 'Simple'})`
     }),
   )
 

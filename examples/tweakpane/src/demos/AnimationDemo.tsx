@@ -16,7 +16,12 @@ import {
 import { reatomFactoryComponent } from '@reatom/react'
 
 import { hotWrap } from '../hotWrap'
-import { reatomPaneTab, withBinding, withButton, withEffect } from '../tweakpane'
+import {
+  reatomPaneTab,
+  withBinding,
+  withButton,
+  withEffect,
+} from '../tweakpane'
 
 const withFixedValue = <T,>(condition: () => boolean, fixedValue: T) =>
   withMiddleware<AtomLike<T>>(() => {
