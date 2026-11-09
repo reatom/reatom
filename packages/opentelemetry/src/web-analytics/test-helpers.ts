@@ -15,10 +15,7 @@ export type AnalyticsFixtureOptions = ReatomOpentelemetryInput &
   OTLPInput &
   WebAnalyticsOptions
 
-const statsReaders = new WeakMap<
-  BrowserTelemetry,
-  BrowserTelemetry['stats']
->()
+const statsReaders = new WeakMap<BrowserTelemetry, BrowserTelemetry['stats']>()
 export const readAnalyticsStats = (otel: BrowserTelemetry) =>
   statsReaders.get(otel)?.() ?? otel.stats()
 const readers = new WeakMap<BrowserTelemetry, () => readonly unknown[]>()

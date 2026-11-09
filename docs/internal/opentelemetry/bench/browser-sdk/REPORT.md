@@ -4,29 +4,29 @@
 
 Standalone gzip, including current @reatom/core source and every dependency:
 
-|Profile|Reatom browser|Reatom automatic|Faro|OTel|
-|---|---:|---:|---:|---:|
-|manual-local|19634|27450|71762|25452|
-|manual-otlp|28010|35424|75023|25430|
-|errors-otlp|29306|36705|46971|17511|
-|rum-otlp|40886|47645|47109|28411|
-|rum-network-otlp|42744|49515|75147|40648|
-|errors-faro|32945|40385|43689|unsupported|
-|rum-faro|44480|51185|43798|unsupported|
-|rum-network-faro|46346|53052|71866|unsupported|
+| Profile          | Reatom browser | Reatom automatic |  Faro |        OTel |
+| ---------------- | -------------: | ---------------: | ----: | ----------: |
+| manual-local     |          19634 |            27450 | 71762 |       25452 |
+| manual-otlp      |          28010 |            35424 | 75023 |       25430 |
+| errors-otlp      |          29306 |            36705 | 46971 |       17511 |
+| rum-otlp         |          40886 |            47645 | 47109 |       28411 |
+| rum-network-otlp |          42744 |            49515 | 75147 |       40648 |
+| errors-faro      |          32945 |            40385 | 43689 | unsupported |
+| rum-faro         |          44480 |            51185 | 43798 | unsupported |
+| rum-network-faro |          46346 |            53052 | 71866 | unsupported |
 
 Existing Reatom app B gzip: 5669. Marginal gzip below = gzip(whole B+SDK) − gzip(B).
 
-|Profile|Reatom browser|Reatom automatic|Faro|OTel|
-|---|---:|---:|---:|---:|
-|manual-local|14010|21854|71501|25095|
-|manual-otlp|22379|29849|74778|25056|
-|errors-otlp|23660|31126|46673|17188|
-|rum-otlp|35253|42042|46795|28063|
-|rum-network-otlp|37121|43906|74898|40309|
-|errors-faro|27304|34778|43393|unsupported|
-|rum-faro|38842|45598|43505|unsupported|
-|rum-network-faro|40719|47462|71601|unsupported|
+| Profile          | Reatom browser | Reatom automatic |  Faro |        OTel |
+| ---------------- | -------------: | ---------------: | ----: | ----------: |
+| manual-local     |          14010 |            21854 | 71501 |       25095 |
+| manual-otlp      |          22379 |            29849 | 74778 |       25056 |
+| errors-otlp      |          23660 |            31126 | 46673 |       17188 |
+| rum-otlp         |          35253 |            42042 | 46795 |       28063 |
+| rum-network-otlp |          37121 |            43906 | 74898 |       40309 |
+| errors-faro      |          27304 |            34778 | 43393 | unsupported |
+| rum-faro         |          38842 |            45598 | 43505 | unsupported |
+| rum-network-faro |          40719 |            47462 | 71601 | unsupported |
 
 Root Reatom profiles retain native Reatom capture and local records. Static browser profiles use the same capture engine with manual startSpan/log and exclude automatic action/route/LOG hooks; forbidden-source graph assertions are recorded for every browser bundle. This is additional causal/value functionality and cost. Results do not support a universal smallest-SDK claim. Matched profiles are coverage comparisons, not proof of semantic equivalence. Full defaults/actions/frustration/CSP/metadata profiles are informative only.
 

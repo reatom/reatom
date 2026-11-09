@@ -36,12 +36,12 @@ flowchart TD
   diamond -->|yes, variant 3| shortSpan
 ```
 
-| Id                     | When                                           | Spans                                                                                                   | Updates                                                                            |
-| ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **2** (default)        | `detail: 'events'`                             | Action call (async ends on promise settle). `span: true` on an atom/computed is the per-target override | Atom / computed updates are log records on the **current action span context**     |
-| **3** (default add-on) | computed with causes from **different traces** | Short span; parent = primary (triggering) cause; one link per other trace                               | Single-cause stays a log ([`diamond-links.json`](../../../../packages/opentelemetry/spec/examples/diamond-links.json))     |
-| 1                      | `detail: 'spans'` (local debug)                | Every action, atom write, computed recompute                                                            | Diamonds cannot be expressed                                                       |
-| 4                      | `detail: 'summary'` (**planned**)              | Action spans only                                                                                       | Planned attrs `reatom.updates.count` / `reatom.updates.names`; **not on the wire** |
+| Id                     | When                                           | Spans                                                                                                   | Updates                                                                                                                |
+| ---------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **2** (default)        | `detail: 'events'`                             | Action call (async ends on promise settle). `span: true` on an atom/computed is the per-target override | Atom / computed updates are log records on the **current action span context**                                         |
+| **3** (default add-on) | computed with causes from **different traces** | Short span; parent = primary (triggering) cause; one link per other trace                               | Single-cause stays a log ([`diamond-links.json`](../../../../packages/opentelemetry/spec/examples/diamond-links.json)) |
+| 1                      | `detail: 'spans'` (local debug)                | Every action, atom write, computed recompute                                                            | Diamonds cannot be expressed                                                                                           |
+| 4                      | `detail: 'summary'` (**planned**)              | Action spans only                                                                                       | Planned attrs `reatom.updates.count` / `reatom.updates.names`; **not on the wire**                                     |
 
 Cause ids are in every variant. `route: 'link'` is orthogonal: it only decides whether a **top-level action** (no calling frame) stays on the page `traceId` or mints a new one with `reatom.link.reason = route.page`.
 

@@ -31,9 +31,7 @@ import {
   markBrowserErrorReported,
   hasStandaloneBrowserErrors,
 } from '../reportedBrowserErrors.ts'
-import {
-  type BrowserTelemetry,
-} from '../captureEngine.ts'
+import { type BrowserTelemetry } from '../captureEngine.ts'
 import type { SpanContext } from '../traceContext.ts'
 import type { OtlpAttrValue } from '../toOtlpValue.ts'
 import {

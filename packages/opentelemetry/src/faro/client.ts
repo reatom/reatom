@@ -13,8 +13,8 @@ export interface FaroInput extends FaroTransportOptions {
 /**
  * Deliver captured records to an existing Faro receiver. This composes the
  * shared exporter with the Faro transport; delivery settings/stats remain on
- * `.otlp`. An installed analytics extension handles stale-safe session rotation.
- * Browser collectors remain independent imports.
+ * `.otlp`. An installed analytics extension handles stale-safe session
+ * rotation. Browser collectors remain independent imports.
  */
 export const withFaro =
   (input: FaroInput): Ext<BrowserTelemetry, { otlp: OTLP }> =>

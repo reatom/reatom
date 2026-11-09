@@ -50,8 +50,7 @@ const metadata = new WeakMap<
   BrowserTelemetry,
   Set<() => Record<string, OtlpAttrValue>>
 >()
-export const browserCaptureOf = (otel: BrowserTelemetry) =>
-  captures.get(otel)
+export const browserCaptureOf = (otel: BrowserTelemetry) => captures.get(otel)
 export const installBrowserCapture = (
   otel: BrowserTelemetry,
   capture: BrowserCapture,

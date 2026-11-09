@@ -1,11 +1,4 @@
-import {
-  action,
-  atom,
-  computed,
-  context,
-  effect,
-  wrap,
-} from '@reatom/core'
+import { action, atom, computed, context, effect, wrap } from '@reatom/core'
 import { afterEach, expect, test } from 'vitest'
 
 import { withGDPR } from './gdpr/index.ts'
@@ -106,10 +99,13 @@ test('internal units created by the helper never appear in records', async () =>
       internalName(instance, 'probe', 'doubled'),
     )
     internalDoubled.subscribe(() => {})
-    const internalBump = action(() => {
-      internalCount.set(1)
-      return internalDoubled()
-    }, internalName(instance, 'probe', 'bump'))
+    const internalBump = action(
+      () => {
+        internalCount.set(1)
+        return internalDoubled()
+      },
+      internalName(instance, 'probe', 'bump'),
+    )
     const internalTick = effect(
       () => internalCount(),
       internalName(instance, 'probe', 'tick'),
@@ -135,7 +131,10 @@ test('internal units created by the helper never appear in records', async () =>
 
 test('explicit withOTel on an internal unit is a no-op', async () => {
   const otel = start()
-  const hidden = action(() => 'secret', internalName(otel.instanceName, 'hidden'))
+  const hidden = action(
+    () => 'secret',
+    internalName(otel.instanceName, 'hidden'),
+  )
   hidden.extend(otel.withOTel({ attributes: { 'app.leaked': true } }))
   context.start(() => {
     expect(hidden()).toBe('secret')

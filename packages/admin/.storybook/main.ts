@@ -61,7 +61,10 @@ const config: StorybookConfig = {
           '@reatom/admin': resolve(dir, '../src/index.ts'),
           '@reatom/core': resolve(dir, '../../core/src'),
           '@reatom/jsx': resolve(dir, '../../jsx/src'),
-          '@reatom/opentelemetry': resolve(dir, '../../opentelemetry/src/index.ts'),
+          '@reatom/opentelemetry': resolve(
+            dir,
+            '../../opentelemetry/src/index.ts',
+          ),
           test: resolve(dir, '../src/test.ts'),
           'chat-app': resolve(dir, '../../../examples/chat/src'),
         },
