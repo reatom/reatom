@@ -246,6 +246,21 @@ test('callable Standard Schema types infer from ~standard', () => {
   >()
 })
 
+test('params callback: loader gets the route state', () => {
+  type None = Routes['callbackNone']
+  expectTypeOf<LoaderData<None>>().toEqualTypeOf<{ cb: string } | undefined>()
+
+  type WithCodec = Routes['callbackCodec']
+  expectTypeOf<LoaderData<WithCodec>>().toEqualTypeOf<
+    { cb: string; page: number } | undefined
+  >()
+
+  type Top = Routes['topCallbackCodec']
+  expectTypeOf<LoaderData<Top>>().toEqualTypeOf<
+    { cb: string; page: number } | undefined
+  >()
+})
+
 test('other params and search combinations keep their types', () => {
   type CodecNone = Routes['codecNone']
   expectTypeOf<State<CodecNone>>().toEqualTypeOf<{
