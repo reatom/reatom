@@ -106,21 +106,31 @@ export let reatomAbstractRender = <Props, Result>({
       targetFrame['var#abort'] = abortSubscription.controller
     }
 
+    let renderRuns = 0
+
+    let renderedPubs: Frame['pubs'] = [null]
+
     let _render = computed((state?: { result: Result }): { result: Result } => {
       let frame = top()
-      let pubs = _getPrevFrame(frame)?.pubs ?? [null]
+      let recursion = rendering && renderRuns++ > 0
+      let pubs = recursion
+        ? renderedPubs
+        : (_getPrevFrame(frame)?.pubs ?? [null])
 
       _enqueue(() => (pubs.length = 1), 'cleanup')
 
       let props = _props()
 
-      if (rendering) {
+      if (rendering && !recursion) {
         recheckAbort(frame)
+        renderedPubs = frame.pubs
 
         return { result: adapterRender(props) }
       }
 
-      changedVar.set(true)
+      // `render` asks the host for a fresh render itself, so the subscription
+      // must not ask for another one.
+      if (!recursion) changedVar.set(true)
 
       // do not drop subscriptions from the render
       for (
@@ -138,8 +148,11 @@ export let reatomAbstractRender = <Props, Result>({
     let render = bind((props: Props) => {
       try {
         rendering = true
+        renderRuns = 0
         _props.set({ ...props })
-        return _render()
+        let rendered = _render()
+        if (renderRuns > 1) rerender({ result: rendered.result as never })
+        return rendered
       } finally {
         rendering = false
       }
