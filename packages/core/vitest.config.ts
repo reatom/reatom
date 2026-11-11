@@ -12,6 +12,7 @@ export default defineConfig({
     sequence: { groupOrder: 10 },
     testTimeout: 5000,
     name: '@reatom/core',
+    execArgv: ['--expose-gc'],
     include: ['./src/**/*.test.ts', './src/**/*.test-d.ts'],
     isolate: false,
     fileParallelism: false,
