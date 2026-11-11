@@ -988,9 +988,14 @@ export function actionMiddleware(next: Fn, ...params: any[]) {
 
   frame.pubs = [STACK[STACK.length - 2]!]
 
-  _enqueue(() => (frame.state = []), 'cleanup')
-
-  return (frame.state = [...frame.state, { params, payload: next(...params) }])
+  try {
+    return (frame.state = [
+      ...frame.state,
+      { params, payload: next(...params) },
+    ])
+  } finally {
+    _enqueue(() => (frame.state = []), 'cleanup')
+  }
 }
 
 /** @internal recompile the middleware chain after middlewares change */

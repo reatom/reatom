@@ -1,5 +1,7 @@
 import {
+  _enqueue,
   _read,
+  _recompile,
   abortVar,
   action,
   assert,
@@ -13,6 +15,7 @@ import {
   ReatomError,
   type Rec,
   STACK,
+  top,
   withAbort,
   wrap,
 } from '@reatom/core'
@@ -48,6 +51,22 @@ export let useFrame = (): Frame => {
   return frame
 }
 
+const inactiveCallback = (): never => {
+  throw new ReatomError('useWrap callback is not active')
+}
+
+const invokeCallback = <Params extends any[], Payload>(
+  ref: { callback: (...params: Params) => Payload },
+  ...params: Params
+): Payload => {
+  let frame = top()
+  try {
+    return ref.callback(...params)
+  } finally {
+    _enqueue(() => (frame.error = null), 'cleanup')
+  }
+}
+
 export const useWrap = <Params extends any[], Payload>(
   callback: (...params: Params) => Payload,
   name?: string,
@@ -57,22 +76,29 @@ export const useWrap = <Params extends any[], Payload>(
   let ref: {
     stableFn: (...args: Params) => Payload
     callback: (...args: Params) => Payload
-  } = React.useMemo(
-    () => ({
+  } = React.useMemo(() => {
+    let target = action<Params, Payload>(
+      inactiveCallback,
+      _getComponentDebugName(name),
+    )
+    let invoke = wrap(target, frame)
+    return {
       callback,
-      stableFn: wrap(
-        action((...params) => {
-          try {
-            return ref.callback(...params)
-          } finally {
-            notify()
-          }
-        }, _getComponentDebugName(name)),
-        frame,
-      ),
-    }),
-    [],
-  )
+      stableFn(...params) {
+        let { middlewares } = target.__reatom
+        let previous = middlewares[0]!
+        middlewares[0] = invokeCallback.bind(null, ref)
+        _recompile(target)
+        try {
+          return invoke(...params)
+        } finally {
+          middlewares[0] = previous
+          _recompile(target)
+          frame.run(notify)
+        }
+      },
+    }
+  }, [])
 
   ;(
     React.useInsertionEffect ??
