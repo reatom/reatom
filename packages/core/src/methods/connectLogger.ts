@@ -322,7 +322,10 @@ export let connectLogger = ({
                     displayName,
                   )
                 } else {
-                  let call = (state as ActionState)[state.length - 1]
+                  // A call that threw has no state to read the payload from.
+                  let call = error
+                    ? undefined
+                    : (state as ActionState)[state.length - 1]
 
                   if (isOnReject && call) {
                     error = call.payload?.error
