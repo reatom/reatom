@@ -280,8 +280,14 @@ export let connectLogger = ({
         () =>
           function logger(next, ...params) {
             // enqueue log BEFORE `next` call to arrange logs with the order of atoms and actions call
+            let logCall: () => void
             _enqueue(
-              bind(() => {
+              (logCall = bind(() => {
+                if (!returned) {
+                  deferred = true
+                  return
+                }
+
                 let frame = top()
                 let displayName =
                   isLogLabel && typeof params[0] === 'string'
@@ -313,7 +319,9 @@ export let connectLogger = ({
                     displayName,
                   )
                 } else {
-                  let call = (state as ActionState)[state.length - 1]
+                  let call = error
+                    ? undefined
+                    : (state as ActionState)[state.length - 1]
 
                   if (isOnReject && call) {
                     error = call.payload?.error
@@ -350,19 +358,24 @@ export let connectLogger = ({
                     )
                   }
                 }
-              }),
+              })),
               'hook',
             )
 
             let prevState = top().state
             let state: typeof prevState
             let error: any
+            let returned = false
+            let deferred = false
 
             try {
               state = next(...params)
             } catch (e) {
               error = e ?? new Error('unknown error')
               throw e
+            } finally {
+              returned = true
+              if (deferred) _enqueue(logCall, 'hook')
             }
 
             return state
