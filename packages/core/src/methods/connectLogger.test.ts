@@ -132,7 +132,6 @@ test('an action that calls notify() inside itself is logged once it returns', ()
   const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-  // `match` keeps this logger off `log`, which every `connectLogger()` extends
   connectLogger({ match: (name) => name === 'flushing' })
   const flushing = action(() => {
     try {
@@ -141,7 +140,6 @@ test('an action that calls notify() inside itself is logged once it returns', ()
       notify()
     }
   }, 'flushing')
-  // remove the logger middleware to not interact with other tests
   EXTENSIONS.pop()
 
   flushing()
@@ -166,12 +164,10 @@ test('an action that throws is logged with its error', () => {
   const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-  // `match` keeps this logger off `log`, which every `connectLogger()` extends
   connectLogger({ match: (name) => name === 'failing' })
   const failing = action(() => {
     throw new Error('failed')
   }, 'failing')
-  // remove the logger middleware to not interact with other tests
   EXTENSIONS.pop()
 
   expect(() => failing()).toThrow('failed')

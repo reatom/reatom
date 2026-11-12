@@ -283,9 +283,6 @@ export let connectLogger = ({
             let logCall: () => void
             _enqueue(
               (logCall = bind(() => {
-                // A `notify()` inside the call (`useWrap` does one in its
-                // `finally`) drains this queue before `next` has returned, while
-                // `state` and `error` are still unset: log it once it returns.
                 if (!returned) {
                   deferred = true
                   return
@@ -322,7 +319,6 @@ export let connectLogger = ({
                     displayName,
                   )
                 } else {
-                  // A call that threw has no state to read the payload from.
                   let call = error
                     ? undefined
                     : (state as ActionState)[state.length - 1]
