@@ -171,6 +171,82 @@ Key points
 
 > Note: `.status()` is opt-in via `{ status: true }`; action `.retry()` is opt-in for actions via `{ cacheParams: true }`. Both default to `false` for performance / memory reasons. See the reatom-review skill `SKILL.md` "common rewrites" section for the full rule.
 
+## Batch queues and automatic retry
+
+`withQueue<T>(options?)` batches an action whose first parameter is `T[]`.
+Call `.push(item)` to admit individual items; directly calling the action still
+runs its body directly. `withAsyncQueue<T>(options?)` is the async-action form
+with optional `retry(error, retryIndex)` policy. These extensions batch arrays;
+they do not schedule arbitrary promise-producing calls or implement HTTP policy.
+
+```ts
+import { action, withAsync, withAsyncQueue, wrap } from '@reatom/core'
+
+declare function saveItems(items: string[]): Promise<void>
+
+const send = action(async (items: string[]) => {
+  await wrap(saveItems(items))
+}, 'items.send').extend(
+  withAsync(),
+  withAsyncQueue<string>({
+    interval: 1000,
+    maxSize: 100,
+    maxQueue: 1000,
+    concurrency: 1,
+    retry: (_error, retryIndex) =>
+      retryIndex <= 2 ? 250 * retryIndex : undefined,
+  }),
+)
+
+send.push('first') // boolean: accepted or dropped
+const settled = await wrap(send.flush())
+```
+
+`saveItems` above is an application-owned async operation. For HTTP, the caller
+must classify response status, Retry-After and idempotency; a resolved HTTP error
+response is not automatically a rejected action.
+
+| Queue option     | Default / contract                                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `interval`       | `1000` ms; nonnegative safe timer interval.                                                                              |
+| `maxSize`        | `100` items per batch.                                                                                                   |
+| `maxQueue`       | `1000` total admitted items, including in-flight items.                                                                  |
+| `overflow`       | `'drop-newest'`; `.push` returns false and increments dropped at capacity.                                               |
+| `leading`        | `false`; true sends immediately when idle, with no cooldown. A synchronously settled batch permits another leading send. |
+| `trailing`       | `true`; schedule interval drains. Full batches and flush demands can still run with false.                               |
+| `concurrency`    | `1` in-flight batch.                                                                                                     |
+| `pauseWhile`     | Optional synchronous predicate; true pauses normal sends. Call `.wake()` after external conditions change.               |
+| `flushTimeoutMs` | `30000`; deadline for a flush caller, without releasing active capacity.                                                 |
+
+`.queue()` is a readonly snapshot of waiting items; `.stats()` returns readonly
+`{ queued, inFlight, dropped }` item counts. `.flush(): Promise<boolean>` snapshots
+the admitted prefix (waiting and active items) and resolves true when those items
+settle, including body rejection; true is not a delivery-success result. Later
+pushes do not extend that waiter. Deadline/disposal resolves false; timeout does
+not release a body lease or permit extra concurrency. Flush respects `pauseWhile`.
+
+`.takeForUnload()` returns undefined while any batch is busy, otherwise a lease
+`{ items: readonly T[], release(): void }` over the newest waiting batch,
+regardless of pause. The caller sends it and releases it on actual settlement;
+release is idempotent. `.dispose()` drops waiting items, removes the timer and
+resolves waiters false; active work keeps its capacity until settlement. Queue
+state/timers belong to each Reatom root. Context reset invalidates old work on
+its next wake; immediate synchronous reset cleanup is not promised.
+
+`withAsyncRetry(policy)` also works independently on async actions. Its callback
+receives `(error, retryIndex)` with a 1-based index and returns a finite
+nonnegative delay in milliseconds or `undefined` to reject finally. Abort errors
+never retry; callback throws/invalid delays reject finally. Each retry uses the
+same parameters inside one invocation and one `withAsync` lifecycle. It works
+with `withAbort` cancellation; when composed with a queue, the queue retains the body lease until actual settlement;
+an uncooperative body can outlive the public aborted caller. Raw IO hidden behind
+an abort-racing body needs its own application/transport lease.
+
+Install `withAsync` before `withCache`, and install both cache and
+`withAsyncRetry` before `withQueue`/`withAsyncQueue`. Wrong cache/retry ordering
+throws at definition. Prefer `withAsyncQueue({ retry })` to compose retry and
+batching in the supported order. These extensions reject computed targets.
+
 ## **wrap** rules
 
 **wrap** preserves async context for actions, effects, and atom updates. It is important to use wrap everywhere, even if it not necessary and can't brake something, it increase logs tracing and debugging capabilities.
@@ -232,6 +308,8 @@ Notes
 - **reatomBoolean** adds **setTrue**, **setFalse**, and **toggle** to keep updates semantic.
 - **reatomEnum** is perfect for literal list union inference in TypeScript.
 - **reatomTimer** is for countdowns like an OTP resend or a session expiry. It ticks only while counting, and flows can `await` it to learn how it ended instead of polling.
+- **reatomView** is a window over a `reatomLinkedList`, a `reatomMap` list, or an array atom: `reatomView(logs, { offset: firstRowAtom, limit: rowsAtom })`. Both lens fields are required atoms. `view()` is `{ items, offset, size }`, and `view.items` stays quiet while the window keeps the same nodes. It does not copy nodes, so row identity survives scrolling. Recomputing it inside `list.batch()` throws.
+- **reatomVirtual** is a `reatomView` driven by scroll geometry, for long scrolling lists: `reatomVirtual(rows, { itemSize: 24, overscan: 6 })`. It is the view itself plus `scrollOffset`, `scrollTo`, `viewportSize`, `padding` (spacer sizes), `totalSize`, and `stickyInset` for a `position: sticky` wrapper that never scrolls into a blank area. `itemSize` is a number or a per-item estimate, and `measure(item, size)` corrects it while keeping the visible items in place. `stickToEnd` (an own atom or one you pass) follows new items until the user scrolls away. `scrollToIndex(index, 'start' | 'center' | 'end' | 'nearest')` aligns like `scrollIntoView`. `reatomMap(render)` keeps a rendered node per item while it stays in the window, and `bindScroller` is a JSX `ref` that connects the scroll container.
 - **clock** is for "now"-dependent UI such as relative times or deadlines. One shared tick drives every reader and stops when nothing is shown. Use **reatomClock** for another interval, `hot` when logic must keep time with nothing subscribed, and `fresh` when a value one tick stale is visible, for example after reopening a panel.
 
 Good practice
@@ -361,6 +439,212 @@ independent. An arbitrary enclosing `withRollback` after a successful list commi
 does not snapshot intrusive links. Old list states are not immutable order
 snapshots. Recomputing a derivation or window inside an in-progress batch throws;
 read `find` to inspect the batch's own pending state.
+
+### Bidirectional pagination
+
+Compose a root linked list with `withPagination(model, source, key)`. The list
+owns the resident range and entity identity; the model supplies the position
+policy. `reatomIndexPagination(pageSize = 100, name?)` uses one-based page
+numbers and exposes a writable `pageSize` atom.
+
+```ts
+import {
+  abortVar,
+  reatomIndexPagination,
+  reatomLinkedList,
+  withPagination,
+  wrap,
+} from '@reatom/core'
+
+type Log = { id: string; message: string }
+
+declare function readLogs(
+  sourceId: string,
+  page: number,
+  limit: number,
+  signal: AbortSignal,
+): Promise<{ items: Log[]; total: number }>
+
+const reatomLogList = (sourceId: string) =>
+  reatomLinkedList((row: Log) => row, `logs.${sourceId}`).extend(
+    withPagination(
+      reatomIndexPagination(100),
+      async ({ position, limit }) =>
+        await wrap(
+          readLogs(sourceId, position, limit, abortVar.require().signal),
+        ),
+      (row) => row.id,
+    ),
+  )
+```
+
+The source receives `{ position, direction, limit }`, where `direction` is
+`'seek'`, `'before'`, or `'after'`. It returns a promise of a page or an ordinary
+async computed returning that page, including a resource extended with
+`withAsyncData`. Pagination's built-in query already uses `withAsyncData`;
+there is no separate page-loader extension. Pass `abortVar.require().signal`
+to transport work and use `await wrap(...)` when continuing into Reatom calls.
+
+Pages contain `items` in canonical source order, even when loading before the
+range. Numeric pages must provide `after`, `hasAfter`, or `total` so exhaustion
+can be determined. Explicit `before`/`after` take precedence over inferred
+positions. `total` is an optional non-negative integer supplied by the server.
+
+For opaque positions, use
+`reatomCursorPagination<Cursor>(pageSize = 100, name?, key?)`. Every cursor page
+must explicitly return both `before` and `after`: `null` means exhausted,
+whereas `0` and `''` are valid positions. Object cursors need a stable key,
+for example `reatomCursorPagination<{ token: string }>(100, 'logs.cursor',
+cursor => cursor.token)`. Entity keys and cursor keys serve different purposes.
+
+Inside a route loader or scoped action, use these operations:
+
+```ts
+const logs = reatomLogList('production')
+const pageNodes = await wrap(logs.pagination.seek(128))
+await wrap(logs.pagination.before()) // prepend page 127
+await wrap(logs.pagination.after()) // append page 129
+await wrap(logs.pagination.seek(128)) // reuse resident nodes without fetching
+```
+
+`seek`, `before`, and `after` resolve to the page's canonical nodes and expose
+the usual `.pending()`, `.error()`, `.retry()`, and `.abort(reason?)` surfaces.
+An exhausted edge resolves to an empty array. `pagination.abort(reason?)`
+cancels requests while retaining committed entities; `pagination.reset()` also
+clears the list and range metadata. Edge loading requires an initialized seek.
+
+`pagination()` returns `{ initialized, position, before, after, total?, revision }`.
+`position` is the selected seek position; `before` and `after` describe the outer
+resident boundaries. Fetching an adjacent page does not navigate the URL.
+`view().size` counts local projected entities, not the remote `total`; there are
+no synthetic rows for unloaded records. Changing `model.pageSize` or editing the
+root list outside pagination makes metadata uninitialized until the next seek.
+
+A resident seek preserves the range. A nonresident seek replaces it. New
+entities are shallow copies of source records, keeping intrusive links local to
+each context. Overlapping IDs retain their existing nodes and payloads; payload
+updates need an explicit consumer policy. Providers must supply stable entity
+keys, consistent ordering (including sort ties), and advancing cursors. Cursor
+expiry and snapshot consistency also belong to the provider contract. The range
+accumulates until replacement/reset; eviction and caching across route visits
+are separate policies.
+
+Before and after requests have independent frontiers. Concurrent consumers of
+the same request share transport work; cancelling one consumer releases only
+its lease, and the last cancellation aborts the request. Superseded responses
+cannot commit even if the transport ignores its abort signal. Consumer indexes
+or payload reconciliation can compose through ordinary
+`pagination.commit.extend(withMiddleware(factory, 'computed'))`. `commit` is a
+guarded internal response boundary: middleware intercepts authorized commits,
+but calling it directly is not a page-insertion API.
+
+#### View demand and scroll anchors
+
+`withListLoading(pagination, { prefetch: 10, maxPages: 3 })` optionally adds bounded
+directional loading to a View, including a filtered/projected Virtual. Construct
+automatic anchoring before the Virtual's first read:
+
+```ts
+import { reatomVirtual, withListLoading, withVirtualAnchor } from '@reatom/core'
+
+const logs = reatomLogList('production')
+const visible = logs.reatomFilter((row) => row.message.includes('error'))
+const virtual = reatomVirtual(visible, { itemSize: 24, overscan: 6 }).extend(
+  withVirtualAnchor(),
+  withListLoading(logs.pagination, { prefetch: 10, maxPages: 3 }),
+)
+
+// In the route/init scope that owns the displayed list:
+const stopLoading = virtual.loading.start()
+// The returned cleanup is idempotent; owner abort also releases this lease.
+// Call stopLoading() when that scope ends early.
+```
+
+Repeated `loading.start()` calls share one connection with independent leases.
+Use `loading.before()` or `.after()` for explicit directional demand. Each
+demand stops after `maxPages`; `.paused()` signals that the window still needs
+records, and `.continue()` resumes the remembered direction. Bind that action
+to a Continue control. Empty, filtered-out, and overlap-only pages consume the
+budget rather than draining an unbounded source. Opening a historical position
+and subsequent scrolling choose demand direction from the visible window.
+
+Base Virtual exposes `captureAnchor()` and `restoreAnchor(anchor)` independently
+of automatic anchoring. An anchor is `{ item, index, offset }` for the first
+actually visible entity and its pixel offset, excluding overscan. Capture
+returns `null` with no visible item or a zero-sized viewport. Restore preserves
+fractional offsets, finds the same item when present, and falls back to its
+previous index when removed. Active `stickToEnd` takes priority. Automatic
+anchoring preserves that visible position on prepend and layout changes.
+
+For consumers maintaining their own append fast path,
+`isLinkedListAppend(previous, next)` proves append-only changes across one
+consecutive committed version, including tail insertion. Save
+`{ version, head, tail }` values before the update; old list wrappers contain
+mutable node pointers and are not immutable order snapshots.
+
+#### Route ownership and URL positions
+
+Keep the dataset model in a parent route loader. A child selects a URL position
+by explicitly awaiting the parent loader and then seeking; it returns the
+target nodes for the View's restoration step. This keeps resident nodes alive
+while navigating between positions within the same dataset.
+
+```ts
+import { reatomRoute, wrap } from '@reatom/core'
+
+const datasetRoute = reatomRoute({
+  path: 'sources/:sourceId/logs',
+  async loader({ sourceId }) {
+    return reatomLogList(sourceId)
+  },
+})
+
+const pageRoute = datasetRoute.reatomRoute({
+  search: {
+    decode: ({ page = '1' }: { page?: string }) => {
+      const index = Number(page)
+      if (!Number.isSafeInteger(index) || index < 1)
+        throw new Error('Invalid page')
+      return { page: index }
+    },
+    encode: ({ page }: { page: number }) => ({ page: String(page) }),
+  },
+  async loader({ page }) {
+    const list = await wrap(datasetRoute.loader())
+    const nodes = await wrap(list.pagination.seek(page))
+    return { list, nodes }
+  },
+})
+
+pageRoute.go({ sourceId: 'production', page: 128 })
+```
+
+Restore the View position only after target entities appear in its projected
+rows; a raw list index may differ after filtering/mapping. A URL page or cursor
+identifies a requested location, an anchor identifies a visible entity/pixel,
+and resident boundaries describe fetched data. Persist these separately.
+Prefetching changes boundaries without rewriting browser history.
+
+Parent and child search codecs do not automatically compose. If a dataset key
+uses search fields, explicitly include/preserve the required fields in the
+child codec and navigation. `go.relative` supplies route-relative navigation;
+it is not a patch operation for arbitrary current URL search parameters.
+
+#### Admin remote OTLP consumer
+
+Admin accepts `options.provider` with `initialPosition: string` and
+`query({ position, direction, limit, filter, signal })`. Queries return
+`{ items: [{ id, record }], before, after, total? }`; occurrence IDs must remain
+stable across page overlap. `record` is a real OTLP record, with optional event
+name, trace/span identifiers, and event time. Missing trace fields do not create
+placeholder spans; missing event time can use observed time.
+
+`providerActive` controls provider ownership, and `connectProvider()` explicitly
+connects it. Clear, live, and replay transitions deactivate the provider;
+changing filters does not reconnect it. The real Admin stories in
+`packages/admin/src/stories/otlp/pagination.stories.ts` cover remote navigation,
+overlap/selection, deferred edges, retry/supersession, and bounded empty-page
+loading through the Continue control.
 
 ## Atomization
 
@@ -1090,13 +1374,15 @@ const sort = atom<Sort>('popular', 'catalog.sort').extend(
 
 ### **withLocalStorage** for preferences
 
+We can add the localStorage sync for any application or library atom.
+
 ```ts
-import { atom, withLocalStorage } from '@reatom/core'
+import { themeAtom, withLocalStorage } from '@reatom/core'
 
-type Theme = 'light' | 'dark'
-
-const theme = atom<Theme>('light', 'theme').extend(withLocalStorage('theme'))
+themeAtom.extend(withLocalStorage('theme'))
 ```
+
+Use CSS `light-dark()` for custom colors that follow the selected scheme.
 
 ## Suspense notes
 
@@ -1218,6 +1504,8 @@ Primitives
 
 - **reatomArray**, **reatomBoolean**, **reatomEnum**, **reatomNumber**, **reatomString**
 - **reatomMap**, **reatomSet**, **reatomRecord**, **reatomLinkedList**
+- **reatomView** for an `offset` / `limit` window over a linked list or an array atom
+- **reatomVirtual** for a virtualized list: a view driven by scroll position, item sizes, and the viewport
 
 Persistence
 

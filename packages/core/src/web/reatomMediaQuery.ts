@@ -32,25 +32,15 @@ export type MediaQueryAtom = Atom<boolean> & {
  *   const isPrint = reatomMediaQuery('print')
  *
  * @example
- *   const isDarkModeMedia = reatomMediaQuery('(prefers-color-scheme: dark)')
+ *   import { effect, reatomMediaQuery } from '@reatom/core'
  *
- *   const themeAtom = reatomEnum(
- *     ['light', 'dark', 'system'],
- *     'themeAtom',
- *   ).extend(
- *     withComputed((state) => {
- *       if (state === 'system') return isDarkModeMedia() ? 'dark' : 'light'
- *       return state
- *     }),
- *     withLocalStorage('theme'),
- *     withChangeHook((state) => {
- *       if (state === 'system') {
- *         document.body.classList.remove('light', 'dark')
- *       } else {
- *         document.body.classList.toggle('dark', state === 'dark')
- *       }
- *     }),
- *   )
+ *   // In a component mount scope, close mobile filters on desktop.
+ *   const isDesktop = reatomMediaQuery('(min-width: 1024px)')
+ *   const filters =
+ *     document.querySelector<HTMLDialogElement>('#mobile-filters')!
+ *   effect(() => {
+ *     if (isDesktop()) filters.close()
+ *   }, 'closeMobileFilters')
  *
  * @param query - A CSS media query string (e.g., '(min-width: 768px)',
  *   '(prefers-color-scheme: dark)')
@@ -68,10 +58,13 @@ export let reatomMediaQuery = (
   return reatomObservable(() => {
     return {
       getState: () => mediaQueryList().matches,
-      subscribe: (fn) =>
-        onEvent(mediaQueryList() as MediaQueryList, 'change', () =>
-          fn(mediaQueryList().matches),
-        ),
+      subscribe: (fn) => {
+        const media = mediaQueryList() as MediaQueryList
+        const unsubscribe = onEvent(media, 'change', () => fn(media.matches))
+        // Refresh changes missed while disconnected, after attaching the listener.
+        fn(media.matches)
+        return unsubscribe
+      },
     }
   }, name).extend(() => ({ query, mediaQueryList }))
 }

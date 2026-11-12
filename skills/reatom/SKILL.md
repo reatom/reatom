@@ -52,5 +52,6 @@ Deeper recipes and adapter docs live on [v1001.reatom.dev](https://v1001.reatom.
 - Derived state in `computed`; side effects in `effect` with explicit lifetime (route loader, init action, or mount scope — not unscoped module effects for feature work).
 - Forms (fields, validation, submit) through `reatomForm` / `reatomField` instead of hand-rolled per-field atoms and submit actions.
 - Route data through `reatomRoute` loaders; navigation with `.go(...)`, links with `.path(...)`.
+- Theme preferences: use `themeAtom` for light/dark/system selection and root CSS `color-scheme` sync, `themeAtom.resolved()` for the effective scheme, and CSS `light-dark()` for custom colors; compose persistence in the application.
 
 When the reference and local examples disagree, prefer the reference and fix the example if it is wrong.
