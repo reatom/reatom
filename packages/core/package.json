@@ -30,6 +30,7 @@
     "bench_profile": "tsx bench/bench_profile.ts"
   },
   "tsdown": {
+    "tsconfig": "tsconfig.build.json",
     "format": {
       "esm": {
         "target": [

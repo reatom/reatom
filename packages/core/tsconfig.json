@@ -1,6 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "outDir": "./build",
     "declarationMap": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "paths": {
