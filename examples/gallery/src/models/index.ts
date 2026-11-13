@@ -7,8 +7,6 @@ export {
   favoriteImages,
   favoritesCount,
   folderModelTree,
-  isFolderBranchInCurrentScope,
-  isFolderImagesInCurrentScope,
   primarySelectedImage,
   resetGallerySession,
   selectAllImages,
@@ -43,6 +41,7 @@ export {
   folderTree,
   hasPersistedSelectedFolderHandle,
   publishFolderScan,
+  preloadedFolderTree,
   resetFolderState,
   selectedFolderHandle,
 } from './folder'
@@ -218,3 +217,12 @@ export {
   viewportLongEdge,
   viewportSize,
 } from './viewport'
+
+export {
+  galleryRoute,
+  selectFolder,
+  bindGalleryRoute,
+  discoverFolderChildren,
+} from './folderRoute'
+
+export { activeGalleryScope } from './galleryScope'

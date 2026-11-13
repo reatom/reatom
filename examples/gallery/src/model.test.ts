@@ -4,6 +4,9 @@ import { expect, test, vi } from 'vitest'
 import { createMockDirHandle } from './__fixtures__/fixtureLoader'
 import { createMockImage, mockFolderTree } from './__fixtures__/mockData'
 import {
+  activeGalleryScope,
+  selectFolder,
+  galleryRoute,
   bindLightboxSizedImageWindowSync,
   clearSelection,
   closeLightbox,
@@ -222,8 +225,8 @@ test('visibleIndexMap respects includeSubfolders', async () =>
 test('imagesList is scoped to the selected folder', async () =>
   context.start(async () => {
     loadGalleryState({ tree: mockFolderTree })
-    currentFolder.set(mockFolderTree.children[0]!)
-    await wrap(Promise.resolve())
+    selectFolder(mockFolderTree.children[0]!)
+    await wrap(galleryRoute.loader())
 
     const paths = currentImages().map((image) => image.source.path)
 
@@ -283,36 +286,35 @@ test('opening a folder publishes immutable image batches before each frame', () 
     await wrap(vi.waitFor(wrap(() => expect(folderTree()?.imageCount).toBe(2))))
     const second = folderTree()!
     const secondChild = second.children[0]!
-    currentFolder.set(secondChild)
     const selectedImage = currentImages()[0]!
     selectImage(selectedImage)
     const childUi = reatomFolderTreeNodeUi('child')
     childUi.expanded.setTrue()
-    expect(currentImages()).toHaveLength(1)
+    expect(currentImages()).toHaveLength(2)
 
     frames.shift()!(now)
     await wrap(vi.waitFor(() => expect(frames).toHaveLength(1)))
     frames.shift()!(now)
     await wrap(vi.waitFor(wrap(() => expect(folderTree()?.imageCount).toBe(4))))
     expect(openFolder.pending()).toBe(1)
-    expect(currentFolder()).toBe(folderTree()!.children[0])
-    expect(currentImages()).toHaveLength(3)
+    expect(currentFolder()).toBe(folderTree())
+    expect(currentImages()).toHaveLength(4)
     expect(currentImages()[0]).toBe(selectedImage)
     expect(selectedImage.selected()).toBe(true)
     expect(reatomFolderTreeNodeUi('child')).toBe(childUi)
     expect(childUi.expanded()).toBe(true)
     expect(first.children).toEqual([])
     expect(first.imageCount).toBe(1)
-    expect(secondChild.images).toHaveLength(1)
+    expect(secondChild.images).toHaveLength(0)
+    expect(activeGalleryScope()?.source()?.children[0]?.images).toHaveLength(3)
     expect(second.imageCount).toBe(2)
 
-    // The final sub-frame remainder is published, preserving the All selection.
-    currentFolder.set(null)
+    // The final sub-frame remainder preserves the selected root.
     frames.shift()!(now)
     await wrap(vi.waitFor(() => expect(frames).toHaveLength(1)))
     frames.shift()!(now)
     await wrap(scan)
-    expect(currentFolder()).toBeNull()
+    expect(currentFolder()).toBe(folderTree())
     expect(folderTree()?.imageCount).toBe(5)
     expect(currentImages()).toHaveLength(5)
     expect(openFolder.pending()).toBe(0)

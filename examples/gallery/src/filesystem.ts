@@ -37,6 +37,9 @@ function isDirectoryHandle(
 
 export type ScanDirectoryOptions = {
   onBatch?: (result: FolderScanResult) => void
+  path?: string
+  rootName?: string
+  recursive?: boolean
 }
 
 export async function scanDirectoryRecursive(
@@ -60,6 +63,8 @@ export async function scanDirectoryRecursive(
       images: [],
       children: [],
       imageCount: 0,
+      loaded: false,
+      childrenLoaded: false,
     }
     dirtyFolders.add(folder)
     return folder
@@ -79,12 +84,13 @@ export async function scanDirectoryRecursive(
     return next
   }
 
-  const root = createFolder(rootHandle, '')
+  const root = createFolder(rootHandle, options?.path ?? '')
 
   async function walkTree(
     folderNode: FolderNode,
     ancestors: FolderNode[],
   ): Promise<void> {
+    folderNode.loaded = true
     const currentPath = folderNode.path
     const branch = [...ancestors, folderNode]
     const subdirectoryHandles: FileSystemDirectoryHandle[] = []
@@ -104,7 +110,7 @@ export async function scanDirectoryRecursive(
             relativePath: currentPath
               ? `${currentPath}/${entry.name}`
               : entry.name,
-            rootName: rootHandle.name,
+            rootName: options?.rootName ?? rootHandle.name,
             fileHandle: entry,
           }
           folderNode.images.push(image)
@@ -140,10 +146,13 @@ export async function scanDirectoryRecursive(
       const childPath = currentPath
         ? `${currentPath}/${subDirHandle.name}`
         : subDirHandle.name
-      const childNode = createFolder(subDirHandle, childPath)
-      folderNode.children.push(childNode)
-      for (const folder of branch) dirtyFolders.add(folder)
-      await wrap(walkTree(childNode, branch))
+      folderNode.children.push(createFolder(subDirHandle, childPath))
+    }
+    folderNode.childrenLoaded = true
+    for (const folder of branch) dirtyFolders.add(folder)
+    if (options?.recursive !== false) {
+      for (const childNode of folderNode.children)
+        await wrap(walkTree(childNode, branch))
     }
   }
 

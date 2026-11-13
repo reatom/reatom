@@ -1,9 +1,12 @@
+import { reatomLinkedList } from '@reatom/core'
+
 import { keyboardActivate } from '../a11y'
 import { IconButton } from '../design-system'
 import { registerGlassSurface } from '../glassSurfaces'
 import { formatImageCount } from '../imageFormat'
 import {
-  currentFolder,
+  selectFolder,
+  discoverFolderChildren,
   folderTree,
   folderTreeIsAllSelected,
   folderTreeSidebarVisible,
@@ -38,8 +41,11 @@ const folderSidebarCss = `
   overflow-x: hidden;
   padding: 10px;
   transition:
-    margin-left 0.3s ease,
-    opacity 0.3s ease;
+    margin-left 180ms ease-out,
+    opacity 180ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
   margin-left: calc(-1 * var(--sidebar-width, 240px));
   opacity: 0;
   box-shadow: 12px 0 32px var(--shadow);
@@ -87,7 +93,13 @@ const treeNodeCss = `
   padding: 6px 10px;
   cursor: pointer;
   border-radius: var(--radius-sm);
-  transition: background 0.15s;
+  transition:
+    background-color 180ms ease-out,
+    color 180ms ease-out,
+    box-shadow 180ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
   color: var(--text-secondary);
   font-size: 13px;
   white-space: nowrap;
@@ -112,7 +124,10 @@ const expandBtnCss = `
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: transform 0.2s;
+  transition: transform 180ms ease-out;
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
 `
 
 const FolderTreeNode = ({
@@ -122,8 +137,23 @@ const FolderTreeNode = ({
   node: FolderNode
   depth: number
 }) => {
-  const { expanded, isSelected } = reatomFolderTreeNodeUi(node.path, depth < 2)
-  const hasChildren = node.children.length > 0
+  const { expanded, isSelected } = reatomFolderTreeNodeUi(
+    node.path,
+    depth === 0 ||
+      (depth < 2 && (node.loaded !== false || node.children.length > 0)),
+  )
+  const hasChildren = node.children.length > 0 || node.childrenLoaded === false
+  const children = reatomLinkedList(
+    node.children
+      .toSorted((left, right) =>
+        left.name.localeCompare(right.name, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        }),
+      )
+      .map((node) => ({ node })),
+    `folderTree.${node.path}.children`,
+  )
 
   return (
     <div
@@ -135,12 +165,12 @@ const FolderTreeNode = ({
     >
       <div
         role="treeitem"
-        aria-label={`${node.name}, ${formatImageCount(node.imageCount)}`}
+        aria-label={`${node.name}, ${node.loaded === false ? 'not loaded' : formatImageCount(node.imageCount)}`}
         aria-selected={isSelected}
         aria-expanded={hasChildren ? expanded : undefined}
         tabindex={0}
-        on:click={() => currentFolder.set(node)}
-        {...keyboardActivate(() => currentFolder.set(node))}
+        on:click={() => selectFolder(node)}
+        {...keyboardActivate(() => selectFolder(node))}
         data-selected={isSelected}
         css={`
           ${treeNodeCss}
@@ -161,6 +191,7 @@ const FolderTreeNode = ({
             on:click={(event: MouseEvent) => {
               event.stopPropagation()
               expanded.toggle()
+              if (expanded()) discoverFolderChildren(node)
             }}
             aria-label={() =>
               expanded() ? `Collapse ${node.name}` : `Expand ${node.name}`
@@ -192,20 +223,24 @@ const FolderTreeNode = ({
           {node.name}
         </span>
         <span css="color: var(--text-muted); font-size: 11px; flex-shrink: 0;">
-          {node.imageCount}
+          {node.loaded === false ? '…' : node.imageCount}
         </span>
       </div>
 
-      {hasChildren
-        ? () =>
-            expanded() ? (
-              <div>
-                {node.children.map((child) => (
-                  <FolderTreeNode node={child} depth={depth + 1} />
-                ))}
-              </div>
-            ) : null
-        : null}
+      {hasChildren ? (
+        <div
+          data-expanded={expanded}
+          css={`
+            &[data-expanded='false'] {
+              display: none;
+            }
+          `}
+        >
+          {children.reatomMap(({ node }) => (
+            <FolderTreeNode node={node} depth={depth + 1} />
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -223,8 +258,8 @@ export const FolderTree = () => (
           role="treeitem"
           aria-selected={folderTreeIsAllSelected}
           tabindex={0}
-          on:click={() => currentFolder.set(null)}
-          {...keyboardActivate(() => currentFolder.set(null))}
+          on:click={() => selectFolder(null)}
+          {...keyboardActivate(() => selectFolder(null))}
           data-selected={folderTreeIsAllSelected}
           css={`
             ${treeNodeCss}

@@ -1,4 +1,4 @@
-import { ensureHeicDecodeSupportProbed } from '../model'
+import { ensureHeicDecodeSupportProbed, bindGalleryRoute } from '../model'
 
 export const GalleryBootstrap = () => (
   <div
@@ -6,7 +6,7 @@ export const GalleryBootstrap = () => (
     css="display: none;"
     ref={() => {
       ensureHeicDecodeSupportProbed()
-      return () => {}
+      return bindGalleryRoute()
     }}
   />
 )

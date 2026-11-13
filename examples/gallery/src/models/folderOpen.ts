@@ -7,20 +7,19 @@ import {
   wrap,
 } from '@reatom/core'
 
-import {
-  isFileSystemAccessSupported,
-  pickDirectory,
-  scanDirectoryRecursive,
-} from '../filesystem'
+import { isFileSystemAccessSupported, pickDirectory } from '../filesystem'
 import { resetGallerySession } from './collection'
 import {
+  authorizedFolderHandle,
   currentFolder,
   folderTree,
-  publishFolderScan,
+  preloadedFolderTree,
   resetFolderState,
   selectedFolderHandle,
 } from './folder'
+import { clearGalleryRouteCache, galleryRoute } from './folderRoute'
 import { resetLightboxOnFolderChange } from './lightbox'
+import { resetFolderTreeUi } from './navigation'
 
 export const pendingFolderRestore = atom<FileSystemDirectoryHandle | null>(
   null,
@@ -78,18 +77,29 @@ export const openFolder = action(
     }
 
     pendingFolderRestore.set(null)
-    resetGallerySession()
+    clearGalleryRouteCache()
+    preloadedFolderTree.set(null)
+    resetFolderTreeUi()
     resetLightboxOnFolderChange()
+    resetGallerySession()
     folderTree.set(null)
     currentFolder.set(null)
 
+    if (intent !== 'restore' && intent !== 'request') galleryRoute.go({}, true)
+    const sameHandle = authorizedFolderHandle() === handle
+    authorizedFolderHandle.set(handle)
+    selectedFolderHandle.set(handle)
+    using cancellation = abortVar.subscribe(() => {
+      galleryRoute.loader.abort()
+      authorizedFolderHandle.set(null)
+      clearGalleryRouteCache()
+      folderTree.set(null)
+      currentFolder.set(null)
+    })
     try {
-      const result = await wrap(
-        scanDirectoryRecursive(handle, {
-          onBatch: publishFolderScan,
-        }),
+      await wrap(
+        sameHandle ? galleryRoute.loader.retry() : galleryRoute.loader(),
       )
-      publishFolderScan(result)
       selectedFolderHandle.set(handle)
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
@@ -131,7 +141,9 @@ export const resetOpenedFolder = action(() => {
   restoreSelectedFolder.abort()
   requestFolderRestore.abort()
   pendingFolderRestore.set(null)
+  clearGalleryRouteCache()
   resetLightboxOnFolderChange()
   resetGallerySession()
   resetFolderState()
+  galleryRoute.go({}, true)
 }, 'folder.resetOpened')

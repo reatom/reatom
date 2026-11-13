@@ -15,6 +15,10 @@ import {
   showImageNames,
   showLoupe,
 } from '../model'
+import {
+  galleryCardMotionCss,
+  galleryThumbnailMotionCss,
+} from './galleryMotion'
 import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
 
 const overlayControlCss = `
@@ -44,6 +48,7 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
         src={() => image.thumbnail.data()?.url ?? ''}
         alt={imageName()}
         loading="lazy"
+        css={galleryThumbnailMotionCss}
         style:image-orientation={() =>
           resolveImageOrientationStyle(
             image.thumbnailMeta.data()?.exif,
@@ -75,7 +80,7 @@ export const GridImage = ({ image }: { image: ImageModel }) => {
         border-radius: var(--radius-md);
         overflow: hidden;
         cursor: pointer;
-        transition: all 0.2s ease;
+        ${galleryCardMotionCss}
         content-visibility: auto;
         contain-intrinsic-size: var(--item-size, 220px);
 

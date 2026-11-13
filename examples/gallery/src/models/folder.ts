@@ -3,7 +3,17 @@ import { action, atom, withIndexedDb } from '@reatom/core'
 import type { FolderNode } from '../types'
 import { resetFolderTreeUi } from './navigation'
 
+// A persisted handle is not usable until the permission workflow authorizes it.
+export const authorizedFolderHandle = atom<FileSystemDirectoryHandle | null>(
+  null,
+  'authorizedFolderHandle',
+)
+
 export const folderTree = atom<FolderNode | null>(null, 'folderTree')
+export const preloadedFolderTree = atom<FolderNode | null>(
+  null,
+  'preloadedFolderTree',
+)
 export const currentFolder = atom<FolderNode | null>(null, 'currentFolder')
 
 const selectedFolderHandlePersistKey = 'gallery.selectedFolderHandle'
@@ -32,10 +42,13 @@ export const resetFolderState = action(() => {
   resetFolderTreeUi()
   folderTree.set(null)
   currentFolder.set(null)
+  preloadedFolderTree.set(null)
+  authorizedFolderHandle.set(null)
   selectedFolderHandle.set(null)
 }, 'folder.resetState')
 
 export const publishFolderScan = action((result: { tree: FolderNode }) => {
+  preloadedFolderTree.set(result.tree)
   if (folderTree() === null) {
     resetFolderTreeUi()
     currentFolder.set(result.tree)

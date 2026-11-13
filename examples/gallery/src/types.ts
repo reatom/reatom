@@ -22,6 +22,12 @@ export type FolderNode = {
   images: ImageFile[]
   children: FolderNode[]
   imageCount: number
+  /**
+   * False for directory-only shells whose images/children have not been
+   * scanned.
+   */
+  loaded?: boolean
+  childrenLoaded?: boolean
 }
 
 export const VIEW_MODES = ['grid', 'list', 'table'] as const

@@ -1,5 +1,10 @@
-import { connectLogger } from '@reatom/core'
+import { createAdminDevtools } from '../../../packages/admin'
 
-if (import.meta.env.MODE === 'development') {
-  connectLogger()
-}
+// const adminDevtools = createAdminDevtools({
+//   // initVisibility: true,
+//   // maxFrames: 100_000,
+//   // metadata: {
+//   //   app: 'checkout-web',
+//   //   environment: 'development',
+//   // },
+// })

@@ -4,6 +4,10 @@ import { focusableCardAttrs } from '../a11y'
 import type { ImageModel } from '../model'
 import { listPreviewHeight, listPreviewWidth, openLightbox } from '../model'
 import { FolderImageTree, VisibleImageSlot } from './FolderImageTree'
+import {
+  galleryCardMotionCss,
+  galleryThumbnailMotionCss,
+} from './galleryMotion'
 import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
 
 const ListImage = ({ image }: { image: ImageModel }) => {
@@ -18,6 +22,7 @@ const ListImage = ({ image }: { image: ImageModel }) => {
         src={() => image.thumbnail.data()?.url ?? ''}
         alt={image.source.name}
         loading="lazy"
+        css={galleryThumbnailMotionCss}
       />
     ) : null
 
@@ -47,7 +52,7 @@ const ListImage = ({ image }: { image: ImageModel }) => {
         background-image: var(--card-bg-image);
         background-size: var(--surface-bg-size);
         cursor: pointer;
-        transition: all 0.2s ease;
+        ${galleryCardMotionCss}
 
         &:hover {
           border-color: var(--accent);

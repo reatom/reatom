@@ -11,11 +11,14 @@ import {
   lightboxPanY,
   lightboxZoom,
   resetGallerySession,
+  preloadedFolderTree,
+  galleryRoute,
   showLightboxScrubber,
   slideshowPlaying,
   viewMode,
   wrapFolderNavigation,
 } from '../model'
+import { installPreloadedGalleryScope } from '../models/folderRoute'
 import type { FolderNode, ImageFile } from '../types'
 
 function cloneImage(img: ImageFile): ImageFile {
@@ -52,8 +55,10 @@ export function loadGalleryState(options: LoadGalleryStateOptions): void {
   const currentFolderNode = options.currentFolderNode
     ? findFolderByPath(tree, options.currentFolderNode.path)
     : undefined
-  folderTree.set(tree)
-  currentFolder.set(currentFolderNode ?? tree)
+  preloadedFolderTree.set(tree)
+  galleryRoute.go({ folder: currentFolderNode?.path || undefined }, true)
+  installPreloadedGalleryScope(tree, currentFolderNode?.path)
+  galleryRoute.loader()
   currentImages()
   clearSelection()
   lightboxOpen.setFalse()
@@ -78,6 +83,8 @@ export function loadGalleryStateWithImageModels(
 
 export function loadEmptyState(): void {
   resetGallerySession()
+  preloadedFolderTree.set(null)
+  galleryRoute.go({}, true)
   folderTree.set(null)
   currentFolder.set(null)
   currentImages()

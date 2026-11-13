@@ -1,13 +1,14 @@
 # Gallery PWA
 
-A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reatom** and **JSX** (not React). Leverages the **File System Access API** to browse and display images from local folders with deep recursive parsing and extensive customization options.
+A modern, feature-rich Progressive Web App (PWA) image gallery built with **Reatom** and **JSX** (not React). Uses the **File System Access API** to browse local images, with URL-based folder navigation and scanning scoped to the selected folder.
 
 ## Features
 
 ### Implemented
 
 - **Folder selection** with the File System Access API.
-- **Recursive parsing** with progress state and cancellation.
+- **Folder URLs** that restore the selected subfolder after reload and support browser Back/Forward.
+- **Scoped scanning** with optional subfolders, progress state, and cancellation when navigating.
 - **Grid, list, and table views** with configurable columns, preview fit, gap, names, and file sizes.
 - **Sorting and filtering** by name, size, date modified, type, dimensions, file type, size range, filename, and subfolder scope.
 - **Lightbox** with zoom, pan, fullscreen, details panel, thumbnail strip, filtered navigation, folder scrubber, slideshow, download, and copy-as-JPEG.
@@ -82,10 +83,22 @@ pnpm preview
 
 ### Opening a Folder
 
-1. Click the **"Open Folder"** button on the welcome screen
-2. Select a folder containing images from the file picker dialog
-3. The app will recursively scan all subfolders for images
-4. Wait for parsing to complete (progress shown in overlay)
+1. Click the **"Open Folder"** button on the welcome screen.
+2. Select a folder containing images from the file picker dialog. It becomes the gallery root.
+3. Images appear as scanning progresses. **Include Subfolders** is on by default, so the initial root view scans its descendants too.
+4. Select a subfolder in the sidebar or breadcrumbs to load its images. Turn off **Include Subfolders** in the filter panel to scan only the selected folder's direct images. **All folders** always scans the entire root recursively.
+
+### Folder URLs and Reloading
+
+Folder navigation updates the URL: `?folder=Trips/Beach` selects a path relative to the chosen root, no folder parameter selects the root, and `?all=1` selects **All folders**. Folder names with spaces, Unicode, or special characters are encoded automatically. Browser Back/Forward restores earlier folder selections.
+
+The app saves the root folder handle in IndexedDB. Reloading a folder URL restores that subfolder under the saved root; if browser permission needs renewal, click **Restore folder** and grant access. A bookmark depends on that saved root and permission in the same browser profile. Choosing a new root resets the folder URL.
+
+Only the selected folder and its included descendants are scanned for images. Opening a subfolder URL does not scan unrelated branches. Expanding an unloaded sidebar branch lists its directories without reading its image files; its image count shows **…** until loaded.
+
+Recently visited folder views keep their ready thumbnails in memory. Returning to a cached view with the same thumbnail settings reuses them without rescanning, rereading the original files, or decoding those thumbnails again. Changing **Include Subfolders** loads a separate view of that folder. Older or expired views are released to limit memory use; full-resolution lightbox images may need decoding again when reopened.
+
+To pick up files added, removed, or renamed outside the app, click **Open** and choose the root folder again to refresh its listings and thumbnails.
 
 ### Navigating Images
 

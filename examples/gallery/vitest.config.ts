@@ -21,6 +21,7 @@ export default mergeConfig(
         {
           test: {
             name: 'unit',
+            setupFiles: [join(dir, 'src/shared/unitSetup.ts')],
             include: ['./src/**/*.test.ts'],
             exclude: [
               './src/**/*.stories.*',

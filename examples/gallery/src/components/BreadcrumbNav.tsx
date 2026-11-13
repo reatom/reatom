@@ -1,5 +1,5 @@
 import { Button } from '../design-system'
-import { currentFolder, folderBreadcrumbSegments } from '../model'
+import { selectFolder, folderBreadcrumbSegments } from '../model'
 
 export const BreadcrumbNav = () => (
   <nav
@@ -41,7 +41,7 @@ export const BreadcrumbNav = () => (
             <Button
               appearance="quiet"
               label={folder.name}
-              onClick={() => currentFolder.set(folder)}
+              onClick={() => selectFolder(folder)}
               size="sm"
               css="padding: 2px 4px; min-height: 24px;"
             />

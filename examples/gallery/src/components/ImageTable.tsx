@@ -1,5 +1,4 @@
 import {
-  isFolderImagesInCurrentScope,
   tableMinWidth,
   tablePreviewWidth,
   visibleExifColumnNames,
@@ -156,13 +155,11 @@ export const ImageTable = () => {
             </tr>
           </thead>
           <tbody ref={bind}>
-            {rows.reatomMap(({ image, folder }) => (
+            {rows.reatomMap(({ image }) => (
               <ImageTableRow
                 image={image}
                 exifColumns={visibleExifColumnNames}
-                visible={() =>
-                  isFolderImagesInCurrentScope(folder) && image.visible()
-                }
+                visible={() => image.visible()}
               />
             ))}
           </tbody>

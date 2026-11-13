@@ -6,6 +6,7 @@ import type {
 import RawPreviewScanWorker from './rawPreviewScan.worker?worker'
 
 type RawPreviewScanJob = {
+  cleanup: () => void
   buffer: ArrayBuffer
   resolve: (ranges: RawPreviewScanRange[]) => void
   reject: (error: Error) => void
@@ -33,13 +34,42 @@ export function canScanRawPreviewInWorker(): boolean {
 
 export function scanRawPreviewRangesInWorker(
   buffer: ArrayBuffer,
+  signal?: AbortSignal,
 ): Promise<RawPreviewScanRange[]> {
+  if (signal?.aborted)
+    return Promise.reject(
+      signal.reason ??
+        new DOMException('Raw preview scan aborted', 'AbortError'),
+    )
   if (!canScanRawPreviewInWorker()) {
     return Promise.reject(new Error('Raw preview workers are not available'))
   }
 
   return new Promise((resolve, reject) => {
-    pendingJobs.push({ buffer, resolve, reject })
+    const job: RawPreviewScanJob = {
+      buffer,
+      resolve,
+      reject,
+      cleanup: () => signal?.removeEventListener('abort', abort),
+    }
+    const abort = () => {
+      const index = pendingJobs.indexOf(job)
+      if (index >= 0) pendingJobs.splice(index, 1)
+      for (const [worker, active] of activeJobsByWorker) {
+        if (active.resolve !== job.resolve) continue
+        activeJobsByWorker.delete(worker)
+        terminateRawPreviewScanWorker(worker)
+        break
+      }
+      job.cleanup()
+      reject(
+        signal?.reason ??
+          new DOMException('Raw preview scan aborted', 'AbortError'),
+      )
+      scheduleRawPreviewScanJobs()
+    }
+    signal?.addEventListener('abort', abort, { once: true })
+    pendingJobs.push(job)
     scheduleRawPreviewScanJobs()
   })
 }
@@ -61,6 +91,7 @@ function scheduleRawPreviewScanJobs(): void {
     } catch (error) {
       activeJobsByWorker.delete(worker)
       terminateRawPreviewScanWorker(worker)
+      job.cleanup()
       job.reject(error instanceof Error ? error : new Error(String(error)))
       scheduleRawPreviewScanJobs()
     }
@@ -102,6 +133,7 @@ function handleRawPreviewScanMessage(
 
   activeJobsByWorker.delete(worker)
   idleWorkers.push(worker)
+  job.cleanup()
 
   if ('error' in response) {
     job.reject(new Error(response.error))
@@ -114,10 +146,12 @@ function handleRawPreviewScanMessage(
 
 function handleRawPreviewScanError(worker: Worker, event: ErrorEvent): void {
   const job = activeJobsByWorker.get(worker)
+  if (!job && !idleWorkers.includes(worker)) return
   activeJobsByWorker.delete(worker)
   terminateRawPreviewScanWorker(worker)
 
   if (job) {
+    job.cleanup()
     job.reject(new Error(event.message || 'Raw preview worker failed'))
   }
 
@@ -137,6 +171,7 @@ const shutdownError = new Error('Raw preview scan pool shut down')
 export function shutdownRawPreviewScanPool(): void {
   while (pendingJobs.length > 0) {
     const job = pendingJobs.shift()
+    job?.cleanup()
     job?.reject(shutdownError)
   }
 
@@ -145,6 +180,7 @@ export function shutdownRawPreviewScanPool(): void {
   }
 
   for (const [worker, job] of activeJobsByWorker) {
+    job.cleanup()
     job.reject(shutdownError)
     terminateRawPreviewScanWorker(worker)
   }

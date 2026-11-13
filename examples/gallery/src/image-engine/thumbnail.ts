@@ -274,7 +274,10 @@ async function tryRawPreviewPath(
   throwIfThumbnailAborted(signal)
   const rawPreviewBlob =
     meta?.embeddedPreview?.blob ??
-    (await extractRawPreview(source, rawFormat, { minLongEdge: maxSize }))
+    (await extractRawPreview(source, rawFormat, {
+      minLongEdge: maxSize,
+      signal,
+    }))
   throwIfThumbnailAborted(signal)
   if (!rawPreviewBlob) return null
   const previewMeta = await parseImagePreviewMeta(rawPreviewBlob)

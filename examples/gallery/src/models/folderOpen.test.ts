@@ -5,6 +5,7 @@ import { createMockDirHandle } from '../__fixtures__/fixtureLoader'
 import { mockFolderTree } from '../__fixtures__/mockData'
 import { loadGalleryState } from '../shared/testSetup'
 import type { FolderNode } from '../types'
+import { activeGalleryScope } from './galleryScope'
 import { currentImages } from './collection'
 import { currentFolder, folderTree, selectedFolderHandle } from './folder'
 import {
@@ -57,7 +58,7 @@ test('cancelling the folder picker keeps a running scan alive', () =>
     await wrap(pickAndOpenFolder())
     await wrap(scan)
 
-    expect(folderTree()).toBe(mockFolderTree)
+    expect(activeGalleryScope()?.source()).toBe(mockFolderTree)
   }))
 
 test('opening a folder clears the previous gallery while scanning', () =>
@@ -176,5 +177,5 @@ test('cancelling a second picker keeps the first picker accepted scan alive', ()
     await wrap(pickAndOpenFolder())
     await wrap(first)
     await wrap(sleep(40))
-    expect(folderTree()).toBe(mockFolderTree)
+    expect(activeGalleryScope()?.source()).toBe(mockFolderTree)
   }))

@@ -26,6 +26,7 @@ import { HEADER_READ_BYTES, resolveExifReadBytes } from './types'
 const FULL_SIZE_RAW_PREVIEW_LONG_EDGE_RATIO = 0.9
 
 export type ParseImageMetaOptions = {
+  signal?: AbortSignal
   filename?: string
 }
 
@@ -463,6 +464,7 @@ export async function parseImageMeta(
         source,
         rawMeta.format,
         {
+          signal: options?.signal,
           minLongEdge: Math.round(
             sensorLongEdge * FULL_SIZE_RAW_PREVIEW_LONG_EDGE_RATIO,
           ),

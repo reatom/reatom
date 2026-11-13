@@ -10,6 +10,7 @@ import {
   tablePreviewHeight,
   tablePreviewWidth,
 } from '../model'
+import { galleryFadeInCss, galleryThumbnailMotionCss } from './galleryMotion'
 import { ImageFavoriteButton, ImageSelectButton } from './ImageControls'
 
 export const tableCellCss = `
@@ -43,6 +44,7 @@ export const ImageTableRow = ({
         src={() => image.thumbnail.data()?.url ?? ''}
         alt={image.source.name}
         loading="lazy"
+        css={galleryThumbnailMotionCss}
         style:image-orientation={() =>
           resolveImageOrientationStyle(
             image.meta.data()?.exif,
@@ -66,7 +68,10 @@ export const ImageTableRow = ({
       on:click={() => openLightbox(image)}
       css={`
         cursor: pointer;
-        transition: background 0.15s ease;
+        transition:
+          background-color 180ms ease-out,
+          opacity 180ms ease-out;
+        ${galleryFadeInCss}
 
         &:hover {
           background: var(--hover-bg);

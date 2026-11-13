@@ -694,12 +694,14 @@ async function measurePreviewCandidate(
   source: Blob,
   range: PreviewRange,
   buffer: ArrayBuffer,
+  signal?: AbortSignal,
 ): Promise<PreviewCandidate | null> {
   const probeRange = {
     start: range.start,
     length: Math.min(range.length, JPEG_FRAME_PROBE_BYTES),
   }
   const probeBytes = await readPreviewBytes(source, probeRange, buffer)
+  signal?.throwIfAborted()
   const jpegStart = findJpegSoiOffsetInBytes(probeBytes)
   const frame = parseJpegFrame(
     new DataView(
@@ -714,9 +716,10 @@ async function measurePreviewCandidate(
     return previewCandidate(range, buffer, frame.width, frame.height)
   }
 
-  const decodedSize = await decodeJpegSize(
-    await readPreviewBlob(source, range, buffer),
-  )
+  const previewBlob = await readPreviewBlob(source, range, buffer)
+  signal?.throwIfAborted()
+  const decodedSize = await decodeJpegSize(previewBlob)
+  signal?.throwIfAborted()
   if (!decodedSize) return null
   return previewCandidate(range, buffer, decodedSize.width, decodedSize.height)
 }
@@ -725,10 +728,17 @@ async function measurePreviewCandidates(
   source: Blob,
   ranges: PreviewRange[],
   buffer: ArrayBuffer,
+  signal?: AbortSignal,
 ): Promise<PreviewCandidate[]> {
   const candidates: PreviewCandidate[] = []
   for (const range of ranges) {
-    const candidate = await measurePreviewCandidate(source, range, buffer)
+    signal?.throwIfAborted()
+    const candidate = await measurePreviewCandidate(
+      source,
+      range,
+      buffer,
+      signal,
+    )
     if (candidate) candidates.push(candidate)
   }
   return candidates
@@ -799,15 +809,20 @@ function collectJpegPreviewSegments(bytes: Uint8Array): PreviewRange[] {
 async function collectHeuristicJpegPreviewSegments(
   blob: Blob,
   scanSize: number,
+  signal?: AbortSignal,
 ): Promise<{ segments: PreviewRange[]; buffer: ArrayBuffer }> {
+  signal?.throwIfAborted()
   const scanBuffer = await blob.slice(0, scanSize).arrayBuffer()
+  signal?.throwIfAborted()
 
   if (canScanRawPreviewInWorker()) {
     try {
-      const segments = await scanRawPreviewRangesInWorker(scanBuffer)
+      const segments = await scanRawPreviewRangesInWorker(scanBuffer, signal)
       return { segments, buffer: new ArrayBuffer(0) }
     } catch {
+      signal?.throwIfAborted()
       const fallbackBuffer = await blob.slice(0, scanSize).arrayBuffer()
+      signal?.throwIfAborted()
       return {
         segments: collectJpegPreviewSegments(new Uint8Array(fallbackBuffer)),
         buffer: fallbackBuffer,
@@ -823,13 +838,16 @@ async function collectHeuristicJpegPreviewSegments(
 
 async function scanJpegPreviewCandidates(
   blob: Blob,
+  signal?: AbortSignal,
 ): Promise<PreviewCandidate[]> {
+  signal?.throwIfAborted()
   const scanSize = Math.min(blob.size, JPEG_SCAN_BYTES)
   const { segments, buffer } = await collectHeuristicJpegPreviewSegments(
     blob,
     scanSize,
+    signal,
   )
-  return measurePreviewCandidates(blob, segments, buffer)
+  return measurePreviewCandidates(blob, segments, buffer, signal)
 }
 
 function copyBytes(bytes: Uint8Array): Uint8Array<ArrayBuffer> {
@@ -944,6 +962,7 @@ export function parseRawPreviewMeta(
 }
 
 export type ExtractRawPreviewOptions = {
+  signal?: AbortSignal
   minLongEdge?: number
 }
 
@@ -964,28 +983,37 @@ export async function extractRawPreviewData(
   preferredFormat?: RawFormat,
   options?: ExtractRawPreviewOptions,
 ): Promise<RawPreviewData | null> {
+  const signal = options?.signal
+  signal?.throwIfAborted()
   const minLongEdge = options?.minLongEdge
   const headerReadBytes = Math.min(blob.size, EXIF_READ_BYTES)
   const slice = blob.slice(0, headerReadBytes)
   const buffer = await slice.arrayBuffer()
+  signal?.throwIfAborted()
   const view = new DataView(buffer)
 
   const header = parseTiffHeader(view)
   if (!header) return null
 
   const ranges = collectPreviewRangesFromIfd(view, header, blob.size)
-  const tagCandidates = await measurePreviewCandidates(blob, ranges, buffer)
+  const tagCandidates = await measurePreviewCandidates(
+    blob,
+    ranges,
+    buffer,
+    signal,
+  )
   let bestPreview = pickPreviewCandidate(tagCandidates, minLongEdge)
 
   const tagPreviewIsEnough = coversLongEdge(bestPreview, minLongEdge)
   if (preferredFormat !== undefined && !tagPreviewIsEnough) {
-    const scannedCandidates = await scanJpegPreviewCandidates(blob)
+    const scannedCandidates = await scanJpegPreviewCandidates(blob, signal)
     bestPreview = pickPreviewCandidate(
       [...tagCandidates, ...scannedCandidates],
       minLongEdge,
     )
   }
 
+  signal?.throwIfAborted()
   if (!bestPreview) return null
 
   const previewBlob = await readPreviewBlob(
@@ -993,6 +1021,7 @@ export async function extractRawPreviewData(
     bestPreview,
     bestPreview.buffer,
   )
+  signal?.throwIfAborted()
   const rawMeta = parseRawPreviewMeta(view, preferredFormat, blob.size)
   const orientation = Number(rawMeta?.exif?.Orientation)
   let orientedPreview = previewBlob

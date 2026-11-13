@@ -5,6 +5,7 @@ import {
   bindBackgroundPreviewLoader,
   galleryContentMode,
   openFolder,
+  galleryRoute,
   themePack,
   visibleIndexMap,
 } from '../model'
@@ -103,7 +104,8 @@ export const GalleryWorkspace = () => (
               >
                 {() => formatImageCount(visibleIndexMap().size) || '0 images'}
                 {() =>
-                  openFolder.pending() > 0 ? (
+                  openFolder.pending() > 0 ||
+                  galleryRoute.loader.pending() > 0 ? (
                     <span
                       role="status"
                       aria-label="Scanning folder"

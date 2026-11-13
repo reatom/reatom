@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from '@storybook/html'
 import { expect } from 'storybook/test'
 
 import { mockEmptyFolder, mockFolderTree } from '../__fixtures__/mockData'
-import { folderTreeSidebarVisible } from '../model'
+import { Button } from '../design-system'
+import { folderTree, folderTreeSidebarVisible } from '../model'
 import { StoryWrapper } from '../shared/StoryWrapper'
 import { createMyself, type Locator } from '../shared/test'
 import { loadGalleryState } from '../shared/testSetup'
@@ -92,17 +93,15 @@ export const TogglePositionFollowsSidebarWidth: Story = {
     const openToggle = await I.see((canvas) =>
       canvas.findByRole('button', { name: 'Hide folder tree' }),
     )
-    const sidebarWidth =
-      Number.parseFloat(
-        getComputedStyle(openToggle).getPropertyValue('--sidebar-width').trim() ||
-          '240px',
-      )
-    const toggleInset =
-      Number.parseFloat(
-        getComputedStyle(openToggle)
-          .getPropertyValue('--folder-toggle-inset')
-          .trim() || '8px',
-      )
+    const sidebarWidth = Number.parseFloat(
+      getComputedStyle(openToggle).getPropertyValue('--sidebar-width').trim() ||
+        '240px',
+    )
+    const toggleInset = Number.parseFloat(
+      getComputedStyle(openToggle)
+        .getPropertyValue('--folder-toggle-inset')
+        .trim() || '8px',
+    )
     await expect(getComputedStyle(openToggle).left).toBe(
       `${sidebarWidth + toggleInset}px`,
     )
@@ -114,5 +113,49 @@ export const TogglePositionFollowsSidebarWidth: Story = {
       canvas.findByRole('button', { name: 'Show folder tree' }),
     )
     await expect(getComputedStyle(closedToggle).left).toBe('8px')
+  },
+}
+
+export const ProgressiveRootDiscovery: Story = {
+  render: () => {
+    loadGalleryState({
+      tree: {
+        ...mockFolderTree,
+        loaded: false,
+        images: [],
+        children: [],
+        imageCount: 0,
+      },
+    })
+    return (
+      <StoryWrapper>
+        <Button
+          label="Publish folder names"
+          onClick={() =>
+            folderTree.set({
+              ...mockFolderTree,
+              images: [],
+              children: mockFolderTree.children.map((child) => ({
+                ...child,
+                images: [],
+              })),
+            })
+          }
+        />
+        <FolderTree />
+      </StoryWrapper>
+    )
+  },
+  play: async () => {
+    await I.see(loc.galleryFolderAppears)
+    await I.click((canvas) =>
+      canvas.findByRole('button', { name: 'Publish folder names' }),
+    )
+    await I.see((canvas) =>
+      canvas.findByRole('treeitem', { name: /^subfolder,/ }),
+    )
+    await I.see((canvas) =>
+      canvas.findByRole('button', { name: 'Collapse Gallery' }),
+    )
   },
 }

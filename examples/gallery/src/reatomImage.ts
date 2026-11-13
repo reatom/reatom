@@ -112,6 +112,8 @@ async function decodeImageFromUrl(
   url: string,
   meta: ImageMeta | null,
   ignoreExifOrientation: boolean,
+  decodedImages: Map<string, HTMLImageElement>,
+  kind: string,
 ): Promise<HTMLImageElement | null> {
   const signal = abortVar.require().signal
   if (signal.aborted) throwAbort()
@@ -119,8 +121,15 @@ async function decodeImageFromUrl(
   const decodeSlot = await wrap(acquireImageDecodeSlot(signal))
   decodeSlot.start()
   let image: HTMLImageElement | null = null
+  const candidate = new Image()
+  const previous = decodedImages.get(kind)
+  if (previous && previous !== candidate) previous.src = ''
+  decodedImages.set(kind, candidate)
+  const releaseSource = () => {
+    candidate.src = ''
+  }
+  signal.addEventListener('abort', releaseSource, { once: true })
   try {
-    const candidate = new Image()
     candidate.decoding = 'async'
     candidate.src = url
     const decoding = candidate.decode()
@@ -136,6 +145,11 @@ async function decodeImageFromUrl(
       image = (await wrap(waitForImageLoad(candidate))) ? candidate : null
     }
   } finally {
+    signal.removeEventListener('abort', releaseSource)
+    if (!image || signal.aborted) {
+      releaseSource()
+      if (decodedImages.get(kind) === candidate) decodedImages.delete(kind)
+    }
     decodeSlot.release()
   }
   if (!image) return null
@@ -170,7 +184,9 @@ async function resolveSizedImageSourceBlob(
 
   const embeddedPreview =
     metaState.embeddedPreview?.blob ??
-    (await extractRawPreview(fileBlob, metaState.format).catch(() => null))
+    (await extractRawPreview(fileBlob, metaState.format, { signal }).catch(
+      () => null,
+    ))
   if (!embeddedPreview) return fileBlob
 
   const embeddedLongEdge = previewLongEdge(metaState)
@@ -201,12 +217,23 @@ export function reatomImage(
   const ignoreExifOrientation = () =>
     options?.readIgnoreExifOrientation?.() ?? false
 
-  const activeProducers = new Set<AbortController>()
+  const decodedImages = new Map<string, HTMLImageElement>()
+  let disposed = false
+  // Admission is deliberately non-reactive: toggling it must not invalidate
+  // completed immutable file/metadata queries or retained thumbnails.
+  let active = true
+  const interruptedProducers = new Set<string>()
+  const activeProducers = new Map<AbortController, string>()
   const requestedProducers = new Set<string>()
   const trackProducer = (name: string) => {
+    if (disposed) throwAbort('image disposed')
+    if (!active) {
+      interruptedProducers.add(name)
+      throwAbort('image inactive')
+    }
     requestedProducers.add(name)
     const controller = abortVar.require()
-    activeProducers.add(controller)
+    activeProducers.set(controller, name)
     return {
       [Symbol.dispose]() {
         activeProducers.delete(controller)
@@ -232,14 +259,22 @@ export function reatomImage(
     using producer = trackProducer('thumbnailMeta')
     const blob = await wrap(file())
     return await wrap(
-      parseImagePreviewMeta(blob, { filename: options?.filename }),
+      parseImagePreviewMeta(blob, {
+        filename: options?.filename,
+        signal: abortVar.require().signal,
+      }),
     )
   }, `${name}.thumbnailMeta`).extend(withAsyncData())
 
   const meta = computed(async () => {
     using producer = trackProducer('meta')
     const blob = await wrap(file())
-    return await wrap(parseImageMeta(blob, { filename: options?.filename }))
+    return await wrap(
+      parseImageMeta(blob, {
+        filename: options?.filename,
+        signal: abortVar.require().signal,
+      }),
+    )
   }, `${name}.meta`).extend(withAsyncData())
 
   const thumbnailLongEdge = atom(0, `${name}.thumbnail.longEdge`)
@@ -315,7 +350,7 @@ export function reatomImage(
     const previewLoadPriority = options?.previewLoadPriority
 
     // Shrink / same-bucket resize: keep the already-decoded thumbnail.
-    // Lifetime is session-scoped (dispose on folder reset), not connect-scoped:
+    // Lifetime belongs to its cached folder scope, not the grid connection:
     // GridImage stops reading `.data()` when priority is off, which would
     // otherwise disconnect and wipe the cache.
     const reusable = readReusableThumbnail(requestedMaxSize, ignoreOrientation)
@@ -442,7 +477,7 @@ export function reatomImage(
         thumbnailLongEdge.set(maxSize)
       }
       // Keep the current URL alive across recompute/abort; only revoke this
-      // result once a newer thumbnail replaces it (or dispose() on session end).
+      // result once a newer thumbnail replaces it (or its owner calls dispose()).
       abortVar.subscribe(() => {
         if (peek(thumbnailArtifact) !== thumbnailResult) {
           revokeThumbnail(thumbnailResult)
@@ -461,7 +496,11 @@ export function reatomImage(
 
     const previewBlob =
       metaState.embeddedPreview?.blob ??
-      (await wrap(extractRawPreview(fileBlob, metaState.format)))
+      (await wrap(
+        extractRawPreview(fileBlob, metaState.format, {
+          signal: abortVar.require().signal,
+        }),
+      ))
     if (!previewBlob) return null
 
     return createTrackedObjectUrl(previewBlob)
@@ -523,7 +562,13 @@ export function reatomImage(
     const url = await wrap(embeddedPreviewUrl())
     if (!url) return null
 
-    return decodeImageFromUrl(url, metaState, ignoreOrientation)
+    return decodeImageFromUrl(
+      url,
+      metaState,
+      ignoreOrientation,
+      decodedImages,
+      'rawEmbeddedPreviewImage',
+    )
   }, `${name}.rawEmbeddedPreviewImage`).extend(withAsyncData())
 
   const rawDevelopedImage = computed(async () => {
@@ -536,7 +581,13 @@ export function reatomImage(
     const url = await wrap(developedImageUrl())
     if (!url) return null
 
-    return decodeImageFromUrl(url, metaState, true)
+    return decodeImageFromUrl(
+      url,
+      metaState,
+      true,
+      decodedImages,
+      'rawDevelopedImage',
+    )
   }, `${name}.rawDevelopedImage`).extend(withAsyncData())
 
   const fullImageUrl = computed(async () => {
@@ -556,7 +607,13 @@ export function reatomImage(
     const url = await wrap(fullImageUrl())
     if (!url) return null
 
-    return decodeImageFromUrl(url, metaState, ignoreExifOrientation())
+    return decodeImageFromUrl(
+      url,
+      metaState,
+      ignoreExifOrientation(),
+      decodedImages,
+      'fullImage',
+    )
   }, `${name}.fullImage`).extend(withAsyncData())
 
   const sizedImage = computed(async () => {
@@ -706,25 +763,66 @@ export function reatomImage(
     withDisconnectHook(clearSizedImage),
   )
 
-  const dispose = action(() => {
-    // Track controllers at execution: reading query.pending here would itself
-    // activate lazy queries and start IO for images that were never requested.
-    for (const controller of activeProducers) controller.abort('image disposed')
-    clearThumbnail()
+  const retainedQueries = { file, fileInfo, thumbnailMeta, meta, thumbnail }
+  const displayQueries = {
+    sizedImage,
+    embeddedPreviewUrl,
+    developedImageUrl,
+    fullImageUrl,
+    rawEmbeddedPreviewImage,
+    rawDevelopedImage,
+    fullImage,
+    rawDeveloped,
+    rawDevelopedFullSize,
+  }
+
+  const deactivate = action(() => {
+    active = false
+    // Snapshot before abort: abort callbacks may finish a producer synchronously.
+    const pending = new Set(activeProducers.values())
+    for (const name of pending) interruptedProducers.add(name)
+    for (const controller of activeProducers.keys())
+      controller.abort('image inactive')
+    activeProducers.clear()
+    for (const [key, query] of Object.entries(retainedQueries)) {
+      if (pending.has(key)) {
+        query.reset()
+        if (key === 'thumbnail' && peek(thumbnailArtifact)) {
+          thumbnail.data.set(peek(thumbnailArtifact)!)
+        }
+      }
+    }
     clearSizedImage()
+    for (const image of decodedImages.values()) image.src = ''
+    decodedImages.clear()
     for (const url of [...objectUrls]) revokeObjectUrl(url)
-    if (requestedProducers.has('thumbnail')) thumbnail.data.reset()
-    if (requestedProducers.has('sizedImage')) sizedImage.data.reset()
-    if (requestedProducers.has('embeddedPreviewUrl'))
-      embeddedPreviewUrl.data.reset()
-    if (requestedProducers.has('developedImageUrl'))
-      developedImageUrl.data.reset()
-    if (requestedProducers.has('fullImageUrl')) fullImageUrl.data.reset()
-    if (requestedProducers.has('rawEmbeddedPreviewImage'))
-      rawEmbeddedPreviewImage.data.reset()
-    if (requestedProducers.has('rawDevelopedImage'))
-      rawDevelopedImage.data.reset()
-    if (requestedProducers.has('fullImage')) fullImage.data.reset()
+    for (const [key, query] of Object.entries(displayQueries)) {
+      if (requestedProducers.has(key)) query.reset()
+    }
+  }, `${name}.deactivate`)
+
+  const activate = action(() => {
+    if (disposed || active) return
+    active = true
+    const queries = { ...retainedQueries, ...displayQueries }
+    const interrupted = [...interruptedProducers]
+    interruptedProducers.clear()
+    for (const key of interrupted) {
+      queries[key as keyof typeof queries].reset()
+      if (key === 'thumbnail' && peek(thumbnailArtifact)) {
+        thumbnail.data.set(peek(thumbnailArtifact)!)
+      }
+    }
+  }, `${name}.activate`)
+
+  const dispose = action(() => {
+    if (disposed) return
+    disposed = true
+    deactivate()
+    clearThumbnail()
+    for (const [key, query] of Object.entries(retainedQueries)) {
+      if (requestedProducers.has(key)) query.reset()
+    }
   }, `${name}.dispose`)
 
   return file.extend(() => ({
@@ -744,6 +842,8 @@ export function reatomImage(
     sizedImageLongEdge,
     sizedImageArtifact,
     thumbnailLongEdge,
+    activate,
+    deactivate,
     dispose,
   }))
 }

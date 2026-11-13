@@ -633,3 +633,68 @@ describe('raw format parser', () => {
     expect(await extractRawPreview(blob)).toBeNull()
   })
 })
+
+test.each([false, true])(
+  'RAW cancellation during scan read avoids CPU work (worker fallback: %s)',
+  async (workerEnabled) => {
+    const pool = await import('./rawPreviewScanPool')
+    vi.spyOn(pool, 'canScanRawPreviewInWorker').mockReturnValue(workerEnabled)
+    vi.spyOn(pool, 'scanRawPreviewRangesInWorker').mockRejectedValue(
+      new Error('Worker unavailable'),
+    )
+    const controller = new AbortController()
+    const header = new Uint8Array([
+      0x49, 0x49, 42, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    ]).buffer
+    const scanBuffer = new ArrayBuffer(64)
+    let finish!: (buffer: ArrayBuffer) => void
+    let started!: () => void
+    const reading = new Promise<void>((resolve) => {
+      started = resolve
+    })
+    let reads = 0
+    const source = {
+      size: 64,
+      slice() {
+        return {
+          arrayBuffer() {
+            reads++
+            if (reads < (workerEnabled ? 3 : 2)) return Promise.resolve(header)
+            started()
+            return new Promise<ArrayBuffer>((resolve) => {
+              finish = resolve
+            })
+          },
+        }
+      },
+    } as unknown as Blob
+    const NativeUint8Array = Uint8Array
+    let enteredCpuScan = false
+    vi.stubGlobal(
+      'Uint8Array',
+      class {
+        constructor(...args: unknown[]) {
+          if (args[0] === scanBuffer) enteredCpuScan = true
+          return Reflect.construct(NativeUint8Array, args)
+        }
+      },
+    )
+    try {
+      const pending = extractRawPreviewData(source, 'arw', {
+        signal: controller.signal,
+      })
+      const rejected = expect(pending).rejects.toMatchObject({
+        name: 'AbortError',
+      })
+      await reading
+      controller.abort()
+      finish(scanBuffer)
+      await rejected
+      expect(enteredCpuScan).toBe(false)
+      expect(reads).toBe(workerEnabled ? 3 : 2)
+    } finally {
+      vi.restoreAllMocks()
+      vi.unstubAllGlobals()
+    }
+  },
+)

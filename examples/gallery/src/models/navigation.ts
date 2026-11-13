@@ -1,5 +1,5 @@
 import type { BooleanAtom, Computed } from '@reatom/core'
-import { computed, reatomBoolean } from '@reatom/core'
+import { atom, computed, peek, reatomBoolean } from '@reatom/core'
 
 import type { FolderNode } from '../types'
 import { currentFolder, folderTree } from './folder'
@@ -39,13 +39,16 @@ type FolderTreeNodeUi = {
   isSelected: Computed<boolean>
 }
 
-const folderTreeNodeUiByPath = new Map<string, FolderTreeNodeUi>()
+const folderTreeNodeUiByPath = atom(
+  () => new Map<string, FolderTreeNodeUi>(),
+  'folderTree.nodeUi',
+)
 
 export const reatomFolderTreeNodeUi = (
   folderPath: string,
   initialExpanded = false,
 ): FolderTreeNodeUi => {
-  const cached = folderTreeNodeUiByPath.get(folderPath)
+  const cached = peek(folderTreeNodeUiByPath).get(folderPath)
   if (cached) return cached
 
   const nodeUi: FolderTreeNodeUi = {
@@ -58,10 +61,12 @@ export const reatomFolderTreeNodeUi = (
       `folderTree.${folderPath}.isSelected`,
     ),
   }
-  folderTreeNodeUiByPath.set(folderPath, nodeUi)
+  folderTreeNodeUiByPath.set((previous) =>
+    new Map(previous).set(folderPath, nodeUi),
+  )
   return nodeUi
 }
 
 export const resetFolderTreeUi = () => {
-  folderTreeNodeUiByPath.clear()
+  folderTreeNodeUiByPath.set(new Map())
 }

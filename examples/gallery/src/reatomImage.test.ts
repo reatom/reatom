@@ -444,10 +444,19 @@ test('sizedImage upgrades monotonically and clears on deactivation', async () =>
     expect(image.fullImage.data()).toBeTruthy()
 
     active.set(false)
-    await expect(wrap(image.sizedImage())).resolves.toBeNull()
+    expect(await wrap(image.sizedImage())).toBeNull()
     // clearSizedImage zeroes the previous canvas in place; lightbox must not
     // paint that wiped node from stale `.data()` (use artifact / size checks).
     expect(firstCanvas.width).toBe(0)
+
+    active.set(true)
+    target.set({ width: 1200, height: 800, zoom: 1 })
+    const returningCanvas = await wrap(image.sizedImage())
+    expect(returningCanvas!.width).toBeGreaterThan(0)
+    image.deactivate()
+    expect(returningCanvas!.width).toBe(0)
+    expect(peek(image.sizedImageArtifact)).toBeNull()
+    image.dispose()
   })
 })
 
@@ -824,6 +833,229 @@ test('disposing an untouched image does not activate any lazy producer', async (
       expect(meta).not.toHaveBeenCalled()
       expect(thumbnail).not.toHaveBeenCalled()
       expect(decode).not.toHaveBeenCalled()
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('deactivate retains the exact thumbnail and metadata while releasing display URLs', async () => {
+  const artifact: ThumbnailResult = {
+    url: 'blob:retained-thumb',
+    width: 300,
+    height: 200,
+    source: 'generated',
+  }
+  class DisplayImage {
+    src = ''
+    decoding = 'async'
+    style = {}
+    decode = async () => {}
+  }
+  vi.stubGlobal('Image', DisplayImage)
+  const getFile = vi.fn(async () => makeJpegBlob())
+  const parseMeta = vi
+    .spyOn(imageEngine, 'parseImagePreviewMeta')
+    .mockResolvedValue({
+      width: 1200,
+      height: 800,
+      format: 'jpeg',
+      isProgressive: false,
+      hasExifThumbnail: false,
+    })
+  const decode = vi
+    .spyOn(imageEngine, 'loadThumbnailWithMeta')
+    .mockResolvedValue(artifact)
+  const revoke = vi
+    .spyOn(imageEngine, 'revokeThumbnail')
+    .mockImplementation(() => {})
+  const revokeObjectURL = vi.fn()
+  vi.stubGlobal('URL', {
+    createObjectURL: () => 'blob:display',
+    revokeObjectURL,
+  })
+  try {
+    await context.start(async () => {
+      const image = reatomImage(
+        { getFile } as unknown as FileSystemFileHandle,
+        'warm-route',
+      )
+      expect(await wrap(image.thumbnail())).toBe(artifact)
+      expect(await wrap(image.fullImageUrl())).toBe('blob:display')
+      const display = await wrap(image.fullImage())
+      expect(display?.src).toBe('blob:display')
+      image.deactivate()
+      expect(display?.src).toBe('')
+      expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith('blob:display')
+      expect(revoke).not.toHaveBeenCalled()
+      expect(image.thumbnail.data()).toBe(artifact)
+      image.activate()
+      expect(await wrap(image.thumbnail())).toBe(artifact)
+      expect(getFile).toHaveBeenCalledTimes(1)
+      expect(parseMeta).toHaveBeenCalledTimes(1)
+      expect(decode).toHaveBeenCalledTimes(1)
+      expect(await wrap(image.fullImageUrl())).toBe('blob:display')
+      image.dispose()
+      image.dispose()
+      expect(revoke).toHaveBeenCalledExactlyOnceWith(artifact)
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('deactivate cancels an unfinished thumbnail, releases its late result, and allows retry', async () => {
+  let finish!: (result: ThumbnailResult) => void
+  let started!: () => void
+  const loading = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  let signal!: AbortSignal
+  const late: ThumbnailResult = {
+    url: 'blob:late-inactive',
+    width: 300,
+    height: 200,
+    source: 'generated',
+  }
+  const retry: ThumbnailResult = { ...late, url: 'blob:retry' }
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  const decode = vi
+    .spyOn(imageEngine, 'loadThumbnailWithMeta')
+    .mockImplementationOnce((_file, _meta, options) => {
+      signal = options!.signal!
+      started()
+      return new Promise<ThumbnailResult>((resolve) => {
+        finish = resolve
+      })
+    })
+    .mockResolvedValue(retry)
+  const revoke = vi
+    .spyOn(imageEngine, 'revokeThumbnail')
+    .mockImplementation(() => {})
+  try {
+    await context.start(async () => {
+      const image = reatomImage(makeJpegBlob(), 'inactive-pending')
+      const pending = image.thumbnail().catch(() => null)
+      await wrap(loading)
+      image.deactivate()
+      expect(signal.aborted).toBe(true)
+      finish(late)
+      await wrap(pending)
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(revoke).toHaveBeenCalledWith(late)
+      image.activate()
+      expect(await wrap(image.thumbnail())).toBe(retry)
+      expect(decode).toHaveBeenCalledTimes(2)
+      image.dispose()
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('a mounted pending observer cannot restart thumbnail IO until explicit activation', async () => {
+  let started!: () => void
+  let finish!: (result: ThumbnailResult) => void
+  const loading = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  const result: ThumbnailResult = {
+    url: 'blob:reactivated',
+    width: 300,
+    height: 200,
+    source: 'generated',
+  }
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  const load = vi
+    .spyOn(imageEngine, 'loadThumbnailWithMeta')
+    .mockImplementationOnce(() => {
+      started()
+      return new Promise<ThumbnailResult>((resolve) => {
+        finish = resolve
+      })
+    })
+    .mockResolvedValue(result)
+  vi.spyOn(imageEngine, 'revokeThumbnail').mockImplementation(() => {})
+  try {
+    await context.start(async () => {
+      const image = reatomImage(makeJpegBlob(), 'inactive-observer')
+      const unsubscribe = image.thumbnail.pending.subscribe(() => {})
+      const pending = image.thumbnail().catch(() => null)
+      await wrap(loading)
+      image.deactivate()
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(load).toHaveBeenCalledTimes(1)
+      finish({ ...result, url: 'blob:late-inactive-observer' })
+      await wrap(pending)
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(load).toHaveBeenCalledTimes(1)
+      image.activate()
+      expect(await wrap(image.thumbnail())).toBe(result)
+      expect(load).toHaveBeenCalledTimes(2)
+      unsubscribe()
+      image.dispose()
+    })
+  } finally {
+    vi.restoreAllMocks()
+  }
+})
+
+test('deactivation immediately clears a pending native image source before decode settles', async () => {
+  let started!: () => void
+  let finish!: () => void
+  const loading = new Promise<void>((resolve) => {
+    started = resolve
+  })
+  const candidates: Array<{ src: string }> = []
+  vi.stubGlobal(
+    'Image',
+    class {
+      src = ''
+      decoding = 'async'
+      style = {}
+      constructor() {
+        candidates.push(this)
+      }
+      decode() {
+        started()
+        return new Promise<void>((resolve) => {
+          finish = resolve
+        })
+      }
+    },
+  )
+  vi.spyOn(imageEngine, 'parseImagePreviewMeta').mockResolvedValue({
+    width: 1200,
+    height: 800,
+    format: 'jpeg',
+    isProgressive: false,
+    hasExifThumbnail: false,
+  })
+  try {
+    await context.start(async () => {
+      const image = reatomImage(makeJpegBlob(), 'pending-native-source')
+      const pending = image.fullImage().catch(() => null)
+      await wrap(loading)
+      expect(candidates[0]!.src).not.toBe('')
+      image.deactivate()
+      expect(candidates[0]!.src).toBe('')
+      finish()
+      await wrap(pending)
+      await wrap(new Promise((resolve) => setTimeout(resolve, 0)))
+      expect(image.fullImage.data()).toBeUndefined()
+      image.dispose()
     })
   } finally {
     vi.restoreAllMocks()

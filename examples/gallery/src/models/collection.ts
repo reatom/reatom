@@ -1,209 +1,30 @@
-import type { Computed, Unsubscribe } from '@reatom/core'
-import {
-  action,
-  computed,
-  noop,
-  peek,
-  withChangeHook,
-  withConnectHook,
-} from '@reatom/core'
-
-import { shutdownRawDevelopPool } from '../image-engine/formats/rawDevelop'
-import { shutdownRawPreviewScanPool } from '../image-engine/formats/rawPreviewScanPool'
-import type { FolderNode, ImageFile } from '../types'
-import { shutdownBitmapDecodeQueue } from './bitmapDecodeLane'
+import { action, computed } from '@reatom/core'
+import { activeGalleryScope } from './galleryScope'
+import { clearGalleryRouteCache } from './folderRoute'
+export type { GalleryFolderModel } from './galleryScope'
+import type { GalleryFolderModel } from './galleryScope'
 import type { GalleryImageModel } from './contracts'
-import { includeSubfolders, sortField, sortOrder } from './filters'
-import { currentFolder, folderTree } from './folder'
-import { isGalleryImageModel, reatomGalleryImage } from './image'
-import { shutdownImageDecodeQueue } from './imageDecodeConcurrency'
-import { shutdownThumbnailQueue } from './thumbnailConcurrency'
 
-export type GalleryFolderModel = {
-  source: FolderNode
-  images: GalleryImageModel[]
-  children: GalleryFolderModel[]
-  sortedImages: Computed<GalleryImageModel[]>
-}
-
-const imageModelById = new Map<string, GalleryImageModel>()
-const folderModelByPath = new Map<string, GalleryFolderModel>()
-
-function getImageModel(
-  image: ImageFile | GalleryImageModel,
-): GalleryImageModel {
-  if (isGalleryImageModel(image)) return image
-
-  const cached = imageModelById.get(image.id)
-  if (cached) return cached
-
-  const model = reatomGalleryImage(image)
-  imageModelById.set(image.id, model)
-  return model
-}
-
-function sortImages(images: GalleryImageModel[]): GalleryImageModel[] {
-  const field = sortField()
-  const order = sortOrder()
-
-  return [...images].sort((left, right) => {
-    let comparison = 0
-    switch (field) {
-      case 'name':
-        comparison = left.source.name.localeCompare(right.source.name)
-        break
-      case 'size':
-        comparison =
-          (left.fileInfo.data()?.size ?? 0) - (right.fileInfo.data()?.size ?? 0)
-        break
-      case 'date':
-        comparison =
-          (left.fileInfo.data()?.lastModified ?? 0) -
-          (right.fileInfo.data()?.lastModified ?? 0)
-        break
-      case 'type':
-        comparison = (left.fileInfo.data()?.type ?? '').localeCompare(
-          right.fileInfo.data()?.type ?? '',
-        )
-        break
-      case 'dimensions':
-        comparison =
-          left.width() * left.height() - right.width() * right.height()
-        break
-    }
-    return order === 'asc' ? comparison : -comparison
-  })
-}
-
-function createFolderModel(folder: FolderNode): GalleryFolderModel {
-  const cached = folderModelByPath.get(folder.path)
-  if (cached && cached.source === folder) return cached
-
-  const images = folder.images.map(getImageModel)
-  const model: GalleryFolderModel = {
-    source: folder,
-    images,
-    children: folder.children.map(createFolderModel),
-    sortedImages: computed(
-      () => sortImages(images),
-      `galleryFolder.${folder.path}.sortedImages`,
-    ),
-  }
-  folderModelByPath.set(folder.path, model)
-  return model
-}
-
-export const folderModelTree = computed(() => {
-  const tree = folderTree()
-  return tree ? createFolderModel(tree) : null
-}, 'folderModelTree')
-
+export const folderModelTree = computed(
+  () => activeGalleryScope()?.modelTree() ?? null,
+  'folderModelTree',
+)
+export const currentImages = computed(
+  () => activeGalleryScope()?.images() ?? [],
+  'currentImages',
+)
+export const visibleImages = computed(
+  () => activeGalleryScope()?.visibleImages() ?? [],
+  'visibleImages',
+)
 export function collectAllGalleryImages(
   folder: GalleryFolderModel,
 ): GalleryImageModel[] {
   return [...folder.images, ...folder.children.flatMap(collectAllGalleryImages)]
 }
-
-function findFolderModel(
-  folder: GalleryFolderModel,
-  path: string,
-): GalleryFolderModel | null {
-  if (folder.source.path === path) return folder
-
-  for (const child of folder.children) {
-    const found = findFolderModel(child, path)
-    if (found) return found
-  }
-
-  return null
-}
-
-function collectImages(
-  folder: GalleryFolderModel,
-  withSubfolders: boolean,
-): GalleryImageModel[] {
-  const images = folder.sortedImages()
-  if (!withSubfolders) return images
-
-  return [
-    ...images,
-    ...folder.children.flatMap((child) => collectImages(child, true)),
-  ]
-}
-
 export const resetGallerySession = action(() => {
-  shutdownRawPreviewScanPool()
-  shutdownRawDevelopPool()
-  shutdownThumbnailQueue()
-  shutdownImageDecodeQueue()
-  shutdownBitmapDecodeQueue()
-  for (const model of imageModelById.values()) {
-    model.dispose()
-  }
-  imageModelById.clear()
-  folderModelByPath.clear()
+  clearGalleryRouteCache()
 }, 'collection.resetGallerySession')
-
-export const currentImages = computed(() => {
-  const root = folderModelTree()
-  if (!root) return []
-
-  const selectedFolder = currentFolder()
-  if (!selectedFolder) return collectImages(root, true)
-
-  const selectedFolderModel = findFolderModel(root, selectedFolder.path)
-  if (!selectedFolderModel) return []
-
-  return collectImages(selectedFolderModel, includeSubfolders())
-}, 'currentImages')
-
-/**
- * Visible images own their thumbnail demand from the model, not from view refs:
- * requests start right after the models exist, in grid order, and do not depend
- * on which view (grid, list, table) mounts or in what order.
- */
-const demandedThumbnails = new Map<GalleryImageModel, Unsubscribe>()
-let isPreviewDemandConnected = false
-
-function releasePreviewDemand(image: GalleryImageModel): void {
-  demandedThumbnails.get(image)?.()
-  demandedThumbnails.delete(image)
-  if (image.previewLoadPriority() === 'high') {
-    image.previewLoadPriority.set('off')
-  }
-}
-
-function syncPreviewDemand(images: GalleryImageModel[]): void {
-  if (!isPreviewDemandConnected) return
-
-  const nextImages = new Set(images)
-  for (const image of [...demandedThumbnails.keys()]) {
-    if (!nextImages.has(image)) releasePreviewDemand(image)
-  }
-  for (const image of images) {
-    if (demandedThumbnails.has(image)) continue
-    image.previewLoadPriority.set('high')
-    demandedThumbnails.set(image, image.thumbnail.data.subscribe(noop))
-  }
-}
-
-export const visibleImages = computed(
-  () => currentImages().filter((node) => node.visible()),
-  'visibleImages',
-).extend(
-  withChangeHook(syncPreviewDemand),
-  withConnectHook((target) => {
-    isPreviewDemandConnected = true
-    syncPreviewDemand(peek(target))
-    return () => {
-      isPreviewDemandConnected = false
-      for (const image of [...demandedThumbnails.keys()]) {
-        releasePreviewDemand(image)
-      }
-    }
-  }),
-)
-
 export const visibleIndexMap = computed(() => {
   const map = new Map<GalleryImageModel, number>()
   for (const [index, node] of visibleImages().entries()) {
@@ -250,7 +71,7 @@ export const selectAllImages = action(() => {
 }, 'selectAllImages')
 
 export const clearSelection = action(() => {
-  for (const node of imageModelById.values()) {
+  for (const node of currentImages()) {
     if (node.selected()) node.selected.set(false)
   }
 }, 'clearSelection')
@@ -271,41 +92,4 @@ export const findVisibleNeighbor = (
 
   if (!wrapNavigation || images.length <= 1) return null
   return direction === 1 ? (images[0] ?? null) : (images.at(-1) ?? null)
-}
-
-function isSameOrDescendant(folderPath: string, rootPath: string): boolean {
-  return (
-    rootPath === '' ||
-    folderPath === rootPath ||
-    folderPath.startsWith(rootPath + '/')
-  )
-}
-
-function isAncestor(folderPath: string, childPath: string): boolean {
-  return (
-    folderPath === '' ||
-    folderPath === childPath ||
-    childPath.startsWith(folderPath + '/')
-  )
-}
-
-export function isFolderImagesInCurrentScope(
-  folder: GalleryFolderModel,
-): boolean {
-  const selectedFolder = currentFolder()
-  if (!selectedFolder) return true
-  if (folder.source.path === selectedFolder.path) return true
-  return (
-    includeSubfolders() &&
-    isSameOrDescendant(folder.source.path, selectedFolder.path)
-  )
-}
-
-export function isFolderBranchInCurrentScope(
-  folder: GalleryFolderModel,
-): boolean {
-  const selectedFolder = currentFolder()
-  if (!selectedFolder) return true
-  if (isFolderImagesInCurrentScope(folder)) return true
-  return isAncestor(folder.source.path, selectedFolder.path)
 }
