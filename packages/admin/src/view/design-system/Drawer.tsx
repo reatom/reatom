@@ -172,7 +172,8 @@ export const Drawer = ({ open, label, onClose, children }: DrawerProps) => {
               </div>
               <div
                 css={`
-                  ${scrollable} flex: 1;
+                  ${scrollable} flex: 1 1 0;
+                  height: 0;
                   min-height: 0;
                 `}
               >
