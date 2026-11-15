@@ -1,7 +1,7 @@
 import { catalog, expect, subscribe, test, vi } from 'test'
 
 import { _read, action, computed, mock } from '../core'
-import { withCallHook } from '../extensions'
+import { withAbort, withCallHook } from '../extensions'
 import { retryComputed, wrap } from '../methods'
 import { noop, sleep, throwAbort } from '../utils'
 import { withAsync } from './withAsync'
@@ -147,6 +147,36 @@ test('mocked computed rejection is processed by withAsync without an unhandled r
     process.off('unhandledRejection', listener)
     unmock()
   }
+})
+
+test('withAbort cancellation settles pending before the body ends', async () => {
+  const fetch = action(
+    (ms: number) => sleep(ms).then(() => ms),
+    'abortPending.fetch',
+  ).extend(withAsync(), withAbort())
+  const onFulfill = vi.fn()
+  const onReject = vi.fn()
+  const onSettle = vi.fn()
+  fetch.onFulfill.extend(withCallHook(onFulfill))
+  fetch.onReject.extend(withCallHook(onReject))
+  fetch.onSettle.extend(withCallHook(onSettle))
+
+  fetch(20).catch(noop)
+  expect(fetch.pending()).toBe(1)
+  fetch.abort()
+  await wrap(sleep())
+
+  expect(fetch.pending()).toBe(0)
+  expect(fetch.ready()).toBe(true)
+  expect(onSettle).toHaveBeenCalledTimes(1)
+  expect(onReject).not.toHaveBeenCalled()
+  expect(onFulfill).not.toHaveBeenCalled()
+
+  await wrap(sleep(30))
+
+  expect(fetch.pending()).toBe(0)
+  expect(onFulfill).not.toHaveBeenCalled()
+  expect(onSettle).toHaveBeenCalledTimes(1)
 })
 
 test('abort rejection settles without calling onReject', async () => {

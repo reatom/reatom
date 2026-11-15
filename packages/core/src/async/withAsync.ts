@@ -15,7 +15,7 @@ import {
 import { cacheVar } from '../extensions/withCache'
 import { abortVar, getCalls, ifChanged, reset, retryComputed } from '../methods'
 import type { Fn } from '../utils'
-import { isAbort } from '../utils'
+import { isAbort, noop } from '../utils'
 import { type AsyncStatusAtom, withAsyncStatus } from './withAsyncStatus'
 
 let defaultStatus = _createGlobal(
@@ -353,20 +353,53 @@ export let withAsync: {
 
       if (isPromiseFresh) {
         touched.add(promiseToTrack)
+
+        let settled = false
+        let unsubscribeAbort = noop
+
+        const settleAsyncLifecycle = (
+          result:
+            { ok: true; payload: unknown } | { ok: false; error: unknown },
+        ) => {
+          if (settled) return
+          settled = true
+          unsubscribeAbort()
+          if (cacheState) pending.set((state) => state + 1)
+          if (result.ok) {
+            abortVar.spawn(onFulfill, result.payload, params)
+          } else if (isAbort(result.error)) {
+            abortVar.spawn(onSettle, { error: result.error, params })
+          } else {
+            abortVar.spawn(onReject, result.error, params)
+          }
+        }
+
         promiseToTrack.then(
           bind((payload) => {
-            if (cacheState) pending.set((state) => state + 1)
-            abortVar.spawn(onFulfill, payload, params)
+            settleAsyncLifecycle({ ok: true, payload })
           }, frame),
           bind((error) => {
-            if (cacheState) pending.set((state) => state + 1)
-            if (isAbort(error)) {
-              abortVar.spawn(onSettle, { error, params })
-            } else {
-              abortVar.spawn(onReject, error, params)
-            }
+            settleAsyncLifecycle({ ok: false, error })
           }, frame),
         )
+
+        const abortController = abortVar.first()
+        if (abortController) {
+          const settleAbortedLifecycle = bind(() => {
+            settleAsyncLifecycle({
+              ok: false,
+              error: abortController.signal.reason,
+            })
+          }, frame)
+          const onAbort = () => queueMicrotask(settleAbortedLifecycle)
+          if (abortController.signal.aborted) {
+            onAbort()
+          } else {
+            abortController.signal.addEventListener('abort', onAbort)
+            unsubscribeAbort = () =>
+              abortController.signal.removeEventListener('abort', onAbort)
+          }
+        }
       }
 
       if (!isCacheHit && isPromiseFresh && !pending.__reatom.processing) {

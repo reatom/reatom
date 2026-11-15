@@ -435,6 +435,7 @@ Do not put non-idempotent side effects before suspended reads inside `withSuspen
 ## Tested Edge Cases
 
 - `withAsync`: abort rejection settles but does not call `onReject`; real rejection still does.
+- `withAsync` + `withAbort`: abort settles `pending`, `ready`, and `status` for both `.extend(withAsync({ status: true }), withAbort())` and the reverse order; a cancelled body must not later `onFulfill`.
 - `withAsync`: sync throw before await follows the normal error path.
 - `withAsync`: action retry throws without `cacheParams`; computed retry does not need it.
 - `withAsyncData`: only the last non-aborted fulfillment updates `.data` and `onFulfill`.
