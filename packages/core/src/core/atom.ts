@@ -72,6 +72,13 @@ export interface AtomMeta {
   linking: boolean
 
   /**
+   * Whether a function init that throws a promise suspends instead of failing:
+   * the atom stays uninitialized and depends on what the init read until the
+   * init completes. Set by `withSuspenseInit`.
+   */
+  suspendableInit: boolean
+
+  /**
    * Function called when the atom gains its first subscriber. `onConnect.abort`
    * called when the atom loses its last subscriber.
    */
@@ -434,6 +441,25 @@ export let __GLOBAL_ATOMS = _createGlobal<Array<AtomLike>>(
 )
 
 export let STACK = _createGlobal<Array<Frame>>('stackFrames', () => [])
+
+/**
+ * Promises thrown by suspended inits, `true` while pending. A suspended init
+ * re-runs when something it read changes, or once its promise has settled.
+ */
+let suspensions = _createGlobal(
+  'initSuspensions',
+  () => new WeakMap<object, boolean>(),
+)
+
+let trackSuspension = (promise: Promise<unknown>) => {
+  if (!suspensions.has(promise)) {
+    suspensions.set(promise, true)
+    let settle = () => {
+      suspensions.set(promise, false)
+    }
+    promise.then(settle, settle)
+  }
+}
 
 /* A simple "push‐run‐pop" callstack management */
 export function run<I extends any[], O>(
@@ -1004,6 +1030,32 @@ export let _recompile = (target: AtomLike) => {
 }
 
 /**
+ * Runs the init of a `suspendableInit` atom. While the init is suspended, the
+ * atom depends on what it read, as a computed: a change of it re-runs the init.
+ * A write over a suspended init takes its place.
+ */
+function runSuspendableInit(frame: Frame, write: boolean) {
+  let meta = frame.atom.__reatom
+  let { pubs } = frame
+  let suspended = false
+  // the copy of a suspended init carries its promise
+  frame.error = null
+  frame.pubs = [null]
+  meta.linking = true
+  try {
+    frame.state = write ? undefined : frame.state.initState()
+  } catch (error) {
+    suspended = error instanceof Promise
+    throw error
+  } finally {
+    meta.linking = false
+    // a written atom is initialized, nothing is left to compute
+    if (!suspended) frame.pubs = [write ? frame.root.frame : null]
+    if (frame.subs.length !== 0) relink(frame, pubs)
+  }
+}
+
+/**
  * @private The Shared body of `cacheMiddleware`. When `direct` is true, `next`
  *   is the user function (`middlewares[0]`) and is invoked through
  *   `computedMiddleware` / `actionMiddleware` without the bound pipeline,
@@ -1025,7 +1077,7 @@ export function _cacheImpl(next: Fn, args: null | any[], direct: boolean): any {
 
   if (
     (meta.processing === 0 && (push || dirty || (dependent && !subscribed))) ||
-    (!error && isInit)
+    (isInit && (!error || suspensions.get(error) === false))
   ) {
     let recursionTries = 10
     recursion: while (recursionTries--) {
@@ -1037,7 +1089,11 @@ export function _cacheImpl(next: Fn, args: null | any[], direct: boolean): any {
 
       try {
         if (isInit) {
-          frame.state = frame.state.initState()
+          if (meta.suspendableInit) {
+            runSuspendableInit(frame, push && error !== null)
+          } else {
+            frame.state = frame.state.initState()
+          }
         }
         isInit = false
         frame.state = direct
@@ -1051,7 +1107,16 @@ export function _cacheImpl(next: Fn, args: null | any[], direct: boolean): any {
         frame.error = null
       } catch (error) {
         frame.error = error ?? new ReatomError('Unknown error')
-        if (isInit) frame.state = undefined
+        if (isInit) {
+          if (meta.suspendableInit && error instanceof Promise) {
+            // A suspended init stays an init: it waits for a change of what it
+            // read, as a computed does, or for its promise to settle.
+            frame.state = state
+            trackSuspension(error)
+          } else {
+            frame.state = undefined
+          }
+        }
       }
 
       frame.pubs[0] ??= topFrame.root.frame
@@ -1075,7 +1140,8 @@ export function _cacheImpl(next: Fn, args: null | any[], direct: boolean): any {
         meta.processing--
         if (meta.processing > 0) {
           meta.processing = 0
-          if (!push) {
+          // a failed init has completed: there is nothing left to re-run
+          if (!push && !(isInit && frame.state === undefined)) {
             if (recursionTries === 0) {
               throw new ReatomError('Stuck in recursion')
             }
@@ -1134,6 +1200,7 @@ let castAtom = <T extends AtomLike>(
       writable: true,
       processing: 0,
       linking: false,
+      suspendableInit: false,
       onConnect: undefined,
       _frame: undefined,
     } satisfies AtomMeta,

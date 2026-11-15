@@ -287,6 +287,11 @@ export let withSuspenseInit: {
   ): Ext<Target> =>
   (target) =>
     target.extend(
+      // a native init that throws a promise suspends the atom
+      (target) => {
+        target.__reatom.suspendableInit = true
+        return target
+      },
       withMiddleware(
         () =>
           // Special case for suspense in native init callback

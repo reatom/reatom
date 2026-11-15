@@ -3,6 +3,7 @@ import { catalog, expect, reatomCatalog, subscribe, test } from 'test'
 import { atom, computed, context, isConnected, notify } from '../core'
 import { wrap } from '../methods'
 import { sleep } from '../utils'
+import { withComputed } from './withComputed'
 import { suspense, withSuspense, withSuspenseInit } from './withSuspense'
 
 test('suspense', async () => {
@@ -250,4 +251,420 @@ test('sync-thrown suspense atom healed via .set notifies passive subscribers', a
   await wrap(sleep())
 
   expect(track).toHaveBeenCalledWith('DATA')
+})
+
+// An atom seeded from another suspending atom throws the DEPENDENCY's promise from
+// its init: it has no promise of its own, and nothing calls `.set` on it. Once the
+// dependency settles, everything reading it through a computed must heal.
+const reatomSeededFromSuspendingDependency = (name: string) => {
+  const source = atom(async () => {
+    await wrap(sleep())
+    return { replyId: 'm1' }
+  }, `${name}.source`).extend(withSuspenseInit())
+
+  const replyId = atom(() => source().replyId, `${name}.replyId`).extend(
+    withSuspenseInit(),
+  )
+
+  const reply = computed(() => replyId(), `${name}.reply`)
+
+  const consumer = computed(() => {
+    try {
+      return reply()
+    } catch (error) {
+      if (error instanceof Promise) return 'PENDING'
+      throw error
+    }
+  }, `${name}.consumer`)
+
+  return { source, replyId, reply, consumer }
+}
+
+test('withSuspenseInit seeded from a suspending dependency heals a subscribed computed', async () => {
+  const { consumer } = reatomSeededFromSuspendingDependency(
+    'suspenseInitDependencySubscriber',
+  )
+
+  const track = subscribe(consumer)
+  expect(track).toHaveBeenLastCalledWith('PENDING')
+
+  await wrap(sleep())
+  await wrap(sleep())
+  notify()
+
+  expect(track).toHaveBeenLastCalledWith('m1')
+})
+
+test('withSuspenseInit seeded from a suspending dependency is readable through a connected computed after it settles', async () => {
+  const { consumer, reply } = reatomSeededFromSuspendingDependency(
+    'suspenseInitDependencyLateReader',
+  )
+
+  // Keeps `reply` connected, as a mounted component or an effect would.
+  subscribe(consumer)
+
+  await wrap(sleep())
+  await wrap(sleep())
+  notify()
+
+  // A Suspense retry reads `reply` after the dependency settled. Rethrowing the
+  // already-settled promise here makes the boundary retry forever.
+  // @ts-ignore TODO fix "not" types
+  expect(() => reply()).not.toThrow()
+  expect(reply()).toBe('m1')
+})
+
+test('withSuspenseInit seeded from a suspending dependency recovers after a repeated read while pending', async () => {
+  const { replyId } = reatomSeededFromSuspendingDependency(
+    'suspenseInitDependencyRepeatedRead',
+  )
+
+  expect(() => replyId()).toThrowError(Promise)
+  // The second read reuses the cached frame, so the init runs on a copy of it.
+  expect(() => replyId()).toThrowError(Promise)
+
+  await wrap(sleep())
+  await wrap(sleep())
+
+  expect(replyId()).toBe('m1')
+})
+
+test('withSuspenseInit seeded from a suspending dependency is readable through an unconnected computed after it settles', async () => {
+  const { reply } = reatomSeededFromSuspendingDependency(
+    'suspenseInitDependencyUnconnected',
+  )
+
+  // A component on its first render reads without a subscription.
+  expect(() => reply()).toThrowError(Promise)
+
+  await wrap(sleep())
+  await wrap(sleep())
+
+  // @ts-ignore TODO fix "not" types
+  expect(() => reply()).not.toThrow()
+  expect(reply()).toBe('m1')
+})
+
+test('withSuspenseInit seeded from two suspending dependencies hands each suspension to connected readers', async () => {
+  const name = 'suspenseInitDependencySequential'
+  let resolveSecond!: (value: string) => void
+  const first = atom(async () => {
+    await wrap(sleep())
+    return 'first'
+  }, `${name}.first`).extend(withSuspenseInit())
+  const second = atom(
+    () => new Promise<string>((resolve) => (resolveSecond = resolve)),
+    `${name}.second`,
+  ).extend(withSuspenseInit())
+  const seeded = atom(() => `${first()}+${second()}`, `${name}.seeded`).extend(
+    withSuspenseInit(),
+  )
+  const reply = computed(() => seeded(), `${name}.reply`)
+  subscribe(
+    computed(() => {
+      try {
+        return reply()
+      } catch (error) {
+        if (error instanceof Promise) return 'PENDING'
+        throw error
+      }
+    }, `${name}.consumer`),
+  )
+
+  const suspension = (): unknown => {
+    try {
+      return reply()
+    } catch (error) {
+      return error
+    }
+  }
+
+  const onFirst = suspension()
+  expect(onFirst).toBeInstanceOf(Promise)
+
+  await wrap(sleep())
+  await wrap(sleep())
+  notify()
+
+  // `first` has settled and `second` is pending: suspend on `second`, not
+  // on the settled promise of `first`
+  const onSecond = suspension()
+  expect(onSecond).toBeInstanceOf(Promise)
+  // @ts-ignore TODO fix "not" types
+  expect(onSecond).not.toBe(onFirst)
+
+  resolveSecond('second')
+  await wrap(sleep())
+  notify()
+
+  expect(reply()).toBe('first+second')
+})
+
+test('withSuspenseInit seeded from a suspending dependency takes a write while suspended', async () => {
+  const { replyId, consumer } = reatomSeededFromSuspendingDependency(
+    'suspenseInitDependencyWrite',
+  )
+
+  const track = subscribe(consumer)
+  expect(track).toHaveBeenLastCalledWith('PENDING')
+
+  // the write takes the place of the init, as a user typing before it loaded
+  replyId.set('typed')
+  notify()
+  expect(track).toHaveBeenLastCalledWith('typed')
+
+  // and the dependency settling later does not override it
+  await wrap(sleep())
+  await wrap(sleep())
+  notify()
+  expect(replyId()).toBe('typed')
+  expect(track).toHaveBeenLastCalledWith('typed')
+})
+
+test('withSuspenseInit suspended on a foreign promise re-runs once it settles', async () => {
+  const name = 'suspenseInitForeignSettled'
+  let loaded = false
+  let resolve!: () => void
+  const loading = new Promise<void>((res) => (resolve = res))
+  const a = atom(0, `${name}.a`)
+  const seeded = atom((): string => {
+    a()
+    if (!loaded) throw loading
+    return 'loaded'
+  }, `${name}.seeded`).extend(withSuspenseInit())
+  // keeps it connected, as a mounted component would
+  subscribe(seeded)
+  expect(() => seeded()).toThrowError(Promise)
+
+  loaded = true
+  resolve()
+  await wrap(sleep())
+
+  // a Suspense retry reads it once the promise settled: nothing it read changed
+  expect(seeded()).toBe('loaded')
+})
+
+test('withSuspenseInit seeded from a suspending dependency stops following it once initialized', async () => {
+  const { source, replyId, consumer } = reatomSeededFromSuspendingDependency(
+    'suspenseInitDependencyInitialized',
+  )
+  const track = subscribe(consumer)
+
+  await wrap(sleep())
+  await wrap(sleep())
+  notify()
+  expect(track).toHaveBeenLastCalledWith('m1')
+
+  // an atom init is read once: a later change of what it read is not followed
+  expect(isConnected(source)).toBe(false)
+  source.set({ replyId: 'm2' })
+  notify()
+  expect(replyId()).toBe('m1')
+  expect(track).toHaveBeenLastCalledWith('m1')
+})
+
+for (const subscribed of [false, true]) {
+  test(`withSuspenseInit seeded init that writes what it read and then fails keeps its error, ${subscribed ? 'subscribed' : 'unconnected'}`, () => {
+    const name = `suspenseInitOwnWriteFails${subscribed}`
+    const never = new Promise<string>(() => {})
+    const gate = atom<'open' | 'failed'>('open', `${name}.gate`)
+    const seen = atom<'open' | 'failed'>('open', `${name}.seen`)
+    let inits = 0
+    const seeded = atom((): string => {
+      // a cap turns a loop into a failed assertion instead of a frozen worker
+      if (++inits > 100) return 'spin'
+      // records what it saw, then fails on it
+      if (seen() !== gate()) seen.set(gate())
+      if (gate() === 'failed') throw new Error('failed')
+      throw never
+    }, `${name}.seeded`).extend(withSuspenseInit())
+    const consumer = computed(() => {
+      try {
+        return seeded()
+      } catch (error) {
+        return error instanceof Promise
+          ? 'PENDING'
+          : `ERROR:${(error as Error).message}`
+      }
+    }, `${name}.consumer`)
+    const track = subscribed ? subscribe(consumer) : null
+
+    expect(() => seeded()).toThrowError(Promise)
+    gate.set('failed')
+    notify()
+
+    // a failed init has completed: it is not re-run on its own write
+    expect(() => seeded()).toThrowError('failed')
+    expect(inits).toBe(2)
+    if (track) expect(track).toHaveBeenLastCalledWith('ERROR:failed')
+
+    // and no longer follows what it read
+    gate.set('open')
+    notify()
+    expect(() => seeded()).toThrowError('failed')
+    expect(inits).toBe(2)
+
+    // it takes writes, as any failed init does
+    seeded.set('typed')
+    notify()
+    expect(seeded()).toBe('typed')
+    if (track) expect(track).toHaveBeenLastCalledWith('typed')
+  })
+}
+
+test('withSuspenseInit init lets go of what only its suspended runs read once it completes', () => {
+  const name = 'suspenseInitCompletesNarrower'
+  const loading = new Promise<never>(() => {})
+  const ready = atom(false, `${name}.ready`)
+  const a = atom(0, `${name}.a`)
+  const pub = computed(() => a(), `${name}.pub`)
+  const seeded = atom((): string => {
+    if (!ready()) {
+      pub()
+      throw loading
+    }
+    return 'loaded'
+  }, `${name}.seeded`).extend(withSuspenseInit())
+  const track = subscribe(
+    computed(() => {
+      try {
+        return seeded()
+      } catch (error) {
+        if (error instanceof Promise) return 'PENDING'
+        throw error
+      }
+    }, `${name}.consumer`),
+  )
+  expect(isConnected(a)).toBe(true)
+
+  ready.set(true)
+  notify()
+  expect(track).toHaveBeenLastCalledWith('loaded')
+  for (const target of [pub, a, ready]) {
+    expect(isConnected(target)).toBe(false)
+  }
+})
+
+test('withSuspenseInit init with withComputed takes a write while suspended and lets go of what its computed reads', async () => {
+  const name = 'suspenseInitComputedWrite'
+  let resolve!: (value: number) => void
+  const source = atom(
+    () => new Promise<number>((res) => (resolve = res)),
+    `${name}.source`,
+  ).extend(withSuspenseInit())
+  const b = atom(0, `${name}.b`)
+  const states: unknown[] = []
+  const seeded = atom(() => source(), `${name}.seeded`).extend(
+    withSuspenseInit(),
+    withComputed((state: number) => {
+      states.push(state)
+      b()
+      return state
+    }),
+  )
+  const track = subscribe(
+    computed(() => {
+      try {
+        return seeded()
+      } catch (error) {
+        if (error instanceof Promise) return 'PENDING'
+        throw error
+      }
+    }, `${name}.consumer`),
+  )
+  expect(track).toHaveBeenLastCalledWith('PENDING')
+
+  seeded.set(5)
+  notify()
+  expect(track).toHaveBeenLastCalledWith(5)
+  // the computed runs over the written state, never over a missing one
+  expect(states).not.toContain(undefined)
+
+  resolve(1)
+  await wrap(sleep())
+  notify()
+  track.unsubscribe()
+  notify()
+  for (const target of [seeded, source, b]) {
+    expect(isConnected(target)).toBe(false)
+  }
+})
+
+for (const rejoin of [false, true]) {
+  test(`withSuspenseInit init with withComputed lets go of what its computed reads once loaded${rejoin ? ', read again after its readers left' : ''}`, async () => {
+    const name = `suspenseInitComputed.${rejoin}`
+    let resolve!: () => void
+    const loading = new Promise<void>((res) => (resolve = res))
+    let loaded = false
+    loading.then(() => (loaded = true))
+    const a = atom(0, `${name}.a`)
+    const b = atom(false, `${name}.b`)
+    const c = atom(0, `${name}.c`)
+    const seeded = atom((): number => {
+      a()
+      if (!loaded) throw loading
+      return 0
+    }, `${name}.seeded`).extend(
+      withSuspenseInit(),
+      withComputed((state) => (b() ? c() : state)),
+    )
+    const consumer = computed(() => {
+      try {
+        return seeded()
+      } catch (error) {
+        if (error instanceof Promise) return 'PENDING'
+        throw error
+      }
+    }, `${name}.consumer`)
+    let track = subscribe(consumer)
+    expect(track).toHaveBeenLastCalledWith('PENDING')
+
+    resolve()
+    await wrap(sleep())
+    // a Suspense retry reads it once the promise settled
+    expect(seeded()).toBe(0)
+    notify()
+    expect(track).toHaveBeenLastCalledWith(0)
+    if (rejoin) {
+      track.unsubscribe()
+      notify()
+      track = subscribe(consumer)
+    }
+    b.set(true)
+    c.set(1)
+    notify()
+    expect(track).toHaveBeenLastCalledWith(1)
+
+    track.unsubscribe()
+    notify()
+    for (const target of [seeded, a, b, c]) {
+      expect(isConnected(target)).toBe(false)
+    }
+  })
+}
+
+test('a function init without withSuspenseInit fails on a thrown promise and takes writes', () => {
+  const name = 'plainInitSuspends'
+  const server = atom(
+    () => new Promise<string>(() => {}),
+    `${name}.server`,
+  ).extend(withSuspenseInit())
+  const draft = atom(() => server(), `${name}.draft`)
+
+  expect(() => draft()).toThrowError(Promise)
+  // it does not follow what its init read
+  subscribe(
+    computed(() => {
+      try {
+        return draft()
+      } catch {
+        return 'FAILED'
+      }
+    }, `${name}.consumer`),
+  )
+  expect(isConnected(server)).toBe(false)
+  // the user types while the server value is still loading
+  // @ts-ignore TODO fix "not" types
+  expect(() => draft.set('typed')).not.toThrow()
+  expect(draft()).toBe('typed')
 })
