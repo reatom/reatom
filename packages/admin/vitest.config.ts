@@ -46,6 +46,10 @@ const reatomAliases = {
   '@reatom/admin': resolve(dir, './src/index.ts'),
   '@reatom/core': resolve(dir, '../core/src'),
   '@reatom/jsx': resolve(dir, '../jsx/src'),
+  '@reatom/opentelemetry/web-analytics': resolve(
+    dir,
+    '../opentelemetry/src/web-analytics/index.ts',
+  ),
   '@reatom/opentelemetry': resolve(dir, '../opentelemetry/src/index.ts'),
   test: resolve(dir, './src/test.ts'),
   'chat-app': resolve(dir, '../../examples/chat/src'),
@@ -122,6 +126,10 @@ export default defineConfig({
         ],
         test: {
           name: 'storybook',
+          // Browser and node projects have different worker limits.
+          sequence: { groupOrder: 13 },
+          // Large timeline fixtures should not compete for browser rendering time.
+          fileParallelism: false,
           browser: {
             enabled: true,
             provider: playwright(),
