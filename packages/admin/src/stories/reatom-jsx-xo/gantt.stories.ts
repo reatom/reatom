@@ -188,6 +188,10 @@ function mountedRows(): Array<HTMLElement> {
 }
 
 async function scrollTimeline(scroller: HTMLElement, scrollTop: number) {
+  // Stop scheduled follow-to-tail writes before exercising native scrolling.
+  const pause = adminUi().queryByRole('button', { name: 'Pause', exact: true })
+  if (pause) await userEvent.click(pause)
+  await nextFrames()
   scroller.scrollTop = scrollTop
   scroller.dispatchEvent(new Event('scroll'))
   await nextFrames()
@@ -302,6 +306,10 @@ export const WaterfallRootShowsSpanCount: Story = {
     await boot(canvasElement)
     await playWinningGame(canvasElement)
     await userEvent.click(adminUi().getByRole('button', { name: 'Expand all' }))
+    const scroller = getAdminRoot().querySelector<HTMLElement>(
+      '[data-testid="gantt-scroller"]',
+    )!
+    await scrollTimeline(scroller, 0)
     const badge = await waitFor(() => {
       const found = getAdminRoot().querySelector(
         '[data-testid="gantt-span-count"]',
@@ -430,7 +438,13 @@ export const ModeSwitchKeepsSelection: Story = {
     })
     await userEvent.click(adminUi().getByRole('tab', { name: 'State' }))
     await waitFor(() => {
-      expect(getAdminRoot().textContent).toContain('board')
+      // State uses the same name filter as Timeline. Check the State tree,
+      // rather than the selected frame heading shared by both views.
+      expect(
+        getAdminRoot().querySelector(
+          '[data-testid="otlp-state-tree"] [data-inspector-key="winner"]',
+        ),
+      ).not.toBeNull()
     })
     await userEvent.click(adminUi().getByRole('tab', { name: 'Timeline' }))
     await waitFor(() => {
@@ -450,10 +464,11 @@ export const StateInspectorOpensAtom: Story = {
         '[data-testid="otlp-state-tree"] [data-inspector-key="board"]',
       )
       expect(field).toBeInstanceOf(HTMLElement)
+      // Capture delivery runs on a later animation frame than the game UI.
+      expect(field?.textContent).toContain('"X"')
       return field as HTMLElement
     })
     expect(board.querySelector('[data-inspector-key="0"]')).toBeNull()
-    expect(board.textContent).toContain('"X"')
     const expandBoard = within(board).getByRole('button', { expanded: false })
     expect(expandBoard.getAttribute('aria-label')).toBeNull()
     expect(expandBoard.textContent).toContain('[')
@@ -533,11 +548,14 @@ export const FilterCalculatorNarrowsRows: Story = {
       expect(rowLabels()).toContain('resetGame')
     })
 
-    const summary = [...getAdminRoot().querySelectorAll('summary')].find(
-      (element) => element.textContent?.includes('Advanced filters'),
+    await userEvent.click(
+      adminUi().getByRole('button', { name: 'Advanced filters' }),
     )
-    if (!(summary instanceof HTMLElement)) throw new Error('Missing summary')
-    await userEvent.click(summary)
+    await waitFor(() =>
+      expect(
+        adminUi().getByRole('dialog', { name: 'Advanced filters' }),
+      ).toBeVisible(),
+    )
 
     const keys = within(
       adminUi().getByRole('group', { name: 'Calculator keys' }),
@@ -583,7 +601,9 @@ export const FilterCalculatorNarrowsRows: Story = {
       expect(names).toContain('makeMove')
       expect(names).not.toContain('resetGame')
     })
-    expect(summary.parentElement).toHaveProperty('open', true)
+    expect(
+      adminUi().getByRole('dialog', { name: 'Advanced filters' }),
+    ).toBeVisible()
 
     await userEvent.click(
       adminUi().getByRole('button', {
@@ -649,7 +669,7 @@ export const GithubStarsFailure: Story = {
   play: async ({ canvasElement }) => {
     await boot(canvasElement)
     const footer = await import('./src/components/Footer')
-    void footer.repositoryStarCountResource.retry()
+    await footer.repositoryStarCountResource.retry().catch(() => undefined)
     await waitFor(() => {
       expect(getAdminRoot().textContent).toMatch(/Service Unavailable|error/i)
     })

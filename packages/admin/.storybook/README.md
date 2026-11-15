@@ -270,6 +270,15 @@ Reach and verify the intended state programmatically before taking a screenshot.
 Use the existing screenshot helper and naming convention. Do not accept newly
 generated platform baselines without reviewing them.
 
+Baseline comparisons require the same Chromium revision, OS image and fonts as
+the baseline producer. Run visual checks in that pinned environment; review
+platform-suffixed baselines separately when intentionally supporting another
+platform. Do not raise pixel tolerance to hide font or layout differences.
+The root CI test job uses `mcr.microsoft.com/playwright:v1.64.1-noble` but
+currently does not run Admin stories or produce their baselines. A visual CI job
+should pin that environment and explicitly generate and review its Linux
+references; Darwin references alone cannot validate a Linux run.
+
 Treat a missing local platform baseline separately from an interaction failure:
 a journey that reaches its screenshot assertion has validated a different layer
 than a journey that fails during actor steps.
@@ -310,6 +319,10 @@ The Storybook project currently collects the design-system stories, `src/stories
 mount-log, causal-timeline and frame-inspector journeys. The causal timeline is the default
 product mode; fixtures that specifically exercise the old waterfall explicitly
 select that mode. Legacy admin-shell, gallery, and fixture chrome stories stay on disk for a later deletion and are not collected.
+
+Story files run serially to keep large timeline fixtures from competing for
+browser rendering time. The node and browser projects use separate sequence groups
+to accommodate their different worker limits. Plain `vitest run` runs both.
 
 Use Vitest's `-t` option for a local test-name filter. `--grep` is not supported
 by the current Vitest CLI.

@@ -1,5 +1,6 @@
 import { mount } from '@reatom/jsx'
 
+import { ADMIN_FRAME } from '../../root'
 import { registerStoryCleanup } from '../../testing/storybook-runtime'
 import { connectLiveAdmin } from '../harness/live'
 
@@ -30,7 +31,9 @@ export function renderChatStory(
     const keyStore = await import('chat-app/auth/keyStore')
     keyStore.writeStoredKey(storyKey, false)
     await prepare()
-    const { host, appRoot } = connectLiveAdmin()
+    const { host, appRoot, connection } = connectLiveAdmin()
+    // These journeys assert legacy tree expansion and in-progress rows.
+    ADMIN_FRAME.run(() => connection.admin.causalEnabled.setFalse())
     appRoot.style.height = '100%'
     appRoot.style.overflow = 'auto'
     storyRoot.append(appRoot, host)
