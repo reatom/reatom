@@ -1,6 +1,7 @@
 import { expect, test } from 'test'
 
 import { action } from '../core'
+import { withAbort } from '../extensions'
 import { wrap } from '../methods'
 import { noop, sleep } from '../utils'
 import { withAsync } from './withAsync'
@@ -317,3 +318,106 @@ test('restore isFulfilled after abort', async () => {
     error: undefined,
   } satisfies AsyncStatusAbortedFulfill)
 })
+
+const wrappedRequest = async (ms: number) => {
+  await wrap(sleep(ms))
+  return ms
+}
+
+const plainRequest = (ms: number) => sleep(ms).then(() => ms)
+
+type Request = typeof plainRequest
+
+const withAsyncThenAbort = (request: Request) =>
+  action(request, 'withAsyncThenAbort').extend(
+    withAsync({ status: true }),
+    withAbort(),
+  )
+
+const withAbortThenAsync = (request: Request) =>
+  action(request, 'withAbortThenAsync').extend(
+    withAbort(),
+    withAsync({ status: true }),
+  )
+
+const extensionOrders = [
+  ['withAsync, withAbort', withAsyncThenAbort],
+  ['withAbort, withAsync', withAbortThenAsync],
+] satisfies Array<[string, (request: Request) => unknown]>
+
+const readAsyncState = (target: ReturnType<typeof withAsyncThenAbort>) => ({
+  pending: target.pending(),
+  ready: target.ready(),
+  status: target.status(),
+})
+
+test.each(extensionOrders)(
+  'abort() settles status with %s',
+  async (_, create) => {
+    const fetchData = create(wrappedRequest)
+
+    fetchData(10).catch(noop)
+    fetchData.abort()
+    await wrap(sleep(20))
+
+    expect(readAsyncState(fetchData)).toEqual({
+      pending: 0,
+      ready: true,
+      status: firstAborted,
+    })
+  },
+)
+
+test.each(extensionOrders)(
+  'abort() after a fulfilled call restores the fulfilled status with %s',
+  async (_, create) => {
+    const fetchData = create(wrappedRequest)
+
+    await wrap(fetchData(0))
+    fetchData(10).catch(noop)
+    fetchData.abort()
+    await wrap(sleep(20))
+
+    expect(readAsyncState(fetchData)).toEqual({
+      pending: 0,
+      ready: true,
+      status: fulfilled,
+    })
+  },
+)
+
+test.each(extensionOrders)(
+  'last-in-win cancellation settles status with %s',
+  async (_, create) => {
+    const fetchData = create(plainRequest)
+
+    fetchData(10).catch(noop)
+    await wrap(fetchData(0))
+    await wrap(sleep(20))
+
+    expect(readAsyncState(fetchData)).toEqual({
+      pending: 0,
+      ready: true,
+      status: fulfilled,
+    })
+  },
+)
+
+test.each(extensionOrders)(
+  'abort() settles status before the cancelled request ends with %s',
+  async (_, create) => {
+    const fetchData = create(plainRequest)
+
+    fetchData(10).catch(noop)
+    fetchData.abort()
+    await wrap(sleep())
+    const stateAfterAbort = readAsyncState(fetchData)
+    await wrap(sleep(20))
+
+    expect(stateAfterAbort).toEqual({
+      pending: 0,
+      ready: true,
+      status: firstAborted,
+    })
+  },
+)
