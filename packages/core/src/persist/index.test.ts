@@ -391,8 +391,9 @@ test('stale subscribed records do not overwrite fresher local writes', () => {
   const unsubscribe = target.subscribe(() => {})
   notify()
 
+  const staleTimestamp = Date.now() - 1_000
   target.set('fresh')
-  emitStoredRecord?.(createRecord('stale', { timestamp: Date.now() - 1 }))
+  emitStoredRecord?.(createRecord('stale', { timestamp: staleTimestamp }))
 
   unsubscribe()
   expect(target()).toBe('fresh')
