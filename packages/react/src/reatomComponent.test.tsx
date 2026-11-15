@@ -369,8 +369,9 @@ describe('reatomComponent', () => {
   test('works with suspense throwing', () =>
     context.start(async () => {
       const rerender = atom(0)
+      const pending = Promise.withResolvers<void>()
       const suspenseAtom = atom(async () => {
-        await wrap(tick())
+        await wrap(pending.promise)
         throw new Error()
         return 0
       }).extend(withSuspenseInit())
@@ -399,11 +400,13 @@ describe('reatomComponent', () => {
         )
       })
 
-      await wrap(tick())
-      expect(
-        document.querySelector('[data-testid="loading"]'),
-      ).toBeInTheDocument()
+      await wrap(
+        expect
+          .poll(() => document.querySelector('[data-testid="loading"]'))
+          .toBeInTheDocument(),
+      )
 
+      pending.resolve()
       await wrap(act(tick))
       expect(
         document.querySelector('[data-testid="error"]'),
@@ -425,7 +428,8 @@ describe('reatomComponent', () => {
 
   test('handle use method correctly', () =>
     context.start(async () => {
-      const dataPromise = tick().then(() => 123)
+      const pending = Promise.withResolvers<number>()
+      const dataPromise = pending.promise
 
       const SuspenseComponent = reatomComponent(() => {
         return (
@@ -449,11 +453,13 @@ describe('reatomComponent', () => {
         )
       })
 
-      await wrap(tick())
-      expect(
-        document.querySelector('[data-testid="loading"]'),
-      ).toBeInTheDocument()
+      await wrap(
+        expect
+          .poll(() => document.querySelector('[data-testid="loading"]'))
+          .toBeInTheDocument(),
+      )
 
+      pending.resolve(123)
       await wrap(act(async () => await dataPromise))
 
       expect(
@@ -504,8 +510,12 @@ describe('reatomComponent', () => {
       expect(isConnected(resource)).toBeTruthy()
       expect(isConnected(resource.status)).toBeTruthy()
 
-      expect(document.querySelector('[data-testid="view"]')!.textContent).toBe(
-        'data: ok',
+      await wrap(
+        expect
+          .poll(
+            () => document.querySelector('[data-testid="view"]')?.textContent,
+          )
+          .toBe('data: ok'),
       )
     }))
 })

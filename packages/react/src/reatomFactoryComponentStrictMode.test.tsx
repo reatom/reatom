@@ -75,7 +75,7 @@ const setup = () => {
   }
 }
 
-const renderApp = (
+const renderApp = async (
   App: (props: {}) => React.ReactNode,
   strictMode: boolean,
 ) => {
@@ -85,7 +85,11 @@ const renderApp = (
     </reatomContext.Provider>
   )
   const root = ReactDOM.createRoot(document.getElementById('root')!)
-  root.render(strictMode ? <React.StrictMode>{app}</React.StrictMode> : app)
+  await wrap(
+    React.act(async () => {
+      root.render(strictMode ? <React.StrictMode>{app}</React.StrictMode> : app)
+    }),
+  )
   return root
 }
 
@@ -94,7 +98,9 @@ describe('reatomFactoryComponent effects in StrictMode', () => {
     const source = atom(1, 'source')
     const { Mirror, getEffectCalls, getText } = setup()
 
-    const root = renderApp(() => <Mirror source={source} />, strictMode)
+    const root = await wrap(
+      renderApp(() => <Mirror source={source} />, strictMode),
+    )
 
     await wrap(tick())
     expect(getText()).toBe('2')
@@ -137,7 +143,7 @@ describe.each([
         () => <Mirror source={source} id={id()} />,
         'App',
       )
-      const root = renderApp(App, strictMode)
+      const root = await wrap(renderApp(App, strictMode))
       await wrap(tick())
 
       id.set('b')
@@ -166,11 +172,15 @@ describe.each([
         ),
         'App',
       )
-      const root = renderApp(App, strictMode)
+      const root = await wrap(renderApp(App, strictMode))
       await wrap(tick())
 
-      visible.set(false)
-      await wrap(settle())
+      await wrap(
+        React.act(async () => {
+          visible.set(false)
+          await wrap(settle())
+        }),
+      )
 
       const effectCallsWhileHidden = getEffectCalls()
       source.set(3)
@@ -207,11 +217,15 @@ describe.each([
           ),
         'App',
       )
-      const root = renderApp(App, strictMode)
+      const root = await wrap(renderApp(App, strictMode))
       await wrap(tick())
 
-      visible.set(false)
-      await wrap(settle())
+      await wrap(
+        React.act(async () => {
+          visible.set(false)
+          await wrap(settle())
+        }),
+      )
       const initsWhileHidden = getInits()
 
       label.set('b')
