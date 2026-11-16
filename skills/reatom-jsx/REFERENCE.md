@@ -349,6 +349,16 @@ The JSX runtime automatically applies the same logic internally using `reatomCla
 ]}></button>
 ```
 
+### `class:*` props
+
+Toggle a single class by the truthiness of a value. An atom is subscribed directly, without the computed that a reactive `class` creates, so this is the cheapest way to switch a class on many elements, such as list rows:
+
+```tsx
+<tr class:danger={row.selected} class:even={() => row.index() % 2 === 0}></tr>
+```
+
+`class:*` only adds and removes its own class. A reactive `class` prop rewrites the whole attribute when it updates, which removes classes set by `class:*`, so don't mix a reactive `class` with `class:*` on one element. A static `class` is fine.
+
 ### CSS-in-JS
 
 The `css` prop provides an ideal architectural balance for styling: it keeps styles colocated with the markup they affect while avoiding the coupling issues of other approaches.

@@ -706,6 +706,42 @@ test('css custom property', () =>
     expect(component.style.getPropertyValue('--secondProperty')).toBe('')
   }))
 
+test('class: directive toggles one class', () =>
+  context.start(async () => {
+    const selected = atom(false)
+    const active = atom(true)
+    const component = (
+      <div
+        class="row"
+        class:danger={selected}
+        class:active={() => active()}
+        class:static={true}
+        class:off={false}
+      ></div>
+    )
+    const classes = () => [...component.classList].sort()
+
+    mount(parent(), component)
+    await wrap(sleep())
+
+    expect(classes()).toEqual(['active', 'row', 'static'])
+
+    selected.set(true)
+    active.set(false)
+    await wrap(sleep())
+    expect(classes()).toEqual(['danger', 'row', 'static'])
+
+    selected.set(false)
+    await wrap(sleep())
+    expect(classes()).toEqual(['row', 'static'])
+
+    const svg = (<svg class:on={selected} />) as SVGElement
+    mount(parent(), svg)
+    selected.set(true)
+    await wrap(sleep())
+    expect(svg.getAttribute('class')).toBe('on')
+  }))
+
 test('class and className attribute', () =>
   context.start(async () => {
     const classAtom = atom('' as string | undefined)

@@ -1012,6 +1012,8 @@ let set = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     }
   } else if (key.startsWith('style:')) {
     setStyleProp(element.style, key.slice(6), value)
+  } else if (key.startsWith('class:')) {
+    element.classList.toggle(key.slice(6), !!value)
   } else if (key.startsWith('prop:')) {
     if (key === 'prop:innerHTML' && element.childElementCount) {
       throw new ReatomError('Can only set one of `children` or `innerHTML`.')
