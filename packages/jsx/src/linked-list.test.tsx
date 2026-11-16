@@ -363,3 +363,29 @@ test('missed versions reconcile live ranges and dispose only removed rows', () =
     expect(isConnected(value)).toBe(false)
     unmount()
   }))
+
+test('linked list replaced before any other change', () =>
+  context.start(async () => {
+    const list = reatomLinkedList(
+      { initState: [<span>1</span>, <span>2</span>] },
+      'replaced',
+    )
+
+    const container = <div>{list}</div>
+    mount(parent(), container)
+    await wrap(sleep())
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>1</span><span>2</span>',
+    )
+
+    // The new state restarts the versions: it has the version of the old one.
+    list.set(list.initiateFromState([<span>3</span>]))
+    await wrap(sleep())
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe('<span>3</span>')
+
+    list.set(list.initiateFromState([<span>4</span>, <span>5</span>]))
+    await wrap(sleep())
+    expect(stripJsxCompilerProps(container.innerHTML)).toBe(
+      '<span>4</span><span>5</span>',
+    )
+  }))

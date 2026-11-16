@@ -440,7 +440,8 @@ let walkLinkedList = (
   element: JSX.Element,
   list: LinkedListJSXAtom,
 ) => {
-  let lastVersion = -1
+  // The state, not only its version: a replaced list restarts its versions.
+  let lastState: undefined | LinkedList<LLNode<JSX.Element>>
   let mounted = new Set<JSX.Element>()
   const first = (node: JSX.Element): Node =>
     isLiveFragment(node) ? node.__reatomFragment.start : node
@@ -472,7 +473,7 @@ let walkLinkedList = (
     element.insertBefore(fragment, anchor)
   }
   const cb = (state: LinkedList<LLNode<JSX.Element>>) => {
-    if (lastVersion === state.version) return
+    if (lastState === state) return
     const focused = dom.document.activeElement as HTMLInputElement | null
     const selection =
       focused && 'selectionStart' in focused
@@ -482,7 +483,7 @@ let walkLinkedList = (
             focused.selectionDirection,
           ] as const)
         : null
-    if (state.version !== lastVersion + 1) {
+    if (state.version !== (lastState ? lastState.version : -1) + 1) {
       const desired: JSX.Element[] = []
       for (let node = state.head; node; node = node[state.LL_NEXT] ?? null)
         desired.push(node)
@@ -559,12 +560,12 @@ let walkLinkedList = (
           selection[2] ?? undefined,
         )
     }
-    lastVersion = state.version
+    lastState = state
   }
   unlink(element, () =>
     list.subscribe((state) => cb(state as LinkedList<LLNode<JSX.Element>>)),
   )
-  if (lastVersion === -1) cb(peek(list) as LinkedList<LLNode<JSX.Element>>)
+  if (!lastState) cb(peek(list) as LinkedList<LLNode<JSX.Element>>)
 }
 
 interface LiveDocumentFragment extends DocumentFragment {
