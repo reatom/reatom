@@ -772,7 +772,9 @@ function subscribe(this: AtomLike, userCb?: Fn, errorCb?: Fn) {
     frame.run(userCb, frame.state)
   }
 
-  return bind(() => {
+  // One closure that runs in the root frame itself, instead of a closure
+  // wrapped by `bind`.
+  return () => {
     let idx = frame.subs.lastIndexOf(listener)
 
     if (idx === -1) return
@@ -780,12 +782,17 @@ function subscribe(this: AtomLike, userCb?: Fn, errorCb?: Fn) {
     frame.subs.splice(idx, 1)
 
     if (frame.subs.length === 0) {
-      if (frame.atom.__reatom.onConnect !== undefined) {
-        _enqueue(frame.atom.__reatom.onConnect.abort, 'effect')
+      STACK.push(parentFrame.root.frame)
+      try {
+        if (frame.atom.__reatom.onConnect !== undefined) {
+          _enqueue(frame.atom.__reatom.onConnect.abort, 'effect')
+        }
+        unlink(this, _getFrame(this, parentFrame.root)!.pubs)
+      } finally {
+        STACK.pop()
       }
-      unlink(this, _getFrame(this, parentFrame.root)!.pubs)
     }
-  }, parentFrame.root.frame)
+  }
 }
 
 // @ts-expect-error
@@ -1110,37 +1117,47 @@ export function cacheMiddleware(next: Fn, ...args: any[]) {
   return _cacheImpl(next, args.length > 0 ? args : null, false)
 }
 
+function atomToString(this: AtomLike): string {
+  return `[Atom ${this.name}]`
+}
+
+function atomToJSON(this: AtomLike): unknown {
+  return this()
+}
+
+// Methods that do not need the atom in a closure are shared. `set` and
+// `subscribe` stay per atom: they are commonly passed around detached.
 let castAtom = <T extends AtomLike>(
   target: Fn,
   meta: Pick<AtomMeta, 'reactive' | 'middlewares'>,
-): T =>
-  Object.assign(target, {
-    extend,
-
-    set(...params: any) {
-      if (params.length === 0) {
-        throw new ReatomError('Missing payload')
+  writable = false,
+): T => {
+  let atom = target as any
+  atom.extend = extend
+  atom.set = writable
+    ? function set(...params: any) {
+        if (params.length === 0) {
+          throw new ReatomError('Missing payload')
+        }
+        setParamsSlot.current = params
+        return target()
       }
-      setParamsSlot.current = params
-      return target()
-    },
-
-    subscribe: subscribe.bind(target as T),
-
-    __reatom: {
-      reactive: meta.reactive,
-      middlewares: meta.middlewares,
-      pipeline: null,
-      writable: true,
-      processing: 0,
-      linking: false,
-      onConnect: undefined,
-      _frame: undefined,
-    } satisfies AtomMeta,
-
-    toString: () => `[Atom ${target.name}]`,
-    toJSON: () => target(),
-  } as Exclude<AtomLike, Fn>) as T
+    : undefined
+  atom.subscribe = subscribe.bind(atom as T)
+  atom.__reatom = {
+    reactive: meta.reactive,
+    middlewares: meta.middlewares,
+    pipeline: null,
+    writable,
+    processing: 0,
+    linking: false,
+    onConnect: undefined,
+    _frame: undefined,
+  } satisfies AtomMeta
+  atom.toString = atomToString
+  atom.toJSON = atomToJSON
+  return atom as T
+}
 
 /**
  * Useful for security reasons, if you need to increase your runtime complexity.
@@ -1191,6 +1208,8 @@ export let createAtom: {
     computed?: (prev: State | undefined) => State
     middlewares?: Fn[]
     reactive?: boolean
+    /** @internal `false` for computeds */
+    writable?: boolean
   },
   name: string = named('atom', setup?.computed?.name),
 ): Atom<State> => {
@@ -1274,6 +1293,7 @@ export let createAtom: {
         cacheMiddleware,
       ],
     },
+    setup.writable ?? true,
   )
 
   if (name) {
@@ -1352,12 +1372,7 @@ export let computed = <State>(
 ): Computed<State> => {
   assertFn(computed)
 
-  return createAtom({ computed }, name).extend((target) => {
-    target.__reatom.writable = false
-    // @ts-expect-error
-    target.set = undefined
-    return target
-  })
+  return createAtom({ computed, writable: false } as any, name) as any
 }
 
 /**

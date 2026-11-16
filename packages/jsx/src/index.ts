@@ -119,15 +119,25 @@ interface Meta {
    */
   mounted: boolean
 }
+/**
+ * An empty array with room for one item: an empty literal grows to 17 slots on
+ * its first push, and most nodes have one subscription.
+ */
+let emptySlot = <T>(): T[] => {
+  let array = [undefined] as T[]
+  array.pop()
+  return array
+}
+let createMeta = (subscribes: Meta['subscribes']): Meta => ({
+  boundary: undefined,
+  subscribes,
+  unsubscribes: emptySlot(),
+  mount: undefined,
+  unmount: undefined,
+  mounted: false,
+})
 let ensureMeta = (node: Node): Meta => {
-  return ((node as any)[metaSymbol()] ??= {
-    boundary: undefined,
-    subscribes: [],
-    unsubscribes: [],
-    mount: undefined,
-    unmount: undefined,
-    mounted: false,
-  })
+  return ((node as any)[metaSymbol()] ??= createMeta(emptySlot()))
 }
 export let findBoundary = (node: Node): BoundaryHandle | undefined => {
   let current: Node | null = node
@@ -166,8 +176,10 @@ let clearJsxError = (marked?: Element): undefined =>
   void marked?.removeAttribute('data-reatom-error')
 
 let unlink = (node: Node, subscribe: () => () => void) => {
-  let meta = ensureMeta(node)
-  meta.subscribes.push(subscribe)
+  let symbol = metaSymbol()
+  let meta = (node as any)[symbol] as Meta | undefined
+  if (meta === undefined) (node as any)[symbol] = meta = createMeta([subscribe])
+  else meta.subscribes.push(subscribe)
   if (node.isConnected) meta.unsubscribes.push(subscribe())
 }
 
@@ -223,8 +235,18 @@ let connectNode = (node: Node, symbol: symbol) => {
       let meta = (visited as any)[symbol] as Meta | undefined
       if (!meta || meta.unsubscribes.length > 0) return
 
+      // Inlined `lifecycle`: no closure per subscription on every mount.
       for (let subscribe of meta.subscribes) {
-        lifecycle('mount', visited, () => meta.unsubscribes.push(subscribe()))
+        try {
+          meta.unsubscribes.push(subscribe())
+        } catch (error) {
+          reportJsxError(
+            error,
+            'mount',
+            visited.nodeName.toLowerCase(),
+            visited,
+          )
+        }
       }
     },
     (left) => {
@@ -886,6 +908,21 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
 
   if (key === '$spread') {
     bindSpread(dom, element, value)
+    return
+  }
+
+  // A static value is set once: no closures to keep it updated.
+  if (
+    typeof value !== 'function' &&
+    typeof value !== 'object' &&
+    !key.startsWith('model:')
+  ) {
+    try {
+      set(dom, element, key, value)
+    } catch (error) {
+      if (key === 'innerHTML' || key === 'prop:innerHTML') throw error
+      reportJsxError(error, 'prop', jsxElementKey(element, key), element)
+    }
     return
   }
 
