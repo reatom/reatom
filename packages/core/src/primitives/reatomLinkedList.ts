@@ -187,30 +187,40 @@ export interface LinkedListDerivedAtom<
 // Links live on the node objects, so a list can hold a node in one context
 // only. A node keeps the number of its context under the owner symbol of the
 // list (a number, so a node never retains a context), and every state carries
-// that symbol, the number of its own context and its epoch.
+// that symbol, the number of its own context, its epoch and the undo log.
 const LL_OWNER = Symbol('Reatom linked list owner')
 const LL_ROOT = Symbol('Reatom linked list root')
+const LL_UNDO = Symbol('Reatom linked list undo')
+/**
+ * `inverse, state, a, b` records of the operations of the update in progress. A
+ * failed batch or derivation calls them back to restore the links with its atom
+ * state.
+ */
+type Undo = { log: undefined | unknown[] }
 type ListMeta = {
   [LL_OWNER]: symbol
   [LL_ROOT]: number
   [LL_EPOCH]: object
+  [LL_UNDO]: Undo
 }
 const metaOf = (state: LinkedListSymbols) =>
   state as LinkedListSymbols & ListMeta
-const ownerOf = (state: LinkedListSymbols, node: object): unknown =>
-  (node as Record<symbol, unknown>)[metaOf(state)[LL_OWNER]]
 
 const rootIds = new WeakMap<object, number>()
 let rootCount = 0
 
+/** A `base` list shares its owner and undo log: they change together. */
 const createLinks = (
   label: string,
-  owner = Symbol(`Reatom linked list ${label}owner`),
+  base?: LinkedListSymbols,
 ): LinkedListSymbols =>
   ({
     LL_PREV: Symbol(`Reatom linked list ${label}prev`),
     LL_NEXT: Symbol(`Reatom linked list ${label}next`),
-    [LL_OWNER]: owner,
+    [LL_OWNER]: base
+      ? metaOf(base)[LL_OWNER]
+      : Symbol(`Reatom linked list ${label}owner`),
+    [LL_UNDO]: base ? metaOf(base)[LL_UNDO] : { log: undefined },
   }) as LinkedListSymbols & ListMeta
 
 const emptyList = <Node extends LLNode>(
@@ -231,46 +241,37 @@ const emptyList = <Node extends LLNode>(
   } as LinkedList<Node>
 }
 
-// Undo logs of the updates in progress, by link symbol, as `node, previous`
-// pairs. A failed batch or derivation restores the links with its atom state.
-const journals = new Map<symbol, unknown[]>()
-
-const writeLink = (node: LLNode, key: symbol, value: LLNode | null) => {
-  journals.get(key)?.push(node, (node as Record<symbol, unknown>)[key])
-  ;(node as Record<symbol, unknown>)[key] = value
-}
-
-const journalLinks = <T>(cb: () => T, ...lists: LinkedListSymbols[]): T => {
-  const keys = lists.flatMap(({ LL_PREV, LL_NEXT }) => [LL_PREV, LL_NEXT])
+const journalLinks = <T>(cb: () => T, list: LinkedListSymbols): T => {
+  const undo = metaOf(list)[LL_UNDO]
   // A nested update of the same list joins the outer one, it is not a savepoint.
-  if (journals.has(keys[0]!)) return cb()
-  for (const key of keys) journals.set(key, [])
+  if (undo.log) return cb()
+  const log: unknown[] = (undo.log = [])
   try {
     return cb()
   } catch (error) {
-    for (const key of keys) {
-      const journal = journals.get(key)!
-      for (let i = journal.length; i > 0; i -= 2) {
-        const node = journal[i - 2] as Record<symbol, unknown>
-        if (journal[i - 1] === undefined) delete node[key]
-        else node[key] = journal[i - 1]
-      }
+    undo.log = undefined
+    for (let i = log.length; i > 0; i -= 4) {
+      ;(log[i - 4] as Fn)(log[i - 3], log[i - 2], log[i - 1])
     }
     throw error
   } finally {
-    for (const key of keys) journals.delete(key)
+    undo.log = undefined
   }
 }
 
+// A member is linked back by the list, so a copy of a node is not a member.
 const containsLL = <Node extends LLNode>(
   state: LinkedList<Node>,
   node: Node,
-): boolean =>
-  !!node &&
-  (state.head === node ||
-    node[state.LL_PREV] != null ||
-    node[state.LL_NEXT] != null) &&
-  ownerOf(state, node) === metaOf(state)[LL_ROOT]
+): boolean => {
+  if (!node) return false
+  const meta = metaOf(state)
+  const prev = node[state.LL_PREV]
+  return (
+    (prev ? prev[state.LL_NEXT] : state.head) === node &&
+    (node as Record<symbol, unknown>)[meta[LL_OWNER]] === meta[LL_ROOT]
+  )
+}
 
 const addLL = <Node extends LLNode>(
   _state: LinkedList<Node>,
@@ -286,35 +287,31 @@ const addLL = <Node extends LLNode>(
   if (node === after) return
 
   const meta = metaOf(state)
-  const owner = ownerOf(state, node)
+  const owner = (node as Record<symbol, unknown>)[meta[LL_OWNER]]
   if (owner !== meta[LL_ROOT]) {
     if (owner)
       throw new ReatomError(
         'A linked list node cannot be shared across contexts. Create a fresh node per context.',
       )
-    // Not enumerable: a node shows only its links, and its copy is not a member.
-    Object.defineProperty(node, meta[LL_OWNER], {
-      value: meta[LL_ROOT],
-      configurable: true,
-    })
+    ;(node as Record<symbol, unknown>)[meta[LL_OWNER]] = meta[LL_ROOT]
   }
 
   if (after) {
     const nextNode = after[LL_NEXT]
-    writeLink(node, LL_PREV, after)
-    writeLink(node, LL_NEXT, nextNode)
-    writeLink(after, LL_NEXT, node)
+    node[LL_PREV] = after
+    node[LL_NEXT] = nextNode
+    after[LL_NEXT] = node
     if (nextNode) {
-      writeLink(nextNode, LL_PREV, node)
+      nextNode[LL_PREV] = node
     }
     if (state.tail === after) {
       state.tail = node
     }
   } else {
-    writeLink(node, LL_PREV, null)
-    writeLink(node, LL_NEXT, state.head)
+    node[LL_PREV] = null
+    node[LL_NEXT] = state.head
     if (state.head) {
-      writeLink(state.head, LL_PREV, node)
+      state.head[LL_PREV] = node
     }
     if (!state.tail) {
       state.tail = node
@@ -336,17 +333,17 @@ const removeLL = <Node extends LLNode>(
   if (state.head === node) {
     state.head = node[LL_NEXT]
   } else if (node[LL_PREV] !== null) {
-    writeLink(node[LL_PREV], LL_NEXT, node[LL_NEXT])
+    node[LL_PREV][LL_NEXT] = node[LL_NEXT]
   }
 
   if (state.tail === node) {
     state.tail = node[LL_PREV]
   } else if (node[LL_NEXT] !== null) {
-    writeLink(node[LL_NEXT], LL_PREV, node[LL_PREV])
+    node[LL_NEXT][LL_PREV] = node[LL_PREV]
   }
 
-  writeLink(node, LL_PREV, null)
-  writeLink(node, LL_NEXT, null)
+  node[LL_PREV] = null
+  node[LL_NEXT] = null
 
   state.size--
 }
@@ -366,37 +363,39 @@ const swapLL = <Node extends LLNode>(
 
   if (state.head === b) return swapLL(state, b, a)
 
+  metaOf(state)[LL_UNDO].log?.push(swapLL, state, a, b)
+
   const prevA = a[LL_PREV]
   const nextA = a[LL_NEXT]
   const prevB = b[LL_PREV]
   const nextB = b[LL_NEXT]
 
   if (nextA === b) {
-    writeLink(a, LL_NEXT, nextB)
-    writeLink(b, LL_PREV, prevA)
-    writeLink(b, LL_NEXT, a)
-    writeLink(a, LL_PREV, b)
+    a[LL_NEXT] = nextB
+    b[LL_PREV] = prevA
+    b[LL_NEXT] = a
+    a[LL_PREV] = b
 
-    if (nextB) writeLink(nextB, LL_PREV, a)
-    if (prevA) writeLink(prevA, LL_NEXT, b)
+    if (nextB) nextB[LL_PREV] = a
+    if (prevA) prevA[LL_NEXT] = b
   } else if (nextB === a) {
-    writeLink(b, LL_NEXT, nextA)
-    writeLink(a, LL_PREV, prevB)
-    writeLink(a, LL_NEXT, b)
-    writeLink(b, LL_PREV, a)
+    b[LL_NEXT] = nextA
+    a[LL_PREV] = prevB
+    a[LL_NEXT] = b
+    b[LL_PREV] = a
 
-    if (nextA) writeLink(nextA, LL_PREV, b)
-    if (prevB) writeLink(prevB, LL_NEXT, a)
+    if (nextA) nextA[LL_PREV] = b
+    if (prevB) prevB[LL_NEXT] = a
   } else {
-    if (prevA) writeLink(prevA, LL_NEXT, b)
-    if (nextA) writeLink(nextA, LL_PREV, b)
-    if (prevB) writeLink(prevB, LL_NEXT, a)
-    if (nextB) writeLink(nextB, LL_PREV, a)
+    if (prevA) prevA[LL_NEXT] = b
+    if (nextA) nextA[LL_PREV] = b
+    if (prevB) prevB[LL_NEXT] = a
+    if (nextB) nextB[LL_PREV] = a
 
-    writeLink(a, LL_PREV, prevB)
-    writeLink(a, LL_NEXT, nextB)
-    writeLink(b, LL_PREV, prevA)
-    writeLink(b, LL_NEXT, nextA)
+    a[LL_PREV] = prevB
+    a[LL_NEXT] = nextB
+    b[LL_PREV] = prevA
+    b[LL_NEXT] = nextA
   }
 
   if (state.head === a) {
@@ -415,6 +414,7 @@ const swapLL = <Node extends LLNode>(
 const clearLL = <Node extends LLNode>(state: LinkedList<Node>) => {
   const LL_PREV: LL_PREV = state.LL_PREV as any
   const LL_NEXT: LL_NEXT = state.LL_NEXT as any
+  metaOf(state)[LL_UNDO].log?.push(addRun, state, toArray(state), null)
   let node: null | LLNode = state.head
   state.head = null
   state.tail = null
@@ -423,21 +423,52 @@ const clearLL = <Node extends LLNode>(state: LinkedList<Node>) => {
   metaOf(state)[LL_EPOCH] = {}
   while (node) {
     const next = node[LL_NEXT]
-    writeLink(node, LL_PREV, null)
-    writeLink(node, LL_NEXT, null)
+    node[LL_PREV] = null
+    node[LL_NEXT] = null
     node = next
   }
 }
 
+// The link operations log their inverse per run, not per node or per write:
+// the log is the main cost of a big update.
 const addRun = <Node extends LLNode>(
   state: LinkedList<Node>,
   nodes: readonly Node[],
   after: null | Node,
 ) => {
+  metaOf(state)[LL_UNDO].log?.push(dropRun, state, nodes, 0)
   for (const node of nodes) {
     addLL(state, node, after)
     after = node
   }
+}
+
+/** Undo of an added run, which could fail and link only its leading nodes. */
+const dropRun = <Node extends LLNode>(
+  state: LinkedList<Node>,
+  nodes: readonly Node[],
+) => {
+  for (const node of nodes) if (containsLL(state, node)) removeLL(state, node)
+}
+
+const removeRun = <Node extends LLNode>(
+  state: LinkedList<Node>,
+  nodes: readonly Node[],
+) => {
+  const prevs: Array<null | Node> = []
+  metaOf(state)[LL_UNDO].log?.push(restoreRun, state, nodes, prevs)
+  for (const node of nodes) {
+    prevs.push(node[state.LL_PREV] as null | Node)
+    removeLL(state, node)
+  }
+}
+
+const restoreRun = <Node extends LLNode>(
+  state: LinkedList<Node>,
+  nodes: readonly Node[],
+  prevs: ReadonlyArray<null | Node>,
+) => {
+  for (let i = prevs.length; i--;) addLL(state, nodes[i]!, prevs[i]!)
 }
 
 const nodesOf = <Node extends LLNode>(
@@ -457,12 +488,11 @@ const replayLL = <Node extends LLNode>(
       return addRun(state, change.nodes, change.after)
     case 'move':
     case 'moveMany':
-      for (const node of nodesOf(change)) removeLL(state, node)
+      removeRun(state, nodesOf(change))
       return addRun(state, nodesOf(change), change.after)
     case 'remove':
     case 'removeMany':
-      for (const node of nodesOf(change)) removeLL(state, node)
-      return
+      return removeRun(state, nodesOf(change))
     case 'swap':
       return swapLL(state, change.a, change.b)
     case 'clear':
@@ -819,16 +849,23 @@ export function reatomLinkedList<
 
   const batch = action(batchFn, `${name}._batch`)
 
-  const addNode = (params: Params): LLNode<Node> => {
-    const node = userCreate(...params) as LLNode<Node>
-    throwPresent(STATE!, node)
-    addLL(STATE!, node, STATE!.tail)
-    return node
+  const createNodes = (paramsArray: Array<Params>): Array<LLNode<Node>> => {
+    const nodes: Array<LLNode<Node>> = []
+    // The undo record is the array being filled. Each node is linked before
+    // the next factory call, so a factory can `find` its predecessors.
+    metaOf(STATE!)[LL_UNDO].log!.push(dropRun, STATE, nodes, 0)
+    for (const params of paramsArray) {
+      const node = userCreate(...params) as LLNode<Node>
+      throwPresent(STATE!, node)
+      addLL(STATE!, node, STATE!.tail)
+      nodes.push(node)
+    }
+    return nodes
   }
 
   const create = action((...params: Params): LLNode<Node> => {
     return batchFn(() => {
-      const node = addNode(params)
+      const node = createNodes([params])[0]!
       STATE!.changes.push({ kind: 'create', node })
       return node
     })
@@ -837,9 +874,7 @@ export function reatomLinkedList<
   const createMany = action(
     (paramsArray: Array<Params>): Array<LLNode<Node>> => {
       return batchFn(() => {
-        // Each node is linked before the next factory call, so a factory can
-        // `find` its predecessors.
-        const nodes = paramsArray.map(addNode)
+        const nodes = createNodes(paramsArray)
         STATE!.changes.push({ kind: 'createMany', nodes })
         return nodes
       })
@@ -1244,7 +1279,7 @@ const linkedListDerivations = <Node extends LLNode>(
       // Replay against our own copy of the source order. The source links
       // already describe the final commit and cannot locate an old or removed
       // anchor.
-      const shadowLinks = createLinks('filter source ', metaOf(links)[LL_OWNER])
+      const shadowLinks = createLinks('filter source ', links)
       type Value = LinkedList<Node> & {
         sourceVersion: number
         sourceEpoch: object
@@ -1262,103 +1297,97 @@ const linkedListDerivations = <Node extends LLNode>(
           previous.predicate === test
         )
           return previous
-        return journalLinks(
-          () => {
-            const state: Value = {
-              ...(previous ?? emptyList<Node>(links)),
-              changes: [],
-              sourceVersion: input.version,
-              sourceEpoch,
-              shadow: previous
-                ? { ...previous.shadow }
-                : emptyList<Node>(shadowLinks),
-              predicate: test,
-            }
-            const { shadow } = state
-            const isReset = previous?.sourceEpoch !== sourceEpoch
-            if (previous && isReset) recordLL(state, { kind: 'clear' })
+        return journalLinks(() => {
+          const state: Value = {
+            ...(previous ?? emptyList<Node>(links)),
+            changes: [],
+            sourceVersion: input.version,
+            sourceEpoch,
+            shadow: previous
+              ? { ...previous.shadow }
+              : emptyList<Node>(shadowLinks),
+            predicate: test,
+          }
+          const { shadow } = state
+          const isReset = previous?.sourceEpoch !== sourceEpoch
+          if (previous && isReset) recordLL(state, { kind: 'clear' })
 
-            const isVisible = (node: Node) => containsLL(state, node)
-            const isPassed = (node: Node) => peek(test, node)
-            /** The nearest visible node at or before the source node. */
-            const visibleAt = (node: Node | null): Node | null => {
-              while (node && !isVisible(node))
-                node = node[shadowLinks.LL_PREV] as Node | null
-              return node
-            }
+          const isVisible = (node: Node) => containsLL(state, node)
+          const isPassed = (node: Node) => peek(test, node)
+          /** The nearest visible node at or before the source node. */
+          const visibleAt = (node: Node | null): Node | null => {
+            while (node && !isVisible(node))
+              node = node[shadowLinks.LL_PREV] as Node | null
+            return node
+          }
 
-            if (
-              !isReset &&
-              previous!.predicate === test &&
-              input.version === previous!.sourceVersion + 1
-            )
-              for (const change of input.changes) {
-                switch (change.kind) {
-                  case 'create':
-                  case 'createMany':
-                  case 'insert': {
-                    const isInsert = change.kind === 'insert'
-                    const after = visibleAt(
-                      isInsert ? change.after : shadow.tail,
+          if (
+            !isReset &&
+            previous!.predicate === test &&
+            input.version === previous!.sourceVersion + 1
+          )
+            for (const change of input.changes) {
+              switch (change.kind) {
+                case 'create':
+                case 'createMany':
+                case 'insert': {
+                  const isInsert = change.kind === 'insert'
+                  const after = visibleAt(isInsert ? change.after : shadow.tail)
+                  replayLL(shadow, change)
+                  const nodes = nodesOf(change).filter(isPassed)
+                  if (nodes.length)
+                    recordLL(
+                      state,
+                      isInsert
+                        ? { kind: 'insert', nodes, after }
+                        : { kind: 'createMany', nodes },
                     )
-                    replayLL(shadow, change)
-                    const nodes = nodesOf(change).filter(isPassed)
-                    if (nodes.length)
-                      recordLL(
-                        state,
-                        isInsert
-                          ? { kind: 'insert', nodes, after }
-                          : { kind: 'createMany', nodes },
-                      )
-                    break
+                  break
+                }
+                case 'remove':
+                case 'removeMany': {
+                  const nodes = nodesOf(change).filter(isVisible)
+                  replayLL(shadow, change)
+                  if (nodes.length)
+                    recordLL(state, { kind: 'removeMany', nodes })
+                  break
+                }
+                case 'move':
+                case 'moveMany': {
+                  const nodes = nodesOf(change).filter(isVisible)
+                  replayLL(shadow, change)
+                  const after = visibleAt(change.after)
+                  if (nodes.length && nodes[0]![links.LL_PREV] !== after)
+                    recordLL(state, { kind: 'moveMany', nodes, after })
+                  break
+                }
+                case 'swap': {
+                  const { a, b } = change
+                  replayLL(shadow, change)
+                  if (isVisible(a) && isVisible(b)) recordLL(state, change)
+                  else if (isVisible(a) || isVisible(b)) {
+                    const node = isVisible(a) ? a : b
+                    const after = visibleAt(
+                      node[shadowLinks.LL_PREV] as Node | null,
+                    )
+                    if (node[links.LL_PREV] !== after)
+                      recordLL(state, { kind: 'move', node, after })
                   }
-                  case 'remove':
-                  case 'removeMany': {
-                    const nodes = nodesOf(change).filter(isVisible)
-                    replayLL(shadow, change)
-                    if (nodes.length)
-                      recordLL(state, { kind: 'removeMany', nodes })
-                    break
-                  }
-                  case 'move':
-                  case 'moveMany': {
-                    const nodes = nodesOf(change).filter(isVisible)
-                    replayLL(shadow, change)
-                    const after = visibleAt(change.after)
-                    if (nodes.length && nodes[0]![links.LL_PREV] !== after)
-                      recordLL(state, { kind: 'moveMany', nodes, after })
-                    break
-                  }
-                  case 'swap': {
-                    const { a, b } = change
-                    replayLL(shadow, change)
-                    if (isVisible(a) && isVisible(b)) recordLL(state, change)
-                    else if (isVisible(a) || isVisible(b)) {
-                      const node = isVisible(a) ? a : b
-                      const after = visibleAt(
-                        node[shadowLinks.LL_PREV] as Node | null,
-                      )
-                      if (node[links.LL_PREV] !== after)
-                        recordLL(state, { kind: 'move', node, after })
-                    }
-                    break
-                  }
+                  break
                 }
               }
-            else {
-              const nodes = toArray(input) as Node[]
-              replayLL(shadow, { kind: 'clear' })
-              replayLL(shadow, { kind: 'createMany', nodes })
-              reconcileLL(state, nodes.filter(isPassed))
             }
-            state.version =
-              (previous?.version ?? 0) +
-              (state.changes.length || !previous ? 1 : 0)
-            return state
-          },
-          links,
-          shadowLinks,
-        )
+          else {
+            const nodes = toArray(input) as Node[]
+            replayLL(shadow, { kind: 'clear' })
+            replayLL(shadow, { kind: 'createMany', nodes })
+            reconcileLL(state, nodes.filter(isPassed))
+          }
+          state.version =
+            (previous?.version ?? 0) +
+            (state.changes.length || !previous ? 1 : 0)
+          return state
+        }, links)
       }, filterName)
       return attachList(target, links, source)
     },

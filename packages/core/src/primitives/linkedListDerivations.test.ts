@@ -211,9 +211,84 @@ describe('linked list derivations', () => {
       }),
     ).toThrow('cancel')
     expect(ids(list.array())).toEqual([3])
-    expect(list.LL_NEXT in created!).toBe(false)
+    expect(created![list.LL_NEXT]).toBeNull()
     expect(list.insertMany([created!], c!)).toEqual([created])
     expect(ids(list.array())).toEqual([3, 4])
+  })
+
+  test('a failed batch of random operations restores the links', () => {
+    let seed = 7
+    const random = (max: number) => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return (seed >>> 12) % max
+    }
+    const list = reatomLinkedList((id: number) => ({ id }), 'undo')
+    const visible = list.reatomFilter((node) => node.id % 3 !== 0)
+    list.createMany(Array.from({ length: 12 }, (_, id) => [id]))
+    let nextId = 12
+
+    for (let round = 0; round < 60; round++) {
+      const before = list.array()
+      const beforeVisible = visible.array()
+      expect(() =>
+        list.batch(() => {
+          // The batch is not committed yet, so the test follows its order.
+          let nodes = before.slice()
+          for (let step = 0; step < 6; step++) {
+            const pick = () => nodes[random(nodes.length)]!
+            const kind = nodes.length < 3 ? 0 : random(8)
+            if (kind === 0) {
+              nodes.push(...list.createMany([[nextId++], [nextId++]]))
+            } else if (kind === 1) {
+              const after = pick()
+              const [node] = list.insertMany([{ id: nextId++ }], after)
+              nodes.splice(nodes.indexOf(after) + 1, 0, node!)
+            } else if (kind === 2 || kind === 3) {
+              const removed = kind === 2 ? [pick()] : [pick(), pick()]
+              list.removeMany(removed)
+              nodes = nodes.filter((node) => !removed.includes(node))
+            } else if (kind === 4) {
+              const a = pick()
+              const b = pick()
+              list.swap(a, b)
+              const indexA = nodes.indexOf(a)
+              nodes[nodes.indexOf(b)] = a
+              nodes[indexA] = b
+            } else if (kind === 5) {
+              const node = pick()
+              list.move(node, null)
+              nodes = [node, ...nodes.filter((other) => other !== node)]
+            } else if (kind === 6) {
+              list.moveMany(nodes.slice(0, 2), nodes.at(-1)!)
+              nodes = [...nodes.slice(2), ...nodes.slice(0, 2)]
+            } else {
+              list.clear()
+              nodes = []
+            }
+          }
+          throw new Error('cancel')
+        }),
+      ).toThrow('cancel')
+
+      const after = list.array()
+      expect(after).toEqual(before)
+      // The links agree with the order in both directions.
+      const state = list()
+      expect(state.head).toBe(after[0] ?? null)
+      expect(state.tail).toBe(after.at(-1) ?? null)
+      after.forEach((node, index) => {
+        expect(node[list.LL_PREV]).toBe(after[index - 1] ?? null)
+        expect(node[list.LL_NEXT]).toBe(after[index + 1] ?? null)
+      })
+      expect(visible.array()).toEqual(beforeVisible)
+
+      // Commit something, so every round starts from another order.
+      list.swap(after[random(after.length)]!, after[random(after.length)]!)
+      list.create(nextId++)
+      expect(ids(visible.array())).toEqual(
+        ids(list.array()).filter((id) => id % 3 !== 0),
+      )
+    }
   })
 
   test('shared node objects across contexts are rejected before relinking', () => {

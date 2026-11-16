@@ -212,7 +212,7 @@ test('should remove a single node', () => {
 
   const node = list.create(1)
   notify()
-  expect(list.array()).toEqual([
+  expect(list.array()).toMatchObject([
     { n: 1, [list.LL_PREV]: null, [list.LL_NEXT]: null },
   ])
   expect(list().size).toBe(1)
