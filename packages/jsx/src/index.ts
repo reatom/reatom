@@ -534,7 +534,13 @@ let walkLinkedList = (
             for (const node of change.nodes) remove(node)
             break
           case 'clear':
-            for (const node of mounted) remove(node)
+            // When the rows are all the children (a live fragment adds its
+            // markers to the count), empty the element at once: one DOM
+            // operation and one mutation record instead of one per row.
+            if (mounted.size === element.childNodes.length) {
+              element.textContent = ''
+              mounted.clear()
+            } else for (const node of mounted) remove(node)
             break
           case 'swap': {
             const a = change.a,
