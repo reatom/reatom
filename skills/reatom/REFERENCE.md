@@ -293,6 +293,17 @@ that run. Both validate before relinking; empty runs and moves already at their
 destination emit no structural change. Root batching still advances a version
 for an empty commit. Run validation and writes cost O(k) for k nodes.
 
+Every commit publishes `changes`, a log of five kinds: `insert { nodes, after }`
+(`create`/`createMany` record the tail they append to), `remove { nodes }`,
+`move { nodes, after }` for a contiguous run, `swap { a, b }` and `clear`.
+`after === null` is the head. Versions are unique across lists, so
+`changesSince(rememberedVersion, state)` is the only continuity check a consumer
+needs: `[]` for the same state, `state.changes` for the next commit, and `null`
+when commits were skipped or the list was replaced, so rebuild from the links.
+A derived list that a commit leaves unchanged keeps its previous state.
+`initiateFromState` throws for members of the current list: reorder them with
+`move`/`moveMany` inside `batch` instead of replacing the state.
+
 Each source owns its order: `source.has(node)` checks current membership in O(1),
 and `source.compare(a, b)` returns -1/0/1 for present nodes, throwing for a missing
 member. Cached comparison costs O(1); maintaining gap labels costs O(k) for a
@@ -312,16 +323,20 @@ to reconcile a predicate edit.
 Mapping caches source-object → model identity weakly per context. A model survives
 temporary filtering and skipped versions; a different object with the same ID is
 a different origin. `onCreate`/`onRemove` describe membership transitions, including
-cached reentry. `onMove`/`onSwap` describe order changes. `onClear` runs on a real
-clear/reset, which ends the allocation epoch; missing a commit alone does not
-invoke it. These hooks describe list membership, not DOM mount lifetimes. Allocate
+cached reentry. `onMove`/`onSwap` describe order changes. `onClear` runs when the
+map replays a `clear`, before it drops every cached model, so an origin added back
+gets a new one. A map that skipped the commit with the clear, or follows a replaced
+source, reconciles the membership with `onRemove`/`onCreate` instead and keeps the
+models of the origins still present. These hooks describe list membership, not DOM
+mount lifetimes. Allocate
 DOM inside `reatomVirtual(...).reatomMap(render)` when rows leave and reenter the
 mounted window; a fully removed JSX node has disposed bindings.
 
 `source.reatomReduce({ init, apply, rebuild }, name?)` returns a computed
 `{ state, version }`. `init()` allocates per context; initial evaluation calls
 `rebuild(init(), source)`. Consecutive commits fold `apply(previous, change,
-finalSource)` in commit order. Gaps and reset call `rebuild(previous, source)`.
+finalSource)` in commit order, `clear` included. Skipped commits and a replaced
+source call `rebuild(previous, source)`. An unchanged accumulator keeps the result.
 Callbacks run untracked and return semantic state without modifying a previously
 published accumulator, source links, row atoms, or subscriptions. A new wrapper
 does not make in-place mutation of a Map safe. `finalSource` already has the

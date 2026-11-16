@@ -2,7 +2,13 @@ import { describe, expect, subscribe, test, vi } from 'test'
 
 import { atom, computed, context, notify } from '../core'
 import { deatomize } from '../methods'
-import { reatomLinkedList, reatomView, reatomVirtual, toArray } from './index'
+import {
+  changesSince,
+  reatomLinkedList,
+  reatomView,
+  reatomVirtual,
+  toArray,
+} from './index'
 
 const ids = (rows: { id: number }[]) => rows.map((row) => row.id)
 
@@ -92,14 +98,11 @@ describe('linked list derivations', () => {
 
   test('pure reduction replays a commit and rebuilds after missed versions', () => {
     const list = reatomLinkedList((id: number) => ({ id }), 'reduce')
+    const total = (rows: readonly { id: number }[]) =>
+      rows.reduce((n, row) => n + row.id, 0)
     const apply = vi.fn((sum: number, change: any) => {
-      if (change.kind === 'create') return sum + change.node.id
-      if (change.kind === 'createMany' || change.kind === 'insert')
-        return (
-          sum +
-          change.nodes.reduce((n: number, row: { id: number }) => n + row.id, 0)
-        )
-      if (change.kind === 'remove') return sum - change.node.id
+      if (change.kind === 'insert') return sum + total(change.nodes)
+      if (change.kind === 'remove') return sum - total(change.nodes)
       return sum
     })
     const rebuild = vi.fn(
@@ -446,9 +449,7 @@ describe('linked list derivations', () => {
     )
     const watch = subscribe(visible)
     mode.set(1)
-    expect(visible().changes.map((change) => change.kind)).toEqual([
-      'removeMany',
-    ])
+    expect(visible().changes.map((change) => change.kind)).toEqual(['remove'])
     mode.set(0)
     expect(visible().changes.map((change) => change.kind)).toEqual([
       'insert',
@@ -457,7 +458,7 @@ describe('linked list derivations', () => {
     watch.unsubscribe()
   })
 
-  test('clear and same-version replacement reset allocation and reduction epochs', () => {
+  test('a replayed clear resets allocation and a replacement rebuilds', () => {
     const source = reatomLinkedList((id: number) => ({ id }), 'epochs')
     const visible = source.reatomFilter(() => true)
     const allocate = vi.fn((row: { id: number }) => ({ id: row.id }))
@@ -465,7 +466,13 @@ describe('linked list derivations', () => {
     const reduced = mapped.reatomReduce({
       init: () => 0,
       apply: (sum, change) =>
-        change.kind === 'create' ? sum + change.node.id : sum,
+        change.kind === 'insert'
+          ? change.nodes.reduce((sum, row) => sum + row.id, sum)
+          : change.kind === 'remove'
+            ? change.nodes.reduce((sum, row) => sum - row.id, sum)
+            : change.kind === 'clear'
+              ? 0
+              : sum,
       rebuild: (_previous, state) =>
         toArray(state).reduce((sum, row) => sum + row.id, 0),
     })
@@ -473,8 +480,10 @@ describe('linked list derivations', () => {
     const original = mapped.array()[0]
     expect(reduced().state).toBe(1)
     source.clear()
+    expect(reduced().state).toBe(0)
     source.insertMany([first], null)
     expect(mapped.array()[0]).not.toBe(original)
+    expect(reduced().state).toBe(1)
     expect(allocate).toHaveBeenCalledTimes(2)
     source.set(source.initiateFromState([{ id: 2 }]))
     expect(ids(mapped.array())).toEqual([2])
@@ -619,7 +628,8 @@ describe('linked list derivations', () => {
         incidental()
         if (fail) throw new Error('reducer')
         return {
-          sum: previous.sum + (change.kind === 'create' ? change.node.id : 0),
+          sum:
+            previous.sum + (change.kind === 'insert' ? change.nodes[0]!.id : 0),
         }
       },
       rebuild: (_, state) => ({
@@ -645,6 +655,107 @@ describe('linked list derivations', () => {
       expect(reduced().state).not.toBe(first.state)
     })
     expect(init).toHaveBeenCalledTimes(2)
+  })
+
+  test('a clear drops cached models even when the origin returns in the same commit', () => {
+    const source = reatomLinkedList((id: number) => ({ id }))
+    const [one] = source.createMany([[1], [2]])
+    const onClear = vi.fn((state: { size: number }) => state.size)
+    const mapped = source.reatomMap((row) => ({ id: row.id }), { onClear })
+    const before = mapped.array()
+    source.batch(() => {
+      source.clear()
+      source.insertMany([one!], null)
+    })
+    expect(mapped().changes.map(({ kind }) => kind)).toEqual([
+      'clear',
+      'insert',
+    ])
+    expect(onClear).toHaveBeenCalledTimes(1)
+    expect(onClear).toHaveReturnedWith(2)
+    expect(ids(mapped.array())).toEqual([1])
+    expect(mapped.array()[0]).not.toBe(before[0])
+  })
+
+  test('a missed clear reconciles the membership and keeps returning models', () => {
+    const source = reatomLinkedList((id: number) => ({ id }))
+    const [one, two] = source.createMany([[1], [2]])
+    const onClear = vi.fn(),
+      onRemove = vi.fn()
+    const mapped = source.reatomMap((row) => ({ id: row.id }), {
+      onClear,
+      onRemove,
+    })
+    const [first] = mapped.array()
+    source.clear()
+    source.insertMany([one!], null)
+    expect(mapped.array()).toEqual([first])
+    expect(onClear).not.toHaveBeenCalled()
+    expect(onRemove).toHaveBeenCalledTimes(1)
+    expect(onRemove.mock.lastCall?.[1]).toBe(two)
+  })
+
+  test('a derived list that did not change keeps its state', () => {
+    const source = reatomLinkedList((id: number) => ({ id }))
+    source.create(2)
+    const even = source.reatomFilter((row) => row.id % 2 === 0)
+    const mapped = even.reatomMap((row) => ({ id: row.id }))
+    const view = reatomView(mapped, { offset: atom(0), limit: atom(5) })
+    const sum = even.reatomReduce({
+      init: () => 0,
+      apply: (sum, change) =>
+        change.kind === 'insert'
+          ? change.nodes.reduce((sum, row) => sum + row.id, sum)
+          : sum,
+      rebuild: (_, state) => toArray(state).reduce((n, row) => n + row.id, 0),
+    })
+    const track = subscribe(view)
+    const before = { even: even(), mapped: mapped(), sum: sum() }
+    source.createMany([[1], [3]])
+    notify()
+    expect(even()).toBe(before.even)
+    expect(mapped()).toBe(before.mapped)
+    expect(sum()).toBe(before.sum)
+    expect(track).toHaveBeenCalledTimes(1)
+    // The kept state is still the base of the next change.
+    source.create(4)
+    expect(changesSince(before.even.version, even())).toEqual([
+      { kind: 'insert', nodes: [source.array()[3]], after: source.array()[0] },
+    ])
+    expect(changesSince(before.mapped.version, mapped())).toHaveLength(1)
+    expect(sum().state).toBe(6)
+    track.unsubscribe()
+  })
+
+  test('changesSince tells the next commit from a skipped or replaced one', () => {
+    const list = reatomLinkedList((id: number) => ({ id }))
+    const first = list()
+    expect(changesSince(first.version, first)).toEqual([])
+    expect(changesSince(undefined, first)).toBeNull()
+    const [a] = list.createMany([[1]])
+    const second = list()
+    expect(changesSince(first.version, second)).toEqual([
+      { kind: 'insert', nodes: [a], after: null },
+    ])
+    list.create(2)
+    expect(changesSince(first.version, list())).toBeNull()
+    list.set(list.initiateFromState([{ id: 3 }]))
+    expect(changesSince(second.version, list())).toBeNull()
+  })
+
+  test('initiateFromState rejects members of the current list', () => {
+    const list = reatomLinkedList((id: number) => ({ id }))
+    const [a, b, c] = list.createMany([[1], [2], [3]])
+    for (const node of [a!, b!, c!])
+      expect(() => list.initiateFromState([node])).toThrow('already')
+    list.remove(a!)
+    expect(ids(toArray(list.initiateFromState([a!])))).toEqual([1])
+    expect(ids(list.array())).toEqual([2, 3])
+    list.batch(() => {
+      const d = list.create(4)
+      expect(() => list.initiateFromState([d])).toThrow('already')
+    })
+    expect(ids(list.array())).toEqual([2, 3, 4])
   })
 
   test('mapping hooks describe membership and real resets while cached models survive reentry', () => {

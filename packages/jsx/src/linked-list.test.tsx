@@ -135,7 +135,7 @@ test('linked list render keeps changes payload for sibling subscribers', () =>
     const seen: number[] = []
     const unsubscribe = list.subscribe((state) => {
       for (const change of state.changes) {
-        if (change.kind === 'createMany') {
+        if (change.kind === 'insert') {
           for (const node of change.nodes) {
             seen.push(Number(node.textContent))
           }
@@ -378,7 +378,7 @@ test('linked list replaced before any other change', () =>
       '<span>1</span><span>2</span>',
     )
 
-    // The new state restarts the versions: it has the version of the old one.
+    // A new state does not continue the rendered one: the rows are rebuilt.
     list.set(list.initiateFromState([<span>3</span>]))
     await wrap(sleep())
     expect(stripJsxCompilerProps(container.innerHTML)).toBe('<span>3</span>')

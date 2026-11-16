@@ -1,6 +1,6 @@
 import type { Computed } from '../core'
 import { computed, named, ReatomError } from '../core'
-import { isAppendOnlyUpdate, isLinkedListBatching } from './linkedListBatching'
+import { isAppendOnly, isLinkedListBatching } from './linkedListBatching'
 import type {
   LinkedList,
   LinkedListSymbols,
@@ -67,7 +67,7 @@ const isCursorReusable = (
 ): cursor is LinkedListCursor & { node: LLNode } =>
   cursor !== undefined &&
   cursor.node !== null &&
-  (cursor.list === list || isAppendOnlyUpdate(cursor.list, list))
+  isAppendOnly(cursor.list, list)
 
 const findLinkedListNode = (
   list: LinkedList,
@@ -153,9 +153,10 @@ const isSameItems = (
  *   the tail, or the previous window start, so scrolling costs the scroll
  *   distance and a tail window costs its own length. The previous window start
  *   stays usable while the list is unchanged or only appended to by one update
- *   (`create`, `createMany`), the usual pattern of a log feed. After any other
- *   change it is O(min(offset, size - offset)) link hops. It is not a time or
- *   key index: map a time range to an index in the model that owns the order.
+ *   (`create`, `createMany`, an insert after the tail), the usual pattern of a
+ *   log feed. After any other change it is O(min(offset, size - offset)) link
+ *   hops. It is not a time or key index: map a time range to an index in the
+ *   model that owns the order.
  *
  *   For scroll-driven windows with pixel geometry, overscan, and scroll
  *   anchoring, use `reatomVirtual`, which drives a view from scroll state.

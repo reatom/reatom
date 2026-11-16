@@ -12,12 +12,8 @@ import { withConnectHook } from '../extensions'
 import { effect, peek, wrap } from '../methods'
 import type { Rec, Unsubscribe } from '../utils'
 import { isObject } from '../utils'
-import { isAppendOnlyUpdate, isLinkedListBatching } from './linkedListBatching'
-import type {
-  LinkedList,
-  LinkedListDerivedAtom,
-  LLNode,
-} from './reatomLinkedList'
+import { isAppendOnly, isLinkedListBatching } from './linkedListBatching'
+import type { LinkedList, LinkedListSource, LLNode } from './reatomLinkedList'
 import { isLinkedListAtom, reatomLinkedList } from './reatomLinkedList'
 import type { LinkedListViewSource, ViewAtom } from './reatomView'
 import { reatomView } from './reatomView'
@@ -60,10 +56,7 @@ export interface VirtualSlot<Item> {
   item: Item
 }
 
-export type VirtualMapAtom<Item, T extends Rec> = LinkedListDerivedAtom<
-  LLNode<VirtualSlot<Item>>,
-  LLNode<T>
->
+export type VirtualMapAtom<_Item, T extends Rec> = LinkedListSource<LLNode<T>>
 
 export interface VirtualAtom<Item> extends ViewAtom<Item> {
   /**
@@ -404,10 +397,7 @@ export function reatomVirtual(
       kept = count
     } else if (isLinkedListSource) {
       if (
-        isAppendOnlyUpdate(
-          prevLayout.source as LinkedList,
-          sourceState as LinkedList,
-        )
+        isAppendOnly(prevLayout.source as LinkedList, sourceState as LinkedList)
       ) {
         kept = prevLayout.count
       }

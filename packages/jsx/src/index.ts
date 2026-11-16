@@ -5,6 +5,7 @@ import {
   atom,
   type AtomLike,
   bind,
+  changesSince,
   computed,
   type Fn,
   isAbort,
@@ -462,7 +463,6 @@ let walkLinkedList = (
   element: JSX.Element,
   list: LinkedListJSXAtom,
 ) => {
-  // The state, not only its version: a replaced list restarts its versions.
   let lastState: undefined | LinkedList<LLNode<JSX.Element>>
   let mounted = new Set<JSX.Element>()
   const first = (node: JSX.Element): Node =>
@@ -505,7 +505,8 @@ let walkLinkedList = (
             focused.selectionDirection,
           ] as const)
         : null
-    if (state.version !== (lastState ? lastState.version : -1) + 1) {
+    const changes = changesSince(lastState?.version, state)
+    if (!changes) {
       const desired: JSX.Element[] = []
       for (let node = state.head; node; node = node[state.LL_NEXT] ?? null)
         desired.push(node)
@@ -517,31 +518,10 @@ let walkLinkedList = (
         anchor = last(node).nextSibling
       }
     } else
-      for (const change of state.changes) {
+      for (const change of changes) {
         switch (change.kind) {
-          case 'create':
-            place([change.node], null)
-            break
-          case 'createMany':
-            place(change.nodes, null)
-            break
           case 'insert':
-            place(
-              change.nodes,
-              change.after
-                ? last(change.after).nextSibling
-                : element.firstChild,
-            )
-            break
           case 'move':
-            place(
-              [change.node],
-              change.after
-                ? last(change.after).nextSibling
-                : element.firstChild,
-            )
-            break
-          case 'moveMany':
             place(
               change.nodes,
               change.after
@@ -550,9 +530,6 @@ let walkLinkedList = (
             )
             break
           case 'remove':
-            remove(change.node)
-            break
-          case 'removeMany':
             for (const node of change.nodes) remove(node)
             break
           case 'clear':

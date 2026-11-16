@@ -367,10 +367,7 @@ test('should create many items at once', () => {
   expect(nodes.length).toBe(4)
   expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 2, 3, 4])
   expect(list().size).toBe(4)
-  expect(list().changes.length).toBe(1)
-  expect(list().changes[0]!.kind).toBe('createMany')
-  const change = list().changes[0]
-  expect(change?.kind === 'createMany' && change.nodes).toEqual(nodes)
+  expect(list().changes).toEqual([{ kind: 'insert', nodes, after: null }])
 })
 
 test('should remove many items at once', () => {
@@ -387,12 +384,8 @@ test('should remove many items at once', () => {
   expect(removedCount).toBe(2)
   expect(track.mock.lastCall?.[0].map(({ n }) => n)).toEqual([1, 3])
   expect(list().size).toBe(2)
-  expect(list().changes.length).toBe(1)
-  expect(list().changes[0]!.kind).toBe('removeMany')
-  const change = list().changes[0]
-  expect(change?.kind === 'removeMany' && change.nodes).toEqual([
-    nodes[1],
-    nodes[3],
+  expect(list().changes).toEqual([
+    { kind: 'remove', nodes: [nodes[1], nodes[3]] },
   ])
 })
 
@@ -423,15 +416,13 @@ test('should track createMany and removeMany with reatomMap', () => {
   list.createMany([[1], [2], [3]])
   notify()
   expect(track.mock.lastCall?.[0]).toEqual([2, 4, 6])
-  expect(mapped().changes.length).toBe(1)
-  expect(mapped().changes[0]!.kind).toBe('createMany')
+  expect(mapped().changes.map(({ kind }) => kind)).toEqual(['insert'])
 
   const nodes = list.array()
   list.removeMany([nodes[0]!, nodes[2]!])
   notify()
   expect(track.mock.lastCall?.[0]).toEqual([4])
-  expect(mapped().changes.length).toBe(1)
-  expect(mapped().changes[0]!.kind).toBe('removeMany')
+  expect(mapped().changes.map(({ kind }) => kind)).toEqual(['remove'])
 })
 
 test('should keep changes payload readable synchronously after a follow-up update', () => {
@@ -443,10 +434,9 @@ test('should keep changes payload readable synchronously after a follow-up updat
   list.create(3)
 
   const change = state.changes[0]!
-  expect(change.kind).toBe('createMany')
-  expect(
-    change.kind === 'createMany' && change.nodes.map(({ n }) => n),
-  ).toEqual([1, 2])
+  expect(change.kind === 'insert' && change.nodes.map(({ n }) => n)).toEqual([
+    1, 2,
+  ])
 
   notify()
   expect(state.changes).toEqual([])
@@ -466,13 +456,9 @@ test('should keep changes payload intact for a subscriber doing a re-entrant upd
     }
 
     for (const change of state.changes) {
-      if (change.kind === 'create') {
-        mirror.add(change.node.n)
-      } else if (change.kind === 'createMany') {
+      if (change.kind === 'insert') {
         for (const node of change.nodes) mirror.add(node.n)
       } else if (change.kind === 'remove') {
-        mirror.delete(change.node.n)
-      } else if (change.kind === 'removeMany') {
         for (const node of change.nodes) mirror.delete(node.n)
       }
     }
