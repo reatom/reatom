@@ -354,49 +354,42 @@ export let withAsync: {
       if (isPromiseFresh) {
         touched.add(promiseToTrack)
 
-        let settled = false
-        let unsubscribeAbort = noop
-
-        const settleAsyncLifecycle = (
-          result:
-            { ok: true; payload: unknown } | { ok: false; error: unknown },
-        ) => {
-          if (settled) return
-          settled = true
-          unsubscribeAbort()
-          if (cacheState) pending.set((state) => state + 1)
-          if (result.ok) {
-            abortVar.spawn(onFulfill, result.payload, params)
-          } else if (isAbort(result.error)) {
-            abortVar.spawn(onSettle, { error: result.error, params })
-          } else {
-            abortVar.spawn(onReject, result.error, params)
-          }
-        }
+        const abortController = 'abort' in target ? abortVar.first() : undefined
+        let dropAbortListener = noop
 
         promiseToTrack.then(
           bind((payload) => {
-            settleAsyncLifecycle({ ok: true, payload })
+            dropAbortListener()
+            if (abortController?.signal.aborted) return
+            if (cacheState) pending.set((state) => state + 1)
+            abortVar.spawn(onFulfill, payload, params)
           }, frame),
           bind((error) => {
-            settleAsyncLifecycle({ ok: false, error })
+            dropAbortListener()
+            if (abortController?.signal.aborted) return
+            if (cacheState) pending.set((state) => state + 1)
+            if (isAbort(error)) {
+              abortVar.spawn(onSettle, { error, params })
+            } else {
+              abortVar.spawn(onReject, error, params)
+            }
           }, frame),
         )
 
-        const abortController = abortVar.first()
         if (abortController) {
-          const settleAbortedLifecycle = bind(() => {
-            settleAsyncLifecycle({
-              ok: false,
+          const settleAborted = bind(() => {
+            if (cacheState) pending.set((state) => state + 1)
+            abortVar.spawn(onSettle, {
               error: abortController.signal.reason,
+              params,
             })
           }, frame)
-          const onAbort = () => queueMicrotask(settleAbortedLifecycle)
+          const onAbort = () => queueMicrotask(settleAborted)
           if (abortController.signal.aborted) {
             onAbort()
           } else {
             abortController.signal.addEventListener('abort', onAbort)
-            unsubscribeAbort = () =>
+            dropAbortListener = () =>
               abortController.signal.removeEventListener('abort', onAbort)
           }
         }
