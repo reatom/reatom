@@ -333,6 +333,163 @@ describe('sizes', () => {
     expect(estimates).toBe(5 + 3 + 2)
   })
 
+  test('a pure estimate is asked once while an item keeps its index', () => {
+    const estimated: number[] = []
+    const itemSize = (row: Row) => {
+      estimated.push(row.id)
+      return 10
+    }
+    const rows = atom(createRows(6))
+    const virtual = reatomVirtual(rows, { itemSize, viewportSize: 30 })
+    expect(virtual.totalSize()).toBe(60)
+    estimated.length = 0
+
+    rows.set([...rows(), { id: 6 }])
+    expect(virtual.totalSize()).toBe(70)
+    expect(estimated).toEqual([6])
+
+    // A rendered item is patched in place: only `measure` asks for it.
+    virtual.measure(rows()[1]!, 25)
+    expect(virtual.totalSize()).toBe(85)
+    expect(estimated).toEqual([6, 1])
+
+    // An edit keeps the sizes before it.
+    rows.set([...rows().slice(0, 5), { id: 7 }, ...rows().slice(5)])
+    expect(virtual.totalSize()).toBe(95)
+    expect(estimated).toEqual([6, 1, 7, 5, 6])
+
+    const list = reatomLinkedList((id: number) => ({ id }), 'estimated')
+    const [first] = list.createMany([[0], [1], [2]])
+    const listVirtual = reatomVirtual(list, { itemSize, viewportSize: 30 })
+    expect(listVirtual.totalSize()).toBe(30)
+    estimated.length = 0
+    list.create(3)
+    expect(listVirtual.totalSize()).toBe(40)
+    expect(estimated).toEqual([3])
+    list.move(first!, list().tail)
+    expect(listVirtual.totalSize()).toBe(40)
+    expect(estimated).toEqual([3, 1, 2, 3, 0])
+  })
+
+  test('a measurement anchors through an append of the same update', () => {
+    const { virtual, rows } = setup(100)
+    virtual.scrollTo(500)
+
+    rows.set([...rows(), { id: 100 }])
+    virtual.measure(rows()[2]!, 30)
+    expect(virtual.scrollOffset()).toBe(520)
+
+    virtual.measure(rows()[3]!, 30)
+    rows.set([...rows(), { id: 101 }])
+    expect(virtual.scrollOffset()).toBe(540)
+
+    // Other items before the first visible one are not a size change.
+    virtual.measure(rows()[4]!, 30)
+    rows.set(rows().slice(1))
+    expect(virtual.scrollOffset()).toBe(540)
+
+    const list = reatomLinkedList((id: number) => ({ id }), 'anchored')
+    const nodes = list.createMany(createRows(100).map(({ id }) => [id]))
+    const listVirtual = reatomVirtual(list, { itemSize: 10, viewportSize: 30 })
+    listVirtual.scrollTo(500)
+    expect(listVirtual.scrollOffset()).toBe(500)
+    listVirtual.measure(nodes[2]!, 30)
+    list.create(100)
+    expect(listVirtual.scrollOffset()).toBe(520)
+    list.create(101)
+    listVirtual.measure(nodes[3]!, 30)
+    expect(listVirtual.scrollOffset()).toBe(540)
+  })
+
+  test('a repeated item is patched where it is rendered', () => {
+    const repeated: Row = { id: 0 }
+    const rows = atom([repeated, ...createRows(20).slice(1), repeated])
+    const virtual = reatomVirtual(rows, {
+      itemSize: () => 10,
+      viewportSize: 30,
+      overscan: 0,
+    })
+    expect(virtual.totalSize()).toBe(210)
+    virtual.measure(repeated, 25)
+    virtual.scrollToIndex(20)
+    expect(virtual.items().at(-1)).toBe(repeated)
+    // The size is known already, but not at this index of the layout.
+    virtual.measure(repeated, 25)
+    expect(virtual.totalSize()).toBe(240)
+    expect(virtual.padding().after).toBe(0)
+  })
+
+  test('the patched layout is the same as a rebuilt one', () => {
+    let seed = 3
+    const random = (max: number) => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return (seed >>> 12) % max
+    }
+    const itemSize = (row: Row) => 10.1 + (row.id % 4)
+
+    for (const kind of ['array', 'list'] as const) {
+      let nextId = 0
+      const createRow = (): Row => ({ id: nextId++ })
+      const rows = atom(Array.from({ length: 40 }, createRow), `${kind}.rows`)
+      const list = reatomLinkedList(rows().slice(), `${kind}.list`)
+      const source = kind === 'array' ? rows : list
+      const items = (): Row[] => (kind === 'array' ? rows() : list.array())
+      const options = { itemSize, viewportSize: 55, overscan: 1 }
+      const virtual = reatomVirtual(source as typeof rows, options)
+      const measured = new Map<Row, number>()
+
+      for (let step = 0; step < 300; step++) {
+        const current = items()
+        const pick = () => current[random(current.length)]!
+        const operation = random(10)
+        if (operation < 3) {
+          const row = createRow()
+          if (kind === 'array') rows.set([...current, row])
+          else list.create(row)
+        } else if (operation === 3 && current.length > 5) {
+          const index = random(current.length)
+          if (kind === 'array') rows.set(current.toSpliced(index, 1))
+          else list.remove(pick() as never)
+        } else if (operation === 4) {
+          const index = random(current.length)
+          if (kind === 'array') {
+            rows.set(current.toSpliced(index, 0, createRow()))
+          } else list.insertMany([createRow()], pick() as never)
+        } else if (operation < 8) {
+          // Mostly rendered rows, like a ResizeObserver, sometimes any row.
+          const rendered = virtual.items()
+          const batch = 1 + random(3)
+          for (let i = 0; i < batch; i++) {
+            const row =
+              rendered.length && random(4)
+                ? rendered[random(rendered.length)]!
+                : pick()
+            const size = 5.3 + random(30)
+            measured.set(row, size)
+            virtual.measure(row, size)
+          }
+        } else {
+          virtual.scrollTo(random(Math.ceil(virtual.totalSize()) + 20))
+        }
+        // Not every step is read, so the changes of a few of them meet.
+        if (random(3) === 0) continue
+
+        const rebuilt = reatomVirtual(source as typeof rows, options)
+        for (const [row, size] of measured) rebuilt.measure(row, size)
+        rebuilt.scrollTo(virtual.scrollOffset())
+        expect(virtual.totalSize()).toBe(
+          items().reduce(
+            (total, row) => total + (measured.get(row) ?? itemSize(row)),
+            0,
+          ),
+        )
+        expect(virtual()).toEqual(rebuilt())
+        expect(virtual.padding()).toEqual(rebuilt.padding())
+        expect(virtual.stickyInset()).toBe(rebuilt.stickyInset())
+      }
+    }
+  })
+
   test('invalid sizes throw', () => {
     expect(() => reatomVirtual(atom([]), { itemSize: 0 }, 'zero')).toThrow(
       'The "itemSize" of the virtual "zero" should be a positive number, received "0".',

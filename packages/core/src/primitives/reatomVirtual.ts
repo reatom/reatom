@@ -1,10 +1,18 @@
 import type { Action, Atom, AtomLike, Computed } from '../core'
-import { action, atom, computed, isAtom, named, ReatomError } from '../core'
+import {
+  action,
+  atom,
+  computed,
+  isAtom,
+  named,
+  ReatomError,
+  top,
+} from '../core'
 import { withConnectHook } from '../extensions'
 import { effect, peek, wrap } from '../methods'
 import type { Rec, Unsubscribe } from '../utils'
 import { isObject } from '../utils'
-import { isLinkedListBatching } from './linkedListBatching'
+import { isAppendOnlyUpdate, isLinkedListBatching } from './linkedListBatching'
 import type {
   LinkedList,
   LinkedListDerivedAtom,
@@ -22,6 +30,9 @@ export interface VirtualOptions<Item> {
    * Size of an item along the scroll axis, in the units of `scrollOffset`
    * (usually CSS pixels). A number or number atom makes every item the same
    * size; an ordinary function estimates each item. `measure` corrects both.
+   * The estimate of an item is kept while the items before it are the same,
+   * unless the function reads atoms: then it is called for every item on every
+   * change.
    */
   itemSize: number | AtomLike<number, []> | ((item: Item) => number)
   /** Items rendered beyond each edge of the viewport. Defaults to `1`. */
@@ -92,8 +103,9 @@ export interface VirtualAtom<Item> extends ViewAtom<Item> {
   /**
    * Records the real size of an item, for example from a `ResizeObserver`. When
    * the item starts above the viewport, `scrollOffset` moves by the difference,
-   * so the visible items stay in place. The layout is rebuilt once for all the
-   * measurements of an update.
+   * so the visible items stay in place. A rendered item only moves the starts
+   * of the items after it, once for all the measurements of an update; an item
+   * outside the rendered window rebuilds the layout.
    */
   measure: Action<[item: Item, size: number], void>
   /** Scrolls to the item at `index`. `align` defaults to `start`. */
@@ -128,10 +140,43 @@ interface VirtualLayout {
   countStartedBefore: (offset: number) => number
 }
 
+/** Sizes and starts by index, with spare capacity for appended items. */
+interface SizeCache {
+  sizes: Float64Array
+  starts: Float64Array
+}
+
+/** A layout with what the next one continues from. */
+interface LayoutState extends VirtualLayout {
+  source: unknown
+  /** The source of the previous layout and how many leading items it shares. */
+  base: unknown
+  kept: number
+  /** The size of the unmeasured items, when they all have the same one. */
+  uniformSize: undefined | number
+  /** A uniform layout has none. The next layout takes it over. */
+  cache: undefined | SizeCache
+}
+
+interface RenderedItems {
+  source: unknown
+  offset: number
+  items: ReadonlyArray<unknown>
+  sizes: undefined | Float64Array
+}
+
 interface MeasuredSizes {
   objects: WeakMap<object, number>
   primitives: Map<unknown, number>
   hasUniformDelta: boolean
+  /** Where the rendered items are, to find the index of a measured one. */
+  rendered: undefined | RenderedItems
+  /**
+   * `index, size` pairs of the measurements that the layout has not applied
+   * yet. It takes them, so the array is shared by every state. A measurement of
+   * an item that is not rendered has no index: `-1`.
+   */
+  patches: number[]
 }
 
 interface VirtualWindow {
@@ -146,9 +191,8 @@ interface ScrollRequest {
 interface ScrollState {
   offset: number
   request: ScrollRequest
-  /** Inputs of the anchor: it is comparable only for the same source state. */
+  /** The source that the anchor index belongs to. */
   source: unknown
-  sizes: MeasuredSizes
   /** Index and start of the first item that starts at or after `offset`. */
   anchor: number
   anchorStart: number
@@ -162,8 +206,7 @@ const uniformLayout = (count: number, size: number): VirtualLayout => ({
   countStartedBefore: (offset) => Math.min(count, Math.ceil(offset / size)),
 })
 
-const variableLayout = (starts: Float64Array): VirtualLayout => {
-  const count = starts.length - 1
+const variableLayout = (starts: Float64Array, count: number): VirtualLayout => {
   const firstIndexAbove = (offset: number, isInclusive: boolean) => {
     let low = 0
     let high = count + 1
@@ -220,15 +263,18 @@ const isSameWindow = (
  *
  *   Sizes start from `itemSize` and are corrected by `measure`. With a number or
  *   number atom and no measured differences, every lookup is O(1) arithmetic
- *   and a source change costs nothing beyond the view. Otherwise a source or
- *   size change rebuilds a prefix-sum array in O(n), and a scroll costs O(log
- *   n). Measured sizes are kept per item identity, so they survive filtering
- *   and reordering.
+ *   and a source change costs nothing beyond the view. Otherwise the sizes are
+ *   kept as prefix sums: a scroll costs O(log n), and a change recomputes the
+ *   sums after the first changed item, so an append and a measurement of a
+ *   rendered item are cheap. Only the items after the first changed one are
+ *   estimated again; for a linked list that is an append, any other change
+ *   estimates all of them. Measured sizes are kept per item identity, so they
+ *   survive filtering and reordering.
  *
- *   The model owns scroll anchoring: a size change above the viewport moves
- *   `scrollOffset` by the same amount. `bindScroller` turns off the browser's
- *   own anchoring, which cannot tell which of the swapped nodes to keep in
- *   place.
+ *   The model owns scroll anchoring: while the items before the first visible one
+ *   are the same, a change of their sizes moves `scrollOffset` by the same
+ *   amount. `bindScroller` turns off the browser's own anchoring, which cannot
+ *   tell which of the swapped nodes to keep in place.
  *
  *   Read it outside `list.batch()` of a linked list source, like `reatomView`.
  * @example
@@ -321,11 +367,17 @@ export function reatomVirtual(
       objects: new WeakMap(),
       primitives: new Map(),
       hasUniformDelta: false,
+      rendered: undefined,
+      patches: [],
     }),
     `${name}._measured`,
   )
 
-  const layout = computed((): VirtualLayout => {
+  // An estimate function that reads atoms has to see every item on every
+  // change of them, so only the results of a pure one are kept by index.
+  let isPureEstimate = true
+
+  const layout = computed((prevLayout?: LayoutState): LayoutState => {
     const sourceState = source()
     const sizes = measured()
 
@@ -338,14 +390,85 @@ export function reatomVirtual(
     const count = isLinkedListSource
       ? (sourceState as LinkedList).size
       : (sourceState as ReadonlyArray<unknown>).length
-
     const uniformSize = isUniform ? readUniformSize() : undefined
-    if (uniformSize !== undefined && !sizes.hasUniformDelta) {
-      return uniformLayout(count, uniformSize)
+
+    // The arrays move to the next layout, so a failed rebuild cannot leave
+    // them half-written in a remembered one.
+    let cache = prevLayout?.cache
+    if (cache) prevLayout!.cache = undefined
+
+    let kept = 0
+    if (prevLayout === undefined) {
+      // nothing to continue from
+    } else if (prevLayout.source === sourceState) {
+      kept = count
+    } else if (isLinkedListSource) {
+      if (
+        isAppendOnlyUpdate(
+          prevLayout.source as LinkedList,
+          sourceState as LinkedList,
+        )
+      ) {
+        kept = prevLayout.count
+      }
+    } else if (cache) {
+      const prevItems = prevLayout.source as ReadonlyArray<unknown>
+      const items = sourceState as ReadonlyArray<unknown>
+      const max = Math.min(prevLayout.count, count)
+      while (kept < max && prevItems[kept] === items[kept]) kept++
     }
 
-    const starts = new Float64Array(count + 1)
-    let index = 0
+    // The count of leading sizes that are still right, and the first start to
+    // recompute: a measurement of a rendered item only patches its size.
+    let from =
+      cache && isPureEstimate && prevLayout!.uniformSize === uniformSize
+        ? kept
+        : 0
+    let first = from
+    const { rendered, patches } = sizes
+    for (let i = 0; i < patches.length; i += 2) {
+      const index = patches[i]!
+      if (index < 0 || rendered!.source !== prevLayout?.source) {
+        from = first = 0
+      } else if (index < from) {
+        cache!.sizes[index] = patches[i + 1]!
+        first = Math.min(first, index)
+      }
+    }
+    patches.length = 0
+
+    const state = {
+      source: sourceState,
+      base: prevLayout?.source,
+      kept,
+      uniformSize,
+    }
+
+    if (uniformSize !== undefined && !sizes.hasUniformDelta) {
+      return {
+        ...uniformLayout(count, uniformSize),
+        ...state,
+        cache: undefined,
+      }
+    }
+
+    if (!cache || cache.sizes.length < count) {
+      const capacity = cache ? count + (count >> 1) : count
+      const grown = {
+        sizes: new Float64Array(capacity),
+        starts: new Float64Array(capacity + 1),
+      }
+      if (cache) {
+        grown.sizes.set(cache.sizes.subarray(0, from))
+        grown.starts.set(cache.starts.subarray(0, first + 1))
+      }
+      cache = grown
+    }
+    const { sizes: itemSizes, starts } = cache
+
+    let index = from
+    const { pubs } = top()
+    const dependencies = pubs.length
     const addItem = (item: unknown) => {
       const size =
         measuredSizesOf(sizes, item).get(item) ??
@@ -356,18 +479,26 @@ export function reatomVirtual(
           `The size of the item ${index} in the virtual "${name}" should be a non-negative finite number, received "${String(size)}".`,
         )
       }
-      starts[index + 1] = starts[index]! + size
-      index++
+      itemSizes[index++] = size
     }
-    if (isLinkedListSource) {
+    if (!isLinkedListSource) {
+      const items = sourceState as ReadonlyArray<unknown>
+      while (index < count) addItem(items[index])
+    } else if (from < count) {
       const list = sourceState as LinkedList
-      for (let node = list.head; node !== null; node = node[list.LL_NEXT]) {
-        addItem(node)
-      }
-    } else {
-      for (const item of sourceState as ReadonlyArray<unknown>) addItem(item)
+      // The kept nodes of a list are the whole previous one, so the new nodes
+      // follow its tail.
+      let node = from
+        ? (prevLayout!.source as LinkedList).tail![list.LL_NEXT]
+        : list.head
+      for (; node !== null; node = node[list.LL_NEXT]) addItem(node)
     }
-    return variableLayout(starts)
+    if (pubs.length !== dependencies) isPureEstimate = false
+    for (let i = first; i < count; i++) {
+      starts[i + 1] = starts[i]! + itemSizes[i]!
+    }
+
+    return { ...variableLayout(starts, count), ...state, cache }
   }, `${name}._layout`)
 
   const totalSize = computed(() => layout().total, `${name}.totalSize`)
@@ -389,18 +520,30 @@ export function reatomVirtual(
 
   const scrollState = computed((prevState?: ScrollState): ScrollState => {
     const request = requestedScrollOffset()
-    const sourceState = source()
-    const sizes = measured()
-    const { startOf, countStartedBefore } = layout()
+    const {
+      source: sourceState,
+      base,
+      kept,
+      count,
+      startOf,
+      countStartedBefore,
+    } = layout()
     const max = maxScrollOffset()
     let offset = max
     if (!stickToEnd()) {
       offset = request.offset
       if (prevState?.request === request) {
         offset = prevState.offset
-        // Scroll anchoring: measurements above the viewport move it by the
-        // same amount, so the visible items stay in place.
-        if (prevState.sizes !== sizes && prevState.source === sourceState) {
+        // Scroll anchoring: while the items before the first visible one are
+        // the same, a change of their sizes moves the offset by the same
+        // amount, so the visible items stay in place.
+        const keptItems =
+          prevState.source === sourceState
+            ? count
+            : prevState.source === base
+              ? kept
+              : 0
+        if (prevState.anchor <= keptItems) {
           offset += startOf(prevState.anchor) - prevState.anchorStart
         }
       }
@@ -411,7 +554,6 @@ export function reatomVirtual(
       offset,
       request,
       source: sourceState,
-      sizes,
       anchor,
       anchorStart: startOf(anchor),
     }
@@ -481,17 +623,49 @@ export function reatomVirtual(
       )
     }
     const sizes = measured()
+    const { patches } = sizes
     const itemSizes = measuredSizesOf(sizes, item)
     const estimatedSize = estimateSize(item)
-    if ((itemSizes.get(item) ?? estimatedSize) === size) return
+    const knownSize = itemSizes.get(item) ?? estimatedSize
+
+    // The view gives the index of a rendered item. Only the first measurement
+    // of an update reads it: after that the layout waits for its patches, and
+    // a read would rebuild it for every measurement.
+    const sourceState = source()
+    let { rendered } = sizes
+    if (!patches.length || rendered!.source !== sourceState) {
+      const { offset, items } = view()
+      rendered = {
+        source: sourceState,
+        offset,
+        items,
+        sizes: layout().cache?.sizes,
+      }
+    }
+
+    // The layout is compared too: a repeated item has one measured size, but
+    // each of its places is patched when it is rendered.
+    const pending = patches.length
+    const isChanged = knownSize !== size
+    let isRendered = false
+    for (let i = 0; i < rendered!.items.length; i++) {
+      if (rendered!.items[i] === item) {
+        const index = rendered!.offset + i
+        isRendered = true
+        if (isChanged || (rendered!.sizes && rendered!.sizes[index] !== size)) {
+          patches.push(index, size)
+        }
+      }
+    }
+    if (isChanged && !isRendered) patches.push(-1, size)
+    if (patches.length === pending) return
 
     // A measured size is a fact about the item, not a state to roll back, so
     // the maps are shared by every state instead of copied per measurement.
-    // The new state only invalidates the layout, which is rebuilt once for all
-    // the measurements of an update.
     itemSizes.set(item, size)
     measured.set({
       ...sizes,
+      rendered,
       hasUniformDelta:
         sizes.hasUniformDelta || (isUniform && size !== estimatedSize),
     })

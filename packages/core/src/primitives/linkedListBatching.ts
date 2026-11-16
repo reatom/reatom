@@ -12,6 +12,19 @@ export const LL_EPOCH = Symbol('Reatom linked list epoch')
 export const epochOf = (state: object): object =>
   (state as { [LL_EPOCH]: object })[LL_EPOCH]
 
+/**
+ * Whether `next` is `previous` with nodes added at the end, so every node of
+ * `previous` keeps its index. A replaced list restarts its versions, so the
+ * epoch has to match as well.
+ */
+export const isAppendOnlyUpdate = (
+  previous: { version: number },
+  next: { version: number; changes: ReadonlyArray<{ kind: string }> },
+): boolean =>
+  epochOf(next) === epochOf(previous) &&
+  next.version === previous.version + 1 &&
+  next.changes.every(({ kind }) => kind === 'create' || kind === 'createMany')
+
 export const registerLinkedListSource = (list: object, source: object) => {
   linkedListSources.set(list, source)
 }
