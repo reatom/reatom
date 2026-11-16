@@ -1869,6 +1869,57 @@ test('atom child teardown drops reconnect after remove', () =>
     expect(element.textContent).toBe('same')
   }))
 
+test('on:* listeners work before mount and stay inert after teardown', () =>
+  context.start(async () => {
+    const handler = vi.fn()
+    const element = <button on:click={handler} />
+    const removeSpy = vi.spyOn(element, 'removeEventListener')
+
+    element.dispatchEvent(new MouseEvent('click'))
+    expect(handler).toHaveBeenCalledTimes(1)
+
+    mount(parent(), element)
+    await wrap(sleep())
+    element.dispatchEvent(new MouseEvent('click'))
+    expect(handler).toHaveBeenCalledTimes(2)
+
+    // A move keeps the node mounted and its listener live.
+    parent().append(element)
+    await wrap(sleep())
+    element.dispatchEvent(new MouseEvent('click'))
+    expect(handler).toHaveBeenCalledTimes(3)
+
+    // Teardown does not remove the listener, it makes it inert, also after
+    // the node is appended again, like its other subscriptions.
+    element.remove()
+    await wrap(sleep())
+    element.dispatchEvent(new MouseEvent('click'))
+    parent().append(element)
+    await wrap(sleep())
+    element.dispatchEvent(new MouseEvent('click'))
+    expect(handler).toHaveBeenCalledTimes(3)
+    expect(removeSpy).not.toHaveBeenCalled()
+    element.remove()
+  }))
+
+test('reactive $spread still replaces its on:* handlers', () =>
+  context.start(async () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    const spread = atom<Record<string, Fn>>({ 'on:click': first }, 'spread')
+    const element = <div $spread={spread} />
+
+    mount(parent(), element)
+    await wrap(sleep())
+    spread.set({ 'on:click': second })
+    await wrap(sleep())
+
+    element.dispatchEvent(new MouseEvent('click'))
+    expect(first).not.toHaveBeenCalled()
+    expect(second).toHaveBeenCalledTimes(1)
+    element.remove()
+  }))
+
 test('atom child does not rebind after disconnect teardown', () =>
   context.start(async () => {
     const val = atom('before', 'val')

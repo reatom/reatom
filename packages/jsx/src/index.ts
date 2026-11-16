@@ -119,6 +119,11 @@ interface Meta {
    * their subscribe thunks for a future append.
    */
   mounted: boolean
+  /**
+   * A node torn down after a real removal: re-inserting it does not revive its
+   * subscriptions, and its `on:*` listeners ignore events.
+   */
+  disposed: boolean
 }
 /**
  * An empty array with room for one item: an empty literal grows to 17 slots on
@@ -136,6 +141,7 @@ let createMeta = (subscribes: Meta['subscribes']): Meta => ({
   mount: undefined,
   unmount: undefined,
   mounted: false,
+  disposed: false,
 })
 let ensureMeta = (node: Node): Meta => {
   return ((node as any)[metaSymbol()] ??= createMeta(emptySlot()))
@@ -308,6 +314,7 @@ let cleanupNodes = (nodes: Node[], symbol: symbol) => {
     // Truly detached nodes are inert if re-appended and release render captures.
     meta.subscribes = []
     meta.mounted = false
+    meta.disposed = true
   }
 }
 
@@ -794,6 +801,9 @@ let bindFieldModel = (
  *
  * @todo Revert previous value.
  */
+/** Inside a reactive `$spread` record, whose `on:*` handlers are replaceable. */
+let spreadDepth = 0
+
 let bindSpread = (dom: DomApis, element: JSX.Element, value: any) => {
   let isReactive = typeof value === 'function' || isAtom(value)
   if (!isReactive) {
@@ -821,7 +831,12 @@ let bindSpread = (dom: DomApis, element: JSX.Element, value: any) => {
     let { subscribes, unsubscribes } = ensureMeta(element)
     let subscribesCount = subscribes.length
     let unsubscribesCount = unsubscribes.length
-    setProps(dom, element, val)
+    spreadDepth++
+    try {
+      setProps(dom, element, val)
+    } finally {
+      spreadDepth--
+    }
     subscribes.length = subscribesCount
     stale = unsubscribes.splice(unsubscribesCount)
   }
@@ -865,21 +880,23 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     // `reatomMap`'s computed; capturing that frame would pin its pre-`_copy`
     // state (createMany `nodes` / head→tail) for as long as the listener
     // lives, which is the 25_run-clear-memory leak.
-    let listener = bind(
-      (event: Event) => jsxEvent(name, event, element, value),
-      top().root.frame,
-    )
+    let meta = ensureMeta(element)
+    let listener = bind((event: Event) => {
+      if (!meta.disposed) jsxEvent(name, event, element, value)
+    }, top().root.frame)
     /**
-     * The immediate registration keeps listeners working before the first
-     * mount; re-adding an identical listener on (re)connect is a no-op per the
-     * DOM spec, so `unlink` here matters only for the removal side — it lets
-     * `$spread` re-application and unmount dispose stale handlers.
+     * Registered once, so it works before the first mount. A removed node keeps
+     * the listener, collected with the node, instead of paying a
+     * `removeEventListener` per element on unmount; `disposed` keeps it inert
+     * if the node is re-inserted. Only a reactive `$spread` record replaces its
+     * handlers, so only it unlinks them.
      */
     element.addEventListener(key, listener)
-    unlink(element, () => {
-      element.addEventListener(key, listener)
-      return () => element.removeEventListener(key, listener)
-    })
+    if (spreadDepth > 0)
+      unlink(element, () => {
+        element.addEventListener(key, listener)
+        return () => element.removeEventListener(key, listener)
+      })
     return
   }
 
