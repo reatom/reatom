@@ -573,8 +573,23 @@ describe('reatomMap', () => {
     expect(labels()).toEqual(['#50', '#51', '#52'])
 
     unsubscribe()
-    notify()
-    expect(rendered().size).toBe(0)
+    // A derived list: it follows the window on read, without an effect.
+    virtual.scrollTo(10)
+    expect(labels()).toEqual(['#1', '#2', '#3'])
+    expect(rendered.array()[0]).not.toBe(second)
+    expect(renders).toBe(10)
+  })
+
+  test('renders a repeated item once per place', () => {
+    const repeated = { id: 0 }
+    const virtual = reatomVirtual(atom([repeated, repeated, { id: 1 }]), {
+      itemSize: 10,
+      viewportSize: 30,
+    })
+    const rendered = virtual.reatomMap((row) => ({ row }))
+    const [a, b, c] = rendered.array()
+    expect([a!.row, b!.row, c!.row]).toEqual([repeated, repeated, { id: 1 }])
+    expect(a).not.toBe(b)
   })
 })
 

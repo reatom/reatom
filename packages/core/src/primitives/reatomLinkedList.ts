@@ -1102,6 +1102,42 @@ const ensureNode = <T>(node: T): T => {
   return node
 }
 
+/**
+ * Derives a linked list of `create(item)` for the items of an array atom. A
+ * node is kept while its item stays, a new or repeated item gets a new one.
+ *
+ * @private
+ */
+export const _reatomArrayLinkedList = <Item, T extends Rec>(
+  items: Computed<ReadonlyArray<Item>>,
+  create: (item: Item) => T,
+  name: string,
+): LinkedListSource<LLNode<T>> => {
+  const links = createLinks('array ')
+  type Value = LinkedList<LLNode<T>> & { items: ReadonlyArray<Item> }
+  const target = computed((previous?: Value): Value => {
+    const next = items()
+    return deriveList(links, previous, { items: next }, (state) => {
+      const kept = new Map<Item, LLNode<T>>()
+      let node = previous?.head ?? null
+      for (const item of previous?.items ?? []) {
+        if (!kept.has(item)) kept.set(item, node!)
+        node = node![links.LL_NEXT as LL_NEXT] as LLNode<T> | null
+      }
+      reconcileLL(
+        state,
+        next.map((item) => {
+          const node = kept.get(item)
+          if (!node) return ensureNode(peek(create, item)) as LLNode<T>
+          kept.delete(item)
+          return node
+        }),
+      )
+    })
+  }, name)
+  return attachList(target, links, items)
+}
+
 /** Distance between the order labels of appended nodes. */
 const LABEL_GAP = 1024
 
