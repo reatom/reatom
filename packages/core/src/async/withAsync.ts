@@ -385,7 +385,13 @@ export let withAsync: {
     }
 
     return target.extend(
-      withMiddleware(() => asyncMiddleware),
+      // For actions, run outermost so the tracked promise is the final payload,
+      // even if later extensions (e.g. `withAbort`) replace it; otherwise
+      // `pending` and `status` would follow different promises.
+      withMiddleware(
+        () => asyncMiddleware,
+        target.__reatom.reactive ? 'invalidation' : 'read',
+      ),
       () => ({
         ready,
         onFulfill,

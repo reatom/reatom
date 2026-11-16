@@ -119,15 +119,25 @@ interface Meta {
    */
   mounted: boolean
 }
+/**
+ * An empty array with room for one item: an empty literal grows to 17 slots on
+ * its first push, and most nodes have one subscription.
+ */
+let emptySlot = <T>(): T[] => {
+  let array = [undefined] as T[]
+  array.pop()
+  return array
+}
+let createMeta = (subscribes: Meta['subscribes']): Meta => ({
+  boundary: undefined,
+  subscribes,
+  unsubscribes: emptySlot(),
+  mount: undefined,
+  unmount: undefined,
+  mounted: false,
+})
 let ensureMeta = (node: Node): Meta => {
-  return ((node as any)[metaSymbol()] ??= {
-    boundary: undefined,
-    subscribes: [],
-    unsubscribes: [],
-    mount: undefined,
-    unmount: undefined,
-    mounted: false,
-  })
+  return ((node as any)[metaSymbol()] ??= createMeta(emptySlot()))
 }
 export let findBoundary = (node: Node): BoundaryHandle | undefined => {
   let current: Node | null = node
@@ -166,8 +176,10 @@ let clearJsxError = (marked?: Element): undefined =>
   void marked?.removeAttribute('data-reatom-error')
 
 let unlink = (node: Node, subscribe: () => () => void) => {
-  let meta = ensureMeta(node)
-  meta.subscribes.push(subscribe)
+  let symbol = metaSymbol()
+  let meta = (node as any)[symbol] as Meta | undefined
+  if (meta === undefined) (node as any)[symbol] = meta = createMeta([subscribe])
+  else meta.subscribes.push(subscribe)
   if (node.isConnected) meta.unsubscribes.push(subscribe())
 }
 
@@ -223,8 +235,18 @@ let connectNode = (node: Node, symbol: symbol) => {
       let meta = (visited as any)[symbol] as Meta | undefined
       if (!meta || meta.unsubscribes.length > 0) return
 
+      // Inlined `lifecycle`: no closure per subscription on every mount.
       for (let subscribe of meta.subscribes) {
-        lifecycle('mount', visited, () => meta.unsubscribes.push(subscribe()))
+        try {
+          meta.unsubscribes.push(subscribe())
+        } catch (error) {
+          reportJsxError(
+            error,
+            'mount',
+            visited.nodeName.toLowerCase(),
+            visited,
+          )
+        }
       }
     },
     (left) => {
@@ -440,7 +462,8 @@ let walkLinkedList = (
   element: JSX.Element,
   list: LinkedListJSXAtom,
 ) => {
-  let lastVersion = -1
+  // The state, not only its version: a replaced list restarts its versions.
+  let lastState: undefined | LinkedList<LLNode<JSX.Element>>
   let mounted = new Set<JSX.Element>()
   const first = (node: JSX.Element): Node =>
     isLiveFragment(node) ? node.__reatomFragment.start : node
@@ -472,7 +495,7 @@ let walkLinkedList = (
     element.insertBefore(fragment, anchor)
   }
   const cb = (state: LinkedList<LLNode<JSX.Element>>) => {
-    if (lastVersion === state.version) return
+    if (lastState === state) return
     const focused = dom.document.activeElement as HTMLInputElement | null
     const selection =
       focused && 'selectionStart' in focused
@@ -482,7 +505,7 @@ let walkLinkedList = (
             focused.selectionDirection,
           ] as const)
         : null
-    if (state.version !== lastVersion + 1) {
+    if (state.version !== (lastState ? lastState.version : -1) + 1) {
       const desired: JSX.Element[] = []
       for (let node = state.head; node; node = node[state.LL_NEXT] ?? null)
         desired.push(node)
@@ -533,7 +556,13 @@ let walkLinkedList = (
             for (const node of change.nodes) remove(node)
             break
           case 'clear':
-            for (const node of mounted) remove(node)
+            // When the rows are all the children (a live fragment adds its
+            // markers to the count), empty the element at once: one DOM
+            // operation and one mutation record instead of one per row.
+            if (mounted.size === element.childNodes.length) {
+              element.textContent = ''
+              mounted.clear()
+            } else for (const node of mounted) remove(node)
             break
           case 'swap': {
             const a = change.a,
@@ -559,12 +588,12 @@ let walkLinkedList = (
           selection[2] ?? undefined,
         )
     }
-    lastVersion = state.version
+    lastState = state
   }
   unlink(element, () =>
     list.subscribe((state) => cb(state as LinkedList<LLNode<JSX.Element>>)),
   )
-  if (lastVersion === -1) cb(peek(list) as LinkedList<LLNode<JSX.Element>>)
+  if (!lastState) cb(peek(list) as LinkedList<LLNode<JSX.Element>>)
 }
 
 interface LiveDocumentFragment extends DocumentFragment {
@@ -882,6 +911,21 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     return
   }
 
+  // A static value is set once: no closures to keep it updated.
+  if (
+    typeof value !== 'function' &&
+    typeof value !== 'object' &&
+    !key.startsWith('model:')
+  ) {
+    try {
+      set(dom, element, key, value)
+    } catch (error) {
+      if (key === 'innerHTML' || key === 'prop:innerHTML') throw error
+      reportJsxError(error, 'prop', jsxElementKey(element, key), element)
+    }
+    return
+  }
+
   let marked: Element | undefined
   let onPropError = (error: unknown) => {
     marked = reportJsxError(error, 'prop', jsxElementKey(element, key), element)
@@ -1047,8 +1091,16 @@ let setStyleProp = (
   else style.setProperty(key, value)
 }
 
+/**
+ * The environment of the component being rendered: `h` reads `DOM` and `DEBUG`
+ * once per component instead of once per element. Elements created outside a
+ * component read them directly.
+ */
+let renderDom: undefined | typeof globalThis.window
+let renderDebug = false
+
 export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
-  let dom = _read(DOM)?.state ?? peek(DOM)
+  let dom = renderDom ?? _read(DOM)?.state ?? peek(DOM)
 
   if (isAtom(tag)) {
     // FIXME we need types refactoring
@@ -1078,11 +1130,19 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       props.element = undefined
     } else {
       let prev = jsxHName.current
+      let prevDom = renderDom
+      let prevDebug = renderDebug
       try {
         jsxHName.current = tag.name
+        renderDom = dom
+        renderDebug = prevDom
+          ? prevDebug
+          : !!(_read(DEBUG)?.state ?? peek(DEBUG))
         return tag(props)
       } finally {
         jsxHName.current = prev
+        renderDom = prevDom
+        renderDebug = prevDebug
       }
     }
   } else {
@@ -1091,7 +1151,10 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       : dom.document.createElement(tag)
 
     // For debug
-    if (jsxHName.current && peek(DEBUG))
+    if (
+      jsxHName.current &&
+      (renderDom ? renderDebug : (_read(DEBUG)?.state ?? peek(DEBUG)))
+    )
       element.setAttribute('data-reatom-name', jsxHName.current)
   }
 

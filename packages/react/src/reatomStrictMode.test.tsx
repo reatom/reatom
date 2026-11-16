@@ -517,11 +517,11 @@ describe('StrictMode lifecycle', () => {
 
       button.click()
       await wrap(tick())
-      expect(button.textContent).toBe('1')
+      await wrap(expect.poll(() => button.textContent).toBe('1'))
 
       button.click()
       await wrap(tick())
-      expect(button.textContent).toBe('2')
+      await wrap(expect.poll(() => button.textContent).toBe('2'))
 
       reactRoot.unmount()
     }))
@@ -562,8 +562,12 @@ describe('StrictMode lifecycle', () => {
       await wrap(tick())
       expect(cleanups).toBeGreaterThanOrEqual(1)
       expect(countAtom()).toBe(7)
-      expect(document.querySelector('[data-testid="count"]')?.textContent).toBe(
-        '7',
+      await wrap(
+        expect
+          .poll(
+            () => document.querySelector('[data-testid="count"]')?.textContent,
+          )
+          .toBe('7'),
       )
 
       reactRoot.unmount()

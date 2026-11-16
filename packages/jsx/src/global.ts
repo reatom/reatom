@@ -1,4 +1,4 @@
-import { _createGlobal, atom, peek, type Rec } from '@reatom/core'
+import { _createGlobal, _read, atom, peek, type Rec } from '@reatom/core'
 
 export type BoundaryHandle = (error: unknown) => void
 
@@ -31,7 +31,7 @@ let createJsxGlobal = (): JsxGlobal => {
   return {
     inlineStyles: { count: 0, ids: {}, sheets: new WeakMap() },
     hName: { current: '' },
-    metaSymbol: () => peek(metaSymbolTarget),
+    metaSymbol: () => _read(metaSymbolTarget)?.state ?? peek(metaSymbolTarget),
     boundaryCurrent: { current: undefined },
     dom,
     stylesheet: createStylesheet(dom),

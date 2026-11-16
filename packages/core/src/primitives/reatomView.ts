@@ -1,6 +1,6 @@
 import type { Computed } from '../core'
 import { computed, named, ReatomError } from '../core'
-import { isLinkedListBatching } from './linkedListBatching'
+import { isAppendOnlyUpdate, isLinkedListBatching } from './linkedListBatching'
 import type {
   LinkedList,
   LinkedListSymbols,
@@ -60,10 +60,6 @@ const normalizeLensValue = (
   }
   return value > 0 ? Math.floor(value) : 0
 }
-
-const isAppendOnlyUpdate = (previous: LinkedList, next: LinkedList) =>
-  next.version === previous.version + 1 &&
-  next.changes.every(({ kind }) => kind === 'create' || kind === 'createMany')
 
 const isCursorReusable = (
   cursor: undefined | LinkedListCursor,

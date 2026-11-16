@@ -151,6 +151,162 @@ describe('linked list derivations', () => {
     expect(list.compare(inserted[0]!, inserted.at(-1)!)).toBe(-1)
   })
 
+  test('comparison agrees with the index through random multi-change commits', () => {
+    const list = reatomLinkedList((id: number) => ({ id }), 'orderOracle')
+    type Node = ReturnType<typeof list.create>
+    let next = 0,
+      seed = 2024
+    const random = (max: number) =>
+      (seed = (seed * 1664525 + 1013904223) >>> 0) % max
+    // `find` walks the in-progress order inside a batch.
+    const current = () => {
+      const nodes: Node[] = []
+      list.find((node) => (nodes.push(node), false))
+      return nodes
+    }
+    list.createMany(Array.from({ length: 6 }, () => [next++]))
+    for (let commit = 0; commit < 200; commit++) {
+      list.batch(() => {
+        for (let step = random(3); step >= 0; step--) {
+          const nodes = current()
+          const pick = () => nodes[random(nodes.length)]!
+          const operation = nodes.length < 3 ? 0 : random(6)
+          if (operation === 0) list.create(next++)
+          else if (operation === 1)
+            list.insertMany([{ id: next++ }, { id: next++ }], pick())
+          else if (operation === 2) list.swap(pick(), pick())
+          else if (operation === 3) {
+            const node = pick(),
+              after = pick()
+            list.move(node, after === node ? null : after)
+          } else if (operation === 4) list.remove(pick())
+          else {
+            const from = random(nodes.length - 1)
+            list.moveMany(nodes.slice(from, from + 2), null)
+          }
+        }
+      })
+      const nodes = list.array()
+      expect(nodes).toEqual(current())
+      for (let i = 1; i < nodes.length; i++) {
+        expect(list.compare(nodes[i - 1]!, nodes[i]!)).toBe(-1)
+        expect(list.compare(nodes[i]!, nodes[0]!)).toBe(1)
+      }
+    }
+  })
+
+  test('removeMany counts a repeated node once and a failed batch leaves its created node unlinked', () => {
+    const list = reatomLinkedList((id: number) => ({ id }))
+    const [a, b, c] = list.createMany([[1], [2], [3]])
+    expect(list.removeMany([a!, a!, b!])).toBe(2)
+    expect(list().size).toBe(1)
+    expect(ids(list.array())).toEqual([3])
+
+    let created: { id: number } | undefined
+    expect(() =>
+      list.batch(() => {
+        created = list.create(4)
+        list.remove(c!)
+        throw new Error('cancel')
+      }),
+    ).toThrow('cancel')
+    expect(ids(list.array())).toEqual([3])
+    expect(created![list.LL_NEXT]).toBeNull()
+    expect(list.insertMany([created!], c!)).toEqual([created])
+    expect(ids(list.array())).toEqual([3, 4])
+  })
+
+  test('a failed batch of random operations restores the links', () => {
+    let seed = 7
+    const random = (max: number) => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return (seed >>> 12) % max
+    }
+    const list = reatomLinkedList((id: number) => ({ id }), 'undo')
+    const visible = list.reatomFilter((node) => node.id % 3 !== 0)
+    list.createMany(Array.from({ length: 12 }, (_, id) => [id]))
+    let nextId = 12
+
+    for (let round = 0; round < 60; round++) {
+      const before = list.array()
+      const beforeVisible = visible.array()
+      expect(() =>
+        list.batch(() => {
+          // The batch is not committed yet, so the test follows its order.
+          let nodes = before.slice()
+          for (let step = 0; step < 6; step++) {
+            const pick = () => nodes[random(nodes.length)]!
+            const kind = nodes.length < 3 ? 0 : random(8)
+            if (kind === 0) {
+              nodes.push(...list.createMany([[nextId++], [nextId++]]))
+            } else if (kind === 1) {
+              const after = pick()
+              const [node] = list.insertMany([{ id: nextId++ }], after)
+              nodes.splice(nodes.indexOf(after) + 1, 0, node!)
+            } else if (kind === 2 || kind === 3) {
+              const removed = kind === 2 ? [pick()] : [pick(), pick()]
+              list.removeMany(removed)
+              nodes = nodes.filter((node) => !removed.includes(node))
+            } else if (kind === 4) {
+              const a = pick()
+              const b = pick()
+              list.swap(a, b)
+              const indexA = nodes.indexOf(a)
+              nodes[nodes.indexOf(b)] = a
+              nodes[indexA] = b
+            } else if (kind === 5) {
+              const node = pick()
+              list.move(node, null)
+              nodes = [node, ...nodes.filter((other) => other !== node)]
+            } else if (kind === 6) {
+              list.moveMany(nodes.slice(0, 2), nodes.at(-1)!)
+              nodes = [...nodes.slice(2), ...nodes.slice(0, 2)]
+            } else {
+              list.clear()
+              nodes = []
+            }
+          }
+          throw new Error('cancel')
+        }),
+      ).toThrow('cancel')
+
+      const after = list.array()
+      expect(after).toEqual(before)
+      // The links agree with the order in both directions.
+      const state = list()
+      expect(state.head).toBe(after[0] ?? null)
+      expect(state.tail).toBe(after.at(-1) ?? null)
+      after.forEach((node, index) => {
+        expect(node[list.LL_PREV]).toBe(after[index - 1] ?? null)
+        expect(node[list.LL_NEXT]).toBe(after[index + 1] ?? null)
+      })
+      expect(visible.array()).toEqual(beforeVisible)
+
+      // Commit something, so every round starts from another order.
+      list.swap(after[random(after.length)]!, after[random(after.length)]!)
+      list.create(nextId++)
+      expect(ids(visible.array())).toEqual(
+        ids(list.array()).filter((id) => id % 3 !== 0),
+      )
+    }
+  })
+
+  test('a copy of a mapped node gets its own model', () => {
+    const list = reatomLinkedList((row: { id: number }) => row, 'copies')
+    const models = list.reatomMap((row) => ({ row }))
+    const first = list.create({ id: 1 })
+    expect(models.array().map(({ row }) => row)).toEqual([first])
+    // The copy carries the hidden fields of the original, its model too.
+    const copy = list.create({ ...first, id: 2 })
+    expect(copy).not.toBe(first)
+    expect(ids(list.array())).toEqual([1, 2])
+    expect(models.array().map(({ row }) => row)).toEqual([first, copy])
+    const [firstModel, copyModel] = models.array()
+    list.remove(first)
+    list.insertMany([first], copy)
+    expect(models.array()).toEqual([copyModel, firstModel])
+  })
+
   test('shared node objects across contexts are rejected before relinking', () => {
     const node = { id: 1 }
     const list = reatomLinkedList([node], 'scoped')

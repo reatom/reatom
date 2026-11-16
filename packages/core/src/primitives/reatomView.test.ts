@@ -170,6 +170,24 @@ describe('list changes', () => {
     expect(numbers()).toEqual([10, 11, 12])
   })
 
+  test('a replaced list does not continue from the old window start', () => {
+    const list = reatomLinkedList((n: number) => ({ n }))
+    const fill = (from: number) =>
+      list.set(
+        list.initiateFromState(
+          Array.from({ length: 20 }, (_, index) => ({ n: from + index })),
+        ),
+      )
+    fill(0)
+    const view = reatomView(list, { offset: atom(10), limit: atom(3) })
+    expect(view().items.map(({ n }) => n)).toEqual([10, 11, 12])
+
+    // The versions restart, so the append looks like the next commit.
+    fill(100)
+    list.create(999)
+    expect(view().items.map(({ n }) => n)).toEqual([110, 111, 112])
+  })
+
   test('swap outside the window keeps the whole state', () => {
     const { list, view } = setup([1, 2, 3, 4, 5], 0, 2)
     const before = view()

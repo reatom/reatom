@@ -47,7 +47,8 @@ const mountList = (
     content.replaceChildren(
       ...virtual.items().map(({ id }) => {
         const row = document.createElement('div')
-        row.style.height = `${height}px`
+        // Keep glyph overflow from changing the fixed-size virtual geometry.
+        row.style.cssText = `height: ${height}px; line-height: ${height}px; overflow: hidden;`
         row.textContent = String(id)
         return row
       }),
