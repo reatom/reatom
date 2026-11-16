@@ -1,5 +1,6 @@
 import { describe, expect, subscribe, test, vi } from 'test'
 
+import type { Atom } from '../core'
 import { atom, computed, context, notify } from '../core'
 import { deatomize } from '../methods'
 import {
@@ -50,36 +51,72 @@ describe('linked list derivations', () => {
     expect(ids(list.array())).toEqual([1, 2, 3, 5])
   })
 
-  test('filter edits retain mapped state and chain through another filter', () => {
+  test('filter edits keep state mapped before the filter and remap after it', () => {
     const list = reatomLinkedList((id: number) => ({ id }), 'source')
     list.createMany([[1], [2], [3]])
     const minimum = atom(0, 'minimum')
-    const visible = list.reatomFilter(
+    // Per-row state is mapped before the filter: hiding a row keeps it.
+    const allocate = vi.fn((row: { id: number }) => ({
+      id: row.id,
+      open: atom(false, `row#${row.id}.open`),
+    }))
+    const state = list.reatomMap(allocate, 'state')
+    const visible = state.reatomFilter(
       computed(() => {
         const min = minimum()
         return (row: { id: number }) => row.id >= min
       }, 'predicate'),
       'visible',
     )
-    const allocate = vi.fn((row: { id: number }) => ({
-      id: row.id,
-      open: atom(false, `row#${row.id}.open`),
+    // A map after the filter makes a new model when a row is shown again.
+    const render = vi.fn((row: { id: number; open: Atom<boolean> }) => ({
+      row,
     }))
-    const mapped = visible.reatomMap(allocate, 'mapped')
-    const final = mapped.reatomFilter((row) => row.id % 2 === 1, 'odd')
+    const rendered = visible.reatomMap(render, 'rendered')
+    const final = rendered.reatomFilter((view) => view.row.id % 2 === 1, 'odd')
     const keep = subscribe(final.array)
     const first = final.array()[0]!
-    first.open.set(true)
+    first.row.open.set(true)
     minimum.set(2)
     notify()
-    expect(ids(final.array())).toEqual([3])
+    expect(final.array().map((view) => view.row.id)).toEqual([3])
     minimum.set(0)
     notify()
-    expect(final.array()[0]).toBe(first)
-    expect(first.open()).toBe(true)
+    expect(final.array()[0]).not.toBe(first)
+    expect(final.array()[0]!.row).toBe(first.row)
+    expect(first.row.open()).toBe(true)
     expect(allocate).toHaveBeenCalledTimes(3)
-    expect(visible.has(list.array()[0]!)).toBe(true)
+    expect(render).toHaveBeenCalledTimes(4)
+    expect(visible.has(state.array()[0]!)).toBe(true)
     keep.unsubscribe()
+  })
+
+  test('a failed map update keeps the models of its members', () => {
+    const source = reatomLinkedList((id: number) => ({ id }))
+    const [one] = source.createMany([[1], [2]])
+    let isBroken = false
+    const mapped = source.reatomMap((row) => {
+      if (isBroken && row.id === 3) throw new Error('broken')
+      return { id: row.id }
+    })
+    const models = mapped.array()
+    isBroken = true
+    source.batch(() => {
+      source.clear()
+      source.insertMany([one!], null)
+      source.create(3)
+    })
+    expect(() => mapped()).toThrow('broken')
+    isBroken = false
+    source.batch(() => {
+      source.clear()
+      source.insertMany([one!], null)
+      source.create(3)
+    })
+    // The failed update put back the model it had dropped with the clear, so
+    // the map, which never applied a clear, reconciles and keeps it.
+    expect(mapped.array().map(({ id }) => id)).toEqual([1, 3])
+    expect(mapped.array()[0]).toBe(models[0])
   })
 
   test('lazy map reconciles skipped versions without reallocating survivors', () => {
@@ -758,7 +795,7 @@ describe('linked list derivations', () => {
     expect(ids(list.array())).toEqual([2, 3, 4])
   })
 
-  test('mapping hooks describe membership and real resets while cached models survive reentry', () => {
+  test('mapping hooks describe membership and a returning origin gets a new model', () => {
     const source = reatomLinkedList((id: number) => ({ id }))
     const [one, two] = source.createMany([[1], [2]])
     const onCreate = vi.fn(),
@@ -769,14 +806,29 @@ describe('linked list derivations', () => {
       onRemove,
       onClear,
     })
-    const first = mapped.array()[0]
+    const first = mapped.array()[0]!
     source.remove(one!)
     mapped()
     source.insertMany([one!], two!)
-    expect(mapped.array()[1]).toBe(first)
+    expect(mapped.array()[1]).not.toBe(first)
+    expect(mapped.array()[1]!.id).toBe(1)
     expect(onCreate).toHaveBeenCalledTimes(3)
     expect(onRemove).toHaveBeenCalledTimes(1)
+    expect(onRemove).toHaveBeenCalledWith(first, one)
+    // The origin no longer holds the dropped model.
+    const fields = Object.getOwnPropertySymbols(one!).map(
+      (key) => (one as Record<symbol, unknown>)[key],
+    )
+    expect(fields).not.toContain(first)
     expect(onClear).not.toHaveBeenCalled()
+
+    // Within one commit a remove and an insert keep the model, like a move.
+    const kept = mapped.array()[1]!
+    source.batch(() => {
+      source.remove(one!)
+      source.insertMany([one!], null)
+    })
+    expect(mapped.array()[0]).toBe(kept)
     source.create(3)
     source.create(4)
     mapped()

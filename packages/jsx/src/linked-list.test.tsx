@@ -1,5 +1,6 @@
 import {
   atom,
+  type Atom,
   clearStack,
   computed,
   context,
@@ -388,4 +389,41 @@ test('linked list replaced before any other change', () =>
     expect(stripJsxCompilerProps(container.innerHTML)).toBe(
       '<span>4</span><span>5</span>',
     )
+  }))
+
+test('a row shown again through a filter is a new live element', () =>
+  context.start(async () => {
+    const list = reatomLinkedList((label: string) => ({ label: atom(label) }))
+    const isHidden = atom(false, 'isHidden')
+    const visible = list.reatomFilter(
+      computed(() => {
+        const hidden = isHidden()
+        return (row: { label: Atom<string> }) => !hidden
+      }, 'predicate'),
+    )
+    let clicks = 0
+    const rows = visible.reatomMap((row) => (
+      <p on:click={() => clicks++}>{row.label}</p>
+    ))
+    const [a] = list.createMany([['a']])
+    const host = parent()
+    const element = <div>{rows}</div>
+    mount(host, element)
+    await wrap(sleep())
+    const first = element.querySelector('p')!
+
+    isHidden.set(true)
+    await wrap(sleep())
+    expect(element.querySelector('p')).toBe(null)
+    isHidden.set(false)
+    await wrap(sleep())
+
+    const shown = element.querySelector('p')!
+    expect(shown).not.toBe(first)
+    a!.label.set('A!')
+    await wrap(sleep())
+    expect(shown.textContent).toBe('A!')
+    shown.dispatchEvent(new MouseEvent('click'))
+    expect(clicks).toBe(1)
+    element.remove()
   }))

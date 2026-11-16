@@ -320,14 +320,16 @@ anchor walks hidden predecessors; predicate edits, reset, and missed versions
 scan the current source in O(n). Retained passing nodes are never removed merely
 to reconcile a predicate edit.
 
-Mapping caches source-object → model identity weakly per context. A model survives
-temporary filtering and skipped versions; a different object with the same ID is
-a different origin. `onCreate`/`onRemove` describe membership transitions, including
-cached reentry. `onMove`/`onSwap` describe order changes. `onClear` runs when the
-map replays a `clear`, before it drops every cached model, so an origin added back
-gets a new one. A map that skipped the commit with the clear, or follows a replaced
-source, reconciles the membership with `onRemove`/`onCreate` instead and keeps the
-models of the origins still present. These hooks describe list membership, not DOM
+A map keeps the model of an origin while the origin is a member (per context).
+An origin that left by the end of a commit loses its model, so one that returns
+later, for example re-shown by a filter, gets a new model; a remove and an
+insert of the same origin within one commit keep it, like a move. A map that
+skipped commits reconciles and keeps the models of the origins still present.
+To keep per-row state across a filter, map the state before the filter and the
+view after it: `list.reatomMap(toState).reatomFilter(test).reatomMap(toView)`.
+`onCreate`/`onRemove` describe membership transitions, `onMove`/`onSwap` order
+changes, and `onClear` runs when the map replays a `clear`.
+These hooks describe list membership, not DOM
 mount lifetimes. Allocate
 DOM inside `reatomVirtual(...).reatomMap(render)` when rows leave and reenter the
 mounted window; a fully removed JSX node has disposed bindings.
