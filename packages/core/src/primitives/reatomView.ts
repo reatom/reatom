@@ -1,6 +1,6 @@
 import type { Computed } from '../core'
 import { computed, named, ReatomError } from '../core'
-import { isLinkedListBatching } from './linkedListBatching'
+import { epochOf, isLinkedListBatching } from './linkedListBatching'
 import type {
   LinkedList,
   LinkedListSymbols,
@@ -61,7 +61,9 @@ const normalizeLensValue = (
   return value > 0 ? Math.floor(value) : 0
 }
 
+// A replaced list restarts its versions, so the epoch has to match as well.
 const isAppendOnlyUpdate = (previous: LinkedList, next: LinkedList) =>
+  epochOf(next) === epochOf(previous) &&
   next.version === previous.version + 1 &&
   next.changes.every(({ kind }) => kind === 'create' || kind === 'createMany')
 

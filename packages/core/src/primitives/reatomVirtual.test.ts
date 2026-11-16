@@ -304,6 +304,35 @@ describe('sizes', () => {
     expect(ids().slice(3, 6)).toEqual(visible.slice(0, 3))
   })
 
+  test('a measurement outside the rendered window anchors too', () => {
+    const { virtual, rows, ids } = setup(100)
+    virtual.scrollTo(500)
+    const visible = ids()
+    virtual.measure(rows()[2]!, 30)
+    expect(virtual.scrollOffset()).toBe(520)
+    expect(ids()).toEqual(visible)
+    virtual.measure(rows()[2]!, 4)
+    expect(virtual.scrollOffset()).toBe(494)
+    expect(ids()).toEqual(visible)
+  })
+
+  test('measurements of one update rebuild the layout once', () => {
+    const rows = atom(createRows(5))
+    let estimates = 0
+    const virtual = reatomVirtual(rows, {
+      itemSize: () => {
+        estimates++
+        return 10
+      },
+    })
+    expect(virtual.totalSize()).toBe(50)
+    expect(estimates).toBe(5)
+    for (const row of rows().slice(0, 3)) virtual.measure(row, 20)
+    expect(virtual.totalSize()).toBe(80)
+    // One estimate per measurement and one rebuild for the two unmeasured rows.
+    expect(estimates).toBe(5 + 3 + 2)
+  })
+
   test('invalid sizes throw', () => {
     expect(() => reatomVirtual(atom([]), { itemSize: 0 }, 'zero')).toThrow(
       'The "itemSize" of the virtual "zero" should be a positive number, received "0".',

@@ -92,7 +92,8 @@ export interface VirtualAtom<Item> extends ViewAtom<Item> {
   /**
    * Records the real size of an item, for example from a `ResizeObserver`. When
    * the item starts above the viewport, `scrollOffset` moves by the difference,
-   * so the visible items stay in place.
+   * so the visible items stay in place. The layout is rebuilt once for all the
+   * measurements of an update.
    */
   measure: Action<[item: Item, size: number], void>
   /** Scrolls to the item at `index`. `align` defaults to `start`. */
@@ -145,6 +146,12 @@ interface ScrollRequest {
 interface ScrollState {
   offset: number
   request: ScrollRequest
+  /** Inputs of the anchor: it is comparable only for the same source state. */
+  source: unknown
+  sizes: MeasuredSizes
+  /** Index and start of the first item that starts at or after `offset`. */
+  anchor: number
+  anchorStart: number
 }
 
 const uniformLayout = (count: number, size: number): VirtualLayout => ({
@@ -179,22 +186,16 @@ const variableLayout = (starts: Float64Array): VirtualLayout => {
   }
 }
 
-const readMeasuredSize = (sizes: MeasuredSizes, item: unknown) =>
-  isObject(item) || typeof item === 'function'
-    ? sizes.objects.get(item as object)
-    : sizes.primitives.get(item)
-
-const writeMeasuredSize = (
+const measuredSizesOf = (
   sizes: MeasuredSizes,
   item: unknown,
-  size: number,
-) => {
-  if (isObject(item) || typeof item === 'function') {
-    sizes.objects.set(item as object, size)
-  } else {
-    sizes.primitives.set(item, size)
-  }
-}
+): {
+  get: (item: unknown) => undefined | number
+  set: (item: unknown, size: number) => unknown
+} =>
+  isObject(item) || typeof item === 'function'
+    ? (sizes.objects as WeakMap<any, number>)
+    : sizes.primitives
 
 const isSize = (value: unknown): value is number =>
   typeof value === 'number' && value >= 0 && value !== Infinity
@@ -347,7 +348,9 @@ export function reatomVirtual(
     let index = 0
     const addItem = (item: unknown) => {
       const size =
-        readMeasuredSize(sizes, item) ?? uniformSize ?? estimateSize(item)
+        measuredSizesOf(sizes, item).get(item) ??
+        uniformSize ??
+        estimateSize(item)
       if (!isSize(size)) {
         throw new ReatomError(
           `The size of the item ${index} in the virtual "${name}" should be a non-negative finite number, received "${String(size)}".`,
@@ -386,11 +389,32 @@ export function reatomVirtual(
 
   const scrollState = computed((prevState?: ScrollState): ScrollState => {
     const request = requestedScrollOffset()
+    const sourceState = source()
+    const sizes = measured()
+    const { startOf, countStartedBefore } = layout()
     const max = maxScrollOffset()
-    if (stickToEnd()) return { offset: max, request }
-    const isSameRequest = prevState?.request === request
-    const offset = isSameRequest ? prevState.offset : request.offset
-    return { offset: Math.min(offset, max), request }
+    let offset = max
+    if (!stickToEnd()) {
+      offset = request.offset
+      if (prevState?.request === request) {
+        offset = prevState.offset
+        // Scroll anchoring: measurements above the viewport move it by the
+        // same amount, so the visible items stay in place.
+        if (prevState.sizes !== sizes && prevState.source === sourceState) {
+          offset += startOf(prevState.anchor) - prevState.anchorStart
+        }
+      }
+      offset = Math.min(Math.max(0, offset), max)
+    }
+    const anchor = countStartedBefore(offset)
+    return {
+      offset,
+      request,
+      source: sourceState,
+      sizes,
+      anchor,
+      anchorStart: startOf(anchor),
+    }
   }, `${name}._scrollState`)
 
   const scrollOffset = computed(
@@ -457,29 +481,20 @@ export function reatomVirtual(
       )
     }
     const sizes = measured()
+    const itemSizes = measuredSizesOf(sizes, item)
     const estimatedSize = estimateSize(item)
-    const knownSize = readMeasuredSize(sizes, item) ?? estimatedSize
-    if (knownSize === size) return
-
-    const position = scrollOffset()
-    const { offset, items } = view()
-    const windowIndex = items.indexOf(item)
-    const isAboveViewport =
-      windowIndex !== -1 &&
-      !stickToEnd() &&
-      offset + windowIndex < layout().countStartedBefore(position)
+    if ((itemSizes.get(item) ?? estimatedSize) === size) return
 
     // A measured size is a fact about the item, not a state to roll back, so
     // the maps are shared by every state instead of copied per measurement.
-    writeMeasuredSize(sizes, item, size)
+    // The new state only invalidates the layout, which is rebuilt once for all
+    // the measurements of an update.
+    itemSizes.set(item, size)
     measured.set({
-      objects: sizes.objects,
-      primitives: sizes.primitives,
+      ...sizes,
       hasUniformDelta:
         sizes.hasUniformDelta || (isUniform && size !== estimatedSize),
     })
-
-    if (isAboveViewport) scrollTo(position + size - knownSize)
   }, `${name}.measure`)
 
   const scrollToIndex = action(
@@ -516,8 +531,8 @@ export function reatomVirtual(
     render: (item: unknown) => T,
     mapName: string = named(`${name}.reatomMap`),
   ): VirtualMapAtom<unknown, T> => {
-    const slots = reatomLinkedList(
-      (item: unknown): VirtualSlot<unknown> => ({ item }),
+    const slots = reatomLinkedList<VirtualSlot<unknown>>(
+      [],
       `${mapName}._slots`,
     )
 
@@ -553,10 +568,14 @@ export function reatomVirtual(
         let previousSlot: null | LLNode<VirtualSlot<unknown>> = null
         for (const item of windowItems) {
           let slot = slotByItem.get(item)
-          if (slot === undefined) slot = slots.create(item)
-          else slotByItem.delete(item)
-          if (slot[slots.LL_PREV] !== previousSlot) {
-            slots.move(slot, previousSlot)
+          if (slot === undefined) {
+            slot = slots.insertMany([{ item }], previousSlot)[0]!
+          } else {
+            // A repeated item takes the kept slot once.
+            slotByItem.delete(item)
+            if (slot[slots.LL_PREV] !== previousSlot) {
+              slots.move(slot, previousSlot)
+            }
           }
           previousSlot = slot
         }
