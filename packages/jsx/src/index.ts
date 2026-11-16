@@ -1048,8 +1048,16 @@ let setStyleProp = (
   else style.setProperty(key, value)
 }
 
+/**
+ * The environment of the component being rendered: `h` reads `DOM` and `DEBUG`
+ * once per component instead of once per element. Elements created outside a
+ * component read them directly.
+ */
+let renderDom: undefined | typeof globalThis.window
+let renderDebug = false
+
 export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
-  let dom = _read(DOM)?.state ?? peek(DOM)
+  let dom = renderDom ?? _read(DOM)?.state ?? peek(DOM)
 
   if (isAtom(tag)) {
     // FIXME we need types refactoring
@@ -1079,11 +1087,19 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       props.element = undefined
     } else {
       let prev = jsxHName.current
+      let prevDom = renderDom
+      let prevDebug = renderDebug
       try {
         jsxHName.current = tag.name
+        renderDom = dom
+        renderDebug = prevDom
+          ? prevDebug
+          : !!(_read(DEBUG)?.state ?? peek(DEBUG))
         return tag(props)
       } finally {
         jsxHName.current = prev
+        renderDom = prevDom
+        renderDebug = prevDebug
       }
     }
   } else {
@@ -1092,7 +1108,10 @@ export let h = (tag: any, props: Rec, ...children: any[]): JSX.Element => {
       : dom.document.createElement(tag)
 
     // For debug
-    if (jsxHName.current && peek(DEBUG))
+    if (
+      jsxHName.current &&
+      (renderDom ? renderDebug : (_read(DEBUG)?.state ?? peek(DEBUG)))
+    )
       element.setAttribute('data-reatom-name', jsxHName.current)
   }
 
