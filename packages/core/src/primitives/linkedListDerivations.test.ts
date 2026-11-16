@@ -291,6 +291,22 @@ describe('linked list derivations', () => {
     }
   })
 
+  test('a copy of a mapped node gets its own model', () => {
+    const list = reatomLinkedList((row: { id: number }) => row, 'copies')
+    const models = list.reatomMap((row) => ({ row }))
+    const first = list.create({ id: 1 })
+    expect(models.array().map(({ row }) => row)).toEqual([first])
+    // The copy carries the hidden fields of the original, its model too.
+    const copy = list.create({ ...first, id: 2 })
+    expect(copy).not.toBe(first)
+    expect(ids(list.array())).toEqual([1, 2])
+    expect(models.array().map(({ row }) => row)).toEqual([first, copy])
+    const [firstModel, copyModel] = models.array()
+    list.remove(first)
+    list.insertMany([first], copy)
+    expect(models.array()).toEqual([copyModel, firstModel])
+  })
+
   test('shared node objects across contexts are rejected before relinking', () => {
     const node = { id: 1 }
     const list = reatomLinkedList([node], 'scoped')

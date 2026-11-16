@@ -173,11 +173,9 @@ export interface LinkedListAtom<
 
 // TODO rename to `DerivedLinkedList`
 export interface LinkedListDerivedState<
-  Node extends LLNode,
+  _Node extends LLNode,
   T extends LLNode,
-> extends LinkedList<T> {
-  map: WeakMap<Node, T>
-}
+> extends LinkedList<T> {}
 
 export interface LinkedListDerivedAtom<
   Node extends LLNode,
@@ -1193,10 +1191,15 @@ const linkedListDerivations = <Node extends LLNode>(
       const { name: mapName = named(`${name}.reatomMap`), ...hooks } =
         typeof options === 'string' ? { name: options } : options
       const links = createLinks('map ')
+      // A model is cached on its origin, and remembers the origin and the
+      // source epoch it was made for: a weak map costs more than the mapping.
+      const LL_MODEL = Symbol('Reatom linked list map model')
+      const LL_ORIGIN = Symbol('Reatom linked list map origin')
+      const LL_MODEL_EPOCH = Symbol('Reatom linked list map epoch')
+      type Tagged = Record<symbol, any>
       type Value = LinkedListDerivedState<Node, LLNode<T>> & {
         sourceVersion: number
         sourceEpoch: object
-        origins: WeakMap<LLNode<T>, Node>
       }
       const target = computed((previous?: Value): Value => {
         guardList(source)
@@ -1213,8 +1216,6 @@ const linkedListDerivations = <Node extends LLNode>(
           const isReset = previous?.sourceEpoch !== sourceEpoch
           const state: Value = {
             ...(previous ?? emptyList<LLNode<T>>(links)),
-            map: isReset ? new WeakMap() : previous!.map,
-            origins: isReset ? new WeakMap() : previous!.origins,
             changes: [],
             sourceVersion: input.version,
             sourceEpoch,
@@ -1224,19 +1225,25 @@ const linkedListDerivations = <Node extends LLNode>(
             recordLL(state, { kind: 'clear' })
           }
           const get = (origin: Node): LLNode<T> => {
-            let node = state.map.get(origin)
-            if (!node) {
+            let node: undefined | LLNode<T> = (origin as Tagged)[LL_MODEL]
+            // A copy of an origin carries the model of the original.
+            if (
+              !node ||
+              (node as Tagged)[LL_ORIGIN] !== origin ||
+              (node as Tagged)[LL_MODEL_EPOCH] !== sourceEpoch
+            ) {
               node = peek(cb, origin) as LLNode<T>
               if (!isObject(node) && typeof node !== 'function')
                 throw new ReatomError(
                   'A linked list mapper must return an object or function.',
                 )
-              if (state.origins.has(node))
+              if ((node as Tagged)[LL_MODEL_EPOCH] === sourceEpoch)
                 throw new ReatomError(
                   'A linked list mapper must return distinct nodes.',
                 )
-              state.map.set(origin, node)
-              state.origins.set(node, origin)
+              ;(origin as Tagged)[LL_MODEL] = node
+              ;(node as Tagged)[LL_ORIGIN] = origin
+              ;(node as Tagged)[LL_MODEL_EPOCH] = sourceEpoch
             }
             return node
           }
@@ -1256,7 +1263,7 @@ const linkedListDerivations = <Node extends LLNode>(
                   change.kind === 'remove' ||
                   change.kind === 'removeMany'
                 )
-                  hooks.onRemove?.(node, state.origins.get(node)!)
+                  hooks.onRemove?.(node, (node as Tagged)[LL_ORIGIN])
                 else hooks.onCreate?.(node)
               }
           }
