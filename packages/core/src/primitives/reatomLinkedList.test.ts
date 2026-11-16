@@ -548,3 +548,40 @@ describe('serialization / deserialization', () => {
     expect(persistStorage.snapshotAtom()[key]?.data).toEqual([1, 2, 3, 4])
   })
 })
+
+describe('replacement and empty commits', () => {
+  test('nodes of a replaced list are no longer members', () => {
+    const list = reatomLinkedList((n: number) => ({ n }))
+    const [a, b, c] = list.createMany([[1], [2], [3]])
+    list.set(list.initiateFromState([{ n: 4 }]))
+
+    expect(list.has(a!)).toBe(false)
+    expect(list.has(b!)).toBe(false)
+    expect(list.has(c!)).toBe(false)
+    expect(list.remove(b!)).toBe(false)
+    expect(list().size).toBe(1)
+    expect(list.array().map(({ n }) => n)).toEqual([4])
+
+    // the dropped nodes can join the list again
+    list.insertMany([b!], null)
+    expect(list.array().map(({ n }) => n)).toEqual([2, 4])
+  })
+
+  test('a batch without changes keeps the committed state', () => {
+    const list = reatomLinkedList((n: number) => ({ n }))
+    const a = list.create(1)
+    const state = list()
+    const cb = vi.fn()
+    const un = list.subscribe(cb)
+    cb.mockClear()
+
+    list.batch(() => {})
+    list.move(a, null)
+    list.removeMany([])
+    notify()
+
+    expect(list()).toBe(state)
+    expect(cb).not.toHaveBeenCalled()
+    un()
+  })
+})

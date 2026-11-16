@@ -290,8 +290,8 @@ const oddRows = rows.reatomFilter((row) => row.record.id % 2 === 1)
 accepts factory argument tuples and appends. `after === null` means the head.
 `moveMany` requires present nodes in contiguous source order and an anchor outside
 that run. Both validate before relinking; empty runs and moves already at their
-destination emit no structural change. Root batching still advances a version
-for an empty commit. Run validation and writes cost O(k) for k nodes.
+destination emit no structural change, and a batch without changes keeps the
+committed state. Run validation and writes cost O(k) for k nodes.
 
 Every commit publishes `changes`, a log of five kinds: `insert { nodes, after }`
 (`create`/`createMany` record the tail they append to), `remove { nodes }`,

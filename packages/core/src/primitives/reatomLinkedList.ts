@@ -8,6 +8,7 @@ import {
   named,
   ReatomError,
   top,
+  withTap,
 } from '../core'
 import { withChangeHook } from '../extensions/withChangeHook'
 import { withFromJson } from '../extensions/withFromJson'
@@ -818,7 +819,8 @@ export function reatomLinkedList<
             try {
               result = cb()
               if (batchFailure) throw batchFailure.error
-              return STATE
+              // Nothing changed: keep the state, so nothing is notified.
+              return STATE.changes.length ? STATE : state
             } finally {
               STATE = null
               batchRoot = null
@@ -1012,6 +1014,19 @@ export function reatomLinkedList<
       moveMany,
 
       __reatomLinkedList: true as const,
+    }),
+    // A replaced list leaves its nodes linked to each other, so they would
+    // still pass as members: unlink the ones the new state dropped.
+    withTap((_, prev, state) => {
+      if (prev && state !== prev && metaOf(state)[LL_BASE] !== prev.version) {
+        // Links can't tell the lists apart, so membership is by identity.
+        const kept = new Set(toArray(state))
+        for (let node = prev.head; node;) {
+          const next: null | LLNode<Node> = node[LL_NEXT]
+          if (!kept.has(node)) node[LL_PREV] = node[LL_NEXT] = null
+          node = next
+        }
+      }
     }),
     withChangeHook((_, prev) => {
       if (prev) {
