@@ -320,19 +320,22 @@ anchor walks hidden predecessors; predicate edits, reset, and missed versions
 scan the current source in O(n). Retained passing nodes are never removed merely
 to reconcile a predicate edit.
 
-A map keeps the model of an origin while the origin is a member (per context).
-An origin that left by the end of a commit loses its model, so one that returns
-later, for example re-shown by a filter, gets a new model; a remove and an
-insert of the same origin within one commit keep it, like a move. A map that
-skipped commits reconciles and keeps the models of the origins still present.
-To keep per-row state across a filter, map the state before the filter and the
-view after it: `list.reatomMap(toState).reatomFilter(test).reatomMap(toView)`.
-`onCreate`/`onRemove` describe membership transitions, `onMove`/`onSwap` order
-changes, and `onClear` runs when the map replays a `clear`.
-These hooks describe list membership, not DOM
-mount lifetimes. Allocate
-DOM inside `reatomVirtual(...).reatomMap(render)` when rows leave and reenter the
-mounted window; a fully removed JSX node has disposed bindings.
+A map makes one model per origin and caches it on the origin (per context), so
+the model lives as long as the origin: an origin that leaves the list, for
+example hidden by a filter or dropped by a `clear`, and comes back gets the same
+model, and a JSX model is the same element, which resubscribes when it is
+attached again. A different object with the same ID is a different origin. The
+recommended chain `list.reatomMap(toState).reatomFilter(test).reatomMap(toView)`
+keeps both the row state and the row element across filter edits. A removed
+origin that something else still holds keeps its model, a whole DOM row for a
+view map, alive. A failed update does not cache the models it made.
+`onCreate`/`onRemove` describe membership transitions, including a cached model
+coming back, so don't dispose a model in `onRemove`. `onMove`/`onSwap` describe
+order changes, and `onClear` runs when the map replays a `clear`. A map that
+skipped the commit with the clear reconciles with `onRemove`/`onCreate` instead.
+These hooks describe list membership, not DOM mount lifetimes.
+`reatomVirtual(...).reatomMap(render)` does not cache: a row that leaves the
+mounted window and comes back is rendered again.
 
 `source.reatomReduce({ init, apply, rebuild }, name?)` returns a computed
 `{ state, version }`. `init()` allocates per context; initial evaluation calls

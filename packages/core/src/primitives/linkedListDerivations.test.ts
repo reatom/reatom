@@ -51,7 +51,7 @@ describe('linked list derivations', () => {
     expect(ids(list.array())).toEqual([1, 2, 3, 5])
   })
 
-  test('filter edits keep state mapped before the filter and remap after it', () => {
+  test('filter edits keep the models mapped before and after the filter', () => {
     const list = reatomLinkedList((id: number) => ({ id }), 'source')
     list.createMany([[1], [2], [3]])
     const minimum = atom(0, 'minimum')
@@ -68,7 +68,7 @@ describe('linked list derivations', () => {
       }, 'predicate'),
       'visible',
     )
-    // A map after the filter makes a new model when a row is shown again.
+    // A map after the filter reuses its model when a row is shown again.
     const render = vi.fn((row: { id: number; open: Atom<boolean> }) => ({
       row,
     }))
@@ -82,11 +82,10 @@ describe('linked list derivations', () => {
     expect(final.array().map((view) => view.row.id)).toEqual([3])
     minimum.set(0)
     notify()
-    expect(final.array()[0]).not.toBe(first)
-    expect(final.array()[0]!.row).toBe(first.row)
+    expect(final.array()[0]).toBe(first)
     expect(first.row.open()).toBe(true)
     expect(allocate).toHaveBeenCalledTimes(3)
-    expect(render).toHaveBeenCalledTimes(4)
+    expect(render).toHaveBeenCalledTimes(3)
     expect(visible.has(state.array()[0]!)).toBe(true)
     keep.unsubscribe()
   })
@@ -495,7 +494,7 @@ describe('linked list derivations', () => {
     watch.unsubscribe()
   })
 
-  test('a replayed clear resets allocation and a replacement rebuilds', () => {
+  test('a replayed clear keeps returning models and a replacement rebuilds', () => {
     const source = reatomLinkedList((id: number) => ({ id }), 'epochs')
     const visible = source.reatomFilter(() => true)
     const allocate = vi.fn((row: { id: number }) => ({ id: row.id }))
@@ -519,9 +518,9 @@ describe('linked list derivations', () => {
     source.clear()
     expect(reduced().state).toBe(0)
     source.insertMany([first], null)
-    expect(mapped.array()[0]).not.toBe(original)
+    expect(mapped.array()[0]).toBe(original)
     expect(reduced().state).toBe(1)
-    expect(allocate).toHaveBeenCalledTimes(2)
+    expect(allocate).toHaveBeenCalledTimes(1)
     source.set(source.initiateFromState([{ id: 2 }]))
     expect(ids(mapped.array())).toEqual([2])
     expect(reduced().state).toBe(2)
@@ -694,7 +693,7 @@ describe('linked list derivations', () => {
     expect(init).toHaveBeenCalledTimes(2)
   })
 
-  test('a clear drops cached models even when the origin returns in the same commit', () => {
+  test('a clear keeps the cached model of an origin returning in the same commit', () => {
     const source = reatomLinkedList((id: number) => ({ id }))
     const [one] = source.createMany([[1], [2]])
     const onClear = vi.fn((state: { size: number }) => state.size)
@@ -711,7 +710,7 @@ describe('linked list derivations', () => {
     expect(onClear).toHaveBeenCalledTimes(1)
     expect(onClear).toHaveReturnedWith(2)
     expect(ids(mapped.array())).toEqual([1])
-    expect(mapped.array()[0]).not.toBe(before[0])
+    expect(mapped.array()[0]).toBe(before[0])
   })
 
   test('a missed clear reconciles the membership and keeps returning models', () => {
@@ -795,7 +794,7 @@ describe('linked list derivations', () => {
     expect(ids(list.array())).toEqual([2, 3, 4])
   })
 
-  test('mapping hooks describe membership and a returning origin gets a new model', () => {
+  test('mapping hooks describe membership and a returning origin keeps its model', () => {
     const source = reatomLinkedList((id: number) => ({ id }))
     const [one, two] = source.createMany([[1], [2]])
     const onCreate = vi.fn(),
@@ -810,16 +809,12 @@ describe('linked list derivations', () => {
     source.remove(one!)
     mapped()
     source.insertMany([one!], two!)
-    expect(mapped.array()[1]).not.toBe(first)
-    expect(mapped.array()[1]!.id).toBe(1)
+    expect(mapped.array()[1]).toBe(first)
+    // The returning model is reported as created again.
     expect(onCreate).toHaveBeenCalledTimes(3)
+    expect(onCreate).toHaveBeenLastCalledWith(first)
     expect(onRemove).toHaveBeenCalledTimes(1)
     expect(onRemove).toHaveBeenCalledWith(first, one)
-    // The origin no longer holds the dropped model.
-    const fields = Object.getOwnPropertySymbols(one!).map(
-      (key) => (one as Record<symbol, unknown>)[key],
-    )
-    expect(fields).not.toContain(first)
     expect(onClear).not.toHaveBeenCalled()
 
     // Within one commit a remove and an insert keep the model, like a move.
@@ -836,5 +831,29 @@ describe('linked list derivations', () => {
     source.clear()
     mapped()
     expect(onClear).toHaveBeenCalledTimes(1)
+    // A cleared origin added back keeps its model too.
+    source.insertMany([one!], null)
+    expect(mapped.array()[0]).toBe(kept)
+  })
+
+  test('a failed map update does not cache the models it made', () => {
+    const source = reatomLinkedList((id: number) => ({ id }))
+    source.create(1)
+    let isBroken = true
+    const allocate = vi.fn((row: { id: number }) => {
+      if (isBroken && row.id === 3) throw new Error('broken')
+      return { id: row.id }
+    })
+    const mapped = source.reatomMap(allocate)
+    mapped()
+    const two = source.create(2)
+    source.create(3)
+    expect(() => mapped()).toThrow('broken')
+    isBroken = false
+    source.create(4)
+    expect(ids(mapped.array())).toEqual([1, 2, 3, 4])
+    // The model made for `two` by the failed update was not kept.
+    expect(allocate).toHaveBeenCalledTimes(6)
+    expect(allocate).toHaveBeenNthCalledWith(4, two)
   })
 })

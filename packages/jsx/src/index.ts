@@ -120,10 +120,11 @@ interface Meta {
    */
   mounted: boolean
   /**
-   * A node torn down after a real removal: re-inserting it does not revive its
-   * subscriptions, and its `on:*` listeners ignore events.
+   * A node torn down after a real removal: its subscriptions are off and its
+   * `on:*` listeners ignore events until it is connected again, which
+   * resubscribes it and runs its ref again.
    */
-  disposed: boolean
+  suspended: boolean
 }
 /**
  * An empty array with room for one item: an empty literal grows to 17 slots on
@@ -141,7 +142,7 @@ let createMeta = (subscribes: Meta['subscribes']): Meta => ({
   mount: undefined,
   unmount: undefined,
   mounted: false,
-  disposed: false,
+  suspended: false,
 })
 let ensureMeta = (node: Node): Meta => {
   return ((node as any)[metaSymbol()] ??= createMeta(emptySlot()))
@@ -241,6 +242,7 @@ let connectNode = (node: Node, symbol: symbol) => {
     (visited) => {
       let meta = (visited as any)[symbol] as Meta | undefined
       if (!meta || meta.unsubscribes.length > 0) return
+      meta.suspended = false
 
       // Inlined `lifecycle`: no closure per subscription on every mount.
       for (let subscribe of meta.subscribes) {
@@ -311,10 +313,10 @@ let cleanupNodes = (nodes: Node[], symbol: symbol) => {
     }
 
     meta.unsubscribes = []
-    // Truly detached nodes are inert if re-appended and release render captures.
-    meta.subscribes = []
+    // The subscribe thunks stay: a node connected again resubscribes, e.g. a
+    // cached list row shown again. They are collected with the node.
     meta.mounted = false
-    meta.disposed = true
+    meta.suspended = true
   }
 }
 
@@ -882,14 +884,14 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
     // lives, which is the 25_run-clear-memory leak.
     let meta = ensureMeta(element)
     let listener = bind((event: Event) => {
-      if (!meta.disposed) jsxEvent(name, event, element, value)
+      if (!meta.suspended) jsxEvent(name, event, element, value)
     }, top().root.frame)
     /**
      * Registered once, so it works before the first mount. A removed node keeps
      * the listener, collected with the node, instead of paying a
-     * `removeEventListener` per element on unmount; `disposed` keeps it inert
-     * if the node is re-inserted. Only a reactive `$spread` record replaces its
-     * handlers, so only it unlinks them.
+     * `removeEventListener` per element on unmount; `suspended` keeps it inert
+     * until the node is connected again. Only a reactive `$spread` record
+     * replaces its handlers, so only it unlinks them.
      */
     element.addEventListener(key, listener)
     if (spreadDepth > 0)

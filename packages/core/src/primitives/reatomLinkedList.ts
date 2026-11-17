@@ -106,20 +106,20 @@ export interface LinkedListSource<
 export interface LinkedListMapOptions<Node extends LLNode, T extends LLNode> {
   name?: string
   /**
-   * A model entered the list. It is new unless its origin left and came back
-   * within the same commit.
+   * A model entered the list: a new one, or the cached model of an origin that
+   * came back.
    */
   onCreate?: (node: T) => void
   /**
-   * A model left the list. Unless its origin comes back in the same commit, the
-   * model is dropped: a returning origin gets a new one.
+   * A model left the list. It stays cached on its origin, and comes back with
+   * it: don't dispose it here. It is collected with its origin.
    */
   onRemove?: (node: T, origin: Node) => void
   onSwap?: (payload: { a: T; b: T }) => void
   onMove?: (node: T) => void
   /**
-   * A replayed `clear`, before the models are dropped. A source this map did
-   * not follow is reconciled with `onRemove` and `onCreate` instead.
+   * A replayed `clear`. The models stay cached on their origins. A source this
+   * map did not follow is reconciled with `onRemove` and `onCreate` instead.
    */
   onClear?: (state: LinkedList<T>) => void
 }
@@ -1257,11 +1257,9 @@ const linkedListDerivations = <Node extends LLNode>(
       const { name: mapName = named(`${name}.reatomMap`), ...hooks } =
         typeof options === 'string' ? { name: options } : options
       const links = createLinks('map ')
-      // The model of a member is kept on its origin, which is cheaper than a
-      // weak map. It lives while the origin is a member: an origin that left
-      // by the end of a commit loses it, so one that comes back gets a new
-      // model. Within a commit a remove and an insert of the same origin keep
-      // it, like a move.
+      // A model is cached on its origin, which is cheaper than a weak map and
+      // is collected with it. It outlives membership: an origin that leaves,
+      // e.g. hidden by a filter, and comes back gets the same model.
       const LL_MODEL = Symbol('Reatom linked list map model')
       const LL_ORIGIN = Symbol('Reatom linked list map origin')
       type Tagged = Record<symbol, any>
@@ -1274,12 +1272,8 @@ const linkedListDerivations = <Node extends LLNode>(
         // Only the changes after the last clear survive the commit.
         let from = changes?.length ?? 0
         while (from && changes![from - 1]!.kind !== 'clear') from--
-        // `origin, model` pairs to put back if the update fails.
-        const tags: unknown[] = []
-        const tag = (origin: Tagged, model: undefined | LLNode<T>) => {
-          tags.push(origin, origin[LL_MODEL])
-          origin[LL_MODEL] = model
-        }
+        // Origins tagged by this update, untagged if it fails.
+        const tagged: Tagged[] = []
         const get = (origin: Node): LLNode<T> => {
           let node: undefined | LLNode<T> = (origin as Tagged)[LL_MODEL]
           // A copy of an origin carries the model of the original.
@@ -1290,14 +1284,14 @@ const linkedListDerivations = <Node extends LLNode>(
               throw new ReatomError(
                 'A linked list mapper must return distinct nodes.',
               )
-            tag(origin, node)
+            tagged.push(origin)
+            ;(origin as Tagged)[LL_MODEL] = node
             ;(node as Tagged)[LL_ORIGIN] = origin
           }
           return node
         }
-        const left: LLNode<T>[] = []
         try {
-          const result = deriveList(
+          return deriveList(
             links,
             previous,
             { sourceVersion: input.version },
@@ -1307,8 +1301,6 @@ const linkedListDerivations = <Node extends LLNode>(
               else {
                 if (from) {
                   hooks.onClear?.(state)
-                  for (let node = state.head; node; node = node[links.LL_NEXT])
-                    tag((node as Tagged)[LL_ORIGIN], undefined)
                   if (state.size) recordLL(state, { kind: 'clear' })
                 }
                 for (let i = from; i < changes.length; i++)
@@ -1320,23 +1312,15 @@ const linkedListDerivations = <Node extends LLNode>(
                 else if (change.kind !== 'clear')
                   for (const node of change.nodes) {
                     if (change.kind === 'move') hooks.onMove?.(node)
-                    else if (change.kind === 'remove') {
-                      left.push(node)
+                    else if (change.kind === 'remove')
                       hooks.onRemove?.(node, (node as Tagged)[LL_ORIGIN])
-                    } else hooks.onCreate?.(node)
+                    else hooks.onCreate?.(node)
                   }
               }
             },
           )
-          for (const node of left) {
-            const origin: Tagged = (node as Tagged)[LL_ORIGIN]
-            if (origin[LL_MODEL] === node && !containsLL(result, node))
-              origin[LL_MODEL] = undefined
-          }
-          return result
         } catch (error) {
-          for (let i = tags.length; i > 0; i -= 2)
-            (tags[i - 2] as Tagged)[LL_MODEL] = tags[i - 1]
+          for (const origin of tagged) origin[LL_MODEL] = undefined
           throw error
         }
       }, mapName)

@@ -10,7 +10,7 @@ import {
   withInit,
   wrap,
 } from '@reatom/core'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 // eslint-disable-next-line unused-imports/no-unused-imports
 import { DEBUG, h, hf, instance, mount } from '.'
@@ -391,7 +391,7 @@ test('linked list replaced before any other change', () =>
     )
   }))
 
-test('a row shown again through a filter is a new live element', () =>
+test('a row shown again through a filter is the same live element', () =>
   context.start(async () => {
     const list = reatomLinkedList((label: string) => ({ label: atom(label) }))
     const isHidden = atom(false, 'isHidden')
@@ -402,9 +402,10 @@ test('a row shown again through a filter is a new live element', () =>
       }, 'predicate'),
     )
     let clicks = 0
-    const rows = visible.reatomMap((row) => (
+    const render = vi.fn((row: { label: Atom<string> }) => (
       <p on:click={() => clicks++}>{row.label}</p>
     ))
+    const rows = visible.reatomMap(render)
     const [a] = list.createMany([['a']])
     const host = parent()
     const element = <div>{rows}</div>
@@ -415,11 +416,18 @@ test('a row shown again through a filter is a new live element', () =>
     isHidden.set(true)
     await wrap(sleep())
     expect(element.querySelector('p')).toBe(null)
+    // Hidden: suspended, so its listener is inert.
+    first.dispatchEvent(new MouseEvent('click'))
+    expect(clicks).toBe(0)
+    // An update while hidden shows up once the row is shown again.
+    a!.label.set('hidden')
     isHidden.set(false)
     await wrap(sleep())
 
     const shown = element.querySelector('p')!
-    expect(shown).not.toBe(first)
+    expect(shown).toBe(first)
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(shown.textContent).toBe('hidden')
     a!.label.set('A!')
     await wrap(sleep())
     expect(shown.textContent).toBe('A!')

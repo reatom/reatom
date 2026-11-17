@@ -1847,7 +1847,7 @@ test('siblings connect when a primitive atom child upgraded before mount', () =>
     expect(element.textContent).toBe('by')
   }))
 
-test('atom child teardown drops reconnect after remove', () =>
+test('atom child resubscribes when re-appended after remove', () =>
   context.start(async () => {
     const val = atom('same', 'val')
     const element = <div>{val}</div>
@@ -1862,14 +1862,14 @@ test('atom child teardown drops reconnect after remove', () =>
     await wrap(sleep())
     expect(element.textContent).toBe('same')
 
-    // Detach clears meta.subscribes so re-appended nodes stay inert —
-    // recreate the element (or keep it inside a live parent) instead.
+    // A re-appended node is suspended, not disposed: it is live again.
     val.set('updated')
     await wrap(sleep())
-    expect(element.textContent).toBe('same')
+    expect(element.textContent).toBe('updated')
+    element.remove()
   }))
 
-test('on:* listeners work before mount and stay inert after teardown', () =>
+test('on:* listeners work before mount, are inert while detached and work again', () =>
   context.start(async () => {
     const handler = vi.fn()
     const element = <button on:click={handler} />
@@ -1889,16 +1889,19 @@ test('on:* listeners work before mount and stay inert after teardown', () =>
     element.dispatchEvent(new MouseEvent('click'))
     expect(handler).toHaveBeenCalledTimes(3)
 
-    // Teardown does not remove the listener, it makes it inert, also after
-    // the node is appended again, like its other subscriptions.
+    // Teardown does not remove the listener, it makes it inert until the node
+    // is appended again, like its other subscriptions.
+    const addSpy = vi.spyOn(element, 'addEventListener')
     element.remove()
     await wrap(sleep())
     element.dispatchEvent(new MouseEvent('click'))
+    expect(handler).toHaveBeenCalledTimes(3)
     parent().append(element)
     await wrap(sleep())
     element.dispatchEvent(new MouseEvent('click'))
-    expect(handler).toHaveBeenCalledTimes(3)
+    expect(handler).toHaveBeenCalledTimes(4)
     expect(removeSpy).not.toHaveBeenCalled()
+    expect(addSpy).not.toHaveBeenCalled()
     element.remove()
   }))
 
@@ -1920,7 +1923,7 @@ test('reactive $spread still replaces its on:* handlers', () =>
     element.remove()
   }))
 
-test('atom child does not rebind after disconnect teardown', () =>
+test('a re-attached element sees updates made while it was detached', () =>
   context.start(async () => {
     const val = atom('before', 'val')
     const element = <div>{val}</div>
@@ -1933,11 +1936,56 @@ test('atom child does not rebind after disconnect teardown', () =>
     await wrap(sleep())
     val.set('after')
     await wrap(sleep())
+    // Suspended: no subscription while detached.
     expect(element.textContent).toBe('before')
 
     parent().append(element)
     await wrap(sleep())
-    expect(element.textContent).toBe('before')
+    expect(element.textContent).toBe('after')
+    val.set('again')
+    await wrap(sleep())
+    expect(element.textContent).toBe('again')
+    element.remove()
+  }))
+
+test('a re-attached element resubscribes its props, refs and $spread', () =>
+  context.start(async () => {
+    const title = atom('a', 'title')
+    const first = vi.fn()
+    const second = vi.fn()
+    const spread = atom<Record<string, Fn>>({ 'on:click': first }, 'spread')
+    const unref = vi.fn()
+    const ref = vi.fn(() => unref)
+    const element = (
+      <div title={title} $spread={spread}>
+        <i ref={ref} />
+      </div>
+    )
+
+    mount(parent(), element)
+    await wrap(sleep())
+    expect(ref).toHaveBeenCalledTimes(1)
+
+    element.remove()
+    await wrap(sleep())
+    expect(unref).toHaveBeenCalledTimes(1)
+    title.set('b')
+    spread.set({ 'on:click': second })
+    element.dispatchEvent(new MouseEvent('click'))
+    expect(first).not.toHaveBeenCalled()
+    expect(element.title).toBe('a')
+
+    parent().append(element)
+    await wrap(sleep())
+    expect(ref).toHaveBeenCalledTimes(2)
+    expect(element.title).toBe('b')
+    element.dispatchEvent(new MouseEvent('click'))
+    expect(first).not.toHaveBeenCalled()
+    expect(second).toHaveBeenCalledTimes(1)
+    title.set('c')
+    await wrap(sleep())
+    expect(element.title).toBe('c')
+    element.remove()
   }))
 
 test('initial atom children cause no live insertions after mount', () =>
