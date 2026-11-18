@@ -779,7 +779,8 @@ function subscribe(this: AtomLike, userCb?: Fn, errorCb?: Fn) {
 
     if (idx === -1) return
 
-    frame.subs.splice(idx, 1)
+    if (idx === frame.subs.length - 1) frame.subs.pop()
+    else frame.subs.splice(idx, 1)
 
     if (frame.subs.length === 0) {
       STACK.push(parentFrame.root.frame)
