@@ -759,7 +759,7 @@ Every structural method records a change: `create`, `createMany`, `insertMany(no
 | Lookup by id                               | `reatomLinkedList({ create, key: 'id' })` + `list.map()` |
 
 Root, mapped, and filtered lists share readonly chaining methods. A `reatomMap`
-caches its model on the origin, so a row hidden by a filter and shown again is
+keeps one model per origin while the map lives, so a row hidden by a filter and shown again is
 the same live element, with its DOM state and handlers:
 `list.reatomMap(toState).reatomFilter(test).reatomMap(toView)`. A virtual window,
 `reatomVirtual(models, options).reatomMap(render)`, does not cache: it renders

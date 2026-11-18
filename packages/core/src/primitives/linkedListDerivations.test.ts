@@ -836,6 +836,25 @@ describe('linked list derivations', () => {
     expect(mapped.array()[0]).toBe(kept)
   })
 
+  test('a map keeps its models to itself, not on the origins', () => {
+    const source = reatomLinkedList((id: number) => ({ id }))
+    const [one] = source.createMany([[1], [2]])
+    const before = Object.getOwnPropertySymbols(one!).length
+    // Short-lived maps, e.g. one per component mount, over long-lived origins.
+    const first = source.reatomMap((row) => ({ id: row.id }))
+    const second = source.reatomMap((row) => ({ id: row.id }))
+    const model = first.array()[0]!
+    expect(second.array()[0]).not.toBe(model)
+    // Nothing is written to the origin, so it can't keep a dead map's models.
+    expect(Object.getOwnPropertySymbols(one!)).toHaveLength(before)
+    for (const key of Object.getOwnPropertySymbols(one!))
+      expect((one as any)[key]).not.toBe(model)
+    // A copy of an origin is a different origin.
+    source.remove(one!)
+    source.insertMany([{ ...one! }], null)
+    expect(first.array()[0]).not.toBe(model)
+  })
+
   test('a failed map update does not cache the models it made', () => {
     const source = reatomLinkedList((id: number) => ({ id }))
     source.create(1)
