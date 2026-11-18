@@ -78,11 +78,14 @@ export let DEBUG = atom(true, 'jsx.DEBUG')
 let jsxElementKey = (element: Node, key: string) =>
   `${jsxHName.current}.${element.nodeName.toLowerCase()}._${key}`
 
-let eventActionName = (element: Node, eventKey: string, handler: Fn) => {
+let eventActionName = (
+  component: string,
+  element: Node,
+  eventKey: string,
+  handler: Fn,
+) => {
   let elementPart = element.nodeName.toLowerCase()
-  let base = jsxHName.current
-    ? `${jsxHName.current}.${elementPart}`
-    : elementPart
+  let base = component ? `${component}.${elementPart}` : elementPart
   let segment =
     handler.name && handler.name !== `on:${eventKey}` ? handler.name : eventKey
   let hideFromLogs = noisyDomEvents.has(eventKey)
@@ -108,8 +111,9 @@ export let jsxEvent = action(
 
 interface Meta {
   boundary: BoundaryHandle | undefined
-  subscribes: (() => Unsubscribe)[]
-  unsubscribes: Unsubscribe[]
+  /** Created on the first subscription: most meta nodes have none. */
+  subscribes: undefined | (() => Unsubscribe)[]
+  unsubscribes: undefined | Unsubscribe[]
   mount: ((element: Node) => ((element: Node) => void) | undefined) | undefined
   unmount: ((element: Node) => void) | undefined
   /**
@@ -127,30 +131,27 @@ interface Meta {
   suspended: boolean
 }
 /**
- * An empty array with room for one item: an empty literal grows to 17 slots on
- * its first push, and most nodes have one subscription.
+ * Adds an item to a lazily created array. A one-item literal has room for one
+ * item; an empty literal grows to 17 slots on its first push.
  */
-let emptySlot = <T>(): T[] => {
-  let array = [undefined] as T[]
-  array.pop()
-  return array
-}
-let createMeta = (subscribes: Meta['subscribes']): Meta => ({
+let add = <T>(array: undefined | T[], item: T): T[] =>
+  array ? (array.push(item), array) : [item]
+let createMeta = (subscribes?: Meta['subscribes']): Meta => ({
   boundary: undefined,
   subscribes,
-  unsubscribes: emptySlot(),
+  unsubscribes: undefined,
   mount: undefined,
   unmount: undefined,
   mounted: false,
   suspended: false,
 })
-let ensureMeta = (node: Node): Meta => {
-  return ((node as any)[metaSymbol()] ??= createMeta(emptySlot()))
-}
+let ensureMeta = (node: Node): Meta =>
+  ((node as any)[metaSymbol()] ??= createMeta())
 export let findBoundary = (node: Node): BoundaryHandle | undefined => {
+  let symbol = metaSymbol()
   let current: Node | null = node
   while (current) {
-    let boundary = ensureMeta(current).boundary
+    let boundary = ((current as any)[symbol] as Meta | undefined)?.boundary
     if (boundary) return boundary
     current = current.parentNode
   }
@@ -187,8 +188,8 @@ let unlink = (node: Node, subscribe: () => () => void) => {
   let symbol = metaSymbol()
   let meta = (node as any)[symbol] as Meta | undefined
   if (meta === undefined) (node as any)[symbol] = meta = createMeta([subscribe])
-  else meta.subscribes.push(subscribe)
-  if (node.isConnected) meta.unsubscribes.push(subscribe())
+  else meta.subscribes = add(meta.subscribes, subscribe)
+  if (node.isConnected) meta.unsubscribes = add(meta.unsubscribes, subscribe())
 }
 
 let lifecycle = (phase: 'ref' | 'mount', node: Node, cb: () => void) => {
@@ -200,75 +201,60 @@ let lifecycle = (phase: 'ref' | 'mount', node: Node, cb: () => void) => {
 }
 
 /**
- * Depth-first walk over the real DOM pointers. A visit may connect a
- * subscription that emits synchronously and rewrites the following content
- * (live fragment update, primitive Text upgrade), so the walk re-checks the
- * pointers after each visit: when the visited child was detached
- * (`replaceWith`), it resumes after the last child still in place, keeping the
- * replacement content and the following siblings in the traversal. Emissions
- * only rewrite content after their own node, so earlier siblings stay valid
- * anchors. (`NodeIterator` would give this liveness for free, but live
- * iterators tax every subsequent DOM mutation of the whole document.)
- *
- * `visit` runs before a node's children (pre-order), `leave` runs after them
- * (post-order).
- */
-let walkTree = (
-  node: Node,
-  visit: (node: Node) => void,
-  leave?: (node: Node) => void,
-) => {
-  visit(node)
-  let prev: Node | null = null
-  let child = node.firstChild
-  while (child) {
-    walkTree(child, visit, leave)
-    if (child.parentNode === node) prev = child
-    child = prev ? prev.nextSibling : node.firstChild
-  }
-  leave?.(node)
-}
-
-/**
  * Subscribe parent-first (pre-order) so boundaries exist before descendants
  * initialize, then mount refs in post-order: children before their parent,
  * siblings in document order. For `<A><B><C/></B><D/></A>` refs run C, B, D, A.
  * Cleanup reverses the subscription order below.
+ *
+ * The walk follows the real DOM pointers with an explicit stack. A subscription
+ * may emit synchronously and rewrite the following content (live fragment
+ * update, primitive Text upgrade), so after each child the walk re-checks it:
+ * when the child was detached (`replaceWith`), it resumes after the last child
+ * still in place, keeping the replacement content and the following siblings in
+ * the traversal. Emissions only rewrite content after their own node, so
+ * earlier siblings stay valid anchors. (`NodeIterator` would give this liveness
+ * for free, but live iterators tax every later DOM mutation of the document.)
  */
 let connectNode = (node: Node, symbol: symbol) => {
-  let nodesToMount: Node[] = []
-  walkTree(
-    node,
-    (visited) => {
-      let meta = (visited as any)[symbol] as Meta | undefined
-      if (!meta || meta.unsubscribes.length > 0) return
-      meta.suspended = false
-
-      // Inlined `lifecycle`: no closure per subscription on every mount.
-      for (let subscribe of meta.subscribes) {
-        try {
-          meta.unsubscribes.push(subscribe())
-        } catch (error) {
-          reportJsxError(
-            error,
-            'mount',
-            visited.nodeName.toLowerCase(),
-            visited,
-          )
-        }
+  let toMount: Node[] = []
+  // Pairs of an open node and, before it, the last child still in place of
+  // its parent.
+  let stack: (Node | null)[] = []
+  let prev: Node | null = null
+  let next: Node | null = node
+  for (;;) {
+    if (next) {
+      let meta = (next as any)[symbol] as Meta | undefined
+      if (meta && !meta.unsubscribes?.length) {
+        meta.suspended = false
+        // Inlined `lifecycle`: no closure per subscription on every mount.
+        if (meta.subscribes)
+          for (let subscribe of meta.subscribes) {
+            try {
+              meta.unsubscribes = add(meta.unsubscribes, subscribe())
+            } catch (error) {
+              reportJsxError(error, 'mount', next.nodeName.toLowerCase(), next)
+            }
+          }
       }
-    },
-    (left) => {
-      let meta = (left as any)[symbol] as Meta | undefined
-      if (meta && !meta.mounted) nodesToMount.push(left)
-    },
-  )
+      stack.push(prev, next)
+      prev = null
+      next = next.firstChild
+      continue
+    }
+    let done = stack.pop()!
+    prev = stack.pop()!
+    if ((done as any)[symbol]?.mounted === false) toMount.push(done)
+    let parent = stack[stack.length - 1]
+    if (!parent) break
+    if (done.parentNode === parent) prev = done
+    next = prev ? prev.nextSibling : parent.firstChild
+  }
 
-  for (let node of nodesToMount) {
-    let meta = (node as any)[symbol] as Meta | undefined
+  for (let node of toMount) {
+    let meta = (node as any)[symbol] as Meta
     // The `mounted` re-check dedupes nodes queued twice by a mid-walk restart.
-    if (!meta || meta.mounted) continue
-
+    if (meta.mounted) continue
     meta.mounted = true
     lifecycle('ref', node, () => {
       let unmount = meta.mount?.(node)
@@ -281,38 +267,42 @@ let connectNode = (node: Node, symbol: symbol) => {
  * Unmount refs in pre-order (parent before its children, siblings in document
  * order), then unsubscribe the batch in reverse DOM order. The latter mirrors
  * normal parent-first registration so shared core pubs can use their
- * `pub.subs.pop()` path.
+ * `pub.subs.pop()` path. Takes over `nodes` as the walk stack.
  */
 let cleanupNodes = (nodes: Node[], symbol: symbol) => {
   let metaNodes: Node[] = []
-  for (let node of nodes) {
-    walkTree(node, (visited) => {
-      let meta = (visited as any)[symbol] as Meta | undefined
-      if (!meta) return
-
-      metaNodes.push(visited)
-      if (meta.unmount) {
-        lifecycle('ref', visited, () => meta.unmount!(visited))
+  let node: Node | null | undefined
+  nodes.reverse()
+  while ((node = nodes.pop())) {
+    let meta = (node as any)[symbol] as Meta | undefined
+    if (meta) {
+      metaNodes.push(node)
+      let unmount = meta.unmount
+      if (unmount) {
         meta.unmount = undefined
+        lifecycle('ref', node, () => unmount(node!))
       }
-    })
+    }
+    // The children are read after the ref ran, so a ref that changes its
+    // removed subtree does not disturb the walk.
+    for (node = node.lastChild; node; node = node.previousSibling)
+      nodes.push(node)
   }
 
-  for (let i = metaNodes.length - 1; i >= 0; i--) {
-    let node = metaNodes[i]!
-    let meta = (node as any)[symbol] as Meta | undefined
-    if (!meta) continue
+  while ((node = metaNodes.pop())) {
+    let meta = (node as any)[symbol] as Meta
 
     // A node that was never connected (appended and removed in the same tick,
     // or fresh content inside a removed ancestor) keeps its subscribe thunks
     // for a future append.
-    if (!meta.mounted && meta.unsubscribes.length === 0) continue
+    if (!meta.mounted && !meta.unsubscribes?.length) continue
 
-    for (let j = meta.unsubscribes.length - 1; j >= 0; j--) {
-      lifecycle('mount', node, meta.unsubscribes[j]!)
-    }
+    // Popping walks the array in reverse and empties it without a `length`
+    // write, which is a slow path.
+    let unsubscribe: Unsubscribe | undefined
+    while ((unsubscribe = meta.unsubscribes?.pop()))
+      lifecycle('mount', node, unsubscribe)
 
-    meta.unsubscribes = []
     // The subscribe thunks stay: a node connected again resubscribes, e.g. a
     // cached list row shown again. They are collected with the node.
     meta.mounted = false
@@ -830,17 +820,17 @@ let bindSpread = (dom: DomApis, element: JSX.Element, value: any) => {
   let spread = (val: any) => {
     marked = clearJsxError(marked)
     dispose()
-    let { subscribes, unsubscribes } = ensureMeta(element)
-    let subscribesCount = subscribes.length
-    let unsubscribesCount = unsubscribes.length
+    let meta = ensureMeta(element)
+    let subscribesCount = meta.subscribes?.length ?? 0
+    let unsubscribesCount = meta.unsubscribes?.length ?? 0
     spreadDepth++
     try {
       setProps(dom, element, val)
     } finally {
       spreadDepth--
     }
-    subscribes.length = subscribesCount
-    stale = unsubscribes.splice(unsubscribesCount)
+    if (meta.subscribes) meta.subscribes.length = subscribesCount
+    stale = meta.unsubscribes?.splice(unsubscribesCount) ?? []
   }
   unlink(element, () => {
     let source = isAtom(value)
@@ -877,15 +867,27 @@ let setProp = (dom: DomApis, element: JSX.Element, key: string, value: any) => {
   /** @todo Show warning if isAtom(value) && !isAction(value). */
   if (key.startsWith('on:')) {
     key = key.slice(3)
-    let name = eventActionName(element, key, value)
-    // Bind to the root frame — not `top()`. Row render often runs inside
+    // The action name is built on the first event, from the component name
+    // captured now: most listeners never fire.
+    let name: string
+    let component = jsxHName.current
+    let meta = ensureMeta(element)
+    // Run in the root frame, not `top()`. Row render often runs inside
     // `reatomMap`'s computed; capturing that frame would pin its pre-`_copy`
     // state (createMany `nodes` / head→tail) for as long as the listener
-    // lives, which is the 25_run-clear-memory leak.
-    let meta = ensureMeta(element)
-    let listener = bind((event: Event) => {
-      if (!meta.suspended) jsxEvent(name, event, element, value)
-    }, top().root.frame)
+    // lives, which is the 25_run-clear-memory leak. Calling `run` directly
+    // saves the bound function `bind` would allocate per listener.
+    let { frame } = top().root
+    let listener = (event: Event) => {
+      if (!meta.suspended)
+        frame.run(
+          jsxEvent,
+          (name ??= eventActionName(component, element, key, value)),
+          event,
+          element,
+          value,
+        )
+    }
     /**
      * Registered once, so it works before the first mount. A removed node keeps
      * the listener, collected with the node, instead of paying a
@@ -1186,21 +1188,23 @@ export let mount = (
    * subscriptions alive (critical for linked-list swap/move).
    */
   let processMutations = (mutationsList: MutationRecord[]) => {
+    // Indexed loops: `for...of` over a `NodeList` costs about twice as much,
+    // which shows when a clear removes thousands of rows at once.
     let removedNodes: Node[] = []
     for (let mutation of mutationsList) {
-      for (let removedNode of mutation.removedNodes) {
-        if (!removedNode.isConnected) removedNodes.push(removedNode)
-      }
+      let nodes = mutation.removedNodes
+      for (let i = 0; i < nodes.length; i++)
+        if (!nodes[i]!.isConnected) removedNodes.push(nodes[i]!)
     }
     cleanupNodes(removedNodes, symbol)
 
     for (let mutation of mutationsList) {
-      mutation.addedNodes.forEach((addedNode) => {
-        // Skip nodes that were appended and removed within the same batch:
-        // they never really appeared, so connecting them would run orphan
-        // ref hooks and leak subscriptions with no removal record to come.
-        if (addedNode.isConnected) connectNode(addedNode, symbol)
-      })
+      let nodes = mutation.addedNodes
+      // Skip nodes that were appended and removed within the same batch:
+      // they never really appeared, so connecting them would run orphan
+      // ref hooks and leak subscriptions with no removal record to come.
+      for (let i = 0; i < nodes.length; i++)
+        if (nodes[i]!.isConnected) connectNode(nodes[i]!, symbol)
     }
   }
   let observer = new dom.MutationObserver(bind(processMutations))
