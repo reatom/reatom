@@ -76,7 +76,7 @@ export function take(
 
   let log = bind(action((_message: string, payload: any) => payload, name))
 
-  let un: Unsubscribe
+  let un: Unsubscribe | undefined
 
   let syncResult:
     | null
@@ -137,11 +137,11 @@ export function take(
 
   promise
     .then((value) => {
-      un()
+      un?.()
       if (!syncResult) log('resolve', value)
     })
     .catch((error) => {
-      un()
+      un?.()
       if (isAbort(error)) {
         promise.catch(noop)
         log('abort', error)

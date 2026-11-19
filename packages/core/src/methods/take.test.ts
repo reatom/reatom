@@ -3,7 +3,7 @@ import { catalog, expect, test, vi } from 'test'
 import { withAsyncData } from '../async'
 import { action, type Atom, atom, computed, notify } from '../core'
 import { withAbort, withSuspenseInit } from '../extensions'
-import { identity, noop, sleep, throwAbort } from '../utils'
+import { identity, isAbort, noop, sleep, throwAbort } from '../utils'
 import { take } from './take'
 import { wrap } from './wrap'
 
@@ -138,4 +138,32 @@ test('take with selector', async () => {
       ),
     ),
   ).toBe(4)
+})
+
+test('take in an aborted frame rejects with the abort without an unhandled rejection', async () => {
+  const name = 'takeAbortedFrame'
+  const flag = atom(false, `${name}.flag`)
+  const run = action(async () => {
+    run.abort('aborted before take')
+    await wrap(take(flag))
+  }, `${name}.run`).extend(withAbort())
+
+  const rejections: unknown[] = []
+  const listener = (reason: unknown) => rejections.push(reason)
+  process.on('unhandledRejection', listener)
+
+  try {
+    let caught: unknown
+    try {
+      await wrap(run())
+    } catch (error) {
+      caught = error
+    }
+    expect(isAbort(caught)).toBe(true)
+
+    await new Promise((resolve) => setTimeout(resolve))
+    expect(rejections).toEqual([])
+  } finally {
+    process.off('unhandledRejection', listener)
+  }
 })
