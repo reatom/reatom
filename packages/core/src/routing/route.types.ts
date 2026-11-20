@@ -96,6 +96,15 @@ export interface RouteOptions<
   SearchOutput extends Rec = SearchInput,
   LoaderParams = Plain<ParamsOutput & SearchOutput>,
   Payload = LoaderParams,
+  Self = Computed<Plain<ParamsOutput & SearchOutput>> &
+    RouteExt<
+      string,
+      ParamsOutput,
+      SearchOutput,
+      Payload,
+      ParamsInput,
+      SearchInput
+    >,
 > {
   /**
    * Path pattern string. Use `:paramName` for required parameters and
@@ -206,17 +215,7 @@ export interface RouteOptions<
    *   </div>`
    *   }
    */
-  render?: (
-    options: Computed<Plain<ParamsOutput & SearchOutput>> &
-      RouteExt<
-        string,
-        ParamsOutput,
-        SearchOutput,
-        Payload,
-        ParamsInput,
-        SearchInput
-      >,
-  ) => RouteChild
+  render?: (self: Self) => RouteChild
 
   /**
    * When `true`, the route acts as a **layout** — its `render` fires on any
@@ -354,7 +353,17 @@ export interface RouteMixin<
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
-      Payload
+      Payload,
+      RouteSelf<
+        TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+        Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+        Plain<SubSearchOutput>,
+        Payload,
+        Plain<GoParams & SubParamsOutput>,
+        Plain<SubSearchOutput>,
+        Plain<SubParamsOutput>,
+        Plain<SubSearchOutput>
+      >
     > & {
       params: Codec<SubParamsInput, SubParamsOutput>
       search: Codec<SubSearchInput, SubSearchOutput>
@@ -391,7 +400,17 @@ export interface RouteMixin<
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
-      Payload
+      Payload,
+      RouteSelf<
+        TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+        Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+        Plain<SubSearchOutput>,
+        Payload,
+        Plain<GoParams & SubParamsOutput>,
+        Plain<SubSearchInput>,
+        Plain<SubParamsOutput>,
+        Plain<SubSearchInput>
+      >
     > & { params: Codec<SubParamsInput, SubParamsOutput> },
     name?: string,
   ): RouteAtom<
@@ -430,7 +449,17 @@ export interface RouteMixin<
         SubParamsOutput,
         SubSearchOutput,
         LoaderParams,
-        Payload
+        Payload,
+        RouteSelf<
+          TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+          Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+          Plain<SubSearchOutput>,
+          Payload,
+          Plain<GoParams & SubParamsInput>,
+          Plain<SubSearchOutput>,
+          Plain<SubParamsInput>,
+          Plain<SubSearchOutput>
+        >
       >,
       'params'
     > & {
@@ -467,7 +496,17 @@ export interface RouteMixin<
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
-      Payload
+      Payload,
+      RouteSelf<
+        TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+        Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+        Plain<SubSearchOutput>,
+        Payload,
+        Plain<GoParams & SubParamsInput>,
+        Plain<SubSearchOutput>,
+        Plain<SubParamsInput>,
+        Plain<SubSearchOutput>
+      >
     > & { params?: undefined; search: Codec<SubSearchInput, SubSearchOutput> },
     name?: string,
   ): RouteAtom<
@@ -502,7 +541,17 @@ export interface RouteMixin<
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
-      Payload
+      Payload,
+      RouteSelf<
+        TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+        Plain<SubParamsOutput>,
+        Plain<SubSearchOutput>,
+        Payload,
+        Plain<GoParams & SubParamsInput>,
+        Plain<SubSearchOutput>,
+        Plain<SubParamsInput>,
+        Plain<SubSearchOutput>
+      >
     > & { search: Codec<SubSearchInput, SubSearchOutput> },
     name?: string,
   ): RouteAtom<
@@ -551,7 +600,17 @@ export interface RouteMixin<
         SubParamsOutput,
         SubSearchOutput,
         LoaderParams,
-        Payload
+        Payload,
+        RouteSelf<
+          TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+          Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+          Plain<SubSearchOutput>,
+          Payload,
+          Plain<GoParams & SubParamsInput>,
+          Plain<SubSearchInput>,
+          Plain<SubParamsInput>,
+          Plain<SubSearchInput>
+        >
       >,
       'params'
     > & {
@@ -587,7 +646,17 @@ export interface RouteMixin<
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
-      Payload
+      Payload,
+      RouteSelf<
+        TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+        Plain<NestedParamsOutput<Params, SubParamsOutput>>,
+        Plain<SubSearchOutput>,
+        Payload,
+        Plain<GoParams & SubParamsInput>,
+        Plain<SubSearchInput>,
+        Plain<SubParamsInput>,
+        Plain<SubSearchInput>
+      >
     > & { params?: undefined },
     name?: string,
   ): RouteAtom<
@@ -618,7 +687,17 @@ export interface RouteMixin<
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
-      Payload
+      Payload,
+      RouteSelf<
+        TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+        Plain<SubParamsOutput>,
+        Plain<SubSearchOutput>,
+        Payload,
+        Plain<GoParams & SubParamsInput>,
+        Plain<SubSearchInput>,
+        Plain<SubParamsInput>,
+        Plain<SubSearchInput>
+      >
     > & {
       params: (params: Params & SubParamsInput) => null | SubParamsOutput
     },
@@ -651,7 +730,17 @@ export interface RouteMixin<
       SubParamsOutput,
       SubSearchOutput,
       LoaderParams,
-      Payload
+      Payload,
+      RouteSelf<
+        TrimPath<`${Path extends `${infer Path}?` ? Path : Path}/${SubPath}`>,
+        Plain<SubParamsOutput>,
+        Plain<SubSearchOutput>,
+        Payload,
+        Plain<GoParams & SubParamsInput>,
+        Plain<SubSearchInput>,
+        Plain<SubParamsInput>,
+        Plain<SubSearchInput>
+      >
     >,
     name?: string,
   ): RouteAtom<
@@ -940,6 +1029,34 @@ export interface RouteAtom<
     Computed<null | Plain<ParamsOutput & SearchOutput>>,
     RouteExt<
       Path,
+      ParamsOutput,
+      SearchOutput,
+      Payload,
+      GoParams,
+      GoSearch,
+      RelativeGoParams,
+      RelativeGoSearch
+    > {}
+
+/**
+ * The route that `render` receives as `self`: the {@link RouteAtom} with
+ * non-null state, because `render` runs only on a match.
+ */
+export interface RouteSelf<
+  Path extends string = string,
+  ParamsOutput extends Rec = PathParams<Path>,
+  SearchOutput extends Rec = {},
+  Payload = Plain<ParamsOutput & SearchOutput>,
+  GoParams = ParamsOutput,
+  GoSearch = SearchOutput,
+  RelativeGoParams = GoParams,
+  RelativeGoSearch = GoSearch,
+>
+  extends
+    Computed<Plain<ParamsOutput & SearchOutput>>,
+    RouteExt<
+      Path,
+      // @ts-expect-error TODO
       ParamsOutput,
       SearchOutput,
       Payload,
