@@ -880,6 +880,23 @@ test('params callback with correct search params inherence', () => {
   expect(userRoute()).toMatchObject({ userId: '123' })
 })
 
+test('params callback loader gets the callback result, not parent params', async () => {
+  const docRoute = reatomRoute('docs/:docId')
+  const pageRoute = docRoute.reatomRoute({
+    path: 'pages/:pageId',
+    params: ({ pageId }: { docId: string; pageId: string }) => ({ pageId }),
+    async loader(params) {
+      return params
+    },
+  })
+
+  pageRoute.go({ docId: 'a', pageId: '2' })
+  await wrap(sleep())
+
+  expect(docRoute()).toEqual({ docId: 'a' })
+  expect(await wrap(pageRoute.loader())).toEqual({ pageId: '2' })
+})
+
 test('search params transform', () => {
   const userRoute = reatomRoute({
     path: 'user',
