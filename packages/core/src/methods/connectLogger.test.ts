@@ -1,7 +1,14 @@
 import { expect, test, vi } from 'test'
 
 import { sleep, wrap } from '..'
-import { atom, computed, EXTENSIONS, notify, withActions } from '../core'
+import {
+  action,
+  atom,
+  computed,
+  EXTENSIONS,
+  notify,
+  withActions,
+} from '../core'
 import { connectLogger, log } from './connectLogger'
 import { getStackTrace } from './getStackTrace'
 
@@ -115,6 +122,70 @@ test('connectLogger match', () => {
   expect(logs.some((log) => String(log).includes('blocked'))).toBe(false)
 
   vi.restoreAllMocks()
+})
+
+test('an action that calls notify() inside itself is logged once it returns', () => {
+  const groupSpy = vi
+    .spyOn(console, 'groupCollapsed')
+    .mockImplementation(() => {})
+  vi.spyOn(console, 'groupEnd').mockImplementation(() => {})
+  const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+  connectLogger({ match: (name) => name === 'flushing' })
+  const flushing = action(() => {
+    try {
+      return 'done'
+    } finally {
+      notify()
+    }
+  }, 'flushing')
+  EXTENSIONS.pop()
+
+  flushing()
+  notify()
+
+  const titles = (groupSpy.mock.calls as unknown[][]).map((call) =>
+    String(call[0]),
+  )
+  const logged = (logSpy.mock.calls as unknown[][]).map((call) => call[0])
+  vi.restoreAllMocks()
+
+  expect(errorSpy).not.toHaveBeenCalled()
+  expect(titles.filter((title) => title.includes(' flushing '))).toHaveLength(1)
+  expect(logged).toContain('done')
+})
+
+test('an action that throws is logged with its error', () => {
+  const groupSpy = vi
+    .spyOn(console, 'groupCollapsed')
+    .mockImplementation(() => {})
+  vi.spyOn(console, 'groupEnd').mockImplementation(() => {})
+  const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+  const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+  connectLogger({ match: (name) => name === 'failing' })
+  const failing = action(() => {
+    throw new Error('failed')
+  }, 'failing')
+  EXTENSIONS.pop()
+
+  expect(() => failing()).toThrow('failed')
+  notify()
+
+  const titles = (groupSpy.mock.calls as unknown[][]).map((call) =>
+    String(call[0]),
+  )
+  const logged = (logSpy.mock.calls as unknown[][]).map((call) => call[0])
+  vi.restoreAllMocks()
+
+  expect(errorSpy).not.toHaveBeenCalled()
+  expect(titles.filter((title) => title.includes(' failing '))).toHaveLength(1)
+  expect(
+    logged.some(
+      (value) => value instanceof Error && value.message === 'failed',
+    ),
+  ).toBe(true)
 })
 
 test('log.state logs only when data changes', () => {
