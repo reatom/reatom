@@ -18,15 +18,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         if: ${{ !github.head_ref }}
-        with:
-          fetch-depth: 0
 
       - uses: actions/checkout@v4
         if: ${{ github.head_ref }}
         with:
           ref: ${{ github.head_ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
-          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version: '24.21'
