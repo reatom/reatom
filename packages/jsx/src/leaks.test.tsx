@@ -200,7 +200,7 @@ test('ref mount hook runs once for linked-list rows', () =>
     expect(refSpy).toHaveBeenCalledTimes(1)
   }))
 
-test('linked-list clear drops element meta.subscribes (no render-frame pin)', () =>
+test('linked-list clear unsubscribes rows and keeps their reconnect thunks', () =>
   context.start(async () => {
     const list = reatomLinkedList(
       (id: number, label: string) => ({
@@ -244,8 +244,10 @@ test('linked-list clear drops element meta.subscribes (no render-frame pin)', ()
     await wrap(sleep())
     await wrap(sleep())
 
-    // Teardown must clear both live unsubscribes and reconnect thunks so
-    // bind()/render closures cannot pin a reatomMap frame state after clear.
+    // Teardown drops the live subscriptions. The reconnect thunks stay, so a
+    // row connected again (a cached map model) resubscribes; they are
+    // collected with the row.
     expect(row[metaKey].unsubscribes).toEqual([])
-    expect(row[metaKey].subscribes).toEqual([])
+    expect(row[metaKey].subscribes.length).toBeGreaterThan(0)
+    expect(row[metaKey].suspended).toBe(true)
   }))

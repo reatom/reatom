@@ -8,17 +8,12 @@ import {
   ReatomError,
   top,
 } from '../core'
-import { withConnectHook } from '../extensions'
-import { effect, peek, wrap } from '../methods'
+import { effect, wrap } from '../methods'
 import type { Rec, Unsubscribe } from '../utils'
 import { isObject } from '../utils'
-import { isAppendOnlyUpdate, isLinkedListBatching } from './linkedListBatching'
-import type {
-  LinkedList,
-  LinkedListDerivedAtom,
-  LLNode,
-} from './reatomLinkedList'
-import { isLinkedListAtom, reatomLinkedList } from './reatomLinkedList'
+import { isAppendOnly, isLinkedListBatching } from './linkedListBatching'
+import type { LinkedList, LinkedListSource, LLNode } from './reatomLinkedList'
+import { _reatomArrayLinkedList, isLinkedListAtom } from './reatomLinkedList'
 import type { LinkedListViewSource, ViewAtom } from './reatomView'
 import { reatomView } from './reatomView'
 
@@ -55,15 +50,6 @@ export interface VirtualPadding {
   before: number
   after: number
 }
-
-export interface VirtualSlot<Item> {
-  item: Item
-}
-
-export type VirtualMapAtom<Item, T extends Rec> = LinkedListDerivedAtom<
-  LLNode<VirtualSlot<Item>>,
-  LLNode<T>
->
 
 export interface VirtualAtom<Item> extends ViewAtom<Item> {
   /**
@@ -113,13 +99,13 @@ export interface VirtualAtom<Item> extends ViewAtom<Item> {
   /**
    * A linked list of `render(item)` for the window items. An item keeps its
    * rendered node while it stays in the window, so `@reatom/jsx` moves DOM
-   * nodes instead of recreating them on every scroll step. The list syncs while
-   * it has a subscriber and empties without one.
+   * nodes instead of recreating them on every scroll step. An item that leaves
+   * the window and comes back is rendered again.
    */
   reatomMap: <T extends Rec>(
     render: (item: Item) => T,
     name?: string,
-  ) => VirtualMapAtom<Item, T>
+  ) => LinkedListSource<LLNode<T>>
   /**
    * Connects a vertical scroll container: its scroll position and height feed
    * the model, and programmatic changes of `scrollOffset` scroll it. Sets
@@ -129,15 +115,14 @@ export interface VirtualAtom<Item> extends ViewAtom<Item> {
   bindScroller: (scroller: HTMLElement) => Unsubscribe
 }
 
+/** Item geometry: uniform arithmetic, or the prefix sums of the sizes. */
 interface VirtualLayout {
   count: number
   total: number
-  /** Start of the item at `index`; `startOf(count)` is the total size. */
-  startOf: (index: number) => number
-  /** How many items end at or before `offset`: the first index visible there. */
-  countEndedBy: (offset: number) => number
-  /** How many items start before `offset`. */
-  countStartedBefore: (offset: number) => number
+  /** The size of the unmeasured items, when they all have the same one. */
+  uniformSize: undefined | number
+  /** Starts by index, `starts[count]` is the total. A uniform layout has none. */
+  starts: undefined | Float64Array
 }
 
 /** Sizes and starts by index, with spare capacity for appended items. */
@@ -152,10 +137,13 @@ interface LayoutState extends VirtualLayout {
   /** The source of the previous layout and how many leading items it shares. */
   base: unknown
   kept: number
-  /** The size of the unmeasured items, when they all have the same one. */
-  uniformSize: undefined | number
   /** A uniform layout has none. The next layout takes it over. */
   cache: undefined | SizeCache
+  /**
+   * An estimate function that reads atoms has to see every item on every change
+   * of them, so only the results of a pure one are kept by index.
+   */
+  isPureEstimate: boolean
 }
 
 interface RenderedItems {
@@ -198,36 +186,38 @@ interface ScrollState {
   anchorStart: number
 }
 
-const uniformLayout = (count: number, size: number): VirtualLayout => ({
-  count,
-  total: count * size,
-  startOf: (index) => index * size,
-  countEndedBy: (offset) => Math.min(count, Math.floor(offset / size)),
-  countStartedBefore: (offset) => Math.min(count, Math.ceil(offset / size)),
-})
+/** Start of the item at `index`; `startOf(layout, count)` is the total. */
+const startOf = ({ starts, uniformSize }: VirtualLayout, index: number) =>
+  starts ? starts[index]! : index * uniformSize!
 
-const variableLayout = (starts: Float64Array, count: number): VirtualLayout => {
-  const firstIndexAbove = (offset: number, isInclusive: boolean) => {
-    let low = 0
-    let high = count + 1
-    while (low < high) {
-      const middle = (low + high) >>> 1
-      const start = starts[middle]!
-      if (isInclusive ? start <= offset : start < offset) low = middle + 1
-      else high = middle
-    }
-    return low
+/** The first index that starts after `offset`, or at it unless `isInclusive`. */
+const firstIndexAbove = (
+  { count, starts, uniformSize }: VirtualLayout,
+  offset: number,
+  isInclusive: boolean,
+): number => {
+  if (!starts) {
+    const index = offset / uniformSize!
+    return isInclusive ? Math.floor(index) + 1 : Math.ceil(index)
   }
-  return {
-    count,
-    total: starts[count]!,
-    startOf: (index) => starts[index]!,
-    countEndedBy: (offset) =>
-      Math.min(count, firstIndexAbove(offset, true) - 1),
-    countStartedBefore: (offset) =>
-      Math.min(count, firstIndexAbove(offset, false)),
+  let low = 0
+  let high = count + 1
+  while (low < high) {
+    const middle = (low + high) >>> 1
+    const start = starts[middle]!
+    if (isInclusive ? start <= offset : start < offset) low = middle + 1
+    else high = middle
   }
+  return low
 }
+
+/** How many items end at or before `offset`: the first index visible there. */
+const countEndedBy = (layout: VirtualLayout, offset: number) =>
+  Math.min(layout.count, firstIndexAbove(layout, offset, true) - 1)
+
+/** How many items start before `offset`. */
+const countStartedBefore = (layout: VirtualLayout, offset: number) =>
+  Math.min(layout.count, firstIndexAbove(layout, offset, false))
 
 const measuredSizesOf = (
   sizes: MeasuredSizes,
@@ -289,7 +279,7 @@ const isSameWindow = (
  *   style:top={() => `${virtual.stickyInset()}px`}
  *   style:bottom={() => `${virtual.stickyInset()}px`}
  *   >
- *   {virtual.reatomMap(({ item }) => <Row row={item} />)}
+ *   {virtual.reatomMap((row) => <Row row={row} />)}
  *   </div>
  *   <div style:height={() => `${virtual.padding().after}px`} />
  *   </div>
@@ -373,10 +363,6 @@ export function reatomVirtual(
     `${name}._measured`,
   )
 
-  // An estimate function that reads atoms has to see every item on every
-  // change of them, so only the results of a pure one are kept by index.
-  let isPureEstimate = true
-
   const layout = computed((prevLayout?: LayoutState): LayoutState => {
     const sourceState = source()
     const sizes = measured()
@@ -404,13 +390,9 @@ export function reatomVirtual(
       kept = count
     } else if (isLinkedListSource) {
       if (
-        isAppendOnlyUpdate(
-          prevLayout.source as LinkedList,
-          sourceState as LinkedList,
-        )
-      ) {
+        isAppendOnly(prevLayout.source as LinkedList, sourceState as LinkedList)
+      )
         kept = prevLayout.count
-      }
     } else if (cache) {
       const prevItems = prevLayout.source as ReadonlyArray<unknown>
       const items = sourceState as ReadonlyArray<unknown>
@@ -420,6 +402,7 @@ export function reatomVirtual(
 
     // The count of leading sizes that are still right, and the first start to
     // recompute: a measurement of a rendered item only patches its size.
+    let isPureEstimate = prevLayout?.isPureEstimate ?? true
     let from =
       cache && isPureEstimate && prevLayout!.uniformSize === uniformSize
         ? kept
@@ -441,14 +424,17 @@ export function reatomVirtual(
       source: sourceState,
       base: prevLayout?.source,
       kept,
+      count,
       uniformSize,
     }
 
     if (uniformSize !== undefined && !sizes.hasUniformDelta) {
       return {
-        ...uniformLayout(count, uniformSize),
         ...state,
+        total: count * uniformSize,
+        starts: undefined,
         cache: undefined,
+        isPureEstimate,
       }
     }
 
@@ -498,7 +484,7 @@ export function reatomVirtual(
       starts[i + 1] = starts[i]! + itemSizes[i]!
     }
 
-    return { ...variableLayout(starts, count), ...state, cache }
+    return { ...state, total: starts[count]!, starts, cache, isPureEstimate }
   }, `${name}._layout`)
 
   const totalSize = computed(() => layout().total, `${name}.totalSize`)
@@ -520,14 +506,8 @@ export function reatomVirtual(
 
   const scrollState = computed((prevState?: ScrollState): ScrollState => {
     const request = requestedScrollOffset()
-    const {
-      source: sourceState,
-      base,
-      kept,
-      count,
-      startOf,
-      countStartedBefore,
-    } = layout()
+    const current = layout()
+    const { source: sourceState, base, kept, count } = current
     const max = maxScrollOffset()
     let offset = max
     if (!stickToEnd()) {
@@ -544,18 +524,18 @@ export function reatomVirtual(
               ? kept
               : 0
         if (prevState.anchor <= keptItems) {
-          offset += startOf(prevState.anchor) - prevState.anchorStart
+          offset += startOf(current, prevState.anchor) - prevState.anchorStart
         }
       }
       offset = Math.min(Math.max(0, offset), max)
     }
-    const anchor = countStartedBefore(offset)
+    const anchor = countStartedBefore(current, offset)
     return {
       offset,
       request,
       source: sourceState,
       anchor,
-      anchorStart: startOf(anchor),
+      anchorStart: startOf(current, anchor),
     }
   }, `${name}._scrollState`)
 
@@ -571,15 +551,15 @@ export function reatomVirtual(
 
   const virtualWindow = computed(
     (prevWindow?: VirtualWindow): VirtualWindow => {
-      const { count, countEndedBy, countStartedBefore } = layout()
+      const current = layout()
       const position = scrollOffset()
-      const firstVisible = countEndedBy(position)
+      const firstVisible = countEndedBy(current, position)
       const lastVisible = Math.max(
         firstVisible,
-        countStartedBefore(position + readViewportSize()),
+        countStartedBefore(current, position + readViewportSize()),
       )
       const offset = Math.max(0, firstVisible - overscan)
-      const limit = Math.min(count, lastVisible + overscan) - offset
+      const limit = Math.min(current.count, lastVisible + overscan) - offset
       return isSameWindow(prevWindow, offset, limit)
         ? prevWindow
         : { offset, limit }
@@ -596,24 +576,20 @@ export function reatomVirtual(
     name,
   )
 
-  const renderedRange = () => {
-    const { offset, items } = view()
-    const { startOf } = layout()
-    return { start: startOf(offset), end: startOf(offset + items.length) }
-  }
-
   const padding = computed((prevPadding?: VirtualPadding): VirtualPadding => {
-    const { start, end } = renderedRange()
-    const before = start
-    const after = totalSize() - end
+    const { offset, items } = view()
+    const current = layout()
+    const before = startOf(current, offset)
+    const after = current.total - startOf(current, offset + items.length)
     return prevPadding?.before === before && prevPadding.after === after
       ? prevPadding
       : { before, after }
   }, `${name}.padding`)
 
   const stickyInset = computed(() => {
-    const { start, end } = renderedRange()
-    return Math.min(0, readViewportSize() - (end - start))
+    const { before, after } = padding()
+    const renderedSize = totalSize() - before - after
+    return Math.min(0, readViewportSize() - renderedSize)
   }, `${name}.stickyInset`)
 
   const measure = action((item: unknown, size: number) => {
@@ -625,8 +601,7 @@ export function reatomVirtual(
     const sizes = measured()
     const { patches } = sizes
     const itemSizes = measuredSizesOf(sizes, item)
-    const estimatedSize = estimateSize(item)
-    const knownSize = itemSizes.get(item) ?? estimatedSize
+    const knownSize = itemSizes.get(item) ?? estimateSize(item)
 
     // The view gives the index of a rendered item. Only the first measurement
     // of an update reads it: after that the layout waits for its patches, and
@@ -667,20 +642,20 @@ export function reatomVirtual(
       ...sizes,
       rendered,
       hasUniformDelta:
-        sizes.hasUniformDelta || (isUniform && size !== estimatedSize),
+        sizes.hasUniformDelta || (isUniform && size !== readUniformSize()),
     })
   }, `${name}.measure`)
 
   const scrollToIndex = action(
     (index: number, align: VirtualAlign = 'start') => {
-      const { count, startOf } = layout()
-      if (count === 0) return
+      const current = layout()
+      if (current.count === 0) return
       const targetIndex = Math.min(
-        count - 1,
+        current.count - 1,
         Math.floor(readNumber(index, 'index')),
       )
-      const itemStart = startOf(targetIndex)
-      const itemEnd = startOf(targetIndex + 1)
+      const itemStart = startOf(current, targetIndex)
+      const itemEnd = startOf(current, targetIndex + 1)
       const viewport = readViewportSize()
       const position = scrollOffset()
 
@@ -704,67 +679,7 @@ export function reatomVirtual(
   const reatomMap = <T extends Rec>(
     render: (item: unknown) => T,
     mapName: string = named(`${name}.reatomMap`),
-  ): VirtualMapAtom<unknown, T> => {
-    const slots = reatomLinkedList<VirtualSlot<unknown>>(
-      [],
-      `${mapName}._slots`,
-    )
-
-    const isSameOrder = (windowItems: ReadonlyArray<unknown>) => {
-      let slot = peek(slots).head
-      for (const item of windowItems) {
-        if (slot === null || slot.item !== item) return false
-        slot = slot[slots.LL_NEXT]
-      }
-      return slot === null
-    }
-
-    const syncSlots = (windowItems: ReadonlyArray<unknown>) => {
-      if (isSameOrder(windowItems)) return
-
-      const slotByItem = new Map<unknown, LLNode<VirtualSlot<unknown>>>()
-      const leavingSlots: Array<LLNode<VirtualSlot<unknown>>> = []
-      const windowItemSet = new Set(windowItems)
-      for (
-        let slot = peek(slots).head;
-        slot !== null;
-        slot = slot[slots.LL_NEXT]
-      ) {
-        if (windowItemSet.has(slot.item) && !slotByItem.has(slot.item)) {
-          slotByItem.set(slot.item, slot)
-        } else {
-          leavingSlots.push(slot)
-        }
-      }
-
-      slots.batch(() => {
-        if (leavingSlots.length > 0) slots.removeMany(leavingSlots)
-        let previousSlot: null | LLNode<VirtualSlot<unknown>> = null
-        for (const item of windowItems) {
-          let slot = slotByItem.get(item)
-          if (slot === undefined) {
-            slot = slots.insertMany([{ item }], previousSlot)[0]!
-          } else {
-            // A repeated item takes the kept slot once.
-            slotByItem.delete(item)
-            if (slot[slots.LL_PREV] !== previousSlot) {
-              slots.move(slot, previousSlot)
-            }
-          }
-          previousSlot = slot
-        }
-      })
-    }
-
-    slots.extend(
-      withConnectHook(() => {
-        effect(() => syncSlots(view.items()), `${mapName}._sync`)
-        return () => slots.clear()
-      }),
-    )
-
-    return slots.reatomMap(({ item }) => render(item), mapName)
-  }
+  ) => _reatomArrayLinkedList(view.items, render, mapName)
 
   const bindScroller = (scroller: HTMLElement): Unsubscribe => {
     const previousOverflowAnchor = scroller.style.overflowAnchor

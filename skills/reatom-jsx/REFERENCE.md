@@ -349,6 +349,16 @@ The JSX runtime automatically applies the same logic internally using `reatomCla
 ]}></button>
 ```
 
+### `class:*` props
+
+Toggle a single class by the truthiness of a value. An atom is subscribed directly, without the computed that a reactive `class` creates, so this is the cheapest way to switch a class on many elements, such as list rows:
+
+```tsx
+<tr class:danger={row.selected} class:even={() => row.index() % 2 === 0}></tr>
+```
+
+`class:*` only adds and removes its own class. A reactive `class` prop rewrites the whole attribute when it updates, which removes classes set by `class:*`, so don't mix a reactive `class` with `class:*` on one element. A static `class` is fine.
+
 ### CSS-in-JS
 
 The `css` prop provides an ideal architectural balance for styling: it keeps styles colocated with the markup they affect while avoiding the coupling issues of other approaches.
@@ -748,17 +758,21 @@ Every structural method records a change: `create`, `createMany`, `insertMany(no
 | Feeds, drag-and-drop, tables, field arrays | `reatomLinkedList` + optional `.reatomMap()`             |
 | Lookup by id                               | `reatomLinkedList({ create, key: 'id' })` + `list.map()` |
 
-Root, mapped, and filtered lists share readonly chaining methods. Keep persistent
-row state in `source.reatomFilter(predicate).reatomMap(createModel)` and allocate
-elements in `reatomVirtual(models, options).reatomMap(render)`. The model mapping
-reuses allocations after hide/show; the virtual window allocates fresh DOM for
-rows that return after full removal.
+Root, mapped, and filtered lists share readonly chaining methods. A `reatomMap`
+keeps one model per origin while the map lives, so a row hidden by a filter and shown again is
+the same live element, with its DOM state and handlers:
+`list.reatomMap(toState).reatomFilter(test).reatomMap(toView)`. A virtual window,
+`reatomVirtual(models, options).reatomMap(render)`, does not cache: it renders
+fresh DOM for rows that come back into the window.
 
 Moves, run moves, swaps, and missed-version reconciliation move complete live
 `<>...</>` ranges, retaining their reactive children, event handlers, focused
 inputs, and input selection. Only absent rows are removed during reconciliation.
-Synchronous DOM moves keep subscriptions connected. A real removal runs cleanup;
-reappending a previously disposed element or fragment does not revive its bindings.
+Synchronous DOM moves keep subscriptions connected. A real removal suspends the
+element: it unsubscribes, runs `ref` cleanups, and its `on:*` handlers ignore
+events. Appending it again inside a mounted tree resubscribes it, so it shows the
+current atom values, runs its `ref` again, and handles events again. A suspended
+element keeps its bindings until it is collected.
 
 #### Caveats
 

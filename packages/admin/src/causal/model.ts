@@ -1,6 +1,7 @@
 import {
   action,
   atom,
+  changesSince,
   computed,
   effect,
   peek,
@@ -144,15 +145,9 @@ export function reatomCausalTimeline(
       cache = rangeCache()
     if (cache.version === source.version && cache.content === revision)
       return cache.value
-    const tail =
-      cache.version + 1 === source.version &&
-      cache.content === revision &&
-      source.changes.every(
-        (change) =>
-          change.kind === 'create' ||
-          change.kind === 'createMany' ||
-          change.kind === 'insert',
-      )
+    const changes =
+      cache.content === revision ? changesSince(cache.version, source) : null
+    const tail = !!changes?.every((change) => change.kind === 'insert')
     let value = tail ? cache.value : null
     const take = (row: TimelineRow) => {
       const record = peek(row.record),
@@ -165,10 +160,8 @@ export function reatomCausalTimeline(
         : { start: record.start, end }
     }
     if (tail)
-      for (const change of source.changes) {
-        if (change.kind === 'create') take(change.node)
-        else if (change.kind === 'createMany' || change.kind === 'insert')
-          for (const row of change.nodes) take(row)
+      for (const change of changes!) {
+        if (change.kind === 'insert') for (const row of change.nodes) take(row)
       }
     else
       for (
@@ -192,21 +185,13 @@ export function reatomCausalTimeline(
       cache = pendingCache()
     if (cache.version === source.version && cache.content === revision)
       return cache.value
-    const tail =
-      cache.version + 1 === source.version &&
-      cache.content === revision &&
-      source.changes.every(
-        (change) =>
-          change.kind === 'create' ||
-          change.kind === 'createMany' ||
-          change.kind === 'insert',
-      )
+    const changes =
+      cache.content === revision ? changesSince(cache.version, source) : null
+    const tail = !!changes?.every((change) => change.kind === 'insert')
     let value = tail ? cache.value : 0
     if (tail)
-      for (const change of source.changes) {
-        if (change.kind === 'create')
-          value += Number(peek(change.node.synthetic))
-        else if (change.kind === 'createMany' || change.kind === 'insert')
+      for (const change of changes!) {
+        if (change.kind === 'insert')
           for (const row of change.nodes) value += Number(peek(row.synthetic))
       }
     else
@@ -552,17 +537,13 @@ export function reatomCausalTimeline(
       epoch = options.store.recordEpoch()
     const reset = epoch !== state.sourceEpoch
     const contentOnly = source.version === state.sourceVersion
-    const appended =
-      !reset &&
-      source.version === state.sourceVersion + 1 &&
-      source.changes.every(
-        (change) => change.kind === 'create' || change.kind === 'createMany',
-      )
+    // The capture list only appends, so its inserts are at the tail.
+    const changes = reset ? null : changesSince(state.sourceVersion, source)
+    const appended = !!changes?.every((change) => change.kind === 'insert')
     const records: AdminRecord[] = []
     if (appended)
-      for (const change of source.changes) {
-        if (change.kind === 'create') records.push(change.node)
-        else if (change.kind === 'createMany') records.push(...change.nodes)
+      for (const change of changes!) {
+        if (change.kind === 'insert') records.push(...change.nodes)
       }
     else if (!contentOnly || reset) {
       if (reset) {

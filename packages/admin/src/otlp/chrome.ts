@@ -2,6 +2,7 @@ import {
   abortVar,
   action,
   atom,
+  changesSince,
   computed,
   effect,
   peek,
@@ -563,13 +564,8 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
     {
       init: () => new Set(),
       apply: (previous, change, state) => {
-        if (
-          change.kind === 'create' ||
-          change.kind === 'createMany' ||
-          change.kind === 'insert'
-        ) {
-          const nodes = change.kind === 'create' ? [change.node] : change.nodes
-          const hooks = nodes.filter(
+        if (change.kind === 'insert') {
+          const hooks = change.nodes.filter(
             (record) =>
               record.kind === 'span' &&
               record.frameId !== undefined &&
@@ -581,12 +577,7 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
             ...hooks.map((record) => `${record.sourceId}:${record.frameId}`),
           ])
         }
-        if (
-          change.kind === 'move' ||
-          change.kind === 'moveMany' ||
-          change.kind === 'swap'
-        )
-          return previous
+        if (change.kind === 'move' || change.kind === 'swap') return previous
         const result = new Set<string>()
         for (let record = state.head; record; record = record[state.LL_NEXT])
           if (
@@ -642,14 +633,11 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
       cache.hooks === hooks
     )
       return cache.value!
-    const tail =
-      cache.value &&
-      cache.version + 1 === source.version &&
-      cache.content === content.revision &&
-      cache.hooks === hooks &&
-      source.changes.every(
-        (change) => change.kind === 'create' || change.kind === 'createMany',
-      )
+    const changes =
+      cache.value && cache.content === content.revision && cache.hooks === hooks
+        ? changesSince(cache.version, source)
+        : null
+    const tail = !!changes?.every((change) => change.kind === 'insert')
     const value: RecordCounts = tail
       ? { ...cache.value!, kinds: { ...cache.value!.kinds } }
       : { errors: 0, logs: 0, abort: 0, mount: 0, kinds: {} }
@@ -663,9 +651,8 @@ function reatomOtlpAdminModel(options: OtlpAdminOptions) {
           (value.kinds[record.reatomKind] ?? 0) + 1
     }
     if (tail)
-      for (const change of source.changes) {
-        if (change.kind === 'create') take(change.node)
-        else if (change.kind === 'createMany')
+      for (const change of changes!) {
+        if (change.kind === 'insert')
           for (const record of change.nodes) take(record)
       }
     else
