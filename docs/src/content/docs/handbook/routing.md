@@ -757,6 +757,25 @@ params.page // 1 (default applied)
 params.sort // undefined
 ```
 
+### Scoping `withSearchParams` to a route
+
+By default [`withSearchParams`](/start/extensions#withsearchparams) syncs an atom with the URL on every page. The `path` option limits the sync to a pathname, but it is matched literally, so it knows nothing about a deploy base (for example, Vite's `base`) that your root route carries. Pass the `route` option instead: the atom is synced only while the pathname matches the route's path pattern (the route itself and everything nested under it), and the pattern includes everything the ancestors add.
+
+```typescript
+import { atom, reatomRoute, withSearchParams } from '@reatom/core'
+
+// the deploy base lives in the root route
+const rootRoute = reatomRoute({ path: 'modern-stack', layout: true })
+const articlesRoute = rootRoute.reatomRoute('articles')
+
+// synced only at `/modern-stack/articles` and below
+const query = atom('', 'articles.query').extend(
+  withSearchParams('q', { route: articlesRoute }),
+)
+```
+
+The `route` and `path` options can't be used together. The same option is available in `searchParamsAtom.lens`.
+
 ### Search-Only Routes
 
 Routes can have **only** search parameters with no path. These are useful for global overlays like modals or filters.
