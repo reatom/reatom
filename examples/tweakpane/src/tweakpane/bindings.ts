@@ -1,8 +1,8 @@
 import {
-  type Atom,
   type AtomLike,
   type EnumAtom,
   type Frame,
+  isWritableAtom,
   top,
   withChangeHook,
   withConnectHook,
@@ -13,20 +13,21 @@ import type { BindingParams, ListParamsOptions } from 'tweakpane'
 
 import { type BladeRackApi, reatomDisposable, rootPane } from './core'
 
-const isEnumAtom = (target: Atom<unknown>): target is EnumAtom<string> =>
+const isEnumAtom = (target: AtomLike<unknown>): target is EnumAtom<string> =>
   'enum' in target && typeof target.enum === 'object' && target.enum !== null
 
-const toBindingObject = <T>(target: Atom<T>, frame: Frame) => ({
+const toBindingObject = <T>(target: AtomLike<T>, frame: Frame) => ({
   get value() {
     return frame.run(target)
   },
   set value(v: T) {
-    frame.run(target.set, v)
+    if (isWritableAtom(target)) frame.run(target.set, v)
   },
 })
 
 /**
- * Extends an atom with a two-way binding to a Tweakpane control.
+ * Extends an atom with a two-way binding to a Tweakpane control. Read-only
+ * atoms (e.g. `computed`) bind one way; use them with `readonly: true`.
  *
  * Automatically detects `atom.enum` property to create dropdown lists.
  *
@@ -50,7 +51,7 @@ export const withBinding =
     },
     parent: AtomLike<BladeRackApi> = rootPane,
   ) =>
-  (target: Atom<T>) => {
+  (target: AtomLike<T>) => {
     // Auto-detect enum atoms and generate options
     const params: BindingParams = isEnumAtom(target)
       ? { options: target.enum, ...bindingParams }
@@ -66,7 +67,7 @@ export const withBinding =
         wrap(({ value }) => {
           // tweakpane mutates properties of binding object
           // so we need to create a new object in order to trigger reatom update
-          if (typeof value === 'object') {
+          if (typeof value === 'object' && isWritableAtom(target)) {
             target.set({ ...value })
           }
         }),
