@@ -573,8 +573,8 @@ await wrap(fetch('/api/submit', { method: 'POST' }))
 
 Bridges DOM/external events into Reatom's abort-aware context. Listeners auto-clean on abort or disconnect. A better version of `addEventListener`!
 
-- `onEvent(target, type, cb)` — subscribe, returns unsubscribe
-- `onEvent(target, type)` — returns a promise, resolves on next event
+- `onEvent(target, type, cb, options?)` — subscribe, returns unsubscribe, which removes the listener
+- `onEvent(target, type, options?)` — returns a promise, resolves on next event and removes the listener
 
 ```ts
 const webhookPromise = onEvent(paymentEvents, 'payment.completed')
