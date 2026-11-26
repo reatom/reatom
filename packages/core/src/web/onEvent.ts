@@ -28,11 +28,13 @@ export type EventOfTarget<Target extends EventTarget, Type extends string> =
  *
  * Can be used in two ways:
  *
- * 1. **As a Promise** (without callback): Returns a promise that resolves when the
- *    event fires once. Use with `await wrap(onEvent(...))` in actions to wait
- *    for events while respecting abort contexts.
+ * 1. **As a Promise** (without callback, listener options may take its place):
+ *    Returns a promise that resolves when the event fires once, and removes the
+ *    listener then. Use with `await wrap(onEvent(...))` in actions to wait for
+ *    events while respecting abort contexts.
  * 2. **As a Subscription** (with callback): Registers a callback that fires on
- *    each event occurrence. Returns an unsubscribe function for cleanup.
+ *    each event occurrence. Returns an unsubscribe function that removes the
+ *    listener.
  *
  * When used within an action with abort context, `onEvent` automatically cleans
  * up listeners when the action is aborted or when a component unmounts,
@@ -74,7 +76,8 @@ export type EventOfTarget<Target extends EventTarget, Type extends string> =
  *
  * @param target - The event target (DOM element, WebSocket, etc.)
  * @param type - The event type to listen for (e.g., 'click', 'message')
- * @param cb - Optional callback function. If omitted, returns a Promise
+ * @param cb - Optional callback function. If omitted, returns a Promise, and
+ *   the listener options may be passed in its place
  * @param options - Optional event listener options (capture, passive, etc.)
  * @returns A Promise resolving to the event (if no callback), or an unsubscribe
  *   function (if callback provided)
@@ -92,8 +95,13 @@ export const onEvent: {
   >(
     target: Target,
     type: Type,
+    options?: AddEventListenerOptions,
   ): Promise<EventOfTarget<Target, Type>>
-  <Event>(target: EventTarget, type: string): Promise<Event>
+  <Event>(
+    target: EventTarget,
+    type: string,
+    options?: AddEventListenerOptions,
+  ): Promise<Event>
   <
     Target extends EventTarget,
     Type extends (Target extends Record<`on${infer Type}`, Fn> ? Type : string),
@@ -112,10 +120,11 @@ export const onEvent: {
 } = (
   target: EventTarget,
   type: string,
-  cb?: Fn,
+  cb?: Fn | AddEventListenerOptions,
   options?: AddEventListenerOptions,
 ) => {
-  if (!cb) {
+  if (typeof cb !== 'function') {
+    let promiseOptions = cb ?? options
     return new Promise((resolve) => {
       let un = onEvent(
         target,
@@ -124,7 +133,7 @@ export const onEvent: {
           un()
           resolve(event)
         },
-        options,
+        promiseOptions,
       )
     })
   }
@@ -135,29 +144,36 @@ export const onEvent: {
 
   let abortSubscription = abortVar.subscribe()
 
-  options?.signal?.addEventListener('abort', abortSubscription.unsubscribe, {
-    signal: abortSubscription.listenerController.signal,
-  })
-
   let listener = wrap(
     action((event: Event) => {
-      if (options?.once) abortSubscription.unsubscribe()
+      if (options?.once) unsubscribe()
       return cb(event)
     }, name),
   )
+
+  // Removed by hand: `abortSubscription.controller` can be the frame's own
+  // controller, and aborting it to drop one listener would abort the frame.
+  let unsubscribe = () => {
+    abortSubscription.unsubscribe()
+    target.removeEventListener(type, listener, options)
+  }
+
+  options?.signal?.addEventListener('abort', unsubscribe, {
+    signal: abortSubscription.listenerController.signal,
+  })
 
   target.addEventListener(type, listener, {
     ...options,
     signal: abortSubscription.controller.signal,
   })
 
-  return abortSubscription.unsubscribe
+  return unsubscribe
 }
 
 // export const withEvent: {
 //   <
 //     A extends AtomMut,
-//     Type extends Target extends Record<`on${infer Type}`, Fn> ? Type : string,
+//     Type extends (Target extends Record<`on${infer Type}`, Fn> ? Type : string),
 //     Target extends EventTarget,
 //   >(
 //     type: Type,
@@ -180,7 +196,7 @@ export const onEvent: {
 
 // export const reatomEvent: {
 //   <
-//     Type extends Target extends Record<`on${infer Type}`, Fn> ? Type : string,
+//     Type extends (Target extends Record<`on${infer Type}`, Fn> ? Type : string),
 //     Target extends EventTarget = Window,
 //   >(
 //     type: Type,
