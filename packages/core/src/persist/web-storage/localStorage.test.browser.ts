@@ -179,6 +179,40 @@ test('localStorage deletion events invalidate subscribers', () => {
   expect(target()).toBe('initial')
 })
 
+test('localStorage propagates a reset to undefined from another tab', () => {
+  const key = uniqueKey('undefined')
+  localStorage.setItem(
+    key,
+    JSON.stringify(createRecord<string | undefined>('stored')),
+  )
+  const target = atom<string | undefined>(
+    'initial',
+    'localStorageUndefinedAtom',
+  ).extend(withLocalStorage(key))
+  const unsubscribe = target.subscribe(() => {})
+  notify()
+
+  expect(target()).toBe('stored')
+
+  // `JSON.stringify` drops the `data` key of a record holding `undefined`.
+  const newValue = JSON.stringify({
+    ...createRecord<string | undefined>(undefined),
+    timestamp: Date.now() + 1,
+  })
+  expect(JSON.parse(newValue)).not.toHaveProperty('data')
+  localStorage.setItem(key, newValue)
+  globalThis.dispatchEvent(
+    new StorageEvent('storage', {
+      key,
+      newValue,
+      storageArea: localStorage,
+    }),
+  )
+
+  unsubscribe()
+  expect(target()).toBeUndefined()
+})
+
 test('localStorage ignores malformed storage events', () => {
   const key = uniqueKey('malformed')
   let storageHandler: ((event: StorageEvent) => void) | undefined
