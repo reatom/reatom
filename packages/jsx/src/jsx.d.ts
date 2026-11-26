@@ -98,6 +98,13 @@ export namespace JSX {
      * <div css:size="16px" css="font-size: var(--size);"></div>
      */
     [css: `css:${string}`]: string | number | false | null | undefined
+    /**
+     * Toggles one class by the truthiness of the value. An atom is subscribed
+     * directly, so it is the cheapest way to switch a class.
+     * @example
+     * <tr class:danger={row.selected} />
+     */
+    [className: `class:${string}`]: boolean | null | undefined
   }
 
   interface EventHandler<T, E extends Event = Event> {
@@ -1326,8 +1333,6 @@ export namespace JSX {
     role?: AriaRole | null | undefined
   }
 
-  // TODO: Should we allow this?
-  // type ClassKeys = `class:${string}`;
   type StylePropertiesKeys = Exclude<
     keyof csstype.PropertiesHyphen,
     `-${string}`
@@ -1353,7 +1358,6 @@ export namespace JSX {
       ElementAttributes<T>,
       ElementProperties<T>,
       $Spread<T> {
-    // [key: ClassKeys]: boolean;
     /**
      * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Global_attributes/data-*
      * @see https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/dataset

@@ -1,45 +1,61 @@
-const batchingLinkedLists = new WeakSet<object>()
-const linkedListSources = new WeakMap<object, object>()
+import type { LinkedList, LLChanges, LLNode } from './reatomLinkedList'
+
+const LL_SOURCE = Symbol('Reatom linked list source')
+const LL_BATCHING = Symbol('Reatom linked list batching')
+type Flags = { [LL_SOURCE]?: Flags; [LL_BATCHING]?: boolean }
 
 /**
- * Versions restart when a list is replaced and continue through a clear, so a
- * version alone cannot tell the next commit from another era. Every state
- * carries its epoch: `changes` describe the step from a remembered state only
- * for the same epoch and the next version.
+ * The version the `changes` of a state apply to. Versions are unique across
+ * every list, so a replaced list never continues a remembered one.
  */
-export const LL_EPOCH = Symbol('Reatom linked list epoch')
+export const LL_BASE = Symbol('Reatom linked list base')
 
-export const epochOf = (state: object): object =>
-  (state as { [LL_EPOCH]: object })[LL_EPOCH]
+let versionCount = 0
+export const nextVersion = () => ++versionCount
+
+const NO_CHANGES: readonly never[] = Object.freeze([])
 
 /**
- * Whether `next` is `previous` with nodes added at the end, so every node of
- * `previous` keeps its index. A replaced list restarts its versions, so the
- * epoch has to match as well.
+ * The changes that turn the state of `version` into `next`: none for the same
+ * state, `null` when `next` does not continue it, so the consumer rebuilds from
+ * the current links.
  */
-export const isAppendOnlyUpdate = (
-  previous: { version: number },
-  next: { version: number; changes: ReadonlyArray<{ kind: string }> },
-): boolean =>
-  epochOf(next) === epochOf(previous) &&
-  next.version === previous.version + 1 &&
-  next.changes.every(({ kind }) => kind === 'create' || kind === 'createMany')
+export const changesSince = <Node extends LLNode>(
+  version: undefined | number,
+  next: LinkedList<Node>,
+): null | ReadonlyArray<LLChanges<Node>> =>
+  version === next.version
+    ? NO_CHANGES
+    : version !== undefined &&
+        (next as { [LL_BASE]?: number })[LL_BASE] === version
+      ? next.changes
+      : null
+
+/** Whether `next` is `previous` with nodes added after its tail. */
+export const isAppendOnly = (
+  previous: LinkedList,
+  next: LinkedList,
+): boolean => {
+  const changes = changesSince(previous.version, next)
+  if (!changes) return false
+  let tail = previous.tail
+  for (const change of changes) {
+    if (change.kind !== 'insert' || change.after !== tail) return false
+    tail = change.nodes[change.nodes.length - 1]!
+  }
+  return true
+}
 
 export const registerLinkedListSource = (list: object, source: object) => {
-  linkedListSources.set(list, source)
+  ;(list as Flags)[LL_SOURCE] = source as Flags
 }
 
-export const startLinkedListBatching = (list: object) => {
-  batchingLinkedLists.add(list)
-}
-
-export const endLinkedListBatching = (list: object) => {
-  batchingLinkedLists.delete(list)
+export const setLinkedListBatching = (list: object, isBatching: boolean) => {
+  ;(list as Flags)[LL_BATCHING] = isBatching
 }
 
 export const isLinkedListBatching = (list: object): boolean => {
-  const source = linkedListSources.get(list)
-  return (
-    batchingLinkedLists.has(list) || !!(source && isLinkedListBatching(source))
-  )
+  for (let it: undefined | Flags = list as Flags; it; it = it[LL_SOURCE])
+    if (it[LL_BATCHING]) return true
+  return false
 }

@@ -1,5 +1,6 @@
 import {
   atom,
+  type Atom,
   clearStack,
   computed,
   context,
@@ -9,7 +10,7 @@ import {
   withInit,
   wrap,
 } from '@reatom/core'
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 
 // eslint-disable-next-line unused-imports/no-unused-imports
 import { DEBUG, h, hf, instance, mount } from '.'
@@ -135,7 +136,7 @@ test('linked list render keeps changes payload for sibling subscribers', () =>
     const seen: number[] = []
     const unsubscribe = list.subscribe((state) => {
       for (const change of state.changes) {
-        if (change.kind === 'createMany') {
+        if (change.kind === 'insert') {
           for (const node of change.nodes) {
             seen.push(Number(node.textContent))
           }
@@ -378,7 +379,7 @@ test('linked list replaced before any other change', () =>
       '<span>1</span><span>2</span>',
     )
 
-    // The new state restarts the versions: it has the version of the old one.
+    // A new state does not continue the rendered one: the rows are rebuilt.
     list.set(list.initiateFromState([<span>3</span>]))
     await wrap(sleep())
     expect(stripJsxCompilerProps(container.innerHTML)).toBe('<span>3</span>')
@@ -388,4 +389,49 @@ test('linked list replaced before any other change', () =>
     expect(stripJsxCompilerProps(container.innerHTML)).toBe(
       '<span>4</span><span>5</span>',
     )
+  }))
+
+test('a row shown again through a filter is the same live element', () =>
+  context.start(async () => {
+    const list = reatomLinkedList((label: string) => ({ label: atom(label) }))
+    const isHidden = atom(false, 'isHidden')
+    const visible = list.reatomFilter(
+      computed(() => {
+        const hidden = isHidden()
+        return (row: { label: Atom<string> }) => !hidden
+      }, 'predicate'),
+    )
+    let clicks = 0
+    const render = vi.fn((row: { label: Atom<string> }) => (
+      <p on:click={() => clicks++}>{row.label}</p>
+    ))
+    const rows = visible.reatomMap(render)
+    const [a] = list.createMany([['a']])
+    const host = parent()
+    const element = <div>{rows}</div>
+    mount(host, element)
+    await wrap(sleep())
+    const first = element.querySelector('p')!
+
+    isHidden.set(true)
+    await wrap(sleep())
+    expect(element.querySelector('p')).toBe(null)
+    // Hidden: suspended, so its listener is inert.
+    first.dispatchEvent(new MouseEvent('click'))
+    expect(clicks).toBe(0)
+    // An update while hidden shows up once the row is shown again.
+    a!.label.set('hidden')
+    isHidden.set(false)
+    await wrap(sleep())
+
+    const shown = element.querySelector('p')!
+    expect(shown).toBe(first)
+    expect(render).toHaveBeenCalledTimes(1)
+    expect(shown.textContent).toBe('hidden')
+    a!.label.set('A!')
+    await wrap(sleep())
+    expect(shown.textContent).toBe('A!')
+    shown.dispatchEvent(new MouseEvent('click'))
+    expect(clicks).toBe(1)
+    element.remove()
   }))

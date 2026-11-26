@@ -39,12 +39,14 @@ export let peek = <Params extends any[], Result>(
   cb: (...params: Params) => Result,
   ...params: Params
 ): Result => {
-  let frame = top()
-  let { linking } = frame.atom.__reatom
+  let meta = top().atom.__reatom
+  let { linking } = meta
+  // Already untracked, e.g. a nested `peek`: nothing to switch or restore.
+  if (!linking) return cb(...params)
   try {
-    frame.atom.__reatom.linking = false
+    meta.linking = false
     return cb(...params)
   } finally {
-    frame.atom.__reatom.linking = linking
+    meta.linking = linking
   }
 }
