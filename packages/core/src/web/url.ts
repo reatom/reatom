@@ -144,6 +144,7 @@ const initUrlAtom = (): UrlAtom =>
 
             if (
               link &&
+              !event.defaultPrevented && // Not handled by the app
               event.button === 0 && // Left mouse button
               link.target !== '_blank' && // Not for new tab
               link.origin === window.location.origin && // Not external link
@@ -158,14 +159,18 @@ const initUrlAtom = (): UrlAtom =>
               event.preventDefault()
 
               let previousHash = window.location.hash
-              let { hash, href } = urlAtom.syncFromSource(new URL(link.href))
-              history.pushState({}, '', href)
+              // Not `set`: it skips `sync` for the current URL, and a link to
+              // the current URL still pushes an entry.
+              urlAtom.sync()(urlAtom.syncFromSource(new URL(link.href)), false)
 
-              if (previousHash !== hash) {
-                _enqueue(() => {
+              // `pushState` fires no `hashchange`. Dispatch it after the write:
+              // `sync` may defer the write, the default one by `setTimeout(0)`,
+              // which runs before this one.
+              setTimeout(() => {
+                if (window.location.hash !== previousHash) {
                   window.dispatchEvent(new HashChangeEvent('hashchange'))
-                }, 'effect')
-              }
+                }
+              }, 0)
             }
           })
 
