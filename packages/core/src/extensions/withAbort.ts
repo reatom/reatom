@@ -17,6 +17,19 @@ let abortControllers = (
 ) =>
   activeControllers.splice(0).forEach((controller) => controller.abort(reason))
 
+function cleanupAbortSubscription(
+  stateRef: WeakRef<{
+    count: number
+    activeControllers: Array<AbortController>
+    controller: AbortController
+  }>,
+) {
+  const state = stateRef.deref()
+  if (state && --state.count === 0) {
+    removeItem(state.activeControllers, state.controller)
+  }
+}
+
 /**
  * Extension to add abort handling to actions and computed atoms.
  *
@@ -95,7 +108,11 @@ export let withAbort =
       let thisController = abortVar.set(
         new ReatomAbortController(`${target.name}.withAbort`),
       )
-      let subscriptions = 0
+      let subscriptions = {
+        count: 0,
+        activeControllers,
+        controller: thisController,
+      }
 
       // TODO: remove monkey patching
       {
@@ -105,12 +122,14 @@ export let withAbort =
           addEventListener.call(thisController.signal, type, listener, options)
           // abortVar.subscribe
           if (options instanceof AbortController) {
-            subscriptions++
-            options.signal.addEventListener('abort', () => {
-              if (--subscriptions === 0) {
-                removeItem(activeControllers, thisController)
-              }
-            })
+            subscriptions.count++
+            options.signal.addEventListener(
+              'abort',
+              cleanupAbortSubscription.bind(
+                undefined,
+                new WeakRef(subscriptions),
+              ),
+            )
           }
         }
       }
@@ -174,14 +193,14 @@ export let withAbort =
             })
             let value = await maybePromise
 
-            if (subscriptions === 0)
+            if (subscriptions.count === 0)
               removeItem(activeControllers, thisController)
 
             throwIfAborted(abortSubscription.controller)
             abortSubscription.unsubscribe()
             res(value)
           } catch (error) {
-            if (subscriptions === 0)
+            if (subscriptions.count === 0)
               removeItem(activeControllers, thisController)
 
             if (isAbort(error)) {
@@ -204,9 +223,9 @@ export let withAbort =
           state.at(-1)!.payload = wrappedPromise
         }
       } else {
-        if (subscriptions === 0) {
+        if (subscriptions.count === 0) {
           _enqueue(() => {
-            if (subscriptions === 0)
+            if (subscriptions.count === 0)
               removeItem(activeControllers, thisController)
           }, 'effect')
         }
