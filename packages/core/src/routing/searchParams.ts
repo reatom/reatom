@@ -6,6 +6,7 @@ import {
   atom,
   computed,
   named,
+  ReatomError,
   top,
   withActions,
 } from '../core'
@@ -13,6 +14,7 @@ import { withChangeHook, withComputed, withInit } from '../extensions'
 import { ifChanged, peek } from '../methods'
 import { _getPrevFrame } from '../methods/context'
 import { urlAtom } from '../web/url'
+import { createPathSegments, matchPath } from './path'
 
 /** Interface for the search parameters atom. */
 export interface SearchParamsAtom extends Computed<Record<string, string>> {
@@ -55,6 +57,11 @@ export interface SearchParamsAtom extends Computed<Record<string, string>> {
    *   should be replaced (default: false)
    * @param options.path Optional path to limit the scope of synchronization to
    *   specific URL paths
+   * @param options.route Optional route to limit the scope of synchronization
+   *   to the pathnames matching the route's path pattern (the route itself and
+   *   nested routes). Unlike `path`, it includes everything the route's
+   *   ancestors add to the pattern, such as a deploy base. Can't be used
+   *   together with `path`.
    * @param options.name Optional name of the created atom
    */
   lens<T = string>(
@@ -64,9 +71,15 @@ export interface SearchParamsAtom extends Computed<Record<string, string>> {
       serialize?: (value: T) => undefined | string
       replace?: boolean
       path?: string
+      route?: SearchParamsRoute
       name?: string
     },
   ): Atom<T>
+}
+
+/** A route (or any object with a path pattern) to scope a search param to. */
+export interface SearchParamsRoute {
+  pattern: string
 }
 
 const isSubpath = (currentPath: string, targetPath: string) =>
@@ -141,6 +154,11 @@ export function withSearchParams<T = string>(
  *   be replaced (default: false)
  * @param options.path Optional path to limit the scope of synchronization to
  *   specific URL paths
+ * @param options.route Optional route to limit the scope of synchronization to
+ *   the pathnames matching the route's path pattern (the route itself and
+ *   nested routes). Unlike `path`, it includes everything the route's ancestors
+ *   add to the pattern, such as a deploy base. Can't be used together with
+ *   `path`.
  * @param options.name Optional name of the created atom
  */
 export function withSearchParams<T = string>(
@@ -150,6 +168,7 @@ export function withSearchParams<T = string>(
     serialize?: (value: T) => undefined | string
     replace?: boolean
     path?: string
+    route?: SearchParamsRoute
   },
 ): <Target extends Atom<T>>(target: Target) => Target
 
@@ -162,6 +181,7 @@ export function withSearchParams<T = string>(
         serialize?: (value: T) => undefined | string
         replace?: boolean
         path?: string
+        route?: SearchParamsRoute
       },
 ) {
   let {
@@ -169,12 +189,27 @@ export function withSearchParams<T = string>(
     serialize = (value: T) => String(value) as string,
     replace = false,
     path = '',
+    route,
   } = typeof options === 'function' ? { parse: options } : (options ?? {})
+
+  if (route && path) {
+    throw new ReatomError(
+      'withSearchParams: the "path" and "route" options are mutually exclusive',
+    )
+  }
 
   const pathEnd = path[path.length - 1]
   if (path && pathEnd !== '/' && pathEnd !== '*') {
     path += '/'
   }
+
+  const routeSegments = route && createPathSegments(route.pattern)
+  // an unscoped atom: no `path` and no `route`, or a route of the root
+  const unscoped = routeSegments ? routeSegments.length === 0 : path === ''
+  const isInScope = (pathname: string) =>
+    routeSegments
+      ? matchPath(routeSegments, pathname, false) !== null
+      : isSubpath(pathname, path)
 
   return <Target extends Atom<T>>(target: Target): Target => {
     let initKey = {}
@@ -186,7 +221,7 @@ export function withSearchParams<T = string>(
 
         top().root.inits.set(initKey, state)
 
-        return key in sp && isSubpath(currentPath, path)
+        return key in sp && isInScope(currentPath)
           ? (parse(sp[key]) as AtomState<Target>)
           : state
       }),
@@ -203,8 +238,8 @@ export function withSearchParams<T = string>(
             let prevUrlFrame = prevSearchParamsFrame.pubs[1]!
             const prevUrl = prevUrlFrame.state as URL
 
-            if (!isSubpath(currentPath, path)) {
-              if (key in prev && isSubpath(prevUrl.pathname, path)) {
+            if (!isInScope(currentPath)) {
+              if (key in prev && isInScope(prevUrl.pathname)) {
                 state = frame.root.inits.get(initKey)
               }
               return
@@ -214,7 +249,7 @@ export function withSearchParams<T = string>(
               if (next[key] !== prev[key])
                 state = parse(next[key]) as AtomState<Target>
             } else {
-              if (path === '' && currentPath !== prevUrl.pathname) {
+              if (unscoped && currentPath !== prevUrl.pathname) {
                 state = frame.root.inits.get(initKey)
                 return
               }
@@ -243,7 +278,7 @@ export function withSearchParams<T = string>(
         if (
           frame === _read(target) &&
           frame.pubs[1]?.state === prevFrame?.pubs[1]?.state &&
-          isSubpath(urlAtom().pathname, path)
+          isInScope(urlAtom().pathname)
         ) {
           const value = serialize(state)
           _enqueue(() => {

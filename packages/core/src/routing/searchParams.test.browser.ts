@@ -7,6 +7,7 @@ import { reatomBoolean } from '../primitives/reatomBoolean'
 import { sleep } from '../utils'
 import { onEvent } from '../web/onEvent'
 import { urlAtom } from '../web/url'
+import { reatomRoute } from './route'
 import { searchParamsAtom, withSearchParams } from './searchParams'
 
 beforeEach(() => {
@@ -297,4 +298,101 @@ test('inactive subpath should not affect mutated atoms', async () => {
   expect(testAtom()).toBe(123)
   expect(urlAtom().pathname).toBe('/other')
   expect(urlAtom().search).toBe('?test=3')
+})
+
+test('route scope accounts for the base of an ancestor route', async () => {
+  const baseRoute = reatomRoute({ path: 'base/path', layout: true })
+  const articlesRoute = baseRoute.reatomRoute('articles')
+
+  const queryAtom = atom('', 'query').extend(
+    withSearchParams('q', { route: articlesRoute, replace: true }),
+  )
+  queryAtom.subscribe()
+
+  urlAtom.go('/base/path/articles?q=init')
+  await wrap(sleep())
+  expect(queryAtom()).toBe('init')
+
+  queryAtom.set('next')
+  await wrap(sleep())
+  expect(urlAtom().search).toBe('?q=next')
+
+  // nested routes are matched too
+  urlAtom.go('/base/path/articles/123')
+  await wrap(sleep())
+  expect(urlAtom().search).toBe('?q=next')
+  expect(queryAtom()).toBe('next')
+
+  // out of the route scope the param is reset and not synced
+  urlAtom.go('/base/path/about')
+  await wrap(sleep())
+  expect(queryAtom()).toBe('')
+
+  queryAtom.set('other')
+  await wrap(sleep())
+  expect(queryAtom()).toBe('other')
+  expect(urlAtom().search).toBe('')
+
+  // a literal path doesn't know about the base
+  const literalAtom = atom('', 'literal').extend(
+    withSearchParams('lq', { path: '/articles/*' }),
+  )
+  literalAtom.subscribe()
+  urlAtom.go('/base/path/articles?lq=1')
+  await wrap(sleep())
+  expect(literalAtom()).toBe('')
+})
+
+test('route scope with path params', async () => {
+  const userRoute = reatomRoute('users/:userId')
+
+  const tabAtom = atom('info', 'tab').extend(
+    withSearchParams('tab', { route: userRoute }),
+  )
+  tabAtom.subscribe()
+
+  urlAtom.go('/users/1?tab=posts')
+  await wrap(sleep())
+  expect(tabAtom()).toBe('posts')
+
+  tabAtom.set('likes')
+  await wrap(sleep())
+  expect(urlAtom().search).toBe('?tab=likes')
+
+  urlAtom.go('/users')
+  await wrap(sleep())
+  expect(tabAtom()).toBe('info')
+
+  tabAtom.set('likes')
+  await wrap(sleep())
+  expect(urlAtom().search).toBe('')
+
+  urlAtom.go('/users/2?tab=posts')
+  await wrap(sleep())
+  expect(tabAtom()).toBe('posts')
+})
+
+test('lens with a route', async () => {
+  const articlesRoute = reatomRoute('articles')
+  const pageAtom = searchParamsAtom.lens('page', {
+    parse: (value = '1') => Number(value),
+    route: articlesRoute,
+  })
+  pageAtom.subscribe()
+
+  urlAtom.go('/articles?page=3')
+  await wrap(sleep())
+  expect(pageAtom()).toBe(3)
+
+  urlAtom.go('/other?page=5')
+  await wrap(sleep())
+  expect(pageAtom()).toBe(1)
+})
+
+test('route and path scopes are mutually exclusive', () => {
+  const articlesRoute = reatomRoute('articles')
+
+  expect(() =>
+    withSearchParams('q', { route: articlesRoute, path: '/articles' }),
+  ).toThrow('mutually exclusive')
 })
